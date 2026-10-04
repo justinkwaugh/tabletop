@@ -8,9 +8,7 @@ import {
 export type RefillChoice = { end: QueueEnd; count: number }
 
 export type QueuePawnChoice =
-    | { kind: 'choice'; choice: RefillChoice }
-    | { kind: 'ambiguous' }
-    | { kind: 'none' }
+    { kind: 'choice'; choice: RefillChoice } | { kind: 'ambiguous' } | { kind: 'none' }
 
 const FifthPawn = MaxVisitorsBroughtIn + 1
 
@@ -53,4 +51,18 @@ export function queuePawnChoices(queueLength: number): QueuePawnChoice[] {
     return withFifth.some((choice) => choice.kind === 'ambiguous')
         ? indices.map((index) => pawnChoice(index, queueLength, false))
         : withFifth
+}
+
+export enum RefillNote {
+    QueueTooShort = 'queueTooShort',
+    ChooseEntrance = 'chooseEntrance'
+}
+
+// The warning answers the pawn just clicked, so it wins over the standing prompt.
+export function refillNote(
+    queueTooShort: boolean,
+    entrancesReady: boolean
+): RefillNote | undefined {
+    if (queueTooShort) return RefillNote.QueueTooShort
+    return entrancesReady ? RefillNote.ChooseEntrance : undefined
 }

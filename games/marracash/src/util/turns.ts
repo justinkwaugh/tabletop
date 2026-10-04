@@ -19,6 +19,11 @@ export function stateAfterTurnAction(
     return MachineState.ConfirmingTurn
 }
 
+// An auction leaves no one active, so the turn's later steps restore the turn player.
+export function activateTurnPlayer(gameState: HydratedMarracashGameState) {
+    gameState.activePlayerIds = [gameState.turnPlayerId()]
+}
+
 export function finishTurn(gameState: HydratedMarracashGameState): MachineState {
     return gameState.finishTurn().gameOver ? MachineState.EndOfGame : MachineState.ChoosingAction
 }

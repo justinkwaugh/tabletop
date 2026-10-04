@@ -2,8 +2,13 @@
     import { QueueEnd } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import UndoButton from '$lib/components/UndoButton.svelte'
+    import { refillNote, RefillNote } from '$lib/utils/queueChoices.js'
 
     const gameSession = getGameSession()
+
+    let note = $derived(
+        refillNote(gameSession.showQueueTooShort, gameSession.fillableEntranceIds.length > 0)
+    )
 
     function choiceClass(selected: boolean): string {
         return selected ? 'bg-[#8a6a46] text-white hover:bg-[#765a3b]' : 'hover:bg-[#8a6a46]/15'
@@ -49,12 +54,12 @@
     </div>
     <!-- One reserved line, so the board below never shifts as this message changes -->
     <div class="min-h-5 text-sm">
-        {#if gameSession.showQueueTooShort}
+        {#if note === RefillNote.QueueTooShort}
             <p role="alert" class="text-[#9b2c2c]">
                 <span class="font-semibold">Queue is too short.</span> Please use the buttons above to
                 make your selection.
             </p>
-        {:else if gameSession.fillableEntranceIds.length > 0}
+        {:else if note === RefillNote.ChooseEntrance}
             <p>Choose a highlighted entrance to place them.</p>
         {/if}
     </div>

@@ -11,10 +11,14 @@
     let shopId = $derived(gameSession.gameState.auctionShopId)
     let shop = $derived(shopId ? getShop(shopId) : undefined)
     let amount = $state(gameSession.myMinimumBid())
-    let clampedAmount = $derived(Math.min(Math.max(amount, minimumBid), myMoney))
+    let clampedAmount = $derived(withinBidLimits(amount))
+
+    function withinBidLimits(bid: number): number {
+        return Math.min(Math.max(bid, minimumBid), myMoney)
+    }
 
     function change(step: number): boolean {
-        const next = Math.min(Math.max(clampedAmount + step, minimumBid), myMoney)
+        const next = withinBidLimits(clampedAmount + step)
         if (next === clampedAmount) return false
         amount = next
         return true

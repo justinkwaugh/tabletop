@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onDestroy } from 'svelte'
+    import { hoverOrTap } from '$lib/utils/hoverOrTap.js'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
@@ -55,16 +56,10 @@
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
-                    onpointerenter={(event) =>
-                        event.pointerType !== 'touch' && gameSession.highlightHistory(action)}
-                    onpointerleave={(event) =>
-                        event.pointerType !== 'touch' && gameSession.highlightHistory(undefined)}
-                    onclick={() =>
-                        gameSession.usesTouch && gameSession.toggleHistoryHighlight(action)}
-                    onkeydown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return
-                        event.preventDefault()
-                        gameSession.toggleHistoryHighlight(action)
+                    use:hoverOrTap={{
+                        hover: (active) =>
+                            gameSession.highlightHistory(active ? action : undefined),
+                        tap: () => gameSession.toggleHistoryHighlight(action)
                     }}
                 >
                     <div

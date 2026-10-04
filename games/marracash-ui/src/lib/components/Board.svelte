@@ -109,13 +109,13 @@
         return undefined
     }
 
-    function chooseFountain(fountainId: FountainId) {
+    function chooseFountain(fountainId: FountainId, byTouch: boolean) {
         if (gameSession.fillableEntranceIds.includes(fountainId)) {
             void gameSession.bringVisitorsTo(fountainId)
         } else if (gameSession.selectedFountainId === fountainId) {
             gameSession.back()
         } else if (gameSession.destinationFountainIds.includes(fountainId)) {
-            if (gameSession.usesTouch) gameSession.previewDestination(fountainId)
+            if (byTouch) gameSession.previewDestination(fountainId)
             else void gameSession.moveVisitorsTo(fountainId)
         } else {
             gameSession.selectFountain(fountainId)
@@ -138,7 +138,7 @@
         selected={isSource}
         destination={previewRoute?.to === fountain.fountainId}
         label={fountainLabel(fountain.fountainId, isSource, isDestination)}
-        onselect={() => chooseFountain(fountain.fountainId)}
+        onselect={(byTouch) => chooseFountain(fountain.fountainId, byTouch)}
         onpreview={isDestination
             ? (previewing) => previewDestination(fountain.fountainId, previewing)
             : undefined}

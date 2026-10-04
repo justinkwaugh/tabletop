@@ -11,6 +11,7 @@
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
     import PawnIcon from '$lib/components/PawnIcon.svelte'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
+    import { hoverOrTap } from '$lib/utils/hoverOrTap.js'
     import {
         completedSetLabel,
         missingAntiquesSummary,
@@ -75,18 +76,12 @@
                 class="flex items-center gap-0.5"
                 class:opacity-35={customers[color] === 0}
                 aria-label="{customers[color]} {color} customers"
-                onpointerenter={(event) =>
-                    event.pointerType !== 'touch' &&
-                    gameSession.highlightCustomers({ playerId: player.id, color })}
-                onpointerleave={(event) =>
-                    event.pointerType !== 'touch' && gameSession.highlightCustomers(undefined)}
-                onclick={() =>
-                    gameSession.usesTouch &&
-                    gameSession.toggleCustomerHighlight({ playerId: player.id, color })}
-                onkeydown={(event) => {
-                    if (event.key !== 'Enter' && event.key !== ' ') return
-                    event.preventDefault()
-                    gameSession.toggleCustomerHighlight({ playerId: player.id, color })
+                use:hoverOrTap={{
+                    hover: (active) =>
+                        gameSession.highlightCustomers(
+                            active ? { playerId: player.id, color } : undefined
+                        ),
+                    tap: () => gameSession.toggleCustomerHighlight({ playerId: player.id, color })
                 }}
             >
                 <PawnIcon {color} height={CounterPawnHeight} />

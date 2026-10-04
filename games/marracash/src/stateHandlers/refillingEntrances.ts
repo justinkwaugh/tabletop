@@ -4,6 +4,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedBringVisitors, isBringVisitors } from '../actions/bringVisitors.js'
 import { queueTurnCommit } from '../util/automaticActions.js'
+import { activateTurnPlayer } from '../util/turns.js'
 
 type RefillingEntrancesAction = HydratedBringVisitors
 
@@ -32,9 +33,8 @@ export class RefillingEntrancesStateHandler implements MachineStateHandler<
             : []
     }
 
-    // An auction leaves no one active, so the turn player is restored on entry.
     enter(context: MachineContext<HydratedMarracashGameState>) {
-        context.gameState.activePlayerIds = [context.gameState.turnPlayerId()]
+        activateTurnPlayer(context.gameState)
     }
 
     onAction(

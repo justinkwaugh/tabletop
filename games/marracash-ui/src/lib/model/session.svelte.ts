@@ -75,8 +75,13 @@ export class MarracashGameSession extends GameSession<
     private readonly touchQuery = new MediaQuery('(hover: none)')
     readonly usesTouch = $derived(this.touchQuery.current)
 
-    historyHighlight: HistoryHighlight | undefined = $state(undefined)
-    highlightedHistoryActionId: string | undefined = $state(undefined)
+    private highlightedHistoryAction: GameAction | undefined = $state.raw(undefined)
+    readonly highlightedHistoryActionId = $derived(this.highlightedHistoryAction?.id)
+    readonly historyHighlight: HistoryHighlight | undefined = $derived(
+        this.highlightedHistoryAction === undefined
+            ? undefined
+            : historyHighlightFor(this.highlightedHistoryAction)
+    )
     customerHighlight: CustomerHighlight | undefined = $state(undefined)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
@@ -250,12 +255,12 @@ export class MarracashGameSession extends GameSession<
     }
 
     highlightHistory(action: GameAction | undefined) {
-        this.highlightedHistoryActionId = action?.id
-        this.historyHighlight = action === undefined ? undefined : historyHighlightFor(action)
+        this.highlightedHistoryAction = action
     }
 
     toggleHistoryHighlight(action: GameAction) {
-        this.highlightHistory(this.highlightedHistoryActionId === action.id ? undefined : action)
+        this.highlightedHistoryAction =
+            this.highlightedHistoryActionId === action.id ? undefined : action
     }
 
     highlightCustomers(highlight: CustomerHighlight | undefined) {

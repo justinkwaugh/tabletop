@@ -11,7 +11,7 @@ import { HydratedConfirmTurn, isConfirmTurn } from '../actions/confirmTurn.js'
 import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { queueTurnCommit } from '../util/automaticActions.js'
-import { finishTurn } from '../util/turns.js'
+import { activateTurnPlayer, finishTurn } from '../util/turns.js'
 
 type ConfirmingTurnAction = HydratedConfirmTurn | HydratedCompleteAntiqueSet | HydratedEndTurn
 
@@ -43,9 +43,8 @@ export class ConfirmingTurnStateHandler implements MachineStateHandler<
         return context.gameState.activePlayerIds.includes(playerId) ? [ActionType.ConfirmTurn] : []
     }
 
-    // An auction leaves no one active, so the turn player is restored on entry.
     enter(context: MachineContext<HydratedMarracashGameState>) {
-        context.gameState.activePlayerIds = [context.gameState.turnPlayerId()]
+        activateTurnPlayer(context.gameState)
     }
 
     onAction(

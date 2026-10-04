@@ -77,4 +77,19 @@ describe('MarraCash staged selection', () => {
         expect(selection.fountain).toBeUndefined()
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
+
+    it('clears a previewed destination when another fountain is chosen, and backs out of it first', () => {
+        let selection: MarracashSelection = {}
+        selection = setMarracashSelection(selection, 'fountain', 3)
+        selection = setMarracashSelection(selection, 'destination', 5)
+
+        selection = popMarracashSelection(selection)
+        expect(selection.fountain?.value).toBe(3)
+        expect(selection.destination).toBeUndefined()
+
+        selection = setMarracashSelection(selection, 'destination', 1)
+        selection = setMarracashSelection(selection, 'fountain', 9)
+        expect(selection.fountain?.value).toBe(9)
+        expect(selection.destination).toBeUndefined()
+    })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { QueueEnd } from '@tabletop/marracash'
-import { queuePawnChoices, type QueuePawnChoice } from './queueChoices.js'
+import { queuePawnChoices, type QueuePawnChoice, refillNote, RefillNote } from './queueChoices.js'
 
 const { Front, Back } = QueueEnd
 
@@ -60,5 +60,11 @@ describe('MarraCash queue pawn choices', () => {
     it('takes the whole queue from the front when both ends bring the same pawns', () => {
         expect(queuePawnChoices(2)).toEqual([choice(Front, 2), choice(Front, 2)])
         expect(queuePawnChoices(1)).toEqual([choice(Front, 1)])
+    })
+
+    it('shows the short-queue warning even after a refill choice is ready', () => {
+        expect(refillNote(true, true)).toBe(RefillNote.QueueTooShort)
+        expect(refillNote(false, true)).toBe(RefillNote.ChooseEntrance)
+        expect(refillNote(false, false)).toBeUndefined()
     })
 })

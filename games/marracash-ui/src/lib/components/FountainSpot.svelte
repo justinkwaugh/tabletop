@@ -47,7 +47,7 @@
         selected: boolean
         destination?: boolean
         label?: string
-        onselect: () => void
+        onselect: (byTouch: boolean) => void
         onpreview?: (previewing: boolean) => void
     } = $props()
 
@@ -56,6 +56,8 @@
     let outline = $derived(definition.entrance ? eightPointedStar : octagon)
     let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
     const gameSession = getGameSession()
+
+    let lastPointerType = 'mouse'
 
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
@@ -214,10 +216,10 @@
         onpointerleave={() => onpreview?.(false)}
         onfocus={() => onpreview?.(true)}
         onblur={() => onpreview?.(false)}
-        onclick={() => onselect()}
-        onkeydown={(event) => event.key === 'Enter' && onselect()}
+        onpointerdown={(event) => (lastPointerType = event.pointerType)}
+        onclick={() => onselect(lastPointerType === 'touch')}
+        onkeydown={(event) => event.key === 'Enter' && onselect(false)}
     >
-        <!-- The whole cell is tappable, a larger target than the basin on small screens -->
         <rect
             x={center.x - CellSize / 2}
             y={center.y - CellSize / 2}

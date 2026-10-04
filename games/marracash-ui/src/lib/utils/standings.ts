@@ -1,8 +1,9 @@
-export type Standing = { playerId: string; money: number; rank: number }
+export type FinalCash = { playerId: string; money: number }
+export type Standing = FinalCash & { rank: number }
 
 // Equal cash shares a rank and the next rank skips (1, 1, 3); ties list in seating order.
 export function finalStandings(
-    players: readonly { playerId: string; money: number }[],
+    players: readonly FinalCash[],
     seatingOrder: readonly string[]
 ): Standing[] {
     const sorted = players.toSorted(
