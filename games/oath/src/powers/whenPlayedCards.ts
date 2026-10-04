@@ -209,7 +209,7 @@ registerEffect(
             // Ring of Devotion: "You cannot place warbands at sites" (R-9.2).
             if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
                 return {
-                    summary: `gained ${gained} warbands; placed none — you cannot place warbands at sites`
+                    summary: `gained ${gained} warbands; placed none — ${ctx.playerId} cannot place warbands at sites`
                 }
             }
             let placed = 0
@@ -244,7 +244,7 @@ registerEffect(
                 taken += takeFavorFromPlayer(ctx.state, ctx.playerId, p.playerId, 2)
             }
             return {
-                summary: `taxed ${taken} favor from players at your ruled sites in the region`
+                summary: `taxed ${taken} favor from players at ${ctx.playerId}'s ruled sites in the region`
             }
         }
     }

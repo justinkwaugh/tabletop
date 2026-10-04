@@ -42,7 +42,7 @@ describe('seat advisers', () => {
 
 /** R-9.4 — built from full canonical state, as Host View and hotseat hold it. */
 describe('a let-peek on a client holding the whole state', () => {
-    const nameOf = { player: (playerId: string) => playerId, site: slotLabel }
+    const nameOf = { player: (playerId: string) => playerId, site: slotLabel, seats: ['p1', 'p2', 'p3'] }
 
     function shown() {
         const state = testState([

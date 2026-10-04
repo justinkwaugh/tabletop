@@ -20,6 +20,7 @@ import {
     spaceKey,
     type Allowance,
     type CityPlacementPlan,
+    type HydratedBoard,
     type HydratedMagnaGreciaGameState,
     type MagnaGreciaProjectedState,
     type Place,
@@ -27,6 +28,8 @@ import {
     type RoadEnds,
     type SpaceKey
 } from '@tabletop/magna-grecia'
+import { CityFlowAnimator, type CityFlow } from '$lib/animators/cityFlowAnimator.js'
+import { PiecesAnimator, type PieceArrivals } from '$lib/animators/piecesAnimator.js'
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 import { BuildTool } from './buildTool.js'
 import {
@@ -72,6 +75,38 @@ export class MagnaGreciaGameSession extends GameSession<
     private draft: TurnDraft = $state(emptyDraft())
     flipPlayerOrder = $state(false)
     private stateChangeAnimated = false
+
+    // The pieces layer draws this board. Each animated transition sets it to the board it ended
+    // on, so a full-action replay keeps every placed piece until the reactive state catches up.
+    pieceBoard: HydratedBoard = $derived(this.gameState.board)
+
+    // The city flow playing now, drawn in place of the cities it reshapes.
+    cityFlow: CityFlow | undefined = $state()
+
+    cityFlowAnimator = new CityFlowAnimator({
+        show: (flow) => {
+            this.cityFlow = flow
+        },
+        clear: () => {
+            this.cityFlow = undefined
+        }
+    })
+
+    // Roads, markets and oracles moving now; arriving pieces are drawn before the state swap.
+    pieceArrivals: PieceArrivals | undefined = $state()
+
+    piecesAnimator = new PiecesAnimator({
+        colorOf: (playerId) => this.colors.getPlayerUiColor(playerId),
+        showArrivals: (arrivals) => {
+            this.pieceArrivals = arrivals
+        },
+        clearArrivals: () => {
+            this.pieceArrivals = undefined
+        }
+    })
+
+    // The board's targets and previews step aside while placed pieces settle.
+    boardAnimating = $derived(this.cityFlow !== undefined || this.pieceArrivals !== undefined)
 
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
@@ -357,6 +392,8 @@ export class MagnaGreciaGameSession extends GameSession<
     }
 
     override async onGameStateChange({
+        to,
+        from,
         action,
         animationContext
     }: {
@@ -366,10 +403,17 @@ export class MagnaGreciaGameSession extends GameSession<
         animationContext: AnimationContext
     }) {
         this.stateChangeAnimated = true
-        if (!action || this.processingActions || this.isExploring) {
-            return
+        animationContext.afterAnimations(() => {
+            this.pieceBoard = to.board
+        })
+        const animations = [
+            this.cityFlowAnimator.onGameStateChange({ to, from, action, animationContext }),
+            this.piecesAnimator.onGameStateChange({ to, from, action, animationContext })
+        ]
+        if (action && !this.processingActions && !this.isExploring) {
+            animationContext.ensureDuration(0.5)
         }
-        animationContext.ensureDuration(0.5)
+        await Promise.all(animations)
     }
 
     async placeRoad(coords: AxialCoordinates, ends: RoadEnds) {

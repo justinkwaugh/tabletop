@@ -5,16 +5,20 @@ import {
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    EndActPhase,
     IMPERIAL_WARBANDS,
     LetPeek,
     LetPeekSubjectKind,
     MachineState,
     MoveWarbands,
+    OathRevision,
     OathType,
     PlayerStatus,
     PowerQuestionKind,
     Region,
+    Search,
     SearchPlay,
+    SearchSource,
     SetupChoice,
     Suit,
     TOP_CRADLE_SLOT,
@@ -64,6 +68,8 @@ export type TableName =
     | 'imperialDefeated'
     | 'visionBacks'
     | 'restBanks'
+    | 'restTurnFlow'
+    | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
     | 'goalsRailProtection'
@@ -77,6 +83,7 @@ export type TableName =
     | 'cardOpensSearch'
     | 'cardChangesSearch'
     | 'cardsOpenTravel'
+    | 'majorEvents'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -200,6 +207,74 @@ function restBanksTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-4.3.5, R-4.3-H1: the turn-flow Rest with Vow of Obedience and Insomnia, the Discord bank empty. */
+function restTurnFlowTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                advisers: [
+                    { cardId: 'denizen.order.vow-of-obedience', faceUp: true },
+                    { cardId: 'denizen.discord.insomnia', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        {
+            machineState: MachineState.RestPhase,
+            chancellorPlayerId: 'ann',
+            oathRevision: OathRevision.TurnFlow,
+            favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-3.3, R-3.3-H1: the last seat of round six ends its Act Phase while the Chancellor holds the title. */
+function endOfRoundTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Yellow, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } },
+            round: 6,
+            oathRevision: OathRevision.TurnFlow
+        }
+    )
+    state.turnManager.turnOrder = ['ann', 'dev']
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['dev']
+    state.vault = testVaultWithRelics({})
+    return played(tableOf(state), [
+        createAction(EndActPhase, {
+            gameId: state.gameId,
+            source: ActionSource.User,
+            playerId: 'dev'
+        })
+    ])
+}
+
 /** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
 function goalsRailTable(oathType = OathType.Supremacy): PlayedTable {
     const state = testState(
@@ -294,6 +369,49 @@ function actPhaseTable(): PlayedTable {
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
     return tableOf(state)
+}
+
+/** R-5.1.2, R-2.11-H1: a world-deck Search stops on a Vision, and ruling a site takes the title from the Chancellor. */
+function majorEventsTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            warbandsBySite: { [home]: { me: 1 } },
+            oathRevision: OathRevision.TurnFlow
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    state.vault.worldDeck = [
+        'denizen.hearth.wayside-inn',
+        'vision.conquest',
+        'denizen.order.wrestlers'
+    ]
+    return played(tableOf(state), [
+        createAction(Search, {
+            gameId: state.gameId,
+            source: ActionSource.User,
+            playerId: 'me',
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true
+        })
+    ])
 }
 
 /** R-5.3.2: three denizens at the seat's site, one carrying favor, two Hearth advisers and an empty Discord bank. */
@@ -749,6 +867,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
+    restTurnFlow: restTurnFlowTable,
+    endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
@@ -761,7 +881,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
-    cardsOpenTravel: travelCardsTable
+    cardsOpenTravel: travelCardsTable,
+    majorEvents: majorEventsTable
 }
 
 let session: OathGameSession | undefined

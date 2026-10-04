@@ -6,7 +6,7 @@ import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
 import { PowerTiming, powerKey } from '../data/cardPowers.js'
-import { PowerChoice, type LegalPowerUse } from '../util/powerChoice.js'
+import { PowerChoice, PowerChoiceKind, type LegalPowerUse } from '../util/powerChoice.js'
 import { PowerUse } from '../model/powerUse.js'
 import {
     hiddenRequestFor,
@@ -138,6 +138,34 @@ export class HydratedUseRestPower
                     p.powerIndex,
                     undefined
                 ) !== 'it is not your turn'
+        )
+    }
+
+    /** R-4.3.5 — a power with a choice the engine accepts that gains something; a bank must hold favor. */
+    static usableRestPowers(state: HydratedOathGameState, playerId: string): LegalPowerUse[] {
+        return HydratedUseRestPower.legalRestPowers(state, playerId).filter((power) =>
+            HydratedUseRestPower.choiceSets(power).some(
+                (choices) =>
+                    choices.every(
+                        (choice) =>
+                            choice.kind !== PowerChoiceKind.FavorBank ||
+                            state.favorBank[choice.suit] > 0
+                    ) &&
+                    HydratedUseRestPower.reasonCannotUse(
+                        state,
+                        playerId,
+                        power.cardId,
+                        power.powerIndex,
+                        choices
+                    ) === undefined
+            )
+        )
+    }
+
+    private static choiceSets(power: LegalPowerUse): PowerChoice[][] {
+        return power.choices.reduce<PowerChoice[][]>(
+            (sets, legal) => sets.flatMap((set) => legal.options.map((option) => [...set, option])),
+            [[]]
         )
     }
 

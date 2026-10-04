@@ -19,7 +19,7 @@
     @media (max-width: 639px) {
         .upcoming-strip {
             display: block;
-            margin: 8px 8px 0;
+            margin: 8px 0 0;
             padding: 4px 8px 6px;
             border-radius: 10px;
             background: #e9e0cc;

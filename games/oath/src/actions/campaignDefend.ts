@@ -7,6 +7,7 @@ import { type CampaignState } from '../model/campaign.js'
 import { BattlePlanSide, type CardPower } from '../data/cardPowers.js'
 import { applyBattlePlans, resolveBattlePlans, usableBattlePlans } from '../util/battlePlans.js'
 import { partiesOf, rollCampaign } from '../util/campaignRoll.js'
+import { forceTotal } from '../util/force.js'
 import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
 
 export type CampaignDefendMetadata = Type.Static<typeof CampaignDefendMetadata>
@@ -103,7 +104,7 @@ export class HydratedCampaignDefend
             campaign.pendingDefenderPlans = { ...pending, queue: remaining }
         } else {
             campaign.pendingDefenderPlans = undefined
-            skullsKilled = rollCampaign(state, campaign, pending?.skullLossOrder)
+            skullsKilled = forceTotal(rollCampaign(state, campaign, pending?.skullLossOrder))
         }
 
         // R-X.3 — the PRNG moved, or a plan was declared for it to move on.

@@ -75,7 +75,10 @@
                 <SeaLayer />
                 <TerrainLayer />
                 <PiecesLayer />
-                <TargetLayer />
+                <!-- Targets and previews would sit over pieces while they settle. -->
+                {#if !gameSession.boardAnimating}
+                    <TargetLayer />
+                {/if}
             </svg>
             <div class="map-legend">
                 <MapLegend />

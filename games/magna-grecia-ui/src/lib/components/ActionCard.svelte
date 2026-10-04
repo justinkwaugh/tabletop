@@ -1,8 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
 
-    const CARD_MARGIN = 8
-
     let { children }: { children: Snippet } = $props()
 
     let slotWidth = $state(0)
@@ -26,15 +24,13 @@
     }
 </script>
 
-<div class="slot" bind:clientWidth={null, measureSlot}>
+<div
+    class="slot"
+    style:--slot-width={slotWidth > 0 ? `${slotWidth}px` : undefined}
+    bind:clientWidth={null, measureSlot}
+>
     <div class="card" style:--reserved-height={reservedHeight > 0 ? `${reservedHeight}px` : 'auto'}>
-        <div
-            class="content"
-            style:--content-max-width={slotWidth > 0
-                ? `${slotWidth - CARD_MARGIN * 2 - 2}px`
-                : undefined}
-            bind:offsetHeight={null, measureHeight}
-        >
+        <div class="content" bind:offsetHeight={null, measureHeight}>
             {@render children()}
         </div>
     </div>
@@ -42,7 +38,8 @@
 
 <style>
     .slot {
-        padding: 8px 8px 0;
+        --card-margin: 8px;
+        padding: 8px var(--card-margin) 0;
     }
 
     .card {
@@ -64,7 +61,8 @@
     .content {
         flex-shrink: 0;
         width: max-content;
-        max-width: var(--content-max-width, none);
+        /* the slot less its side margins and the card's 1px borders */
+        max-width: calc(var(--slot-width, 100vw) - 2 * var(--card-margin) - 2px);
         height: max-content;
         padding: 4px 12px 8px;
     }
@@ -72,13 +70,17 @@
     /* A phone's board is sized by the screen width, not the space left, so the card can follow
        its content there instead of holding a tall reservation. */
     @media (max-width: 639px) {
+        .slot {
+            --card-margin: 0px;
+        }
+
         .card {
             height: auto;
             --action-card-floor: 0px;
         }
 
         .content {
-            width: var(--content-max-width, max-content);
+            width: calc(var(--slot-width, 100vw) - 2 * var(--card-margin) - 2px);
         }
     }
 

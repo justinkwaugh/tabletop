@@ -50,18 +50,33 @@ export function vacateTitle(state: HydratedOathGameState) {
     state.oathkeeperIsUsurper = false
 }
 
-/** R-2.11-H1, R-X.1 — R-2.11.b's choice is its own action. */
+export interface TitleMove {
+    fromPlayerId?: string
+    toPlayerId?: string
+}
+
+export function moveTitle(state: HydratedOathGameState, move: TitleMove) {
+    if (move.toPlayerId) {
+        grantTitle(state, move.toPlayerId)
+    } else {
+        vacateTitle(state)
+    }
+}
+
+/** R-2.11-H1, R-X.1 — R-2.11.b's choice is its own action; `commitMove` applies or records a move. */
 export function applyForcedTitleChanges(
     state: HydratedOathGameState,
-    resumeMachineState: MachineState
+    resumeMachineState: MachineState,
+    commitMove: (move: TitleMove) => void = (move) => moveTitle(state, move)
 ): TitleEvaluation {
     const evaluation = evaluateTitle(state)
+    const fromPlayerId = state.oathkeeperPlayerId
     switch (evaluation.kind) {
         case 'moves':
-            grantTitle(state, evaluation.toPlayerId)
+            commitMove({ fromPlayerId, toPlayerId: evaluation.toPlayerId })
             break
         case 'vacated':
-            vacateTitle(state)
+            commitMove({ fromPlayerId })
             break
         case 'choice':
             if (!state.pendingOathkeeperChoice) {

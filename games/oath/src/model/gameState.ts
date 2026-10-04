@@ -59,6 +59,9 @@ export const OathGameState = Type.Object({
 
     round: Type.Number(),
 
+    /** Absent on games created before the first revision; see `util/revision.ts`. */
+    oathRevision: Type.Optional(Type.Number()),
+
     /** R-4.3 — `RestPhase.enter()` re-runs on every action in RestPhase; this stops a second refund. */
     restResolvedForTurnStart: Type.Optional(Type.Number()),
     /** R-7.4 — carried from the Search to its resolve. */
@@ -173,6 +176,7 @@ export class HydratedOathGameState
     declare winningPlayerIds: string[]
 
     declare round: number
+    declare oathRevision?: number
     declare restResolvedForTurnStart?: number
     declare pendingSearchModifiers?: PowerUse[]
     declare grandScepterTakenOnTurnStart?: number

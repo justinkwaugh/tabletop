@@ -7,8 +7,10 @@ export enum MachineState {
     WakePhase = 'WakePhase',
     /** R-4.2. */
     ActPhase = 'ActPhase',
-    /** R-4.3, plus the round boundary and R-3.3's end die. */
+    /** R-4.3, plus the round boundary; R-3.3's end die there before the turn-flow revision. */
     RestPhase = 'RestPhase',
+    /** R-3.3 — the Chancellor rolls the end die before the next round's first Wake. */
+    EndOfRound = 'EndOfRound',
     /** R-5.1.3, R-5.1.4 */
     Searching = 'Searching',
     /** R-5.5.5 */

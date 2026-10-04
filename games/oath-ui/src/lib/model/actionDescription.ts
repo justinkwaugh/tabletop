@@ -28,29 +28,41 @@ import {
     isResolveCitizenshipOffer,
     isResolveOathkeeper,
     isResolveWake,
+    isRollEndDie,
     isSearch,
     isSearchResolve,
     isSelfExile,
     isSetupChoice,
     isTrade,
+    isTransferOathkeeper,
     isTravel,
     isUseActionPower,
     isUseRestPower,
+    cardPower,
+    soleOwner,
+    IMPERIAL_WARBANDS,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
     type CampaignTarget,
+    Suit,
     type LetPeek,
-    type WarbandMove
+    type Search,
+    type UseActionPower,
+    type UseRestPower,
+    type WarbandMove,
+    type WarbandOwner
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
     bannerName,
     campaignTargetText,
     cardName,
+    escapeRegExp,
     plural,
     reliquaryLabel,
     nameIds,
     stripRules,
+    suitName,
     warbandsOf
 } from '$lib/model/names.js'
 import {
@@ -66,7 +78,11 @@ import {
 export type NameOf = (playerId: string) => string
 
 /** How a history line names a player and a site; a site by its printed name once faceup. */
-export type HistoryNames = { player: NameOf; site: (slotId: string) => string }
+export type HistoryNames = {
+    player: NameOf
+    site: (slotId: string) => string
+    seats: readonly string[]
+}
 
 function shownCard(cardId: string | undefined): string {
     return cardId ? cardName(cardId) : 'a card'
@@ -85,6 +101,42 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
     }
     const seen = isRecipient ? action.metadata?.relicCardId : undefined
     return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
+}
+
+export function rowActorOf(action: GameAction): string | undefined {
+    if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
+    return action.playerId
+}
+
+/**
+ * R-10.13 — whose warbands a row counts, from the record alone so the row never changes: those a
+ * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), an Action power, a
+ * sacrifice or a choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a
+ * power acted on, else the actor's own.
+ */
+export function rowWarbandOwner(
+    action: GameAction,
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    const recorded = recordedWarbandOwner(action)
+    if (recorded !== undefined) return recorded
+    const seat =
+        (isUseActionPower(action) || isUseRestPower(action)
+            ? action.metadata?.targetPlayerId
+            : undefined) ?? action.playerId
+    return seat === undefined ? undefined : ownWarbandsOf(seat)
+}
+
+function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
+    if (isMoveWarbands(action)) return action.owner
+    if (isMuster(action)) return action.metadata?.warbandOwner
+    if (isUseActionPower(action)) return action.metadata?.warbandOwner
+    if (isSelfExile(action) || isExileCitizen(action)) return IMPERIAL_WARBANDS
+    if (isCampaignSacrifice(action)) {
+        return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
+    }
+    if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
+    return undefined
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
@@ -186,7 +238,8 @@ function describeActionCited(
         const shown = action.metadata?.revealedDraw
         return (
             `searched ${from}${supply(action.metadata?.supplySpent)}` +
-            (shown ? `, showing ${shown.map(cardName).join(', ')} (Truthful Harp)` : '')
+            (shown ? `, showing ${shown.map(cardName).join(', ')} (Truthful Harp)` : '') +
+            (searchStoppedOnVision(action) ? '; the draw stopped on a Vision' : '')
         )
     }
     if (isSearchResolve(action)) {
@@ -214,8 +267,7 @@ function describeActionCited(
         return `chose the attacking battle plans — ${describeBattle(action.metadata?.battle)}`
     }
     if (isUseRestPower(action)) {
-        const summary = action.metadata?.summary
-        return summary ? `rested: ${summary}` : `used ${cardName(action.cardId)}'s Rest power`
+        return `rested with ${cardName(action.cardId)}${powerEffect(action, names, viewerId)}`
     }
     if (isCampaignDefend(action)) {
         const meta = action.metadata
@@ -241,9 +293,14 @@ function describeActionCited(
     if (isCampaignResolveVictory(action)) {
         const meta = action.metadata
         const taken = meta?.relicsTaken ?? []
+        const seized = (meta?.bannersSeized ?? []).map((banner) => `the ${bannerName(banner)}`)
+        const gains = [
+            ...(taken.length > 0 ? [`taking ${taken.join(', ')}`] : []),
+            ...(seized.length > 0 ? [`seizing ${seized.join(' and ')}`] : [])
+        ]
         return (
             'took the spoils' +
-            (taken.length > 0 ? `, taking ${taken.join(', ')}` : '') +
+            (gains.length > 0 ? `, ${gains.join(' and ')}` : '') +
             ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '')
         )
     }
@@ -252,7 +309,11 @@ function describeActionCited(
         return describeAdviserPlay(action.play, shownCard(action.metadata?.playedCardId))
     }
     if (isUseActionPower(action)) {
-        return `used ${cardName(action.cardId)}'s Action power`
+        return (
+            `used ${cardName(action.cardId)}` +
+            printedCost(action.cardId, action.powerIndex) +
+            powerEffect(action, names, viewerId)
+        )
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -334,10 +395,105 @@ function describeActionCited(
             (action.metadata?.endedRound ? ' — the round ended' : '')
         )
     }
+    if (isRollEndDie(action)) {
+        const roll = action.metadata?.roll
+        return roll === undefined ? 'rolled the end die' : `rolled the end die: ${roll}`
+    }
     if (isResolveOathkeeper(action)) {
         return `gave the Oathkeeper title to ${nameOf(action.chosenPlayerId)}`
     }
+    if (isTransferOathkeeper(action)) {
+        if (action.toPlayerId === undefined) return 'lost the Oathkeeper title; nobody holds it'
+        return action.fromPlayerId === undefined
+            ? 'took the Oathkeeper title'
+            : `took the Oathkeeper title from ${nameOf(action.fromPlayerId)}`
+    }
     return UNDESCRIBED
+}
+
+/** R-5.1.2 — public from the record's own flag; a Search recorded before it shows its stop to the drawer alone. */
+export function searchStoppedOnVision(action: Search): boolean {
+    return (
+        action.metadata?.stoppedOnVision === true || action.metadata?.draw?.stoppedOnVision === true
+    )
+}
+
+/** R-7.1.2 — the cost printed on the card, as the History says it was paid. */
+function printedCost(cardId: string, powerIndex: number): string {
+    const cost = cardPower(cardId, powerIndex)?.cost
+    if (!cost) return ''
+    const counted = (count: number, noun: string) =>
+        count === 1 ? `a ${noun}` : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
+    const placed = [
+        ...(cost.placeFavor > 0 ? [counted(cost.placeFavor, 'favor')] : []),
+        ...(cost.placeSecret > 0 ? [counted(cost.placeSecret, 'secret')] : [])
+    ]
+    const burned = [
+        ...(cost.burnFavor > 0 ? [counted(cost.burnFavor, 'favor')] : []),
+        ...(cost.burnSecret > 0 ? [counted(cost.burnSecret, 'secret')] : [])
+    ]
+    const clauses = [
+        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on it`] : []),
+        ...(burned.length > 0 ? [`burning ${burned.join(' and ')}`] : [])
+    ]
+    return clauses.length > 0 ? `, ${clauses.join(' and ')}` : ''
+}
+
+function powerEffect(
+    action: UseActionPower | UseRestPower,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    const summary = action.metadata?.summary
+    if (!summary) return ''
+    const text = withoutCardName(summary, action.cardId)
+    const actorAlone = !names.seats.some(
+        (playerId) => playerId !== action.playerId && seatPattern(playerId).test(text)
+    )
+    const row = { actorId: action.playerId, actorAlone, viewerId }
+    const named = names.seats.reduce(
+        (sentence, playerId) => nameSeat(sentence, playerId, row, names.player),
+        text
+    )
+    return `: ${namedBanks(named)}`
+}
+
+function seatPattern(playerId: string, flags = ''): RegExp {
+    return new RegExp(`(?<![\\w-])${escapeRegExp(playerId)}(?![\\w-])`, flags)
+}
+
+export function withoutCardName(summary: string, cardId: string): string {
+    const prefix = `${cardName(cardId)}: `
+    return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
+}
+
+function nameSeat(
+    text: string,
+    playerId: string,
+    row: { actorId: string; actorAlone: boolean; viewerId: string | undefined },
+    nameOf: NameOf
+): string {
+    const id = escapeRegExp(playerId)
+    const possessive = new RegExp(`(?<![\\w-])${id}['’]s(?![\\w-])`, 'g')
+    const bare = seatPattern(playerId, 'g')
+    const own = playerId === row.actorId
+    const isViewer = playerId === row.viewerId
+    const whose = isViewer
+        ? own
+            ? 'your own'
+            : 'your'
+        : own && row.actorAlone
+          ? 'their own'
+          : `${nameOf(playerId)}'s`
+    const seat = isViewer ? 'you' : nameOf(playerId)
+    return text.replace(possessive, () => whose).replace(bare, () => seat)
+}
+
+function namedBanks(text: string): string {
+    return Object.values(Suit).reduce(
+        (named, suit) => named.replaceAll(`the ${suit} bank`, `the ${suitName(suit)} bank`),
+        text
+    )
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {

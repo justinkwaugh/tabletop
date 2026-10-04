@@ -50,6 +50,11 @@
     --oath-goal-oath: var(--color-amber-500);
     --oath-goal-vision: var(--color-stone-100);
     --oath-goal-successor: #913f78;
+    /* The Vision back's art: its ground, frame, edge and lettering. */
+    --oath-vision-rust: #a7473a;
+    --oath-vision-gold: #e8b453;
+    --oath-vision-teal: #2f7f86;
+    --oath-vision-cream: #f8ebbd;
 }
 
 @theme inline {
@@ -72,6 +77,10 @@
     --color-oath-goal-oath: var(--oath-goal-oath);
     --color-oath-goal-vision: var(--oath-goal-vision);
     --color-oath-goal-successor: var(--oath-goal-successor);
+    --color-oath-vision-rust: var(--oath-vision-rust);
+    --color-oath-vision-gold: var(--oath-vision-gold);
+    --color-oath-vision-teal: var(--oath-vision-teal);
+    --color-oath-vision-cream: var(--oath-vision-cream);
 }
 
 @source "../node_modules/flowbite-svelte/dist";

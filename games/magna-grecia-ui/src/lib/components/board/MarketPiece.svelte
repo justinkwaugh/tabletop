@@ -1,5 +1,5 @@
 <script lang="ts">
-    import CrateArt, { type CrateState } from './CrateArt.svelte'
+    import MarketArt, { type MarketState } from './MarketArt.svelte'
 
     let {
         color,
@@ -7,9 +7,9 @@
         active = true
     }: { color: string; sold?: boolean; active?: boolean } = $props()
 
-    const state: CrateState = $derived(sold ? 'sold' : active ? 'full' : 'empty')
+    const state: MarketState = $derived(sold ? 'sold' : active ? 'active' : 'inactive')
 </script>
 
 <g filter="url(#mg-piece-outline)">
-    <CrateArt {color} {state} />
+    <MarketArt {color} {state} />
 </g>

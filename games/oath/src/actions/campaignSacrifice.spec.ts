@@ -11,6 +11,8 @@ import { CampaignDefeatKills, HydratedCampaignDefeatKills } from './campaignDefe
 import { HydratedResolveOathkeeper, ResolveOathkeeper } from './resolveOathkeeper.js'
 import { MachineState } from '../definition/states.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathRevision } from '../util/revision.js'
+import { defeatChoiceMatters } from '../util/force.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -140,6 +142,32 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
             sacrifice({ sacrifice: 3 }).apply(state)
         )
         expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[ATTACKER]).toBe(8 + 3)
+    })
+
+    it('records whose warbands were sacrificed when they are one owner’s, as a Citizen’s Imperial ones (R-10.13)', () => {
+        const own = sacrifice({ sacrifice: 3 })
+        own.apply(midBattle({ swords: 3, defense: 5 }))
+        expect(own.metadata?.sacrificedOwner).toBe(ATTACKER)
+
+        const citizen = midBattle({ swords: 3, defense: 5, attackerPlayerId: CITIZEN })
+        citizen.getPlayerState(CITIZEN).warbandsOnBoard = { [IMPERIAL_WARBANDS]: 4 }
+        const imperial = sacrifice({ playerId: CITIZEN, sacrifice: 3 })
+        imperial.apply(citizen)
+        expect(imperial.metadata?.sacrificedOwner).toBe(IMPERIAL_WARBANDS)
+        expect(citizen.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(1)
+
+        const mixed = midBattle({ swords: 3, defense: 5, attackerPlayerId: CITIZEN })
+        mixed.getPlayerState(CITIZEN).warbandsOnBoard = { [IMPERIAL_WARBANDS]: 2, [CITIZEN]: 1 }
+        const both = sacrifice({
+            playerId: CITIZEN,
+            sacrifice: 3,
+            sacrificeKills: [
+                { at: { kind: 'board', playerId: CITIZEN }, owner: IMPERIAL_WARBANDS, count: 2 },
+                { at: { kind: 'board', playerId: CITIZEN }, owner: CITIZEN, count: 1 }
+            ]
+        })
+        both.apply(mixed)
+        expect(both.metadata?.sacrificedOwner).toBeUndefined()
     })
 
     it('refuses more than exactly enough', () => {
@@ -330,6 +358,73 @@ describe('the Chancellor chooses for an Imperial defence (R-5.5.6.a)', () => {
         expect(state.warbandsBySite['c1'][IMPERIAL_WARBANDS]).toBe(0)
         expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(6)
         expect(state.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(0)
+    })
+})
+
+describe('R-5.5.6.a — the defending side is asked only when its losses can differ (turn-flow revision)', () => {
+    // No card reads which site a defeated warband stood at: Hospital sets aside by owner, Obsidian
+    // Cage takes every survivor, and Sticky Fire kills the whole force.
+    const ACROSS_TWO_SITES: WarbandGroup[] = [
+        { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 },
+        { at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }
+    ]
+
+    function won(force: WarbandGroup[], campaign: Partial<CampaignState> = {}, createdBeforeRevisions = false) {
+        const state = midBattle({ swords: 9, defense: 1, defendingForce: force, ...campaign })
+        state.oathRevision = createdBeforeRevisions ? undefined : OathRevision.TurnFlow
+        state.warbandsBySite = { c1: { [DEFENDER]: 2 }, c2: { [DEFENDER]: 2 } }
+        state.getPlayerState(DEFENDER).warbandsOnBoard = {}
+        return state
+    }
+
+    it('takes the default kills at once for one owner over several sites', () => {
+        const state = won(ACROSS_TWO_SITES)
+        const action = sacrifice()
+        expectWarbandsConserved(state, () => action.apply(state))
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+        expect(action.metadata?.awaitingLossesOf).toBeUndefined()
+        expect(action.metadata?.defeatKilled).toBe(2)
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
+    })
+
+    it('still asks when the force mixes owners: an Imperial defence with a Citizen’s own warbands', () => {
+        const state = won([
+            { at: { kind: 'site', siteId: 'c1' }, owner: IMPERIAL_WARBANDS, count: 2 },
+            { at: { kind: 'site', siteId: 'c2' }, owner: CITIZEN, count: 2 }
+        ], { defenderPlayerId: CITIZEN, allyPlayerIds: [CHANCELLOR] })
+        state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [CITIZEN]: 2 } }
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: CHANCELLOR })
+    })
+
+    it('still asks when part of the force stands on a board', () => {
+        const state = won(ALL_DEFENDERS)
+        state.getPlayerState(DEFENDER).warbandsOnBoard = { [DEFENDER]: 1 }
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+    })
+
+    it('does not ask for Hospital alone: it sets the same warbands aside wherever they stood', () => {
+        const state = won(ACROSS_TWO_SITES, { killRedirects: [{ playerId: DEFENDER, siteId: 'c2' }] })
+        const action = sacrifice()
+        action.apply(state)
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+        expect(action.metadata?.defeatKilled).toBe(2)
+        expect(state.campaign?.heldForHospital).toEqual([{ playerId: DEFENDER, siteId: 'c2', owner: DEFENDER, count: 2 }])
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
+    })
+
+    it('still asks in a game created before the revision, as its stored Campaigns were recorded (R-X.4)', () => {
+        const state = won(ACROSS_TWO_SITES, {}, true)
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }]).apply(state)
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+    })
+
+    it('reads the force alone', () => {
+        expect(defeatChoiceMatters(ACROSS_TWO_SITES)).toBe(false)
+        expect(defeatChoiceMatters(ALL_DEFENDERS)).toBe(true)
     })
 })
 

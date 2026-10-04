@@ -25,6 +25,7 @@ import {
 } from '@tabletop/oath'
 import type { GridAction } from './actionCatalogue.js'
 import { unseenPeekSlots } from './relicKnowledge.js'
+import { escapeRegExp } from './names.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
@@ -50,13 +51,10 @@ function withPlayerNames(
             `(?<![A-Za-z0-9_-])${escapeRegExp(seat.playerId)}(?![A-Za-z0-9_-])`,
             'g'
         )
-        text = text.replace(pattern, nameOf(seat.playerId))
+        const name = nameOf(seat.playerId)
+        text = text.replace(pattern, () => name)
     }
     return text
-}
-
-function escapeRegExp(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function reasonFor(

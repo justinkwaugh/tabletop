@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import CityIcon from './icons/CityIcon.svelte'
+    import CityTileIcon from './icons/CityTileIcon.svelte'
     import RoadIcon from './icons/RoadIcon.svelte'
 
     const gameSession = getGameSession()
@@ -35,7 +35,7 @@
             {#if row.key === 'roads'}
                 <RoadIcon size={26} />
             {:else}
-                <CityIcon size={26} />
+                <CityTileIcon size={26} />
             {/if}
             <button
                 type="button"

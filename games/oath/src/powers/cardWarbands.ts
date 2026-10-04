@@ -9,6 +9,7 @@ import {
     forceTotal,
     removeWarbandsFrom,
     removeWarbandsFromCard,
+    soleOwner,
     warbandsInBankFor
 } from '../util/force.js'
 import { optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
@@ -88,7 +89,8 @@ registerEffect(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Action), {
             addWarbandsToBoard(ctx.state, at.playerId, owner, count)
         }
         return {
-            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`
+            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`,
+            warbandOwner: soleOwner(moves)
         }
     }
 })
@@ -133,7 +135,7 @@ registerEffect(FALSE_PROPHET_ID, powerIndexOf(FALSE_PROPHET_ID, PowerTiming.When
         removeWarbandsFrom(ctx.state, { kind: 'board', playerId: ctx.playerId }, own, gained)
         addWarbandsToCard(ctx.state, vision.cardId, own, gained)
         return {
-            summary: `False Prophet: gained a warband and put it on ${vision.cardId}, which ${ctx.playerId} now also has revealed`
+            summary: `False Prophet: gained a warband and put it on ${vision.cardId}, now revealed for ${ctx.playerId} too`
         }
     }
 })

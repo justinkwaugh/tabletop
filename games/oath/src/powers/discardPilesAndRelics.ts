@@ -13,7 +13,7 @@ import { becomeCitizenByPower, visionDeposits } from '../util/citizenship.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { giveBanner } from '../util/seize.js'
 import { registerEffect, registerModifier, type EffectContext, chosen } from './registry.js'
-import { gainWarbandsToBoard, pawnSiteId, regionOfPawn } from './vocabulary.js'
+import { gainWarbandsWithOwner, pawnSiteId, regionOfPawn } from './vocabulary.js'
 import { takeRelics, takeNotes, clearSiteRelicSlot, clearReliquarySlot } from '../util/relics.js'
 import { otherRegionChoices } from './choiceDomains.js'
 import { askQuestion } from '../util/questions.js'
@@ -65,10 +65,11 @@ registerEffect(
             const [slot] = chosen(ctx, PowerChoiceKind.RelicSlot)
             const here = pawnSiteId(ctx.state, ctx.playerId)
             clearSiteRelicSlot(ctx.state, here, slot.slotId)
-            const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 3)
+            const { owner, gained } = gainWarbandsWithOwner(ctx.state, ctx.playerId, 3)
             return {
                 summary: `Relic Breaker: the relic went to the bottom of the relic deck; gained ${gained} warbands`,
-                relicSlotToBottom: slot.slotId
+                relicSlotToBottom: slot.slotId,
+                warbandOwner: owner
             }
         }
     }
@@ -199,8 +200,9 @@ registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', Powe
         // R-2.7.1 — a Vision drawn moves the Visions Drawn marker, "as if you searched".
         ctx.state.visionsDrawn = visionsDrawnAfter(ctx.state.visionsDrawn, 1)
         return {
-            summary: 'Oracle: drew the next Vision; keep it or discard it as if you had searched',
-            opensSearch: true
+            summary: `Oracle: drew the next Vision; keep it or discard it as if ${ctx.playerId} had searched`,
+            opensSearch: true,
+            visionDrawn: true
         }
     }
 })

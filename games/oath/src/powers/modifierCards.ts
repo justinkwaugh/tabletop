@@ -59,7 +59,10 @@ registerModifier(
     {
         hooks: {
             supplyCost: waive,
-            after: () => ({ summary: 'Special Envoy ends your Act Phase', endsActPhase: true })
+            after: (ctx) => ({
+                summary: `Special Envoy ends ${ctx.playerId}'s Act Phase`,
+                endsActPhase: true
+            })
         }
     }
 )

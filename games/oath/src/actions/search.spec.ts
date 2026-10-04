@@ -1,4 +1,5 @@
 import { servedJson } from '../testing/projection.js'
+import { OathVisibility } from '../definition/runtime.js'
 import { buildSetupVault } from '../util/setup.js'
 import { getPrng } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
@@ -171,6 +172,23 @@ describe('Search draws from the world deck (R-5.1.2)', () => {
         expect(state.visionsDrawn).toBe(1)
         expect(action.metadata?.cardsDrawn).toBe(2)
         expect(vault.worldDeck).toEqual([D2, D3])
+    })
+
+    it('records the stop on a Vision for the whole table, and the card for the drawer alone (R-5.1.2, R-9.4)', () => {
+        const state = ready()
+        const action = serverSearch(state, vaultWith([D1, VISION, D2, D3]), 'p1', SearchSource.WorldDeck)
+        expect(action.metadata?.stoppedOnVision).toBe(true)
+
+        const seenByOther = OathVisibility.actions.project(action.dehydrate(), { kind: 'player', playerId: 'p2' })
+        expect(seenByOther).toHaveProperty('metadata.stoppedOnVision', true)
+        expect(seenByOther).not.toHaveProperty('metadata.draw')
+        expect(JSON.stringify(seenByOther)).not.toContain(VISION)
+    })
+
+    it('records no stop when the draw found no Vision', () => {
+        const state = ready()
+        const action = serverSearch(state, vaultWith([D1, D2, D3]), 'p1', SearchSource.WorldDeck)
+        expect(action.metadata?.stoppedOnVision).toBeUndefined()
     })
 
     it('advances the track one space only, however the draw ended', () => {
