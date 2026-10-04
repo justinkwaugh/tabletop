@@ -70,7 +70,6 @@ export interface GameUIRuntime<
     sessionClass: GameSessionConstructor<T, U>
     colorizer: GameColorizer
     playerColorPalette?: PlayerColorPalette
-    colorblindPlayerColorPalette?: PlayerColorPalette
 }
 
 export type GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T> = {

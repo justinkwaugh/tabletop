@@ -20,7 +20,6 @@ type GameColorsContext<T extends GameState> = {
         colorizer: GameColorizer
         playerColors: Color[]
         playerColorPalette?: PlayerColorPalette
-        colorblindPlayerColorPalette?: PlayerColorPalette
     }
     game: Pick<Game, 'hotseat' | 'players'>
     state: Pick<T, 'players'>
@@ -328,7 +327,6 @@ export class GameColors<T extends GameState> {
         const resolvedColor = color ?? Color.Gray
         if (this.colorizer instanceof ColorblindColorizer) {
             return (
-                this.gameContext.runtime.colorblindPlayerColorPalette?.[resolvedColor] ??
                 colorblindPlayerColorPalette[resolvedColor] ??
                 colorblindPlayerColorPalette[Color.Gray]!
             )

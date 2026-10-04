@@ -21,7 +21,6 @@ type AwningStyle = { band: number; highlight: number; shade: number }
 
 const StandardAwning: AwningStyle = { band: 0.45, highlight: 0.6, shade: -0.1 }
 const DeepRedAwning: AwningStyle = { ...StandardAwning, band: 0.2, highlight: 0.35 }
-const ColorblindVermilionAwning: AwningStyle = { ...DeepRedAwning, shade: -0.05 }
 
 function marketPalette(inks: MarketInks, style: AwningStyle = StandardAwning): MarketPalette {
     const base = shiftLightness(inks.fill, style.shade)
@@ -52,10 +51,11 @@ const StandardMarketPalettes: Record<MarketColor, MarketPalette> = {
 }
 
 const ColorblindMarketPalettes: Record<MarketColor, MarketPalette> = {
-    [MarketColor.Red]: marketPalette(
-        { fill: '#d64f00', stroke: '#702900', tint: '#f5ab80' },
-        ColorblindVermilionAwning
-    ),
+    [MarketColor.Red]: marketPalette({
+        fill: ColorblindColor.Vermilion,
+        stroke: '#702900',
+        tint: '#f5ab80'
+    }),
     [MarketColor.Blue]: marketPalette({
         fill: ColorblindColor.Blue,
         stroke: '#003f63',

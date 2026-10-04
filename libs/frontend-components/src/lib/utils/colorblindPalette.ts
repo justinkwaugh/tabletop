@@ -58,8 +58,6 @@ const borderColorForColor = {
     [ColorblindColor.ReddishPurple]: `border-[#CC79A7]`
 }
 
-const LightColors: ReadonlySet<Color> = new Set([Color.Yellow, Color.White])
-
 export class ColorblindColorizer implements GameColorizer {
     getUiColor(color?: Color): string {
         return colorBlindColorForColor[color ?? Color.Black]
@@ -68,13 +66,13 @@ export class ColorblindColorizer implements GameColorizer {
         return bgColorForColor[colorBlindColorForColor[color ?? Color.Black]]
     }
     getTextColor(color: Color): string {
-        return LightColors.has(color) ? 'text-black' : 'text-white'
+        return color === Color.Yellow ? 'text-black' : 'text-white'
     }
     getBorderColor(color: Color): string {
         return borderColorForColor[colorBlindColorForColor[color ?? Color.Black]]
     }
     getBorderContrastColor(color: Color): string {
-        return LightColors.has(color) ? 'border-black' : 'border-white'
+        return color === Color.Yellow ? 'border-black' : 'border-white'
     }
     allowPreferredPlayerColors(): boolean {
         return true
