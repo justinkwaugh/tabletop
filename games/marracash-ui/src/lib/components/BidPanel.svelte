@@ -2,6 +2,7 @@
     import { DirhamIncrement, getShop } from '@tabletop/marracash'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { holdRepeat } from '$lib/utils/holdRepeat.js'
 
     const gameSession = getGameSession()
 
@@ -12,8 +13,11 @@
     let amount = $state(gameSession.myMinimumBid())
     let clampedAmount = $derived(Math.min(Math.max(amount, minimumBid), myMoney))
 
-    function change(step: number) {
-        amount = clampedAmount + step
+    function change(step: number): boolean {
+        const next = Math.min(Math.max(clampedAmount + step, minimumBid), myMoney)
+        if (next === clampedAmount) return false
+        amount = next
+        return true
     }
 </script>
 
@@ -23,17 +27,17 @@
     </p>
     <div class="flex items-center gap-3">
         <button
-            class="h-10 w-10 rounded-md border-2 border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
+            class="h-10 w-10 touch-manipulation rounded-md border-2 select-none border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
             aria-label="Lower bid"
             disabled={clampedAmount <= minimumBid}
-            onclick={() => change(-DirhamIncrement)}>−</button
+            use:holdRepeat={() => change(-DirhamIncrement)}>−</button
         >
         <span class="marracash-display w-24 text-xl">{clampedAmount}</span>
         <button
-            class="h-10 w-10 rounded-md border-2 border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
+            class="h-10 w-10 touch-manipulation rounded-md border-2 select-none border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
             aria-label="Raise bid"
             disabled={clampedAmount + DirhamIncrement > myMoney}
-            onclick={() => change(DirhamIncrement)}>+</button
+            use:holdRepeat={() => change(DirhamIncrement)}>+</button
         >
     </div>
     <button

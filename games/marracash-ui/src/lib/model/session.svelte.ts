@@ -118,6 +118,18 @@ export class MarracashGameSession extends GameSession<
             : []
     )
 
+    // The round in which the queue runs out is the last; it ends with the last seat's turn
+    readonly finalTurnPlayerId: string | undefined = $derived(
+        this.gameState.finalRound && this.gameState.result === undefined
+            ? this.gameState.turnManager.turnOrder.at(-1)
+            : undefined
+    )
+
+    // A staged auction is a fresh decision, so the previous step's payments stay out of its way
+    readonly showsMoneyReport = $derived(
+        this.moneyReports.length > 0 && this.selectedShopId === undefined
+    )
+
     readonly auctionableShopIds: ShopId[] = $derived(
         this.canChooseShop &&
             this.selectedFountainId === undefined &&
