@@ -1,0 +1,398 @@
+import { Sector, type SystemDefinition } from './systemTypes.js'
+import { TechField } from './techFields.js'
+
+export const SYSTEMS: readonly SystemDefinition[] = [
+    {
+        id: 'gliese-251',
+        name: 'Gliese 251',
+        sector: Sector.TauCeti,
+        coords: { q: 0, r: 0 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 80,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 18
+    },
+    {
+        id: 'luytens-star',
+        name: "Luyten's Star",
+        sector: Sector.TauCeti,
+        coords: { q: 0, r: 1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 80,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 12
+    },
+    {
+        id: 'tau-ceti',
+        name: 'Tau Ceti',
+        sector: Sector.TauCeti,
+        coords: { q: 0, r: 2 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Biology, bonus: 2 },
+        lightYears: 12
+    },
+    {
+        id: 'epsilon-eridani',
+        name: 'Epsilon Eridani',
+        sector: Sector.EpsilonEridani,
+        coords: { q: 0, r: 3 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 80,
+        exploration: { field: TechField.Biology, bonus: 2 },
+        lightYears: 10
+    },
+    {
+        id: 'kapteyns-star',
+        name: "Kapteyn's Star",
+        sector: Sector.EpsilonEridani,
+        coords: { q: 0, r: 4 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 13
+    },
+    {
+        id: 'gx-andromedae',
+        name: 'GX Andromedae',
+        sector: Sector.TauCeti,
+        coords: { q: 1, r: 0 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 40,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 12
+    },
+    {
+        id: 'lalande-21185',
+        name: 'Lalande 21185',
+        sector: Sector.TauCeti,
+        coords: { q: 1, r: 1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 70,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 8.3
+    },
+    {
+        id: 'wolf-359',
+        name: 'Wolf-359',
+        sector: Sector.EpsilonEridani,
+        coords: { q: 1, r: 2 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 40,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 7.9
+    },
+    {
+        id: 'ross-128',
+        name: 'Ross 128',
+        sector: Sector.EpsilonEridani,
+        coords: { q: 1, r: 3 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 50,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 11
+    },
+    {
+        id: 'v2306-ophiuchi',
+        name: 'V2306 Ophiuchi',
+        sector: Sector.Sol,
+        coords: { q: 2, r: -1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 14
+    },
+    {
+        id: 'barnards-star',
+        name: "Barnard's Star",
+        sector: Sector.Sol,
+        coords: { q: 2, r: 0 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 50,
+        exploration: { field: TechField.Engineering, bonus: 2 },
+        lightYears: 6.0
+    },
+    {
+        id: 'sol',
+        name: 'Sol',
+        sector: Sector.Sol,
+        coords: { q: 2, r: 1 },
+        worldSlots: 0,
+        earthlikeRestricted: false
+    },
+    {
+        id: 'wise-0855-0714',
+        name: 'WISE 0855-0714',
+        sector: Sector.AlphaCentauri,
+        coords: { q: 2, r: 2 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 30,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 7.4
+    },
+    {
+        id: 'procyon',
+        name: 'Procyon',
+        sector: Sector.AlphaCentauri,
+        coords: { q: 2, r: 3 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 30,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 11
+    },
+    {
+        id: 'gliese-876',
+        name: 'Gliese 876',
+        sector: Sector.Sol,
+        coords: { q: 3, r: -1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 70,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 15
+    },
+    {
+        id: 'luhman-16',
+        name: 'Luhman 16',
+        sector: Sector.Sol,
+        coords: { q: 3, r: 0 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Physics, bonus: 2 },
+        lightYears: 6.5
+    },
+    {
+        id: 'alpha-centauri',
+        name: 'Alpha Centauri',
+        sector: Sector.AlphaCentauri,
+        coords: { q: 3, r: 1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Biology, bonus: 2 },
+        lightYears: 4.4
+    },
+    {
+        id: 'sirius',
+        name: 'Sirius',
+        sector: Sector.AlphaCentauri,
+        coords: { q: 3, r: 2 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 20,
+        exploration: { field: TechField.Physics, bonus: 2 },
+        lightYears: 8.7
+    },
+    {
+        id: 'vega',
+        name: 'Vega',
+        sector: Sector.Altair,
+        coords: { q: 4, r: -2 },
+        worldSlots: 3,
+        earthlikeRestricted: true,
+        habitability: 30,
+        exploration: { field: TechField.Physics, bonus: 2 },
+        lightYears: 25
+    },
+    {
+        id: '61-cygni',
+        name: '61 Cygni',
+        sector: Sector.Altair,
+        coords: { q: 4, r: -1 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 70,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 11
+    },
+    {
+        id: 'altair',
+        name: 'Altair',
+        sector: Sector.Altair,
+        coords: { q: 4, r: 0 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 30,
+        exploration: { field: TechField.Physics, bonus: 2 },
+        lightYears: 17
+    },
+    {
+        id: 'epsilon-indi',
+        name: 'Epsilon Indi',
+        sector: Sector.DeltaPavonis,
+        coords: { q: 4, r: 1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 12
+    },
+    {
+        id: 'beta-hydri',
+        name: 'Beta Hydri',
+        sector: Sector.DeltaPavonis,
+        coords: { q: 4, r: 2 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 40,
+        exploration: { field: TechField.Engineering, bonus: 2 },
+        lightYears: 24
+    },
+    {
+        id: 'fomalhaut',
+        name: 'Fomalhaut',
+        sector: Sector.Altair,
+        coords: { q: 5, r: -2 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 40,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 25
+    },
+    {
+        id: 'beta-comae-berenices',
+        name: 'Beta Comae Berenices',
+        sector: Sector.Altair,
+        coords: { q: 5, r: -1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 30
+    },
+    {
+        id: 'delta-pavonis',
+        name: 'Delta Pavonis',
+        sector: Sector.DeltaPavonis,
+        coords: { q: 5, r: 0 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 20
+    },
+    {
+        id: '61-virginis',
+        name: '61 Virginis',
+        sector: Sector.DeltaPavonis,
+        coords: { q: 5, r: 1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 80,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 28
+    },
+    {
+        id: 'trappist-1',
+        name: 'Trappist-1',
+        sector: Sector.GammaSerpentis,
+        coords: { q: 6, r: -3 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Engineering, bonus: 2 },
+        lightYears: 41
+    },
+    {
+        id: 'arcturus',
+        name: 'Arcturus',
+        sector: Sector.GammaSerpentis,
+        coords: { q: 6, r: -2 },
+        worldSlots: 2,
+        earthlikeRestricted: true,
+        habitability: 20,
+        exploration: { field: TechField.Engineering, bonus: 2 },
+        lightYears: 37
+    },
+    {
+        id: 'gamma-serpentis',
+        name: 'Gamma Serpentis',
+        sector: Sector.GammaSerpentis,
+        coords: { q: 6, r: -1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 50,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 37
+    },
+    {
+        id: 'alpha-mensae',
+        name: 'Alpha Mensae',
+        sector: Sector.BetaAquilae,
+        coords: { q: 6, r: 0 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 90,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 33
+    },
+    {
+        id: 'innes-star',
+        name: "Innes' Star",
+        sector: Sector.BetaAquilae,
+        coords: { q: 6, r: 1 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Engineering, bonus: 1 },
+        lightYears: 41
+    },
+    {
+        id: '72-herculis',
+        name: '72 Herculis',
+        sector: Sector.GammaSerpentis,
+        coords: { q: 7, r: -3 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 80,
+        exploration: { field: TechField.Biology, bonus: 1 },
+        lightYears: 47
+    },
+    {
+        id: '26-draconis',
+        name: '26 Draconis',
+        sector: Sector.GammaSerpentis,
+        coords: { q: 7, r: -2 },
+        worldSlots: 2,
+        earthlikeRestricted: false,
+        habitability: 50,
+        exploration: { field: TechField.Physics, bonus: 2 },
+        lightYears: 46
+    },
+    {
+        id: 'beta-aquilae',
+        name: 'Beta Aquilae',
+        sector: Sector.BetaAquilae,
+        coords: { q: 7, r: -1 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 60,
+        exploration: { field: TechField.Physics, bonus: 1 },
+        lightYears: 45
+    },
+    {
+        id: '18-scorpii',
+        name: '18 Scorpii',
+        sector: Sector.BetaAquilae,
+        coords: { q: 7, r: 0 },
+        worldSlots: 3,
+        earthlikeRestricted: false,
+        habitability: 70,
+        exploration: { field: TechField.Biology, bonus: 2 },
+        lightYears: 46
+    }
+]

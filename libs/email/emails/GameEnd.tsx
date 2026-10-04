@@ -28,6 +28,9 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
     } else if (result === GameResult.Abandoned) {
         previewText = `Your ${title} game ${gameName} was abandoned.`
         resultText = 'The game was abandoned'
+    } else if (result === GameResult.Loss) {
+        previewText = `Your ${title} game ${gameName} has ended without a winner.`
+        resultText = 'Nobody won'
     } else {
         previewText = `Your ${title} game ${gameName} has ended.`
         resultText = (

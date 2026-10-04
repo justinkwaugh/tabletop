@@ -4,6 +4,7 @@ import type { GameState } from './gameState.js'
 export enum GameResult {
     Abandoned = 'Abandoned',
     Draw = 'Draw',
+    Loss = 'Loss',
     Win = 'Win'
 }
 
@@ -19,5 +20,7 @@ export function validateGameResult(state: GameState): void {
         assert(winners.length > 0, 'Finished game must declare winners')
     } else if (state.result === GameResult.Abandoned) {
         assert(winners.length === 0, 'Abandoned game cannot declare winners')
+    } else if (state.result === GameResult.Loss) {
+        assert(winners.length === 0, 'A lost game cannot declare winners')
     }
 }

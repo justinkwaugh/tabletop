@@ -11,7 +11,8 @@ describe('game result validation', () => {
         { result: GameResult.Win, winners: ['p1'] },
         { result: GameResult.Win, winners: ['p1', 'p2'] },
         { result: GameResult.Draw, winners: ['p1', 'p2'] },
-        { result: GameResult.Abandoned, winners: [] }
+        { result: GameResult.Abandoned, winners: [] },
+        { result: GameResult.Loss, winners: [] }
     ])(
         'accepts $result with declared winners $winners without changing the state',
         ({ result, winners }) => {
@@ -27,7 +28,8 @@ describe('game result validation', () => {
         { result: GameResult.Draw, winners: [] },
         { result: GameResult.Win, winners: ['p1', 'p1'] },
         { result: GameResult.Win, winners: ['outsider'] },
-        { result: GameResult.Abandoned, winners: ['p1'] }
+        { result: GameResult.Abandoned, winners: ['p1'] },
+        { result: GameResult.Loss, winners: ['p1'] }
     ])('rejects inconsistent $result with winners $winners', ({ result, winners }) => {
         expect(() => validateGameResult(finalState(result, winners))).toThrow()
     })

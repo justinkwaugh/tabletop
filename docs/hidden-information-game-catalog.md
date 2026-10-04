@@ -24,6 +24,7 @@ The requirements below concern new games adopting protected delivery. Existing v
 | Bus | None identified | None identified | None beyond public setup/identity |
 | Bridges of Shangri-La | None identified | None identified | None beyond public setup |
 | Urbino | None identified | None identified | None beyond public setup |
+| Stellar Horizons II | None: tech-marker and world pools are public counts, and held markers are public | None identified; dice and draws are published in metadata | Exploration and malfunction dice, tech-marker and world-tile draws |
 
 “Until reveal” does not mean an old submission Action should be dynamically unredacted later. Keep private historical submissions protected and publish a separate complete result at the reveal transition.
 

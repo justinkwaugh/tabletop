@@ -44,7 +44,14 @@ export function applyTournamentGameScore(
         game.winningPlayerIds.every((id) => game.players.some((player) => player.id === id)),
         'Winner is not in the game'
     )
-    assert(game.winningPlayerIds.length > 0, 'Finished game must declare winners')
+    assert(
+        game.result === GameResult.Loss
+            ? game.winningPlayerIds.length === 0
+            : game.winningPlayerIds.length > 0,
+        game.result === GameResult.Loss
+            ? 'A lost game cannot declare winners'
+            : 'Finished game must declare winners'
+    )
     assert(
         !finalScores || game.players.every((player) => finalScores[player.id] !== undefined),
         'Final scores must cover every game player'

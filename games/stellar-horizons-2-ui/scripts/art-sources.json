@@ -1,0 +1,2008 @@
+{
+ "systems": {
+  "gliese-251": {
+   "bbox": [
+    401,
+    423,
+    1467,
+    1349
+   ],
+   "slots": [],
+   "marker": null,
+   "expectedSlots": 3
+  },
+  "luytens-star": {
+   "bbox": [
+    398,
+    1356,
+    1470,
+    2286
+   ],
+   "slots": [
+    [
+     710,
+     582
+    ],
+    [
+     392,
+     242
+    ],
+    [
+     208,
+     518
+    ]
+   ],
+   "marker": [
+    736,
+    822
+   ],
+   "expectedSlots": 3
+  },
+  "tau-ceti": {
+   "bbox": [
+    403,
+    2297,
+    1468,
+    3226
+   ],
+   "slots": [
+    [
+     292,
+     228
+    ],
+    [
+     752,
+     308
+    ],
+    [
+     292,
+     226
+    ]
+   ],
+   "marker": [
+    729,
+    819
+   ],
+   "expectedSlots": 3
+  },
+  "epsilon-eridani": {
+   "bbox": [
+    398,
+    3238,
+    1470,
+    4168
+   ],
+   "slots": [
+    [
+     742,
+     506
+    ],
+    [
+     384,
+     246
+    ],
+    [
+     200,
+     484
+    ]
+   ],
+   "marker": [
+    735,
+    823
+   ],
+   "expectedSlots": 3
+  },
+  "kapteyns-star": {
+   "bbox": [
+    403,
+    4181,
+    1465,
+    5107
+   ],
+   "slots": [
+    [
+     354,
+     358
+    ],
+    [
+     706,
+     260
+    ],
+    [
+     858,
+     516
+    ]
+   ],
+   "marker": [
+    728,
+    814
+   ],
+   "expectedSlots": 3
+  },
+  "gx-andromedae": {
+   "bbox": [
+    1209,
+    888,
+    2275,
+    1817
+   ],
+   "slots": [
+    [
+     350,
+     380
+    ],
+    [
+     794,
+     362
+    ]
+   ],
+   "marker": [
+    736,
+    818
+   ],
+   "expectedSlots": 2
+  },
+  "lalande-21185": {
+   "bbox": [
+    1210,
+    1828,
+    2277,
+    2754
+   ],
+   "slots": [
+    [
+     296,
+     234
+    ],
+    [
+     798,
+     548
+    ],
+    [
+     298,
+     232
+    ]
+   ],
+   "marker": [
+    737,
+    815
+   ],
+   "expectedSlots": 3
+  },
+  "wolf-359": {
+   "bbox": [
+    1213,
+    2775,
+    2281,
+    3699
+   ],
+   "slots": [
+    [
+     734,
+     402
+    ],
+    [
+     282,
+     354
+    ]
+   ],
+   "marker": [
+    732,
+    813
+   ],
+   "expectedSlots": 2
+  },
+  "ross-128": {
+   "bbox": [
+    1210,
+    3706,
+    2282,
+    4636
+   ],
+   "slots": [
+    [
+     464,
+     282
+    ],
+    [
+     808,
+     440
+    ],
+    [
+     204,
+     500
+    ]
+   ],
+   "marker": [
+    736,
+    820
+   ],
+   "expectedSlots": 3
+  },
+  "v2306-ophiuchi": {
+   "bbox": [
+    2030,
+    420,
+    3096,
+    1350
+   ],
+   "slots": [
+    [
+     326,
+     506
+    ],
+    [
+     360,
+     246
+    ],
+    [
+     862,
+     516
+    ]
+   ],
+   "marker": [
+    733,
+    816
+   ],
+   "expectedSlots": 3
+  },
+  "barnards-star": {
+   "bbox": [
+    2032,
+    1358,
+    3098,
+    2287
+   ],
+   "slots": [
+    [
+     766,
+     326
+    ],
+    [
+     260,
+     508
+    ]
+   ],
+   "marker": [
+    731,
+    820
+   ],
+   "expectedSlots": 2
+  },
+  "sol": {
+   "bbox": [
+    2031,
+    2298,
+    3098,
+    3226
+   ],
+   "slots": [],
+   "marker": null,
+   "expectedSlots": 0
+  },
+  "wise-0855-0714": {
+   "bbox": [
+    2033,
+    3245,
+    3100,
+    4171
+   ],
+   "slots": [
+    [
+     232,
+     502
+    ],
+    [
+     804,
+     334
+    ]
+   ],
+   "marker": [
+    732,
+    817
+   ],
+   "expectedSlots": 2
+  },
+  "procyon": {
+   "bbox": [
+    2034,
+    4184,
+    3102,
+    5108
+   ],
+   "slots": [
+    [
+     270,
+     384
+    ],
+    [
+     808,
+     484
+    ]
+   ],
+   "marker": [
+    729,
+    816
+   ],
+   "expectedSlots": 2
+  },
+  "gliese-876": {
+   "bbox": [
+    2839,
+    893,
+    3909,
+    1819
+   ],
+   "slots": [
+    [
+     734,
+     534
+    ],
+    [
+     714,
+     254
+    ],
+    [
+     204,
+     474
+    ]
+   ],
+   "marker": [
+    735,
+    815
+   ],
+   "expectedSlots": 3
+  },
+  "luhman-16": {
+   "bbox": [
+    2843,
+    1829,
+    3907,
+    2757
+   ],
+   "slots": [
+    [
+     742,
+     474
+    ],
+    [
+     298,
+     322
+    ]
+   ],
+   "marker": [
+    733,
+    815
+   ],
+   "expectedSlots": 2
+  },
+  "alpha-centauri": {
+   "bbox": [
+    2847,
+    2772,
+    3912,
+    3705
+   ],
+   "slots": [
+    [
+     474,
+     274
+    ],
+    [
+     806,
+     498
+    ],
+    [
+     196,
+     492
+    ]
+   ],
+   "marker": [
+    732,
+    820
+   ],
+   "expectedSlots": 3
+  },
+  "sirius": {
+   "bbox": [
+    2845,
+    3716,
+    3912,
+    4642
+   ],
+   "slots": [
+    [
+     710,
+     358
+    ],
+    [
+     284,
+     356
+    ]
+   ],
+   "marker": [
+    734,
+    813
+   ],
+   "expectedSlots": 2
+  },
+  "vega": {
+   "bbox": [
+    3660,
+    422,
+    4726,
+    1352
+   ],
+   "slots": [
+    [
+     314,
+     508
+    ],
+    [
+     782,
+     308
+    ],
+    [
+     306,
+     184
+    ]
+   ],
+   "marker": [
+    735,
+    815
+   ],
+   "expectedSlots": 3
+  },
+  "61-cygni": {
+   "bbox": [
+    3661,
+    1360,
+    4727,
+    2289
+   ],
+   "slots": [
+    [
+     768,
+     324
+    ],
+    [
+     262,
+     510
+    ]
+   ],
+   "marker": [
+    732,
+    816
+   ],
+   "expectedSlots": 2
+  },
+  "altair": {
+   "bbox": [
+    3661,
+    2297,
+    4725,
+    3225
+   ],
+   "slots": [
+    [
+     272,
+     368
+    ],
+    [
+     804,
+     484
+    ]
+   ],
+   "marker": [
+    730,
+    817
+   ],
+   "expectedSlots": 2
+  },
+  "epsilon-indi": {
+   "bbox": [
+    3663,
+    3241,
+    4728,
+    4174
+   ],
+   "slots": [
+    [
+     738,
+     472
+    ],
+    [
+     390,
+     238
+    ],
+    [
+     198,
+     502
+    ]
+   ],
+   "marker": [
+    732,
+    819
+   ],
+   "expectedSlots": 3
+  },
+  "beta-hydri": {
+   "bbox": [
+    3663,
+    4181,
+    4732,
+    5107
+   ],
+   "slots": [
+    [
+     334,
+     286
+    ],
+    [
+     808,
+     454
+    ]
+   ],
+   "marker": [
+    730,
+    818
+   ],
+   "expectedSlots": 2
+  },
+  "fomalhaut": {
+   "bbox": [
+    4475,
+    893,
+    5537,
+    1819
+   ],
+   "slots": [
+    [
+     732,
+     524
+    ],
+    [
+     670,
+     220
+    ],
+    [
+     276,
+     244
+    ]
+   ],
+   "marker": [
+    730,
+    814
+   ],
+   "expectedSlots": 3
+  },
+  "beta-comae-berenices": {
+   "bbox": [
+    4470,
+    1828,
+    5537,
+    2754
+   ],
+   "slots": [
+    [
+     334,
+     516
+    ],
+    [
+     810,
+     444
+    ],
+    [
+     266,
+     264
+    ]
+   ],
+   "marker": [
+    736,
+    816
+   ],
+   "expectedSlots": 3
+  },
+  "delta-pavonis": {
+   "bbox": [
+    4477,
+    2772,
+    5543,
+    3702
+   ],
+   "slots": [
+    [
+     408,
+     302
+    ],
+    [
+     846,
+     358
+    ],
+    [
+     204,
+     540
+    ]
+   ],
+   "marker": [
+    726,
+    819
+   ],
+   "expectedSlots": 3
+  },
+  "61-virginis": {
+   "bbox": [
+    4474,
+    3704,
+    5539,
+    4637
+   ],
+   "slots": [
+    [
+     488,
+     280
+    ],
+    [
+     204,
+     536
+    ],
+    [
+     870,
+     460
+    ]
+   ],
+   "marker": [
+    733,
+    823
+   ],
+   "expectedSlots": 3
+  },
+  "trappist-1": {
+   "bbox": [
+    5291,
+    417,
+    6358,
+    1343
+   ],
+   "slots": [
+    [
+     446,
+     272
+    ],
+    [
+     806,
+     452
+    ],
+    [
+     198,
+     510
+    ]
+   ],
+   "marker": [
+    731,
+    821
+   ],
+   "expectedSlots": 3
+  },
+  "arcturus": {
+   "bbox": [
+    5293,
+    1359,
+    6357,
+    2287
+   ],
+   "slots": [
+    [
+     776,
+     446
+    ],
+    [
+     234,
+     334
+    ]
+   ],
+   "marker": [
+    732,
+    818
+   ],
+   "expectedSlots": 2
+  },
+  "gamma-serpentis": {
+   "bbox": [
+    5293,
+    2299,
+    6355,
+    3225
+   ],
+   "slots": [
+    [
+     592,
+     268
+    ],
+    [
+     800,
+     520
+    ],
+    [
+     198,
+     506
+    ]
+   ],
+   "marker": [
+    728,
+    816
+   ],
+   "expectedSlots": 3
+  },
+  "alpha-mensae": {
+   "bbox": [
+    5293,
+    3244,
+    6355,
+    4170
+   ],
+   "slots": [
+    [
+     534,
+     278
+    ],
+    [
+     798,
+     450
+    ],
+    [
+     194,
+     428
+    ]
+   ],
+   "marker": [
+    731,
+    817
+   ],
+   "expectedSlots": 3
+  },
+  "innes-star": {
+   "bbox": [
+    5292,
+    4186,
+    6360,
+    5110
+   ],
+   "slots": [
+    [
+     270,
+     384
+    ],
+    [
+     808,
+     480
+    ]
+   ],
+   "marker": [
+    727,
+    813
+   ],
+   "expectedSlots": 2
+  },
+  "72-herculis": {
+   "bbox": [
+    6104,
+    895,
+    7166,
+    1821
+   ],
+   "slots": [
+    [
+     614,
+     266
+    ],
+    [
+     798,
+     542
+    ],
+    [
+     262,
+     260
+    ]
+   ],
+   "marker": [
+    732,
+    811
+   ],
+   "expectedSlots": 3
+  },
+  "26-draconis": {
+   "bbox": [
+    6104,
+    1830,
+    7172,
+    2755
+   ],
+   "slots": [
+    [
+     742,
+     498
+    ],
+    [
+     258,
+     462
+    ]
+   ],
+   "marker": [
+    733,
+    816
+   ],
+   "expectedSlots": 2
+  },
+  "beta-aquilae": {
+   "bbox": [
+    6104,
+    2770,
+    7170,
+    3700
+   ],
+   "slots": [
+    [
+     810,
+     288
+    ],
+    [
+     358,
+     262
+    ],
+    [
+     210,
+     564
+    ]
+   ],
+   "marker": [
+    733,
+    821
+   ],
+   "expectedSlots": 3
+  },
+  "18-scorpii": {
+   "bbox": [
+    6103,
+    3712,
+    7166,
+    4638
+   ],
+   "slots": [
+    [
+     776,
+     504
+    ],
+    [
+     704,
+     232
+    ],
+    [
+     334,
+     232
+    ]
+   ],
+   "marker": [
+    735,
+    816
+   ],
+   "expectedSlots": 3
+  }
+ },
+ "ships": {
+  "consortium-prospector": [
+   "Cn RE Prospector.png",
+   "Cn RE Prospector b.png"
+  ],
+  "consortium-prosperity": [
+   "Cn RE Prosperity.png",
+   "Cn RE Prosperity b.png"
+  ],
+  "consortium-surveyor": [
+   "Cn RE Surveyor.png",
+   "Cn RE Surveyor b.png"
+  ],
+  "consortium-guildmaster": [
+   "Cn CV-2 Guildmaster.png",
+   "Cn CV-2 Guildmaster b.png"
+  ],
+  "consortium-nostromo": [
+   "Cn CV-2 Nostromo.png",
+   "Cn CV-2 Nostromo b.png"
+  ],
+  "consortium-sapphire": [
+   "Cn CV-2 Sapphire.png",
+   "Cn CV-2 Sapphire b.png"
+  ],
+  "consortium-opal-star": [
+   "Cn CV-3 Opal Star.png",
+   "Cn CV-3 Opal Star b.png"
+  ],
+  "consortium-desire": [
+   "Cn CV-4 Desire.png",
+   "Cn CV-4 Desire b.png"
+  ],
+  "consortium-destiny": [
+   "Cn CV-4 Destiny.png",
+   "Cn CV-4 Destiny b.png"
+  ],
+  "consortium-enterprise": [
+   "Cn CV-5 Enterprise.png",
+   "Cn CV-5 Enterprise b.png"
+  ],
+  "consortium-majestic": [
+   "Cn CV-5 Majestic.png",
+   "Cn CV-5 Majestic b.png"
+  ],
+  "consortium-zephyr": [
+   "Cn CV-5 Zephyr.png",
+   "Cn CV-5 Zephyr b.png"
+  ],
+  "consortium-aquarius": [
+   "Cn CV-6 Aquarius.png",
+   "Cn CV-6 Aquarius b.png"
+  ],
+  "consortium-empress": [
+   "Cn CV-7 Empress.png",
+   "Cn CV-7 Empress b.png"
+  ],
+  "consortium-trident": [
+   "Cn CV-7 Trident.png",
+   "Cn CV-7 Trident b.png"
+  ],
+  "consortium-neptune": [
+   "Cn CV-8 Neptune.png",
+   "Cn CV-8 Neptune b.png"
+  ],
+  "consortium-colossus": [
+   "Cn CV-10 Colossus.png",
+   "Cn CV-10 Colossus b.png"
+  ],
+  "givers-linnaeus": [
+   "Gv RE Linnaeus.png",
+   "Gv RE Linnaeus b.png"
+  ],
+  "givers-humboldt": [
+   "Gv RE Humboldt.png",
+   "Gv RE Humboldt b.png"
+  ],
+  "givers-mendel": [
+   "Gv RE Mendel.png",
+   "Gv RE Mendel b.png"
+  ],
+  "givers-bougainville": [
+   "Gv CV-2 Bougainville.png",
+   "Gv CV-2 Bougainville b.png"
+  ],
+  "givers-darwin": [
+   "Gv CV-2 Darwin.png",
+   "Gv CV-2 Darwin b.png"
+  ],
+  "givers-mirabilis": [
+   "Gv CV-2 Mirabilis.png",
+   "Gv CV-2 Mirabilis b.png"
+  ],
+  "givers-serenity": [
+   "Gv CV-3 Serenity.png",
+   "Gv CV-3 Serenity b.png"
+  ],
+  "givers-tempest": [
+   "Gv CV-3 Tempest.png",
+   "Gv CV-3 Tempest b.png"
+  ],
+  "givers-osanyin": [
+   "Gv CV-4 Osanyin.png",
+   "Gv CV-4 Osanyin b.png"
+  ],
+  "givers-viridis": [
+   "Gv CV-4 Viridis.png",
+   "Gv CV-4 Viridis b.png"
+  ],
+  "givers-eden": [
+   "Gv CV-5 Eden.png",
+   "Gv CV-5 Eden b.png"
+  ],
+  "givers-typhoon": [
+   "Gv CV-5 Typhoon.png",
+   "Gv CV-5 Typhoon b.png"
+  ],
+  "givers-artemis": [
+   "Gv CV-6 Artemis.png",
+   "Gv CV-6 Artemis b.png"
+  ],
+  "givers-eclipse": [
+   "Gv CV-6 Eclipse.png",
+   "Gv CV-6 Eclipse b.png"
+  ],
+  "givers-boreas": [
+   "Gv CV-7 Boreas.png",
+   "Gv CV-7 Boreas b.png"
+  ],
+  "givers-helios": [
+   "Gv CV-7 Helios.png",
+   "Gv CV-7 Helios b.png"
+  ],
+  "givers-gaia": [
+   "Gv CV-9 Gaia.png",
+   "Gv CV-9 Gaia b.png"
+  ],
+  "praetorians-audax": [
+   "Pr RE Audax.png",
+   "Pr RE Audax b.png"
+  ],
+  "praetorians-fidelis": [
+   "Pr RE Fidelis.png",
+   "Pr RE Fidelis b.png"
+  ],
+  "praetorians-peregrinus": [
+   "Pr RE Peregrinus.png",
+   "Pr RE Peregrinus b.png"
+  ],
+  "praetorians-noctua": [
+   "Pr CV-2 Noctua.png",
+   "Pr CV-2 Noctua b.png"
+  ],
+  "praetorians-odyssey": [
+   "Pr CV-2 Odyssey.png",
+   "Pr CV-2 Odyssey b.png"
+  ],
+  "praetorians-argonaut": [
+   "Pr CV-3 Argonaut.png",
+   "Pr CV-3 Argonaut b.png"
+  ],
+  "praetorians-gladiator": [
+   "Pr CV-3 Gladiator.png",
+   "Pr CV-3 Gladiator b.png"
+  ],
+  "praetorians-centurion": [
+   "Pr CV-4 Centurion.png",
+   "Pr CV-4 Centurion b.png"
+  ],
+  "praetorians-proconsul": [
+   "Pr CV-4 Proconsul.png",
+   "Pr CV-4 Proconsul b.png"
+  ],
+  "praetorians-myrmidon": [
+   "Pr CV-5 Myrmidon.png",
+   "Pr CV-5 Myrmidon b.png"
+  ],
+  "praetorians-aquila": [
+   "Pr CV-6 Aquila.png",
+   "Pr CV-6 Aquila b.png"
+  ],
+  "praetorians-athena": [
+   "Pr CV-6 Athena.png",
+   "Pr CV-6 Athena b.png"
+  ],
+  "praetorians-hercules": [
+   "Pr CV-7 Hercules.png",
+   "Pr CV-7 Hercules b.png"
+  ],
+  "praetorians-elysium": [
+   "Pr CV-8 Elysium.png",
+   "Pr CV-8 Elysium b.png"
+  ],
+  "praetorians-praetor": [
+   "Pr CV-9 Praetor.png",
+   "Pr CV-9 Praetor b.png"
+  ],
+  "praetorians-imperator": [
+   "Pr CV-10 Imperator.png",
+   "Pr CV-10 Imperator b.png"
+  ],
+  "starfarers-copernicus": [
+   "Sf RE Copernicus.png",
+   "Sf RE Copernicus b.png"
+  ],
+  "starfarers-kepler": [
+   "Sf RE Kepler.png",
+   "Sf RE Kepler b.png"
+  ],
+  "starfarers-kuiper": [
+   "Sf RE Kuiper.png",
+   "Sf RE Kuiper b.png"
+  ],
+  "starfarers-messier": [
+   "Sf RE Messier.png",
+   "Sf RE Messier b.png"
+  ],
+  "starfarers-andromeda": [
+   "Sf CV-2 Andromeda.png",
+   "Sf CV-2 Andromeda b.png"
+  ],
+  "starfarers-orion": [
+   "Sf CV-2 Orion.png",
+   "Sf CV-2 Orion b.png"
+  ],
+  "starfarers-discovery": [
+   "Sf CV-3 Discovery.png",
+   "Sf CV-3 Discovery b.png"
+  ],
+  "starfarers-pytheas": [
+   "Sf CV-3 Pytheas.png",
+   "Sf CV-3 Pytheas b.png"
+  ],
+  "starfarers-proxima": [
+   "Sf CV-4 Proxima.png",
+   "Sf CV-4 Proxima b.png"
+  ],
+  "starfarers-stargazer": [
+   "Sf CV-4 Stargazer.png",
+   "Sf CV-4 Stargazer b.png"
+  ],
+  "starfarers-polaris": [
+   "Sf CV-5 Polaris.png",
+   "Sf CV-5 Polaris b.png"
+  ],
+  "starfarers-voyager": [
+   "Sf CV-5 Voyager.png",
+   "Sf CV-5 Voyager b.png"
+  ],
+  "starfarers-nova": [
+   "Sf CV-6 Nova.png",
+   "Sf CV-6 Nova b.png"
+  ],
+  "starfarers-comet": [
+   "Sf CV-7 Comet.png",
+   "Sf CV-7 Comet b.png"
+  ],
+  "starfarers-constellation": [
+   "Sf CV-7 Constellation.png",
+   "Sf CV-7 Constellation b.png"
+  ],
+  "starfarers-starfury": [
+   "Sf CV-9 Starfury.png",
+   "Sf CV-9 Starfury b.png"
+  ],
+  "starfarers-galactica": [
+   "Sf CV-10 Galactica.png",
+   "Sf CV-10 Galactica b.png"
+  ],
+  "syndicate-harbinger": [
+   "SY RE Harbinger.png",
+   "SY RE Harbinger b.png"
+  ],
+  "syndicate-nomad": [
+   "SY RE Nomad.png",
+   "SY RE Nomad b.png"
+  ],
+  "syndicate-vagabond": [
+   "SY RE Vagabond.png",
+   "SY RE Vagabond b.png"
+  ],
+  "syndicate-cobra": [
+   "SY CV-2 Cobra.png",
+   "SY CV-2 Cobra b.png"
+  ],
+  "syndicate-python": [
+   "SY CV-2 Python.png",
+   "SY CV-2 Python b.png"
+  ],
+  "syndicate-viper": [
+   "SY CV-2 Viper.png",
+   "SY CV-2 Viper b.png"
+  ],
+  "syndicate-serpent": [
+   "SY CV-3 Serpent.png",
+   "SY CV-3 Serpent b.png"
+  ],
+  "syndicate-sisyphus": [
+   "SY CV-3 Sisyphus.png",
+   "SY CV-3 Sisyphus b.png"
+  ],
+  "syndicate-corsair": [
+   "SY CV-4 Corsair.png",
+   "SY CV-4 Corsair b.png"
+  ],
+  "syndicate-marauder": [
+   "SY CV-5 Marauder.png",
+   "SY CV-5 Marauder b.png"
+  ],
+  "syndicate-relentless": [
+   "SY CV-5 Relentless.png",
+   "SY CV-5 Relentless b.png"
+  ],
+  "syndicate-reaver": [
+   "SY CV-6 Reaver.png",
+   "SY CV-6 Reaver b.png"
+  ],
+  "syndicate-scavenger": [
+   "SY CV-6 Scavenger.png",
+   "SY CV-6 Scavenger b.png"
+  ],
+  "syndicate-antagonist": [
+   "SY CV-7 Antagonist.png",
+   "SY CV-7 Antagonist b.png"
+  ],
+  "syndicate-insurgent": [
+   "SY CV-7 Insurgent.png",
+   "SY CV-7 Insurgent b.png"
+  ],
+  "syndicate-nemesis": [
+   "SY CV-7 Nemesis.png",
+   "SY CV-7 Nemesis b.png"
+  ],
+  "syndicate-dreadnought": [
+   "SY CV-8 Dreadnought.png",
+   "SY CV-8 Dreadnought b.png"
+  ],
+  "transhumanists-franklin": [
+   "TH RE Franklin.png",
+   "TH RE Franklin b.png"
+  ],
+  "transhumanists-curie": [
+   "TH RE Curie.png",
+   "TH RE Curie b.png"
+  ],
+  "transhumanists-hawking": [
+   "TH RE Hawking.png",
+   "TH RE Hawking b.png"
+  ],
+  "transhumanists-foucault": [
+   "TH RE Foucault.png",
+   "TH RE Foucault b.png"
+  ],
+  "transhumanists-daedalus": [
+   "TH CV-2 Daedalus.png",
+   "TH CV-2 Daedalus b.png"
+  ],
+  "transhumanists-icarus": [
+   "TH CV-3 Icarus.png",
+   "TH CV-3 Icarus b.png"
+  ],
+  "transhumanists-perdix": [
+   "TH CV-3 Perdix.png",
+   "TH CV-3 Perdix b.png"
+  ],
+  "transhumanists-centaur": [
+   "TH CV-4 Centaur.png",
+   "TH CV-4 Centaur b.png"
+  ],
+  "transhumanists-vulcan": [
+   "TH CV-4 Vulcan.png",
+   "TH CV-4 Vulcan b.png"
+  ],
+  "transhumanists-archimedes": [
+   "TH CV-5 Archimedes.png",
+   "TH CV-5 Archimedes b.png"
+  ],
+  "transhumanists-griffin": [
+   "TH CV-5 Griffin.png",
+   "TH CV-5 Griffin b.png"
+  ],
+  "transhumanists-eratosthenes": [
+   "TH CV-6 Eratosthenes.png",
+   "TH CV-6 Eratosthenes b.png"
+  ],
+  "transhumanists-pegasus": [
+   "TH CV-6 Pegasus.png",
+   "TH CV-6 Pegasus b.png"
+  ],
+  "transhumanists-da-vinci": [
+   "TH CV-7 Da Vinci.png",
+   "TH CV-7 Da Vinci b.png"
+  ],
+  "transhumanists-chimera": [
+   "TH CV-8 Chimera.png",
+   "TH CV-8 Chimera b.png"
+  ],
+  "transhumanists-minotaur": [
+   "TH CV-8 Minotaur.png",
+   "TH CV-8 Minotaur b.png"
+  ],
+  "transhumanists-prometheus": [
+   "TH CV-10 Prometheus.png",
+   "TH CV-10 Prometheus b.png"
+  ],
+  "truepath-faithful": [
+   "TP RE Faithful.png",
+   "TP RE Faithful b.png"
+  ],
+  "truepath-lightbringer": [
+   "TP RE Lightbringer.png",
+   "TP RE Lightbringer b.png"
+  ],
+  "truepath-pathfinder": [
+   "TP RE Pathfinder.png",
+   "TP RE Pathfinder b.png"
+  ],
+  "truepath-ardent-spirit": [
+   "TP CV-2 Ardent Spirit.png",
+   "TP CV-2 Ardent Spirit b.png"
+  ],
+  "truepath-firebrand": [
+   "TP CV-2 Firebrand.png",
+   "TP CV-2 Firebrand b.png"
+  ],
+  "truepath-pilgrim": [
+   "TP CV-2 Pilgram.png",
+   "TP CV-2 Pilgram b.png"
+  ],
+  "truepath-oathkeeper": [
+   "TP CV-3 Oathkeeper.png",
+   "TP CV-3 Oathkeeper b.png"
+  ],
+  "truepath-rising-star": [
+   "TP CV-3 Rising Star.png",
+   "TP CV-3 Rising Star b.png"
+  ],
+  "truepath-celestial-ark": [
+   "TP CV-4 Celestial Ark.png",
+   "TP CV-4 Celestial Ark b.png"
+  ],
+  "truepath-paladin": [
+   "TP CV-5 Paladin.png",
+   "TP CV-5 Paladin b.png"
+  ],
+  "truepath-proselyte": [
+   "TP CV-5 Proselyte.png",
+   "TP CV-5 Proselyte b.png"
+  ],
+  "truepath-unity": [
+   "TP CV-5 Unity.png",
+   "TP CV-5 Unity b.png"
+  ],
+  "truepath-ascendance": [
+   "TP CV-6 Ascendance.png",
+   "TP CV-6 Ascendance b.png"
+  ],
+  "truepath-guardian": [
+   "TP CV-6 Guardian.png",
+   "TP CV-6 Guardian b.png"
+  ],
+  "truepath-eternal-flame": [
+   "TP CV-7 Eternal Flame.png",
+   "TP CV-7 Eternal Flame b.png"
+  ],
+  "truepath-intercessor": [
+   "TP CV-8 Intercessor.png",
+   "TP CV-8 Intercessor b.png"
+  ],
+  "truepath-revenant": [
+   "TP CV-9 Revenant.png",
+   "TP CV-9 Revenant b.png"
+  ]
+ },
+ "worlds": {
+  "m-1": [
+   "Planet M-25 2-4.png",
+   "Planet M-27 2-5 b.png"
+  ],
+  "m-2": [
+   "Planet M-25 2-4.png",
+   "Planet M-27 2-5 b.png"
+  ],
+  "m-3": [
+   "Planet M-25 2-4.png",
+   "Planet M-27 2-5 b.png"
+  ],
+  "m-4": [
+   "Planet M-25 2-4.png",
+   "Planet M-25 2-4 b.png"
+  ],
+  "m-5": [
+   "Planet M-25 2-4.png",
+   "Planet M-25 2-4 b.png"
+  ],
+  "m-6": [
+   "Planet M-25 2-4.png",
+   "Planet M-25 2-4 b.png"
+  ],
+  "m-7": [
+   "Planet M-25 3-5.png",
+   "Planet M-25 3-5 b.png"
+  ],
+  "m-8": [
+   "Planet M-25 3-5.png",
+   "Planet M-26 3-5 b.png"
+  ],
+  "m-9": [
+   "Planet M-26 2-4.png",
+   "Planet M-29 2-5 b.png"
+  ],
+  "m-10": [
+   "Planet M-26 2-6.png",
+   "Planet M-26 2-6 b.png"
+  ],
+  "m-11": [
+   "Planet M-26 3-4.png",
+   "Planet M-27 3-5 b.png"
+  ],
+  "m-12": [
+   "Planet M-26 3-5.png",
+   "Planet M-25 3-5 b.png"
+  ],
+  "m-13": [
+   "Planet M-26 3-6.png",
+   "Planet M-26 3-6 b.png"
+  ],
+  "m-14": [
+   "Planet M-26 3-6.png",
+   "Planet M-27 3-7 b.png"
+  ],
+  "m-15": [
+   "Planet M-27 2-4.png",
+   "Planet M-29 2-5 b.png"
+  ],
+  "m-16": [
+   "Planet M-27 2-6.png",
+   "Planet M-26 2-6 b.png"
+  ],
+  "m-17": [
+   "Planet M-27 3-5.png",
+   "Planet M-29 3-7 b.png"
+  ],
+  "m-18": [
+   "Planet M-27 3-5.png",
+   "Planet M-29 3-7 b.png"
+  ],
+  "o-1": [
+   "Planet O-17 3-4.png",
+   "Planet O-20 2-2 b.png"
+  ],
+  "o-2": [
+   "Planet O-18 2-2.png",
+   "Planet O-20 2-2a b.png"
+  ],
+  "o-3": [
+   "Planet O-19 3-3.png",
+   "Planet O-22 4-3 b.png"
+  ],
+  "o-4": [
+   "Planet O-19 4-4.png",
+   "Planet O-23 4-5 b.png"
+  ],
+  "o-5": [
+   "Planet O-20 1-2.png",
+   "Planet O-20 1-2 b.png"
+  ],
+  "o-6": [
+   "Planet O-20 1-3.png",
+   "Planet O-20 1-3 b.png"
+  ],
+  "o-7": [
+   "Planet O-20 2-2.png",
+   "Planet O-20 2-2 b.png"
+  ],
+  "o-8": [
+   "Planet O-20 3-3.png",
+   "Planet O-21 3-4 b.png"
+  ],
+  "o-9": [
+   "Planet O-21 2-3.png",
+   "Planet O-20 3-5 b.png"
+  ],
+  "o-10": [
+   "Planet O-21 2-3.png",
+   "Planet O-20 3-5 b.png"
+  ],
+  "o-11": [
+   "Planet O-21 3-3.png",
+   "Planet O-21 3-3 b.png"
+  ],
+  "o-12": [
+   "Planet O-22 2-3.png",
+   "Planet O-20 3-5 b.png"
+  ],
+  "l-1": [
+   "Planet L-16 1-3.png",
+   "Planet L-18 2-4a b.png"
+  ],
+  "l-2": [
+   "Planet L-16 1-3.png",
+   "Planet L-18 2-4a b.png"
+  ],
+  "l-3": [
+   "Planet L-16 1-4.png",
+   "Planet L-18 2-4 b.png"
+  ],
+  "l-4": [
+   "Planet L-16 1-4.png",
+   "Planet L-18 2-5 b.png"
+  ],
+  "l-5": [
+   "Planet L-16 2-4.png",
+   "Planet L-18 2-5 b.png"
+  ],
+  "l-6": [
+   "Planet L-16 2-4.png",
+   "Planet L-18 2-5 b.png"
+  ],
+  "l-7": [
+   "Planet L-16 2-5.png",
+   "Planet L-16 2-5 b.png"
+  ],
+  "l-8": [
+   "Planet L-17 1-4.png",
+   "Planet L-17 1-4 b.png"
+  ],
+  "l-9": [
+   "Planet L-17 2-5.png",
+   "Planet L-17 2-5 b.png"
+  ],
+  "l-10": [
+   "Planet L-17 2-5.png",
+   "Planet L-17 2-5 b.png"
+  ],
+  "l-11": [
+   "Planet L-17 3-6.png",
+   "Planet L-17 3-6 b.png"
+  ],
+  "l-12": [
+   "Planet L-17 3-6.png",
+   "Planet L-17 3-6 b.png"
+  ],
+  "l-13": [
+   "Planet L-18 1-3.png",
+   "Planet L-20 2-4 b.png"
+  ],
+  "l-14": [
+   "Planet L-18 2-4.png",
+   "Planet L-18 2-4 b.png"
+  ],
+  "l-15": [
+   "Planet L-18 2-5.png",
+   "Planet L-20 3-6 b.png"
+  ],
+  "l-16": [
+   "Planet L-18 3-6.png",
+   "Planet L-20 4-7 b.png"
+  ],
+  "h-1": [
+   "Planet H-13 2-4.png",
+   "Planet H-13 2-4 b.png"
+  ],
+  "h-2": [
+   "Planet H-13 2-4.png",
+   "Planet H-13 2-4 b.png"
+  ],
+  "h-3": [
+   "Planet H-13 2-4.png",
+   "Planet H-13 2-4 b.png"
+  ],
+  "h-4": [
+   "Planet H-13 2-4.png",
+   "Planet H-13 2-4 b.png"
+  ],
+  "h-5": [
+   "Planet H-13 2-4.png",
+   "Planet H-13 2-4 b.png"
+  ],
+  "h-6": [
+   "Planet H-13 2-5.png",
+   "Planet H-13 2-5 b.png"
+  ],
+  "h-7": [
+   "Planet H-13 3-5.png",
+   "Planet H-13 3-5 b.png"
+  ],
+  "h-8": [
+   "Planet H-14 1-3.png",
+   "Planet H-14 1-3 b.png"
+  ],
+  "h-9": [
+   "Planet H-14 1-3.png",
+   "Planet H-14 1-3 b.png"
+  ],
+  "h-10": [
+   "Planet H-14 1-3.png",
+   "Planet H-14 1-3 b.png"
+  ],
+  "h-11": [
+   "Planet H-14 2-4.png",
+   "Planet H-14 2-4 b.png"
+  ],
+  "h-12": [
+   "Planet H-14 2-4.png",
+   "Planet H-14 2-4 b.png"
+  ],
+  "h-13": [
+   "Planet H-14 2-4.png",
+   "Planet H-14 2-4 b.png"
+  ],
+  "h-14": [
+   "Planet H-14 2-5.png",
+   "Planet H-14 2-5 b.png"
+  ],
+  "h-15": [
+   "Planet H-14 2-5.png",
+   "Planet H-14 2-5 b.png"
+  ],
+  "h-16": [
+   "Planet H-14 3-6.png",
+   "Planet H-15 3-7 b.png"
+  ],
+  "p-1": [
+   "Planet P-10 2-1.png",
+   "Planet P-11 2-3 b.png"
+  ],
+  "p-2": [
+   "Planet P-11 2-2.png",
+   "Planet P-11 2-2 b.png"
+  ],
+  "p-3": [
+   "Planet P-11 2-2.png",
+   "Planet P-11 2-2 b.png"
+  ],
+  "p-4": [
+   "Planet P-11 3-2.png",
+   "Planet P-12 4-4 b.png"
+  ],
+  "p-5": [
+   "Planet P-11 3-3.png",
+   "Planet P-11 3-3 b.png"
+  ],
+  "p-6": [
+   "Planet P-11 3-3.png",
+   "Planet P-11 3-3 b.png"
+  ],
+  "p-7": [
+   "Planet P-11 3-4.png",
+   "Planet P-11 3-4 b.png"
+  ],
+  "p-8": [
+   "Planet P-12 1-1.png",
+   "Planet P-12 1-1 b.png"
+  ],
+  "p-9": [
+   "Planet P-12 2-2.png",
+   "Planet P-12 2-2 b.png"
+  ],
+  "p-10": [
+   "Planet P-12 2-2.png",
+   "Planet P-12 2-2 b.png"
+  ],
+  "p-11": [
+   "Planet P-12 3-2.png",
+   "Planet P-12 3-3 b.png"
+  ],
+  "p-12": [
+   "Planet P-12 3-3.png",
+   "Planet P-12 3-3 b.png"
+  ],
+  "p-13": [
+   "Planet P-12 3-3.png",
+   "Planet P-12 3-3 b.png"
+  ],
+  "p-14": [
+   "Planet P-9 1-1.png",
+   "Planet P-10 2-2 b.png"
+  ],
+  "k-1": [
+   "Planet K-5 1-1.png",
+   "Planet K-5 1-1 b.png"
+  ],
+  "k-2": [
+   "Planet K-5 1-1.png",
+   "Planet K-5 1-1 b.png"
+  ],
+  "k-3": [
+   "Planet K-6 1-1.png",
+   "Planet K-8 1-3 b.png"
+  ],
+  "k-4": [
+   "Planet K-6 1-1.png",
+   "Planet K-8 1-3 b.png"
+  ],
+  "k-5": [
+   "Planet K-6 1-2.png",
+   "Planet K-8 1-3 b.png"
+  ],
+  "k-6": [
+   "Planet K-6 2-2.png",
+   "Planet K-8 1-3 b.png"
+  ],
+  "k-7": [
+   "Planet K-6 2-3.png",
+   "Planet K-8 2-4 b.png"
+  ],
+  "k-8": [
+   "Planet K-7 1-2.png",
+   "Planet K-9 1-3 b.png"
+  ],
+  "k-9": [
+   "Planet K-7 1-2.png",
+   "Planet K-9 1-3 b.png"
+  ],
+  "k-10": [
+   "Planet K-7 1-3.png",
+   "Planet K-7 1-3 b.png"
+  ],
+  "k-11": [
+   "Planet K-7 2-3.png",
+   "Planet K-7 2-3 b.png"
+  ],
+  "k-12": [
+   "Planet K-7 3-3.png",
+   "Planet K-7 3-3 b.png"
+  ],
+  "k-13": [
+   "Planet K-7 3-4.png",
+   "Planet K-7 3-4 b.png"
+  ],
+  "k-14": [
+   "Planet K-7 3-4.png",
+   "Planet K-7 3-4 b.png"
+  ],
+  "k-15": [
+   "Planet K-7 4-4.png",
+   "Planet K-7 4-4 b.png"
+  ],
+  "k-16": [
+   "Planet K-8 1-2.png",
+   "Planet K-10 1-4 b.png"
+  ],
+  "k-17": [
+   "Planet K-8 1-2.png",
+   "Planet K-10 1-4 b.png"
+  ],
+  "k-18": [
+   "Planet K-8 1-2.png",
+   "Planet K-10 1-4 b.png"
+  ],
+  "k-19": [
+   "Planet K-8 2-3.png",
+   "Planet K-10 2-5 b.png"
+  ],
+  "k-20": [
+   "Planet K-8 2-3.png",
+   "Planet K-10 2-5 b.png"
+  ],
+  "k-21": [
+   "Planet K-8 2-4.png",
+   "Planet K-10 2-5 b.png"
+  ],
+  "k-22": [
+   "Planet K-8 32-4.png",
+   "Planet K-10 3-5 b.png"
+  ],
+  "k-23": [
+   "Planet K-9 3-2.png",
+   "Planet K-10 3-4 b.png"
+  ],
+  "a-1": [
+   "Planet A-4 2-5.png",
+   "Planet A-4 2-5 b.png"
+  ],
+  "a-2": [
+   "Planet A-5 3-5.png",
+   "Planet A-6 3-6 b.png"
+  ],
+  "a-3": [
+   "Planet A-5 3-7.png",
+   "Planet A-6 3-9 b.png"
+  ],
+  "a-4": [
+   "Planet A-5 3-7.png",
+   "Planet A-6 3-9 b.png"
+  ],
+  "a-5": [
+   "Planet A-5 4-6.png",
+   "Planet A-6 4-9 b.png"
+  ],
+  "a-6": [
+   "Planet A-5 4-6.png",
+   "Planet A-6 4-9 b.png"
+  ],
+  "a-7": [
+   "Planet A-6 2-6.png",
+   "Planet A-7 2-9 b.png"
+  ],
+  "a-8": [
+   "Planet A-6 3-7.png",
+   "Planet A-7 3-9 b.png"
+  ],
+  "a-9": [
+   "Planet A-6 3-7.png",
+   "Planet A-7 3-9 b.png"
+  ],
+  "a-10": [
+   "Planet A-6 4-7.png",
+   "Planet A-7 4-9 b.png"
+  ],
+  "a-11": [
+   "Planet A-6 4-8.png",
+   "Planet A-7 4-9 b.png"
+  ],
+  "j-1": [
+   "J-4 3-4 2.png",
+   "Planet J-8 3-8 b.png"
+  ],
+  "j-2": [
+   "J-4 3-4 2.png",
+   "Planet J-8 4-8 2 b.png"
+  ],
+  "j-3": [
+   "J-4 3-4 2.png",
+   "Planet J-8 4-8 2 b.png"
+  ],
+  "j-4": [
+   "J-4 3-4 2.png",
+   "Planet J-8 4-8 2 b.png"
+  ],
+  "j-5": [
+   "Planet J-1 1-1.png",
+   "Planet J-3 2-3.png"
+  ],
+  "j-6": [
+   "Planet J-1 1-1b.png",
+   "Planet J-3 2-3b.png"
+  ],
+  "j-7": [
+   "Planet J-1 1-2.png",
+   "Planet J-1 1-2 b.png"
+  ],
+  "j-8": [
+   "Planet J-1 1-2.png",
+   "Planet J-1 1-2 b.png"
+  ],
+  "j-9": [
+   "Planet J-10 3-8.png",
+   "Planet J-10 3-8 b.png"
+  ],
+  "j-10": [
+   "Planet J-2 2-2(2).png",
+   "Planet J-2 2-2(2) b.png"
+  ],
+  "j-11": [
+   "Planet J-2 2-2(2).png",
+   "Planet J-2 2-2(2) b.png"
+  ],
+  "j-12": [
+   "Planet J-2 2-2(2).png",
+   "Planet J-4 3-4.png"
+  ],
+  "j-13": [
+   "Planet J-2 2-2.png",
+   "Planet J-4 2-2 b.png"
+  ],
+  "j-14": [
+   "Planet J-3 2-2.png",
+   "Planet J-6 3-4 b.png"
+  ],
+  "j-15": [
+   "Planet J-3 2-2.png",
+   "Planet J-6 3-4 b.png"
+  ],
+  "j-16": [
+   "Planet J-3 2-3(2).png",
+   "Planet J-6 3-6 b.png"
+  ],
+  "j-17": [
+   "Planet J-3 2-3.png",
+   "Planet J-6 3-6 2 b.png"
+  ],
+  "j-18": [
+   "Planet J-4 3-3.png",
+   "Planet J-6 3-6 2 b.png"
+  ],
+  "j-19": [
+   "Planet J-4 3-3.png",
+   "Planet J-6 3-6 2 b.png"
+  ],
+  "j-20": [
+   "Planet J-8 2-7.png",
+   "Planet J-8 2-7 b.png"
+  ],
+  "d-1": [
+   "Planet D-1 1-4.png",
+   "Planet D-1 1-4 b.png"
+  ],
+  "d-2": [
+   "Planet D-1 2-4.png",
+   "Planet D-1 2-4 b.png"
+  ],
+  "d-3": [
+   "Planet D-2 2-5.png",
+   "Planet D-4 2-6 b.png"
+  ],
+  "d-4": [
+   "Planet D-2 3-5.png",
+   "Planet D-2 3-5 b.png"
+  ],
+  "d-5": [
+   "Planet D-2 3-5.png",
+   "Planet D-2 3-5 b.png"
+  ],
+  "d-6": [
+   "Planet D-2 3-6.png",
+   "Planet D-3 3-7 b.png"
+  ],
+  "d-7": [
+   "Planet D-2 3-6.png",
+   "Planet D-3 3-7 b.png"
+  ],
+  "d-8": [
+   "Planet D-2 4-6.png",
+   "Planet D-3 4-7 b.png"
+  ],
+  "d-9": [
+   "Planet D-3 2-7.png",
+   "Planet D-5 2-8 b.png"
+  ],
+  "d-10": [
+   "Planet D-3 2-7.png",
+   "Planet D-5 2-8 b.png"
+  ],
+  "d-11": [
+   "Planet D-3 3-8.png",
+   "Planet D-5 3-9 b.png"
+  ],
+  "d-12": [
+   "Planet D-3 4-8.png",
+   "Planet D-5 4-9 b.png"
+  ],
+  "e-1": [
+   "Planet E-10 2-4.png",
+   "Planet E-15 2-5 b.png"
+  ],
+  "e-2": [
+   "Planet E-10 2-4.png",
+   "Planet E-15 2-5 b.png"
+  ],
+  "e-3": [
+   "Planet E-12 3-5.png",
+   "Planet E-12 3-5 b.png"
+  ],
+  "e-4": [
+   "Planet E-12 3-5.png",
+   "Planet E-12 3-5 b.png"
+  ],
+  "e-5": [
+   "Planet E-14 2-5.png",
+   "Planet E-14 2-5 b.png"
+  ],
+  "e-6": [
+   "Planet E-16 3-6.png",
+   "Planet E-16 3-6 b.png"
+  ],
+  "e-7": [
+   "Planet E-8 2-4.png",
+   "Planet E-12 3-4 b.png"
+  ],
+  "none-1": [
+   "Planet No World.png",
+   null
+  ],
+  "none-2": [
+   "Planet No World.png",
+   null
+  ],
+  "none-3": [
+   "Planet No World.png",
+   null
+  ],
+  "none-4": [
+   "Planet No World.png",
+   null
+  ],
+  "none-5": [
+   "Planet No World.png",
+   null
+  ],
+  "none-6": [
+   "Planet No World.png",
+   null
+  ],
+  "none-7": [
+   "Planet No World.png",
+   null
+  ],
+  "none-8": [
+   "Planet No World.png",
+   null
+  ],
+  "none-9": [
+   "Planet No World.png",
+   null
+  ],
+  "none-10": [
+   "Planet No World.png",
+   null
+  ],
+  "none-11": [
+   "Planet No World.png",
+   null
+  ]
+ }
+}
