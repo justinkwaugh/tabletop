@@ -1,16 +1,26 @@
 import {
+    HexGrid,
     HexOrientation,
-    hexCoordsToCenterPoint,
+    calculateHexGeometry,
+    coordinatesToNumber,
     type AxialCoordinates,
+    type HexDefinition,
+    type HexGridNode,
     type Point
 } from '@tabletop/common'
-import { systemDefinition } from '@tabletop/stellar-horizons-2'
+import { STAR_MAP } from '@tabletop/stellar-horizons-2'
 import { SYSTEM_GEOMETRY } from '$lib/art/manifest.js'
 
 export const ART_SCALE = 0.5
+export const SHIP_COUNTER_ASPECT = 172 / 208
 export const BOARD_MARGIN = 40
 const LATTICE_RADIUS = 541 * ART_SCALE
-const LATTICE = { xRadius: LATTICE_RADIUS, yRadius: (LATTICE_RADIUS * Math.sqrt(3)) / 2 }
+const BOARD_HEX: HexDefinition = {
+    orientation: HexOrientation.Flat,
+    dimensions: { xRadius: LATTICE_RADIUS, yRadius: (LATTICE_RADIUS * Math.sqrt(3)) / 2 }
+}
+
+type BoardHex = HexGridNode & { systemId: string }
 
 export interface SystemFrame {
     systemId: string
@@ -43,28 +53,39 @@ function clearestPoint(width: number, height: number, slots: Point[]): Point {
     return candidates.reduce((best, point) => (clearance(point) > clearance(best) ? point : best))
 }
 
+// The printed map is a tall strip; turning it 60° lays the board out landscape on screen.
 function rotateSixty(coords: AxialCoordinates): AxialCoordinates {
     return { q: -coords.r, r: coords.q + coords.r }
 }
 
+function boardGrid(systemIds: readonly string[]): HexGrid<BoardHex> {
+    const grid = new HexGrid<BoardHex>({ hexDefinition: BOARD_HEX })
+    for (const systemId of systemIds) {
+        const coords = rotateSixty(STAR_MAP.system(systemId).coords)
+        grid.setNode({ id: coordinatesToNumber(coords), coords, systemId })
+    }
+    return grid
+}
+
 export function boardLayout(systemIds: readonly string[]): BoardLayout {
-    const placed = systemIds.map((systemId) => {
-        const geometry = SYSTEM_GEOMETRY[systemId]
+    const grid = boardGrid(systemIds)
+    const bounds = grid.boundingBox
+    const frames = [...grid].map((hex) => {
+        const geometry = SYSTEM_GEOMETRY[hex.systemId]
         const width = geometry.width * ART_SCALE
         const height = geometry.height * ART_SCALE
-        const center = hexCoordsToCenterPoint(
-            rotateSixty(systemDefinition(systemId).coords),
-            LATTICE,
-            HexOrientation.Flat
-        )
+        const { center } = calculateHexGeometry(BOARD_HEX, hex.coords)
         const toLocal = ([x, y]: number[]): Point => ({
             x: x * ART_SCALE - width / 2,
             y: y * ART_SCALE - height / 2
         })
         const slots = geometry.slots.map(toLocal)
         return {
-            systemId,
-            center,
+            systemId: hex.systemId,
+            center: {
+                x: center.x - bounds.x + BOARD_MARGIN,
+                y: center.y - bounds.y + BOARD_MARGIN
+            },
             width,
             height,
             slots,
@@ -72,61 +93,20 @@ export function boardLayout(systemIds: readonly string[]): BoardLayout {
             bases: clearestPoint(width, height, slots)
         }
     })
-    const minX = Math.min(...placed.map((frame) => frame.center.x - frame.width / 2))
-    const minY = Math.min(...placed.map((frame) => frame.center.y - frame.height / 2))
-    const maxX = Math.max(...placed.map((frame) => frame.center.x + frame.width / 2))
-    const maxY = Math.max(...placed.map((frame) => frame.center.y + frame.height / 2))
     return {
-        width: maxX - minX + BOARD_MARGIN * 2,
-        height: maxY - minY + BOARD_MARGIN * 2,
-        frames: placed.map((frame) => ({
-            ...frame,
-            center: {
-                x: frame.center.x - minX + BOARD_MARGIN,
-                y: frame.center.y - minY + BOARD_MARGIN
-            }
-        }))
+        width: bounds.width + BOARD_MARGIN * 2,
+        height: bounds.height + BOARD_MARGIN * 2,
+        frames
     }
 }
 
-export function hexPoints(width: number, height: number, inset = 0): string {
-    const w = width / 2 - inset
-    const h = height / 2 - inset
-    return [
-        [-w / 2, -h],
-        [w / 2, -h],
-        [w, 0],
-        [w / 2, h],
-        [-w / 2, h],
-        [-w, 0]
-    ]
-        .map(([x, y]) => `${x},${y}`)
-        .join(' ')
-}
-
-export const SHIP_WIDTH = 208 * 0.45
-export const SHIP_HEIGHT = 172 * 0.45
-const SHIP_GAP = 5
-const SHIPS_PER_ROW = 4
-
-export function shipSlots(count: number, frame: Pick<SystemFrame, 'width' | 'height'>): Point[] {
-    const scale = count > SHIPS_PER_ROW * 2 ? 0.75 : 1
-    const width = SHIP_WIDTH * scale
-    const height = SHIP_HEIGHT * scale
-    const perRow = count > SHIPS_PER_ROW * 2 ? SHIPS_PER_ROW + 1 : SHIPS_PER_ROW
-    const top = frame.height * 0.04
-    return Array.from({ length: count }, (_, index) => {
-        const row = Math.floor(index / perRow)
-        const inRow = Math.min(perRow, count - row * perRow)
-        const column = index % perRow
-        const rowWidth = inRow * width + (inRow - 1) * SHIP_GAP
-        return {
-            x: -rowWidth / 2 + column * (width + SHIP_GAP),
-            y: top + row * (height + SHIP_GAP)
-        }
-    })
-}
-
-export function shipScale(count: number): number {
-    return count > SHIPS_PER_ROW * 2 ? 0.75 : 1
+export function tileOutline(frame: Pick<SystemFrame, 'width' | 'height'>, inset: number): string {
+    const { vertices } = calculateHexGeometry(
+        {
+            orientation: HexOrientation.Flat,
+            dimensions: { xRadius: frame.width / 2 - inset, yRadius: frame.height / 2 - inset }
+        },
+        { q: 0, r: 0 }
+    )
+    return vertices.map(({ x, y }) => `${x},${y}`).join(' ')
 }

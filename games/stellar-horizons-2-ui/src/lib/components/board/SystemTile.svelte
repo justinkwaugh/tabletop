@@ -12,32 +12,32 @@
         WORLD_ART
     } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { hexPoints, shipScale, shipSlots, type SystemFrame } from '$lib/utils/boardLayout.js'
+    import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
+    import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
-    import ShipCounter from './ShipCounter.svelte'
-    import { factionGroups, shipPrototype } from './prototype/prototypeState.svelte.js'
-    import ShipsVariantOrbitClumps from './prototype/ShipsVariantOrbitClumps.svelte'
+    import ShipClump from './ShipClump.svelte'
 
     const WORLD_SIZE = 112
     const MARKER_SIZE = 74
     const BASE_SIZE = 58
 
-    let { frame }: { frame: SystemFrame } = $props()
+    let { frame, ships }: { frame: SystemFrame; ships: ShipPipLayout } = $props()
 
     const gameSession = getGameSession()
     const system = $derived(gameSession.gameState.systemState(frame.systemId))
-    const ships = $derived(
-        gameSession.gameState.ships.filter((ship) => ship.systemId === frame.systemId)
-    )
     const bases = $derived(
         gameSession.gameState.bases.filter((base) => base.systemId === frame.systemId)
     )
-    const slots = $derived(shipSlots(ships.length, frame))
-    const scale = $derived(shipScale(ships.length))
     const explorationField = $derived(
         frame.systemId === SOL_SYSTEM_ID
             ? undefined
             : starSystemDefinition(frame.systemId).exploration.field
+    )
+    const clumps = $derived(
+        [...new Set(ships.pips.map((pip) => pip.ship.playerId))].map((playerId) => ({
+            playerId,
+            pips: ships.pips.filter((pip) => pip.ship.playerId === playerId)
+        }))
     )
     const moveTarget = $derived(
         gameSession.moveTargets.find((target) => target.systemId === frame.systemId)
@@ -58,8 +58,10 @@
     }
 </script>
 
-<g transform="translate({frame.center.x} {frame.center.y})">
+<g transform="translate({frame.center.x} {frame.center.y})" data-system-id={frame.systemId}>
     <image
+        class="system-art"
+        pointer-events="none"
         href={SYSTEM_ART[frame.systemId]}
         x={-frame.width / 2}
         y={-frame.height / 2}
@@ -77,11 +79,12 @@
             width={WORLD_SIZE}
             height={WORLD_SIZE}
             clip-path="url(#sh-world-clip)"
+            pointer-events="none"
         ></image>
     {/each}
 
     {#if explorationField && system.explorationMarker > 0}
-        <g transform="translate({frame.marker.x} {frame.marker.y})">
+        <g transform="translate({frame.marker.x} {frame.marker.y})" pointer-events="none">
             <image
                 href={EXPLORATION_MARKER_ART[explorationField]}
                 x={-MARKER_SIZE / 2}
@@ -115,22 +118,14 @@
         {/if}
     {/each}
 
-    {#if shipPrototype.variant}
-        {@const groups = factionGroups(gameSession.gameState, frame.systemId, shipPrototype.crowd)}
-        <ShipsVariantOrbitClumps
-            {frame}
-            {groups}
-            backing={shipPrototype.variant === 'H'
-                ? 'ring'
-                : shipPrototype.variant === 'J'
-                  ? 'disc'
-                  : 'none'}
+    {#each clumps as clump (clump.playerId)}
+        <ShipClump
+            systemId={frame.systemId}
+            playerId={clump.playerId}
+            pips={clump.pips}
+            r={ships.radius}
         />
-    {:else}
-        {#each ships as ship, index (ship.shipId)}
-            <ShipCounter {ship} position={slots[index]} {scale} />
-        {/each}
-    {/if}
+    {/each}
 
     {#if moveTarget}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -141,7 +136,7 @@
             aria-label="Move to {systemName(frame.systemId)}"
             onclick={onTileClick}
         >
-            <polygon points={hexPoints(frame.width, frame.height, 6)}></polygon>
+            <polygon points={tileOutline(frame, 6)}></polygon>
             <text class="move-label" y={-frame.height * 0.3} text-anchor="middle"
                 >{plural(moveTarget.turns, 'turn')}</text
             >

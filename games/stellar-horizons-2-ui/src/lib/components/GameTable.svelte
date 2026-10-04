@@ -23,7 +23,6 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TechTree from '$lib/components/TechTree.svelte'
-    import PrototypeSwitcher from '$lib/components/board/prototype/PrototypeSwitcher.svelte'
     import { StellarHorizonsGameSession } from '$lib/model/session.svelte'
     import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte'
     import HindDigitsFont from '$lib/fonts/Hind-Bold-digits.woff2'
@@ -82,8 +81,6 @@
 {/snippet}
 
 <CustomFont fontFamily="Hind Digits" url={HindDigitsFont} format="woff2" fontWeight="700" />
-
-<PrototypeSwitcher />
 
 <div class="table-surface">
     <DefaultTableLayout>
