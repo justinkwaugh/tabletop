@@ -141,111 +141,133 @@
     />
 {/snippet}
 
-<svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
-    <defs>
-        <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
-            <feMerge>
-                <feMergeNode in="glow"></feMergeNode>
-                <feMergeNode in="glow"></feMergeNode>
-                <feMergeNode in="SourceGraphic"></feMergeNode>
-            </feMerge>
-        </filter>
-        <filter
-            id={LineHaloFilterId}
-            filterUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={BoardWidth}
-            height={BoardHeight}
-        >
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
-            <feMerge>
-                <feMergeNode in="glow"></feMergeNode>
-                <feMergeNode in="glow"></feMergeNode>
-                <feMergeNode in="SourceGraphic"></feMergeNode>
-            </feMerge>
-        </filter>
-        <filter id={CastShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
-        </filter>
-        <AwningDefs />
-        <CobbleDefs />
-        <PawnDefs />
-        <FountainDefs />
-    </defs>
-    {#if !queueLifted}
-        <VisitorQueue />
-    {/if}
-    <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
-        <CityWall />
-        <rect
-            x={WallThickness}
-            y={WallThickness}
-            width={BoardColumns * CellSize}
-            height={BoardRows * CellSize}
-            fill="url(#{CobblePatternId})"
-        ></rect>
-
-        <CityGates />
-
-        {#each Palms as palm (`${palm.row},${palm.col}`)}
-            <PalmTree coords={palm} />
-        {/each}
-
-        {#each groundShops as shop (shop.shopId)}
-            <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
-        {/each}
-
-        {#each groundFountains as fountain (fountain.fountainId)}
-            {@render fountainSpot(fountain)}
-        {/each}
-
-        {#if dimmed}
-            <rect
-                x={-QueueMargin}
-                y={-QueueMargin}
-                width={TableWidth}
-                height={TableHeight}
-                fill="#000000"
-                opacity="0.5"
-            ></rect>
-        {/if}
-
-        {#if spotlightShop}
-            <ShopTile shop={spotlightShop} selectable={false} spotlit />
-        {/if}
-
-        {#each enteredShops as shop (shop.shopId)}
-            <ShopTile {shop} selectable={false} />
-        {/each}
-
-        {#each liftedFountains as fountain (fountain.fountainId)}
-            {@render fountainSpot(fountain)}
-        {/each}
-
-        {#if previewRoute}
-            <!-- Remount per route so its dashes start in step with the destination's pulse. -->
-            {#key previewRoute}
-                <RoutePreview route={previewRoute} visits={previewVisits} />
-            {/key}
-        {/if}
-
-        {#if gameSession.historyHighlight}
-            <HistoryHighlight highlight={gameSession.historyHighlight} />
-        {/if}
-
-        {#each gameSession.movingVisitors as walker (walker.id)}
-            <g
-                pointer-events="none"
-                opacity="0"
-                use:animateWalker={{ animator: visitorMoveAnimator, id: walker.id }}
+<div class="relative" style:width="{TableWidth}px" style:height="{TableHeight}px">
+    <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
+        <defs>
+            <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
+                <feMerge>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="SourceGraphic"></feMergeNode>
+                </feMerge>
+            </filter>
+            <filter
+                id={LineHaloFilterId}
+                filterUnits="userSpaceOnUse"
+                x="0"
+                y="0"
+                width={BoardWidth}
+                height={BoardHeight}
             >
-                <Pawn color={walker.color} x={0} y={0} size={FountainPawnSize} />
-            </g>
-        {/each}
-    </g>
-    {#if queueLifted}
-        <VisitorQueue />
-    {/if}
-</svg>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
+                <feMerge>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="SourceGraphic"></feMergeNode>
+                </feMerge>
+            </filter>
+            <filter id={CastShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
+            </filter>
+            <AwningDefs />
+            <CobbleDefs />
+            <PawnDefs />
+            <FountainDefs />
+        </defs>
+        {#if !queueLifted}
+            <VisitorQueue />
+        {/if}
+        <g
+            role="img"
+            aria-label="MarraCash market"
+            transform="translate({QueueMargin} {QueueMargin})"
+        >
+            <CityWall />
+            <rect
+                x={WallThickness}
+                y={WallThickness}
+                width={BoardColumns * CellSize}
+                height={BoardRows * CellSize}
+                fill="url(#{CobblePatternId})"
+            ></rect>
+
+            <CityGates />
+
+            {#each Palms as palm (`${palm.row},${palm.col}`)}
+                <PalmTree coords={palm} />
+            {/each}
+
+            {#each groundShops as shop (shop.shopId)}
+                <ShopTile
+                    {shop}
+                    selectable={gameSession.auctionableShopIds.includes(shop.shopId)}
+                />
+            {/each}
+
+            {#each groundFountains as fountain (fountain.fountainId)}
+                {@render fountainSpot(fountain)}
+            {/each}
+
+            {#if dimmed}
+                <rect
+                    x={-QueueMargin}
+                    y={-QueueMargin}
+                    width={TableWidth}
+                    height={TableHeight}
+                    fill="#000000"
+                    opacity="0.5"
+                ></rect>
+            {/if}
+
+            {#if spotlightShop}
+                <ShopTile shop={spotlightShop} selectable={false} spotlit />
+            {/if}
+
+            {#each enteredShops as shop (shop.shopId)}
+                <ShopTile {shop} selectable={false} />
+            {/each}
+
+            {#each liftedFountains as fountain (fountain.fountainId)}
+                {@render fountainSpot(fountain)}
+            {/each}
+
+            {#if previewRoute}
+                <!-- Remount per route so its dashes start in step with the destination's pulse. -->
+                {#key previewRoute}
+                    <RoutePreview route={previewRoute} visits={previewVisits} />
+                {/key}
+            {/if}
+
+            {#if gameSession.historyHighlight}
+                <HistoryHighlight highlight={gameSession.historyHighlight} />
+            {/if}
+        </g>
+        {#if queueLifted}
+            <VisitorQueue />
+        {/if}
+    </svg>
+    <!-- Walking pawns get their own composited layer, so moving them never repaints the
+     filter-heavy board beneath. -->
+    <svg
+        class="walker-layer pointer-events-none absolute top-0 left-0"
+        width={TableWidth}
+        height={TableHeight}
+        viewBox="0 0 {TableWidth} {TableHeight}"
+        aria-hidden="true"
+    >
+        <g transform="translate({QueueMargin} {QueueMargin})">
+            {#each gameSession.movingVisitors as walker (walker.id)}
+                <g opacity="0" use:animateWalker={{ animator: visitorMoveAnimator, id: walker.id }}>
+                    <Pawn color={walker.color} x={0} y={0} size={FountainPawnSize} />
+                </g>
+            {/each}
+        </g>
+    </svg>
+</div>
+
+<style>
+    .walker-layer {
+        will-change: transform;
+    }
+</style>
