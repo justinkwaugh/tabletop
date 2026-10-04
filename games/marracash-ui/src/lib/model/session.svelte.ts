@@ -24,11 +24,11 @@ import {
 import {
     hasManualMarracashSelection,
     popMarracashSelection,
-    setMarracashQueueEnd,
-    setMarracashRefill,
     setMarracashSelection,
+    updateMarracashRefill,
     type MarracashSelection,
-    type MarracashSelectionValues
+    type MarracashSelectionValues,
+    type RefillDraft
 } from './stagedSelection.js'
 import { marketPalettes } from '$lib/utils/marketColors.js'
 import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
@@ -157,7 +157,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly chosenQueueEnd: QueueEnd | undefined = $derived(
-        this.canChooseRefill ? this.selection.queueEnd?.value : undefined
+        this.canChooseRefill ? this.selection.refill?.value.end : undefined
     )
 
     readonly visitorCountOptions: number[] = $derived.by(() => {
@@ -172,7 +172,7 @@ export class MarracashGameSession extends GameSession<
     readonly chosenVisitorCount: number | undefined = $derived.by(() => {
         if (!this.canChooseRefill) return undefined
         if (this.visitorCountOptions.length === 1) return this.visitorCountOptions[0]
-        return this.selection.visitorCount?.value
+        return this.selection.refill?.value.count
     })
 
     readonly incomingQueueIndices: ReadonlySet<number> = $derived.by(() => {
@@ -196,6 +196,15 @@ export class MarracashGameSession extends GameSession<
             : this.refillEntranceIds
     )
 
+    // Hidden cash can't be sampled, so only Host View, which explores the full state, may explore.
+    override get canExplore(): boolean {
+        return (
+            (this.explorationPerspective() === undefined ||
+                this.game.config?.concealedCash !== true) &&
+            super.canExplore
+        )
+    }
+
     myMoney(): number {
         assertExists(this.myPlayer, 'Only a seated player has money to show')
         return this.gameState.getPlayerState(this.myPlayer.id).getMoney()
@@ -217,6 +226,7 @@ export class MarracashGameSession extends GameSession<
 
     override beforeNewState() {
         this.resetAction()
+        this.highlightedHistoryAction = undefined
         this.fountainVisitorOverrides = {}
         this.shopCustomerOverrides = {}
     }
@@ -276,18 +286,17 @@ export class MarracashGameSession extends GameSession<
     }
 
     chooseQueueEnd(end: QueueEnd) {
-        if (this.busy) return
-        this.selection = setMarracashQueueEnd(this.selection, end)
+        this.updateRefill({ end })
     }
 
     chooseVisitorCount(count: number) {
-        this.setSelection('visitorCount', count)
+        this.updateRefill({ count })
     }
 
     chooseRefill(choice: RefillChoice) {
         if (this.busy) return
         this.hideQueueTooShort()
-        this.selection = setMarracashRefill(this.selection, choice.end, choice.count)
+        this.updateRefill({ end: choice.end, count: choice.count })
     }
 
     warnQueueTooShort() {
@@ -347,6 +356,11 @@ export class MarracashGameSession extends GameSession<
 
     private canTake(type: ActionType): boolean {
         return this.canAct && this.validActionTypes.includes(type)
+    }
+
+    private updateRefill(change: RefillDraft) {
+        if (this.busy) return
+        this.selection = updateMarracashRefill(this.selection, change)
     }
 
     private setSelection<TStage extends keyof MarracashSelectionValues>(

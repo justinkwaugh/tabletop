@@ -10,7 +10,7 @@ import { isMoveVisitors } from '../actions/moveVisitors.js'
 import {
     AllAntiques,
     AntiquesPerPlayer,
-    coversAntiqueSet,
+    colorCountsFit,
     dealAntiqueHands,
     type Antique
 } from '../components/antiques.js'
@@ -24,8 +24,6 @@ import {
     type ShopEntry
 } from '../model/gameState.js'
 import type { MarketColor } from './marketColor.js'
-
-const MaxSampleAttempts = 1000
 
 export class MarracashGameExploration implements GameExploration<MarracashProjectedState> {
     createFromCanonicalState(state: MarracashProjectedState): MarracashProjectedState {
@@ -80,30 +78,21 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
         )
 
         const turnEntries = this.uncommittedShopEntries(sample, actions)
-        for (let attempt = 0; attempt < MaxSampleAttempts; attempt++) {
-            const deal = dealAntiqueHands(unseen, unknownHolders.length, random)
-            if (!deal) {
-                continue
-            }
-            const consistent = unknownHolders.every(
-                (player, index) =>
-                    !coversAntiqueSet(
-                        deal.hands[index],
-                        this.customersBeforeTurn(sample, player.playerId, turnEntries)
-                    )
-            )
-            if (consistent) {
-                unknownHolders.forEach((player, index) => {
-                    player.antiques = deal.hands[index]
-                })
-                sample.antiqueDeck.items = deal.undealt
-                sample.pendingAntiqueSets = this.pendingAntiqueSets(sample, turnEntries)
-                return
-            }
-        }
-        throw Error(
-            `No antique hands consistent with the game found in ${MaxSampleAttempts} attempts`
+        const customersBeforeTurn = unknownHolders.map((player) =>
+            this.customersBeforeTurn(sample, player.playerId, turnEntries)
         )
+        const deal = dealAntiqueHands(
+            unseen,
+            unknownHolders.length,
+            random,
+            (handIndex, colorCounts) => !colorCountsFit(colorCounts, customersBeforeTurn[handIndex])
+        )
+        assertExists(deal, 'No antique hands are consistent with the game')
+        unknownHolders.forEach((player, index) => {
+            player.antiques = deal.hands[index]
+        })
+        sample.antiqueDeck.items = deal.undealt
+        sample.pendingAntiqueSets = this.pendingAntiqueSets(sample, turnEntries)
     }
 
     // Starting an auction commits the moves before it, so only a turn without one has unpaid sets.

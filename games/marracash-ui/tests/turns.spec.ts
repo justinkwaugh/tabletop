@@ -141,8 +141,8 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     await expect(incomingVisitors(page)).toHaveCount(4)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(2)
     await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
@@ -152,6 +152,8 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     await expect(incomingVisitors(page)).toHaveCount(4)
     await page.getByRole('button', { name: 'Back of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(4)
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(incomingVisitors(page)).toHaveCount(0)
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await page.getByRole('button', { name: '3', exact: true }).click()
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()

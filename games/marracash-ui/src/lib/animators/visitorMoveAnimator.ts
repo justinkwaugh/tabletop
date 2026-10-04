@@ -1,4 +1,5 @@
 import { tick } from 'svelte'
+import { prefersReducedMotion } from 'svelte/motion'
 import { gsap } from 'gsap'
 import { assertExists, type Point } from '@tabletop/common'
 import type { AnimationContext, GameStateChangeListener } from '@tabletop/frontend-components'
@@ -27,7 +28,7 @@ const ShopEntrySeconds = 0.15
 // A large crowd walks faster, all at one speed, so no move outlasts this.
 const MaxWalkSeconds = 3
 // Undo and state-only history must settle within the shared 200ms fallback budget.
-const DirectSeconds = 0.2
+export const DirectSeconds = 0.2
 const InShopScale = 0.3
 
 export type VisitorWalker = { id: string; color: MarketColor }
@@ -40,12 +41,21 @@ type Trip = { walker: VisitorWalker; from: Place; to: Place }
 
 type GameStateChange = Parameters<GameStateChangeListener<HydratedMarracashGameState>>[0]
 
+export type VisitorAnimationHost = Pick<
+    MarracashGameSession,
+    | 'movingVisitors'
+    | 'fountainVisitorOverrides'
+    | 'shopCustomerOverrides'
+    | 'addGameStateChangeListener'
+    | 'removeGameStateChangeListener'
+>
+
 export class VisitorMoveAnimator {
-    private elements = new Map<string, SVGElement>()
+    private elements = new Map<string, gsap.TweenTarget>()
     private nextTripId = 0
     private readonly listener = (change: GameStateChange) => this.onGameStateChange(change)
 
-    constructor(private gameSession: MarracashGameSession) {}
+    constructor(private gameSession: VisitorAnimationHost) {}
 
     register() {
         this.gameSession.addGameStateChangeListener(this.listener)
@@ -56,14 +66,14 @@ export class VisitorMoveAnimator {
         this.elements.clear()
     }
 
-    setElement(id: string, element: SVGElement | undefined) {
+    setElement(id: string, element: gsap.TweenTarget | undefined) {
         if (element) this.elements.set(id, element)
         else this.elements.delete(id)
     }
 
     private async onGameStateChange({ from, to, action, animationContext }: GameStateChange) {
         if (!from) return
-        if (!action) {
+        if (!action || (isMoveVisitors(action) && prefersReducedMotion.current)) {
             await this.animateDirect(from, to, animationContext)
         } else if (isMoveVisitors(action) && action.metadata) {
             const route = routeFrom(action.fountainId, action.direction)
@@ -295,13 +305,13 @@ export class VisitorMoveAnimator {
         await tick()
     }
 
-    private walkerElement(walker: VisitorWalker): SVGElement {
+    private walkerElement(walker: VisitorWalker): gsap.TweenTarget {
         const element = this.elements.get(walker.id)
         assertExists(element, `Visitor ${walker.id} never mounted`)
         return element
     }
 
-    private place(element: SVGElement, point: Point, scale: number) {
+    private place(element: gsap.TweenTarget, point: Point, scale: number) {
         gsap.set(element, {
             x: point.x,
             y: point.y,

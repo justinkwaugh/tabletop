@@ -159,6 +159,23 @@ describe('MarraCash visibility', () => {
         }
     })
 
+    it('keeps unfinished hands and the undealt deck hidden after the game ends', () => {
+        const { session } = startSession()
+        const finished = playToEnd(session)
+        for (const perspective of perspectivesFor(finished)) {
+            const view = project(session, perspective, finished)
+            expect(view.antiqueDeck.items).toEqual([])
+            for (const player of view.players) {
+                const own =
+                    perspective.kind === 'player' && perspective.playerId === player.playerId
+                const unfinished =
+                    finished.players.find((seat) => seat.playerId === player.playerId)
+                        ?.revealedAntiques.length === 0
+                expect(player.antiques).toHaveLength(own && unfinished ? AntiquesPerPlayer : 0)
+            }
+        }
+    })
+
     it.each([false, true])(
         'reports money visibility the same way the projection applies it (%s)',
         (concealedCash) => {
@@ -218,6 +235,14 @@ describe('MarraCash visibility', () => {
         })
         const bid = history.actions.find(isPlaceBid)
         expect(bid?.amount).toBeUndefined()
+        const ownHistory = Visibility.projectActionHistory({
+            currentState: session.state,
+            actions: session.actions,
+            visibility: MarracashRuntime.visibility,
+            perspective: asPlayer(auctioneer),
+            replay: { game: session.game, runtime: MarracashRuntime }
+        })
+        expect(ownHistory.actions.find(isPlaceBid)?.amount).toBe(150)
 
         session.bid(second, 0)
         session.bid(third, 200)

@@ -2,6 +2,7 @@ import { Color, GameEngine, getPrng } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import {
     AllAntiques,
+    antiqueColorCounts,
     AntiquesPerPlayer,
     dealAntiqueHands,
     hasDealtHandShape,
@@ -194,6 +195,21 @@ describe('dealing antique hands', () => {
         expect([...deal!.hands.flat(), ...deal!.undealt].map(antiqueKey).toSorted()).toEqual(
             pool.map(antiqueKey).toSorted()
         )
+    })
+
+    it('deals only hands the filter allows, without retrying', () => {
+        const redPairNoYellow = (counts: Readonly<Record<MarketColor, number>>) =>
+            counts[MarketColor.Red] === 2 && counts[MarketColor.Yellow] === 0
+        const deal = dealAntiqueHands(AllAntiques, 2, getPrng(3), (_, counts) =>
+            redPairNoYellow(counts)
+        )
+        expect(deal?.hands.map((hand) => redPairNoYellow(antiqueColorCounts(hand)))).toEqual([
+            true,
+            true
+        ])
+        expect(
+            dealAntiqueHands(AllAntiques, 3, getPrng(3), (_, counts) => redPairNoYellow(counts))
+        ).toBeUndefined()
     })
 
     it('gives up when the cards cannot make the hands', () => {

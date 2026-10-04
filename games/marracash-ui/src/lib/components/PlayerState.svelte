@@ -159,4 +159,10 @@
         border-color: white;
         animation: border-pulsate 2.5s infinite;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pulse-border {
+            animation: none;
+        }
+    }
 </style>

@@ -5,9 +5,8 @@ import {
     MarracashStageOrder,
     hasManualMarracashSelection,
     popMarracashSelection,
-    setMarracashQueueEnd,
-    setMarracashRefill,
     setMarracashSelection,
+    updateMarracashRefill,
     type MarracashSelection
 } from './stagedSelection.js'
 
@@ -26,46 +25,41 @@ describe('MarraCash staged selection', () => {
 
     it('clears later stages when an earlier stage is set', () => {
         let selection: MarracashSelection = {}
-        selection = setMarracashSelection(selection, 'queueEnd', QueueEnd.Front)
-        selection = setMarracashSelection(selection, 'visitorCount', 3)
-        selection = setMarracashSelection(selection, 'queueEnd', QueueEnd.Back)
+        selection = setMarracashSelection(selection, 'fountain', 3)
+        selection = setMarracashSelection(selection, 'destination', 5)
+        selection = setMarracashSelection(selection, 'fountain', 9)
 
-        expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
-        expect(selection.visitorCount).toBeUndefined()
+        expect(selection.fountain?.value).toBe(9)
+        expect(selection.destination).toBeUndefined()
     })
 
-    it('keeps the chosen visitor count when switching queue ends', () => {
+    it('builds one refill choice from an end and a count chosen in either order', () => {
         let selection: MarracashSelection = {}
-        selection = setMarracashQueueEnd(selection, QueueEnd.Front)
-        selection = setMarracashSelection(selection, 'visitorCount', 3)
-        selection = setMarracashQueueEnd(selection, QueueEnd.Back)
+        selection = updateMarracashRefill(selection, { count: 3 })
+        selection = updateMarracashRefill(selection, { end: QueueEnd.Back })
+        expect(selection.refill).toEqual({
+            value: { end: QueueEnd.Back, count: 3 },
+            source: 'manual'
+        })
 
-        expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
-        expect(selection.visitorCount?.value).toBe(3)
-
-        selection = popMarracashSelection(selection)
-        expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
-        expect(selection.visitorCount).toBeUndefined()
+        selection = updateMarracashRefill(selection, { end: QueueEnd.Front })
+        expect(selection.refill?.value).toEqual({ end: QueueEnd.Front, count: 3 })
     })
 
-    it('takes a queue end and count together from a pawn, after a count chosen first', () => {
+    it('lets a pawn replace the whole refill choice at once', () => {
         let selection: MarracashSelection = {}
-        selection = setMarracashSelection(selection, 'visitorCount', 3)
-        selection = setMarracashRefill(selection, QueueEnd.Back, 2)
-        expect(selection.queueEnd).toEqual({ value: QueueEnd.Back, source: 'manual' })
-        expect(selection.visitorCount).toEqual({ value: 2, source: 'manual' })
+        selection = updateMarracashRefill(selection, { count: 3 })
+        selection = updateMarracashRefill(selection, { end: QueueEnd.Back, count: 2 })
+        expect(selection.refill?.value).toEqual({ end: QueueEnd.Back, count: 2 })
     })
 
-    it('removes only the newest manual choice on Back or Undo', () => {
+    it('clears the whole refill choice with one Back or Undo', () => {
         let selection: MarracashSelection = {}
-        selection = setMarracashSelection(selection, 'queueEnd', QueueEnd.Front)
-        selection = setMarracashSelection(selection, 'visitorCount', 4)
+        selection = updateMarracashRefill(selection, { end: QueueEnd.Front })
+        selection = updateMarracashRefill(selection, { count: 4 })
 
         selection = popMarracashSelection(selection)
-        expect(selection.queueEnd?.value).toBe(QueueEnd.Front)
-        expect(selection.visitorCount).toBeUndefined()
-
-        selection = popMarracashSelection(selection)
+        expect(selection.refill).toBeUndefined()
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
 

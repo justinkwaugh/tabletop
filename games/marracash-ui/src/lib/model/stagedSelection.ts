@@ -7,12 +7,15 @@ import {
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
+// A pawn sets both parts at once and the panel buttons one at a time; either way it is one
+// staged choice, so Back clears it whole.
+export type RefillDraft = { end?: QueueEnd; count?: number }
+
 export type MarracashSelectionValues = {
     fountain: FountainId
     destination: FountainId
     shop: ShopId
-    queueEnd: QueueEnd
-    visitorCount: number
+    refill: RefillDraft
 }
 
 export type MarracashSelection = StagedSelectionState<MarracashSelectionValues>
@@ -21,8 +24,7 @@ export const MarracashStageOrder = [
     'fountain',
     'destination',
     'shop',
-    'queueEnd',
-    'visitorCount'
+    'refill'
 ] as const satisfies readonly (keyof MarracashSelectionValues)[]
 type MissingStages = Exclude<keyof MarracashSelectionValues, (typeof MarracashStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
@@ -48,34 +50,11 @@ export function setMarracashSelection<TStage extends keyof MarracashSelectionVal
           )
 }
 
-// Valid counts depend only on the queue's length, so a chosen count survives switching ends.
-export function setMarracashQueueEnd(
+export function updateMarracashRefill(
     selection: MarracashSelection,
-    end: QueueEnd
+    change: RefillDraft
 ): MarracashSelection {
-    const next = setMarracashSelection(selection, 'queueEnd', end)
-    const count = selection.visitorCount
-    return count === undefined
-        ? next
-        : setStagedSelectionValue<MarracashSelectionValues, 'visitorCount'>(
-              next,
-              MarracashStageOrder,
-              'visitorCount',
-              count.value,
-              count.source
-          )
-}
-
-export function setMarracashRefill(
-    selection: MarracashSelection,
-    end: QueueEnd,
-    count: number
-): MarracashSelection {
-    return setMarracashSelection(
-        setMarracashSelection(selection, 'queueEnd', end),
-        'visitorCount',
-        count
-    )
+    return setMarracashSelection(selection, 'refill', { ...selection.refill?.value, ...change })
 }
 
 export function hasManualMarracashSelection(selection: MarracashSelection): boolean {

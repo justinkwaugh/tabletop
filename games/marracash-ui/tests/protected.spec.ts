@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { actionPanel, auctionFirstShop, createGame } from './helpers'
+import { actionPanel, auctionFirstShop, createGame, finishBidding } from './helpers'
 
 async function enterProtectedMode(page: Page) {
     await page.getByRole('button', { name: 'Options' }).click()
@@ -34,6 +34,27 @@ test('protected views show only the cash each perspective may see', async ({ pag
 
     await viewAs(page, 'Host View')
     await expect(page.getByText('Cash hidden').first()).toBeVisible()
+    expect(errors).toEqual([])
+})
+
+test('exploring is offered under Concealed Cash only in Host View', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await createGame(page, { concealedCash: true })
+    await auctionFirstShop(page)
+    await finishBidding(page)
+    await enterProtectedMode(page)
+    const explore = page.getByRole('button', { name: 'start exploring' })
+
+    for (const view of ['Amira', 'Spectator']) {
+        await viewHistoryAs(page, view)
+        await expect(explore).toBeDisabled()
+    }
+
+    await viewHistoryAs(page, 'Host View')
+    await expect(explore).toBeEnabled()
+    await explore.click()
+    await expect(explore.locator('svg').first()).toBeVisible()
     expect(errors).toEqual([])
 })
 

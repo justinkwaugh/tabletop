@@ -39,16 +39,16 @@
     const ZoomControlsHeight = 52
 </script>
 
-<CustomFont fontFamily="Cinzel" url={CinzelBold} format="woff2" fontWeight="bold" />
+<CustomFont fontFamily="MarraCash Cinzel" url={CinzelBold} format="woff2" fontWeight="bold" />
 <CustomFont
     fontFamily="Libre Caslon Text"
     url={LibreCaslonTextBold}
     format="woff2"
     fontWeight="bold"
 />
-<CustomFont fontFamily="Libre Baskerville" url={LibreBaskervilleRegular} format="woff2" />
+<CustomFont fontFamily="MarraCash Baskerville" url={LibreBaskervilleRegular} format="woff2" />
 <CustomFont
-    fontFamily="Libre Baskerville"
+    fontFamily="MarraCash Baskerville"
     url={LibreBaskervilleBold}
     format="woff2"
     fontWeight="bold"
@@ -92,7 +92,7 @@
 
 <style>
     .marracash-text {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'MarraCash Baskerville', Georgia, serif;
         font-variant-numeric: lining-nums;
     }
 
@@ -103,7 +103,7 @@
     }
 
     .marracash-text :global(.marracash-initial) {
-        font-family: Cinzel, Georgia, serif;
+        font-family: 'MarraCash Cinzel', Georgia, serif;
         font-weight: 700;
     }
 </style>
