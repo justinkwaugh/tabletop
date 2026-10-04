@@ -1,7 +1,8 @@
 // Converts Stellar Horizons II art from the unpacked Vassal module into the UI's image set.
 // Usage: node scripts/import-art.mjs <unpacked-vassal-dir>   (requires ImageMagick `convert`)
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const vassalDir = process.argv[2] ?? '/workspace/artassets/stellar-horizons-2/vassal/unpacked'
@@ -40,12 +41,81 @@ const EXPLORATION_ART = {
 }
 
 rmSync(outDir, { recursive: true, force: true })
-for (const dir of ['systems', 'ships', 'worlds', 'markers', 'factions', 'charts']) {
+for (const dir of ['systems', 'ships', 'worlds', 'markers', 'factions']) {
     mkdirSync(join(outDir, dir), { recursive: true })
 }
 
 function convert(args) {
     execFileSync('convert', args, { stdio: 'inherit' })
+}
+
+// The printed markers carry their value over the emblem, so the blank face is the "1" marker
+// with its white digit cut out and the hole filled from progressively blurred surroundings.
+function blankTechMarker(art, target) {
+    const work = mkdtempSync(join(tmpdir(), 'sh2-marker-'))
+    const source = join(images, `Tech Marker ${art} 1.png`)
+    const mask = join(work, 'mask.png')
+    const holed = join(work, 'holed.png')
+    convert([
+        source,
+        '-alpha',
+        'off',
+        '-fx',
+        '(r>0.8&&g>0.8&&b>0.8&&i>28&&i<88&&j>12&&j<80)?1:0',
+        '-morphology',
+        'Dilate',
+        'Disk:3',
+        '-fx',
+        'j<84?u:0',
+        mask
+    ])
+    convert([
+        source,
+        '-alpha',
+        'set',
+        '(',
+        mask,
+        '-negate',
+        ')',
+        '-alpha',
+        'off',
+        '-compose',
+        'CopyOpacity',
+        '-composite',
+        holed
+    ])
+    const fill = [25, 12, 6].flatMap((percent) => [
+        '(',
+        holed,
+        '-resize',
+        `${percent}%`,
+        '-resize',
+        '115x115!',
+        ')',
+        '-compose',
+        'DstOver',
+        '-composite'
+    ])
+    convert([
+        holed,
+        '(',
+        holed,
+        '-resize',
+        '50%',
+        '-resize',
+        '115x115!',
+        ')',
+        '-compose',
+        'DstOver',
+        '-composite',
+        ...fill,
+        '-alpha',
+        'off',
+        '-quality',
+        '82',
+        join(outDir, target)
+    ])
+    rmSync(work, { recursive: true, force: true })
 }
 
 function webp(source, target, extra = []) {
@@ -60,6 +130,7 @@ const entries = {
     settlements: {},
     factions: {},
     techMarkers: {},
+    techMarkerBlanks: {},
     exploration: {}
 }
 let importIndex = 0
@@ -148,18 +219,16 @@ for (const [faction, art] of Object.entries(FACTION_ART)) {
     register('settlements', faction, `markers/settlement-${faction}.webp`)
 }
 for (const [field, art] of Object.entries(FIELD_ART)) {
-    const values = {}
     for (const value of [1, 2, 3, 4, 5]) {
         const target = `markers/tech-${field}-${value}.webp`
         webp(`Tech Marker ${art} ${value}.png`, target)
         register('techMarkers', `${field}-${value}`, target)
     }
+    blankTechMarker(art, `markers/tech-${field}-blank.webp`)
+    register('techMarkerBlanks', field, `markers/tech-${field}-blank.webp`)
     webp(EXPLORATION_ART[field], `markers/exploration-${field}.webp`)
     register('exploration', field, `markers/exploration-${field}.webp`)
-    void values
 }
-webp('Tech Tree.jpg', 'charts/tech-tree.webp', ['-resize', '2000x'])
-imports.push(`import techTree from '$lib/images/art/charts/tech-tree.webp'`)
 
 const worldLines = Object.entries(entries.worlds).map(
     ([tileId, urls]) => `    '${tileId}': { I: ${urls.I}${urls.II ? `, II: ${urls.II}` : ''} },`
@@ -207,11 +276,13 @@ export const TECH_MARKER_ART: Record<string, string> = {
 ${record('techMarkers').join('\n')}
 }
 
+export const TECH_MARKER_BLANK_ART: Record<string, string> = {
+${record('techMarkerBlanks').join('\n')}
+}
+
 export const EXPLORATION_MARKER_ART: Record<string, string> = {
 ${record('exploration').join('\n')}
 }
-
-export const TECH_TREE_ART = techTree
 `
 )
 console.log(`Wrote ${importIndex + 1} images and ${manifestPath}`)

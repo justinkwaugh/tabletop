@@ -15,8 +15,10 @@
     import { hexPoints, shipScale, shipSlots, type SystemFrame } from '$lib/utils/boardLayout.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipCounter from './ShipCounter.svelte'
+    import { factionGroups, shipPrototype } from './prototype/prototypeState.svelte.js'
+    import ShipsVariantOrbitClumps from './prototype/ShipsVariantOrbitClumps.svelte'
 
-    const WORLD_SIZE = 84
+    const WORLD_SIZE = 112
     const MARKER_SIZE = 74
     const BASE_SIZE = 58
 
@@ -74,7 +76,7 @@
             y={point.y - WORLD_SIZE / 2}
             width={WORLD_SIZE}
             height={WORLD_SIZE}
-            filter="url(#sh-piece-shadow)"
+            clip-path="url(#sh-world-clip)"
         ></image>
     {/each}
 
@@ -113,9 +115,22 @@
         {/if}
     {/each}
 
-    {#each ships as ship, index (ship.shipId)}
-        <ShipCounter {ship} position={slots[index]} {scale} />
-    {/each}
+    {#if shipPrototype.variant}
+        {@const groups = factionGroups(gameSession.gameState, frame.systemId, shipPrototype.crowd)}
+        <ShipsVariantOrbitClumps
+            {frame}
+            {groups}
+            backing={shipPrototype.variant === 'H'
+                ? 'ring'
+                : shipPrototype.variant === 'J'
+                  ? 'disc'
+                  : 'none'}
+        />
+    {:else}
+        {#each ships as ship, index (ship.shipId)}
+            <ShipCounter {ship} position={slots[index]} {scale} />
+        {/each}
+    {/if}
 
     {#if moveTarget}
         <!-- svelte-ignore a11y_click_events_have_key_events -->

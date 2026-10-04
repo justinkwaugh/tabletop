@@ -19,7 +19,7 @@
 
 ### Choosing a tech
 
-- **Trigger:** during the develop-techs step, the acting player clicks a tech the chart marks as available.
+- **Trigger:** during the develop-techs step, the acting player clicks a tech marked as available in the tech tree.
 - **Emphasis:**
     - Available techs show a cyan frame and their current cost.
     - The chosen tech shows a thick gold frame.
@@ -30,6 +30,7 @@
 
 - **Default:** the main area shows the star map, and switches to the tech chart while the acting player is in the develop-techs step.
 - **Override:** the Star map / Tech chart buttons override the default for the rest of the current step only.
+- **Category focus:** the All / Biology / Physics / Engineering buttons show every category or just one, for the rest of the session. A focused category uses taller cards with larger text, and each card lists its prerequisites from other categories, because their connectors are not drawn. Focus never changes which techs are available or chosen.
 
 ## Coexistence and precedence
 
@@ -58,7 +59,7 @@
 
 - **Selection frame:** drawn by the ship counter on the star map.
 - **Destination outline and travel-time label:** drawn by the system tile, above its ships, so a click anywhere on a reachable system commits the move.
-- **Tech frames and cost labels:** drawn by the tech chart overlay above the chart image. Faction flags of owners are drawn by the same overlay.
+- **Tech status, cost and owners:** derived once per tech and drawn by the tech tree, with cards above their prerequisite connectors.
 
 ## Verification scenarios
 

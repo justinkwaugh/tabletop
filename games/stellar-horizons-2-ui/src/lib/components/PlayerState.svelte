@@ -16,7 +16,7 @@
         plural,
         systemName
     } from '$lib/utils/presentation.js'
-    import TechMarker from './TechMarker.svelte'
+    import TechMarkerTotal from './TechMarkerTotal.svelte'
 
     let {
         playerState,
@@ -61,13 +61,8 @@
     {/if}
     <div class="markers">
         {#each TECH_FIELDS as field (field)}
-            {#each playerState.techMarkers[field] as value, index (`${field}${index}`)}
-                <TechMarker {field} {value} size={24} />
-            {/each}
+            <TechMarkerTotal {field} values={playerState.techMarkers[field]} />
         {/each}
-        {#if TECH_FIELDS.every((field) => playerState.techMarkers[field].length === 0)}
-            <span class="muted">No tech markers</span>
-        {/if}
     </div>
     <div class="line">
         {plural(playerState.techs.length, 'tech')} · {plural(ships.length, 'ship')}{inTransit > 0
@@ -141,8 +136,7 @@
 
     .markers {
         display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
+        gap: 6px;
     }
 
     .muted {

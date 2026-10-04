@@ -31,6 +31,12 @@ export const FIELD_COLORS: Record<TechField, string> = {
     [TechField.Engineering]: '#9aa1ab'
 }
 
+export const FIELD_GLOW: Record<TechField, string> = {
+    [TechField.Biology]: '#7be08f',
+    [TechField.Physics]: '#5ab8ff',
+    [TechField.Engineering]: '#c9d1dc'
+}
+
 export const FACTION_FILL: Record<Faction, string> = {
     [Faction.Consortium]: '#a8916a',
     [Faction.Givers]: '#5fa443',
