@@ -24,7 +24,7 @@ test.afterEach(() => {
 
 test('round 1 offers only auctions and collects a sealed bid from everyone', async ({ page }) => {
     await createGame(page)
-    await expect(actionPanel(page)).toHaveText(/choose an unowned shop to auction it/)
+    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
 
     await auctionFirstShop(page)
@@ -47,7 +47,7 @@ test('a chosen shop waits for confirmation and Back cancels it before anyone bid
     await expect(page.locator('path[filter*="candidate-halo"]')).toHaveCount(1)
 
     await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect(actionPanel(page)).toHaveText(/choose an unowned shop to auction it/)
+    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/)
     await expect(auctionableShops(page)).toHaveCount(25)
 
     await auctionFirstShop(page)

@@ -71,7 +71,10 @@
             {/each}
         </div>
         {#if report.kind === 'auction'}
-            <p class="text-sm"><AuctionBids result={report.result} separator=" · " /></p>
+            <!-- Phones keep the report short; History still lists every bid -->
+            <p class="text-sm max-sm:hidden">
+                <AuctionBids result={report.result} separator=" · " />
+            </p>
             {#if tiedBidderIds(report.result).length > 0}
                 <p class="text-sm font-semibold">
                     <PlayerTag playerId={report.result.winnerId} /> wins the tie.

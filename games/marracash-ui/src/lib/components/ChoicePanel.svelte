@@ -7,8 +7,8 @@
 
     let options = $derived(
         [
-            gameSession.canMove ? 'choose a fountain to move its visitors' : undefined,
-            gameSession.canAuction ? 'choose an unowned shop to auction it' : undefined
+            gameSession.canMove ? "move a fountain's visitors" : undefined,
+            gameSession.canAuction ? 'auction an unowned shop' : undefined
         ].filter((option) => option !== undefined)
     )
 </script>
@@ -34,8 +34,18 @@
         <UndoButton />
     </div>
 {:else}
-    <div class="flex items-center justify-center gap-4">
-        <p class="font-semibold">Choose the destination for these visitors.</p>
+    <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <p class="font-semibold">
+            {gameSession.previewedDestinationId === undefined
+                ? 'Choose the destination for these visitors.'
+                : 'Move these visitors along the highlighted route?'}
+        </p>
+        {#if gameSession.previewedDestinationId !== undefined}
+            <button
+                class="rounded-md bg-[#8a6a46] px-3 py-1 text-sm font-semibold text-white hover:bg-[#765a3b]"
+                onclick={() => gameSession.moveToPreviewedDestination()}>Move here</button
+            >
+        {/if}
         <button
             class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm hover:bg-[#8a6a46]/15"
             onclick={() => gameSession.back()}>Back</button

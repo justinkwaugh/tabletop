@@ -68,11 +68,12 @@
         gameSession.selectedFountainId
         return undefined
     })
+    let shownRoute = $derived(gameSession.previewedRoute ?? hoveredRoute)
     let previewRoute = $derived(
         !gameSession.updatingVisibleState &&
-            hoveredRoute !== undefined &&
-            hoveredRoute.from === gameSession.selectedFountainId
-            ? hoveredRoute
+            shownRoute !== undefined &&
+            shownRoute.from === gameSession.selectedFountainId
+            ? shownRoute
             : undefined
     )
 
@@ -102,6 +103,8 @@
         isDestination: boolean
     ): string | undefined {
         if (isSource) return `Keep the visitors at fountain ${fountainId}`
+        if (isDestination && gameSession.usesTouch)
+            return `Show the route to fountain ${fountainId}`
         if (isDestination) return `Move visitors to fountain ${fountainId}`
         return undefined
     }
@@ -112,7 +115,8 @@
         } else if (gameSession.selectedFountainId === fountainId) {
             gameSession.back()
         } else if (gameSession.destinationFountainIds.includes(fountainId)) {
-            void gameSession.moveVisitorsTo(fountainId)
+            if (gameSession.usesTouch) gameSession.previewDestination(fountainId)
+            else void gameSession.moveVisitorsTo(fountainId)
         } else {
             gameSession.selectFountain(fountainId)
         }

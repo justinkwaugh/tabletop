@@ -59,7 +59,7 @@ export async function playOpeningRound(page: Page, players = 4) {
         await auctionFirstShop(page)
         await finishBidding(page)
     }
-    await expect(actionPanel(page)).toContainText('choose a fountain')
+    await expect(actionPanel(page)).toContainText("move a fountain's visitors")
 }
 
 export function incomingVisitors(page: Page): Locator {

@@ -34,6 +34,9 @@
     }
 
     setGameSession(untrack(() => ensureMarracashGameSession(gameSession)))
+
+    // The zoom buttons sit over the board's top-left corner, where only mid-queue pawns are
+    const ZoomControlsHeight = 52
 </script>
 
 <CustomFont fontFamily="Cinzel" url={CinzelBold} format="woff2" fontWeight="bold" />
@@ -71,8 +74,14 @@
                 <ActionPanel />
             </div>
             <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-left">
-                    <div class="p-2 pb-14">
+                <!-- Below this fit the board's targets get too small to tap, so it opens zoomed in and pans -->
+                <ScalingWrapper
+                    justify="center"
+                    controls="top-left"
+                    insetTop={ZoomControlsHeight}
+                    coverBelowScale={0.45}
+                >
+                    <div class="p-2">
                         <Board />
                     </div>
                 </ScalingWrapper>

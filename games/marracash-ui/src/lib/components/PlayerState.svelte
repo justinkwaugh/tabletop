@@ -68,13 +68,26 @@
     <div class="flex w-fit items-center gap-1 rounded bg-white/85 px-1 py-0.5 text-xs text-black">
         {#each Object.values(MarketColor) as color (color)}
             <span
-                role="group"
+                role="button"
+                tabindex="0"
+                aria-pressed={gameSession.customerHighlight?.playerId === player.id &&
+                    gameSession.customerHighlight?.color === color}
                 class="flex items-center gap-0.5"
                 class:opacity-35={customers[color] === 0}
                 aria-label="{customers[color]} {color} customers"
-                onpointerenter={() =>
+                onpointerenter={(event) =>
+                    event.pointerType !== 'touch' &&
                     gameSession.highlightCustomers({ playerId: player.id, color })}
-                onpointerleave={() => gameSession.highlightCustomers(undefined)}
+                onpointerleave={(event) =>
+                    event.pointerType !== 'touch' && gameSession.highlightCustomers(undefined)}
+                onclick={() =>
+                    gameSession.usesTouch &&
+                    gameSession.toggleCustomerHighlight({ playerId: player.id, color })}
+                onkeydown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    gameSession.toggleCustomerHighlight({ playerId: player.id, color })
+                }}
             >
                 <PawnIcon {color} height={CounterPawnHeight} />
                 <span class="inline-block w-[2ch] text-sm font-semibold tabular-nums"

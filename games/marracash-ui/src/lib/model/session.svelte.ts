@@ -1,4 +1,5 @@
 import { GameSession } from '@tabletop/frontend-components'
+import { MediaQuery } from 'svelte/reactivity'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
@@ -70,7 +71,12 @@ export class MarracashGameSession extends GameSession<
         })
     )
 
+    // Touch screens have no hover, so previews and highlights are tapped on and off there
+    private readonly touchQuery = new MediaQuery('(hover: none)')
+    readonly usesTouch = $derived(this.touchQuery.current)
+
     historyHighlight: HistoryHighlight | undefined = $state(undefined)
+    highlightedHistoryActionId: string | undefined = $state(undefined)
     customerHighlight: CustomerHighlight | undefined = $state(undefined)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
@@ -146,6 +152,17 @@ export class MarracashGameSession extends GameSession<
 
     readonly destinationFountainIds: FountainId[] = $derived(
         this.selectedRoutes.map((route) => route.to)
+    )
+
+    readonly previewedDestinationId: FountainId | undefined = $derived.by(() => {
+        const destination = this.selection.destination?.value
+        return destination !== undefined && this.destinationFountainIds.includes(destination)
+            ? destination
+            : undefined
+    })
+
+    readonly previewedRoute: Route | undefined = $derived(
+        this.selectedRoutes.find((route) => route.to === this.previewedDestinationId)
     )
 
     readonly chosenQueueEnd: QueueEnd | undefined = $derived(
@@ -233,11 +250,22 @@ export class MarracashGameSession extends GameSession<
     }
 
     highlightHistory(action: GameAction | undefined) {
+        this.highlightedHistoryActionId = action?.id
         this.historyHighlight = action === undefined ? undefined : historyHighlightFor(action)
+    }
+
+    toggleHistoryHighlight(action: GameAction) {
+        this.highlightHistory(this.highlightedHistoryActionId === action.id ? undefined : action)
     }
 
     highlightCustomers(highlight: CustomerHighlight | undefined) {
         this.customerHighlight = highlight
+    }
+
+    toggleCustomerHighlight(highlight: CustomerHighlight) {
+        const current = this.customerHighlight
+        const same = current?.playerId === highlight.playerId && current?.color === highlight.color
+        this.customerHighlight = same ? undefined : highlight
     }
 
     resetAction() {
@@ -246,6 +274,16 @@ export class MarracashGameSession extends GameSession<
 
     selectFountain(fountainId: FountainId | undefined) {
         this.setSelection('fountain', fountainId)
+    }
+
+    previewDestination(destinationId: FountainId) {
+        this.setSelection('destination', destinationId)
+    }
+
+    async moveToPreviewedDestination() {
+        const destinationId = this.previewedDestinationId
+        assertExists(destinationId, 'Moving here requires a previewed destination')
+        await this.moveVisitorsTo(destinationId)
     }
 
     chooseQueueEnd(end: QueueEnd) {

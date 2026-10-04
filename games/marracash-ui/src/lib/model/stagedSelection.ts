@@ -9,6 +9,7 @@ import {
 
 export type MarracashSelectionValues = {
     fountain: FountainId
+    destination: FountainId
     shop: ShopId
     queueEnd: QueueEnd
     visitorCount: number
@@ -18,6 +19,7 @@ export type MarracashSelection = StagedSelectionState<MarracashSelectionValues>
 
 const STAGE_ORDER = [
     'fountain',
+    'destination',
     'shop',
     'queueEnd',
     'visitorCount'

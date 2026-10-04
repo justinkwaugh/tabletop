@@ -47,14 +47,15 @@
             <span class="ml-2"><UndoButton /></span>
         {/if}
     </div>
-    {#if gameSession.showQueueTooShort}
-        <p role="alert" class="text-sm text-[#9b2c2c]">
-            <span class="font-semibold">Queue is too short.</span> Please use the buttons above to make
-            your selection.
-        </p>
-    {:else if gameSession.fillableEntranceIds.length > 0}
-        <p class="text-sm">Choose a highlighted entrance to place them.</p>
-    {:else}
-        <p class="text-sm">Or choose pawns at either end of the queue.</p>
-    {/if}
+    <!-- One reserved line, so the board below never shifts as this message changes -->
+    <div class="min-h-5 text-sm">
+        {#if gameSession.showQueueTooShort}
+            <p role="alert" class="text-[#9b2c2c]">
+                <span class="font-semibold">Queue is too short.</span> Please use the buttons above to
+                make your selection.
+            </p>
+        {:else if gameSession.fillableEntranceIds.length > 0}
+            <p>Choose a highlighted entrance to place them.</p>
+        {/if}
+    </div>
 </div>

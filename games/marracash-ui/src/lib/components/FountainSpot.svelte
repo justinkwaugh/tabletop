@@ -3,7 +3,7 @@
     import Pawn from '$lib/components/Pawn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PawnHeight, PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
-    import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
+    import { CellSize, cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
     import {
         FountainPawnSize,
         fountainPawnPositions,
@@ -217,6 +217,14 @@
         onclick={() => onselect()}
         onkeydown={(event) => event.key === 'Enter' && onselect()}
     >
+        <!-- The whole cell is tappable, a larger target than the basin on small screens -->
+        <rect
+            x={center.x - CellSize / 2}
+            y={center.y - CellSize / 2}
+            width={CellSize}
+            height={CellSize}
+            fill="transparent"
+        ></rect>
         {@render body()}
     </g>
 {:else}
