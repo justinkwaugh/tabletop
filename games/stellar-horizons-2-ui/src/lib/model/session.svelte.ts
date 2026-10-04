@@ -48,11 +48,18 @@ const SHIP_SELECTION_STEPS: readonly TurnStep[] = [
     TurnStep.Exploration
 ]
 
+export interface ShipClump {
+    systemId: string
+    playerId: string
+    ships: ShipState[]
+}
+
 export class StellarHorizonsGameSession extends GameSession<
     StellarHorizonsProjectedState,
     HydratedStellarHorizonsGameState
 > {
     private selection: Selection | undefined = $state()
+    private inspected: { systemId: string; playerId: string } | undefined = $state()
 
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
@@ -116,6 +123,34 @@ export class StellarHorizonsGameSession extends GameSession<
             default:
                 return true
         }
+    }
+
+    inspectedClump: ShipClump | undefined = $derived.by(() => {
+        const inspected = this.inspected
+        if (!inspected) {
+            return undefined
+        }
+        const ships = this.gameState.ships.filter(
+            (ship) => ship.systemId === inspected.systemId && ship.playerId === inspected.playerId
+        )
+        return ships.length > 0 ? { ...inspected, ships } : undefined
+    })
+
+    toggleClump(systemId: string, playerId: string) {
+        const current = this.inspectedClump
+        this.inspected =
+            current?.systemId === systemId && current.playerId === playerId
+                ? undefined
+                : { systemId, playerId }
+    }
+
+    closeClump() {
+        this.inspected = undefined
+    }
+
+    selectShipFromClump(shipId: string) {
+        this.closeClump()
+        this.selectShip(shipId)
     }
 
     hasManualSelection(): boolean {

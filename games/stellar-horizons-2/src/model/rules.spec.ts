@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Color, assertExists } from '@tabletop/common'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
+import { STAR_MAP } from '../components/starMap.js'
 import { TechId } from '../components/techs.js'
 import { WorldSide, maxPopulation, worldTile } from '../components/worlds.js'
 import { MachineState } from '../definition/states.js'
@@ -365,5 +366,27 @@ describe('repairs', () => {
         ship.damage = 2
         expect(canRepair(state, playerId, ship.shipId, RepairMethod.Dock, 1.5)).toBe(false)
         expect(canRepair(state, playerId, ship.shipId, RepairMethod.Dock, 2)).toBe(true)
+    })
+})
+
+describe('star map', () => {
+    it('measures distance from Sol as printed on every system tile', () => {
+        expect(STAR_MAP.distance('sol', 'alpha-centauri')).toBe(1)
+        expect(STAR_MAP.distance('sol', 'sirius')).toBe(2)
+        expect(STAR_MAP.distance('sol', '72-herculis')).toBe(5)
+    })
+
+    it('knows each system’s neighbours', () => {
+        expect(STAR_MAP.adjacentSystemIds('sol').toSorted()).toEqual(
+            [
+                'alpha-centauri',
+                'barnards-star',
+                'lalande-21185',
+                'luhman-16',
+                'wise-0855-0714',
+                'wolf-359'
+            ].toSorted()
+        )
+        expect(STAR_MAP.adjacentSystemIds('18-scorpii')).toHaveLength(3)
     })
 })

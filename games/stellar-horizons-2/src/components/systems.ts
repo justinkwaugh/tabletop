@@ -1,4 +1,4 @@
-import { distanceAxial } from '@tabletop/common'
+import { STAR_MAP } from './starMap.js'
 import { SYSTEMS } from './systemCatalog.js'
 import { Sector, type StarSystemDefinition, type SystemDefinition } from './systemTypes.js'
 
@@ -25,5 +25,5 @@ export function systemsInSectors(sectors: readonly Sector[]): SystemDefinition[]
 }
 
 export function systemDistance(fromSystemId: string, toSystemId: string): number {
-    return distanceAxial(systemDefinition(fromSystemId).coords, systemDefinition(toSystemId).coords)
+    return STAR_MAP.distance(fromSystemId, toSystemId)
 }
