@@ -20,7 +20,7 @@ export const MarracashGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.Boolean,
         name: 'Antique Cards',
         description:
-            'Deal each player 5 secret antique cards that pay out when their shops attract matching customers',
+            'Deal each player 5 secret antique cards, two of one colour and one each of three others, that pay out when their shops attract matching customers',
         default: true
     }
 ]

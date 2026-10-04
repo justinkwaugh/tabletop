@@ -1,6 +1,5 @@
 import {
     assert,
-    shuffle,
     type ExplorationPopulation,
     type GameExploration,
     type RandomFunction
@@ -9,6 +8,7 @@ import {
     AllAntiques,
     AntiquesPerPlayer,
     coversAntiqueSet,
+    dealAntiqueHands,
     type Antique
 } from '../components/antiques.js'
 import { DirhamIncrement, MaxShopsPerPlayer, MinimumAuctionBid } from '../components/payments.js'
@@ -71,10 +71,11 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
         )
 
         for (let attempt = 0; attempt < MaxSampleAttempts; attempt++) {
-            shuffle(unseen, random)
-            const hands = unknownHolders.map((_, index) =>
-                unseen.slice(index * AntiquesPerPlayer, (index + 1) * AntiquesPerPlayer)
-            )
+            const deal = dealAntiqueHands(unseen, unknownHolders.length, random)
+            if (!deal) {
+                continue
+            }
+            const { hands, undealt } = deal
             const consistent = unknownHolders.every(
                 (player, index) =>
                     !coversAntiqueSet(hands[index], sample.customersByColor(player.playerId))
@@ -83,7 +84,7 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
                 unknownHolders.forEach((player, index) => {
                     player.antiques = hands[index]
                 })
-                sample.antiqueDeck.items = unseen.slice(unknownHolders.length * AntiquesPerPlayer)
+                sample.antiqueDeck.items = undealt
                 return
             }
         }

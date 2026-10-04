@@ -18,7 +18,7 @@ import {
     type ShopState
 } from '../model/gameState.js'
 import { MarracashPlayerState, StartingMoney } from '../model/playerState.js'
-import { AntiquesPerPlayer, HydratedAntiqueDeck } from '../components/antiques.js'
+import { AllAntiques, dealAntiqueHands, HydratedAntiqueDeck } from '../components/antiques.js'
 import { EntranceFountainIds, Fountains, Shops } from '../components/board.js'
 import { generateVisitorSetup } from '../components/visitors.js'
 import { MachineState } from './states.js'
@@ -53,13 +53,14 @@ export class MarracashGameInitializer
         const shops: ShopState[] = Shops.map((shop) => ({ shopId: shop.id, customers: 0 }))
 
         const antiqueCards = game.config?.antiqueCards === true
-        const antiqueDeck = antiqueCards
-            ? HydratedAntiqueDeck.create(protectedPrng.random)
-            : HydratedAntiqueDeck.createEmpty()
+        let antiqueDeck = HydratedAntiqueDeck.createEmpty()
         if (antiqueCards) {
-            for (const player of players) {
-                player.antiques = antiqueDeck.drawItems(AntiquesPerPlayer)
-            }
+            const deal = dealAntiqueHands(AllAntiques, players.length, protectedPrng.random)
+            assertExists(deal, 'The full antique deck always has a deal for 3 or 4 players')
+            players.forEach((player, index) => {
+                player.antiques = deal.hands[index]
+            })
+            antiqueDeck = HydratedAntiqueDeck.create(deal.undealt)
         }
 
         const marracashState: MarracashGameState = Object.assign(state, {

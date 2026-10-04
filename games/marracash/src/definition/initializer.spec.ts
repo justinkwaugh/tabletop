@@ -1,6 +1,12 @@
-import { Color, GameEngine } from '@tabletop/common'
+import { Color, GameEngine, getPrng } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { AllAntiques, AntiquesPerPlayer, type Antique } from '../components/antiques.js'
+import {
+    AllAntiques,
+    AntiquesPerPlayer,
+    dealAntiqueHands,
+    hasDealtHandShape,
+    type Antique
+} from '../components/antiques.js'
 import { EntranceFountainIds, Shops } from '../components/board.js'
 import {
     hasDistinctColors,
@@ -73,6 +79,13 @@ describe.each([3, 4])('MarraCash setup with %i players', (count) => {
 
         const dealtAndUndealt = [...hands.flat(), ...state.antiqueDeck.items].map(antiqueKey)
         expect(dealtAndUndealt.toSorted()).toEqual(AllAntiques.map(antiqueKey).toSorted())
+    })
+
+    it('deals every hand two cards of one colour and one each of three others', () => {
+        for (let seed = 1; seed <= 50; seed++) {
+            const state = start(count, seed.toString(16).padStart(32, '0'))
+            expect(state.players.every((player) => hasDealtHandShape(player.antiques))).toBe(true)
+        }
     })
 
     it('gives every player starting money and leaves every shop unowned', () => {
@@ -158,5 +171,33 @@ describe('MarraCash player colours', () => {
         ])
         const state = start(4)
         expect(state.players.every((player) => MarracashColors.includes(player.color))).toBe(true)
+    })
+})
+
+describe('dealing antique hands', () => {
+    it('recognises only a 2/1/1/1/0 colour split', () => {
+        const cards = (colors: MarketColor[]) => colors.map((color) => ({ color, value: 100 }))
+        const { Red, Blue, Green, Purple, Yellow } = MarketColor
+        expect(hasDealtHandShape(cards([Red, Red, Blue, Green, Purple]))).toBe(true)
+        expect(hasDealtHandShape(cards([Red, Blue, Green, Purple, Yellow]))).toBe(false)
+        expect(hasDealtHandShape(cards([Red, Red, Blue, Blue, Green]))).toBe(false)
+        expect(hasDealtHandShape(cards([Red, Red, Red, Blue, Green]))).toBe(false)
+    })
+
+    it('keeps every card when dealing from a partial deck', () => {
+        const pool = AllAntiques.filter(
+            (card) => card.color !== MarketColor.Yellow || card.value > 200
+        )
+        const deal = dealAntiqueHands(pool, 3, getPrng(3))
+        expect(deal).toBeDefined()
+        expect(deal!.hands.every(hasDealtHandShape)).toBe(true)
+        expect([...deal!.hands.flat(), ...deal!.undealt].map(antiqueKey).toSorted()).toEqual(
+            pool.map(antiqueKey).toSorted()
+        )
+    })
+
+    it('gives up when the cards cannot make the hands', () => {
+        const pool = AllAntiques.filter((card) => card.color === MarketColor.Red)
+        expect(dealAntiqueHands(pool, 1, getPrng(3))).toBeUndefined()
     })
 })

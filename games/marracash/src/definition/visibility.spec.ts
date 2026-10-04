@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import type { MoveVisitors } from '../actions/moveVisitors.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import { isResolveAuction } from '../actions/resolveAuction.js'
-import { AntiquesPerPlayer, coversAntiqueSet } from '../components/antiques.js'
+import { AntiquesPerPlayer, coversAntiqueSet, hasDealtHandShape } from '../components/antiques.js'
 import { Shops, type ShopId } from '../components/board.js'
 import { MarracashGameStateValidator, type MarracashProjectedState } from '../model/gameState.js'
 import { createGame, createTestSession, playToEnd, TestMasterSeed } from '../util/testHelper.js'
@@ -274,6 +274,7 @@ describe('MarraCash exploration', () => {
             const hydrated = MarracashRuntime.hydrator.hydrateState(sample)
             for (const player of hydrated.players) {
                 expect(player.antiques).toHaveLength(AntiquesPerPlayer)
+                expect(hasDealtHandShape(player.antiques)).toBe(true)
                 expect(
                     coversAntiqueSet(player.antiques, hydrated.customersByColor(player.playerId))
                 ).toBe(false)
