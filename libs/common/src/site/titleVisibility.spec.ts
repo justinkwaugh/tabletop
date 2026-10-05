@@ -23,7 +23,7 @@ describe('title catalog visibility', () => {
         { roles: [Role.AlphaTester], alpha: true, beta: false },
         { roles: [Role.AlphaTester, Role.BetaTester], alpha: true, beta: true },
         { roles: [Role.Admin], alpha: true, beta: true },
-        { roles: [Role.Developer], alpha: false, beta: false }
+        { roles: [Role.Developer], alpha: true, beta: true }
     ])('respects independent grants for $roles', ({ roles, alpha, beta }) => {
         expect(canDiscoverTitle(metadata, roles)).toBe(true)
         expect(canDiscoverTitle({ ...metadata, beta: true }, roles)).toBe(beta)

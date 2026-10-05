@@ -3,7 +3,7 @@
     import { mixColor } from '$lib/utils/colorMix.js'
 
     // The precinct and temple are marble; the favoured player's colour is on the temple's dome and
-    // steps, on the precinct's inner shadow, and on the teardrop's tail, which runs out from the
+    // steps, on the precinct's inner shadow, and on the teardrop's tail, which points out from the
     // precinct to the road.
     const MARBLE = '#fbf8f1'
     const MARBLE_TEMPLE = '#8a7f68'
@@ -54,31 +54,25 @@
     const PRECINCT = 25
     // The middle of the hex edge, where a road comes in.
     const EDGE = (HEX.xRadius + Math.hypot(HEX.xRadius / 2, HEX.yRadius * 0.75)) / 2
-    // Half a road: its 12-wide band inside a 1.3 dark edge drawn on the outline.
-    const ROAD_HALF = 6.65
 
     // The precinct's outline at `reach` 0 (a round precinct) to 1 (a teardrop whose sides run
-    // tangent out to the hex edge and end as wide as the road that comes in there).
-    export function oracleDrop(reach: number): { fill: string; edge: string; dashes: string } {
+    // tangent out to a point at the middle of the hex edge, pointing at the road that comes in there).
+    export function oracleDrop(reach: number): string {
         const end = PRECINCT + (EDGE - PRECINCT) * reach
-        const half = ROAD_HALF * reach
-        const tangent = (x: number, side: -1 | 1) => {
-            const at =
-                Math.atan2(-end, x) + side * Math.acos(Math.min(1, PRECINCT / Math.hypot(x, end)))
+        const tangent = (side: -1 | 1) => {
+            const at = Math.atan2(-end, 0) + side * Math.acos(Math.min(1, PRECINCT / end))
             return { x: PRECINCT * Math.cos(at), y: PRECINCT * Math.sin(at) }
         }
-        const left = tangent(-half, -1)
-        const right = tangent(half, 1)
+        const left = tangent(-1)
+        const right = tangent(1)
         // Two arcs through the bottom, so the round precinct (both tangents at the top) still draws.
         const arc = `A ${PRECINCT} ${PRECINCT} 0 0 0`
-        const edge = `M ${-half} ${-end} L ${left.x} ${left.y} ${arc} 0 ${PRECINCT} ${arc} ${right.x} ${right.y} L ${half} ${-end}`
-        // The road's centre dashes carry on along the tail to the precinct.
-        return { fill: `${edge} Z`, edge, dashes: `M 0 ${-end} V ${-PRECINCT - 2}` }
+        return `M 0 ${-end} L ${left.x} ${left.y} ${arc} 0 ${PRECINCT} ${arc} ${right.x} ${right.y} Z`
     }
 </script>
 
 <script lang="ts">
-    import { ROAD_DASHES, localHexPoints } from '$lib/utils/boardGeometry.js'
+    import { localHexPoints } from '$lib/utils/boardGeometry.js'
 
     let { angle = -90, attentionColor }: { angle?: number; attentionColor?: string } = $props()
 
@@ -111,23 +105,12 @@
         stroke-dasharray="4 3"
         stroke-linejoin="round"
     ></polygon>
-    <!-- The precinct, drawn like a city field; favoured, a coloured tail runs out to the road. -->
+    <!-- The precinct, drawn like a city field; favoured, a coloured tail points to the road. -->
     <g data-part="turn" transform="rotate({rotation})">
-        <path data-part="drop" data-tone="tail:light:0" d={drop.fill} fill={tone('tail:light:0')}
-        ></path>
-        <path
-            data-part="drop-dashes"
-            d={drop.dashes}
-            opacity={attentionColor ? 1 : 0}
-            stroke="rgba(255, 244, 220, 0.55)"
-            stroke-width="2.2"
-            stroke-dasharray={ROAD_DASHES.dasharray}
-            stroke-dashoffset={ROAD_DASHES.dashoffset}
-            stroke-linecap="round"
-        ></path>
+        <path data-part="drop" data-tone="tail:light:0" d={drop} fill={tone('tail:light:0')}></path>
         <path
             data-part="drop-edge"
-            d={drop.edge}
+            d={drop}
             fill="none"
             stroke={ROAD_EDGE}
             stroke-width="1.3"
