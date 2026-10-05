@@ -14,10 +14,9 @@ import { SYSTEM_GEOMETRY } from '$lib/art/manifest.js'
 export const ART_SCALE = 0.5
 export const BOARD_MARGIN = 40
 const LATTICE_RADIUS = 541 * ART_SCALE
-const BOARD_HEX: HexDefinition = {
-    orientation: HexOrientation.Flat,
-    dimensions: { xRadius: LATTICE_RADIUS, yRadius: (LATTICE_RADIUS * Math.sqrt(3)) / 2 }
-}
+// A tile's cell in the lattice, slightly larger than its art; its edge runs down the seam.
+export const BOARD_CELL = { xRadius: LATTICE_RADIUS, yRadius: (LATTICE_RADIUS * Math.sqrt(3)) / 2 }
+const BOARD_HEX: HexDefinition = { orientation: HexOrientation.Flat, dimensions: BOARD_CELL }
 
 type BoardHex = HexGridNode & { systemId: string }
 
@@ -28,28 +27,12 @@ export interface SystemFrame {
     height: number
     slots: Point[]
     marker: Point
-    bases: Point
 }
 
 export interface BoardLayout {
     width: number
     height: number
     frames: SystemFrame[]
-}
-
-const BASE_ANCHORS: readonly Point[] = [
-    { x: 0, y: -0.14 },
-    { x: 0.22, y: -0.2 },
-    { x: -0.22, y: -0.2 },
-    { x: 0.24, y: -0.04 },
-    { x: -0.24, y: -0.04 }
-]
-
-function clearestPoint(width: number, height: number, slots: Point[]): Point {
-    const candidates = BASE_ANCHORS.map((anchor) => ({ x: anchor.x * width, y: anchor.y * height }))
-    const clearance = (point: Point) =>
-        Math.min(...slots.map((slot) => Math.hypot(slot.x - point.x, slot.y - point.y)))
-    return candidates.reduce((best, point) => (clearance(point) > clearance(best) ? point : best))
 }
 
 // The printed map is a tall strip; turning it 60° lays the board out landscape on screen.
@@ -88,8 +71,7 @@ export function boardLayout(systemIds: readonly string[]): BoardLayout {
             width,
             height,
             slots,
-            marker: toLocal(geometry.marker ?? [geometry.width * 0.7, geometry.height * 0.85]),
-            bases: clearestPoint(width, height, slots)
+            marker: toLocal(geometry.marker ?? [geometry.width * 0.7, geometry.height * 0.85])
         }
     })
     return {

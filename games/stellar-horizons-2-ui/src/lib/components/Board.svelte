@@ -4,16 +4,26 @@
     import SystemTile from './board/SystemTile.svelte'
     import ShipStrip from './board/ShipStrip.svelte'
     import { factionShipGroups, shipPipLayout } from '$lib/utils/shipPipLayout.js'
+    import { baseTabLayout, systemTabBases } from '$lib/utils/baseTabLayout.js'
 
     const gameSession = getGameSession()
     const layout = $derived(
         boardLayout(gameSession.gameState.systems.map((system) => system.systemId))
     )
     const systems = $derived(
-        layout.frames.map((frame) => ({
-            frame,
-            ships: shipPipLayout(frame, factionShipGroups(gameSession.gameState, frame.systemId))
-        }))
+        layout.frames.map((frame) => {
+            const state = gameSession.gameState
+            const bases = baseTabLayout(frame, systemTabBases(state, frame.systemId))
+            return {
+                frame,
+                bases,
+                ships: shipPipLayout(
+                    frame,
+                    factionShipGroups(state, frame.systemId),
+                    bases.map((tab) => tab.box)
+                )
+            }
+        })
     )
     const spotlight = $derived(gameSession.focusClosing ? undefined : gameSession.focusedSystemId)
 </script>
@@ -46,6 +56,7 @@
     {#each systems as system (system.frame.systemId)}
         <SystemTile
             frame={system.frame}
+            bases={system.bases}
             ships={system.ships}
             dimmed={spotlight !== undefined && system.frame.systemId !== spotlight}
         />

@@ -1,37 +1,31 @@
 <script lang="ts">
-    import {
-        SOL_SYSTEM_ID,
-        WorldSide,
-        starSystemDefinition,
-        type Base
-    } from '@tabletop/stellar-horizons-2'
-    import {
-        EXPLORATION_MARKER_ART,
-        SETTLEMENT_ART,
-        SYSTEM_ART,
-        WORLD_ART
-    } from '$lib/art/manifest.js'
+    import { SOL_SYSTEM_ID, WorldSide, starSystemDefinition } from '@tabletop/stellar-horizons-2'
+    import { EXPLORATION_MARKER_ART, SYSTEM_ART, WORLD_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipClump from './ShipClump.svelte'
+    import BaseTab from './BaseTab.svelte'
+    import type { BaseTab as BaseTabLayout } from '$lib/utils/baseTabLayout.js'
 
     const WORLD_SIZE = 112
     const MARKER_SIZE = 74
-    const BASE_SIZE = 58
 
     let {
         frame,
+        bases,
         ships,
         dimmed = false
-    }: { frame: SystemFrame; ships: ShipPipLayout; dimmed?: boolean } = $props()
+    }: {
+        frame: SystemFrame
+        bases: BaseTabLayout[]
+        ships: ShipPipLayout
+        dimmed?: boolean
+    } = $props()
 
     const gameSession = getGameSession()
     const system = $derived(gameSession.gameState.systemState(frame.systemId))
-    const bases = $derived(
-        gameSession.gameState.bases.filter((base) => base.systemId === frame.systemId)
-    )
     const explorationField = $derived(
         frame.systemId === SOL_SYSTEM_ID
             ? undefined
@@ -46,14 +40,6 @@
     const moveTarget = $derived(
         gameSession.moveTargets.find((target) => target.systemId === frame.systemId)
     )
-
-    function baseFaction(base: Base) {
-        return gameSession.gameState.getPlayerState(base.playerId).faction
-    }
-
-    function baseOffset(index: number): number {
-        return (index - (bases.length - 1) / 2) * (BASE_SIZE + 6)
-    }
 
     function onTitleClick(event: MouseEvent) {
         event.stopPropagation()
@@ -113,25 +99,8 @@
         </g>
     {/if}
 
-    {#each bases as base, index (base.playerId)}
-        {@const faction = baseFaction(base)}
-        {#if faction}
-            <g transform="translate({frame.bases.x + baseOffset(index)} {frame.bases.y})">
-                <image
-                    href={SETTLEMENT_ART[faction]}
-                    x={-BASE_SIZE / 2}
-                    y={-BASE_SIZE / 2}
-                    width={BASE_SIZE}
-                    height={BASE_SIZE}
-                    filter="url(#sh-piece-shadow)"
-                >
-                    <title>{plural(base.settlements, 'settlement')}</title>
-                </image>
-                <text class="base-count" y={BASE_SIZE / 2 + 2} text-anchor="middle"
-                    >{base.settlements}</text
-                >
-            </g>
-        {/if}
+    {#each bases as tab (tab.base.playerId)}
+        <BaseTab {tab} />
     {/each}
 
     {#each clumps as clump (clump.playerId)}
@@ -202,15 +171,6 @@
         paint-order: stroke;
         stroke: #10301a;
         stroke-width: 4px;
-    }
-
-    .base-count {
-        font-size: 26px;
-        font-weight: 800;
-        fill: #ffffff;
-        paint-order: stroke;
-        stroke: #000000;
-        stroke-width: 5px;
     }
 
     .move-target {

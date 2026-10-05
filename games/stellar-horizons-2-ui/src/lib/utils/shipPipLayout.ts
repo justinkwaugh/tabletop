@@ -5,6 +5,7 @@ import {
     type ShipState
 } from '@tabletop/stellar-horizons-2'
 import type { SystemFrame } from './boardLayout.js'
+import { distanceToBox, printedText, type Box } from './tileFeatures.js'
 
 export const LARGEST_PIP_RADIUS = 34
 const SMALLEST_PIP_RADIUS = 9
@@ -12,7 +13,6 @@ const SHRINK_STEP = 0.9
 const PIP_SPACING = 2.2
 const WORLD_CLEARANCE = 56
 const MARKER_CLEARANCE = 40
-const BASE_CLEARANCE = 38
 const STAR_CLEARANCE = 30
 const CLUMP_GAP = 3
 const ORBIT_STEPS = 90
@@ -38,13 +38,6 @@ interface Circle {
     r: number
 }
 
-interface Box {
-    left: number
-    top: number
-    right: number
-    bottom: number
-}
-
 export function factionShipGroups(
     state: HydratedStellarHorizonsGameState,
     systemId: string
@@ -56,16 +49,21 @@ export function factionShipGroups(
     })
 }
 
-export function shipPipLayout(frame: SystemFrame, groups: readonly ShipState[][]): ShipPipLayout {
+// `reserved` are areas of the tile kept clear of ships, such as the bases.
+export function shipPipLayout(
+    frame: SystemFrame,
+    groups: readonly ShipState[][],
+    reserved: readonly Box[] = []
+): ShipPipLayout {
     const total = groups.reduce((sum, group) => sum + group.length, 0)
     let radius = LARGEST_PIP_RADIUS
-    let pips = arrangeClumps(frame, groups, radius, false)
+    let pips = arrangeClumps(frame, groups, radius, false, reserved)
     while (pips.length < total && radius > SMALLEST_PIP_RADIUS) {
         radius = Math.max(SMALLEST_PIP_RADIUS, radius * SHRINK_STEP)
-        pips = arrangeClumps(frame, groups, radius, false)
+        pips = arrangeClumps(frame, groups, radius, false, reserved)
     }
     if (pips.length < total) {
-        pips = arrangeClumps(frame, groups, radius, true)
+        pips = arrangeClumps(frame, groups, radius, true, reserved)
     }
     return { radius, pips }
 }
@@ -74,10 +72,11 @@ function arrangeClumps(
     frame: SystemFrame,
     groups: readonly ShipState[][],
     r: number,
-    splitCrowdedClumps: boolean
+    splitCrowdedClumps: boolean,
+    reserved: readonly Box[]
 ): ShipPip[] {
     const blocked = staticObstacles(frame)
-    const text = printedText(frame)
+    const text = [...printedText(frame), ...reserved]
     const orbit = orbitRadius(frame)
     const isFree = (point: Point) =>
         Math.hypot(point.x, point.y) < frame.height * 0.47 - r &&
@@ -122,23 +121,8 @@ function staticObstacles(frame: SystemFrame): Circle[] {
     return [
         ...frame.slots.map((slot) => ({ ...slot, r: WORLD_CLEARANCE })),
         { ...frame.marker, r: MARKER_CLEARANCE },
-        { ...frame.bases, r: BASE_CLEARANCE },
         { x: 0, y: 0, r: STAR_CLEARANCE }
     ]
-}
-
-function printedText(frame: SystemFrame): Box[] {
-    const { width, height } = frame
-    return [
-        { left: -width * 0.3, top: -height * 0.5, right: width * 0.3, bottom: -height * 0.37 },
-        { left: -width * 0.4, top: height * 0.2, right: width * 0.06, bottom: height * 0.5 }
-    ]
-}
-
-function distanceToBox(point: Point, box: Box): number {
-    const dx = Math.max(box.left - point.x, 0, point.x - box.right)
-    const dy = Math.max(box.top - point.y, 0, point.y - box.bottom)
-    return Math.hypot(dx, dy)
 }
 
 export function honeycomb(count: number, spacing: number): Point[] {
