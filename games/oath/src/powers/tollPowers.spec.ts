@@ -120,7 +120,7 @@ describe('Curfew and Forced Labor — a favor to trade or search under the ruler
         expect(HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForFavor)).toBeUndefined()
         // Two favor to place after a one-favor toll needs three.
         const poor = board({ foe: { favor: 2 } }, { denizensBySite: { c1: [CURFEW, INN], c2: [], p1: [], h1: [] } })
-        expect(HydratedTrade.reasonCannotTrade(poor, 'foe', INN, TradeOption.ForSecrets, undefined, [CURFEW])).toMatch(/not enough favor is left/)
+        expect(HydratedTrade.reasonCannotTrade(poor, 'foe', INN, TradeOption.ForSecrets, undefined, [CURFEW])).toMatch(/costs 3 favor in all, you hold 2/)
         const a = new HydratedTrade(buildAction(Trade, { playerId: 'foe', cardId: INN, option: TradeOption.ForFavor, tolls: [CURFEW] }))
         a.apply(s)
         expect(a.metadata?.tollsPaid).toEqual([`${CURFEW}: gave a favor to ruler`])

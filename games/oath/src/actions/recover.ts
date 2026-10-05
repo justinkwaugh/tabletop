@@ -28,6 +28,12 @@ import {
 import { takeRelicFromVault } from '../util/hiddenInputs.js'
 import { takeRelic, clearSiteRelicSlot } from '../util/relics.js'
 import { pawnSiteId } from '../powers/vocabulary.js'
+import {
+    favorPayment,
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment
+} from '../util/actionPayment.js'
 
 /** R-5.4.1 */
 export const RECOVER_SUPPLY_COST = 1
@@ -311,7 +317,10 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
             }
         }
 
-        return undefined
+        return reasonCannotPayInAll(state, playerId, [
+            modifierPayment(resolved.active),
+            banner === Banner.PeoplesFavor ? favorPayment(paid) : secretPayment(paid)
+        ])
     }
 
     static secretsStacked(
