@@ -109,6 +109,8 @@ export class MagnaGreciaGameSession extends GameSession<
     // The board's targets and previews step aside while placed pieces settle.
     boardAnimating = $derived(this.cityFlow !== undefined || this.pieceArrivals !== undefined)
 
+    historyHighlight: AxialCoordinates[] = $state([])
+
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
     resupplyOpen = $derived(draftResupplyOpen(this.draft))
