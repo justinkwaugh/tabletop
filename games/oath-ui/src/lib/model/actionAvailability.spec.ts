@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { ActionType, PlayerStatus } from '@tabletop/oath'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import { ActionType, Banner, PlayerStatus } from '@tabletop/oath'
+import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { freeActionDueLine, reasonActionUnavailable } from './actionAvailability.js'
 import { ALL_ACTIONS } from './actionCatalogue.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -134,5 +134,25 @@ describe('R-10.2 — a granted free action comes next', () => {
             'your free Travel comes first: take it or give it up'
         )
         expect(reasonActionUnavailable(state, CHANCELLOR, ActionType.Travel) ?? '').not.toContain('comes first')
+    })
+})
+
+describe('the Search tile and the Banner of the Darkest Secret', () => {
+    function withTwoSupply(holderId?: string) {
+        const state = board({
+            visionsDrawn: 1,
+            banners: testBanners(holderId ? { [Banner.DarkestSecret]: holderId } : {})
+        })
+        state.getPlayerState(EXILE).supply = 2
+        return state
+    }
+
+    it('is lit for its holder with 2 Supply where the track says 3', () => {
+        expect(reasonActionUnavailable(withTwoSupply(EXILE), EXILE, ActionType.Search)).toBeUndefined()
+    })
+
+    it('stays dimmed for anyone else with 2 Supply', () => {
+        expect(reasonActionUnavailable(withTwoSupply(CHANCELLOR), EXILE, ActionType.Search)).toBeDefined()
+        expect(reasonActionUnavailable(withTwoSupply(), EXILE, ActionType.Search)).toBeDefined()
     })
 })

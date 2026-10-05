@@ -6,9 +6,9 @@
         FAVOR_BANK_ORDER,
         FINAL_ROUND,
         type Region,
-        SearchSource,
-        worldDeckSearchCost
+        SearchSource
     } from '@tabletop/oath'
+    import { worldDeckPrice } from '$lib/model/searchCost.js'
     import CardImage from '$lib/components/CardImage.svelte'
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
     import BankCount from '$lib/components/BankCount.svelte'
@@ -108,9 +108,9 @@
 <!-- R-2.1.6 — the Visions Drawn marker; the Search price is on the deck while a Search is chosen. -->
 <span
     class="visions"
-    title="{gameState.visionsDrawn} Visions drawn — Searching the world deck costs {worldDeckSearchCost(
+    title="{gameState.visionsDrawn} Visions drawn — Searching the world deck costs {worldDeckPrice(
         gameState.visionsDrawn
-    )} Supply"
+    )}"
     style="left:{visionsCell.x}px; top:{visionsCell.y}px;
            width:{visionsCell.width}px; height:{visionsCell.height}px;"
 >

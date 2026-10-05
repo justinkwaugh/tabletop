@@ -35,6 +35,7 @@ import { bannerName, cardName, goalText, oathName } from '$lib/model/names.js'
 import { searchStoppedOnVision, type NameOf } from '$lib/model/actionDescription.js'
 import { ENDINGS, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
+import { worldDeckPrice } from '$lib/model/searchCost.js'
 
 export enum MajorEventKind {
     VisionDrawn = 'visionDrawn',
@@ -96,7 +97,7 @@ function searchCostLine(visionsDrawn: number): string | undefined {
     const cost = worldDeckSearchCost(visionsDrawn)
     if (cost === worldDeckSearchCost(visionsDrawn - 1)) return undefined
     const gate = visionsDrawn === VISIONS_DRAWN_GATE ? ' · Visions can now win' : ''
-    return `Search cost up: the world deck now costs ${cost} Supply${gate}`
+    return `Search cost up: the world deck now costs ${worldDeckPrice(visionsDrawn)}${gate}`
 }
 
 /** R-9.4 — the drawer sees which Vision; everyone else sees its back. */
