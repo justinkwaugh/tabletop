@@ -11,7 +11,7 @@
 
     const APPROACHING_FILL = 'rgba(0,0,0,0.55)'
     const PROBE_SCALE = 0.8
-    const DAMAGE_GAP = 3
+    const DAMAGE_GAP = 1
 
     let {
         ship,
@@ -174,11 +174,11 @@
     .damage {
         fill: none;
         stroke: #e53935;
-        stroke-width: 3px;
+        stroke-width: 1.75px;
     }
 
     .damage.crippled {
-        stroke-width: 5px;
+        stroke-width: 3px;
     }
 
     .cargo {

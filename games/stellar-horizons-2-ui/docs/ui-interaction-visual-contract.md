@@ -5,7 +5,12 @@
 ### Ships on the star map
 
 - **Display:** each ship is a pip in its faction's colour: a rounded square with the CV's size above three fixed slots that mark whether it has exploration (blue circle), cargo (orange hexagon) and combat (red triangle) values, with an empty slot where it has none, or a smaller circle for an RE (80% of a CV's size), showing its exploration value in a blue circle. A ship still on its way is drawn as a faction-coloured outline on a dark fill, with a gold badge giving the turns until it arrives. A red border just outside the pip marks damage (thicker when crippled) and a white dot marks cargo.
-- **Placement:** each faction's ships at a system form one honeycomb clump. Clumps are threaded clockwise along the orbit among the worlds, in faction order, and never cover a world, the base, the exploration marker or the tile's printed text. Pips are as large as the system allows and shrink only when needed to fit; in extreme crowds a faction's clump splits into adjacent smaller clumps rather than hiding a ship.
+- **Placement:** each faction's ships at a system form one honeycomb clump. Clumps are threaded clockwise along the orbit among the worlds, in faction order, and never cover a world, a base tab, the exploration marker or the tile's printed text. Pips are as large as the system allows and shrink only when needed to fit; in extreme crowds a faction's clump splits into adjacent smaller clumps rather than hiding a ship.
+
+### Bases on the star map
+
+- **Display:** each base is a tab filled with its owner's faction colour, showing its settlement count. Like ship pips, it carries no faction emblem. A base that meets the scenario's victory condition (in Footfall, 10 or more settlements in a system whose worlds total at least 25 population) has a gold outline. Hovering a tab names the faction and its settlements.
+- **Placement:** a system's bases are tabs attached to one slanted edge of the tile, each cut to the edge's angle and reaching the seam between tiles, stacked in rows down that edge in faction order. Rows hold two or three tabs only when no edge has room for one per row, so a system's bases never wrap around a corner. Tabs keep clear of the worlds, the star, the exploration marker and the printed text, and ships keep clear of the tabs.
 
 ### Inspecting a clump
 
@@ -98,7 +103,7 @@
 
 ## Render ownership
 
-- **Pip layout:** computed once per system by the board and shared by the system tile, which draws the clumps, and the ship strip, which anchors to them.
+- **Base tabs and pip layout:** computed once per system by the board, the base tabs first so the pip layout can keep ships clear of them. Both are drawn by the system tile; the ship strip anchors to the clumps.
 - **Selection ring:** drawn by the ship pip.
 - **Ship strip:** drawn by the board above every system tile.
 - **Zoom:** the star map's scaling wrapper owns the camera; the table asks it to focus the system's hex with the panel's size kept clear, and to restore the captured earlier view on the way out. The panel slide, the camera move and the dimming share one duration and easing. The table reports the zoom-out's completion to the session after that duration.
@@ -118,6 +123,7 @@
 | Inspect a clump        | Two ships of one faction at Sol                     | Hover, then click the clump; click again, Escape, or click the board | Hover shows nothing; click opens a strip of both counters; each close action closes it       | Automated                            |
 | Choose from a strip    | Movement step, an arrived probe at Sol              | Open its clump, click its counter                                    | The probe is chosen and the strip closes; destinations appear                                | Automated                            |
 | Crowded systems        | Six factions with many ships at one system          | Lay out the system                                                   | Every ship is placed, clear of worlds and printed text, one clump per faction where possible | Automated (`shipPipLayout.spec.ts`)  |
+| Many bases             | Six bases at one system, with ships                 | Lay out the system                                                   | One column of tabs on one edge, clear of worlds and printed text; no ship over a tab         | Automated (`baseTabLayout.spec.ts`)  |
 | Zoom into a system     | A probe at Sol                                      | Click Sol's name; then Back; then click it and press Escape          | The view zooms to Sol with a panel listing the probe; each exit returns to the map           | Automated                            |
 | Choose from the panel  | Movement step, zoomed into Sol                      | Click the probe in the panel                                         | The probe is chosen; the zoom stays                                                          | Automated                            |
 | Summary data           | Systems with and without ships and bases            | Summarise the system                                                 | Each faction present with its settlements and ships, the viewer's first                      | Automated (`systemSummary.spec.ts`)  |
