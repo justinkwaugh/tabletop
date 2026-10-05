@@ -138,7 +138,6 @@ describe('1846 complete two-player rules', () => {
         expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
         replayAndUndo(table, before, table.actions.slice(offset))
         table.launch('IC', 40)
-        table.finishTurn()
         table.launch('NYC', 90)
         playUntil(table, () => table.state.machineState !== 'StockRound')
         expect(table.state.operatingSet).toMatchObject({
@@ -158,8 +157,8 @@ describe('1846 complete two-player rules', () => {
                 playerId: table.state.activePlayerIds[0]
             })
         ).toBe(19)
-        table.launch('IC', 40)
         const playerId = table.state.activePlayerIds[0]
+        table.launch('IC', 40)
         const owner = { kind: 'player' as const, playerId }
         const ordinary = table.state.certificates
             .filter((certificate) => !certificate.retired)
@@ -173,10 +172,8 @@ describe('1846 complete two-player rules', () => {
         for (const certificate of ordinary.slice(0, 4)) certificate.owner = owner
         expect(sharesOwned(table.state, 'IC', owner)).toBe(6)
         table.finishTurn()
-        table.finishTurn()
         table.buy('IC')
         expect(sharesOwned(table.state, 'IC', owner)).toBe(7)
-        table.finishTurn()
         table.finishTurn()
         const certificate = table.state.certificates.find(
             (certificate) =>

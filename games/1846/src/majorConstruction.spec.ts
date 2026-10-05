@@ -8,7 +8,7 @@ import { StationRules1846, stationChoices1846 } from './stations.js'
 function constructionGame() {
     const table = stockGame()
     table.launch('B&O', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     table.act('CorporateFinance', { companyId: 'B&O', operation: 'pass', shares: 0, amount: 0 })

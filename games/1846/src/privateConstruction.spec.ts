@@ -18,7 +18,7 @@ import { TrackRules1846 } from './track.js'
 function major() {
     const table = stockGame()
     table.launch('NYC', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     return table

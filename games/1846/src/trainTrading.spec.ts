@@ -16,7 +16,7 @@ import { emergencyTrainChoices } from './emergencyTrain.js'
 function tradingGame(sharedPresident = false) {
     const table = stockGame()
     table.launch('IC', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     const seller = getCompany(table.state, 'NYC')

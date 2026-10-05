@@ -13,7 +13,8 @@ import { EighteenSeventeenMapView } from '@tabletop/1817-ui'
 import {
     MarketCellHeight,
     MarketCellWidth,
-    MarketScenePadding
+    MarketScenePadding,
+    MarketZoneBannerHeight
 } from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
 
 type MapScene = ReturnType<typeof createMapDrawing>
@@ -144,7 +145,8 @@ describe.each([
         name: '1846',
         view: MapView1846,
         createMarket: create1846Market,
-        cell: Presentation1846.marketCell
+        cell: Presentation1846.marketCell,
+        zones: Presentation1846.marketZones
     },
     { name: '1830', view: EighteenThirtyMapView, createMarket: createEighteenThirtyStockMarket },
     {
@@ -152,7 +154,7 @@ describe.each([
         view: EighteenSeventeenMapView,
         createMarket: createEighteenSeventeenStockMarket
     }
-])('$name board', ({ view, createMarket, cell }) => {
+])('$name board', ({ view, createMarket, cell, zones }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
         const areas = view.boardAreas
         expect(areas?.market && areas.depot).toBeTruthy()
@@ -177,8 +179,9 @@ describe.each([
         const rows = Math.max(...cells.map(([row]) => row)) + 1
         const cellWidth = cell?.width ?? MarketCellWidth
         const cellHeight = cell?.height ?? MarketCellHeight
+        const banner = zones?.some((zone) => zone.banner) ? MarketZoneBannerHeight : 0
         const width = 2 * MarketScenePadding + columns * cellWidth
-        const height = 2 * MarketScenePadding + rows * cellHeight
+        const height = 2 * MarketScenePadding + banner + rows * cellHeight
         const area = areas!.market!
         const scale = Math.min(area.width / width, area.height / height)
         const left = area.x + (area.width - width * scale) / 2
@@ -186,7 +189,7 @@ describe.each([
             expect(
                 clear(
                     left + (MarketScenePadding + column * cellWidth) * scale,
-                    area.y + (MarketScenePadding + row * cellHeight) * scale,
+                    area.y + (MarketScenePadding + banner + row * cellHeight) * scale,
                     cellWidth * scale,
                     cellHeight * scale
                 )

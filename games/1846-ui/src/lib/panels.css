@@ -15,12 +15,14 @@
 .midwest-actions p {
     margin: 6px 0 10px;
 }
-.midwest-actions .choices,
-.midwest-actions .cards {
+.midwest-actions .choices {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     justify-content: center;
+}
+.midwest-actions .construction-mode {
+    margin-bottom: 16px;
 }
 .midwest-actions button {
     font: inherit;
@@ -43,10 +45,72 @@
     opacity: 0.45;
     cursor: default;
 }
-.midwest-actions .card {
+.midwest-actions .draft {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 220px;
-    text-align: left;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+}
+.midwest-actions .draft-heading {
+    max-width: 44rem;
+    text-align: center;
+}
+.midwest-actions .draft-heading h2 {
+    font-size: 16px;
+}
+.midwest-actions .draft-heading p,
+.midwest-actions .draft-note,
+.midwest-actions .draft-waiting {
+    margin: 4px 0 0;
+    color: var(--rail-muted, #786550);
+    text-align: center;
+}
+.midwest-actions .draft-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 14px;
+}
+.midwest-actions .draft-gate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 28px;
+    border: 2px dashed var(--rail-border, #c7b8a6);
+    border-radius: 10px;
+}
+.midwest-actions .draft-gate p {
+    margin: 0;
+}
+.midwest-actions .draft-commitments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 8px;
+}
+.midwest-actions .commitments-label {
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rail-muted, #786550);
+}
+.midwest-actions .commitment {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--rail-surface-raised, #efe7db);
+}
+.midwest-actions .commitments-total {
+    margin-left: 6px;
+}
+.midwest-actions button.draft-hide {
+    border: 0;
+    background: none;
+    color: var(--rail-muted, #786550);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }

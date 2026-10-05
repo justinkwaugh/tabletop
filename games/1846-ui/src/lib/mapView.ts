@@ -42,9 +42,18 @@ const mapLayouts: Readonly<Record<string, TileLayout>> = {
     F22: { hideRevenue: true }
 }
 const mapBounds = createMapDrawing(EighteenFortySixMap, undefined, { layouts: mapLayouts }).bounds
+// The depot fills the map's empty northwest corner, 12 map units clear of the C5 and E5 hexes,
+// and the market spans the depot and map together.
+const depot = { x: -270, y: mapBounds.y, width: 387, height: 347 }
+const marketHeight = 152
 export const BoardAreas = {
-    market: { x: mapBounds.x, y: -460, width: mapBounds.width, height: 110 },
-    depot: { x: -55.3, y: -340, width: 500, height: 270 }
+    market: {
+        x: depot.x,
+        y: mapBounds.y - 16 - marketHeight,
+        width: mapBounds.x + mapBounds.width - depot.x,
+        height: marketHeight
+    },
+    depot
 }
 export const MapView1846: MapViewDefinition = {
     map: EighteenFortySixMap,

@@ -389,13 +389,18 @@
         border-radius: 7px;
     }
     .vertical header {
-        flex-wrap: wrap;
+        align-items: flex-start;
         gap: 5px;
         background: var(--rail-surface-raised, #e5dccf);
     }
     .vertical .identity {
-        flex-shrink: 1;
+        flex: 1;
+        min-width: 0;
+        align-items: flex-start;
         gap: 7px;
+    }
+    .vertical .identity > :global(svg) {
+        flex-shrink: 0;
     }
     .vertical h2 {
         white-space: normal;

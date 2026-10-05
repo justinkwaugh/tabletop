@@ -15,10 +15,8 @@ import { RouteRules1846 } from './routes.js'
 function lastPhaseITrain() {
     const table = stockGame()
     table.launch('IC', 100)
-    table.finishTurn()
     table.launch('NYC', 100)
-    table.finishTurn()
-    for (let i = 0; i < 3; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })

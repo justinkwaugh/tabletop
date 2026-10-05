@@ -21,6 +21,7 @@
     import ConstructionPowers from './ConstructionPowers.svelte'
     import RevenuePowers from './RevenuePowers.svelte'
     import EmergencyTrains from './EmergencyTrains.svelte'
+    import CorporateFinance from './CorporateFinance.svelte'
     import { describe1846Action } from './history.js'
     import './panels.css'
     let {
@@ -40,7 +41,7 @@
 
 <GameTable {session} {privateOperationDescription} historyDescription={describe1846Action}>
     {#snippet actions(_focusLocation, focusRoute)}
-        <div class="midwest-actions">
+        <div class="midwest-actions centered-panel">
             {#if state.machineState === 'BuyingOpeningCompanies'}
                 <OpeningCompanies {session} />
             {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
@@ -77,22 +78,7 @@
                     showUndo={false}
                 />
                 {#if !session.privateActions.selection && !session.decisions.selection && !state.purchaseOffer}
-                    <section aria-label="Corporate finance">
-                        <h2>{session.financeChoices[0]?.companyId} · issue or redeem shares</h2>
-                        <p>Choose one transaction, or pass. The stock price stays unchanged.</p>
-                        <div class="choices">
-                            {#each session.financeChoices as choice (`${choice.operation}:${choice.shares}`)}
-                                <button
-                                    disabled={!session.canChooseAction}
-                                    onclick={() => session.corporateFinance(choice)}
-                                >
-                                    {choice.operation === 'pass'
-                                        ? 'Pass'
-                                        : `${choice.operation === 'issue' ? 'Issue' : 'Redeem'} ${choice.shares} shares · $${choice.amount}`}
-                                </button>
-                            {/each}
-                        </div>
-                    </section>
+                    <CorporateFinance {session} />
                     <ConstructionPowers {session} /><RevenuePowers {session} />
                 {/if}
             {:else if state.machineState === 'RunningReceiver'}
@@ -108,7 +94,7 @@
                 </section>
             {:else}
                 {#if state.machineState === 'LayingTrack' && !state.purchaseOffer && !session.decisions.selection && !session.privateActions.selection}
-                    <nav aria-label="Construction mode" class="choices">
+                    <nav aria-label="Construction mode" class="choices construction-mode">
                         <button
                             aria-pressed={session.constructionMode === 'track'}
                             onclick={() => session.chooseConstructionMode('track')}

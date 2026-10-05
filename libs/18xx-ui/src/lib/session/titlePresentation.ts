@@ -1,6 +1,11 @@
 import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
 import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
-import type { CertificatePool, EighteenXXState, StockInstructionStopReason } from '@tabletop/18xx'
+import type {
+    CertificatePool,
+    EighteenXXState,
+    StockInstructionStopReason,
+    TileRotation
+} from '@tabletop/18xx'
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
@@ -10,8 +15,14 @@ import type {
     NumberedShareNames
 } from '../table/companyPresentation.js'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
+import type { TerrainIconName } from '../maps/terrainIcons.js'
 
-export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: TileSymbolName }
+export type PrivateTokenPresentation =
+    | { companyId: string }
+    | { tileSymbol: TileSymbolName }
+    | { terrain: TerrainIconName }
+    | { imageUrl: string }
+    | { tiles: readonly { definitionId: string; rotation: TileRotation }[] }
 
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
@@ -27,8 +38,19 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
 
+/**
+ * A label above a market zone, drawn across its spaces as an arrow toward its far end or as a span
+ * between its ends.
+ */
+export type MarketZoneBanner = { label: string; shape: 'arrow' | 'span' }
+
 /** The meaning of the market spaces of one colour, for their descriptions and the legend. */
-export type MarketZone = { color: string; name: string; description: string }
+export type MarketZone = {
+    color: string
+    name: string
+    description: string
+    banner?: MarketZoneBanner
+}
 
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
 export type CompanyColumn<State extends GameState = EighteenXXState> = {

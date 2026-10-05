@@ -205,7 +205,12 @@
                                                       'Treasury shares',
                                                       'Treasury'
                                                   )
-                                                : session.ownerName(choice.certificate.owner)}
+                                                : sameOwner(choice.certificate.owner, {
+                                                        kind: 'company',
+                                                        companyId: company.id
+                                                    })
+                                                  ? 'Treasury'
+                                                  : session.ownerName(choice.certificate.owner)}
                                             {@const count = ownership.find(
                                                 (entry) =>
                                                     entry.poolId === choice.certificate.poolId &&
@@ -719,11 +724,21 @@
         gap: 8px;
     }
     .choices.start-choices {
-        gap: 3px;
+        gap: 6px;
     }
     button.start-company-choice[aria-pressed='true'] {
-        background: var(--rail-surface-raised, #e5d7c3);
-        box-shadow: none;
+        border-color: transparent;
+        background: transparent;
+        box-shadow: 0 0 0 2px var(--rail-focus, #8c7050);
+    }
+    .start-choices:has([aria-pressed='true']) button.start-company-choice[aria-pressed='false'] {
+        opacity: 0.35;
+        filter: grayscale(0.7);
+    }
+    .start-choices:has([aria-pressed='true'])
+        button.start-company-choice[aria-pressed='false']:hover:not(:disabled) {
+        opacity: 0.8;
+        filter: none;
     }
     button.par-choice {
         color: #39352f;
@@ -750,12 +765,21 @@
     }
     button.start-company-choice {
         min-width: 0;
-        padding: 4px;
+        padding: 3px;
         border-color: transparent;
+        border-radius: 50%;
         background: transparent;
+        transition:
+            opacity 140ms ease-out,
+            filter 140ms ease-out;
     }
-    button.start-company-choice:hover:not(:disabled) {
+    button.start-company-choice:hover:not(:disabled):not([aria-pressed='true']) {
         background: var(--rail-surface-raised, #efe7db);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        button.start-company-choice {
+            transition: none;
+        }
     }
     small {
         display: block;

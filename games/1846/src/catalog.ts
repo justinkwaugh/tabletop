@@ -95,13 +95,13 @@ export const DraftCompanies: readonly DraftCompany[] = [
     }
 ]
 export const Corporations = [
-    { id: 'PRR', name: 'Pennsylvania Railroad', home: 'F20', tokens: 5 },
-    { id: 'NYC', name: 'New York Central Railroad', home: 'D20', tokens: 4 },
-    { id: 'B&O', name: 'Baltimore & Ohio Railroad', home: 'G19', tokens: 4 },
-    { id: 'C&O', name: 'Chesapeake & Ohio Railroad', home: 'I15', tokens: 4 },
-    { id: 'ERIE', name: 'Erie Railroad', home: 'E21', tokens: 4 },
-    { id: 'GT', name: 'Grand Trunk Railway', home: 'B16', tokens: 3 },
-    { id: 'IC', name: 'Illinois Central Railroad', home: 'K3', tokens: 4 }
+    { id: 'PRR', name: 'Pennsylvania', home: 'F20', tokens: 5 },
+    { id: 'NYC', name: 'New York Central', home: 'D20', tokens: 4 },
+    { id: 'B&O', name: 'Baltimore & Ohio', home: 'G19', tokens: 4 },
+    { id: 'C&O', name: 'Chesapeake & Ohio', home: 'I15', tokens: 4 },
+    { id: 'ERIE', name: 'Erie', home: 'E21', tokens: 4 },
+    { id: 'GT', name: 'Grand Trunk', home: 'B16', tokens: 3 },
+    { id: 'IC', name: 'Illinois Central', home: 'K3', tokens: 4 }
 ] as const
 export function draftCompany(id: string): DraftCompany {
     const company = DraftCompanies.find((company) => company.id === id)

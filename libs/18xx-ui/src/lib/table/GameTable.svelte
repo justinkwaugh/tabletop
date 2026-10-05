@@ -798,6 +798,7 @@
                     chart={phaseChart}
                     currentPhaseId={session.gameState.phaseId}
                     {trainColors}
+                    {phaseColors}
                     tileColors={tileAppearance.colors}
                     tileColorNames={tileAppearance.colorNames}
                 />
@@ -825,7 +826,7 @@
             <span class="information-label">Phase</span>
             <TrainBadge
                 name={session.gameState.phaseId}
-                color={trainColors[session.gameState.phaseId]}
+                color={phaseColors[session.gameState.phaseId]}
             />
         </span>
         <span class="game-information-item">
@@ -1077,6 +1078,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={headerState.phaseId}
                                     {trainColors}
+                                    {phaseColors}
                                     tileColors={tileAppearance.colors}
                                     tileColorNames={tileAppearance.colorNames}
                                 />
@@ -1089,6 +1091,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={session.gameState.phaseId}
                                     {trainColors}
+                                    {phaseColors}
                                     tileColors={tileAppearance.colors}
                                     tileColorNames={tileAppearance.colorNames}
                                 />
@@ -1304,6 +1307,7 @@
                 chart={phaseChart}
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
+                {phaseColors}
                 tileColors={tileAppearance.colors}
                 tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showPhaseChart = false)}

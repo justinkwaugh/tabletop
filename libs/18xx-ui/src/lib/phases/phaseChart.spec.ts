@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { PhaseTable, TrainDepot } from '@tabletop/18xx'
 import { createPhaseChart } from './phaseChart.js'
 
-it('lists every face and price of paired certificates with one shared supply identity', () => {
+it('lists every face of paired certificates by price with one shared supply identity', () => {
     const depot = new TrainDepot({
         id: 'paired',
         trains: [
@@ -27,7 +27,7 @@ it('lists every face and price of paired certificates with one shared supply ide
     )
     const chart = createPhaseChart({ phases, depot })
     expect(chart.trains.map(({ id, price, supplyId }) => ({ id, price, supplyId }))).toEqual([
-        { id: '4', price: 180, supplyId: '4' },
-        { id: '3/5', price: 160, supplyId: '4' }
+        { id: '3/5', price: 160, supplyId: '4' },
+        { id: '4', price: 180, supplyId: '4' }
     ])
 })

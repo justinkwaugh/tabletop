@@ -16,10 +16,8 @@ import { trainBuyingChoices1846 } from './trains.js'
 function twoMajors() {
     const table = stockGame()
     table.launch('IC', 40)
-    table.finishTurn()
     table.launch('NYC', 100)
-    table.finishTurn()
-    for (let i = 0; i < 3; i++) table.finishTurn()
+    table.finishStockRound()
     expect(table.state.operatingSet?.companyOrder).toEqual(['MS', 'BIG4', 'IC', 'NYC'])
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
@@ -116,8 +114,7 @@ describe('1846 stock and operating sequence', () => {
         })
         expect(() => table.act('StartStockRound')).toThrow()
         table.buy('IC')
-        table.finishTurn()
-        for (let i = 0; i < 3; i++) table.finishTurn()
+        table.finishStockRound()
         expect(table.state.operatingSet).toMatchObject({
             number: 2,
             roundNumber: 1,
@@ -193,9 +190,9 @@ describe('1846 stock and operating sequence', () => {
     it('removes a train when its railroad closes in OR2 and restores it on Undo', () => {
         const table = stockGame()
         table.launch('GT', 40)
-        for (let i = 0; i < 3; i++) table.finishTurn()
+        for (let i = 0; i < 2; i++) table.finishTurn()
         table.buy('GT')
-        for (let i = 0; i < 3; i++) table.finishTurn()
+        for (let i = 0; i < 2; i++) table.finishTurn()
         const sale = table
             .choices()
             .sells.find(
@@ -203,7 +200,7 @@ describe('1846 stock and operating sequence', () => {
             )
         assertExists(sale)
         table.act('SellShares', sale)
-        for (let i = 0; i < 4; i++) table.finishTurn()
+        table.finishStockRound()
         table.act('FinishTrack', { companyId: 'MS' })
         table.act('FinishTrack', { companyId: 'BIG4' })
         operate(table, 'GT', true)
@@ -249,7 +246,7 @@ describe('1846 stock and operating sequence', () => {
             expect(table.state.machineState).toBe('StockRound')
             expect(table.state.stockRound.number).toBe(setNumber)
             expect(table.state.activePlayerIds).toEqual([priority])
-            for (let i = 0; i < 3; i++) table.finishTurn()
+            table.finishStockRound()
             expect(table.state.operatingSet?.number).toBe(setNumber)
             for (let roundNumber = 1; roundNumber <= 2; roundNumber++) {
                 if (table.state.machineState === 'AssigningSteamboat') table.act('AssignSteamboat')

@@ -14,7 +14,7 @@ import { stockGame } from './testSupport.js'
 function constructionGame() {
     const table = stockGame()
     table.launch('IC', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })

@@ -10,7 +10,6 @@ function financeGame() {
     table.finishTurn()
     table.finishTurn()
     table.finishTurn()
-    table.finishTurn()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     expect(table.state.machineState).toBe('CorporateFinance')

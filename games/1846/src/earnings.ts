@@ -1,4 +1,5 @@
 import { inReceivership } from './receivership.js'
+import { MarketZoneColors1846 } from './stock.js'
 import {
     dividendEntitlements,
     trainsOwnedBy,
@@ -31,7 +32,7 @@ export const EarningsRules1846: EarningsRules = {
                     ? 0
                     : payout < from.price * 2
                       ? 1
-                      : from.price >= 165 && payout >= from.price * 3
+                      : from.color === MarketZoneColors1846.tripleJump && payout >= from.price * 3
                         ? 3
                         : 2
         return {

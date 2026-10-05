@@ -17,10 +17,11 @@ import {
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
     type Owner,
-    type Portfolio
+    type Portfolio,
+    type TileRotation
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
-import { assert, GameStorage } from '@tabletop/common'
+import { assert, assertExists, GameStorage } from '@tabletop/common'
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
@@ -28,8 +29,15 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
+import {
+    type MapViewDefinition,
+    type StationAppearance,
+    type TokenTiles
+} from '../maps/stationPresentation.js'
+import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
+import { companySharePrice } from '../table/companyPresentation.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
@@ -58,7 +66,7 @@ import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
 import { TableNotices } from './tableNotices.svelte.js'
-import type { TitlePresentation } from './titlePresentation.js'
+import type { PrivateTokenPresentation, TitlePresentation } from './titlePresentation.js'
 import { TrackModule } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
@@ -92,13 +100,51 @@ export class EighteenXXSession<
             Object.entries(this.presentationDefinition.privateTokens ?? {}).map(
                 ([privateCompanyId, token]) => [
                     privateCompanyId,
-                    'companyId' in token
-                        ? this.mapView.stations[token.companyId]
-                        : tileSymbolAppearance(token.tileSymbol, this.tileAppearance)
+                    this.privateTokenAppearance(privateCompanyId, token)
                 ]
             )
         )
     )
+    private privateTokenAppearance(
+        privateCompanyId: string,
+        token: PrivateTokenPresentation
+    ): StationAppearance {
+        if ('companyId' in token) return this.mapView.stations[token.companyId]
+        if ('tileSymbol' in token)
+            return tileSymbolAppearance(token.tileSymbol, this.tileAppearance)
+        if ('terrain' in token) return terrainIconAppearance(token.terrain)
+        if ('imageUrl' in token)
+            return { label: privateCompanyId, color: 'transparent', imageUrl: token.imageUrl }
+        return {
+            label: privateCompanyId,
+            color: 'transparent',
+            tiles: this.tokenTiles(token.tiles)
+        }
+    }
+    private tokenTiles(
+        tiles: readonly { definitionId: string; rotation: TileRotation }[]
+    ): TokenTiles {
+        const orientation = this.mapView.map.definition.orientation
+        return {
+            orientation,
+            appearance: this.tileAppearance,
+            tiles: tiles.map(({ definitionId, rotation }) => {
+                const definition = this.mapView.tileSet.definitions.find(
+                    (tile) => tile.id === definitionId
+                )
+                assertExists(definition, `Unknown private token tile ${definitionId}`)
+                return {
+                    face: definition.face,
+                    drawing: createTileDrawing(
+                        definition.face,
+                        orientation,
+                        rotation,
+                        this.mapView.layouts?.[definitionId]
+                    )
+                }
+            })
+        }
+    }
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
     }
@@ -451,7 +497,10 @@ export class EighteenXXSession<
             : this.gameState.turnManager.turnOrder
     )
     companySoldOut(companyId: string): boolean {
-        return this.rules.stockRules.round.soldOut(this.gameState, companyId)
+        return (
+            companySharePrice(this.gameState.stockMarket, companyId) !== undefined &&
+            this.rules.stockRules.round.soldOut(this.gameState, companyId)
+        )
     }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const

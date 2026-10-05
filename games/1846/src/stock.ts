@@ -20,15 +20,24 @@ import {
 import { Corporations } from './catalog.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
+export const MarketZoneColors1846 = {
+    par: 'pink',
+    tripleJump: 'blue',
+    ordinary: 'white'
+} as const
+const MarketPrices = [
+    0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 124, 137, 150, 165, 180, 195, 212, 230, 250,
+    270, 295, 320, 345, 375, 405, 440, 475, 510, 550
+]
+function marketZoneColor(price: number) {
+    if (price >= 40 && price <= 150) return MarketZoneColors1846.par
+    if (price >= 165) return MarketZoneColors1846.tripleJump
+    return MarketZoneColors1846.ordinary
+}
+
 export function createMarket() {
-    const market = createRectangularStockMarket(
-        [
-            [
-                0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 124, 137, 150, 165, 180, 195, 212,
-                230, 250, 270, 295, 320, 345, 375, 405, 440, 475, 510, 550
-            ]
-        ],
-        (_, column) => (column >= 4 && column <= 14 ? 'par' : 'ordinary')
+    const market = createRectangularStockMarket([MarketPrices], (_, column) =>
+        marketZoneColor(MarketPrices[column])
     )
     for (const space of market.spaces) {
         if (space.moves.right) space.moves.up = space.moves.right
@@ -104,7 +113,7 @@ export const CompanyRules1846: CompanyRules = {
     startMarketSpaces: (state, id) =>
         getCompany(state, id).kind === 'major'
             ? state.stockMarket.spaces
-                  .filter((space) => space.color === 'par')
+                  .filter((space) => space.color === MarketZoneColors1846.par)
                   .map((space) => space.id)
             : [],
     startTerms: (state, companyId, buyer, spaceId) => ({

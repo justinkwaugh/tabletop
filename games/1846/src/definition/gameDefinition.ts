@@ -162,7 +162,8 @@ import {
     ActionRegistry,
     stockActions,
     companyActions,
-    OrdinaryStockRoundHandler
+    OrdinaryStockRoundHandler,
+    AutomaticStockTurnHandler
 } from '@tabletop/18xx'
 import { StockRules1846, CompanyRules1846 } from '../stock.js'
 import {
@@ -407,7 +408,7 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                 return 'StockRound'
             }
         },
-        StockRound: {
+        StockRound: new AutomaticStockTurnHandler({
             enter(context) {
                 const companyId = corporationAwaitingClosure(context.gameState)
                 if (companyId) context.addSystemAction(CloseCorporation, { companyId })
@@ -442,7 +443,7 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                 }
                 return 'StockRound'
             }
-        },
+        }),
         PreparingOperatingSet: new StartOperatingSetHandler('StartingOperatingRound'),
         StartingOperatingRound: {
             enter(context) {

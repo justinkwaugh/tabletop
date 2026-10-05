@@ -318,7 +318,6 @@ describe('1846 bankruptcy and receivership', () => {
         expect(inReceivership(table.state, 'IC')).toBe(true)
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(1)
         table.finishTurn()
-        table.finishTurn()
         const cash = finiteCashOwnedBy(table.state, { kind: 'player', playerId: 'p2' })
         const price = companyMarketSpace(table.state.stockMarket, 'IC').price
         const result = table.buy('IC', 'bank')
@@ -370,8 +369,11 @@ describe('1846 bankruptcy and receivership', () => {
         expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(2)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
-        expect(table.state.stockRound.turn.bought).toBe(true)
-        expect(() => table.buy('IC')).toThrow()
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            'BuyReceiverShare',
+            'FinishStockTurn'
+        ])
+        expect(table.state.activePlayerIds).not.toContain('p2')
         let replay = structuredClone(table.state)
         for (const action of result.processedActions.toReversed())
             replay = table.engine.undoProcessedAction({ state: replay, action })

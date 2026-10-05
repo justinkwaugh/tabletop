@@ -14,7 +14,8 @@
         DefaultMarketCell,
         type MarketCellDimensions,
         MarketTokenSize,
-        MarketScenePadding
+        MarketScenePadding,
+        MarketZoneBannerHeight
     } from './marketTokenLayout.js'
 
     let {
@@ -36,6 +37,23 @@
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
     const rows = $derived(Math.max(...market.spaces.map((space) => space.row)) + 1)
+    const banners = $derived(
+        zones.flatMap(({ color, banner }) => {
+            const zoneColumns = market.spaces
+                .filter((space) => space.color === color)
+                .map((space) => space.column)
+            return banner && zoneColumns.length
+                ? [
+                      {
+                          color,
+                          ...banner,
+                          firstColumn: Math.min(...zoneColumns),
+                          lastColumn: Math.max(...zoneColumns)
+                      }
+                  ]
+                : []
+        })
+    )
     let tokens = $derived(marketTokenLayout(market, cell))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
@@ -165,6 +183,30 @@
     style:--render-scale={renderScale}
     style:padding={`${MarketScenePadding * renderScale}px`}
 >
+    {#if banners.length}<div
+            class="banners"
+            style:grid-template-columns={`repeat(${columns}, ${cell.width * renderScale}px)`}
+            style:height={`${MarketZoneBannerHeight * renderScale}px`}
+        >
+            {#each banners as banner (banner.color)}<div
+                    class="banner"
+                    class:arrow={banner.shape === 'arrow'}
+                    style:grid-column={`${banner.firstColumn + 1} / ${banner.lastColumn + 2}`}
+                    style:--market-color={marketColors[banner.color] ?? banner.color}
+                    style:--market-lightness={marketDarkLightness[banner.color]}
+                >
+                    {#if banner.shape === 'span'}<span class="banner-tick"></span><span
+                            class="banner-line"
+                        ></span>{/if}<span>{banner.label}</span><span
+                        class="banner-line"
+                        class:arrow-shaft={banner.shape === 'arrow'}
+                    ></span>{#if banner.shape === 'arrow'}<svg
+                            class="banner-head"
+                            viewBox="0 0 12 12"
+                            aria-hidden="true"><path d="M0 0L12 6L0 12L3 6Z"></path></svg
+                        >{:else}<span class="banner-tick"></span>{/if}
+                </div>{/each}
+        </div>{/if}
     <div
         class="grid"
         role="group"
@@ -279,6 +321,61 @@
         position: absolute;
         left: 0;
         top: 0;
+    }
+    .banners {
+        display: grid;
+        width: max-content;
+    }
+    .banner {
+        --zone-ink: light-dark(
+            oklch(from var(--market-color) 0.5 calc(c * 1.5) h),
+            color-mix(
+                in oklab,
+                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
+                var(--rail-surface-raised, #2b3744)
+            )
+        );
+        display: flex;
+        align-items: center;
+        gap: calc(8px * var(--render-scale));
+        color: var(--zone-ink);
+        font-size: calc(13px * var(--render-scale));
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .banner.arrow {
+        padding-left: calc(6px * var(--render-scale));
+    }
+    .banner-line {
+        flex: 1;
+        height: calc(3px * var(--render-scale));
+        border-radius: calc(1.5px * var(--render-scale));
+        background: var(--zone-ink);
+    }
+    .banner-line.arrow-shaft {
+        margin-right: calc(-4px * var(--render-scale));
+        border-radius: calc(1.5px * var(--render-scale)) 0 0 calc(1.5px * var(--render-scale));
+    }
+    .banner-tick {
+        flex: none;
+        width: calc(3px * var(--render-scale));
+        height: calc(12px * var(--render-scale));
+        border-radius: calc(1.5px * var(--render-scale));
+        background: var(--zone-ink);
+    }
+    .banner-tick:first-child {
+        margin-right: calc(-8px * var(--render-scale));
+    }
+    .banner-tick:last-child {
+        margin-left: calc(-8px * var(--render-scale));
+    }
+    .banner-head {
+        flex: none;
+        width: calc(14px * var(--render-scale));
+        height: calc(14px * var(--render-scale));
+        fill: var(--zone-ink);
     }
     .grid {
         position: relative;

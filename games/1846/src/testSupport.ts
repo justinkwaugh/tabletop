@@ -105,6 +105,7 @@ type StockTestGame = TestGame & {
     launch(companyId?: string, price?: number): TransactionResult
     buy(companyId: string, source?: string): TransactionResult
     finishTurn(): TransactionResult
+    finishStockRound(): void
 }
 export function stockGame(): StockTestGame {
     return testTable(finish(3, 7))
@@ -161,6 +162,9 @@ function testTable({ game, engine, state: initialState }: TestGame): StockTestGa
             const { companyId: _companyId, source: _source, ...fields } = choice
             return this.act('BuyShares', fields)
         },
+        finishStockRound() {
+            while (state.machineState === 'StockRound') this.finishTurn()
+        },
         finishTurn() {
             const result = this.act('FinishStockTurn')
             if (state.machineState !== 'AssigningSteamboat') return result
@@ -201,7 +205,7 @@ export function setCompanyInReceivership(table: StockTestGame, companyId: string
 export function emergencyBuyingGame(cash = 10, price = 100) {
     const table = stockGame()
     table.launch('IC', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
@@ -225,10 +229,8 @@ export function emergencyBuyingGame(cash = 10, price = 100) {
 export function phaseIIIReadyGame() {
     const table = stockGame()
     table.launch('IC', 100)
-    table.finishTurn()
     table.launch('NYC', 100)
-    table.finishTurn()
-    for (let i = 0; i < 3; i++) table.finishTurn()
+    table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
     table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })

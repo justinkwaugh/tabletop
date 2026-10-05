@@ -18,6 +18,7 @@ export { parseTileDefinition, parseTileFace } from './tiles/validation.js'
 
 export * from './finance/cashPayments.js'
 export * from './stock/auctionCompany.js'
+export * from './stock/automaticStockTurnHandler.js'
 export * from './stock/bidForCompany.js'
 export * from './stock/buyShares.js'
 export * from './stock/companyAuction.js'

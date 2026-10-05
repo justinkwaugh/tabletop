@@ -18,8 +18,11 @@ describe('1846 first stock round', () => {
         const result = table.launch()
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'StartCompany',
-            'FloatCompany'
+            'FloatCompany',
+            'FinishStockTurn'
         ])
+        expect(result.processedActions[2].source).toBe('system')
+        expect(table.state.activePlayerIds).not.toContain(playerId)
         expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId })).toBe(cash - 80)
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(120)
         expect(getCompany(table.state, 'IC')).toMatchObject({
@@ -32,13 +35,10 @@ describe('1846 first stock round', () => {
                 (station) => station.companyId === 'IC' && station.status === 'placed'
             )
         ).toMatchObject({ position: { locationId: 'K3' } })
-        expect(table.choices().buys).toEqual([])
-        expect(table.choices().starts).toEqual([])
     })
     it('pays treasury purchases to the corporation and forbids non-president sales before operation', () => {
         const table = stockGame()
         table.launch()
-        table.finishTurn()
         table.buy('IC')
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(160)
         table.finishTurn()
@@ -50,17 +50,14 @@ describe('1846 first stock round', () => {
     })
     it('sells a president’s block at its original price, moves once, and prohibits rebuying', () => {
         const table = stockGame()
-        table.launch()
         const president = table.state.activePlayerIds[0]
-        table.finishTurn()
-        table.finishTurn()
-        table.finishTurn()
-        table.buy('IC')
-        table.finishTurn()
+        table.launch()
         table.finishTurn()
         table.finishTurn()
         table.buy('IC')
         table.finishTurn()
+        table.finishTurn()
+        table.buy('IC')
         table.finishTurn()
         table.finishTurn()
         const before = finiteCashOwnedBy(table.state, { kind: 'player', playerId: president })
@@ -108,9 +105,7 @@ describe('1846 first stock round', () => {
         table.launch()
         table.finishTurn()
         table.finishTurn()
-        table.finishTurn()
         table.buy('IC')
-        table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         const sale = table.choices().sells.find((choice) => choice.sales[0].companyId === 'IC')
@@ -126,9 +121,8 @@ describe('1846 first stock round', () => {
     })
     it('transfers presidency on a larger holding, keeping the incumbent on ties', () => {
         const table = stockGame()
-        table.launch()
         const first = table.state.activePlayerIds[0]
-        table.finishTurn()
+        table.launch()
         const second = table.state.activePlayerIds[0]
         for (let i = 0; i < 3; i++) {
             table.buy('IC')
@@ -137,7 +131,6 @@ describe('1846 first stock round', () => {
                     kind: 'player',
                     playerId: first
                 })
-                table.finishTurn()
                 table.finishTurn()
                 table.finishTurn()
             }
@@ -151,7 +144,6 @@ describe('1846 first stock round', () => {
     it('replays and reverses the stock round including automatic flotation and completion', () => {
         const table = stockGame()
         table.launch()
-        table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         table.finishTurn()
@@ -170,18 +162,23 @@ describe('1846 first stock round', () => {
             table.act('StartCompany', { ...launch, expectedPrice: launch.expectedPrice + 1 })
         ).toThrow()
         expect(() => table.act('StartCompany', { ...launch, playerId: 'not-the-player' })).toThrow()
+        const launcher = table.state.activePlayerIds[0]
         table.launch()
-        expect(() => table.launch('GT')).toThrow()
+        const secondStart = table.choices().starts.find((choice) => choice.companyId === 'GT')
+        assertExists(secondStart)
+        expect(() => table.act('StartCompany', { ...secondStart, playerId: launcher })).toThrow()
         table.finishTurn()
         table.finishTurn()
-        table.finishTurn()
-        table.buy('IC')
-        expect(table.choices().sells).toEqual([])
+        const purchase = table.buy('IC')
+        expect(purchase.processedActions.map((action) => action.type)).toEqual([
+            'BuyShares',
+            'FinishStockTurn'
+        ])
     })
     it('sells a complete president certificate before operation and transfers control once', () => {
         const table = stockGame()
-        table.launch()
         const seller = table.state.activePlayerIds[0]
+        table.launch()
         const successor = table.state.players.find((player) => player.playerId !== seller)!.playerId
         for (const certificate of table.state.certificates
             .filter(
@@ -193,7 +190,6 @@ describe('1846 first stock round', () => {
             )
             .slice(0, 2))
             if (!certificate.retired) certificate.owner = { kind: 'player', playerId: successor }
-        table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         const sale = table
@@ -217,9 +213,7 @@ describe('1846 first stock round', () => {
         placeStockMarker(table.state.stockMarket, 'IC', '0:2')
         table.finishTurn()
         table.finishTurn()
-        table.finishTurn()
         table.buy('IC')
-        table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         const sale = table.choices().sells.find((choice) => choice.sales[0].companyId === 'IC')
@@ -260,9 +254,7 @@ describe('1846 first stock round', () => {
         placeStockMarker(table.state.stockMarket, 'IC', '0:1')
         table.finishTurn()
         table.finishTurn()
-        table.finishTurn()
         table.buy('IC')
-        table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         const sale = table.choices().sells.find((choice) => choice.sales[0].companyId === 'IC')

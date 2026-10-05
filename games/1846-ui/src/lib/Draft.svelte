@@ -1,76 +1,92 @@
 <script lang="ts">
     import { draftCompany, isBlank, priceFor } from '@tabletop/1846'
-    import { CompanyDescriptions } from './companyDescriptions.js'
+    import DraftCard from './DraftCard.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
+    const money = $derived(session.presentation.money)
     const hiddenDraft = $derived(state.draft.kind === 'hidden' ? state.draft : undefined)
     const mine = $derived(
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )
-    const name = (id: string) => session.getPlayerName(id)
-    const label = (id: string) => (isBlank(id) ? 'Blank — take no company' : draftCompany(id).name)
+    const choosers = $derived(state.activePlayerIds.map((id) => session.getPlayerName(id)))
+    const label = (id: string) => (isBlank(id) ? 'Pass' : draftCompany(id).name)
 </script>
 
 {#if hiddenDraft}
-    <section>
-        <h2>{state.activePlayerIds.map(name).join(', ')} to choose</h2>
-        <p>
-            Draft counter-clockwise. Choose one card; the others return shuffled to the bottom. Pay
-            when everyone reveals.
-        </p>
-        {#if hiddenDraft.finalOffer}
-            <h3>Last company: {label(hiddenDraft.finalOffer.cardId)}</h3>
+    <section class="draft" aria-label="Private company draft">
+        <header class="draft-heading">
+            <h2>{choosers.join(', ')} to choose</h2>
             <p>
-                Current total: ${hiddenDraft.finalOffer.price}. Passing reduces its list price by
-                $10; debt must still be paid.
+                Draft counter-clockwise. Choose one card; the others return shuffled to the bottom.
+                Pay when everyone reveals.
             </p>
-            <button
-                disabled={!session.canChooseAction || !session.draftChoices.length}
-                onclick={() => session.choose(hiddenDraft!.finalOffer!.cardId)}
-                >Buy for ${hiddenDraft.finalOffer.price}</button
-            >
-            <button disabled={!session.canChooseAction} onclick={() => session.passFinalCompany()}
-                >Pass · reduce by $10</button
-            >
+        </header>
+        {#if hiddenDraft.finalOffer}
+            {@const offer = hiddenDraft.finalOffer}
+            <div class="draft-cards">
+                <DraftCard {session} cardId={offer.cardId} price={offer.price}>
+                    {#snippet actions()}
+                        <button
+                            class="action-button"
+                            disabled={!session.canChooseAction || !session.draftChoices.length}
+                            onclick={() => session.choose(offer.cardId)}>Buy</button
+                        >
+                        <button
+                            disabled={!session.canChooseAction}
+                            onclick={() => session.passFinalCompany()}
+                            >Pass · reduce by {money(10)}</button
+                        >
+                    {/snippet}
+                </DraftCard>
+            </div>
+            <p class="draft-note">
+                Last company. Passing reduces its list price by {money(10)}; debt must still be
+                paid.
+            </p>
         {/if}
         {#if (mine?.packet?.length || mine?.selections?.length) && !session.packetVisible}
-            <p>Pass the device to {session.myPlayer?.name} before opening these cards.</p>
-            <button onclick={() => session.revealPacket()}>Show my cards</button>
+            <div class="draft-gate">
+                <p>Pass the device to {session.myPlayer?.name} before opening these cards.</p>
+                <button class="action-button" onclick={() => session.revealPacket()}
+                    >Show my cards</button
+                >
+            </div>
         {:else if mine?.packet && session.packetVisible}
             {#if !hiddenDraft.finalOffer}
-                <div class="cards">
+                <div class="draft-cards">
                     {#each mine.packet as id (id)}
-                        <button
-                            class="card"
-                            disabled={!session.canChooseAction ||
-                                !session.draftChoices.includes(id)}
-                            onclick={() => session.choose(id)}
-                        >
-                            <strong>{label(id)}</strong>
-                            {#if !isBlank(id)}<span>${priceFor(state, id)} total</span>
-                                <small>{CompanyDescriptions[id]}</small><small
-                                    >{draftCompany(id).kind === 'independent'
-                                        ? `$${draftCompany(id).price} treasury + $${draftCompany(id).debt} debt`
-                                        : `$${draftCompany(id).revenue} income per operating round`}</small
-                                >{/if}
-                        </button>
+                        <DraftCard {session} cardId={id} price={priceFor(state, id)}>
+                            {#snippet actions()}
+                                <button
+                                    class="action-button"
+                                    disabled={!session.canChooseAction ||
+                                        !session.draftChoices.includes(id)}
+                                    onclick={() => session.choose(id)}>Choose</button
+                                >
+                            {/snippet}
+                        </DraftCard>
                     {/each}
                 </div>
             {/if}
-            <button onclick={() => session.hidePacket()}>Hide cards</button>
-        {:else if !hiddenDraft.finalOffer}<p>
-                Waiting for the active player to choose privately.
-            </p>{/if}
+        {:else if !hiddenDraft.finalOffer}
+            <p class="draft-waiting">Waiting for {choosers.join(', ')} to choose privately.</p>
+        {/if}
         {#if session.packetVisible && mine?.selections?.length}
-            <h3>
-                Your commitments · ${mine.selections.reduce((sum, item) => sum + item.price, 0)}
-            </h3>
-            <ul>
-                {#each mine.selections as selection (selection.cardId)}<li>
-                        {label(selection.cardId)} · ${selection.price}
-                    </li>{/each}
-            </ul>
+            <div class="draft-commitments" aria-label="Your commitments">
+                <span class="commitments-label">Your picks</span>
+                {#each mine.selections as selection (selection.cardId)}<span class="commitment"
+                        >{label(selection.cardId)} <strong>{money(selection.price)}</strong></span
+                    >{/each}
+                <span class="commitments-total"
+                    >Total <strong
+                        >{money(mine.selections.reduce((sum, item) => sum + item.price, 0))}</strong
+                    ></span
+                >
+            </div>
+        {/if}
+        {#if mine?.packet && session.packetVisible}
+            <button class="draft-hide" onclick={() => session.hidePacket()}>Hide my cards</button>
         {/if}
     </section>
 {/if}

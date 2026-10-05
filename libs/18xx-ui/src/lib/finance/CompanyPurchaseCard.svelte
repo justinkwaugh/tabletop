@@ -3,6 +3,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import TrainBadge from '../trains/TrainBadge.svelte'
     import { cashText } from '../presentation/money.js'
     let {
         session,
@@ -36,10 +37,11 @@
         </header>
         <div class="assets">
             <span>Treasury {cashText(money, cashOwnedBy(session.gameState, owner))}</span>
-            <span
-                >Trains {trainsOwnedBy(session.gameState, owner)
-                    .map((train) => train.definitionId)
-                    .join(', ') || 'None'}</span
+            <span class="trains" aria-label="Trains"
+                >Trains {#each trainsOwnedBy(session.gameState, owner) as train (train.id)}<TrainBadge
+                        name={session.trainDepot.trainDefinition(train.definitionId).name}
+                        color={session.presentation.trainColors[train.definitionId]}
+                    />{:else}None{/each}</span
             >
         </div>
         {#if purchaseRange}<p>
@@ -79,6 +81,11 @@
         gap: 8px;
         margin-top: 8px;
         font-size: 12px;
+    }
+    .trains {
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
     p {
         margin: 6px 0 0;

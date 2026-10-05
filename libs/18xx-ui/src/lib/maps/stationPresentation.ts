@@ -1,10 +1,21 @@
-import { assertExists, type BoundingBox } from '@tabletop/common'
-import type { StationState, RailwayMap, TileEdge, TileSet } from '@tabletop/18xx'
+import { assertExists, type BoundingBox, type HexOrientation } from '@tabletop/common'
+import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
-import type { TileLayout } from '../tiles/tileDrawing.js'
+import type { TileDrawing, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 
-export type StationAppearance = { label: string; color: string; imageUrl?: string }
+/** Tiles drawn side by side in place of a round token, at the token's height. */
+export type TokenTiles = {
+    orientation: HexOrientation
+    appearance: TileAppearance
+    tiles: readonly { face: TileFace; drawing: TileDrawing }[]
+}
+export type StationAppearance = {
+    label: string
+    color: string
+    imageUrl?: string
+    tiles?: TokenTiles
+}
 export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {

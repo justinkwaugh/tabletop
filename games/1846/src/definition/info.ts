@@ -1,6 +1,8 @@
+import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 export const EighteenFortySixInfo: GameInfo = {
+    preferences: EighteenXXPreferenceDefinition,
     id: '1846',
     metadata: {
         name: '1846: The Race to the Midwest',

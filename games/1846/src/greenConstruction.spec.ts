@@ -15,7 +15,7 @@ import { TrainDepot1846 } from './trains.js'
 function greenGame() {
     const table = stockGame()
     table.launch('NYC', 100)
-    for (let i = 0; i < 4; i++) table.finishTurn()
+    table.finishStockRound()
     table.state.phaseId = 'II'
     const treasury = table.state.cash.find(
         (c) => c.owner.kind === 'company' && c.owner.companyId === 'MS'

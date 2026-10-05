@@ -3,13 +3,48 @@ import {
     CorporateFinanceValidator,
     TrainDepot1846,
     inReceivership,
+    MarketZoneColors1846,
     type EighteenFortySixProjectedState
 } from '@tabletop/1846'
 import { createPhaseChart, moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import BoomtownToken from './images/tokens/boomtown.svg'
+import MailToken from './images/tokens/mail.svg'
+import MeatPackingToken from './images/tokens/meat-packing.svg'
+const StraightTilePair = [
+    { definitionId: '18xx:9', rotation: 1 },
+    { definitionId: '18xx:9', rotation: 1 }
+] as const
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
     money: moneyFormat('$'),
     marketPoolId: 'open-market',
+    privateTokens: {
+        SC: { tileSymbol: 'port' },
+        MAIL: { imageUrl: MailToken },
+        LSL: { tiles: [{ definitionId: '18xx:14', rotation: 0 }] },
+        MPC: { imageUrl: MeatPackingToken },
+        MC: { tiles: StraightTilePair },
+        'O&I': { tiles: StraightTilePair },
+        LM: { tiles: StraightTilePair },
+        'C&WI': { companyId: 'C&WI' },
+        TBC: { terrain: 'mountain' },
+        BT: { imageUrl: BoomtownToken }
+    },
     marketCell: { width: 36, height: 96 },
+    marketZones: [
+        {
+            color: MarketZoneColors1846.par,
+            name: 'Par',
+            banner: { label: 'Par values', shape: 'span' },
+            description: 'A price a corporation may start at.'
+        },
+        {
+            color: MarketZoneColors1846.tripleJump,
+            name: 'Triple jump',
+            banner: { label: 'Triple jump', shape: 'arrow' },
+            description:
+                'A payout of at least three times the share price moves the price three spaces right.'
+        }
+    ],
     trainColors: {
         '2': '#c9ab35',
         '4': '#4d9263',
@@ -93,7 +128,6 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
     ],
     includedCompanyIds: ['MS', 'BIG4'],
     includedPortfolioCompanyIds: ['MS', 'BIG4'],
-    privatePurchaseLabel: 'Buy companies',
     openingRound: {
         name: 'Private company distribution',
         abbreviation: 'Draft',

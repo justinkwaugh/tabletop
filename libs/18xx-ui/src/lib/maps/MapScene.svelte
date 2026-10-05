@@ -7,6 +7,7 @@
     import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
+    import { MountainIcon } from './terrainIcons.js'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
         assertMapOverlays,
@@ -300,7 +301,7 @@
                                 {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
                                         {#if kind === 'mountain'}
-                                            <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039"
+                                            <path d={MountainIcon.path} fill={MountainIcon.fill}
                                             ></path>
                                         {:else if kind === 'water'}
                                             <path

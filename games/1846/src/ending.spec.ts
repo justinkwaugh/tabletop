@@ -180,7 +180,7 @@ describe('1846 game endings', () => {
         playUntil(table, () => table.state.machineState === 'StockRound')
         expect(table.state.operatingSet?.completed).toBe(true)
         table.buy('IC')
-        for (let i = 0; i < 3; i++) table.finishTurn()
+        for (let i = 0; i < 2; i++) table.finishTurn()
         const sale = table
             .choices()
             .sells.find(

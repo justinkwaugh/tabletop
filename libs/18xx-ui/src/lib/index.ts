@@ -54,6 +54,7 @@ export { departurePaymentsDetail, joinDetails, ownerName } from './table/history
 export type {
     CompanyColumn,
     MarketZone,
+    MarketZoneBanner,
     PrivateTokenPresentation,
     TitleFact,
     TitlePresentation,

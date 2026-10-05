@@ -10,6 +10,7 @@ export const DefaultMarketCell: MarketCellDimensions = {
 }
 export const MarketTokenSize = 26
 export const MarketScenePadding = 6
+export const MarketZoneBannerHeight = 24
 // Stacked tokens sit against the cell's right edge, clear of the price at the upper left.
 const MarketStackInset = 4
 
@@ -74,6 +75,10 @@ export function marketTokenLayout(market: StockMarket, cell = DefaultMarketCell)
     })
 }
 
+/**
+ * A hovered stack fanned out as one column in stack order, which is its operating order; a column
+ * taller than the market starts at its top and extends below it.
+ */
 export function expandedMarketStack(
     market: StockMarket,
     spaceId: string,
@@ -84,24 +89,15 @@ export function expandedMarketStack(
     const width = (Math.max(...market.spaces.map((item) => item.column)) + 1) * cell.width
     const height = (Math.max(...market.spaces.map((item) => item.row)) + 1) * cell.height
     const step = MarketTokenSize + 4
-    const columns = Math.ceil(count / Math.max(1, Math.floor(height / step)))
-    const rows = Math.ceil(count / Math.max(1, columns))
-    const spanX = Math.max(0, columns - 1) * step
-    const spanY = Math.max(0, rows - 1) * step
+    const span = Math.max(0, count - 1) * step
     const radius = MarketTokenSize / 2
     const x = Math.max(
         radius,
-        Math.min(
-            width - radius - spanX,
-            space.column * cell.width + stackOffsetX(count, cell) - spanX / 2
-        )
+        Math.min(width - radius, space.column * cell.width + stackOffsetX(count, cell))
     )
     const y = Math.max(
         radius,
-        Math.min(height - radius - spanY, (space.row + 0.5) * cell.height - spanY / 2)
+        Math.min(height - radius - span, (space.row + 0.5) * cell.height - span / 2)
     )
-    return Array.from({ length: count }, (_, index) => ({
-        x: x + Math.floor(index / rows) * step,
-        y: y + (index % rows) * step
-    }))
+    return Array.from({ length: count }, (_, index) => ({ x, y: y + index * step }))
 }

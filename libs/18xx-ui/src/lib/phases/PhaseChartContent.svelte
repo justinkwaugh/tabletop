@@ -11,6 +11,7 @@
         onBoard = false,
         currentPhaseId,
         trainColors,
+        phaseColors,
         tileColors = TileColors,
         tileColorNames = {}
     }: {
@@ -21,6 +22,7 @@
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
+        phaseColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
     } = $props()
@@ -48,7 +50,7 @@
                                 <th scope="row"
                                     ><TrainBadge
                                         name={phase.id}
-                                        color={trainColors[phase.id]}
+                                        color={phaseColors[phase.id]}
                                     /></th
                                 >
                                 <td
@@ -88,7 +90,7 @@
                 <span class="summary-item"
                     ><span class="summary-label">Phase</span><TrainBadge
                         name={currentPhase.id}
-                        color={trainColors[currentPhase.id]}
+                        color={phaseColors[currentPhase.id]}
                     /></span
                 >
                 <span class="summary-item"
@@ -140,9 +142,8 @@
                                         >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
                                                 name={trainId}
                                                 color={trainColors[trainId]}
-                                            />{/each}</span
-                                    >{#if train.rustNote}
-                                        *{/if}{:else}<span class="muted">Permanent</span>{/if}</td
+                                            />{/each}{#if train.rustNote}<span>*</span>{/if}</span
+                                    >{:else}<span class="muted">Permanent</span>{/if}</td
                             >
                         </tr>
                     {/each}

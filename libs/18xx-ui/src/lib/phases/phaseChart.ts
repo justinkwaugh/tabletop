@@ -50,19 +50,22 @@ export function createPhaseChart({
             notes: phaseNotes[id]
         })),
         trains: depot.definition.supply.flatMap(({ definitionId }) =>
-            depot.certificateDefinitions(definitionId).map((id) => {
-                const train = depot.trainDefinition(id)
-                const rustPhaseId = rustPhases[train.id] ?? phases.rustPhaseId(train.id)
-                return {
-                    id: train.id,
-                    name: train.name,
-                    price: train.price,
-                    supplyId: definitionId,
-                    rustPhaseId,
-                    rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
-                    rustNote: rustNotes[train.id]
-                }
-            })
+            depot
+                .certificateDefinitions(definitionId)
+                .map((id) => depot.trainDefinition(id))
+                .toSorted((first, second) => first.price - second.price)
+                .map((train) => {
+                    const rustPhaseId = rustPhases[train.id] ?? phases.rustPhaseId(train.id)
+                    return {
+                        id: train.id,
+                        name: train.name,
+                        price: train.price,
+                        supplyId: definitionId,
+                        rustPhaseId,
+                        rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
+                        rustNote: rustNotes[train.id]
+                    }
+                })
         ),
         notes
     }
