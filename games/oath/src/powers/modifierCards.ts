@@ -257,6 +257,13 @@ registerModifier(
     }
 )
 
+/** The cards a Search or a facedown adviser's play shows; R-7.4.2 — a modifier pays once however many qualify. */
+function playedCardIds(ctx: EffectContext): string[] {
+    const played =
+        ctx.particulars?.playedTo === 'discard' ? undefined : ctx.particulars?.playedCardId
+    return [played, ctx.particulars?.secondPlayedCardId].filter((id): id is string => !!id)
+}
+
 // R-5.1 — this and Wild Cry apply at the play, a Search's or a facedown adviser's (R-6.1).
 // "If you play a denizen card that was not a facedown adviser, gain favor from
 // the hearth bank." A Search plays from the hand, so every played denizen qualifies.
@@ -270,9 +277,8 @@ registerModifier(
                     ? 'the card played is a facedown adviser'
                     : undefined,
             after: (ctx) => {
-                const played = ctx.particulars?.playedCardId
-                if (!played || ctx.particulars?.playedTo === 'discard') return undefined
-                if (kindOf(played) !== CardKind.Denizen) return undefined
+                if (!playedCardIds(ctx).some((id) => kindOf(id) === CardKind.Denizen))
+                    return undefined
                 const gained = gainFavorFromBank(ctx.state, ctx.playerId, Suit.Hearth, 1)
                 return { summary: `Welcoming Party: gained ${gained} favor from the hearth bank` }
             }
@@ -287,9 +293,7 @@ registerModifier(
     {
         hooks: {
             after: (ctx) => {
-                const played = ctx.particulars?.playedCardId
-                if (!played || ctx.particulars?.playedTo === 'discard') return undefined
-                if (suitOf(played) !== Suit.Beast) return undefined
+                if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
                 const warbands = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
                 return { summary: `Wild Cry: gained ${supply} Supply and ${warbands} warbands` }

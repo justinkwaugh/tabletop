@@ -214,7 +214,8 @@ export class HydratedSearchResolve
         // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
         const after = runAfter(state, this.playerId, carried, {
             playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
-            playedTo: this.play
+            playedTo: this.play,
+            secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
         })
 
         const pileDeposits = [
@@ -345,6 +346,17 @@ function secondPlayModifiers(
 ): ActiveModifier[] | undefined {
     // R-X.4 — a game created before this revision played the second card with no modifier.
     return isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays) ? carried : undefined
+}
+
+/** Land Warden — Wild Cry and Welcoming Party look at both cards played (R-7.4.2: and pay once). */
+function shownSecondCardForAfter(
+    state: HydratedOathGameState,
+    second: SearchSecondPlay | undefined
+): string | undefined {
+    // R-X.4 — a game created before this revision looked at the kept card only.
+    if (!second || !isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays))
+        return undefined
+    return playShowsCard(second.play, second.faceUp) ? second.cardId : undefined
 }
 
 /** Land Warden — "if you play at least one card to a site", with room for both there. */

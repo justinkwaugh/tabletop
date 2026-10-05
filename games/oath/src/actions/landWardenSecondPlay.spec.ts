@@ -128,3 +128,86 @@ describe('Land Warden — R-7.4: the second card’s play takes the Search’s c
         }
     })
 })
+
+const WILD_CRY = 'denizen.beast.wild-cry'
+const WELCOMING = 'denizen.hearth.welcoming-party'
+const RANGERS = 'denizen.beast.rangers'
+
+/** `me` rules Land Warden, Wild Cry and Welcoming Party, and searches the world deck with all three declared. */
+function crySearched(oathRevision: number, deck: string[]) {
+    const s = testState(
+        withChancellor([
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 4,
+                warbandsInPersonalBank: { me: 8 },
+                advisers: [LAND_WARDEN, WILD_CRY, WELCOMING].map((cardId) => ({ cardId, faceUp: true }))
+            }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c2', favor: 2, secrets: 2 })
+        ]),
+        {
+            oathRevision,
+            denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+            warbandsBySite: { c1: { me: 1 } },
+            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+        }
+    )
+    openTurn(s, 'me')
+    s.requireVault().worldDeck = deck
+    new HydratedSearch(
+        buildAction(Search, {
+            playerId: 'me',
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true,
+            modifiers: [modifierUse(LAND_WARDEN), modifierUse(WILD_CRY), modifierUse(WELCOMING)]
+        })
+    ).apply(s)
+    return s
+}
+
+function holding(s: ReturnType<typeof crySearched>) {
+    const me = s.getPlayerState('me')
+    return { supply: me.supply, warbands: me.warbandsOnBoard?.['me'] ?? 0, hearth: s.favorBank[Suit.Hearth] }
+}
+
+function playBoth(s: ReturnType<typeof crySearched>, kept: string, second: string, discard: string) {
+    const a = new HydratedSearchResolve(
+        buildAction(SearchResolve, { playerId: 'me', keptCardId: kept, discardOrder: [discard], play: SearchPlay.Site, secondPlay: { cardId: second, play: SearchPlay.Site } })
+    )
+    a.apply(s)
+    return a
+}
+
+describe('Land Warden — Wild Cry and Welcoming Party look at both cards, and pay once (R-7.4.2)', () => {
+    it('a hearth card kept and a beast second card: Wild Cry pays, once', () => {
+        const s = crySearched(atRevision, [INN, WOLVES, FILLER])
+        const was = holding(s)
+        const a = playBoth(s, INN, WOLVES, FILLER)
+        expect(holding(s).supply - was.supply).toBe(1)
+        expect(holding(s).warbands - was.warbands).toBe(2)
+        expect(a.metadata?.modifierNotes?.filter((n) => n.startsWith('Wild Cry'))).toHaveLength(1)
+    })
+
+    it('two beast cards: Wild Cry still pays once; Welcoming Party pays one favor for two denizens', () => {
+        const s = crySearched(atRevision, [WOLVES, RANGERS, FILLER])
+        const was = holding(s)
+        const a = playBoth(s, WOLVES, RANGERS, FILLER)
+        expect(holding(s).supply - was.supply).toBe(1)
+        expect(holding(s).warbands - was.warbands).toBe(2)
+        expect(was.hearth - holding(s).hearth).toBe(1)
+        expect(a.metadata?.modifierNotes?.filter((n) => n.startsWith('Welcoming Party'))).toHaveLength(1)
+    })
+
+    it('R-X.4 — before the revision only the kept card is looked at: a beast second card gains nothing', () => {
+        const s = crySearched(OathRevision.CostsAndFacedownModifiers, [INN, WOLVES, FILLER])
+        const was = holding(s)
+        const a = playBoth(s, INN, WOLVES, FILLER)
+        expect(holding(s).supply).toBe(was.supply)
+        expect(holding(s).warbands).toBe(was.warbands)
+        expect(a.metadata?.modifierNotes?.some((n) => n.startsWith('Wild Cry'))).toBeFalsy()
+    })
+})
