@@ -5,7 +5,6 @@ import { EntranceFountainIds, type FountainId, type ShopId } from '../components
 import { ActionType } from '../definition/actions.js'
 import { MarketColor } from '../definition/marketColor.js'
 import { MachineState } from '../definition/states.js'
-import { TurnAction } from '../model/gameState.js'
 import { startTestGame, type TestSession } from '../util/testHelper.js'
 import { QueueEnd } from '../components/visitors.js'
 import { isCompleteAntiqueSet } from './completeAntiqueSet.js'
@@ -201,22 +200,26 @@ describe('MarraCash movement', () => {
         expect(session.state.activePlayerIds).not.toContain(mover)
     })
 
-    it('still lets a game saved while waiting for a confirmation confirm the turn', () => {
+    it('keeps the confirmation step and Undo barriers for a game started under 0.1.0', () => {
         const session = startTestGame(3)
         const { mover, other } = players(session)
+        session.edit((state) => {
+            delete state.undoStopsOnlyAtReveals
+        })
         arrange(session, { fountains: { 9: [Red], 14: [Green] } })
         move(session, 9, CardinalDirection.East)
-        session.edit((state) => {
-            state.machineState = MachineState.ConfirmingTurn
-            state.turnActions = [TurnAction.Move, TurnAction.Move]
-        })
+        move(session, 14, CardinalDirection.East)
+        expect(session.state.machineState).toBe(MachineState.ConfirmingTurn)
+        expect(session.currentPlayerId()).toBe(mover)
+
         const processed = session.confirmTurn(mover)
         expect(processed.map((action) => action.type)).toEqual([
             ActionType.ConfirmTurn,
             ActionType.EndTurn
         ])
-        expect(processed.some((action) => action.revealsInfo)).toBe(false)
+        expect(processed.at(-1)?.revealsInfo).toBe(true)
         expect(session.currentPlayerId()).toBe(other)
+        expect(session.startAuction(other, 'Y1')[0].revealsInfo).toBe(true)
     })
 
     it('asks the turn player to refill an entrance emptied before an auction', () => {

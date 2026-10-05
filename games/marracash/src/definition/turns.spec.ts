@@ -208,3 +208,24 @@ describe('MarraCash Undo barriers', () => {
         }
     )
 })
+
+describe('MarraCash games started under 0.1.0', () => {
+    it('marks only new games with the reveal-only Undo rules', () => {
+        expect(startTestGame(3).state.undoStopsOnlyAtReveals).toBe(true)
+    })
+
+    it('still play to the end with their confirmation step', () => {
+        const session = startTestGame(4)
+        session.edit((state) => {
+            delete state.undoStopsOnlyAtReveals
+        })
+        const finished = playToEnd(session)
+        expect(finished.machineState).toBe(MachineState.EndOfGame)
+        expect(session.actions.some((action) => action.type === ActionType.ConfirmTurn)).toBe(true)
+        expect(
+            session.actions
+                .filter((action) => action.type === ActionType.EndTurn)
+                .every((action) => action.revealsInfo)
+        ).toBe(true)
+    })
+})

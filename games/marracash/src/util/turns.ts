@@ -1,6 +1,6 @@
 import type { MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
-import type { HydratedMarracashGameState } from '../model/gameState.js'
+import { TurnAction, type HydratedMarracashGameState } from '../model/gameState.js'
 import { queueTurnCommit } from './automaticActions.js'
 
 export function stateAfterTurnAction(
@@ -13,7 +13,10 @@ export function stateAfterTurnAction(
     if (gameState.needsRefill()) {
         return MachineState.RefillingEntrances
     }
-    queueTurnCommit(context)
+    // Games from 0.1.0 wait for the player to confirm a turn that ends on a move.
+    if (gameState.undoStopsOnlyAtReveals || gameState.turnActions.at(-1) !== TurnAction.Move) {
+        queueTurnCommit(context)
+    }
     return MachineState.ConfirmingTurn
 }
 

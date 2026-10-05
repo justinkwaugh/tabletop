@@ -83,6 +83,9 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
     ): MachineState {
         switch (true) {
             case isStartAuction(action): {
+                if (!context.gameState.undoStopsOnlyAtReveals) {
+                    action.revealsInfo = true
+                }
                 queueAntiqueSetCompletions(context)
                 queueAutomaticPasses(context)
                 return MachineState.Bidding
