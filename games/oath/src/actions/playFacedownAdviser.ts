@@ -25,8 +25,17 @@ import {
     runAfter,
     type ActiveModifier
 } from '../util/modifiers.js'
-import { modifierPayment, reasonCannotPayInAll, secretPayment } from '../util/actionPayment.js'
+import {
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment,
+    tollPayment
+} from '../util/actionPayment.js'
+import { payTolls, reasonTollsUnpaid, type TollOccasion } from '../util/tolls.js'
+import { defaultTolls } from '../util/tollDefaults.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+
+const FACEDOWN_PLAY: TollOccasion = { kind: 'facedownPlay' }
 
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
 export const PlayFacedownAdviserMetadata = Type.Object({
@@ -52,6 +61,8 @@ export const PlayFacedownAdviserMetadata = Type.Object({
     modifiers: Type.Optional(Type.Array(Type.String())),
     /** R-7.4 (Wild Cry) */
     modifierNotes: Type.Optional(Type.Array(Type.String())),
+    /** R-7.1.4 (Forced Labor) */
+    tollsPaid: Type.Optional(Type.Array(Type.String())),
     whenPlayed: Type.Optional(Type.String()),
     endsActPhase: Type.Optional(Type.Boolean()),
     sitePower: Type.Optional(Type.String())
@@ -82,6 +93,8 @@ export const PlayFacedownAdviser = Type.Evaluate(
             discardFirstCardId: Type.Optional(Type.String()),
             /** R-6.1 — "(Restrictions and modifiers apply.)": Search modifiers, declared with the play. */
             modifiers: ModifierUses,
+            /** R-7.1.4 (Forced Labor) — "as if you searched". */
+            tolls: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
             metadata: Type.Optional(PlayFacedownAdviserMetadata)
         })
     ])
@@ -107,6 +120,7 @@ export class HydratedPlayFacedownAdviser
     declare toSiteId?: string
     declare discardFirstCardId?: string
     declare modifiers?: ModifierUse[]
+    declare tolls?: string[]
     declare metadata?: PlayFacedownAdviserMetadata
 
     constructor(data: PlayFacedownAdviser) {
@@ -132,6 +146,7 @@ export class HydratedPlayFacedownAdviser
 
         // R-7.1.2, R-7.4 — paid at declaration.
         payModifierCosts(state, this.playerId, active)
+        const tollNotes = payTolls(state, this.playerId, FACEDOWN_PLAY, this.tolls)
         const discardTarget = discardTargetOf(state, this.playerId, active)
 
         // Removed first so that replaying it faceup into the same slot finds room on the board.
@@ -164,6 +179,7 @@ export class HydratedPlayFacedownAdviser
             secretsGained: played.secretsGained || undefined,
             modifiers: active.length > 0 ? active.map((m) => m.power.cardId) : undefined,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined,
+            tollsPaid: tollNotes.length > 0 ? tollNotes : undefined,
             whenPlayed: played.whenPlayed,
             sitePower: played.sitePower,
             endsActPhase: played.endsActPhase
@@ -190,6 +206,7 @@ export class HydratedPlayFacedownAdviser
             toSiteId?: string
             discardFirstCardId?: string
             modifiers?: readonly ModifierUse[]
+            tolls?: readonly string[]
         }
     ): string | undefined {
         const notFacedown = HydratedPlayFacedownAdviser.reasonNotFacedown(
@@ -205,6 +222,9 @@ export class HydratedPlayFacedownAdviser
             choice.modifiers
         )
         if (reason) return reason
+        // R-7.1.4 — Forced Labor's Q&A: a facedown play or discard pays its toll too.
+        const unpaid = reasonTollsUnpaid(state, playerId, FACEDOWN_PLAY, choice.tolls)
+        if (unpaid) return unpaid
         return (
             reasonCannotPlayCard(state, playerId, choice.cardId, choice.play, {
                 faceUp: true,
@@ -219,7 +239,8 @@ export class HydratedPlayFacedownAdviser
             reasonCannotPayInAll(state, playerId, [
                 modifierPayment(active),
                 // R-5.1.4.IV — the Conspiracy's take burns a secret.
-                secretPayment(choice.conspiracy ? 1 : 0)
+                secretPayment(choice.conspiracy ? 1 : 0),
+                tollPayment(choice.tolls)
             ])
         )
     }
@@ -355,9 +376,15 @@ export class HydratedPlayFacedownAdviser
                     // R-6.1 always offers discarding, so a card with nowhere to go faceup is still legal.
                     HydratedPlayFacedownAdviser.reasonCannotPlay(state, playerId, {
                         cardId,
-                        play: SearchPlay.Discard
+                        play: SearchPlay.Discard,
+                        tolls: HydratedPlayFacedownAdviser.tolls(state, playerId)
                     }) === undefined
             )
+    }
+
+    /** R-7.1.4 — never optional: without them the play is refused. */
+    static tolls(state: HydratedOathGameState, playerId: string): string[] {
+        return defaultTolls(state, playerId, FACEDOWN_PLAY)
     }
 
     static canDoPlayFacedownAdviser(state: HydratedOathGameState, playerId: string): boolean {

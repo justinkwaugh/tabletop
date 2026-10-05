@@ -722,7 +722,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             conspiracy: this.adviserConspiracy,
             discardedAdviserCardIds: this.adviserPlayDiscards,
             toSiteId: this.adviserToSite,
-            discardFirstCardId: this.adviserDiscardFirst
+            discardFirstCardId: this.adviserDiscardFirst,
+            tolls: HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         })
     }
 
@@ -750,6 +751,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         toSiteId?: string,
         discardFirstCardId?: string
     ): Promise<void> {
+        const playerId = this.liveTurnSeatId
+        assertExists(playerId, 'A facedown adviser is played only by the live seat')
+        const tolls = HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         await this.commit(
             this.createPlayerAction(PlayFacedownAdviser, {
                 type: ActionType.PlayFacedownAdviser,
@@ -759,7 +763,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 ...(conspiracy ? { conspiracy } : {}),
                 ...(discardedAdviserCardIds.length > 0 ? { discardedAdviserCardIds } : {}),
                 ...(toSiteId ? { toSiteId } : {}),
-                ...(discardFirstCardId ? { discardFirstCardId } : {})
+                ...(discardFirstCardId ? { discardFirstCardId } : {}),
+                ...(tolls.length > 0 ? { tolls } : {})
             })
         )
     }
