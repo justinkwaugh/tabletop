@@ -60,6 +60,7 @@ export class StellarHorizonsGameSession extends GameSession<
 > {
     private selection: Selection | undefined = $state()
     private inspected: { systemId: string; playerId: string } | undefined = $state()
+    private focus: { systemId: string; closing: boolean } | undefined = $state()
 
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
@@ -146,6 +147,29 @@ export class StellarHorizonsGameSession extends GameSession<
 
     closeClump() {
         this.inspected = undefined
+    }
+
+    focusedSystemId: string | undefined = $derived(
+        this.focus && this.gameState.isSystemInPlay(this.focus.systemId)
+            ? this.focus.systemId
+            : undefined
+    )
+
+    focusClosing: boolean = $derived(this.focus?.closing ?? false)
+
+    focusSystem(systemId: string) {
+        this.closeClump()
+        this.focus = { systemId, closing: false }
+    }
+
+    leaveFocus() {
+        if (this.focus) {
+            this.focus = { ...this.focus, closing: true }
+        }
+    }
+
+    finishLeavingFocus() {
+        this.focus = undefined
     }
 
     selectShipFromClump(shipId: string) {

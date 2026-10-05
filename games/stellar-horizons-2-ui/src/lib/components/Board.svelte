@@ -15,6 +15,7 @@
             ships: shipPipLayout(frame, factionShipGroups(gameSession.gameState, frame.systemId))
         }))
     )
+    const spotlight = $derived(gameSession.focusClosing ? undefined : gameSession.focusedSystemId)
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -31,20 +32,27 @@
         <clipPath id="sh-world-clip" clipPathUnits="objectBoundingBox">
             <circle cx="0.5" cy="0.5" r="0.473"></circle>
         </clipPath>
-        <radialGradient id="sh-space" cx="0.5" cy="0.5" r="0.75">
+        <radialGradient id="sh-space" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stop-color="#16223d"></stop>
-            <stop offset="1" stop-color="#05070d"></stop>
+            <stop offset="0.7" stop-color="#0e1527"></stop>
+            <stop offset="1" stop-color="#070b14"></stop>
         </radialGradient>
         <filter id="sh-piece-shadow" x="-20%" y="-20%" width="140%" height="150%">
             <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.7"
             ></feDropShadow>
         </filter>
     </defs>
-    <rect width={layout.width} height={layout.height} rx="24" fill="url(#sh-space)"></rect>
+    <rect width={layout.width} height={layout.height} fill="url(#sh-space)"></rect>
     {#each systems as system (system.frame.systemId)}
-        <SystemTile frame={system.frame} ships={system.ships} />
+        <SystemTile
+            frame={system.frame}
+            ships={system.ships}
+            dimmed={spotlight !== undefined && system.frame.systemId !== spotlight}
+        />
     {/each}
-    <ShipStrip {layout} {systems} />
+    {#if !gameSession.focusedSystemId}
+        <ShipStrip {layout} {systems} />
+    {/if}
 </svg>
 
 <style>

@@ -27,10 +27,18 @@
         maxScale?: number
         padding?: number | { x: number; y: number }
         animate?: boolean
+        /** Animation length in milliseconds. */
+        duration?: number
+        /** Screen pixels on the right kept clear, for a panel overlaid on the content. */
+        insetRight?: number
+        /** Screen pixels at the bottom kept clear, for a panel overlaid on the content. */
+        insetBottom?: number
     }
 
     type FitOptions = {
         animate?: boolean
+        /** Animation length in milliseconds. */
+        duration?: number
     }
 
     type FocusTarget = {
@@ -39,6 +47,9 @@
         paddingX: number
         paddingY: number
         animate: boolean
+        duration: number
+        insetRight: number
+        insetBottom: number
     }
 
     type Point = {
@@ -250,7 +261,10 @@
             maxScale: options.maxScale ?? 1,
             paddingX: padding?.x ?? 0,
             paddingY: padding?.y ?? 0,
-            animate: options.animate ?? false
+            animate: options.animate ?? false,
+            duration: options.duration ?? VIEW_ANIMATION_MS,
+            insetRight: options.insetRight ?? 0,
+            insetBottom: options.insetBottom ?? 0
         }
     }
 
@@ -537,8 +551,10 @@
     }
 
     function getViewForFocusTarget(target: FocusTarget) {
-        const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
-        const focusHeight = Math.max(1, availableHeight() - target.paddingY * 2)
+        const focusWidth = Math.max(1, wrapperWidth - target.insetRight)
+        const availableWidth = Math.max(1, focusWidth - target.paddingX * 2)
+        const visibleHeight = Math.max(1, availableHeight() - target.insetBottom)
+        const focusHeight = Math.max(1, visibleHeight - target.paddingY * 2)
         const scale = clampScale(
             Math.min(
                 availableWidth / target.rect.width,
@@ -552,8 +568,8 @@
         return getViewForContentPointAtViewportPoint(
             centerX,
             centerY,
-            wrapperWidth / 2,
-            viewportCenterY(),
+            focusWidth / 2,
+            insetTop + visibleHeight / 2,
             scale,
             'programmatic'
         )
@@ -698,7 +714,12 @@
         scrollInertiaFrame = requestAnimationFrame(step)
     }
 
-    function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
+    function animateViewTo(
+        targetScale: number,
+        targetLeft: number,
+        targetTop: number,
+        duration = VIEW_ANIMATION_MS
+    ) {
         if (!content) {
             return
         }
@@ -720,7 +741,7 @@
                 startedAt = now
             }
 
-            const elapsed = Math.min(1, (now - startedAt) / VIEW_ANIMATION_MS)
+            const elapsed = duration > 0 ? Math.min(1, (now - startedAt) / duration) : 1
             const eased = easeInOutCubic(elapsed)
             const nextScale = startScale + (targetScale - startScale) * eased
             const nextLeft = startLeft + (targetLeft - startLeft) * eased
@@ -941,7 +962,7 @@
             height: availableHeight() / scale
         }
         return (options: FitOptions = {}) =>
-            focusRect(rect, { maxScale: scale, padding: 0, animate: options.animate })
+            focusRect(rect, { maxScale: scale, padding: 0, animate: options.animate, duration: options.duration })
     }
 
     export function fitToContent(options: FitOptions = {}) {
@@ -961,7 +982,7 @@
         )
 
         if (options.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY, options.duration)
             return
         }
 
@@ -981,7 +1002,7 @@
         const targetView = getViewForFocusTarget(target)
 
         if (target.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY, target.duration)
             return
         }
 

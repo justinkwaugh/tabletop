@@ -41,7 +41,7 @@ const EXPLORATION_ART = {
 }
 
 rmSync(outDir, { recursive: true, force: true })
-for (const dir of ['systems', 'ships', 'worlds', 'markers', 'factions']) {
+for (const dir of ['systems', 'ships', 'ships-flagless', 'worlds', 'markers', 'factions']) {
     mkdirSync(join(outDir, dir), { recursive: true })
 }
 
@@ -126,6 +126,7 @@ const imports = []
 const entries = {
     systems: {},
     ships: {},
+    shipsFlagless: {},
     worlds: {},
     settlements: {},
     factions: {},
@@ -186,11 +187,137 @@ for (const systemId of BOARD_SYSTEMS) {
     register('systems', systemId, target)
 }
 
-for (const [shipId, [front]] of Object.entries(sources.ships)) {
-    const target = `ships/${shipId}.webp`
-    webp(front, target)
-    register('ships', shipId, target)
+function readCounter(source) {
+    const path = join(images, source)
+    const [width, height] = execFileSync('convert', [path, '-format', '%w %h', 'info:'])
+        .toString()
+        .split(' ')
+        .map(Number)
+    const pixels = execFileSync('convert', [path, '-depth', '8', 'rgb:-'])
+    const at = (x, y) => pixels.subarray((y * width + x) * 3, (y * width + x) * 3 + 3)
+    // The right edge of every counter is plain background, which shades by row only.
+    const isArt = (x, y, threshold) => {
+        const pixel = at(x, y)
+        const background = at(width - 1, y)
+        return pixel.reduce((sum, value, i) => sum + Math.abs(value - background[i]), 0) > threshold
+    }
+    return { width, height, pixels, at, isArt }
 }
+
+// The module draws most counters wider than the printed square ones, with empty background on
+// the right, so each is cropped to the square around its art.
+function squareCounterCrop(counter) {
+    const { width, height, isArt } = counter
+    if (width <= height) {
+        return []
+    }
+    let left = width
+    let right = 0
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (isArt(x, y, 60)) {
+                left = Math.min(left, x)
+                right = Math.max(right, x)
+            }
+        }
+    }
+    const offset = Math.round((left + right + 1) / 2 - height / 2)
+    const x = Math.min(Math.max(offset, 0), width - height)
+    return ['-crop', `${height}x${height}+${x}+0`, '+repage']
+}
+
+// A faction's flag has the same size on all its counters but shifts by a few pixels, so each
+// counter's flag is found by growing out from its middle. Where it runs into the ship or the
+// text, it is cut back to the faction's usual flag size. The erased area is padded to take in
+// the flag's soft shadow.
+const FLAG_REGION = { width: 110, height: 66 }
+const FLAG_SEED = { x: 30, y: 30 }
+const FLAG_THRESHOLD = 24
+const FLAG_PADDING = 3
+const FLAG_TOLERANCE = 3
+function flagExtent(counter) {
+    const seen = new Set()
+    const queue = [[FLAG_SEED.x, FLAG_SEED.y]]
+    const bounds = { left: FLAG_SEED.x, right: FLAG_SEED.x, top: FLAG_SEED.y, bottom: FLAG_SEED.y }
+    while (queue.length > 0) {
+        const [x, y] = queue.pop()
+        const key = y * FLAG_REGION.width + x
+        if (x < 0 || y < 0 || x >= FLAG_REGION.width || y >= FLAG_REGION.height) continue
+        if (seen.has(key) || !counter.isArt(x, y, FLAG_THRESHOLD)) continue
+        seen.add(key)
+        bounds.left = Math.min(bounds.left, x)
+        bounds.right = Math.max(bounds.right, x)
+        bounds.top = Math.min(bounds.top, y)
+        bounds.bottom = Math.max(bounds.bottom, y)
+        for (const [dx, dy] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1]
+        ]) {
+            queue.push([x + dx, y + dy])
+        }
+    }
+    return bounds
+}
+
+function median(values) {
+    const sorted = values.toSorted((x, y) => x - y)
+    return sorted[Math.floor(sorted.length / 2)]
+}
+
+function flagBounds(counters) {
+    const extents = counters.map(flagExtent)
+    const width = median(extents.map((extent) => extent.right - extent.left))
+    const height = median(extents.map((extent) => extent.bottom - extent.top))
+    return extents.map((extent) => ({
+        left: Math.max(0, extent.left - FLAG_PADDING),
+        right: Math.min(extent.right, extent.left + width + FLAG_TOLERANCE) + FLAG_PADDING,
+        top: Math.max(0, extent.top - FLAG_PADDING),
+        bottom: Math.min(extent.bottom, extent.top + height + FLAG_TOLERANCE) + FLAG_PADDING
+    }))
+}
+
+function withoutFlag(counter, flag) {
+    const { width, pixels, at } = counter
+    const result = Buffer.from(pixels)
+    for (let y = flag.top; y <= flag.bottom; y++) {
+        const background = at(width - 1, y)
+        for (let x = flag.left; x <= flag.right; x++) {
+            background.copy(result, (y * width + x) * 3)
+        }
+    }
+    return result
+}
+
+const counters = Object.entries(sources.ships).map(([shipId, [front]]) => ({
+    shipId,
+    faction: shipId.split('-')[0],
+    counter: readCounter(front)
+}))
+const flags = new Map()
+for (const faction of new Set(counters.map((entry) => entry.faction))) {
+    const own = counters.filter((entry) => entry.faction === faction)
+    const bounds = flagBounds(own.map((entry) => entry.counter))
+    own.forEach((entry, index) => flags.set(entry.shipId, bounds[index]))
+}
+
+const rawDir = mkdtempSync(join(tmpdir(), 'sh2-counters-'))
+for (const { shipId, counter } of counters) {
+    const crop = squareCounterCrop(counter)
+    const raw = join(rawDir, `${shipId}.rgb`)
+    const size = ['-size', `${counter.width}x${counter.height}`, '-depth', '8']
+    writeFileSync(raw, counter.pixels)
+    const target = `ships/${shipId}.webp`
+    convert([...size, `rgb:${raw}`, ...crop, '-quality', '82', join(outDir, target)])
+    register('ships', shipId, target)
+
+    writeFileSync(raw, withoutFlag(counter, flags.get(shipId)))
+    const flagless = `ships-flagless/${shipId}.webp`
+    convert([...size, `rgb:${raw}`, ...crop, '-quality', '82', join(outDir, flagless)])
+    register('shipsFlagless', shipId, flagless)
+}
+rmSync(rawDir, { recursive: true, force: true })
 
 const worldFiles = new Map()
 for (const [tileId, faces] of Object.entries(sources.worlds)) {
@@ -215,7 +342,14 @@ for (const file of worldFiles.keys()) delete entries.worlds[file]
 for (const [faction, art] of Object.entries(FACTION_ART)) {
     webp(`${art} Faction.png`, `factions/${faction}.webp`)
     register('factions', faction, `factions/${faction}.webp`)
-    webp(`Settlement ${art} B.png`, `markers/settlement-${faction}.webp`)
+    // The token art carries a baked drop shadow along its right and bottom edges.
+    webp(`Settlement ${art} B.png`, `markers/settlement-${faction}.webp`, [
+        '-gravity',
+        'SouthEast',
+        '-chop',
+        '3x3',
+        '+repage'
+    ])
     register('settlements', faction, `markers/settlement-${faction}.webp`)
 }
 for (const [field, art] of Object.entries(FIELD_ART)) {
@@ -258,6 +392,10 @@ export const SYSTEM_GEOMETRY: Record<
 
 export const SHIP_ART: Record<string, string> = {
 ${record('ships').join('\n')}
+}
+
+export const FLAGLESS_SHIP_ART: Record<string, string> = {
+${record('shipsFlagless').join('\n')}
 }
 
 export const WORLD_ART: Record<string, { I: string; II?: string }> = {

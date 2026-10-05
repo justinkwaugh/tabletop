@@ -1,17 +1,12 @@
 <script lang="ts">
     import { shipDefinition, type ShipState } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        SHIP_COUNTER_ASPECT,
-        type BoardLayout,
-        type SystemFrame
-    } from '$lib/utils/boardLayout.js'
+    import type { BoardLayout, SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { plural } from '$lib/utils/presentation.js'
     import ShipCounter from './ShipCounter.svelte'
 
-    const COUNTER_WIDTH = 160
-    const COUNTER_HEIGHT = COUNTER_WIDTH * SHIP_COUNTER_ASPECT
+    const COUNTER_SIZE = 140
     const PADDING = 10
     const GAP = 10
     const CAPTION = 22
@@ -33,8 +28,8 @@
         if (!system || pips.length === 0) return undefined
         const columns = Math.min(PER_ROW, clump.ships.length)
         const rows = Math.ceil(clump.ships.length / PER_ROW)
-        const cellHeight = COUNTER_HEIGHT + CAPTION
-        const width = PADDING * 2 + columns * COUNTER_WIDTH + (columns - 1) * GAP
+        const cellHeight = COUNTER_SIZE + CAPTION
+        const width = PADDING * 2 + columns * COUNTER_SIZE + (columns - 1) * GAP
         const height = PADDING * 2 + rows * cellHeight + (rows - 1) * GAP
         const anchorX =
             system.frame.center.x + pips.reduce((sum, pip) => sum + pip.x, 0) / pips.length
@@ -52,7 +47,7 @@
             height,
             cells: clump.ships.map((ship, index) => ({
                 ship,
-                x: PADDING + (index % PER_ROW) * (COUNTER_WIDTH + GAP),
+                x: PADDING + (index % PER_ROW) * (COUNTER_SIZE + GAP),
                 y: PADDING + Math.floor(index / PER_ROW) * (cellHeight + GAP)
             }))
         }
@@ -101,20 +96,20 @@
                 aria-disabled={!selectable}
                 onclick={(event) => choose(event, cell.ship)}
             >
-                <ShipCounter ship={cell.ship} width={COUNTER_WIDTH} />
+                <ShipCounter ship={cell.ship} size={COUNTER_SIZE} />
                 {#if selected}
                     <rect
                         x="-3"
                         y="-3"
-                        width={COUNTER_WIDTH + 6}
-                        height={COUNTER_HEIGHT + 6}
+                        width={COUNTER_SIZE + 6}
+                        height={COUNTER_SIZE + 6}
                         rx="6"
                         class="selected"
                     ></rect>
                 {/if}
                 <text
-                    x={COUNTER_WIDTH / 2}
-                    y={COUNTER_HEIGHT + CAPTION - 5}
+                    x={COUNTER_SIZE / 2}
+                    y={COUNTER_SIZE + CAPTION - 5}
                     text-anchor="middle"
                     class="caption">{caption(cell.ship)}</text
                 >

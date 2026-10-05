@@ -11,6 +11,7 @@
 
     const APPROACHING_FILL = 'rgba(0,0,0,0.55)'
     const PROBE_SCALE = 0.8
+    const DAMAGE_GAP = 3
 
     let {
         ship,
@@ -29,6 +30,27 @@
     )
     const approaching = $derived(ship.transit > 0)
     const halfSide = $derived(r * 0.85)
+    const traitSize = $derived(r * 0.19)
+    const traitY = $derived(r * 0.5)
+    const traitSpacing = $derived(r * 0.5)
+
+    function hexagon(cx: number, cy: number, radius: number): string {
+        return [0, 1, 2, 3, 4, 5]
+            .map((index) => {
+                const angle = (Math.PI / 3) * index + Math.PI / 6
+                return `${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`
+            })
+            .join(' ')
+    }
+
+    function triangle(cx: number, cy: number, radius: number): string {
+        return [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6]
+            .map(
+                (angle) =>
+                    `${cx + radius * 1.15 * Math.cos(angle)},${cy + radius * 1.15 * Math.sin(angle)}`
+            )
+            .join(' ')
+    }
     const selected = $derived(gameSession.selectedShip?.shipId === ship.shipId)
 </script>
 
@@ -58,17 +80,30 @@
             stroke={approaching ? fill : outline}
             stroke-width={approaching ? 3 : 2.5}
         ></rect>
-        <text y={r * 0.38} text-anchor="middle" font-size={r * 1.05} class="size"
+        <text y={r * 0.12} text-anchor="middle" font-size={r * 0.8} class="size"
             >{definition.size}</text
         >
+        {#if definition.exploration > 0}
+            <circle cx={-traitSpacing} cy={traitY} r={traitSize} class="trait explore"></circle>
+        {/if}
+        {#if definition.cargo > 0}
+            <polygon points={hexagon(0, traitY, traitSize * 1.1)} class="trait cargo-trait"
+            ></polygon>
+        {/if}
+        {#if definition.combat > 0}
+            <polygon
+                points={triangle(traitSpacing, traitY + traitSize * 0.15, traitSize)}
+                class="trait combat"
+            ></polygon>
+        {/if}
     {/if}
     {#if ship.damage > 0}
         <rect
-            x={-r * 0.45}
-            y={r * 0.7}
-            width={r * 0.9}
-            height={r * 0.32}
-            rx="1"
+            x={-halfSide - DAMAGE_GAP}
+            y={-halfSide - DAMAGE_GAP}
+            width={(halfSide + DAMAGE_GAP) * 2}
+            height={(halfSide + DAMAGE_GAP) * 2}
+            rx={r * 0.32 + DAMAGE_GAP}
             class="damage"
             class:crippled={isCrippled(ship)}
         ></rect>
@@ -77,12 +112,18 @@
         <circle cx={-r * 0.95} cy={-r * 0.7} r={r * 0.32} class="cargo"></circle>
     {/if}
     {#if approaching}
-        <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.55} class="eta"></circle>
+        <circle
+            cx={r * 0.8}
+            cy={-r * 0.8}
+            r={r * 0.34}
+            stroke-width={Math.max(0.6, r * 0.05)}
+            class="eta"
+        ></circle>
         <text
-            x={r * 0.85}
-            y={-r * 0.85 + r * 0.22}
+            x={r * 0.8}
+            y={-r * 0.8 + r * 0.15}
             text-anchor="middle"
-            font-size={r * 0.7}
+            font-size={r * 0.45}
             class="eta-text">{ship.transit}</text
         >
     {/if}
@@ -103,6 +144,23 @@
         stroke-width: 2.5px;
     }
 
+    .trait {
+        stroke: #ffffff;
+        stroke-width: 1px;
+    }
+
+    .trait.explore {
+        fill: #008ec3;
+    }
+
+    .trait.cargo-trait {
+        fill: #c8641e;
+    }
+
+    .trait.combat {
+        fill: #d32f2f;
+    }
+
     .exploration {
         fill: #008ec3;
         stroke: #ffffff;
@@ -114,12 +172,13 @@
     }
 
     .damage {
-        fill: #e53935;
+        fill: none;
+        stroke: #e53935;
+        stroke-width: 3px;
     }
 
     .damage.crippled {
-        stroke: #ffffff;
-        stroke-width: 1.5px;
+        stroke-width: 5px;
     }
 
     .cargo {
@@ -131,7 +190,6 @@
     .eta {
         fill: #f2c94c;
         stroke: #000000;
-        stroke-width: 1.5px;
     }
 
     .eta-text {

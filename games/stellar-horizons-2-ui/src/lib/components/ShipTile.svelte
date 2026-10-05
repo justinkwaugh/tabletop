@@ -49,7 +49,7 @@
     }
 
     .ship-tile img {
-        width: 96px;
+        width: 79px;
         height: 79px;
         border-radius: 6px;
         display: block;

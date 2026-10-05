@@ -10,6 +10,7 @@
         DefaultTabs
     } from '@tabletop/frontend-components'
     import { assert } from '@tabletop/common'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
     import type {
         HydratedStellarHorizonsGameState,
         StellarHorizonsProjectedState
@@ -23,6 +24,11 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TechTree from '$lib/components/TechTree.svelte'
+    import SystemPanel from '$lib/components/SystemPanel.svelte'
+    import { fly } from 'svelte/transition'
+    import { cubicInOut } from 'svelte/easing'
+    import { untrack } from 'svelte'
+    import { MediaQuery } from 'svelte/reactivity'
     import { StellarHorizonsGameSession } from '$lib/model/session.svelte'
     import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte'
     import HindDigitsFont from '$lib/fonts/Hind-Bold-digits.woff2'
@@ -40,6 +46,8 @@
     const session = getGameSession()
 
     type TableView = 'map' | 'techs'
+    const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
     let chosenView: { step: TurnStep | undefined; view: TableView } | undefined = $state()
     const view: TableView = $derived(
         chosenView && chosenView.step === session.actingStep
@@ -64,10 +72,113 @@
 
     let techFocus: TechField | undefined = $state()
 
+    const FOCUS_MS = 650
+    const FOCUS_PADDING = 12
+    const SHEET_BELOW_WIDTH = 640
+    const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)')
+    const focusDuration = $derived(reducedMotion.current ? 0 : FOCUS_MS)
+
+    let mapWrapper: ScalingWrapper | undefined = $state()
+    let mapAreaWidth = $state(0)
+    let mapAreaHeight = $state(0)
+    let windowWidth = $state(0)
+    let windowHeight = $state(0)
+    let controlsHeight = $state(0)
+    const focusArea = $derived(
+        expanded
+            ? { width: windowWidth, height: windowHeight - controlsHeight }
+            : { width: mapAreaWidth, height: mapAreaHeight }
+    )
+    const sheet = $derived(focusArea.width < SHEET_BELOW_WIDTH)
+    const panelSize = $derived(
+        sheet
+            ? Math.round(focusArea.height * 0.45)
+            : Math.round(Math.min(400, Math.max(320, focusArea.width * 0.32)))
+    )
+    const focusRect = $derived.by(() => {
+        const frame = boardLayout(
+            session.gameState.systems.map((system) => system.systemId)
+        ).frames.find((candidate) => candidate.systemId === session.focusedSystemId)
+        return frame
+            ? {
+                  x: frame.center.x - frame.width / 2,
+                  y: frame.center.y - frame.height / 2,
+                  width: frame.width,
+                  height: frame.height
+              }
+            : undefined
+    })
+
+    // The view before zooming in, restored on the way out. A map shown while already zoomed
+    // (after the tech chart) has no earlier view, so it fits the whole map instead.
+    let restoreMapView: { wrapper: ScalingWrapper; restore: () => void } | undefined
+    let mountedWhileFocused = false
+
+    $effect(() => {
+        const wrapper = mapWrapper
+        untrack(() => {
+            mountedWhileFocused = !!wrapper && !!session.focusedSystemId
+        })
+    })
+
+    $effect(() => {
+        const wrapper = mapWrapper
+        const rect = focusRect
+        const closing = session.focusClosing
+        const inset = panelSize
+        const inSheet = sheet
+        if (!wrapper || !rect || closing) return
+        untrack(() => {
+            if (!restoreMapView && !mountedWhileFocused) {
+                const restore = wrapper.captureView()
+                restoreMapView = {
+                    wrapper,
+                    restore: () => restore({ animate: true, duration: focusDuration })
+                }
+            }
+            wrapper.focusRect(rect, {
+                animate: true,
+                duration: focusDuration,
+                maxScale: 2,
+                padding: FOCUS_PADDING,
+                insetRight: inSheet ? 0 : inset,
+                insetBottom: inSheet ? inset : 0
+            })
+        })
+    })
+
+    $effect(() => {
+        const wrapper = mapWrapper
+        if (!wrapper || !session.focusClosing) return
+        const timer = untrack(() => {
+            if (restoreMapView?.wrapper === wrapper) {
+                restoreMapView.restore()
+            } else {
+                wrapper.fitToContent({ animate: true, duration: focusDuration })
+            }
+            restoreMapView = undefined
+            return setTimeout(() => {
+                mountedWhileFocused = false
+                session.finishLeavingFocus()
+            }, focusDuration)
+        })
+        return () => clearTimeout(timer)
+    })
+
     function choose(next: TableView) {
         chosenView = { step: session.actingStep, view: next }
     }
 </script>
+
+{#snippet fullscreenControls()}
+    <div {@attach watchExpansion} bind:clientHeight={controlsHeight}>
+        {#if expanded}
+            <div class="fullscreen-controls">
+                {@render turnControls()}
+            </div>
+        {/if}
+    </div>
+{/snippet}
 
 {#snippet turnControls()}
     <Header />
@@ -79,6 +190,8 @@
         {/if}
     </ActionCard>
 {/snippet}
+
+<svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
 <CustomFont fontFamily="Hind Digits" url={HindDigitsFont} format="woff2" fontWeight="700" />
 
@@ -149,22 +262,54 @@
                 </div>
             </div>
             <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
-                <ScalingWrapper justify="center" controls="bottom-left" expandable>
-                    {#if view === 'map'}
-                        <Board />
-                    {:else}
+                {#if view === 'map'}
+                    <div
+                        class="map-area"
+                        bind:clientWidth={mapAreaWidth}
+                        bind:clientHeight={mapAreaHeight}
+                    >
+                        <ScalingWrapper
+                            bind:this={mapWrapper}
+                            justify="center"
+                            controls="bottom-left"
+                            expandable
+                            maxScale={2}
+                            overpan={mapOverpan}
+                        >
+                            <Board />
+                            {#snippet toolbar()}
+                                {@render fullscreenControls()}
+                                {#if session.focusedSystemId && !session.focusClosing}
+                                    <div
+                                        class="focus-panel"
+                                        class:sheet
+                                        style:top={sheet
+                                            ? 'auto'
+                                            : `${expanded ? controlsHeight : 0}px`}
+                                        style:width={sheet ? '100%' : `${panelSize}px`}
+                                        style:height={sheet ? `${panelSize}px` : 'auto'}
+                                        transition:fly={{
+                                            x: sheet ? 0 : panelSize,
+                                            y: sheet ? panelSize : 0,
+                                            opacity: 1,
+                                            duration: focusDuration,
+                                            easing: cubicInOut
+                                        }}
+                                    >
+                                        <SystemPanel systemId={session.focusedSystemId} />
+                                    </div>
+                                {/if}
+                            {/snippet}
+                        </ScalingWrapper>
+                    </div>
+                {:else}
+                    <ScalingWrapper justify="center" controls="bottom-left" expandable>
                         <TechTree focus={techFocus} />
-                    {/if}
-                    {#snippet toolbar()}
-                        <div {@attach watchExpansion}>
-                            {#if expanded}
-                                <div class="fullscreen-controls">
-                                    {@render turnControls()}
-                                </div>
-                            {/if}
-                        </div>
-                    {/snippet}
-                </ScalingWrapper>
+                        {#snippet toolbar()}
+                            {@render fullscreenControls()}
+                        {/snippet}
+                    </ScalingWrapper>
+                {/if}
             </div>
         {/snippet}
     </DefaultTableLayout>
@@ -202,6 +347,24 @@
         width: 1px;
         background: #2a3a57;
         margin: 0 6px;
+    }
+
+    .map-area {
+        position: relative;
+        height: 100%;
+    }
+
+    .focus-panel {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        z-index: 2;
+        cursor: auto;
+        user-select: text;
+    }
+
+    .focus-panel.sheet {
+        left: 0;
     }
 
     .fullscreen-controls {

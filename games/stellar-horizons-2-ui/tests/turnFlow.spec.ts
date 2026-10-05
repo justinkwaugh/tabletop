@@ -236,3 +236,45 @@ test('the pointer anywhere inside a hex reaches that hex, not its neighbour', as
     )
     expect([...new Set(stolen)]).toEqual([])
 })
+
+test('clicking a system name zooms into it with a details panel, and Back returns', async ({
+    page
+}) => {
+    await createGame(page)
+    await shipTile(page, 'Kepler').getByRole('button', { name: '$5B' }).click()
+    const panel = page.getByRole('complementary', { name: 'Sol details' })
+    await expect(panel).toHaveCount(0)
+
+    const fittedWidth = await page
+        .locator('svg[aria-label="Star map"]')
+        .evaluate((svg) => svg.getBoundingClientRect().width)
+
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    await expect(panel).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Sol' })).toBeVisible()
+    await expect(panel).toContainText('The Starfarers')
+    await expect(panel.getByRole('button', { name: 'Kepler' })).toBeVisible()
+    const mapWidth = () =>
+        page
+            .locator('svg[aria-label="Star map"]')
+            .evaluate((svg) => svg.getBoundingClientRect().width)
+    await expect.poll(mapWidth).toBeGreaterThan(fittedWidth * 2)
+
+    await panel.getByRole('button', { name: 'Back to map' }).click()
+    await expect(panel).toHaveCount(0)
+    await expect.poll(mapWidth).toBeCloseTo(fittedWidth, 0)
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    await expect(panel).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(panel).toHaveCount(0)
+})
+
+test('a ship can be chosen from the zoomed system panel', async ({ page }) => {
+    await createGame(page)
+    await buildProbeAndReachMovement(page)
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    const panel = page.getByRole('complementary', { name: 'Sol details' })
+    await panel.getByRole('button', { name: /Kepler/ }).click()
+    await expect.poll(() => selectedShipId(page)).toBe('starfarers-kepler')
+    await expect(panel).toBeVisible()
+})
