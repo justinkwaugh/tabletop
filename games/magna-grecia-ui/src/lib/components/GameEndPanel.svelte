@@ -1,6 +1,9 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import MarketIcon from './icons/MarketIcon.svelte'
+    import OracleIcon from './icons/OracleIcon.svelte'
+    import PointsIcon from './icons/PointsIcon.svelte'
 
     const gameSession = getGameSession()
 
@@ -28,9 +31,15 @@
         <thead>
             <tr>
                 <th></th>
-                <th>Points</th>
-                <th>Markets</th>
-                <th>Oracles</th>
+                <th title="Points to spend">
+                    <PointsIcon size={20} /><span class="sr-only">Points</span>
+                </th>
+                <th title="Points from markets">
+                    <MarketIcon size={22} /><span class="sr-only">Markets</span>
+                </th>
+                <th title="Points from oracles">
+                    <OracleIcon size={22} /><span class="sr-only">Oracles</span>
+                </th>
                 <th>Total</th>
             </tr>
         </thead>
@@ -63,6 +72,11 @@
         color: #8c6a45;
     }
 
+    .scores th :global(svg) {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
     .scores td {
         padding: 3px 12px;
         text-align: center;
@@ -71,6 +85,13 @@
 
     .scores tr.winner td {
         background: rgba(227, 177, 47, 0.18);
+    }
+
+    @media (max-width: 639px) {
+        .scores th,
+        .scores td {
+            padding-inline: 6px;
+        }
     }
 
     .total {
