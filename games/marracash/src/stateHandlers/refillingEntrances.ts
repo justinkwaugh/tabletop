@@ -45,6 +45,6 @@ export class RefillingEntrancesStateHandler implements MachineStateHandler<
             return MachineState.RefillingEntrances
         }
         queueTurnCommit(context)
-        return MachineState.ConfirmingTurn
+        return MachineState.EndingTurn
     }
 }

@@ -5,7 +5,6 @@
         getShop,
         isBringVisitors,
         isCompleteAntiqueSet,
-        isConfirmTurn,
         isMoveVisitors,
         isPlaceBid,
         isResolveAuction,
@@ -61,8 +60,6 @@
 {:else if isCompleteAntiqueSet(action) && action.metadata}
     <PlayerTag playerId={action.collectorId} /> completed the {ordinal(action.metadata.rank)} antique
     set.
-{:else if isConfirmTurn(action)}
-    confirmed their turn.
 {:else if isBringVisitors(action)}
     brought
     {#if action.metadata}

@@ -1,5 +1,4 @@
 export enum ActionType {
-    ConfirmTurn = 'confirmTurn',
     EndTurn = 'endTurn',
     BringVisitors = 'bringVisitors',
     CompleteAntiqueSet = 'completeAntiqueSet',
