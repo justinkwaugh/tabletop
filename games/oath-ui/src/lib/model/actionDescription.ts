@@ -345,7 +345,9 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
-        return meta ? `${cardName(meta.cardId)}: ${meta.summary}` : 'answered a question'
+        return meta
+            ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
+            : 'answered a question'
     }
     if (isExileCitizen(action)) {
         // R-6.7 — the exiler pays the Citizen they throw out; R-9.3's leftover Imperial warbands are worth a clause.
@@ -446,16 +448,27 @@ function powerEffect(
 ): string {
     const summary = action.metadata?.summary
     if (!summary) return ''
-    const text = withoutCardName(summary, action.cardId)
+    return `: ${namedSummary(summary, action.cardId, action.playerId, names, viewerId)}`
+}
+
+/** An engine summary as a History row reads it: every seat named, "you" for the viewer alone. */
+function namedSummary(
+    summary: string,
+    cardId: string,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    const text = withoutCardName(summary, cardId)
     const actorAlone = !names.seats.some(
-        (playerId) => playerId !== action.playerId && seatPattern(playerId).test(text)
+        (playerId) => playerId !== actorId && seatPattern(playerId).test(text)
     )
-    const row = { actorId: action.playerId, actorAlone, viewerId }
+    const row = { actorId, actorAlone, viewerId }
     const named = names.seats.reduce(
         (sentence, playerId) => nameSeat(sentence, playerId, row, names.player),
         text
     )
-    return `: ${namedBanks(named)}`
+    return namedBanks(named)
 }
 
 function seatPattern(playerId: string, flags = ''): RegExp {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
     ActionType,
+    AnswerQuestion,
+    HydratedAnswerQuestion,
+    MachineState,
+    PowerQuestionKind,
+    type OathPlayerState,
+    type PowerQuestion,
+    type QuestionAnswer,
     HydratedMuster,
     HydratedUseActionPower,
     IMPERIAL_WARBANDS,
@@ -321,6 +328,147 @@ describe('the history tab describes every action', () => {
             const named = { ...names, player: (playerId: string) => (playerId === 'p2' ? odd : nameOf.player(playerId)) }
             const line = describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.beast.pied-piper', powerIndex: 0, metadata: { summary: "Pied Piper: moved to p2's advisers and took 2 favor from p2" } }), named, 'p3')
             expect(line).toContain(`moved to ${odd}'s advisers and took 2 favor from ${odd}`)
+        })
+    })
+
+    describe('an answer row names every seat in it, and only the viewer reads “you”', () => {
+        const SHROUDED_WOOD = 'site.shrouded-wood'
+        const RELIC = 'relic.cup-of-plenty'
+
+        // Alice (p1) answers; Bob (p2) is the other seat the answer names; Cass (p3) is a third seat.
+        function answered(question: PowerQuestion, answer: QuestionAnswer, setup: { p1?: Partial<OathPlayerState>; p3?: Partial<OathPlayerState>; denizensBySite?: Record<string, string[]> } = {}): string {
+            const state = testState(
+                [
+                    testPlayer({ playerId: 'p1', siteId: 'c1', favor: 4, ...setup.p1 }),
+                    testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c1', favor: 4 }),
+                    testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c1', ...setup.p3 })
+                ],
+                { siteCards: { c1: SHROUDED_WOOD, c2: 'site.plains', h1: 'site.mountain' }, denizensBySite: { c1: [], c2: [], h1: [], ...setup.denizensBySite } }
+            )
+            state.pendingQuestions = { queue: [question], askingPlayerId: 'p2', resumeMachineState: MachineState.ActPhase }
+            const answer_ = new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'p1', answer }))
+            answer_.apply(state)
+            return answer_.metadata?.summary ?? ''
+        }
+
+        const row = (cardId: string, summary: string, viewer: string, names = nameOf) => {
+            const line = describeAction(action({ type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.Exchange, accept: true }, metadata: { cardId, kind: PowerQuestionKind.Exchange, summary, resumeMachineState: MachineState.ActPhase, last: true } }), names, viewer)
+            return line.slice(line.indexOf(': ') + 2)
+        }
+
+        const ROWS: Array<{ name: string; card: string; summary: () => string; answerer: string; other: string; third: string }> = [
+            {
+                name: 'Shrouded Wood: the ruler sends the traveler',
+                card: SHROUDED_WOOD,
+                summary: () => answered({ kind: PowerQuestionKind.ShroudedWoodDestination, cardId: SHROUDED_WOOD, askedPlayerId: 'p1', travelerPlayerId: 'p2', fromSiteId: 'c1' }, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c2' }),
+                answerer: 'sent Bob to c2',
+                other: 'sent you to c2',
+                third: 'sent Bob to c2'
+            },
+            {
+                name: 'an exchange refused',
+                card: 'denizen.nomad.the-gathering',
+                summary: () => answered({ kind: PowerQuestionKind.Exchange, cardId: 'denizen.nomad.the-gathering', askedPlayerId: 'p1', proposerPlayerId: 'p2', terms: {} }, { kind: PowerQuestionKind.Exchange, accept: false }),
+                answerer: "refused Bob's exchange",
+                other: 'refused your exchange',
+                third: "refused Bob's exchange"
+            },
+            {
+                name: 'an exchange proposed',
+                card: 'denizen.nomad.the-gathering',
+                summary: () => answered({ kind: PowerQuestionKind.GatheringFloor, cardId: 'denizen.nomad.the-gathering', askedPlayerId: 'p1', siteId: 'c1' }, { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'p2', terms: { fromProposer: { favor: 1 } } } }),
+                answerer: 'proposed an exchange to Bob',
+                other: 'proposed an exchange to you',
+                third: 'proposed an exchange to Bob'
+            },
+            {
+                name: 'a relic let go rather than paid for',
+                card: 'denizen.discord.blackmail',
+                summary: () => answered({ kind: PowerQuestionKind.PayOrLoseRelic, cardId: 'denizen.discord.blackmail', askedPlayerId: 'p1', takerPlayerId: 'p2', relicCardId: RELIC, price: 2 }, { kind: PowerQuestionKind.PayOrLoseRelic, pay: false }, { p1: { relicIds: [RELIC] } }),
+                answerer: 'let Bob take Cup of Plenty',
+                other: 'let you take Cup of Plenty',
+                third: 'let Bob take Cup of Plenty'
+            },
+            {
+                name: 'a Sneak Attack passed on',
+                card: 'denizen.discord.sneak-attack',
+                summary: () => answered({ kind: PowerQuestionKind.SneakAttack, cardId: 'denizen.discord.sneak-attack', askedPlayerId: 'p1', defenderPlayerId: 'p2' }, { kind: PowerQuestionKind.SneakAttack, campaign: false }),
+                answerer: 'passed on a Sneak Attack against Bob',
+                other: 'passed on a Sneak Attack against you',
+                third: 'passed on a Sneak Attack against Bob'
+            },
+            {
+                name: 'a free travel whose site hurts the answerer',
+                card: 'relic.brass-horse',
+                summary: () => answered({ kind: PowerQuestionKind.TravelFreeTo, cardId: 'relic.brass-horse', askedPlayerId: 'p1', siteIds: ['c2'] }, { kind: PowerQuestionKind.TravelFreeTo, siteId: 'c2' }, { p1: { warbandsOnBoard: { p1: 3 } }, denizensBySite: { c2: ['denizen.discord.boiling-lake'] } }),
+                answerer: 'travelled to c2 for no Supply (Boiling Lake: killed 2 warbands on your own board)',
+                other: 'travelled to c2 for no Supply (Boiling Lake: killed 2 warbands on their own board)',
+                third: 'travelled to c2 for no Supply (Boiling Lake: killed 2 warbands on their own board)'
+            },
+            {
+                name: 'a relic kept, and a Relic Thief who cannot roll for it',
+                card: 'relic.cup-of-plenty',
+                summary: () => answered({ kind: PowerQuestionKind.KeepOrBottomRelic, cardId: RELIC, askedPlayerId: 'p1', relicCardId: RELIC }, { kind: PowerQuestionKind.KeepOrBottomRelic, keep: true }, { p1: { advisers: [{ cardId: 'denizen.nomad.lost-tongue', faceUp: true }] }, p3: { advisers: [{ cardId: 'denizen.discord.relic-thief', faceUp: true }] } }),
+                answerer: "took Cup of Plenty (Relic Thief: Cass cannot use Relic Thief: Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card)",
+                other: "took Cup of Plenty (Relic Thief: Cass cannot use Relic Thief: Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card)",
+                third: "took Cup of Plenty (Relic Thief: you cannot use Relic Thief: Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card)"
+            },
+            {
+                name: 'the Conspiracy played with a take',
+                card: 'denizen.arcane.inquisitor',
+                summary: () => 'played the Conspiracy and took from p2',
+                answerer: 'played the Conspiracy and took from Bob',
+                other: 'played the Conspiracy and took from you',
+                third: 'played the Conspiracy and took from Bob'
+            },
+            {
+                name: 'a Relic Thief roll that failed',
+                card: 'denizen.discord.relic-thief',
+                summary: () => `Relic Thief: rolled 1 shields; ${RELIC} stayed with p2`,
+                answerer: 'rolled 1 shields; Cup of Plenty stayed with Bob',
+                other: 'rolled 1 shields; Cup of Plenty stayed with you',
+                third: 'rolled 1 shields; Cup of Plenty stayed with Bob'
+            },
+            {
+                name: 'a Jinx reroll declined on a Relic Thief roll that took',
+                card: 'denizen.arcane.jinx',
+                summary: () => `kept the roll; Relic Thief: rolled no shields and took ${RELIC} from p2`,
+                answerer: 'kept the roll; Relic Thief: rolled no shields and took Cup of Plenty from Bob',
+                other: 'kept the roll; Relic Thief: rolled no shields and took Cup of Plenty from you',
+                third: 'kept the roll; Relic Thief: rolled no shields and took Cup of Plenty from Bob'
+            }
+        ]
+
+        it.each(ROWS)('$name', (entry) => {
+            const summary = entry.summary()
+            expect(row(entry.card, summary, 'p1')).toBe(entry.answerer)
+            expect(row(entry.card, summary, 'p2')).toBe(entry.other)
+            expect(row(entry.card, summary, 'p3')).toBe(entry.third)
+        })
+
+        it('names the traveler in a recorded Shrouded Wood answer instead of printing their id', () => {
+            const traveler = 'fkylqsgcyczM0R0_40ImG'
+            const names = { player: (playerId: string) => (playerId === traveler ? 'Dana' : nameOf.player(playerId)), site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'The Tribunal' : slotId), seats: ['p1', traveler] }
+            const line = (viewer: string) => describeAction(action({ type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'slot.cradle.0' }, metadata: { cardId: SHROUDED_WOOD, kind: PowerQuestionKind.ShroudedWoodDestination, summary: `sent ${traveler} to slot.cradle.0`, resumeMachineState: MachineState.ActPhase, last: true } }), names, viewer)
+            expect(line('p1')).toBe('Shrouded Wood: sent Dana to The Tribunal')
+            expect(line(traveler)).toBe('Shrouded Wood: sent you to The Tribunal')
+        })
+
+        it('names an id that begins another seat’s id as its own seat', () => {
+            const names = { ...nameOf, player: (playerId: string) => ({ p1: 'Alice', p10: 'Jo' })[playerId] ?? playerId, seats: ['p1', 'p10'] }
+            expect(row(SHROUDED_WOOD, 'sent p10 to c2', 'p1', names)).toBe('sent Jo to c2')
+            expect(row(SHROUDED_WOOD, 'sent p10 to c2', 'p10', names)).toBe('sent you to c2')
+        })
+
+        it('prints a display name as written, even one with replacement patterns in it', () => {
+            const odd = "B$&b $' $$ $1"
+            const names = { ...nameOf, player: (playerId: string) => (playerId === 'p2' ? odd : nameOf.player(playerId)) }
+            expect(row(SHROUDED_WOOD, "refused p2's exchange", 'p3', names)).toBe(`refused ${odd}'s exchange`)
+        })
+
+        it('keeps the “you” an older record was written with', () => {
+            const summary = "took relic.cup-of-plenty (Relic Thief: p3 cannot use Relic Thief: Lost Tongue: you cannot take its holder's relics or banners without ruling a nomad card)"
+            expect(row(RELIC, summary, 'p2')).toBe("took Cup of Plenty (Relic Thief: Cass cannot use Relic Thief: Lost Tongue: you cannot take its holder's relics or banners without ruling a nomad card)")
         })
     })
 
