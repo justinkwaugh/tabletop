@@ -184,9 +184,28 @@ describe('MarraCash movement', () => {
         expect(() => move(auctionFirst, 9, CardinalDirection.East)).toThrow()
     })
 
-    it('waits for the mover to confirm after two moves, then ends the turn behind an undo barrier', () => {
+    it('ends the turn after two moves without asking for a confirmation, leaving it undoable', () => {
         const session = startTestGame(3)
         const { mover, other } = players(session)
+        arrange(session, { fountains: { 9: [Red], 14: [Green] } })
+        move(session, 9, CardinalDirection.East)
+        const processed = move(session, 14, CardinalDirection.East)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.MoveVisitors,
+            ActionType.EndTurn
+        ])
+        expect(processed.some((action) => action.revealsInfo)).toBe(false)
+        expect(session.currentPlayerId()).toBe(other)
+        expect(session.state.machineState).toBe(MachineState.ChoosingAction)
+        expect(session.state.activePlayerIds).not.toContain(mover)
+    })
+
+    it('keeps the confirmation step and Undo barriers for a game started under 0.1.0', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        session.edit((state) => {
+            delete state.undoStopsOnlyAtReveals
+        })
         arrange(session, { fountains: { 9: [Red], 14: [Green] } })
         move(session, 9, CardinalDirection.East)
         move(session, 14, CardinalDirection.East)
@@ -200,7 +219,7 @@ describe('MarraCash movement', () => {
         ])
         expect(processed.at(-1)?.revealsInfo).toBe(true)
         expect(session.currentPlayerId()).toBe(other)
-        expect(session.state.machineState).toBe(MachineState.ChoosingAction)
+        expect(session.startAuction(other, 'Y1')[0].revealsInfo).toBe(true)
     })
 
     it('asks the turn player to refill an entrance emptied before an auction', () => {
@@ -229,7 +248,7 @@ describe('MarraCash antique sets', () => {
         { color: Green, value: 100 }
     ]
 
-    it('keeps a completed set secret until the turn is confirmed, then reveals and pays it', () => {
+    it('keeps a completed set secret until the turn’s last action, then reveals and pays it', () => {
         const session = startTestGame(3)
         const { mover, other } = players(session)
         arrange(session, {
@@ -248,8 +267,7 @@ describe('MarraCash antique sets', () => {
         expect(money(session, other)).toBe(1000 + 200 - 50)
         expect(money(session, mover)).toBe(1000 + 50)
 
-        move(session, 14, CardinalDirection.East)
-        const processed = session.confirmTurn(mover)
+        const processed = move(session, 14, CardinalDirection.East)
         const completion = processed.find(isCompleteAntiqueSet)
         expect(completion?.collectorId).toBe(other)
         expect(completion?.revealsInfo).toBe(true)
@@ -281,7 +299,8 @@ describe('MarraCash antique sets', () => {
             ActionType.StartAuction,
             ActionType.CompleteAntiqueSet
         ])
-        expect(processed[0].revealsInfo).toBe(true)
+        expect(processed[0].revealsInfo).toBeFalsy()
+        expect(processed[1].revealsInfo).toBe(true)
         expect(money(session, other)).toBe(1000 + 200 - 50 + 725)
         expect(session.state.machineState).toBe(MachineState.Bidding)
     })
@@ -309,8 +328,25 @@ describe('MarraCash antique sets', () => {
             ActionType.CompleteAntiqueSet,
             ActionType.EndTurn
         ])
-        expect(processed.at(-1)?.revealsInfo).toBe(true)
+        expect(processed.at(-1)?.revealsInfo).toBe(false)
+        expect(processed.find(isCompleteAntiqueSet)?.revealsInfo).toBe(true)
         expect(session.state.antiqueRevealOrder).toEqual([other])
+        expect(session.currentPlayerId()).toBe(other)
+    })
+
+    it('leaves the last refill of a turn undoable when it reveals nothing', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, { fountains: { 9: [Blue] } })
+        move(session, 9, CardinalDirection.East)
+        move(session, 16, CardinalDirection.West)
+
+        const processed = session.bringVisitors(mover, QueueEnd.Front, 3, 16)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.BringVisitors,
+            ActionType.EndTurn
+        ])
+        expect(processed.some((action) => action.revealsInfo)).toBe(false)
         expect(session.currentPlayerId()).toBe(other)
     })
 
@@ -408,8 +444,7 @@ describe('MarraCash antique sets', () => {
             state.antiqueRevealOrder = [mover, third]
         })
         move(session, 9, CardinalDirection.East)
-        move(session, 14, CardinalDirection.East)
-        const processed = session.confirmTurn(mover)
+        const processed = move(session, 14, CardinalDirection.East)
         expect(processed.find(isCompleteAntiqueSet)?.metadata?.payout).toBe(225 + 200 + 150)
         expect(paidAntiques(hand, 2)).toEqual([hand[0], hand[1], hand[2]])
     })

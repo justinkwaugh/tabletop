@@ -1,5 +1,5 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test'
-import { actionPanel, auctionableShops, board, createGame } from './helpers'
+import { actionPanel, auctionableShops, createGame } from './helpers'
 
 test.use({ ...devices['iPhone 13'], browserName: 'chromium' })
 
@@ -21,14 +21,13 @@ async function inView(page: Page, targets: Locator): Promise<Locator> {
     throw new Error('No target is in view')
 }
 
-test('a touch screen previews a move before committing it', async ({ page }) => {
+test('a touch screen moves with one tap and toggles highlights by tapping', async ({ page }) => {
     test.setTimeout(120_000)
     await createGame(page)
 
     // Round one is all auctions: each seat auctions a shop and everyone bids the minimum
     for (let seat = 0; seat < 4; seat++) {
         await (await inView(page, auctionableShops(page))).tap()
-        await page.getByRole('button', { name: 'Start auction' }).tap()
         for (let bid = 0; bid < 4; bid++) {
             const before = await actionPanel(page).innerText()
             await page.getByRole('button', { name: /Place bid|Pass/ }).tap()
@@ -38,21 +37,12 @@ test('a touch screen previews a move before committing it', async ({ page }) => 
 
     const fountains = page.locator('g[role=button][aria-label^="Fountain"]')
     await (await inView(page, fountains)).tap()
-    const previews = page.locator('g[aria-label^="Show the route to fountain"]')
-    const destination = await inView(page, previews)
-    await destination.tap()
-    await expect(actionPanel(page)).toContainText(
-        'Move these visitors along the highlighted route?'
-    )
-    await expect(board(page).locator('polyline.flow').first()).toBeAttached()
-
-    await page.getByRole('button', { name: 'Back', exact: true }).tap()
-    await expect(actionPanel(page)).toContainText('Choose the destination for these visitors.')
+    const destinations = page.locator('g[aria-label^="Move visitors to fountain"]')
+    await (await inView(page, destinations)).tap()
+    await expect(actionPanel(page)).not.toContainText('Choose the destination', {
+        timeout: 10_000
+    })
     await expect(page.getByRole('button', { name: 'Move here' })).toHaveCount(0)
-
-    await destination.tap()
-    await page.getByRole('button', { name: 'Move here' }).tap()
-    await expect(actionPanel(page)).not.toContainText('Move these visitors', { timeout: 10_000 })
 
     const counter = page.locator('[role=button][aria-label$=" customers"]').first()
     await counter.tap()

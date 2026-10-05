@@ -73,11 +73,8 @@
         <text class="queue-label" x={layout.front.x} y={layout.front.y}>Front</text>
         <text class="queue-label" x={layout.back.x} y={layout.back.y}>Back</text>
     {/if}
-    <text
-        class="queue-label"
-        x={QueueCountLabel.x}
-        y={QueueCountLabel.y}
-        transform="rotate(90 {QueueCountLabel.x} {QueueCountLabel.y})">{queue.length} waiting</text
+    <text class="queue-label queue-count" x={QueueCountLabel.x} y={QueueCountLabel.y}
+        >{queue.length} waiting</text
     >
 </g>
 
@@ -88,5 +85,10 @@
         font-weight: 600;
         text-anchor: middle;
         dominant-baseline: central;
+    }
+
+    .queue-count {
+        font-size: 17px;
+        text-anchor: end;
     }
 </style>

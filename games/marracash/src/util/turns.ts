@@ -13,7 +13,8 @@ export function stateAfterTurnAction(
     if (gameState.needsRefill()) {
         return MachineState.RefillingEntrances
     }
-    if (gameState.turnActions.at(-1) !== TurnAction.Move) {
+    // Games from 0.1.0 wait for the player to confirm a turn that ends on a move.
+    if (gameState.undoStopsOnlyAtReveals || gameState.turnActions.at(-1) !== TurnAction.Move) {
         queueTurnCommit(context)
     }
     return MachineState.ConfirmingTurn

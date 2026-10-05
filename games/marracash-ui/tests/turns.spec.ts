@@ -24,7 +24,7 @@ test.afterEach(() => {
 
 test('round 1 offers only auctions and collects a sealed bid from everyone', async ({ page }) => {
     await createGame(page)
-    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/)
+    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/i)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
 
     await auctionFirstShop(page)
@@ -33,28 +33,34 @@ test('round 1 offers only auctions and collects a sealed bid from everyone', asy
     await finishBidding(page)
     await expect(actionPanel(page)).toContainText('Your turn')
     await expect(page.locator('g[aria-label^="Owned by"]')).toHaveCount(1)
-    await expect(actionPanel(page)).toContainText('winning bid')
-    await expect(actionPanel(page)).toContainText('Bids:')
+    await expect(actionPanel(page)).toContainText(/won the yellow shop\./)
+    await expect(actionPanel(page).getByRole('table')).toHaveCount(0)
+    await expect(actionPanel(page)).not.toContainText('100')
 })
 
-test('a chosen shop waits for confirmation and Back cancels it before anyone bids', async ({
+test('clicking a shop starts its auction at once, and the auctioneer can undo it or their bid', async ({
     page
 }) => {
     await createGame(page)
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await auctionableShops(page).first().click()
-    await expect(actionPanel(page)).toContainText('Every player will be asked for a sealed bid')
-    await expect(auctionableShops(page)).toHaveCount(0)
-    await expect(page.locator('path[filter*="candidate-halo"]')).toHaveCount(1)
+    await expect(actionPanel(page)).toContainText('Sealed bid')
+    await expect(page.getByRole('button', { name: 'Start auction' })).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/)
+    await undo.click()
+    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/i)
     await expect(auctionableShops(page)).toHaveCount(25)
 
     await auctionFirstShop(page)
-    await expect(actionPanel(page)).toContainText('Sealed bid')
+    const stillToBid = actionPanel(page).getByText(/^Still to bid:/)
+    const everyone = await stillToBid.innerText()
+    await page.getByRole('button', { name: 'Place bid' }).click()
+    await expect(stillToBid).not.toHaveText(everyone)
+    await undo.click()
+    await expect(stillToBid).toHaveText(everyone, { ignoreCase: true })
 })
 
-test('choosing a fountain dims the board around its destinations, previews a route and Back restores the turn', async ({
+test('choosing a fountain dims the board around its destinations, previews a route and Undo restores the turn', async ({
     page
 }) => {
     await createGame(page)
@@ -70,7 +76,7 @@ test('choosing a fountain dims the board around its destinations, previews a rou
     await page.getByRole('button', { name: 'Move visitors to fountain 6' }).hover()
     await expect(page.locator('polyline')).toHaveCount(2)
 
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(destinationFountains(page)).toHaveCount(0)
     await expect(auctionableShops(page)).toHaveCount(21)
     await expect(page.locator('polyline')).toHaveCount(0)
@@ -92,35 +98,34 @@ test('choosing a fountain dims the board around its destinations, previews a rou
     )
 })
 
-test('moves can be undone until the turn is confirmed, but never into the previous turn', async ({
+test('a turn ends on its second move without a confirmation and can still be undone', async ({
     page
 }) => {
     await createGame(page)
     await playOpeningRound(page)
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    const turnPlayer = page.locator('h1', { hasText: '⇢' })
     await expect(undo).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
     await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
     await undo.click()
-    await expect(actionPanel(page)).toContainText('Your turn')
     await expect(undo).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Fountain 6', exact: true })).toHaveCount(0)
 
+    const mover = await turnPlayer.innerText()
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
     await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
     await page.getByRole('button', { name: 'Fountain 6', exact: true }).click()
     await page.getByRole('button', { name: 'Move visitors to fountain 1' }).click()
-    await expect(actionPanel(page)).toContainText('Confirm your turn')
+    await expect(turnPlayer).not.toHaveText(mover)
+    await expect(page.getByRole('button', { name: 'Confirm turn' })).toHaveCount(0)
 
+    // The harness's local seat is the active player, so Admin stands in for the mover
+    await page.getByText('Admin', { exact: true }).click()
     await undo.click()
-    await expect(actionPanel(page)).toContainText('Your turn')
-    await expect(undo).toBeVisible()
-    await page.getByRole('button', { name: 'Fountain 6', exact: true }).click()
-    await page.getByRole('button', { name: 'Move visitors to fountain 1' }).click()
-    await page.getByRole('button', { name: 'Confirm turn' }).click()
-    await expect(actionPanel(page)).toContainText('Your turn')
-    await expect(undo).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Fountain 6', exact: true })).toBeVisible()
+    await expect(turnPlayer).toHaveText(mover)
 })
 
 test('emptied entrances are refilled from a chosen end of the queue', async ({ page }) => {
@@ -140,9 +145,8 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     await page.getByRole('button', { name: 'Bring 4 visitors from the back' }).first().click()
     await expect(incomingVisitors(page)).toHaveCount(4)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(2)
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
@@ -152,7 +156,7 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     await expect(incomingVisitors(page)).toHaveCount(4)
     await page.getByRole('button', { name: 'Back of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(4)
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await page.getByRole('button', { name: '3', exact: true }).click()
@@ -181,5 +185,53 @@ test('the history keeps other players’ bids sealed until the auction resolves'
     await finishBidding(page)
     await page.getByText('History', { exact: true }).click()
     await expect(page.getByText('placed a sealed bid')).toHaveCount(3)
-    await expect(page.getByRole('tabpanel').getByText(/bought the .* shop .* Bids:/s)).toBeVisible()
+    const history = page.getByRole('tabpanel')
+    await expect(history.getByText(/bought the .* shop for 100\./)).toBeVisible()
+    await expect(history.getByRole('table', { name: 'Bids' }).getByRole('row')).toHaveCount(4)
+})
+
+test('the header names the turn and holds the only Undo, with no Back anywhere', async ({
+    page
+}) => {
+    await createGame(page)
+    await expect(actionPanel(page)).toContainText('Your turn')
+    await auctionableShops(page).first().click()
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect(actionPanel(page)).toHaveText(/auction an unowned shop/i)
+
+    await playOpeningRound(page)
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
+    await page.getByRole('button', { name: 'Bring 4 visitors from the back' }).first().click()
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible()
+})
+
+test('the last refill of a turn can be undone after the next turn has started', async ({
+    page
+}) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
+    await page.getByRole('button', { name: '3', exact: true }).click()
+    await page.getByRole('button', { name: 'Front of queue' }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: '2', exact: true }).click()
+    await page.getByRole('button', { name: 'Back of queue' }).click()
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await expect(page.getByText('50 waiting')).toBeVisible()
+    await expect(actionPanel(page)).toContainText(/move a fountain's visitors/i)
+
+    // The harness's local seat is the active player, so Admin stands in for the previous player
+    await page.getByText('Admin', { exact: true }).click()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect(actionPanel(page)).toContainText('Bring new visitors to the empty entrance.')
+    await expect(page.getByText('52 waiting')).toBeVisible()
 })

@@ -147,7 +147,10 @@ export const MarracashGameState = Type.Evaluate(
                 policy: Visibility.Policy.HostOnly,
                 redaction: Visibility.redaction.emptyArray()
             }),
-            antiqueRevealOrder: Type.Array(Type.String())
+            antiqueRevealOrder: Type.Array(Type.String()),
+            // Absent from games started under 0.1.0, which keep their confirmation step and wider
+            // Undo barriers so that their recorded Actions still replay the same way.
+            undoStopsOnlyAtReveals: Type.Optional(Type.Literal(true))
         })
     ])
 )
@@ -184,6 +187,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare finalRound: boolean
     declare pendingAntiqueSets: string[]
     declare antiqueRevealOrder: string[]
+    declare undoStopsOnlyAtReveals?: true
 
     constructor(data: MarracashProjectedState) {
         super(data, MarracashProjectedStateValidator)
@@ -413,14 +417,18 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return visitors
     }
 
+    turnEndsGame(): boolean {
+        return this.finalRound && this.turnPlayerId() === this.turnManager.turnOrder.at(-1)
+    }
+
     finishTurn(): { gameOver: boolean } {
+        const gameOver = this.turnEndsGame()
         const endedTurn = this.turnManager.endTurn(this.actionCount)
         this.turnActions = []
-        const roundComplete = endedTurn.playerId === this.turnManager.turnOrder.at(-1)
-        if (roundComplete) {
+        if (endedTurn.playerId === this.turnManager.turnOrder.at(-1)) {
             this.round += 1
         }
-        return { gameOver: this.finalRound && roundComplete }
+        return { gameOver }
     }
 
     // The round in which the queue runs out is the last, and it ends with the last seat's turn.

@@ -29,17 +29,26 @@ function cardinalEdgeDistance(entrance: boolean): number {
     return entrance ? EntranceRadii.trim : FountainRadii.rim * Math.cos(Math.PI / 8)
 }
 
+// A route runs between the fountains' outlines, not their centres.
 export function routeLine(route: Route): Point[] {
+    const origin = getFountain(route.from)
     const destination = getFountain(route.to)
-    const center = cellCenter(destination.coords)
-    const last = cellCenter(route.path.at(-2) ?? getFountain(route.from).coords)
-    const edge = cardinalEdgeDistance(destination.entrance)
-    const distance = Math.hypot(last.x - center.x, last.y - center.y)
-    const stop = {
-        x: center.x + ((last.x - center.x) * edge) / distance,
-        y: center.y + ((last.y - center.y) * edge) / distance
+    const centers = [origin.coords, ...route.path].map(cellCenter)
+    const [first, second] = centers
+    const [beforeLast, last] = centers.slice(-2)
+    assertExists(second, `Route from ${route.from} has no steps`)
+    const start = edgeToward(first, second, origin.entrance)
+    const end = edgeToward(last, beforeLast, destination.entrance)
+    return [start, ...centers.slice(1, -1), end]
+}
+
+function edgeToward(center: Point, toward: Point, entrance: boolean): Point {
+    const edge = cardinalEdgeDistance(entrance)
+    const distance = Math.hypot(toward.x - center.x, toward.y - center.y)
+    return {
+        x: center.x + ((toward.x - center.x) * edge) / distance,
+        y: center.y + ((toward.y - center.y) * edge) / distance
     }
-    return [...[getFountain(route.from).coords, ...route.path.slice(0, -1)].map(cellCenter), stop]
 }
 
 export function shopBranch(route: Route, shopId: ShopId): [Point, Point] {

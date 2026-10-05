@@ -1,4 +1,4 @@
-import { assertExists, GameEngine } from '@tabletop/common'
+import { ActionSource, assert, assertExists, GameEngine, type GameAction } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
 import { MarracashRuntime } from '../definition/runtime.js'
@@ -211,5 +211,86 @@ describe('MarraCash auctions', () => {
         expect(session.state.machineState).toBe(MachineState.ChoosingAction)
         runAuction(session, shopIds[4], [100, 0, 0])
         expect(session.currentPlayerId()).toBe(order[1])
+    })
+})
+
+describe('MarraCash sealed bid corrections', () => {
+    // Mirrors the site's GameUndo: actions after the undone bid are reversed, then the other
+    // players' bids from the same sealed round are played again on top.
+    it('accepts bids undone and placed again in any order until the last bid is in', () => {
+        const engine = new GameEngine(MarracashRuntime)
+        const session = startTestGame(4)
+        const [a, b, c, d] = session.state.turnManager.turnOrder
+        let state = session.state
+        const history: GameAction[] = []
+        let next = 0
+
+        const execute = (action: GameAction) => {
+            const result = engine.executeCanonicalAction({ game: session.game, state, action })
+            state = result.updatedState
+            history.push(...result.processedActions)
+            return result.processedActions
+        }
+        const act = (playerId: string, type: ActionType, payload: Record<string, unknown> = {}) =>
+            execute({
+                id: `sequence-${next++}`,
+                gameId: session.game.id,
+                playerId,
+                source: ActionSource.User,
+                type,
+                ...payload
+            })
+        const bid = (playerId: string, amount: number) => {
+            assertExists(state.auction, 'Bids need an auction')
+            return act(playerId, ActionType.PlaceBid, {
+                amount,
+                simultaneousGroupId: state.auction.bidding.id
+            })
+        }
+        const undoBid = (playerId: string) => {
+            const target = history.findLastIndex(
+                (action) => action.type === ActionType.PlaceBid && action.playerId === playerId
+            )
+            const undone = history.splice(target)
+            for (const action of undone.toReversed()) {
+                state = engine.undoProcessedAction({ action, state })
+            }
+            for (const action of undone.slice(1)) {
+                assert(
+                    action.simultaneousGroupId === undone[0].simultaneousGroupId,
+                    'Only bids from the same sealed round are played again'
+                )
+                const {
+                    index: _index,
+                    undoPatch: _undoPatch,
+                    forwardPatch: _forwardPatch,
+                    ...replayed
+                } = action
+                execute(replayed)
+            }
+        }
+
+        expect(act(a, ActionType.StartAuction, { shopId: 'Y1' }).some((x) => x.revealsInfo)).toBe(
+            false
+        )
+        bid(a, 300)
+        bid(b, 200)
+        bid(c, 150)
+        undoBid(a)
+        bid(d, 0)
+        undoBid(c)
+        bid(a, 100)
+        expect(state.machineState).toBe(MachineState.Bidding)
+        const resolution = bid(c, 250).find(isResolveAuction)
+
+        expect(resolution?.revealsInfo).toBe(true)
+        expect(resolution?.metadata?.winnerId).toBe(c)
+        expect(resolution?.metadata?.bids).toEqual([
+            { playerId: a, amount: 100 },
+            { playerId: b, amount: 200 },
+            { playerId: c, amount: 250 },
+            { playerId: d, amount: 0 }
+        ])
+        expect(state.shops.find((shop) => shop.shopId === 'Y1')?.ownerId).toBe(c)
     })
 })

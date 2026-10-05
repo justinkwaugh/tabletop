@@ -1,10 +1,14 @@
 <script lang="ts">
     import { CastShadowFilterId } from '$lib/utils/boardGeometry.js'
     import { CobblePatternId } from '$lib/utils/cobbles.js'
-    import { GateFloors, GatePillars, WallMortar } from '$lib/utils/cityWall.js'
+    import {
+        GateFloors,
+        GatePillars,
+        PillarShadowOffset,
+        WallMortar
+    } from '$lib/utils/cityWall.js'
 
     const CapInset = 5
-    const ShadowOffset = { x: 3, y: 4 }
 </script>
 
 {#each GateFloors as floor (`${floor.x},${floor.y}`)}
@@ -18,8 +22,8 @@
 {/each}
 {#each GatePillars as pillar (`${pillar.x},${pillar.y}`)}
     <rect
-        x={pillar.x + ShadowOffset.x}
-        y={pillar.y + ShadowOffset.y}
+        x={pillar.x + PillarShadowOffset.x}
+        y={pillar.y + PillarShadowOffset.y}
         width={pillar.width}
         height={pillar.height}
         fill="#000000"

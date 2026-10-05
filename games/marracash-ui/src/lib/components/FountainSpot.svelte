@@ -47,7 +47,7 @@
         selected: boolean
         destination?: boolean
         label?: string
-        onselect: (byTouch: boolean) => void
+        onselect: () => void
         onpreview?: (previewing: boolean) => void
     } = $props()
 
@@ -57,7 +57,6 @@
     let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
     const gameSession = getGameSession()
 
-    let lastPointerType = 'mouse'
 
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
@@ -216,9 +215,8 @@
         onpointerleave={() => onpreview?.(false)}
         onfocus={() => onpreview?.(true)}
         onblur={() => onpreview?.(false)}
-        onpointerdown={(event) => (lastPointerType = event.pointerType)}
-        onclick={() => onselect(lastPointerType === 'touch')}
-        onkeydown={(event) => event.key === 'Enter' && onselect(false)}
+        onclick={() => onselect()}
+        onkeydown={(event) => event.key === 'Enter' && onselect()}
     >
         <rect
             x={center.x - CellSize / 2}

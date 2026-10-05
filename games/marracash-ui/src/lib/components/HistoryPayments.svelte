@@ -15,8 +15,8 @@
             <PlayerTag playerId={payment.playerId} />
             <span
                 class="marracash-display tabular-nums"
-                class:text-[#7ed389]={payment.amount > 0}
-                class:text-[#f28b82]={payment.amount < 0}>{signedAmount(payment.amount)}</span
+                class:text-[#2e6b34]={payment.amount > 0}
+                class:text-[#9b2c2c]={payment.amount < 0}>{signedAmount(payment.amount)}</span
             >
             {#if payment.kind === 'customers'}
                 <span class="flex items-center">

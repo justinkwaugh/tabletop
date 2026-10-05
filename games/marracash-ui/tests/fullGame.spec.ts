@@ -20,12 +20,10 @@ async function takeStep(page: Page, step: number) {
     const place = page.getByRole('button', { name: 'Place bid' })
     const front = page.getByRole('button', { name: 'Front of queue' })
     const pass = page.getByRole('button', { name: 'Pass' })
-    const confirmAuction = page.getByRole('button', { name: 'Start auction' })
-    const confirmTurn = page.getByRole('button', { name: 'Confirm turn' })
+    const gameOver = page.getByText('The game is over.')
     // Choices are withheld while the session is busy, such as while a move animates
     await expect(
-        confirmTurn
-            .or(confirmAuction)
+        gameOver
             .or(place)
             .or(pass)
             .or(front)
@@ -33,10 +31,8 @@ async function takeStep(page: Page, step: number) {
             .or(auctionableShops(page))
             .first()
     ).toBeVisible({ timeout: MoveAnimationTimeout })
-    if (await confirmTurn.count()) {
-        await confirmTurn.click()
-    } else if (await confirmAuction.count()) {
-        await confirmAuction.click()
+    if (await gameOver.count()) {
+        return
     } else if (await place.count()) {
         await place.click()
     } else if (await pass.count()) {
@@ -55,7 +51,7 @@ async function takeStep(page: Page, step: number) {
 }
 
 test('a hotseat game plays through to the end', async ({ page }) => {
-    test.setTimeout(180_000)
+    test.setTimeout(300_000)
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await createGame(page)

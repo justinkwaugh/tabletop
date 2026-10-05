@@ -15,7 +15,6 @@ import {
 type PaymentBase = { playerId: string; amount: number }
 
 export type Payment =
-    | (PaymentBase & { kind: 'winningBid' })
     | (PaymentBase & { kind: 'auctioneerCut' })
     | (PaymentBase & {
           kind: 'customers'
@@ -36,6 +35,13 @@ export type MoneyReport =
       }
     | { kind: 'antiqueSet'; collectorId: string; result: AntiqueSetResult; payments: Payment[] }
 
+// The main panel names only who won a shop or completed an antique set; History has the rest.
+export type OutcomeReport = Extract<MoneyReport, { kind: 'auction' | 'antiqueSet' }>
+
+export function isOutcomeReport(report: MoneyReport): report is OutcomeReport {
+    return report.kind === 'auction' || report.kind === 'antiqueSet'
+}
+
 export function latestTurnStep(actions: readonly GameAction[]): readonly GameAction[] {
     const start = actions.findLastIndex((action) => action.source === ActionSource.User)
     return start === -1 ? [] : actions.slice(start)
@@ -43,7 +49,7 @@ export function latestTurnStep(actions: readonly GameAction[]): readonly GameAct
 
 export function auctionPayments(result: AuctionResult): Payment[] {
     const winnerId = result.winnerId
-    const payments: Payment[] = [{ kind: 'winningBid', playerId: winnerId, amount: -result.price }]
+    const payments: Payment[] = []
     const color = getShop(result.shopId).color
     const walkIns = pulledInCustomers(result)
     if (walkIns.count > 0) {
@@ -162,6 +168,7 @@ export function moneyReports(actions: readonly GameAction[]): MoneyReport[] {
     return actions
         .map(actionMoneyReport)
         .filter(
-            (report): report is MoneyReport => report !== undefined && report.payments.length > 0
+            (report): report is MoneyReport =>
+                report !== undefined && (report.kind === 'auction' || report.payments.length > 0)
         )
 }

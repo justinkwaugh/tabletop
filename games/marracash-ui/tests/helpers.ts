@@ -28,7 +28,7 @@ export function board(page: Page): Locator {
 }
 
 export function actionPanel(page: Page): Locator {
-    return page.locator('div.bg-\\[\\#f4ead6\\]')
+    return page.getByRole('region', { name: 'Actions' })
 }
 
 export function auctionableShops(page: Page): Locator {
@@ -51,7 +51,6 @@ export async function finishBidding(page: Page) {
 
 export async function auctionFirstShop(page: Page) {
     await auctionableShops(page).first().click()
-    await page.getByRole('button', { name: 'Start auction' }).click()
 }
 
 export async function playOpeningRound(page: Page, players = 4) {
@@ -59,7 +58,7 @@ export async function playOpeningRound(page: Page, players = 4) {
         await auctionFirstShop(page)
         await finishBidding(page)
     }
-    await expect(actionPanel(page)).toContainText("move a fountain's visitors")
+    await expect(actionPanel(page)).toContainText(/move a fountain's visitors/i)
 }
 
 export function incomingVisitors(page: Page): Locator {

@@ -175,7 +175,7 @@ export function queueLayout(count: number): QueueLayout {
     }
 }
 
-export const QueueCountLabel: Point = { x: TableWidth - QueueLane, y: TableHeight / 2 }
+export const QueueCountLabel: Point = { x: TableWidth - QueueMargin, y: QueueLane }
 
 function pointAtQueueSlot(slot: number): Point {
     let remaining = slot
