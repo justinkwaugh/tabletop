@@ -305,6 +305,41 @@ test('the keyboard jump button jumps to history without starting a replay', asyn
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
 })
 
+test('history leaves out ended turns and steps over them', async ({ page }) => {
+    await createGame(page)
+    const currentType = () =>
+        page.evaluate(() => window.magnaGreciaSession.history.currentAction?.type)
+    for (let turn = 0; turn < 2; turn++) {
+        await page.getByRole('button', { name: 'Build market', exact: true }).click()
+        await page.getByRole('button', { name: 'Build a market here', exact: true }).first().click()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.magnaGreciaSession.gameState.board.markets.length)
+            )
+            .toBe(turn + 1)
+        await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    }
+
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(page.getByText('built a market for', { exact: false })).toHaveCount(2)
+    await expect(page.getByText('ended their turn', { exact: true })).toHaveCount(0)
+
+    // Each step plays its pieces' animation, and the controls wait for it.
+    const step = async (name: 'step backwards' | 'step forwards', toIndex: number) => {
+        await expect
+            .poll(() => page.evaluate(() => window.magnaGreciaSession.history.isDisabled()))
+            .toBe(false)
+        await page.getByRole('button', { name }).click()
+        await expect
+            .poll(() => page.evaluate(() => window.magnaGreciaSession.history.actionIndex))
+            .toBe(toIndex)
+        expect(await currentType()).toBe('BuildMarket')
+    }
+    await step('step backwards', 2)
+    await step('step backwards', 0)
+    await step('step forwards', 2)
+})
+
 test('the map goes full screen with the turn controls docked above it', async ({ page }) => {
     await createGame(page)
     await page.getByRole('button', { name: 'Enter full screen' }).click()

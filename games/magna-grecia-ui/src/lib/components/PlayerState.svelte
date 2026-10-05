@@ -49,18 +49,18 @@
     <div class="score">
         <span class="score-label">Score</span>
         <span class="part" title="Points to spend">
-            <PointsIcon size={14} />
+            <PointsIcon size={15} />
             <strong>{score.points}</strong>
         </span>
         <span class="part" title="Points from markets">
-            <MarketIcon size={14} />
+            <MarketIcon size={16} {color} />
             <strong>{score.markets}</strong>
         </span>
         <span
             class="part"
             title="Points from oracles ({score.oracles / ORACLE_POINTS} × {ORACLE_POINTS})"
         >
-            <OracleIcon size={14} />
+            <OracleIcon size={16} {color} />
             <strong>{score.oracles}</strong>
         </span>
         <span class="total" title="Score if the game ended now"

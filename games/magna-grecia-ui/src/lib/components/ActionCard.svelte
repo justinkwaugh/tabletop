@@ -46,7 +46,7 @@
         box-sizing: content-box;
         display: flex;
         justify-content: center;
-        align-items: flex-start;
+        align-items: center;
         height: var(--reserved-height);
         min-height: var(--action-card-floor);
         overflow: hidden;
@@ -64,7 +64,7 @@
         /* the slot less its side margins and the card's 1px borders */
         max-width: calc(var(--slot-width, 100vw) - 2 * var(--card-margin) - 2px);
         height: max-content;
-        padding: 4px 12px 8px;
+        padding: 6px 12px;
     }
 
     /* A phone's board is sized by the screen width, not the space left, so the card can follow

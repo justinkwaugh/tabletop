@@ -12,6 +12,7 @@ import {
     PlaceCity,
     PlaceRoad,
     Resupply,
+    isEndTurn,
     RoadShape,
     SellMarket,
     legalRoadEnds,
@@ -379,6 +380,11 @@ export class MagnaGreciaGameSession extends GameSession<
             return
         }
         await super.undo()
+    }
+
+    // Ending a turn changes nothing on the table, so history steps over it.
+    override shouldAutoStepAction(action: GameAction, next?: GameAction) {
+        return isEndTurn(action) || super.shouldAutoStepAction(action, next)
     }
 
     resetAction() {

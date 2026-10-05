@@ -7,6 +7,7 @@
     import { ActionSource, type GameAction } from '@tabletop/common'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { isEndTurn } from '@tabletop/magna-grecia'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -24,6 +25,7 @@
 
     let reversedActions = $derived(
         gameSession.actions
+            .filter((action) => !isEndTurn(action))
             .toReversed()
             .toSorted(
                 (a, b) =>
