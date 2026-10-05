@@ -10,6 +10,8 @@ import {
     discardableTrains,
     TrainPurchase,
     StationPlacement,
+    payingRouteStops,
+    type TrainDefinition,
     type RouteRevenueStop
 } from '@tabletop/18xx'
 import {
@@ -282,8 +284,8 @@ describe('1846 Phase III trains and lifecycle', () => {
             bonus: 0,
             companyStation: i === 0
         }))
-        const choose = RouteRules1846.payingStops
-        assertExists(choose)
+        const choose = (train: TrainDefinition, visits: readonly RouteRevenueStop[]) =>
+            payingRouteStops(visits, RouteRules1846.revenuePolicy?.(train) ?? {})
         expect(
             choose(TrainDepot1846.trainDefinition('4/6'), stops).map((stop) => stop.locationId)
         ).toEqual(['0', '3', '4', '5'])

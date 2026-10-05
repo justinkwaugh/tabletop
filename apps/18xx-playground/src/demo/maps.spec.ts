@@ -1,3 +1,4 @@
+import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
 import { createMarket as create1846Market } from '../../../../games/1846/src/stock.js'
 import { describe, expect, it } from 'vitest'
@@ -85,8 +86,17 @@ describe('complete title maps', () => {
         const scene = createMapDrawing(view.map, undefined, view)
         expect(alignedEdges(scene, view.map)).toBeGreaterThan(30)
         for (const rotation of [0, 1, 2, 3, 4, 5] as const) {
-            const prepared = createMapDrawing(view.map, { tileSet: view.tileSet, inventory: view.tileSet.createInventory([{ locationId: 'C13', definitionId: '18xx:7', rotation }]) }, view)
-            alignedEdges(prepared, view.map, entry => entry.placed)
+            const prepared = createMapDrawing(
+                view.map,
+                {
+                    tileSet: view.tileSet,
+                    inventory: view.tileSet.createInventory([
+                        { locationId: 'C13', definitionId: '18xx:7', rotation }
+                    ])
+                },
+                view
+            )
+            alignedEdges(prepared, view.map, (entry) => entry.placed)
         }
     })
     it('draws a rotated pointy-hex tile meeting both neighbors', () => {
@@ -130,14 +140,19 @@ describe('complete title maps', () => {
 })
 
 describe.each([
-    { name: '1846', view: MapView1846, createMarket: create1846Market },
+    {
+        name: '1846',
+        view: MapView1846,
+        createMarket: create1846Market,
+        cell: Presentation1846.marketCell
+    },
     { name: '1830', view: EighteenThirtyMapView, createMarket: createEighteenThirtyStockMarket },
     {
         name: '1817',
         view: EighteenSeventeenMapView,
         createMarket: createEighteenSeventeenStockMarket
     }
-])('$name board', ({ view, createMarket }) => {
+])('$name board', ({ view, createMarket, cell }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
         const areas = view.boardAreas
         expect(areas?.market && areas.depot).toBeTruthy()
@@ -160,18 +175,20 @@ describe.each([
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
         const columns = Math.max(...cells.map(([, column]) => column)) + 1
         const rows = Math.max(...cells.map(([row]) => row)) + 1
-        const width = 2 * MarketScenePadding + columns * MarketCellWidth
-        const height = 2 * MarketScenePadding + rows * MarketCellHeight
+        const cellWidth = cell?.width ?? MarketCellWidth
+        const cellHeight = cell?.height ?? MarketCellHeight
+        const width = 2 * MarketScenePadding + columns * cellWidth
+        const height = 2 * MarketScenePadding + rows * cellHeight
         const area = areas!.market!
         const scale = Math.min(area.width / width, area.height / height)
         const left = area.x + (area.width - width * scale) / 2
         for (const [row, column] of cells)
             expect(
                 clear(
-                    left + (MarketScenePadding + column * MarketCellWidth) * scale,
-                    area.y + (MarketScenePadding + row * MarketCellHeight) * scale,
-                    MarketCellWidth * scale,
-                    MarketCellHeight * scale
+                    left + (MarketScenePadding + column * cellWidth) * scale,
+                    area.y + (MarketScenePadding + row * cellHeight) * scale,
+                    cellWidth * scale,
+                    cellHeight * scale
                 )
             ).toBe(true)
         const depot = areas!.depot!

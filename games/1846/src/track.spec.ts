@@ -98,7 +98,10 @@ describe('1846 phase-I construction', () => {
             )
         ).toEqual([])
         expect(() => table.act('LayTile', second)).toThrow()
-        table.act('FinishTrack', { companyId: 'MS' })
+        expect(table.actions.at(-1)).toMatchObject({
+            type: 'FinishTrack',
+            source: ActionSource.System
+        })
         expect(table.state.machineState).toBe('RunningTrains')
         expect(
             table.state.companies.find((company) => company.id === 'MS')?.operated

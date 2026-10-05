@@ -7,6 +7,10 @@
         ".": {
             "types": "./esm/index.d.ts",
             "import": "./esm/index.js"
+        },
+        "./scenarios": {
+            "types": "./esm/scenarios/index.d.ts",
+            "import": "./esm/scenarios/index.js"
         }
     },
     "sideEffects": false,

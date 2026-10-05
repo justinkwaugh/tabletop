@@ -10,6 +10,33 @@ import {
     marketLowerRightSpace
 } from './marketTokenLayout.js'
 
+it('keeps narrow-cell stacks below prices and uses the cell width for market movement', () => {
+    const cell = { width: 36, height: 96 }
+    const market = createRectangularStockMarket([[40, 50, 60, 70]], () => 'white')
+    for (const id of ['A', 'B', 'C', 'D', 'E', 'F', 'G']) placeStockMarker(market, id, '0:0')
+    for (const token of marketTokenLayout(market, cell)) {
+        expect(token.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        expect(token.x + MarketTokenSize / 2).toBeLessThanOrEqual(cell.width)
+        expect(token.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(20)
+        expect(token.y + MarketTokenSize / 2).toBeLessThanOrEqual(cell.height)
+    }
+    const expanded = expandedMarketStack(market, '0:0', cell)
+    for (const [index, point] of expanded.entries()) {
+        expect(point.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        expect(point.x + MarketTokenSize / 2).toBeLessThanOrEqual(4 * cell.width)
+        expect(point.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        expect(point.y + MarketTokenSize / 2).toBeLessThanOrEqual(cell.height)
+        for (const other of expanded.slice(index + 1))
+            expect(Math.hypot(point.x - other.x, point.y - other.y)).toBeGreaterThanOrEqual(
+                MarketTokenSize
+            )
+    }
+    const before = marketTokenLayout(market, cell).find((token) => token.companyId === 'A')!
+    placeStockMarker(market, 'A', '0:1')
+    const after = marketTokenLayout(market, cell).find((token) => token.companyId === 'A')!
+    expect(after.x - before.x).toBe(cell.width)
+})
+
 it('centers one token and stacks two vertically, right of the price, without overlap', () => {
     const market = createRectangularStockMarket([[100]], () => 'white')
     placeStockMarker(market, 'A', '0:0')

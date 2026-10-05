@@ -1,3 +1,7 @@
+import { EighteenFortySixMap, EighteenFortySixTileSet } from '@tabletop/1846'
+import { Scenarios1846, ScenarioPositions1846 } from '@tabletop/1846/scenarios'
+import { UiDefinition as FortySixUi } from '@tabletop/1846-ui'
+import { MapView1846, TileLayouts1846, SessionRules1846 } from '@tabletop/1846-ui/playground'
 import { assertExists } from '@tabletop/common'
 import {
     TheOldPrinceMap,
@@ -42,15 +46,13 @@ export type PlaygroundTitle = {
     /** Short label used by the harness selectors. */
     key: string
     name: string
-    rules: Omit<
-        EighteenXXTitleRules,
-        'state' | 'createOpening' | 'decisionHandlers' | 'titleStateHandlers'
-    >
+    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules'>
     scenarios: ScenarioDefinition
     host: Component<ScenarioHostProps>
     map: RailwayMap
     /** Node positions for printed multi-node hexes, keyed by location. */
     mapLayouts?: Readonly<Record<string, TileLayout>>
+    tileLayouts?: Readonly<Record<string, TileLayout>>
     /** A city where the maps page demonstrates a placed tile, token and route. */
     mapExample: {
         locationId: string
@@ -62,6 +64,9 @@ export type PlaygroundTitle = {
     tileSets: Readonly<Record<string, TileSet>>
     /** Scenario positions only this title offers, beyond the shared ones. */
     positions: readonly ScenarioPosition[]
+    supportedPositions?: readonly ScenarioPosition[]
+    playerCounts?: readonly number[]
+    scenarioVersion?: number
     finishedGame?: () => Promise<{ default: FinishedGameFixture }>
 }
 
@@ -118,6 +123,23 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileSets: { '1817': EighteenSeventeenTileSet },
         positions: ['optional-opening', 'company-powers', 'shorts'],
         finishedGame: () => import('./demo/fixtures/1817-finished.json')
+    },
+    {
+        key: '1846',
+        name: '1846',
+        scenarioVersion: 28,
+        rules: SessionRules1846,
+        scenarios: Scenarios1846,
+        host: scenarioHost(FortySixUi, Scenarios1846),
+        map: EighteenFortySixMap,
+        mapLayouts: MapView1846.layouts,
+        tileLayouts: TileLayouts1846,
+        mapExample: { locationId: 'G7', definitionId: '18xx:5', rotation: 0, label: 'IC' },
+        tileSets: { '1846': EighteenFortySixTileSet },
+        positions: [],
+        supportedPositions: ScenarioPositions1846,
+        finishedGame: () => import('./demo/fixtures/1846-finished.json'),
+        playerCounts: [2, 3, 4, 5]
     }
 ]
 

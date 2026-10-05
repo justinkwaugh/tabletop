@@ -47,7 +47,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         () => this.session.interactive && this.session.validActionTypes.includes('RunTrains')
     )
     editorVisible = $derived.by(
-        () => this.session.selectionsVisible && this.session.state.machineState === 'RunningTrains'
+        () => this.session.selectionsVisible && this.session.validActionTypes.includes('RunTrains')
     )
     solved = $derived.by((): SolvedRoutes<State> | undefined => {
         if (!this.editorVisible) return undefined

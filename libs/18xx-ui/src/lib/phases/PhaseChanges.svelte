@@ -11,7 +11,7 @@
 
 <section aria-label="Phase changes">
     <strong>Phase {gameState.phaseId}</strong>
-    {#if change && companyId && owner}
+    {#if change && companyId}
         <div aria-label="Compulsory train discard">
             <h2>
                 {getCompany(gameState, companyId).name} · Discard {session.discard.excess} excess {session
@@ -20,7 +20,10 @@
                     : 'trains'}
             </h2>
             <p>
-                {session.ownerName(owner)} decides. {#if change.continuation.companyId}Then {getCompany(
+                {owner
+                    ? session.ownerName(owner)
+                    : gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(' / ')} decides.
+                {#if change.continuation.companyId}Then {getCompany(
                         gameState,
                         change.continuation.companyId
                     ).name} resumes {change.continuation.machineState === 'BuyingTrains'

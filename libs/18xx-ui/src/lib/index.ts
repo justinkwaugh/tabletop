@@ -100,3 +100,6 @@ export { runForHistoryStep } from './routes/runForHistoryStep.js'
 
 export { earningsForHistoryStep } from './earnings/earningsForHistoryStep.js'
 export { actionForHistoryStep } from './table/actionForHistoryStep.js'
+
+export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
+export { default as StationBuilding } from './maps/StationBuilding.svelte'

@@ -36,7 +36,9 @@ export class StationsModule<State extends StationsState> {
     constructor(
         private readonly session: StationsSession<State>,
         private readonly onPositionChosen: () => void,
-        private readonly tokenChoiceRequired: () => boolean
+        private readonly tokenChoiceRequired: () => boolean,
+        private readonly active: () => boolean = () =>
+            session.state.machineState === 'PlacingStation'
     ) {}
 
     requiresTokenChoice = $derived.by(() => this.tokenChoiceRequired())
@@ -45,7 +47,12 @@ export class StationsModule<State extends StationsState> {
         () => new StationPlacement(this.session.state, this.session.rules.stationRules)
     )
     canPlace = $derived.by(
-        () => this.session.interactive && this.session.validActionTypes.includes('FinishStations')
+        () =>
+            this.active() &&
+            this.session.interactive &&
+            this.session.validActionTypes.some(
+                (type) => type === 'FinishStations' || type === 'PlaceStation'
+            )
     )
     available = $derived.by(() =>
         this.session.state.stations.filter(
@@ -55,8 +62,7 @@ export class StationsModule<State extends StationsState> {
         )
     )
     selection = $derived.by((): StationSelection => {
-        if (!this.session.selectionsVisible || this.session.state.machineState !== 'PlacingStation')
-            return {}
+        if (!this.session.selectionsVisible || !this.active()) return {}
         if (this.stages.entry('stationId')) return this.stages.state
         if (
             this.requiresTokenChoice ||

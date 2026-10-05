@@ -40,7 +40,7 @@
             excludeTrainPurchases={trainBuying}
         />
     {/if}
-    {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && gameState.purchaseOffer?.asset.kind !== 'private'}
+    {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && !gameState.purchaseOffer}
         {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
             <CompanyFormation {session} />
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}

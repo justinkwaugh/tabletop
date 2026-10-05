@@ -91,8 +91,8 @@ export class CompanyDecisionsModule {
               )
             : []
     )
-    privatePurchases = $derived.by(() =>
-        this.purchaseOptions.filter((option) => option.request.asset.kind === 'private')
+    companyPurchases = $derived.by(() =>
+        this.purchaseOptions.filter((option) => option.request.asset.kind !== 'train')
     )
     players = $derived.by(() => {
         if (!this.canResolve) return []

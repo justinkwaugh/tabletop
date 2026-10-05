@@ -213,3 +213,12 @@ export * from './earnings/earningsActions.js'
 export * from './transfers/purchaseOffersHandler.js'
 
 export * from './construction/connectedTrack.js'
+
+export * from './construction/automaticTrackCompletionHandler.js'
+
+export {
+    payingRouteStops,
+    routeConnectionBonuses,
+    type PaidConnectionBonus,
+    type RouteRevenuePolicy
+} from './routes/routeScoring.js'

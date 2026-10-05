@@ -11,7 +11,11 @@ import { testSession } from './moduleTestSession.js'
 
 const networkRoutes: RouteOverlay[] = [{ id: 'track-access', color: '#168da8', segments: [] }]
 
-function running(machineState: 'RunningTrains' | 'StockRound', valid: string[], availability = {}) {
+function running(
+    machineState: 'RunningTrains' | 'RunningReceiver' | 'StockRound',
+    valid: string[],
+    availability = {}
+) {
     const state = {
         ...minimalPlayState(),
         machineState,
@@ -37,9 +41,10 @@ describe('RoutesModule', () => {
         )
     })
 
-    it('shows a route selection only while running trains with selections visible', () => {
+    it('shows a route selection when the title permits running trains and selections are visible', () => {
         expect(running('RunningTrains', ['RunTrains']).module.editorVisible).toBe(true)
-        expect(running('StockRound', ['RunTrains']).module.editorVisible).toBe(false)
+        expect(running('StockRound', []).module.editorVisible).toBe(false)
+        expect(running('RunningReceiver', ['RunTrains']).module.editorVisible).toBe(true)
         expect(
             running('RunningTrains', ['RunTrains'], { selectionsVisible: false }).module
                 .editorVisible

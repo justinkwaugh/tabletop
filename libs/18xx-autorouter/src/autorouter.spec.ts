@@ -286,3 +286,74 @@ it('finds routes earning the title’s hex and stop bonuses', () => {
     expect(result.result.revenue).toBe(65)
     expect(result.result.routes[0].bonuses).toHaveLength(2)
 })
+
+it('scores express paying stops with route-wide bonuses', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+        [{ measure: 'revenue-centers', maximum: 3 }],
+        {},
+        {
+            revenuePolicy: () => ({
+                payingStopLimit: 2,
+                requirePayingStation: true,
+                connectionBonuses: [{ from: { '0': 0 }, to: { '2': 50 } }]
+            })
+        }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(110)
+    expect(result.result.routes[0].visits).toHaveLength(3)
+})
+
+it.each([false, true])(
+    'scores a fleet bonus once across compatible trains (same definition %s)',
+    (sameDefinition) => {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+            [
+                { measure: 'revenue-centers', maximum: 2 },
+                { measure: 'revenue-centers', maximum: 2 }
+            ],
+            {},
+            {
+                longestRouteBonusPerStop: () => 10
+            }
+        )
+        if (sameDefinition) state.trainInventory.trains[1].definitionId = '0'
+        state.stations[0].position = { locationId: '1', nodeId: 'city', slot: 0 }
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue).toBe(140)
+        expect(result.result.routes).toHaveLength(2)
+        expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        expect(new Set(result.result.routes.map((route) => route.trainId)).size).toBe(2)
+    }
+)
+
+it.each([false, true])('excludes trains barred by title rules (custom scoring %s)', (custom) => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        {
+            canRunTrain: () => false,
+            ...(custom ? { revenuePolicy: () => ({ payingStopLimit: 2 }) } : {})
+        }
+    )
+    const before = structuredClone(state)
+    expect(router.solve(state, rules, 'A').result.routes).toEqual([])
+    expect(state).toEqual(before)
+})
+
+it('returns a legal partial result when the scoring search runs out of time', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        { revenuePolicy: () => ({ payingStopLimit: 2 }) }
+    )
+    const result = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
+    expect(result.exhaustive).toBe(false)
+    expect(result.result.routes).toEqual([])
+})

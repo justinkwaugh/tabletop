@@ -1,79 +1,25 @@
 import {
-    pendingBlockingStations,
+    type EighteenFortySixProjectedState,
+    type HydratedEighteenFortySixState,
     BuyOpeningCompany,
     PassOpeningPurchase,
     openingPurchaseChoices,
     unboughtOpeningCompanies,
     priceFor,
     canPassOpeningPurchase,
-    isSettleReceiver,
-    isAdvancePhase1846,
-    isBuyReceiverTrain,
-    isBuyReceiverShare,
     DeclareBankruptcy,
-    isDeclareBankruptcy1846,
     bankruptcyShortfall,
     BuyReceiverShare,
     receiverShareChoices,
-    type ReceiverShare
-} from '@tabletop/1846'
-import { assertExists } from '@tabletop/common'
-import {
-    createMapDrawing,
-    stationMapTokens,
-    RoutesModule,
-    actionForHistoryStep,
-    runForHistoryStep,
-    earningsForHistoryStep,
-    type RoutesSession,
-    type MapSelection,
-    type MapRoute
-} from '@tabletop/18xx-ui'
-import { MapView1846 } from './mapView.js'
-import {
-    getCompany,
-    DiscardTrain,
-    discardableTrains,
-    isDiscardTrain,
-    isRustTrains,
-    type PurchaseAsset,
-    type ShareSaleDetails,
-    BuyTrain,
-    OfferPurchase,
-    RespondToPurchaseOffer,
-    purchaseChoices,
-    evaluatePurchaseOffer,
-    type PurchaseOfferRequest,
-    FinishOperatingTurn,
-    type TrainPurchaseDetails,
-    DistributeEarnings,
-    type EarningsChoice,
-    PlaceStation,
-    type StationPlacementDetails,
-    LayTile,
-    FinishTrack,
-    TrackConstruction,
-    type TrackLayDetails,
-    type TrackRequest,
-    StartCompany,
-    BuyShares,
-    SellShares,
-    FinishStockTurn
-} from '@tabletop/18xx'
-import { GameSession } from '@tabletop/frontend-components'
-import {
+    type ReceiverShare,
     EmergencyBuyTrain,
     StartEmergencyFunding,
     SellEmergencyShares,
     emergencyFundingStart,
     emergencyFundingChoices,
     emergencyShareSaleChoices,
-    isStartEmergencyFunding,
-    isSellEmergencyShares,
     emergencyTrainChoices,
-    isEmergencyBuyTrain,
     type EmergencyPurchase,
-    TransferRules1846,
     PrivateConstruction,
     constructionPrivateIds,
     BuildPrivateTrack,
@@ -85,35 +31,99 @@ import {
     AssignRevenueMarker,
     isAssignRevenueMarker,
     revenueMarkerChoices,
-    revenueMarkerValue,
     type RevenuePrivateId,
-    TrainRules1846,
     CorporateFinance,
     corporateFinanceChoices,
     type FinanceChoice,
-    trainBuyingChoices1846,
-    earningsChoices1846,
-    stationChoices1846,
     AssignSteamboat,
-    RouteRules1846,
     type SteamboatAssignment,
     ChooseDraftCard,
     PassFinalCompany,
-    choicesFor,
-    stockChoices,
-    TrackRules1846,
-    type EighteenFortySixProjectedState,
-    type HydratedEighteenFortySixState
+    choicesFor
 } from '@tabletop/1846'
+import { assertExists } from '@tabletop/common'
+import { createEighteenXXSessionClass, actionForHistoryStep } from '@tabletop/18xx-ui'
+import { type ShareSaleDetails, type TrackLayDetails, type TrackRequest } from '@tabletop/18xx'
+import { mapState1846 } from './mapState.js'
+import { MapView1846 } from './mapView.js'
+import { SessionRules1846 } from './sessionRules.js'
+import { Presentation1846 } from './presentation.js'
 
-export class EighteenFortySixSession extends GameSession<
-    EighteenFortySixProjectedState,
+const BaseSession: ReturnType<
+    typeof createEighteenXXSessionClass<
+        typeof EighteenFortySixProjectedState,
+        HydratedEighteenFortySixState
+    >
+> = createEighteenXXSessionClass<
+    typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
-> {
-    selectedAcquisition = $derived.by((): PurchaseOfferRequest | undefined => {
-        void [this.gameState, this.myPlayer?.id, this.isViewingHistory, this.updatingVisibleState]
+>(SessionRules1846, MapView1846, Presentation1846)
+export class EighteenFortySixSession extends BaseSession {
+    private manualConstructionMode = $derived.by((): 'track' | 'stations' | undefined => {
+        void [this.gameState, this.updatingVisibleState, this.myPlayer?.id, this.isViewingHistory]
         return undefined
     })
+    constructionMode = $derived.by(() =>
+        this.privateDraft
+            ? 'track'
+            : (this.manualConstructionMode ??
+              (this.validActionTypes.includes('LayTile') ? 'track' : 'stations'))
+    )
+    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
+        super(options)
+        this.localSelections.register({
+            hasManual: () => !!this.privateDraft || this.manualConstructionMode !== undefined,
+            undo: () => {
+                if (this.privateDraft) {
+                    this.backFromPrivateConstruction()
+                    return true
+                }
+                if (this.manualConstructionMode !== undefined) {
+                    this.manualConstructionMode = undefined
+                    return true
+                }
+                return false
+            },
+            clear: () => {
+                this.privateDraft = undefined
+                this.manualConstructionMode = undefined
+            }
+        })
+    }
+    protected override get trackBuildingActive() {
+        return this.constructionMode === 'track' && !this.decisions.selection
+    }
+    protected override get stationPlacementActive() {
+        return (
+            this.gameState.machineState === 'LayingTrack' &&
+            this.constructionMode === 'stations' &&
+            !this.privateActions.selection &&
+            !this.decisions.selection
+        )
+    }
+    protected override get sharedActionsBlocked() {
+        return !!this.privateDraft || !!this.gameState.pendingRevenueMarker
+    }
+    chooseConstructionMode(mode: 'track' | 'stations') {
+        this.track.stages.clear()
+        this.stations.stages.clear()
+        this.manualConstructionMode = mode
+    }
+
+    protected override get operatingStepCompletion() {
+        if (this.validActionTypes.includes('CorporateFinance')) {
+            const choice = this.financeChoices.find((choice) => choice.operation === 'pass')
+            if (choice) return { lastTarget: 2, finish: () => this.corporateFinance(choice) }
+        }
+        if (this.validActionTypes.includes('FinishTrack'))
+            return { lastTarget: 2, finish: () => this.finishConstruction() }
+        return undefined
+    }
+
+    async finishConstruction() {
+        await this.track.finish()
+    }
+
     privateDraft = $derived.by(
         (): { privateCompanyId: ConstructionPrivateId; lays: TrackRequest[] } | undefined => {
             void [
@@ -136,20 +146,14 @@ export class EighteenFortySixSession extends GameSession<
             return 'blocked'
         if (this.gameState.purchaseOffer) return 'purchase-response'
         if (this.gameState.pendingRevenueMarker) return 'revenue-marker'
-        if (this.selectedAcquisition) return 'acquisition'
         if (this.privateDraft) return 'private-construction'
         return 'turn'
     })
-    readonly canChooseAction = $derived(this.interaction === 'turn')
+    readonly canChooseAction = $derived(
+        this.interaction === 'turn' && !this.decisions.selection && !this.privateActions.selection
+    )
     readonly canUsePrivateConstruction = $derived(
         this.canChooseAction || this.interaction === 'private-construction'
-    )
-    readonly canOfferPurchase = $derived(
-        this.canChooseAction && this.validActionTypes.includes('OfferPurchase')
-    )
-    readonly canRespondToPurchase = $derived(
-        this.interaction === 'purchase-response' &&
-            this.validActionTypes.includes('RespondToPurchaseOffer')
     )
     readonly canAssignRevenueMarker = $derived(
         (this.canChooseAction || this.interaction === 'revenue-marker') &&
@@ -196,7 +200,8 @@ export class EighteenFortySixSession extends GameSession<
             : undefined
     )
     selectPrivateConstruction(privateCompanyId: ConstructionPrivateId): void {
-        this.selectedLocation = undefined
+        this.track.stages.clear()
+        this.stations.stages.clear()
         this.routes.clear()
         this.privateDraft = { privateCompanyId, lays: [] }
     }
@@ -255,103 +260,7 @@ export class EighteenFortySixSession extends GameSession<
             })
         )
     }
-    readonly acquisitionChoices = $derived(
-        this.myPlayer
-            ? purchaseChoices(this.gameState, this.myPlayer.id, TransferRules1846, TrainRules1846)
-            : []
-    )
-    acquisitionPrice = $derived(this.selectedAcquisition?.price ?? 1)
-    readonly acquisitionEvaluation = $derived(
-        this.selectedAcquisition
-            ? evaluatePurchaseOffer(
-                  this.gameState,
-                  { ...this.selectedAcquisition, price: this.acquisitionPrice },
-                  TransferRules1846,
-                  TrainRules1846
-              )
-            : undefined
-    )
-    readonly canConfirmAcquisition = $derived(
-        this.interaction === 'acquisition' && !this.acquisitionEvaluation?.reason
-    )
-    purchaseAssetName(asset: PurchaseAsset): string {
-        if (asset.kind === 'company') return getCompany(this.gameState, asset.companyId).name
-        if (asset.kind === 'private') return getCompany(this.gameState, asset.privateCompanyId).name
-        const train = this.gameState.trainInventory.trains.find(
-            (train) => train.id === asset.trainId
-        )
-        assertExists(train, 'An offered train exists')
-        return `${TrainRules1846.depot.trainDefinition(train.definitionId).name} train`
-    }
-    selectAcquisition(request: PurchaseOfferRequest): void {
-        this.selectedLocation = undefined
-        this.routes.clear()
-        this.selectedAcquisition = request
-    }
-    cancelAcquisition(): void {
-        this.selectedAcquisition = undefined
-    }
-    async confirmAcquisition(): Promise<void> {
-        assertExists(this.selectedAcquisition, 'Select an asset to buy')
-        await this.applyAction(
-            this.createPlayerAction(OfferPurchase, {
-                ...this.selectedAcquisition,
-                price: this.acquisitionPrice
-            })
-        )
-    }
-    async respondToAcquisition(accept: boolean): Promise<void> {
-        const offer = this.gameState.purchaseOffer
-        assertExists(offer, 'A seller has an offer to answer')
-        await this.applyAction(
-            this.createPlayerAction(RespondToPurchaseOffer, { offerId: offer.id, accept })
-        )
-    }
-    readonly discardChoices = $derived.by(() => {
-        const companyId = this.gameState.phaseChange?.discardCompanyIds[0]
-        return companyId ? discardableTrains(this.gameState, companyId, TrainRules1846) : []
-    })
-    async discardTrain(trainId: string): Promise<void> {
-        const companyId = this.gameState.phaseChange?.discardCompanyIds[0]
-        assertExists(companyId, 'A compulsory discard requires its company')
-        await this.applyAction(this.createPlayerAction(DiscardTrain, { companyId, trainId }))
-    }
-    readonly displayedPhase = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isAdvancePhase1846)
-            : undefined
-    )
-    readonly displayedDiscard = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isDiscardTrain)
-            : undefined
-    )
-    readonly displayedRust = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isRustTrains)
-            : undefined
-    )
-    readonly trainBuying = $derived(trainBuyingChoices1846(this.gameState))
-    readonly displayedReceiverTrain = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isBuyReceiverTrain)
-            : undefined
-    )
-    readonly displayedReceiverShare = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isBuyReceiverShare)
-            : undefined
-    )
     readonly bankruptcyShortfall = $derived(bankruptcyShortfall(this.gameState))
-    readonly displayedBankruptcy = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(
-                  this.actions,
-                  this.gameState.actionCount,
-                  isDeclareBankruptcy1846
-              )
-            : undefined
-    )
     readonly receiverShares = $derived(
         this.myPlayer ? receiverShareChoices(this.gameState, this.myPlayer.id) : []
     )
@@ -374,20 +283,6 @@ export class EighteenFortySixSession extends GameSession<
     readonly fundingStart = $derived(emergencyFundingStart(this.gameState))
     readonly fundingChoices = $derived(emergencyFundingChoices(this.gameState))
     readonly emergencySales = $derived(emergencyShareSaleChoices(this.gameState))
-    readonly displayedFundingStart = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(
-                  this.actions,
-                  this.gameState.actionCount,
-                  isStartEmergencyFunding
-              )
-            : undefined
-    )
-    readonly displayedEmergencySale = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isSellEmergencyShares)
-            : undefined
-    )
     async startEmergencyFunding(): Promise<void> {
         assertExists(this.fundingStart, 'Emergency funding requires a shortfall')
         await this.applyAction(
@@ -407,49 +302,12 @@ export class EighteenFortySixSession extends GameSession<
         )
     }
     readonly emergencyTrainChoices = $derived(emergencyTrainChoices(this.gameState))
-    readonly displayedEmergencyPurchase = $derived(
-        !this.updatingVisibleState
-            ? actionForHistoryStep(this.actions, this.gameState.actionCount, isEmergencyBuyTrain)
-            : undefined
-    )
     async emergencyBuyTrain(choice: EmergencyPurchase): Promise<void> {
         await this.applyAction(this.createPlayerAction(EmergencyBuyTrain, choice))
-    }
-    async buyTrain(choice: TrainPurchaseDetails): Promise<void> {
-        const { price, ...request } = choice
-        await this.applyAction(
-            this.createPlayerAction(BuyTrain, { ...request, expectedPrice: price })
-        )
-    }
-    async finishOperatingTurn(): Promise<void> {
-        const companyId = this.gameState.trainPurchaseStep?.companyId
-        assertExists(companyId, 'Finishing a turn requires its train purchase step')
-        await this.applyAction(this.createPlayerAction(FinishOperatingTurn, { companyId }))
-    }
-    readonly earningsChoices = $derived(
-        this.gameState.machineState === 'DistributingEarnings'
-            ? earningsChoices1846(this.gameState)
-            : []
-    )
-    async distributeEarnings(choice: EarningsChoice): Promise<void> {
-        const companyId = this.gameState.routeStep?.companyId
-        assertExists(companyId, 'Earnings require a completed run')
-        await this.applyAction(this.createPlayerAction(DistributeEarnings, { companyId, choice }))
     }
     readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
     async corporateFinance(choice: FinanceChoice): Promise<void> {
         await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
-    }
-    readonly stationChoices = $derived(
-        this.gameState.machineState === 'LayingTrack' && !this.updatingVisibleState
-            ? stationChoices1846(this.gameState)
-            : []
-    )
-    async placeStation(choice: StationPlacementDetails): Promise<void> {
-        const { cost, ...request } = choice
-        await this.applyAction(
-            this.createPlayerAction(PlaceStation, { ...request, expectedCost: cost })
-        )
     }
     private openedPacketKey = $state<string>()
     private readonly packetKey = $derived(
@@ -477,199 +335,16 @@ export class EighteenFortySixSession extends GameSession<
             !!this.myPlayer &&
             canPassOpeningPurchase(this.gameState, this.myPlayer.id)
     )
-    readonly stockChoices = $derived(
-        this.gameState.machineState === 'StockRound' && this.myPlayer
-            ? stockChoices(this.gameState, this.myPlayer.id)
-            : undefined
-    )
-    private readonly mapRevenueMarkers = $derived([
-        ...this.gameState.revenueMarkers,
-        ...(this.gameState.steamboat
-            ? [{ ...this.gameState.steamboat, privateCompanyId: 'SC' as const }]
-            : [])
-    ])
-    readonly pendingBlockers = $derived(pendingBlockingStations(this.constructionMapState))
-    readonly mapScene = $derived(
-        createMapDrawing(
-            MapView1846.map,
-            {
-                tileSet: MapView1846.tileSet,
-                inventory: this.constructionMapState.tileInventory,
-                markers: [
-                    ...this.mapRevenueMarkers.map((marker) => ({
-                        locationId: marker.locationId,
-                        privateCompanyId: marker.privateCompanyId,
-                        kind: `${marker.companyId}:${marker.privateCompanyId}`
-                    })),
-                    ...this.pendingBlockers.map((station) => ({
-                        locationId: station.locationId,
-                        kind: station.stationId
-                    }))
-                ]
-            },
-            {
-                ...MapView1846,
-                locationMarkerNames: Object.fromEntries([
-                    ...this.mapRevenueMarkers.map((marker) => [
-                        `${marker.companyId}:${marker.privateCompanyId}`,
-                        `${marker.companyId} ${marker.privateCompanyId} +$${revenueMarkerValue(marker.privateCompanyId, marker.locationId)}`
-                    ]),
-                    ...this.pendingBlockers.map((station) => [
-                        station.stationId,
-                        `${station.companyId} blocks on green`
-                    ])
-                ])
-            }
-        )
-    )
-    readonly canRun = $derived(
-        this.canChooseAction &&
-            ['RunningTrains', 'RunningReceiver'].includes(this.gameState.machineState)
-    )
-    private readonly routeSession: RoutesSession<HydratedEighteenFortySixState> = ((session) => ({
-        get state() {
-            void [session.myPlayer?.id, session.isViewingHistory, session.updatingVisibleState]
-            return session.gameState
-        },
-        rules: { routeRules: RouteRules1846 },
-        get validActionTypes() {
-            return session.validActionTypes
-        },
-        get publishing() {
-            return session.updatingVisibleState
-        },
-        get selectionsVisible() {
-            return session.canRun
-        },
-        get interactive() {
-            return session.canRun
-        },
-        createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-        applyAction: (action) => session.applyAction(action)
-    }))(this)
-    readonly routes = new RoutesModule(
-        this.routeSession,
-        () => {},
-        () => []
-    )
-    readonly earningsResult = $derived(
-        !this.updatingVisibleState
-            ? (actionForHistoryStep(this.actions, this.gameState.actionCount, isSettleReceiver)
-                  ?.metadata ??
-                  earningsForHistoryStep(this.actions, this.gameState.actionCount) ??
-                  this.gameState.earningsDistribution)
-            : undefined
-    )
-    readonly recordedRun = $derived(
-        !this.updatingVisibleState
-            ? runForHistoryStep(this.actions, this.gameState.actionCount)
-            : undefined
-    )
-    readonly routeOverlays: readonly MapRoute[] = $derived(
-        this.recordedRun
-            ? this.recordedRun.routes.map((route) => ({
-                  id: route.trainId,
-                  color: '#267343',
-                  segments: route.paths
-              }))
-            : this.routes.overlays
-    )
-    readonly presentation = { money: (amount: number) => `$${amount}` }
+    protected override projectMapState(state: HydratedEighteenFortySixState) {
+        return mapState1846(state)
+    }
+    protected override get mapDisplayState() {
+        return mapState1846({ ...this.gameState, ...this.constructionMapState })
+    }
     async assignSteamboat(assignment?: SteamboatAssignment): Promise<void> {
         await this.applyAction(
             this.createPlayerAction(AssignSteamboat, assignment ? { assignment } : {})
         )
-    }
-    readonly mapTokens = $derived(stationMapTokens(this.constructionMapState, MapView1846.stations))
-    readonly canSelectTrack = $derived(
-        this.canChooseAction && this.gameState.machineState === 'LayingTrack'
-    )
-    readonly construction = $derived(
-        this.gameState.machineState === 'LayingTrack'
-            ? new TrackConstruction(this.gameState, TrackRules1846)
-            : undefined
-    )
-    readonly trackLocations = $derived(
-        this.canSelectTrack && this.construction
-            ? MapView1846.map.definition.locations
-                  .filter((location) => this.construction!.choices(location.id).length)
-                  .map((location) => location.id)
-            : []
-    )
-    selectedLocation = $derived.by((): string | undefined => {
-        void [
-            this.gameState.id,
-            this.gameState.actionCount,
-            this.myPlayer?.id,
-            this.updatingVisibleState,
-            this.canSelectTrack
-        ]
-        return undefined
-    })
-    readonly selectedTrackChoices = $derived(
-        this.selectedLocation && !this.updatingVisibleState
-            ? (this.construction?.choices(this.selectedLocation) ?? [])
-            : []
-    )
-    selectMap(selection: MapSelection): void {
-        if (!this.canSelectTrack) return
-        this.selectedLocation = selection.locationId || undefined
-    }
-    backFromTrack(): void {
-        this.selectedLocation = undefined
-    }
-    async layTrack(choice: TrackLayDetails): Promise<void> {
-        await this.applyAction(
-            this.createPlayerAction(LayTile, {
-                companyId: choice.companyId,
-                locationId: choice.locationId,
-                definitionId: choice.definitionId,
-                rotation: choice.rotation,
-                nodeMapping: choice.nodeMapping,
-                expectedCost: choice.cost
-            })
-        )
-    }
-    async finishTrack(): Promise<void> {
-        const companyId = this.gameState.trackStep?.companyId
-        assertExists(companyId, 'Track construction requires an operating company')
-        await this.applyAction(this.createPlayerAction(FinishTrack, { companyId }))
-    }
-    override async undo(): Promise<void> {
-        if (this.privateDraft) {
-            this.privateDraft = undefined
-            return
-        }
-        if (this.selectedAcquisition) {
-            this.cancelAcquisition()
-            return
-        }
-        if (this.canRun && this.routes.hasManual()) {
-            this.routes.clear()
-            return
-        }
-        if (this.selectedLocation !== undefined) {
-            this.selectedLocation = undefined
-            return
-        }
-        await super.undo()
-    }
-    async startCompany(
-        choice: NonNullable<typeof this.stockChoices>['starts'][number]
-    ): Promise<void> {
-        await this.applyAction(this.createPlayerAction(StartCompany, choice))
-    }
-    async buyShare(choice: NonNullable<typeof this.stockChoices>['buys'][number]): Promise<void> {
-        const { companyId: _companyId, source: _source, ...request } = choice
-        await this.applyAction(this.createPlayerAction(BuyShares, request))
-    }
-    async sellShares(
-        choice: NonNullable<typeof this.stockChoices>['sells'][number]
-    ): Promise<void> {
-        await this.applyAction(this.createPlayerAction(SellShares, choice))
-    }
-    async finishStockTurn(): Promise<void> {
-        await this.applyAction(this.createPlayerAction(FinishStockTurn))
     }
     revealPacket(): void {
         this.openedPacketKey = this.packetKey
@@ -692,9 +367,7 @@ export class EighteenFortySixSession extends GameSession<
         await this.applyAction(this.createPlayerAction(PassFinalCompany))
     }
     override beforeNewState(): void {
-        this.cancelAcquisition()
-        this.routes.clear()
+        super.beforeNewState()
         this.hidePacket()
-        this.selectedLocation = undefined
     }
 }

@@ -42,19 +42,20 @@ export class TrackModule {
         private readonly mapView: () => TrackMap,
         private readonly privateActions: PrivateActions,
         private readonly decisions: Decisions,
-        private readonly onLocationChosen: () => void
+        private readonly onLocationChosen: () => void,
+        private readonly active: () => boolean = () => true
     ) {}
 
     private laying = $derived.by(
         () =>
-            !!this.privateActions.trackPowerSelection ||
-            (this.session.state.machineState === 'LayingTrack' &&
-                !this.session.state.privateStation &&
-                !this.privateActions.selection)
+            this.active() &&
+            (!!this.privateActions.trackPowerSelection ||
+                (this.session.state.machineState === 'LayingTrack' &&
+                    !this.session.state.privateStation &&
+                    !this.privateActions.selection))
     )
-    selection = $derived.by(
-        (): TrackSelection =>
-            this.session.selectionsVisible && this.laying ? this.stages.state : {}
+    selection = $derived.by((): TrackSelection =>
+        this.session.selectionsVisible && this.laying ? this.stages.state : {}
     )
     construction = $derived.by(() => {
         const { state, rules } = this.session
@@ -71,6 +72,7 @@ export class TrackModule {
     canBuild = $derived.by(
         () =>
             this.session.interactive &&
+            this.active() &&
             (!!this.privateActions.trackPowerSelection ||
                 (!this.privateActions.selection &&
                     this.session.validActionTypes.includes('FinishTrack')))

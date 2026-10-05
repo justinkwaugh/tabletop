@@ -55,14 +55,7 @@ it('reallocates a single train bonus consistently while drafting, saving, editin
     const editor = new RouteEditor(state, {
         ...minimalRouteRules,
         map,
-        trainBonuses: (_state, _company, route, run) =>
-            route.trainId ===
-            run
-                .map((entry) => entry.trainId)
-                .sort()
-                .at(-1)
-                ? [{ locationId: route.start.locationId, amount: 20 }]
-                : []
+        longestRouteBonusPerStop: () => 10
     })
     editor.routes = [routes[0]]
     expect(editor.savedResults[0].revenue).toBe(80)

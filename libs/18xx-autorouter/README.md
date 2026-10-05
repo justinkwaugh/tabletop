@@ -19,12 +19,9 @@ import { TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
 
 const response = await fetch(solverUrl)
 const router = await Autorouter.create(await response.arrayBuffer())
-const { result, exhaustive, metrics } = router.solve(
-    state,
-    TheOldPrinceRouteRules,
-    companyId,
-    { timeLimitMs: 30_000 }
-)
+const { result, exhaustive, metrics } = router.solve(state, TheOldPrinceRouteRules, companyId, {
+    timeLimitMs: 30_000
+})
 ```
 
 Pass `Shikoku1889RouteRules` for 1889. The company must be in its running-trains
@@ -49,7 +46,9 @@ separate encoding, solving, final validation and the Rust search stages.
   unlimited diesels, and phase revenue values.
 - Shikoku 1889: all-stop capacity, unlimited diesels, and diesel-only gray offboard
   values. A 6-train still uses ordinary offboard values during the diesel phase.
-- Both: station inclusion, continuous track, no edge reversal or track/border
+- 1846: express visit/payment limits with a paid company station, connection
+  bonuses on paid stops, and a per-stop bonus on the fleet's longest route.
+- All: station inclusion, continuous track, no edge reversal or track/border
   reuse within or between routes, no repeated revenue center or repeated junction
   between consecutive stops, blocked cities at endpoints only, and terminal offboards. Station reservations do not block runs.
 
@@ -60,7 +59,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 3. It is private to this package; callers use
+The internal wire format is version 4. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 See the [design review](../../research/18xx/autorouter-design.md).

@@ -180,7 +180,7 @@ describe('1846 independent operations', () => {
             nodeMapping,
             expectedCost: cost
         })
-        table.act('FinishTrack', { companyId: 'MS' })
+        expect(table.state.machineState).toBe('RunningTrains')
         const route = portHuronRoute(table)
         const evaluation = new RouteEvaluation(table.hydrated, RouteRules1846)
         for (const locationId of ['B16', 'B18']) {

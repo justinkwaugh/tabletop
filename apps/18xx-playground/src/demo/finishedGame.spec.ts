@@ -1,3 +1,7 @@
+import { CanonicalValidator as Validator1846, HydratedEighteenFortySixState } from '@tabletop/1846'
+import { HistoricalMaps } from '../../../../libs/18xx-ui/src/lib/maps/historicalMap.js'
+import { mapState1846 } from '../../../../games/1846-ui/src/lib/mapState.js'
+import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
 import { historyStates } from '../../../../libs/18xx-ui/src/lib/table/historyStates.js'
 import { historyCash } from '../../../../libs/18xx-ui/src/lib/table/historyCash.js'
 import { expect, it } from 'vitest'
@@ -23,6 +27,45 @@ function wealthByPlayer(wealth: readonly { playerId: string; total: number }[] |
     assertExists(wealth, 'The game has its final wealth')
     return Object.fromEntries(wealth.map(({ playerId, total }) => [playerId, total]))
 }
+
+it('replays the finished 1846 game and restores its opening and final state', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        '1846'
+    )
+    const maps = new HistoricalMaps(
+        () => MapView1846,
+        (snapshot: typeof state) => {
+            if (!Validator1846.Check(snapshot)) throw Error('Expected canonical 1846 state')
+            return mapState1846(new HydratedEighteenFortySixState(snapshot))
+        }
+    )
+    const markerRun = actions.find((action) => action.id === 'recorded:80')
+    assertExists(markerRun)
+    const preview = maps.preview(state, actions, markerRun)
+    expect(
+        preview.scene.locations.find((location) => location.location.id === 'I1')?.location.markers
+    ).toContainEqual(expect.objectContaining({ id: 'IC:MPC' }))
+    expect(state.machineState).toBe('GameOver')
+    expect(state.gameEnding?.reason).toBe('Bank broken')
+    expect(state.activePlayerIds).toEqual([])
+    expect(wealthByPlayer(state.finalWealth)).toEqual({
+        gragatrim: 6180,
+        the_seaward: 4950,
+        hoolaking: 1803
+    })
+    expect(actions.length).toBeGreaterThan(479)
+    expect(state.phaseId).toBe('IV')
+    expect(Object.keys(state.tileInventory.placements).length).toBeGreaterThan(35)
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 120000)
 
 it('replays the finished game and restores every history step in both directions', async () => {
     const { game, state, initialState, actions, engine } = await finishedGame(

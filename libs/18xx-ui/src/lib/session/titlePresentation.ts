@@ -1,3 +1,5 @@
+import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
+import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
 import type { CertificatePool, EighteenXXState, StockInstructionStopReason } from '@tabletop/18xx'
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
@@ -58,12 +60,24 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
+    operatingSteps?: readonly {
+        label: string
+        states: readonly string[]
+        actions: readonly string[]
+        status?(
+            state: State,
+            actions: readonly GameAction[],
+            summaries: OperatingStepStatuses
+        ): string | undefined
+    }[]
+    openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
+    marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     /**
      * Published card artwork for the published presentation, keyed by private company id or

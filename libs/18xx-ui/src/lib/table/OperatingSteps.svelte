@@ -2,8 +2,7 @@
     import { historicalOperatingStepIndex, operatingStepIndex } from './operatingStep.js'
     import OperatingPrivateActions from './OperatingPrivateActions.svelte'
     import OperatingLoanActions from '../loans/OperatingLoanActions.svelte'
-    import { ActionSource } from '@tabletop/common'
-    import { isFinishTrack, isFinishStations, isPayInterest, isRunTrains } from '@tabletop/18xx'
+    import { operatingStepStatuses } from './operatingStepStatuses.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -17,72 +16,41 @@
     const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
     const gameState = $derived(readOnly ? context.state : session.gameState)
-    const currentStep = $derived(
-        session.isViewingHistory
+    const titleSteps = $derived(session.presentation.operatingSteps)
+    const currentStep = $derived.by(() => {
+        if (titleSteps) {
+            const action = session.isViewingHistory ? context.actions.at(-1) : undefined
+            const index = titleSteps.findIndex(
+                (step) => action && step.actions.includes(action.type)
+            )
+            const current =
+                index >= 0
+                    ? index
+                    : titleSteps.findIndex((step) => step.states.includes(gameState.machineState))
+            return current >= 0 ? current : undefined
+        }
+        return session.isViewingHistory
             ? historicalOperatingStepIndex(context.actions.at(-1), gameState.machineState)
             : operatingStepIndex(gameState.machineState)
+    })
+    const steps = $derived(
+        titleSteps?.map((step) => step.label) ?? [
+            'Track',
+            'Station',
+            'Run',
+            'Payout',
+            'Trains',
+            ...(session.loans.rules ? ['Loans'] : [])
+        ]
     )
-    const steps = $derived([
-        'Track',
-        'Station',
-        'Run',
-        'Payout',
-        'Trains',
-        ...(session.loans.rules ? ['Loans'] : [])
-    ])
     const statuses = $derived.by(() => {
         const actions = readOnly
             ? context.actions
             : session.actions.slice(0, session.gameState.actionCount)
-        const boundary = actions.findLastIndex(
-            (action) =>
-                action.type === 'FinishOperatingTurn' || action.type === 'StartOperatingRound'
-        )
-        const current = actions.slice(boundary + 1)
-        const track = current.findLast(isFinishTrack)
-        const station = current.findLast(isFinishStations)
-        const run = current.findLast(isRunTrains)
-        const interest = current.findLast(isPayInterest)
-        const distribution = gameState.earningsDistribution
-        const purchased = gameState.trainPurchaseStep?.purchasedTrainIds.length ?? 0
-        return [
-            gameState.trackStep?.lays.length
-                ? `${gameState.trackStep.lays.length} laid`
-                : gameState.trackStep?.completed &&
-                    track?.companyId === gameState.trackStep.companyId
-                  ? track.source === ActionSource.System
-                      ? 'Not available'
-                      : 'Skipped'
-                  : undefined,
-            gameState.stationStep?.placedStationIds.length
-                ? 'Placed'
-                : gameState.stationStep?.completed &&
-                    station?.companyId === gameState.stationStep.companyId
-                  ? station.source === ActionSource.System
-                      ? 'Not available'
-                      : 'Skipped'
-                  : undefined,
-            gameState.routeStep?.result?.routes.length
-                ? `Ran for ${money(gameState.routeStep.result.revenue)}`
-                : gameState.routeStep?.result && run?.companyId === gameState.routeStep.companyId
-                  ? run.source === ActionSource.System
-                      ? 'Not available'
-                      : 'Skipped'
-                  : undefined,
-            distribution
-                ? distribution.choice === 'pay'
-                    ? 'Paid out'
-                    : distribution.choice === 'half-pay'
-                      ? 'Half-paid'
-                      : 'Withheld'
-                : undefined,
-            purchased ? `${purchased} bought` : undefined,
-            interest?.metadata
-                ? interest.metadata.default
-                    ? 'Defaulted'
-                    : `Paid ${money(interest.metadata.interest)}`
-                : undefined
-        ]
+        const summaries = operatingStepStatuses(gameState, actions, money)
+        return titleSteps
+            ? titleSteps.map((step) => step.status?.(gameState, actions, summaries))
+            : Object.values(summaries)
     })
 </script>
 
@@ -104,9 +72,7 @@
                     aria-current={index === currentStep ? 'step' : undefined}
                     disabled={readOnly || !session.operating.canSkipTo(index)}
                     title={!readOnly && session.operating.canSkipTo(index)
-                        ? index === 1
-                            ? 'Finish track and proceed to station placement'
-                            : 'Finish track and station placement, stopping for any required decision'
+                        ? `Proceed to ${step}, stopping for any required decision`
                         : undefined}
                     onclick={() => session.operating.skipTo(index)}
                 >

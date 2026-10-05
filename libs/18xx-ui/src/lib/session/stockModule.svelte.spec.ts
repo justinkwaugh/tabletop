@@ -36,6 +36,53 @@ function trading(valid: string[] = [], availability = {}) {
 }
 
 describe('StockModule', () => {
+    it('offers and buys a share held in its corporation treasury', async () => {
+        const { session, applied } = trading(['BuyShares'])
+        const treasury = { kind: 'company', companyId: TestCompanyId } as const
+        session.state.companies[0].started = true
+        session.state.companies[0].floated = true
+        session.state.companies[0].president = player
+        session.state.cash.push({ owner: player, amount: 100 }, { owner: treasury, amount: 0 })
+        session.state.certificates.push(
+            {
+                id: 'treasury-share',
+                companyId: TestCompanyId,
+                kind: 'share',
+                shares: 1,
+                president: false,
+                certificateLimitCount: 1,
+                retired: false,
+                owner: treasury
+            },
+            {
+                id: 'president',
+                companyId: TestCompanyId,
+                kind: 'share',
+                shares: 2,
+                president: true,
+                certificateLimitCount: 1,
+                retired: false,
+                owner: player
+            }
+        )
+        const rules = {
+            ...session.rules,
+            stockRules: {
+                ...minimalStockRules,
+                purchaseTerms: () => ({ price: 10, recipient: treasury, payers: [player] })
+            }
+        }
+        const module = new StockModule({ ...session, rules }, () => {})
+        expect(module.availableMenus.map((choice) => choice.menu)).toContain('buy')
+        expect(module.purchaseChoices[0].result.details?.seller).toEqual(treasury)
+        module.selectPurchase(module.purchaseChoices[0].request)
+        await module.confirmPurchase()
+        expect(applied[0]).toMatchObject({
+            type: 'BuyShares',
+            certificateId: 'treasury-share',
+            expectedPrice: 10
+        })
+    })
     it('opens a sole non-pass menu automatically without consuming Undo or committing an action', async () => {
         const { session, applied } = trading(['FinishStockTurn'])
         const module = new StockModule(

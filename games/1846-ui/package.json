@@ -10,6 +10,11 @@
             "types": "./dist/index.d.ts",
             "svelte": "./dist/index.js",
             "import": "./dist/index.js"
+        },
+        "./playground": {
+            "types": "./dist/playground.d.ts",
+            "svelte": "./dist/playground.js",
+            "import": "./dist/playground.js"
         }
     },
     "files": [
@@ -36,7 +41,8 @@
         "@tabletop/18xx-ui": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",
-        "@tabletop/1846": "workspace:*"
+        "@tabletop/1846": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*"
     },
     "devDependencies": {
         "@sveltejs/kit": "^2.48.4",

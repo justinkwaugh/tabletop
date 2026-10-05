@@ -356,10 +356,7 @@
     )
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const maskPlacementLocations = $derived(
-        !consentPreview &&
-            (choosingCity ||
-                session.track.showChoices ||
-                session.gameState.machineState === 'PlacingStation')
+        !consentPreview && (choosingCity || session.track.showChoices || session.stations.canPlace)
     )
     const placementLocationIds = $derived(
         choosingCity
@@ -406,7 +403,7 @@
     }
     let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
     const runningCompanyId = $derived(
-        !session.isViewingHistory && session.gameState.machineState === 'RunningTrains'
+        !session.isViewingHistory && session.routes.editorVisible
             ? session.gameState.routeStep?.companyId
             : undefined
     )
@@ -763,10 +760,14 @@
             area={viewportRect(boardViewport, boardAreas.market)}
         >
             {@const corner = boardInformation
-                ? marketLowerRightSpace(session.gameState.stockMarket)
+                ? marketLowerRightSpace(
+                      session.gameState.stockMarket,
+                      session.presentation.marketCell
+                  )
                 : undefined}
             <div class="board-market">
                 <StockMarketScene
+                    cell={session.presentation.marketCell}
                     animation={session.marketAnimation}
                     appearances={session.mapView.stations}
                     market={session.gameState.stockMarket}
@@ -1194,6 +1195,7 @@
                                         allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
                                     >
                                         <StockMarketScene
+                                            cell={session.presentation.marketCell}
                                             animation={session.marketAnimation}
                                             appearances={session.mapView.stations}
                                             renderScale={2}

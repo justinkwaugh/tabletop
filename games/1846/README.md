@@ -84,8 +84,11 @@ pair as the final set; a bank break can finish the game sooner.
 Physical-board artwork is not supplied.
 
 Run `pnpm --filter @tabletop/1846 build` and
-`pnpm --filter @tabletop/1846-ui build`, then open `/1846` in the 18xx playground.
-Alternatively run `pnpm --filter @tabletop/1846-ui dev` on port 4193.
+`pnpm --filter @tabletop/1846-ui build`, then open `/table` in the 18xx playground and select **1846**.
+The shared table offers 2–5 player opening, stock, construction, route, train,
+private purchase and ending scenarios. It uses the same shared board, market,
+company sheets, history, Undo and action controls as the other titles.
+The title UI dev host is also available on port 4193.
 Run logic tests with `pnpm exec vitest run games/1846/src`.
 
 Use the harness's Protected mode to inspect Player, spectator, and Host views.
@@ -139,3 +142,5 @@ See [endings and final valuation](../../research/18xx/1846-endings-design.md) fo
 See [the two-player opening design](../../research/18xx/1846-two-player-opening-design.md) for this slice.
 
 See [two-player completion](../../research/18xx/1846-two-player-completion-design.md) for the remaining variant rules and verification.
+
+See [shared table integration](../../research/18xx/1846-shared-table-design.md) for UI ownership and route solver support.

@@ -1,0 +1,52 @@
+.midwest-actions {
+    color: var(--rail-text, #514536);
+    font-size: 13px;
+    padding: 8px 12px;
+}
+.midwest-actions section {
+    padding: 8px 0;
+}
+.midwest-actions h2,
+.midwest-actions h3 {
+    font-size: 14px;
+    font-weight: 650;
+    margin: 6px 0;
+}
+.midwest-actions p {
+    margin: 6px 0 10px;
+}
+.midwest-actions .choices,
+.midwest-actions .cards {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.midwest-actions button {
+    font: inherit;
+    padding: 8px 12px;
+    border: 1px solid var(--rail-border, #c7b8a6);
+    border-radius: 4px;
+    background: var(--rail-surface, #fffdf8);
+    color: var(--rail-text, #514536);
+    cursor: pointer;
+}
+.midwest-actions button:hover:not(:disabled),
+.midwest-actions button[aria-pressed='true'] {
+    background: var(--rail-surface-selected, #ded0c2);
+}
+.midwest-actions button:focus-visible {
+    outline: 2px solid #a87948;
+    outline-offset: 2px;
+}
+.midwest-actions button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.midwest-actions .card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 220px;
+    text-align: left;
+}

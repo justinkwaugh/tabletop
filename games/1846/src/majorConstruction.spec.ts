@@ -91,8 +91,21 @@ describe('1846 major construction', () => {
             })
         }
         expect(table.state.trackStep?.lays).toHaveLength(2)
-        table.act('PlaceStation', stationRequest(table))
+        const before = structuredClone(table.state)
+        const placed = table.act('PlaceStation', stationRequest(table))
         expect(table.state.stationStep?.placedStationIds).toHaveLength(1)
+        expect(table.state.machineState).toBe('BuyingTrains')
+        expect(placed.processedActions.map((action) => action.type)).toEqual([
+            'PlaceStation',
+            'FinishTrack',
+            'FinishStations',
+            'RunTrains',
+            'DistributeEarnings'
+        ])
+        let restored = table.state
+        for (const action of placed.processedActions.toReversed())
+            restored = table.engine.undoProcessedAction({ state: restored, action })
+        expect(restored).toEqual(before)
     })
     it('rejects wrong actors, wrong cost, occupied cities and unaffordable remote stations', () => {
         const table = constructionGame()

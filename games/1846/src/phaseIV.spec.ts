@@ -10,6 +10,8 @@ import {
     trainsCountingForLimit,
     discardableTrains,
     trainCanBeTraded,
+    payingRouteStops,
+    routeConnectionBonuses,
     type RouteRevenueStop
 } from '@tabletop/18xx'
 import {
@@ -341,14 +343,15 @@ describe('1846 Phase IV trains and lifecycle', () => {
         }))
         stops[1].locationId = 'C5'
         stops[2].locationId = 'C17'
-        const paying = RouteRules1846.payingStops?.(TrainDepot1846.trainDefinition('7/8'), stops)
+        const policy = RouteRules1846.revenuePolicy?.(TrainDepot1846.trainDefinition('7/8')) ?? {}
+        const paying = payingRouteStops(stops, policy)
         assertExists(paying)
         expect(paying).toHaveLength(7)
         expect(paying).toContain(stops[0])
         expect(paying).toContain(stops[1])
         expect(paying).toContain(stops[2])
         expect(paying).not.toContain(stops[3])
-        expect(RouteRules1846.routeBonuses?.(paying)).toEqual([
+        expect(routeConnectionBonuses(paying, policy)).toEqual([
             { locationId: 'C17', amount: 30 },
             { locationId: 'C5', amount: 50 }
         ])

@@ -459,20 +459,16 @@ it('keeps all visited stops for distance while paying only policy-selected stops
     const { state, rules, route } = fixture([
         city('yellow', [0], 10, 1),
         city('yellow', [3, 0], 30, 1),
-        city('yellow', [3], 50, 1)
+        city('yellow', [3], 60, 1)
     ])
     rules.stopBonus = (_state, _train, _company, stop) => (stop.locationId === '1' ? 20 : 0)
-    rules.payingStops = (_train, stops) => {
-        expect(stops[0].companyStation).toBe(true)
-        expect(stops[1].bonus).toBe(20)
-        return stops.filter((stop) => stop.locationId !== '1')
-    }
+    rules.revenuePolicy = () => ({ payingStopLimit: 2, requirePayingStation: true })
     const result = new RouteEvaluation(state, rules).evaluateRoute('A', route).result!
     expect(result.distance).toBe(3)
     expect(result.visits).toHaveLength(3)
     expect(result.payments.map((payment) => payment.locationId)).toEqual(['0', '2'])
     expect(result.bonuses).toBeUndefined()
-    expect(result.revenue).toBe(60)
+    expect(result.revenue).toBe(70)
 })
 
 it('enforces visited-stop distance independently of the number of paying stops', () => {
@@ -480,23 +476,45 @@ it('enforces visited-stop distance independently of the number of paying stops',
         city('yellow', index === 0 ? [0] : index === 5 ? [3] : [3, 0], 20, 1)
     )
     const { state, rules, route } = fixture(faces, { measure: 'revenue-centers', maximum: 5 })
-    rules.payingStops = (_train, stops) => stops.slice(0, 3)
+    rules.revenuePolicy = () => ({ payingStopLimit: 3 })
     expect(new RouteEvaluation(state, rules).evaluateRoute('A', route).reason).toContain(
         'distance limit'
     )
 })
 
 it('uses title running permission for route validation and automatic zero runs', () => {
-    const { state, rules, route } = fixture([city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)])
+    const { state, rules, route } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3], 30, 1)
+    ])
     const evaluation = new RouteEvaluation(state, { ...rules, canRunTrain: () => false })
     expect(evaluation.runnableTrains('A')).toEqual([])
     expect(evaluation.cannotRun('A')).toBe(true)
-    expect(evaluation.evaluate('A', [route]).reason).toBe('This train cannot run this operating round.')
+    expect(evaluation.evaluate('A', [route]).reason).toBe(
+        'This train cannot run this operating round.'
+    )
 })
 
 it('adds route-level bonuses from counted stops only', () => {
-    const { state, rules, route } = fixture([city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)])
-    const bonuses: RouteRules['routeBonuses'] = stops => stops.length === 2 ? [{locationId: '0', amount: 80}] : []
-    expect(new RouteEvaluation(state, {...rules, routeBonuses: bonuses}).evaluate('A', [route]).result?.revenue).toBe(130)
-    expect(new RouteEvaluation(state, {...rules, routeBonuses: bonuses, payingStops: (_train, stops) => stops.slice(0, 1)}).evaluate('A', [route]).result?.revenue).toBe(20)
+    const { state, rules, route } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3], 30, 1)
+    ])
+    const connectionBonuses = [{ from: { '0': 80 }, to: { '1': 0 } }]
+    expect(
+        new RouteEvaluation(state, {
+            ...rules,
+            revenuePolicy: () => ({ connectionBonuses })
+        }).evaluate('A', [route]).result?.revenue
+    ).toBe(130)
+    expect(
+        new RouteEvaluation(state, {
+            ...rules,
+            revenuePolicy: () => ({
+                connectionBonuses,
+                payingStopLimit: 1,
+                requirePayingStation: true
+            })
+        }).evaluate('A', [route]).result?.revenue
+    ).toBe(20)
 })

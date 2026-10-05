@@ -1,6 +1,9 @@
 import type { TitleComponents } from './titleComponents.js'
 import {
     GameState,
+    Visibility,
+    type Color,
+    type GameResult,
     HydratableGameState,
     assert,
     type HydratedGameState,
@@ -35,6 +38,7 @@ import { PhaseFields, validatePhaseChange } from '../phases/phaseChange.js'
 import type { PhaseTable } from '../phases/phaseTable.js'
 import {
     CompanyDecisionFields,
+    CompanyAcquisitionOfferFields,
     PurchaseOfferFields,
     validateCompanyDecisions
 } from '../privates/companyDecision.js'
@@ -100,9 +104,13 @@ export const RailwayFields = {
     ...PurchaseOfferFields,
     ...RouteFields
 }
-type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates'> &
+type RuntimeFields = Omit<
+    typeof RailwayFields,
+    'companies' | 'certificates' | 'example' | 'purchaseOffer'
+> &
     typeof FinanceFields &
-    typeof CompanyDecisionFields &
+    Omit<typeof CompanyDecisionFields, 'purchaseOffer'> &
+    typeof CompanyAcquisitionOfferFields &
     typeof StockTurnPurchaseFields &
     typeof PendingParFields &
     typeof AuctionFields &
@@ -112,14 +120,30 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates'> &
     typeof CompanyAuctionFields &
     typeof LoanFields &
     typeof CashCrisisFields & {
+        example: Type.TOptional<typeof RailwayFields.example>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }
-export type TitleStateSchema = Type.TObject<
-    Omit<typeof GameState.properties, 'machineState'> & {
-        machineState: Type.TString | Type.TUnsafe<string>
-    }
+// Enum member ordering is not part of the state contract. Declaration emit and
+// visibility projection may reorder it while preserving the same value type.
+type TitleGameFields = {
+    players: Type.TArray<
+        Type.TObject<{
+            playerId: Type.TString
+            color: Type.TEnum<Color[]>
+        }>
+    >
+    result: Type.TOptional<Type.TEnum<GameResult[]>>
+    machineState: Type.TString | Type.TUnsafe<string> | Type.TUnion<Type.TLiteral<string>[]>
+}
+type ProjectedGameStateSchema = ReturnType<
+    typeof Visibility.createProjectionSchema<typeof GameState>
 >
+export type TitleStateSchema =
+    | Type.TObject<Omit<typeof GameState.properties, keyof TitleGameFields> & TitleGameFields>
+    | Type.TObject<
+          Omit<ProjectedGameStateSchema['properties'], keyof TitleGameFields> & TitleGameFields
+      >
 export type EighteenXXRuntimeSchema = Type.TObject<typeof GameState.properties & RuntimeFields>
 export type EighteenXXState<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> =
     Type.Static<Schema>

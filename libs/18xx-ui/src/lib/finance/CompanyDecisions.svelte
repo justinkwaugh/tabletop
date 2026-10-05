@@ -3,7 +3,7 @@
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { privateMarkerLabel } from '../maps/mapDrawing.js'
-    import PrivateBuying from '../privates/PrivateBuying.svelte'
+    import CompanyBuying from './CompanyBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
@@ -96,11 +96,13 @@
                         : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
                     {offer.asset.kind === 'private'
                         ? getCompany(gameState, offer.asset.privateCompanyId).name
-                        : offer.asset.trainId}</span
+                        : offer.asset.kind === 'company'
+                          ? getCompany(gameState, offer.asset.companyId).name
+                          : offer.asset.trainId}</span
                 >
             </DecisionResponse>
         {:else}
-            <PrivateBuying {session} showEntry={session.operating.step === undefined} />
+            <CompanyBuying {session} showEntry={session.operating.step === undefined} />
             <div class="choices">
                 {#if purchaseOptions.length}
                     <label
@@ -189,7 +191,7 @@
                 {/if}
             </div>
         {/if}
-        {#if selection && !(selection.kind === 'purchase' && selection.request.asset.kind === 'private')}
+        {#if selection && !(selection.kind === 'purchase' && selection.request.asset.kind !== 'train')}
             <div aria-label="Company decision preview">
                 {#if selection.kind === 'purchase'}
                     <label

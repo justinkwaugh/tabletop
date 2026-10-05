@@ -144,7 +144,7 @@ export const CanonicalValidator = Compile(EighteenFortySixState)
 export const EighteenFortySixProjectedState =
     Visibility.createProjectionSchema(EighteenFortySixState)
 export type EighteenFortySixProjectedState = Type.Static<typeof EighteenFortySixProjectedState>
-const ProjectedValidator = Compile(EighteenFortySixProjectedState)
+export const ProjectedValidator = Compile(EighteenFortySixProjectedState)
 export class HydratedEighteenFortySixState
     extends HydratableGameState<typeof EighteenFortySixProjectedState, PlayerState>
     implements EighteenFortySixProjectedState

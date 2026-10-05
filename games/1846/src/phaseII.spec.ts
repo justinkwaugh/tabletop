@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
-import { finiteCashOwnedBy, trainsOwnedBy, type RouteRevenueStop } from '@tabletop/18xx'
+import {
+    finiteCashOwnedBy,
+    trainsOwnedBy,
+    payingRouteStops,
+    type TrainDefinition,
+    type RouteRevenueStop
+} from '@tabletop/18xx'
 import { stockGame, start, buyTrain } from './testSupport.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { TrainDepot1846, trainBuyingChoices1846 } from './trains.js'
@@ -144,8 +150,8 @@ describe('1846 phase-II train introduction', () => {
             bonus: index === 1 ? 40 : 0,
             companyStation: index === 0
         }))
-        const select = RouteRules1846.payingStops
-        assertExists(select)
+        const select = (train: TrainDefinition, visits: readonly RouteRevenueStop[]) =>
+            payingRouteStops(visits, RouteRules1846.revenuePolicy?.(train) ?? {})
         expect(select(train, stops).map((stop) => stop.locationId)).toEqual(['0', '1', '4'])
         expect(select(train, stops.slice(0, 2))).toEqual(stops.slice(0, 2))
         expect(select(TrainDepot1846.trainDefinition('4'), stops)).toEqual(stops)

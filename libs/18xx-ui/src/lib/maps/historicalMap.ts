@@ -1,3 +1,4 @@
+import type { MapSession } from '../session/mapModule.svelte.js'
 import { isLayTile, isPrivateTileLay, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
 import {
     assert,
@@ -19,6 +20,8 @@ export function isMapHistoryAction(action: GameAction) {
     return isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action)
 }
 
+export type HistoricalMapState = MapSession['state'] & Pick<EighteenXXState, 'operatingSet'>
+
 export class HistoricalMaps<State extends GameState = EighteenXXState> {
     private source?: State
     private actions?: readonly GameAction[]
@@ -27,7 +30,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
     /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
     constructor(
         private readonly currentView: () => MapViewDefinition,
-        private readonly read: (state: State) => EighteenXXState
+        private readonly read: (state: State) => HistoricalMapState
     ) {}
 
     preview(state: State, actions: readonly GameAction[], action: GameAction) {

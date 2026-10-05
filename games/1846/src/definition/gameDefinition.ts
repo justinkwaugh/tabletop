@@ -1,3 +1,4 @@
+import { AutomaticTrackCompletionHandler } from '@tabletop/18xx'
 import { EndingRules1846 } from '../ending.js'
 import {
     PublicDistributionActions,
@@ -194,6 +195,72 @@ import { choicesFor, hiddenDistribution } from '../distribution.js'
 import { EighteenFortySixInfo } from './info.js'
 
 const actionRegistry = new ActionRegistry([
+    defineAction(
+        StartReceiverTurn,
+        (data) => StartReceiverValidator.Check(data),
+        (data) => new StartReceiverTurnAction(data)
+    ),
+    defineAction(
+        SettleReceiver,
+        (data) => SettleReceiverValidator.Check(data),
+        (data) => new SettleReceiverAction(data)
+    ),
+    defineAction(
+        BuyReceiverTrain,
+        (data) => BuyReceiverValidator.Check(data),
+        (data) => new BuyReceiverTrainAction(data)
+    ),
+    defineAction(
+        FinishReceiverTurn,
+        (data) => FinishReceiverValidator.Check(data),
+        (data) => new FinishReceiverTurnAction(data)
+    ),
+    defineAction(
+        BuyReceiverShare,
+        (data) => BuyReceiverShareValidator.Check(data),
+        (data) => new BuyReceiverShareAction(data)
+    ),
+    defineAction(
+        ChooseDraftCard,
+        (data) => ChooseValidator.Check(data),
+        (data) => new ChooseAction(data)
+    ),
+    defineAction(
+        PassFinalCompany,
+        (data) => PassValidator.Check(data),
+        (data) => new PassAction(data)
+    ),
+    defineAction(
+        RevealDraft,
+        (data) => RevealValidator.Check(data),
+        (data) => new RevealAction(data)
+    ),
+    defineAction(
+        CloseCorporation,
+        (data) => CloseCorporationValidator.Check(data),
+        (data) => new CloseCorporationAction(data)
+    ),
+    defineAction(
+        AssignSteamboat,
+        (data) => AssignSteamboatValidator.Check(data),
+        (data) => new AssignSteamboatAction(data)
+    ),
+    defineAction(
+        SettleIndependent,
+        (data) => SettleIndependentValidator.Check(data),
+        (data) => new SettleIndependentAction(data)
+    ),
+    defineAction(
+        CorporateFinance,
+        (data) => CorporateFinanceValidator.Check(data),
+        (data) => new CorporateFinanceAction(data)
+    ),
+    defineAction(
+        AssignRevenueMarker,
+        (data) => AssignRevenueMarkerValidator.Check(data),
+        (data) => new AssignRevenueMarkerAction(data)
+    ),
+
     ...PublicDistributionActions,
     ...endingActions(EndingRules1846),
     defineAction(
@@ -279,22 +346,7 @@ const rustingTrains = new RustingTrainsHandler('DistributingEarnings')
 const runningTrains = new RunningTrainsHandler(RouteRules1846, 'DistributingEarnings')
 const distributingEarnings = new DistributingEarningsHandler(EarningsRules1846, 'BuyingTrains')
 const layingTrack = new LayingTrackHandler(TrackRules1846, 'RunningTrains')
-const apiActions = {
-    StartReceiverTurn,
-    SettleReceiver,
-    BuyReceiverTrain,
-    FinishReceiverTurn,
-    BuyReceiverShare,
-    ChooseDraftCard,
-    PassFinalCompany,
-    RevealDraft,
-    CloseCorporation,
-    AssignSteamboat,
-    SettleIndependent,
-    CorporateFinance,
-    AssignRevenueMarker,
-    ...actionRegistry.schemas
-}
+const apiActions = actionRegistry.schemas
 export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighteenFortySixState> = {
     randomnessVersion: 1,
     initializer: new Initializer(),
@@ -308,21 +360,8 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                 data instanceof HydratedEighteenFortySixState ? data.dehydrate() : data
             ),
         hydrateAction(data) {
-            if (StartReceiverValidator.Check(data)) return new StartReceiverTurnAction(data)
-            if (SettleReceiverValidator.Check(data)) return new SettleReceiverAction(data)
-            if (BuyReceiverValidator.Check(data)) return new BuyReceiverTrainAction(data)
-            if (FinishReceiverValidator.Check(data)) return new FinishReceiverTurnAction(data)
-            if (BuyReceiverShareValidator.Check(data)) return new BuyReceiverShareAction(data)
-            if (AssignRevenueMarkerValidator.Check(data)) return new AssignRevenueMarkerAction(data)
-            if (CorporateFinanceValidator.Check(data)) return new CorporateFinanceAction(data)
-            if (ChooseValidator.Check(data)) return new ChooseAction(data)
-            if (PassValidator.Check(data)) return new PassAction(data)
-            if (RevealValidator.Check(data)) return new RevealAction(data)
-            if (CloseCorporationValidator.Check(data)) return new CloseCorporationAction(data)
-            if (AssignSteamboatValidator.Check(data)) return new AssignSteamboatAction(data)
-            if (SettleIndependentValidator.Check(data)) return new SettleIndependentAction(data)
-            const stockAction = actionRegistry.hydrate(data)
-            if (stockAction) return stockAction
+            const action = actionRegistry.hydrate(data)
+            if (action) return action
             throw Error('Unknown or invalid 1846 action')
         }
     },
@@ -719,6 +758,11 @@ for (const step of AcquisitionSteps) {
         TrainRules1846
     )
 }
+Runtime.stateHandlers.LayingTrack = new AutomaticTrackCompletionHandler(
+    TrackRules1846,
+    Runtime.stateHandlers.LayingTrack,
+    ['PlaceStation', 'BuildPrivateTrack', 'PlaceCWIStation']
+)
 for (const [step, handler] of Object.entries(Runtime.stateHandlers)) {
     if (step !== 'GameOver')
         Runtime.stateHandlers[step] = new GameEndingHandler(handler, EndingRules1846)

@@ -11,8 +11,8 @@
     import {
         marketTokenLayout,
         expandedMarketStack,
-        MarketCellWidth,
-        MarketCellHeight,
+        DefaultMarketCell,
+        type MarketCellDimensions,
         MarketTokenSize,
         MarketScenePadding
     } from './marketTokenLayout.js'
@@ -23,6 +23,7 @@
         appearances,
         animation,
         zones = [],
+        cell = DefaultMarketCell,
         renderScale = 1
     }: {
         market: StockMarketModel
@@ -30,17 +31,18 @@
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
         zones?: readonly MarketZone[]
+        cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
     const rows = $derived(Math.max(...market.spaces.map((space) => space.row)) + 1)
-    let tokens = $derived(marketTokenLayout(market))
+    let tokens = $derived(marketTokenLayout(market, cell))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
         animation?.updatingVisibleState
         return undefined
     })
-    const expanded = $derived(hoveredSpace ? expandedMarketStack(market, hoveredSpace) : [])
+    const expanded = $derived(hoveredSpace ? expandedMarketStack(market, hoveredSpace, cell) : [])
     const expandedIds = $derived(
         market.stacks.find((stack) => stack.spaceId === hoveredSpace)?.companyIds ?? []
     )
@@ -79,8 +81,8 @@
         if (!activeSession) return
         const listener = async ({ to, from, action, animationContext }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
-            const before = marketTokenLayout(from)
-            const after = marketTokenLayout(to)
+            const before = marketTokenLayout(from, cell)
+            const after = marketTokenLayout(to, cell)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
             const beforeById = new Map(before.map((item) => [item.companyId, item]))
@@ -168,8 +170,8 @@
         role="group"
         aria-label="Market spaces"
         onpointerleave={() => (hoveredSpace = undefined)}
-        style:grid-template-columns={`repeat(${columns}, ${MarketCellWidth * renderScale}px)`}
-        style:grid-template-rows={`repeat(${rows}, ${MarketCellHeight * renderScale}px)`}
+        style:grid-template-columns={`repeat(${columns}, ${cell.width * renderScale}px)`}
+        style:grid-template-rows={`repeat(${rows}, ${cell.height * renderScale}px)`}
     >
         {#each market.spaces as space (space.id)}
             {@const crowded = tokens.some(

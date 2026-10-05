@@ -41,9 +41,6 @@ importers:
 
   apps/18xx-playground:
     dependencies:
-      '@tabletop/1846-ui':
-        specifier: workspace:*
-        version: link:../../games/1846-ui
       '@tabletop/1817':
         specifier: workspace:*
         version: link:../../games/1817
@@ -56,6 +53,12 @@ importers:
       '@tabletop/1830-ui':
         specifier: workspace:*
         version: link:../../games/1830-ui
+      '@tabletop/1846':
+        specifier: workspace:*
+        version: link:../../games/1846
+      '@tabletop/1846-ui':
+        specifier: workspace:*
+        version: link:../../games/1846-ui
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../../libs/18xx
@@ -754,6 +757,9 @@ importers:
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../../libs/18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/18xx-ui':
         specifier: workspace:*
         version: link:../../libs/18xx-ui

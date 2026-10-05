@@ -17,7 +17,7 @@
     <nav>
         <a href="/">TABLETOP <span>/ 18XX</span></a><a href="/table">Game table ↗</a><a href="/maps"
             >Maps ↗</a
-        ><a href="/specimens">Visual specimen sheet ↗</a><a href="/1846">1846 prototype ↗</a>
+        ><a href="/specimens">Visual specimen sheet ↗</a>
     </nav>
     <div class="intro">
         <label

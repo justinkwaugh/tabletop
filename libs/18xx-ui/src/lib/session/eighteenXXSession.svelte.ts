@@ -1,4 +1,5 @@
 import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
+import { operatingStepIndex } from '../table/operatingStep.js'
 import {
     cashOwnedBy,
     EighteenXXPreferenceDefinition,
@@ -22,7 +23,11 @@ import type { GameAction } from '@tabletop/common'
 import { assert, GameStorage } from '@tabletop/common'
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
-import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
+import {
+    HistoricalMaps,
+    type HistoricalMapState,
+    type HistoricalMap
+} from '../maps/historicalMap.js'
 import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
@@ -59,6 +64,20 @@ import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
+export type EighteenXXSessionRules<
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
+> = Omit<
+    EighteenXXTitleRules<Schema, State>,
+    | 'createOpening'
+    | 'decisionHandlers'
+    | 'titleStateHandlers'
+    | 'titleActions'
+    | 'trainFundingRules'
+> &
+    Partial<Pick<EighteenXXTitleRules<Schema, State>, 'trainFundingRules'>>
+
 type SessionOptions<
     Schema extends TitleStateSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
@@ -93,10 +112,7 @@ export class EighteenXXSession<
     }
     private readonly moduleSession: ModuleSession<
         HydratedEighteenXXState,
-        Omit<
-            EighteenXXTitleRules,
-            'state' | 'createOpening' | 'decisionHandlers' | 'titleStateHandlers'
-        >
+        Omit<EighteenXXSessionRules, 'state'>
     > = ((session: EighteenXXSession<Schema, State>) => ({
         get state() {
             return session.gameState
@@ -114,10 +130,19 @@ export class EighteenXXSession<
             return session.isViewingHistory
         },
         get selectionsVisible() {
-            return !session.updatingVisibleState && !session.isViewingHistory
+            return (
+                !session.updatingVisibleState &&
+                !session.isViewingHistory &&
+                !session.sharedActionsBlocked
+            )
         },
         get interactive() {
-            return !session.busy && !session.updatingVisibleState && !session.isViewingHistory
+            return (
+                !session.busy &&
+                !session.updatingVisibleState &&
+                !session.isViewingHistory &&
+                !session.sharedActionsBlocked
+            )
         },
         get ordinaryHotseatPlay() {
             return session.localHotseat && !session.isDeveloperHarness
@@ -172,7 +197,8 @@ export class EighteenXXSession<
         this.decisions,
         () => {
             this.map.clearInspection()
-        }
+        },
+        () => this.trackBuildingActive
     )
     readonly trainBuying = new TrainBuyingModule(
         this.moduleSession,
@@ -186,7 +212,8 @@ export class EighteenXXSession<
         () => {
             this.map.clearInspection()
         },
-        () => this.requiresStationTokenChoice
+        () => this.requiresStationTokenChoice,
+        () => this.stationPlacementActive
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
@@ -201,14 +228,25 @@ export class EighteenXXSession<
         this.track,
         this.stations,
         this.routes,
-        this.companyAuction
+        this.companyAuction,
+        () => this.mapDisplayState
     )
-    readonly operating = new OperatingTurnModule(this.moduleSession, {
-        finishTrack: () => this.track.finish(),
-        finishStations: () => this.stations.finish(),
-        trainSelected: () => !!this.trainBuying.depotSelection,
-        hasLocalSelection: () => this.hasLocalSelection
-    })
+    readonly operating = new OperatingTurnModule(
+        this.moduleSession,
+        {
+            finishTrack: () => this.track.finish(),
+            finishStations: () => this.stations.finish(),
+            trainSelected: () => !!this.trainBuying.depotSelection,
+            hasLocalSelection: () => this.hasLocalSelection
+        },
+        () => this.operatingStepCompletion,
+        (state) => {
+            const steps = this.presentation.operatingSteps
+            if (!steps) return operatingStepIndex(state)
+            const index = steps.findIndex((step) => step.states.includes(state))
+            return index < 0 ? undefined : index
+        }
+    )
     readonly stock = new StockModule(
         this.moduleSession,
         () => {
@@ -319,7 +357,7 @@ export class EighteenXXSession<
     })
     constructor(
         options: SessionOptions<Schema, State>,
-        private readonly rules: EighteenXXTitleRules<Schema, State>,
+        private readonly rules: EighteenXXSessionRules<Schema, State>,
         private readonly mapViewDefinition: MapViewDefinition,
         private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>
     ) {
@@ -332,11 +370,13 @@ export class EighteenXXSession<
         this.historicalMaps = new HistoricalMaps(
             () => this.mapView,
             (state) =>
-                this.rules.state.hydrate(
-                    state,
-                    this.rules.trackRules.map,
-                    this.rules.trackRules.tileSet,
-                    this.rules.trainRules.depot
+                this.projectMapState(
+                    this.rules.state.hydrate(
+                        state,
+                        this.rules.trackRules.map,
+                        this.rules.trackRules.tileSet,
+                        this.rules.trainRules.depot
+                    )
                 )
         )
         this.registerLocalSelections()
@@ -367,7 +407,30 @@ export class EighteenXXSession<
             this.game.players.filter((player) => player.id === id)
         )
     }
+    protected get operatingStepCompletion() {
+        if (this.presentation.operatingSteps) return undefined
+        return OperatingTurnModule.defaultCompletion(this.moduleSession, {
+            finishTrack: () => this.track.finish(),
+            finishStations: () => this.stations.finish()
+        })
+    }
     protected onStockSelectionCancelled() {}
+    protected get trackBuildingActive(): boolean {
+        return true
+    }
+    protected get stationPlacementActive(): boolean {
+        return this.gameState.machineState === 'PlacingStation'
+    }
+    protected get sharedActionsBlocked(): boolean {
+        return false
+    }
+    protected get mapDisplayState(): ConstructorParameters<typeof MapModule>[0]['state'] {
+        return this.projectMapState(this.gameState)
+    }
+    protected projectMapState(state: State): HistoricalMapState {
+        return state
+    }
+
     availableTrainDefinitionIds = $derived.by(() =>
         this.rules.trainRules.availableDefinitions(this.gameState)
     )
@@ -525,7 +588,7 @@ export function createEighteenXXSessionClass<
     Schema extends TitleStateSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 >(
-    rules: EighteenXXTitleRules<Schema, State>,
+    rules: EighteenXXSessionRules<Schema, State>,
     mapView: MapViewDefinition,
     presentation: TitlePresentation<EighteenXXState<Schema>>
 ): new (options: SessionOptions<Schema, State>) => EighteenXXSession<Schema, State> {

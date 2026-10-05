@@ -16,7 +16,7 @@
     const preview = $derived(session.track.preview)
 </script>
 
-{#if turn && !session.gameState.stationStep && !session.gameState.trackConsent}
+{#if turn && session.gameState.machineState === 'LayingTrack' && !session.gameState.trackConsent}
     <section aria-label="Track construction">
         {#if declined}
             <p class="decline-notice" role="status">

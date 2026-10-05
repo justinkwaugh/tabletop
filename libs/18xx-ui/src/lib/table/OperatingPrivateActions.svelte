@@ -2,7 +2,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session, purchaseLabel }: { session: EighteenXXSessionView; purchaseLabel: string } =
         $props()
-    const canBuy = $derived(session.decisions.privatePurchases.length > 0)
+    const canBuy = $derived(session.decisions.companyPurchases.length > 0)
     const canUse = $derived(session.privateActions.powersAvailable)
     let menu = $state<HTMLDivElement>()
     let compact = $state<HTMLButtonElement>()
@@ -22,7 +22,7 @@
         if (powers) session.privateActions.choosePowers()
         else
             session.privateActions.choosePurchaseSource(
-                session.decisions.privatePurchases.some(
+                session.decisions.companyPurchases.some(
                     (option) =>
                         option.request.seller.kind === 'player' &&
                         option.request.seller.playerId === session.myPlayer?.id

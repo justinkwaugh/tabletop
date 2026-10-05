@@ -54,3 +54,6 @@ export * from './receiverShares.js'
 export * from './phases.js'
 
 export { pendingBlockingStations } from './stations.js'
+
+export { Phases1846 } from './trains.js'
+export { EndingRules1846 } from './ending.js'

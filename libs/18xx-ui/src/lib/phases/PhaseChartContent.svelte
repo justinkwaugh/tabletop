@@ -102,11 +102,14 @@
                 <thead
                     ><tr
                         ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        ><th>Rusts in phase</th></tr
+                        ><th>Obsoleted / rusted by</th></tr
                     ></thead
                 >
                 <tbody>
-                    {#each chart.trains as train (train.id)}
+                    {#each chart.trains as train, index (train.id)}
+                        {@const faces = chart.trains.filter(
+                            (face) => face.supplyId === train.supplyId
+                        )}
                         {@const remaining = depotState.depot.remaining(
                             depotState.inventory,
                             train.id
@@ -122,17 +125,23 @@
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
                             <td class="money">{money(train.price)}</td>
-                            <td class="number"
-                                >{remaining === 'unlimited' ? '∞' : remaining}/{train.count ===
-                                'unlimited'
-                                    ? '∞'
-                                    : train.count}</td
-                            >
+                            {#if index === 0 || chart.trains[index - 1].supplyId !== train.supplyId}
+                                <td
+                                    class="number"
+                                    rowspan={faces.length}
+                                    title={faces.length > 1
+                                        ? 'Shared certificates: choose either face'
+                                        : undefined}
+                                    >{remaining === 'unlimited' ? '∞' : remaining}</td
+                                >
+                            {/if}
                             <td
-                                >{#if train.rustPhaseId}<TrainBadge
-                                        name={train.rustPhaseId}
-                                        color={trainColors[train.rustPhaseId]}
-                                    />{#if train.rustNote}
+                                >{#if train.rustTrainIds.length}<span class="badges"
+                                        >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
+                                                name={trainId}
+                                                color={trainColors[trainId]}
+                                            />{/each}</span
+                                    >{#if train.rustNote}
                                         *{/if}{:else}<span class="muted">Permanent</span>{/if}</td
                             >
                         </tr>
@@ -142,8 +151,9 @@
         </section>
     </div>
     <div class="notes">
-        {#each chart.trains.filter((train) => train.rustNote) as train (train.id)}<p>
-                * {train.rustNote}
+        {#each [...new Set(chart.trains.flatMap( (train) => (train.rustNote ? [train.rustNote] : []) ))] as note (note)}<p
+            >
+                * {note}
             </p>{/each}
         {#if !depotOnly}{#each chart.notes as note, index (index)}<p>{note}</p>{/each}{/if}
     </div>

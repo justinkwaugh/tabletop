@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { assert, assertExists } from '@tabletop/common'
-import { TrackConstruction, type RouteRevenueStop } from '@tabletop/18xx'
+import {
+    TrackConstruction,
+    payingRouteStops,
+    routeConnectionBonuses,
+    type RouteRevenueStop
+} from '@tabletop/18xx'
 import { stockGame, layTrack } from './testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { EighteenFortySixTileSet } from './tiles.js'
@@ -121,16 +126,17 @@ describe('1846 green construction and routes', () => {
             { locationId: 'D14', nodeId: 'city', amount: 30, bonus: 0, companyStation: false },
             { locationId: 'C17', nodeId: 'offboard', amount: 40, bonus: 0, companyStation: false }
         ]
-        const paying = RouteRules1846.payingStops?.(TrainDepot1846.trainDefinition('3/5'), stops)
+        const policy = RouteRules1846.revenuePolicy?.(TrainDepot1846.trainDefinition('3/5')) ?? {}
+        const paying = payingRouteStops(stops, policy)
         assertExists(paying)
         expect(paying.map((s) => s.locationId)).toEqual(['C5', 'D6', 'C17'])
-        expect(RouteRules1846.routeBonuses?.(paying)).toEqual([
+        expect(routeConnectionBonuses(paying, policy)).toEqual([
             { locationId: 'C17', amount: 30 },
             { locationId: 'C5', amount: 50 }
         ])
-        expect(RouteRules1846.routeBonuses?.(stops.slice(1))).toEqual([])
+        expect(routeConnectionBonuses(stops.slice(1), policy)).toEqual([])
         expect(
-            RouteRules1846.routeBonuses?.([stops[0], { ...stops[4], locationId: 'I1' }])
+            routeConnectionBonuses([stops[0], { ...stops[4], locationId: 'I1' }], policy)
         ).toEqual([])
     })
 })
