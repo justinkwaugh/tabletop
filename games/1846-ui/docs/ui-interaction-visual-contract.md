@@ -34,10 +34,11 @@ plan clears ordinary construction/route selection. Pending revenue-marker choice
 and a private construction plan block unrelated shared actions. Purchase responses
 retain the shared response UI and action authority.
 
-Back/Undo first remove shared manual selection, then private-plan steps or the
-station-mode choice, and only then committed Actions. Automatic singleton choices
-do not consume Undo. State publication, perspective changes and history changes
-invalidate title-local construction selections. No intermediate plan is serialized.
+Back/Undo first remove shared manual selection, then private-plan steps, and only
+then committed Actions. The operating-mode choice is a view choice, not a step:
+Back/Undo never change it. Automatic singleton choices do not consume Undo. State
+publication, perspective changes and history changes invalidate title-local
+construction selections. No intermediate plan is serialized.
 
 ## Hidden and public distribution
 
@@ -60,7 +61,10 @@ runtime resumes public purchases automatically.
 
 - Issuing or redeeming shares is a mode beside track and station building, and beside
   Run trains, until routes are run. Each transaction commits immediately; the first one
-  locks the turn to issuing or redeeming, and the mode closes after each transaction.
+  locks the turn to issuing or redeeming.
+- The operating-mode switch lists only modes that are available now and appears when
+  there are at least two. A chosen mode lasts through that step's actions while it stays
+  available; leaving the step, perspective or history view resets it.
 - Steamboat and revenue-marker controls show eligible locations and bonuses;
   canonical marker placement is drawn on the shared map with title-owned names.
 - Private construction uses shared tile drawings and previews its entire plan.

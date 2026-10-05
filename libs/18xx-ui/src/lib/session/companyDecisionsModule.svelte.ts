@@ -79,8 +79,10 @@ export class CompanyDecisionsModule {
         this.session.selectionsVisible ? this.choice.value('choice') : undefined
     )
     canResolve = $derived.by(() => this.session.interactive)
-    purchaseOptions = $derived.by(() =>
-        this.canResolve &&
+    // Unlike purchaseOptions, this ignores transient busy periods, so entry points that offer
+    // purchases stay in place while an action settles instead of disappearing and returning.
+    private availablePurchaseOptions = $derived.by(() =>
+        !this.session.viewingHistory &&
         this.session.playerId &&
         this.session.validActionTypes.includes('OfferPurchase')
             ? purchaseChoices(
@@ -91,8 +93,12 @@ export class CompanyDecisionsModule {
               )
             : []
     )
+    purchaseOptions = $derived.by(() => (this.canResolve ? this.availablePurchaseOptions : []))
     companyPurchases = $derived.by(() =>
         this.purchaseOptions.filter((option) => option.request.asset.kind !== 'train')
+    )
+    companyPurchasesAvailable = $derived.by(() =>
+        this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
     )
     players = $derived.by(() => {
         if (!this.canResolve) return []

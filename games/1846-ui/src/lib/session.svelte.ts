@@ -43,7 +43,12 @@ import {
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
 import { createEighteenXXSessionClass, actionForHistoryStep } from '@tabletop/18xx-ui'
-import { type ShareSaleDetails, type TrackLayDetails, type TrackRequest } from '@tabletop/18xx'
+import {
+    nextOperatingCompany,
+    type ShareSaleDetails,
+    type TrackLayDetails,
+    type TrackRequest
+} from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
 import { MapView1846 } from './mapView.js'
 import { SessionRules1846 } from './sessionRules.js'
@@ -60,34 +65,35 @@ const BaseSession: ReturnType<
 >(SessionRules1846, MapView1846, Presentation1846)
 type ConstructionMode = 'track' | 'stations' | 'finance'
 export class EighteenFortySixSession extends BaseSession {
+    private readonly constructionModeScope = $derived(
+        [
+            this.gameState.machineState,
+            nextOperatingCompany(this.gameState),
+            this.myPlayer?.id,
+            this.isViewingHistory
+        ].join(':')
+    )
     private manualConstructionMode = $derived.by((): ConstructionMode | undefined => {
-        void [this.gameState, this.updatingVisibleState, this.myPlayer?.id, this.isViewingHistory]
+        void this.constructionModeScope
         return undefined
     })
-    constructionMode = $derived.by(() =>
-        this.privateDraft
-            ? 'track'
-            : (this.manualConstructionMode ??
-              (this.validActionTypes.includes('LayTile') ? 'track' : 'stations'))
-    )
+    constructionMode = $derived.by((): ConstructionMode => {
+        if (this.privateDraft) return 'track'
+        const manual = this.manualConstructionMode
+        if (manual && this.constructionModeAvailable(manual)) return manual
+        return this.validActionTypes.includes('LayTile') ? 'track' : 'stations'
+    })
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         this.localSelections.register({
-            hasManual: () => !!this.privateDraft || this.manualConstructionMode !== undefined,
+            hasManual: () => !!this.privateDraft,
             undo: () => {
-                if (this.privateDraft) {
-                    this.backFromPrivateConstruction()
-                    return true
-                }
-                if (this.manualConstructionMode !== undefined) {
-                    this.manualConstructionMode = undefined
-                    return true
-                }
-                return false
+                if (!this.privateDraft) return false
+                this.backFromPrivateConstruction()
+                return true
             },
             clear: () => {
                 this.privateDraft = undefined
-                this.manualConstructionMode = undefined
             }
         })
     }
@@ -104,6 +110,10 @@ export class EighteenFortySixSession extends BaseSession {
     }
     protected override get sharedActionsBlocked() {
         return !!this.privateDraft || !!this.gameState.pendingRevenueMarker
+    }
+    private constructionModeAvailable(mode: ConstructionMode): boolean {
+        if (mode === 'finance') return this.financeChoices.length > 0
+        return this.validActionTypes.includes(mode === 'track' ? 'LayTile' : 'PlaceStation')
     }
     chooseConstructionMode(mode: ConstructionMode | undefined) {
         this.track.stages.clear()

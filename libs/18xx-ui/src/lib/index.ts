@@ -67,6 +67,7 @@ export { default as OperatingActions } from './table/OperatingActions.svelte'
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
 
 export { default as CompanyToken } from './tokens/CompanyToken.svelte'
+export { default as SlidingToggle } from './table/SlidingToggle.svelte'
 export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
