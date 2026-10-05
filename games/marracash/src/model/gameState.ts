@@ -413,14 +413,18 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return visitors
     }
 
+    turnEndsGame(): boolean {
+        return this.finalRound && this.turnPlayerId() === this.turnManager.turnOrder.at(-1)
+    }
+
     finishTurn(): { gameOver: boolean } {
+        const gameOver = this.turnEndsGame()
         const endedTurn = this.turnManager.endTurn(this.actionCount)
         this.turnActions = []
-        const roundComplete = endedTurn.playerId === this.turnManager.turnOrder.at(-1)
-        if (roundComplete) {
+        if (endedTurn.playerId === this.turnManager.turnOrder.at(-1)) {
             this.round += 1
         }
-        return { gameOver: this.finalRound && roundComplete }
+        return { gameOver }
     }
 
     // The round in which the queue runs out is the last, and it ends with the last seat's turn.

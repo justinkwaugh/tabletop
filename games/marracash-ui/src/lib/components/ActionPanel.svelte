@@ -6,30 +6,38 @@
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
     import ConfirmPanel from '$lib/components/ConfirmPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import MoneyReport from '$lib/components/MoneyReport.svelte'
+    import Outcomes from '$lib/components/Outcomes.svelte'
     import FinalRoundBanner from '$lib/components/FinalRoundBanner.svelte'
+    import Header from '$lib/components/Header.svelte'
 
     const gameSession = getGameSession()
 </script>
 
-<div class="mx-2 mt-2 rounded-lg bg-[#f4ead6] px-4 py-2 text-center text-[#3d2f1f]">
+{#snippet lead()}
+    <Outcomes outcomes={gameSession.outcomes} />
+{/snippet}
+
+<section
+    aria-label="Actions"
+    class="mx-2 mt-2 rounded-lg bg-[#f4ead6] px-4 pb-3 text-center text-[#3d2f1f]"
+>
+    <Header />
+    <div class="pt-2">
     {#if gameSession.finalTurnPlayerId}
         <FinalRoundBanner finalTurnPlayerId={gameSession.finalTurnPlayerId} />
     {/if}
-    {#if gameSession.showsMoneyReport}
-        <MoneyReport reports={gameSession.moneyReports} />
-    {/if}
     {#if gameSession.gameState.result}
-        <GameEndPanel />
+        <GameEndPanel {lead} />
     {:else if gameSession.canBid}
-        <BidPanel />
+        <BidPanel {lead} />
     {:else if gameSession.canRefill}
-        <RefillPanel />
+        <RefillPanel {lead} />
     {:else if gameSession.canConfirm}
-        <ConfirmPanel />
+        <ConfirmPanel {lead} />
     {:else if gameSession.canMove || gameSession.canAuction}
-        <ChoicePanel />
+        <ChoicePanel {lead} />
     {:else}
-        <WaitingPanel />
+        <WaitingPanel {lead} />
     {/if}
-</div>
+    </div>
+</section>

@@ -1,8 +1,10 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { finalStandings } from '$lib/utils/standings.js'
 
+    let { lead }: { lead?: Snippet } = $props()
     const gameSession = getGameSession()
 
     let standings = $derived(
@@ -19,6 +21,7 @@
 
 <div class="flex flex-col items-center gap-1">
     <p class="marracash-display text-lg">
+        {@render lead?.()}
         The game is over.
         {#each winners as playerId, index (playerId)}
             {index === 0 ? '' : index === winners.length - 1 ? ' and ' : ', '}<PlayerTag

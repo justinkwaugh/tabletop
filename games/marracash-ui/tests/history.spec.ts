@@ -45,7 +45,8 @@ async function watchWalkers(page: Page) {
         new MutationObserver(() => {
             const count = layer.querySelectorAll('g[opacity]').length
             if (count > 0 && record.firstAdded === undefined) record.firstAdded = performance.now()
-            if (count === 0 && record.firstAdded !== undefined) record.lastRemoved = performance.now()
+            if (count === 0 && record.firstAdded !== undefined)
+                record.lastRemoved = performance.now()
         }).observe(layer, { childList: true, subtree: true })
     })
 }
@@ -64,6 +65,7 @@ async function walkerMilliseconds(page: Page): Promise<number> {
 }
 
 const movedReport = /moved \d+ visitors/
+const latestEntry = (page: Page) => page.locator('.history [role=button]').first()
 
 test('stepping back and forward over a move glides pawns and hides staged choices', async ({
     page
@@ -71,10 +73,11 @@ test('stepping back and forward over a move glides pawns and hides staged choice
     await createGame(page)
     await playOpeningRound(page)
     await moveIntoOwnedShops(page)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(actionPanel(page)).not.toContainText(movedReport)
     await page.getByRole('button', { name: 'Fountain 4', exact: true }).click()
     await expect(destinationFountains(page)).not.toHaveCount(0)
     await openHistory(page)
+    await expect(latestEntry(page)).toContainText('moved')
 
     await watchWalkers(page)
     await stepBackwards(page).click()
@@ -82,14 +85,14 @@ test('stepping back and forward over a move glides pawns and hides staged choice
     await expect(destinationFountains(page)).toHaveCount(0)
     await expect(auctionableShops(page)).toHaveCount(0)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
-    await expect(actionPanel(page)).not.toContainText(movedReport)
+    await expect(latestEntry(page)).not.toContainText('moved')
     await expect(actionPanel(page)).toContainText('All bids are in.')
     await expect(board(page).locator('path[filter*="candidate-halo"]')).toHaveCount(1)
 
     await watchWalkers(page)
     await stepForwards(page).click()
     expect(await walkerMilliseconds(page)).toBeLessThan(500)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(latestEntry(page)).toContainText('moved')
 
     await goToCurrent(page).click()
     await expect(page.getByRole('button', { name: 'Fountain 4', exact: true })).toBeVisible()
@@ -107,7 +110,7 @@ test('playing the history replays a move as a walk', async ({ page }) => {
     await watchWalkers(page)
     await page.getByRole('button', { name: 'play history' }).click()
     expect(await walkerMilliseconds(page)).toBeGreaterThan(500)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(latestEntry(page)).toContainText('moved')
 })
 
 test('history controls pressed during a walk let it finish on the moved state', async ({
@@ -122,7 +125,7 @@ test('history controls pressed during a walk let it finish on the moved state', 
     await expect(walkers(page)).not.toHaveCount(0)
     await stepBackwards(page).click()
     await expect(walkers(page)).toHaveCount(0)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(latestEntry(page)).toContainText('moved')
 
     await stepBackwards(page).click()
     await expect(actionPanel(page)).toContainText('All bids are in.')
@@ -131,7 +134,7 @@ test('history controls pressed during a walk let it finish on the moved state', 
     await stepBackwards(page).click()
     await goToCurrent(page).click()
     await expect(walkers(page)).toHaveCount(0)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(latestEntry(page)).toContainText('moved')
     await expect(page.getByRole('button', { name: 'Fountain 4', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Fountain 8', exact: true })).toHaveCount(0)
 })
@@ -152,5 +155,5 @@ test('reduced motion glides a move instead of walking it and stills the turn bor
     await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
     await page.getByRole('button', { name: 'Move visitors to fountain 4' }).click()
     expect(await walkerMilliseconds(page)).toBeLessThan(500)
-    await expect(actionPanel(page)).toContainText(movedReport)
+    await expect(page.getByRole('button', { name: 'Fountain 4', exact: true })).toBeVisible()
 })

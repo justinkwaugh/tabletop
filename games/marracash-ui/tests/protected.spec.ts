@@ -64,7 +64,7 @@ test('protected views keep a sealed bid secret from everyone but its bidder', as
     await createGame(page)
     await auctionFirstShop(page)
     await page.getByRole('button', { name: 'Place bid' }).click()
-    await expect(actionPanel(page).getByText(/^Sealed bid for/)).toBeVisible()
+    await expect(actionPanel(page).getByText(/Sealed bid for/)).toBeVisible()
     await enterProtectedMode(page)
 
     await viewHistoryAs(page, 'Spectator')

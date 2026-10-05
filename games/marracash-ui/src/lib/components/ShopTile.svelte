@@ -110,8 +110,8 @@
         tabindex="0"
         aria-label={`Auction shop ${shop.shopId}`}
         class="cursor-pointer"
-        onclick={() => gameSession.chooseShopToAuction(shop.shopId)}
-        onkeydown={(event) => event.key === 'Enter' && gameSession.chooseShopToAuction(shop.shopId)}
+        onclick={() => gameSession.startAuction(shop.shopId)}
+        onkeydown={(event) => event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
     >
         {@render body()}
     </g>

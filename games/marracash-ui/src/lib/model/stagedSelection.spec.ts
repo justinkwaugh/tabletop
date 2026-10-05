@@ -26,11 +26,11 @@ describe('MarraCash staged selection', () => {
     it('clears later stages when an earlier stage is set', () => {
         let selection: MarracashSelection = {}
         selection = setMarracashSelection(selection, 'fountain', 3)
-        selection = setMarracashSelection(selection, 'destination', 5)
+        selection = updateMarracashRefill(selection, { end: QueueEnd.Front })
         selection = setMarracashSelection(selection, 'fountain', 9)
 
         expect(selection.fountain?.value).toBe(9)
-        expect(selection.destination).toBeUndefined()
+        expect(selection.refill).toBeUndefined()
     })
 
     it('builds one refill choice from an end and a count chosen in either order', () => {
@@ -63,14 +63,6 @@ describe('MarraCash staged selection', () => {
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
 
-    it('drops a chosen shop when a fountain is chosen instead', () => {
-        let selection: MarracashSelection = {}
-        selection = setMarracashSelection(selection, 'shop', 'R1')
-        selection = setMarracashSelection(selection, 'fountain', 1)
-
-        expect(selection.fountain?.value).toBe(1)
-        expect(selection.shop).toBeUndefined()
-    })
 
     it('has no manual choice to undo before the player picks anything', () => {
         expect(hasManualMarracashSelection({})).toBe(false)
@@ -86,18 +78,4 @@ describe('MarraCash staged selection', () => {
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
 
-    it('clears a previewed destination when another fountain is chosen, and backs out of it first', () => {
-        let selection: MarracashSelection = {}
-        selection = setMarracashSelection(selection, 'fountain', 3)
-        selection = setMarracashSelection(selection, 'destination', 5)
-
-        selection = popMarracashSelection(selection)
-        expect(selection.fountain?.value).toBe(3)
-        expect(selection.destination).toBeUndefined()
-
-        selection = setMarracashSelection(selection, 'destination', 1)
-        selection = setMarracashSelection(selection, 'fountain', 9)
-        expect(selection.fountain?.value).toBe(9)
-        expect(selection.destination).toBeUndefined()
-    })
 })

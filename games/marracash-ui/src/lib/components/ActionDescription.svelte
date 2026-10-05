@@ -11,7 +11,6 @@
         isResolveAuction,
         isStartAuction,
         QueueEnd,
-        tiedBidderIds,
         type ShopId
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -26,18 +25,13 @@
     let { action }: { action: GameAction } = $props()
     const gameSession = getGameSession()
 
-    // The sentence already gives an auction's price, so its winning bid row is left out
-    let payments = $derived(
-        (actionMoneyReport(action)?.payments ?? []).filter(
-            (payment) => payment.kind !== 'winningBid'
-        )
-    )
+    let payments = $derived(actionMoneyReport(action)?.payments ?? [])
 </script>
 
 {#snippet shop(shopId: ShopId, article: 'a' | 'the')}
     {@const color = getShop(shopId).color}
     {article}
-    <span class="font-semibold" style:color={gameSession.marketPalettes[color].fill}
+    <span class="font-semibold" style:color={gameSession.marketPalettes[color].stroke}
         >{color} shop</span
     >
 {/snippet}
@@ -54,9 +48,8 @@
     {/if}
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}
-    <PlayerTag playerId={result.winnerId} /> bought {@render shop(result.shopId, 'the')} for {result.price}{#if tiedBidderIds(result).length > 0},
-        winning the tie{/if}.
-    <span class="mt-1 block"><AuctionBids {result} separator=", " /></span>
+    <PlayerTag playerId={result.winnerId} /> bought {@render shop(result.shopId, 'the')} for {result.price}.
+    <span class="mt-1 block"><AuctionBids {result} /></span>
 {:else if isMoveVisitors(action)}
     {@const colors = action.metadata ? movedVisitorColors(action.metadata) : []}
     moved

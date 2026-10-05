@@ -30,9 +30,8 @@ const auction: AuctionResult = {
 }
 
 describe('MarraCash money report', () => {
-    it('lists the winning bid, walk-in customers and the auctioneer cut, in that order', () => {
+    it('lists walk-in customers and then the auctioneer cut, leaving the price to the headline', () => {
         expect(auctionPayments(auction)).toEqual([
-            { kind: 'winningBid', playerId: 'amira', amount: -300 },
             {
                 kind: 'customers',
                 playerId: 'amira',
@@ -62,9 +61,7 @@ describe('MarraCash money report', () => {
 
     it('gives no cut row when the auctioneer wins', () => {
         const won = { ...auction, winnerId: 'chadia', price: 100, auctioneerCut: 0, pullIns: [] }
-        expect(auctionPayments(won)).toEqual([
-            { kind: 'winningBid', playerId: 'chadia', amount: -100 }
-        ])
+        expect(auctionPayments(won)).toEqual([])
     })
 
     it('pays each shop owner and charges a mover cut only for shops the mover does not own', () => {

@@ -1,5 +1,4 @@
 import { GameSession } from '@tabletop/frontend-components'
-import { MediaQuery } from 'svelte/reactivity'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
@@ -31,7 +30,13 @@ import {
     type RefillDraft
 } from './stagedSelection.js'
 import { marketPalettes } from '$lib/utils/marketColors.js'
-import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
+import {
+    isOutcomeReport,
+    latestTurnStep,
+    moneyReports,
+    type MoneyReport,
+    type OutcomeReport
+} from '$lib/utils/moneyReport.js'
 import type { RefillChoice } from '$lib/utils/queueChoices.js'
 import type { VisitorWalker } from '$lib/animators/visitorMoveAnimator.js'
 import { historyHighlightFor, type HistoryHighlight } from '$lib/utils/historyHighlight.js'
@@ -71,10 +76,6 @@ export class MarracashGameSession extends GameSession<
         })
     )
 
-    // Touch screens have no hover, so previews and highlights are tapped on and off there
-    private readonly touchQuery = new MediaQuery('(hover: none)')
-    readonly usesTouch = $derived(this.touchQuery.current)
-
     private highlightedHistoryAction: GameAction | undefined = $state.raw(undefined)
     readonly highlightedHistoryActionId = $derived(this.highlightedHistoryAction?.id)
     readonly historyHighlight: HistoryHighlight | undefined = $derived(
@@ -98,22 +99,12 @@ export class MarracashGameSession extends GameSession<
     private readonly canChooseShop = $derived(this.canAuction && !this.busy)
     readonly canChooseRefill = $derived(this.canRefill && !this.busy)
 
-    readonly canUndoAction = $derived(
-        this.isPlayable && !this.isViewingHistory && this.undoableAction !== undefined
-    )
-
     readonly selectedFountainId: FountainId | undefined = $derived(
         this.canChooseMove ? this.selection.fountain?.value : undefined
     )
 
-    readonly selectedShopId: ShopId | undefined = $derived(
-        this.canChooseShop ? this.selection.shop?.value : undefined
-    )
-
     readonly movableFountainIds: FountainId[] = $derived(
-        this.canChooseMove &&
-            this.selectedShopId === undefined &&
-            this.selectedFountainId === undefined
+        this.canChooseMove && this.selectedFountainId === undefined
             ? this.gameState.fountains
                   .filter((fountain) => fountain.visitors.length > 0)
                   .map((fountain) => fountain.fountainId)
@@ -122,15 +113,10 @@ export class MarracashGameSession extends GameSession<
 
     readonly finalTurnPlayerId: string | undefined = $derived(this.gameState.finalTurnPlayerId())
 
-    // A staged auction is a fresh decision, so the previous step's payments stay out of its way
-    readonly showsMoneyReport = $derived(
-        this.moneyReports.length > 0 && this.selectedShopId === undefined
-    )
+    readonly outcomes: OutcomeReport[] = $derived(this.moneyReports.filter(isOutcomeReport))
 
     readonly auctionableShopIds: ShopId[] = $derived(
-        this.canChooseShop &&
-            this.selectedFountainId === undefined &&
-            this.selectedShopId === undefined
+        this.canChooseShop && this.selectedFountainId === undefined
             ? this.gameState.shops
                   .filter((shop) => shop.ownerId === undefined)
                   .map((shop) => shop.shopId)
@@ -143,17 +129,6 @@ export class MarracashGameSession extends GameSession<
 
     readonly destinationFountainIds: FountainId[] = $derived(
         this.selectedRoutes.map((route) => route.to)
-    )
-
-    readonly previewedDestinationId: FountainId | undefined = $derived.by(() => {
-        const destination = this.selection.destination?.value
-        return destination !== undefined && this.destinationFountainIds.includes(destination)
-            ? destination
-            : undefined
-    })
-
-    readonly previewedRoute: Route | undefined = $derived(
-        this.selectedRoutes.find((route) => route.to === this.previewedDestinationId)
     )
 
     readonly chosenQueueEnd: QueueEnd | undefined = $derived(
@@ -240,13 +215,6 @@ export class MarracashGameSession extends GameSession<
         await super.undo()
     }
 
-    back() {
-        if (this.busy) return
-        if (this.hasManualSelection) {
-            this.selection = popMarracashSelection(this.selection)
-        }
-    }
-
     highlightHistory(action: GameAction | undefined) {
         this.highlightedHistoryAction = action
     }
@@ -275,15 +243,6 @@ export class MarracashGameSession extends GameSession<
         this.setSelection('fountain', fountainId)
     }
 
-    previewDestination(destinationId: FountainId) {
-        this.setSelection('destination', destinationId)
-    }
-
-    async moveToPreviewedDestination() {
-        const destinationId = this.previewedDestinationId
-        assertExists(destinationId, 'Moving here requires a previewed destination')
-        await this.moveVisitorsTo(destinationId)
-    }
 
     chooseQueueEnd(end: QueueEnd) {
         this.updateRefill({ end })
@@ -313,13 +272,8 @@ export class MarracashGameSession extends GameSession<
         this.showQueueTooShort = false
     }
 
-    chooseShopToAuction(shopId: ShopId) {
-        this.setSelection('shop', shopId)
-    }
-
-    async startAuction() {
-        const shopId = this.selectedShopId
-        assertExists(shopId, 'Starting an auction requires a chosen shop')
+    async startAuction(shopId: ShopId) {
+        if (this.busy) return
         await this.applyAction(this.createPlayerAction(StartAuction, { shopId }))
     }
 

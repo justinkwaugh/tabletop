@@ -12,6 +12,7 @@ import { mixColors } from '$lib/utils/colorLightness.js'
 export const WallMortar = '#5e4630'
 export const WallStoneFilterId = 'marracash-wall-stone'
 export const PillarSize = 36
+export const PillarShadowOffset = { x: 3, y: 4 }
 
 const WallSeed = 23
 const Courses = 2

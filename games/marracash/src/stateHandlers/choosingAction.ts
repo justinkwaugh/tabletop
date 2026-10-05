@@ -83,7 +83,6 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
     ): MachineState {
         switch (true) {
             case isStartAuction(action): {
-                action.revealsInfo = true
                 queueAntiqueSetCompletions(context)
                 queueAutomaticPasses(context)
                 return MachineState.Bidding

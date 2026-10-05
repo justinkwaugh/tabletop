@@ -26,9 +26,12 @@ export function queueAntiqueSetCompletions(context: MachineContext<HydratedMarra
     }
 }
 
-// Ending a turn is flagged as revealing so Undo can never rewind into a finished turn.
+// Undo stops only where hidden information is revealed. Ending a turn reveals nothing, except
+// that the game's last turn shows Concealed Cash.
 export function queueEndTurn(context: MachineContext<HydratedMarracashGameState>) {
-    context.addSystemAction(EndTurn, { revealsInfo: true })
+    context.addSystemAction(EndTurn, {
+        revealsInfo: context.gameState.turnEndsGame() && context.gameConfig.concealedCash === true
+    })
 }
 
 export function queueTurnCommit(context: MachineContext<HydratedMarracashGameState>) {

@@ -1,4 +1,4 @@
-import type { FountainId, QueueEnd, ShopId } from '@tabletop/marracash'
+import type { FountainId, QueueEnd } from '@tabletop/marracash'
 import {
     clearStagedSelectionAtOrAfter,
     hasManualStagedSelection,
@@ -13,8 +13,6 @@ export type RefillDraft = { end?: QueueEnd; count?: number }
 
 export type MarracashSelectionValues = {
     fountain: FountainId
-    destination: FountainId
-    shop: ShopId
     refill: RefillDraft
 }
 
@@ -22,8 +20,6 @@ export type MarracashSelection = StagedSelectionState<MarracashSelectionValues>
 
 export const MarracashStageOrder = [
     'fountain',
-    'destination',
-    'shop',
     'refill'
 ] as const satisfies readonly (keyof MarracashSelectionValues)[]
 type MissingStages = Exclude<keyof MarracashSelectionValues, (typeof MarracashStageOrder)[number]>

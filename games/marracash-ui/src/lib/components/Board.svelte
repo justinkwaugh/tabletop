@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { GatePillars, PillarShadowOffset } from '$lib/utils/cityWall.js'
     import { onDestroy } from 'svelte'
     import { BoardColumns, BoardRows, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -38,9 +39,7 @@
     visitorMoveAnimator.register()
     onDestroy(() => visitorMoveAnimator.unregister())
 
-    let spotlightShopId = $derived(
-        gameSession.gameState.auction?.shopId ?? gameSession.selectedShopId
-    )
+    let spotlightShopId = $derived(gameSession.gameState.auction?.shopId)
     let spotlightShop = $derived(
         gameSession.visibleShops.find((shop) => shop.shopId === spotlightShopId)
     )
@@ -68,12 +67,11 @@
         gameSession.selectedFountainId
         return undefined
     })
-    let shownRoute = $derived(gameSession.previewedRoute ?? hoveredRoute)
     let previewRoute = $derived(
         !gameSession.updatingVisibleState &&
-            shownRoute !== undefined &&
-            shownRoute.from === gameSession.selectedFountainId
-            ? shownRoute
+            hoveredRoute !== undefined &&
+            hoveredRoute.from === gameSession.selectedFountainId
+            ? hoveredRoute
             : undefined
     )
 
@@ -103,20 +101,17 @@
         isDestination: boolean
     ): string | undefined {
         if (isSource) return `Keep the visitors at fountain ${fountainId}`
-        if (isDestination && gameSession.usesTouch)
-            return `Show the route to fountain ${fountainId}`
         if (isDestination) return `Move visitors to fountain ${fountainId}`
         return undefined
     }
 
-    function chooseFountain(fountainId: FountainId, byTouch: boolean) {
+    function chooseFountain(fountainId: FountainId) {
         if (gameSession.fillableEntranceIds.includes(fountainId)) {
             void gameSession.bringVisitorsTo(fountainId)
         } else if (gameSession.selectedFountainId === fountainId) {
-            gameSession.back()
+            gameSession.selectFountain(undefined)
         } else if (gameSession.destinationFountainIds.includes(fountainId)) {
-            if (byTouch) gameSession.previewDestination(fountainId)
-            else void gameSession.moveVisitorsTo(fountainId)
+            void gameSession.moveVisitorsTo(fountainId)
         } else {
             gameSession.selectFountain(fountainId)
         }
@@ -138,7 +133,7 @@
         selected={isSource}
         destination={previewRoute?.to === fountain.fountainId}
         label={fountainLabel(fountain.fountainId, isSource, isDestination)}
-        onselect={(byTouch) => chooseFountain(fountain.fountainId, byTouch)}
+        onselect={() => chooseFountain(fountain.fountainId)}
         onpreview={isDestination
             ? (previewing) => previewDestination(fountain.fountainId, previewing)
             : undefined}
@@ -214,14 +209,22 @@
             {/each}
 
             {#if dimmed}
-                <rect
-                    x={-QueueMargin}
-                    y={-QueueMargin}
-                    width={TableWidth}
-                    height={TableHeight}
-                    fill="#000000"
-                    opacity="0.5"
-                ></rect>
+                <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
+                <g opacity="0.5">
+                    <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
+                    {#each GatePillars as pillar (`${pillar.x},${pillar.y}`)}
+                        {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
+                            <rect
+                                x={pillar.x + offset.x}
+                                y={pillar.y + offset.y}
+                                width={pillar.width}
+                                height={pillar.height}
+                                rx="2"
+                                fill="#000000"
+                            ></rect>
+                        {/each}
+                    {/each}
+                </g>
             {/if}
 
             {#if spotlightShop}
