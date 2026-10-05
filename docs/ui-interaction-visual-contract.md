@@ -20,7 +20,7 @@ Update the contract in the same change whenever visible intent, precedence, shar
 
 - Follow the [repository coding policy](agent-coding-policy.md).
 - Use the terminology and history model in the [Game Client context](../libs/frontend-components/CONTEXT.md).
-- For staged selections, `Back`, or `Undo`, follow [user interaction patterns](user-interactions.md).
+- For staged selections or `Undo`, follow [user interaction patterns](user-interactions.md).
 - For motion, replay, or silent restoration, follow the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md).
 
 ## Build the contract from the game

@@ -1,10 +1,10 @@
 ## User Interaction Patterns
 
-This document defines shared patterns for local UI selection flows, especially multi-step actions with `Back` and `Undo`.
+This document defines shared patterns for multi-step local selection and the contextual `Undo` control.
 
 ## Staged Selection Model
 
-Use staged local selection for UI-only progress before committing a game action.
+Build every action that takes more than one client-side step from staged selection: UI-only progress held locally until the action is committed.
 
 Each local selection step must be one of:
 
@@ -13,35 +13,38 @@ Each local selection step must be one of:
 
 Committed actions are not local staged selections and must stay in game action history.
 
-## Back vs Undo Contract
+## Undo
 
-- `Back`: only unwinds local manual selections.
-- `Undo`: undoes committed game actions. It may clear manual local selection first, but it must not consume auto-only transient selection.
+A Game UI offers exactly one reversal control: the `Undo` button at the right end of the turn header (see [game UI layout](game-ui-layout.md)). It is contextual:
 
-Practical rule:
+1. When a manual staged selection exists, Undo pops the highest manual stage and every stage after it. No game action is undone.
+2. Otherwise Undo undoes the Undo Candidate (`undoableAction`) through `GameSession.undo()`.
 
-- If only auto staged selection exists and there is no manual staged selection, `Undo` should proceed to action-history undo.
+Auto selections never absorb a press: when only auto selections remain, Undo goes straight to action undo.
+
+Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own.
+
+Implement this in the session's `undo()` override so every caller gets the contextual behavior:
+
+```ts
+override async undo() {
+    if (this.hasManualSelection) {
+        this.selection = popHighestManualSelection(this.selection)
+        return
+    }
+    await super.undo()
+}
+```
+
+Show the button whenever a press would do something: a manual staged selection exists or `undoableAction` is set.
 
 ## Shared API (`frontend-components`)
 
-Shared helpers are in `libs/frontend-components/src/lib/model/stagedSelection.ts`.
-
-- `StagedSelectionState<TValueByStage>`
-- `setStagedSelectionValue(...)`
-- `clearStagedSelectionAtOrAfter(...)`
-- `getStagedSelectionEntry(...)`
-- `getStagedSelectionValue(...)`
-- `getHighestManualStagedSelectionStage(...)`
-- `hasManualStagedSelection(...)`
-- `popHighestManualStagedSelection(...)`
-
-Safety behavior:
-
-- Stage/order mismatches throw (fail fast), rather than silently no-op.
+The shared helpers live in `libs/frontend-components/src/lib/model/stagedSelection.ts` and are exported from `@tabletop/frontend-components`. Use them instead of ad hoc draft flags. `setStagedSelectionValue` clears every later stage; `popHighestManualStagedSelection` backs Undo. Stage/order mismatches throw (fail fast) rather than silently no-op.
 
 ## Integration Pattern
 
-Game UIs should wrap the generic helpers in a domain-specific module.
+Game UIs should wrap the generic helpers in a domain-specific module, as `games/marracash-ui/src/lib/model/stagedSelection.ts` does.
 
 Goals:
 
@@ -71,7 +74,7 @@ Do not use effect suppression flags to force undo behavior. Use source-tagged st
 For each staged selection flow:
 
 1. setting a stage clears downstream stages
-2. pop/highest-manual behavior
-3. auto-only selection is not treated as manual mid-action
+2. Undo with a manual selection pops the highest manual stage and undoes no action
+3. Undo with only auto selection proceeds to action undo
 4. invalid stage/order mismatch throws
 5. domain wrapper behavior for reselecting earlier stages
