@@ -767,8 +767,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
             watch(
                 () => this.busy,
-                (newBusy, oldBusy) => {
-                    if (oldBusy === true && newBusy === false) {
+                (newBusy) => {
+                    // Work resumed here can make the session busy again from inside this callback,
+                    // and that busy period is never observed, so act whenever it is idle.
+                    if (!newBusy) {
                         this.applyLoadedHistory()
                         this.reconciliation.resume().catch((error) => {
                             console.error('Error applying queued server updates:', error)
