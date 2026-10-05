@@ -37,7 +37,6 @@ export const AcquisitionFields = {
 }
 export type AcquisitionState = Type.Static<Type.TObject<typeof AcquisitionFields>>
 export const AcquisitionSteps = [
-    'CorporateFinance',
     'LayingTrack',
     'RunningTrains',
     'DistributingEarnings',

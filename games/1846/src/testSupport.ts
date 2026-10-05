@@ -208,7 +208,6 @@ export function emergencyBuyingGame(cash = 10, price = 100) {
     table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     table.act('FinishTrack', { companyId: 'IC' })
     const balance = table.state.cash.find(
         (c) => c.owner.kind === 'company' && c.owner.companyId === 'IC'
@@ -233,7 +232,6 @@ export function phaseIIIReadyGame() {
     table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     table.act('FinishTrack', { companyId: 'IC' })
     table.state.phaseId = 'II'
     let twos = 0
@@ -293,7 +291,6 @@ export function constructionGame(phaseId: 'III' | 'IV' = 'III') {
         buyTrain(table, '6')
     }
     table.act('FinishOperatingTurn', { companyId: 'IC' })
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     assert(table.state.machineState === 'LayingTrack' && table.state.phaseId === phaseId)
     return table
 }

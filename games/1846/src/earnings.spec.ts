@@ -17,7 +17,6 @@ function constructionGame() {
     table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     return table
 }
 function preparedEarnings(revenue: number) {

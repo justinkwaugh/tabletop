@@ -42,28 +42,13 @@ it.each([2, 3, 4, 5])(
 )
 
 it.each(['powers', 'transfers'] as const)(
-    '%s scenarios begin a fresh construction step after finance',
+    '%s scenarios begin a fresh construction step',
     (position) => {
-        const { game, engine, state } = exampleGame(Scenarios1846, position, 3, 1889)
+        const { state } = exampleGame(Scenarios1846, position, 3, 1889)
         const companyId = nextOperatingCompany(state)
-        const { updatedState } = engine.executeCanonicalAction({
-            game,
-            state,
-            action: {
-                id: 'finance-scenario',
-                gameId: game.id,
-                type: 'CorporateFinance',
-                source: ActionSource.User,
-                playerId: state.activePlayerIds[0],
-                companyId,
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            }
-        })
-        expect(updatedState.machineState).toBe('LayingTrack')
-        expect(updatedState.trackStep).toMatchObject({ companyId, completed: false, lays: [] })
-        expect(updatedState.stationStep).toMatchObject({
+        expect(state.machineState).toBe('LayingTrack')
+        expect(state.trackStep).toMatchObject({ companyId, completed: false, lays: [] })
+        expect(state.stationStep).toMatchObject({
             companyId,
             completed: false,
             placedStationIds: []

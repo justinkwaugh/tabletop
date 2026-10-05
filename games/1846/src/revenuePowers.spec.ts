@@ -89,14 +89,7 @@ describe('1846 revenue marker powers', () => {
                 table.state.activePlayerIds[0]
             )
         ).toEqual(['AssignRevenueMarker'])
-        expect(() =>
-            table.act('CorporateFinance', {
-                companyId: 'NYC',
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            })
-        ).toThrow()
+        expect(() => table.act('FinishTrack', { companyId: 'NYC' })).toThrow()
         expect(
             purchaseChoices(
                 table.hydrated,
@@ -120,7 +113,7 @@ describe('1846 revenue marker powers', () => {
             ).toThrow()
         actions.push(...assign(table, 'SC', 'B8').processedActions)
         expect(table.state.pendingRevenueMarker).toBeUndefined()
-        expect(table.state.machineState).toBe('CorporateFinance')
+        expect(table.state.machineState).toBe('LayingTrack')
         expect(actions.at(-1)?.metadata).toMatchObject({
             companyId: 'NYC',
             skipped: false,
@@ -197,7 +190,6 @@ describe('1846 revenue marker powers', () => {
     )
     it('offers placement when bought after routes without changing the recorded run or earnings', () => {
         const table = major()
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         table.act('FinishTrack', { companyId: 'NYC' })
         expect(table.state.machineState).toBe('BuyingTrains')
         const run = structuredClone(table.state.routeStep)
@@ -217,7 +209,6 @@ describe('1846 revenue marker powers', () => {
         const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'NYC', space.id)
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         const before = structuredClone(table.state)
         const result = table.act('FinishTrack', { companyId: 'NYC' })
         expect(table.state.revenueMarkers).toEqual([])
@@ -333,7 +324,6 @@ describe('1846 Mail Contract run scoring', () => {
             kind: 'company',
             companyId: 'NYC'
         })
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         const lay = new TrackConstruction(table.hydrated, TrackRules1846).choices('B16')[0]
         assertExists(lay)
         table.act('LayTile', {

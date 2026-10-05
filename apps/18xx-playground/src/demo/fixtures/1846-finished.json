@@ -1932,17 +1932,6 @@
       ]
     },
     {
-      "id": "recorded:29",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:30",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -1994,17 +1983,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:35",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:36",
@@ -2215,17 +2193,6 @@
       ]
     },
     {
-      "id": "recorded:51",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:52",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -2280,17 +2247,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:56",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:57",
@@ -2360,17 +2316,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:61",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:62",
@@ -2710,17 +2655,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:89",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:90",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -2799,17 +2733,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:95",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:96",
@@ -2905,17 +2828,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:101",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:102",
@@ -3079,17 +2991,6 @@
       ]
     },
     {
-      "id": "recorded:112",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:113",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -3176,17 +3077,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:119",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:120",
@@ -3334,17 +3224,6 @@
       "companyId": "GT"
     },
     {
-      "id": "recorded:126",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:127",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -3386,17 +3265,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:131",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:132",
@@ -3652,17 +3520,6 @@
       ]
     },
     {
-      "id": "recorded:158",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:159",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -3770,17 +3627,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:165",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:166",
@@ -3911,17 +3757,6 @@
       "companyId": "GT"
     },
     {
-      "id": "recorded:171",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:172",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -4036,17 +3871,6 @@
       "companyId": "NYC"
     },
     {
-      "id": "recorded:178",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:179",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -4095,17 +3919,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "ERIE"
-    },
-    {
-      "id": "recorded:183",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:184",
@@ -4192,17 +4005,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:189",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:190",
@@ -4341,17 +4143,6 @@
       "companyId": "GT"
     },
     {
-      "id": "recorded:196",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:197",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -4430,17 +4221,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:203",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:204",
@@ -4542,17 +4322,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:210",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:211",
@@ -4669,17 +4438,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:217",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:218",
@@ -5177,17 +4935,6 @@
       "companyId": "GT"
     },
     {
-      "id": "recorded:266",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:267",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -5334,17 +5081,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:274",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:275",
       "gameId": "1846-12666",
       "type": "PlaceStation",
@@ -5473,17 +5209,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:282",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:283",
@@ -5639,17 +5364,6 @@
       "companyId": "ERIE"
     },
     {
-      "id": "recorded:290",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:291",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -5790,17 +5504,6 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:297",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:298",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -5939,17 +5642,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:303",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:304",
@@ -6161,17 +5853,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:310",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:311",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6324,17 +6005,6 @@
       "companyId": "ERIE"
     },
     {
-      "id": "recorded:316",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:317",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -6445,17 +6115,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:321",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:322",
@@ -6638,17 +6297,6 @@
       "playerId": "the_seaward"
     },
     {
-      "id": "recorded:338",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:339",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6753,17 +6401,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:344",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:345",
@@ -6951,17 +6588,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:351",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:352",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -7096,17 +6722,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "ERIE"
-    },
-    {
-      "id": "recorded:358",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:359",
@@ -7266,17 +6881,6 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:367",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:368",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -7375,17 +6979,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:372",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:373",
@@ -7506,17 +7099,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:379",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:380",
@@ -7757,17 +7339,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:386",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:387",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -7921,17 +7492,6 @@
       "companyId": "ERIE"
     },
     {
-      "id": "recorded:394",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:395",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -8038,17 +7598,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:399",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:400",
@@ -8320,17 +7869,6 @@
       "playerId": "the_seaward"
     },
     {
-      "id": "recorded:425",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:426",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -8425,17 +7963,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:430",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:431",
@@ -8635,17 +8162,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:436",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:437",
@@ -8872,17 +8388,6 @@
       "companyId": "ERIE"
     },
     {
-      "id": "recorded:442",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:443",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -8999,17 +8504,6 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:447",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:448",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -9100,17 +8594,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:452",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:453",
@@ -9207,17 +8690,6 @@
       "source": "user",
       "playerId": "gragatrim",
       "companyId": "GT"
-    },
-    {
-      "id": "recorded:457",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:458",
@@ -9367,17 +8839,6 @@
       "source": "user",
       "playerId": "the_seaward",
       "companyId": "B&O"
-    },
-    {
-      "id": "recorded:462",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:463",
@@ -9602,17 +9063,6 @@
       "companyId": "ERIE"
     },
     {
-      "id": "recorded:468",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
-    },
-    {
       "id": "recorded:469",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -9727,17 +9177,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "IC"
-    },
-    {
-      "id": "recorded:473",
-      "gameId": "1846-12666",
-      "type": "CorporateFinance",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC",
-      "operation": "pass",
-      "shares": 0,
-      "amount": 0
     },
     {
       "id": "recorded:474",

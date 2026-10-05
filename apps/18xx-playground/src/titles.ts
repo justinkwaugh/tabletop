@@ -127,7 +127,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
     {
         key: '1846',
         name: '1846',
-        scenarioVersion: 30,
+        scenarioVersion: 31,
         rules: SessionRules1846,
         scenarios: Scenarios1846,
         host: scenarioHost(FortySixUi, Scenarios1846),

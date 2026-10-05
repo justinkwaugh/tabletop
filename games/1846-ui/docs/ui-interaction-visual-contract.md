@@ -58,7 +58,9 @@ runtime resumes public purchases automatically.
 
 ## Distinctive title decisions
 
-- Corporate finance offers legal issue/redeem blocks and Pass before construction.
+- Issuing or redeeming shares is a mode beside track and station building, and beside
+  Run trains, until routes are run. Each transaction commits immediately; the first one
+  locks the turn to issuing or redeeming, and the mode closes after each transaction.
 - Steamboat and revenue-marker controls show eligible locations and bonuses;
   canonical marker placement is drawn on the shared map with title-owned names.
 - Private construction uses shared tile drawings and previews its entire plan.

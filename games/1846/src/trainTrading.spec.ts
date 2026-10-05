@@ -51,7 +51,6 @@ function tradingGame(sharedPresident = false) {
     }
 }
 function begin(table: ReturnType<typeof stockGame>) {
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     table.act('FinishTrack', { companyId: 'IC' })
 }
 

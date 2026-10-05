@@ -12,6 +12,7 @@ import {
 import { stockGame } from './testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
+import { corporateFinanceChoices } from './corporateFinance.js'
 
 function twoMajors() {
     const table = stockGame()
@@ -24,7 +25,6 @@ function twoMajors() {
     return table
 }
 function operate(table: ReturnType<typeof stockGame>, companyId: string, buy = false) {
-    table.act('CorporateFinance', { companyId, operation: 'pass', shares: 0, amount: 0 })
     table.act('FinishTrack', { companyId })
     if (table.state.machineState === 'RunningTrains') {
         const train = trainsOwnedBy(table.state, { kind: 'company', companyId })[0]
@@ -56,6 +56,21 @@ function operate(table: ReturnType<typeof stockGame>, companyId: string, buy = f
     return table.act('FinishOperatingTurn', { companyId })
 }
 describe('1846 stock and operating sequence', () => {
+    it("clears a corporation's issue or redeem direction when the next turn starts", () => {
+        const table = twoMajors()
+        const issue = corporateFinanceChoices(table.hydrated).find(
+            (choice) => choice.operation === 'issue'
+        )
+        assertExists(issue)
+        table.act('CorporateFinance', issue)
+        expect(table.state.financeStep).toEqual({ companyId: 'IC', operation: 'issue' })
+        operate(table, 'IC', true)
+        expect(nextOperatingCompany(table.state)).toBe('NYC')
+        expect(table.state.financeStep).toBeUndefined()
+        expect(
+            corporateFinanceChoices(table.hydrated).some((choice) => choice.operation === 'issue')
+        ).toBe(true)
+    })
     it('hands off each corporation, resets the second round, and starts the next stock round', () => {
         const table = twoMajors()
         const first = operate(table, 'IC', true)
@@ -63,13 +78,13 @@ describe('1846 stock and operating sequence', () => {
             'FinishOperatingTurn',
             'StartOperatingTurn'
         ])
-        expect(table.state.machineState).toBe('CorporateFinance')
+        expect(table.state.machineState).toBe('LayingTrack')
         expect(nextOperatingCompany(table.state)).toBe('NYC')
         expect(table.state.activePlayerIds).toEqual([
             controllingOwner(table.state, 'NYC')?.playerId
         ])
         expect(table.state.trainPurchaseStep).toBeUndefined()
-        expect(table.state.trackStep).toBeUndefined()
+        expect(table.state.trackStep).toEqual({ companyId: 'NYC', lays: [], completed: false })
         expect(table.state.routeStep).toBeUndefined()
         expect(table.state.earningsDistribution).toBeUndefined()
 
@@ -172,7 +187,6 @@ describe('1846 stock and operating sequence', () => {
         const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'IC', space.id)
-        table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
         const result = table.act('FinishTrack', { companyId: 'IC' })
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'FinishTrack',
@@ -185,7 +199,7 @@ describe('1846 stock and operating sequence', () => {
         expect(table.state.companies.find((company) => company.id === 'IC')?.closed).toBe(true)
         expect(table.state.operatingSet?.completedCompanyIds).toContain('IC')
         expect(nextOperatingCompany(table.state)).toBe('NYC')
-        expect(table.state.machineState).toBe('CorporateFinance')
+        expect(table.state.machineState).toBe('LayingTrack')
     })
     it('removes a train when its railroad closes in OR2 and restores it on Undo', () => {
         const table = stockGame()
@@ -212,7 +226,6 @@ describe('1846 stock and operating sequence', () => {
         table.act('AssignSteamboat')
         table.act('FinishTrack', { companyId: 'MS' })
         table.act('FinishTrack', { companyId: 'BIG4' })
-        table.act('CorporateFinance', { companyId: 'GT', operation: 'pass', shares: 0, amount: 0 })
         const before = structuredClone(table.state)
         const result = table.act('FinishTrack', { companyId: 'GT' })
         expect(table.state.machineState).toBe('StockRound')

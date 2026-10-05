@@ -274,14 +274,7 @@ describe('1846 bankruptcy and receivership', () => {
         const routes = [{ trainId, start, paths }]
         expect(evaluation.evaluate('IC', routes).result?.revenue).toBe(60)
         expect(() => table.act('RunTrains', { companyId: 'IC', routes, playerId: 'p1' })).toThrow()
-        expect(() =>
-            table.act('CorporateFinance', {
-                companyId: 'IC',
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            })
-        ).toThrow()
+        expect(() => table.act('FinishTrack', { companyId: 'IC' })).toThrow()
         const result = table.act('RunTrains', { companyId: 'IC', routes, playerId: 'p3' })
         expect(result.processedActions.map((action) => action.type)).toContain('SettleReceiver')
         expect(result.processedActions[1].metadata).toMatchObject({

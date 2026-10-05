@@ -37,10 +37,7 @@ export const describe1846Action: TitleActionDescription = (action, companyName) 
     }
     if (CorporateFinanceValidator.Check(action))
         return {
-            text:
-                action.operation === 'pass'
-                    ? `${companyName(action.companyId)} passed on issuance and redemption`
-                    : `${companyName(action.companyId)} ${action.operation === 'issue' ? 'issued' : 'redeemed'} ${action.shares} shares for $${action.amount}`
+            text: `${companyName(action.companyId)} ${action.operation === 'issue' ? 'issued' : 'redeemed'} ${action.shares} ${action.shares === 1 ? 'share' : 'shares'} for $${action.amount}`
         }
     if (AssignSteamboatValidator.Check(action))
         return {

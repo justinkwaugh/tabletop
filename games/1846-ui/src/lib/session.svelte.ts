@@ -58,8 +58,9 @@ const BaseSession: ReturnType<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
 >(SessionRules1846, MapView1846, Presentation1846)
+type ConstructionMode = 'track' | 'stations' | 'finance'
 export class EighteenFortySixSession extends BaseSession {
-    private manualConstructionMode = $derived.by((): 'track' | 'stations' | undefined => {
+    private manualConstructionMode = $derived.by((): ConstructionMode | undefined => {
         void [this.gameState, this.updatingVisibleState, this.myPlayer?.id, this.isViewingHistory]
         return undefined
     })
@@ -104,19 +105,15 @@ export class EighteenFortySixSession extends BaseSession {
     protected override get sharedActionsBlocked() {
         return !!this.privateDraft || !!this.gameState.pendingRevenueMarker
     }
-    chooseConstructionMode(mode: 'track' | 'stations') {
+    chooseConstructionMode(mode: ConstructionMode | undefined) {
         this.track.stages.clear()
         this.stations.stages.clear()
         this.manualConstructionMode = mode
     }
 
     protected override get operatingStepCompletion() {
-        if (this.validActionTypes.includes('CorporateFinance')) {
-            const choice = this.financeChoices.find((choice) => choice.operation === 'pass')
-            if (choice) return { lastTarget: 2, finish: () => this.corporateFinance(choice) }
-        }
         if (this.validActionTypes.includes('FinishTrack'))
-            return { lastTarget: 2, finish: () => this.finishConstruction() }
+            return { lastTarget: 1, finish: () => this.finishConstruction() }
         return undefined
     }
 
@@ -306,6 +303,11 @@ export class EighteenFortySixSession extends BaseSession {
         await this.applyAction(this.createPlayerAction(EmergencyBuyTrain, choice))
     }
     readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
+    readonly financeLabel = $derived.by(() => {
+        const operations = new Set(this.financeChoices.map((choice) => choice.operation))
+        if (operations.size > 1) return 'Issue / redeem'
+        return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
+    })
     async corporateFinance(choice: FinanceChoice): Promise<void> {
         await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
     }

@@ -104,7 +104,7 @@ describe('1846 private construction', () => {
             const before = structuredClone(table.state)
             const lays = pair(table, id)
             const result = build(table, id, lays)
-            expect(table.state.machineState).toBe('CorporateFinance')
+            expect(table.state.machineState).toBe('LayingTrack')
             expect(table.state.usedPrivatePowerIds).toContain(id)
             expect(table.state.trackStep).toEqual(before.trackStep)
             expect(table.state.cash).toEqual(before.cash)
@@ -202,7 +202,6 @@ describe('1846 private construction', () => {
     it('uses powers after routes without changing the recorded run or completed construction', () => {
         const table = major()
         acquire(table, 'O&I')
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         table.act('FinishTrack', { companyId: 'NYC' })
         expect(table.state.machineState).toBe('BuyingTrains')
         const before = structuredClone(table.state)
@@ -307,7 +306,6 @@ describe('1846 private construction', () => {
     it('Tunnel Blasting discounts mountains but not water terrain or base construction', () => {
         const table = major()
         acquire(table, 'TBC')
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         const rules = { ...TrackRules1846, useful: () => true }
         const builder = new TrackConstruction(table.hydrated, rules)
         expect(builder.choices('H16')[0]?.cost).toBe(20)

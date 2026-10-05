@@ -80,7 +80,6 @@ describe('1846 corporate acquisitions', () => {
 
         table.act('AssignRevenueMarker', { privateCompanyId: 'SC' })
         purchase(table, 'MS')
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         table.act('FinishTrack', { companyId: 'NYC' })
         table.act('FinishOperatingTurn', { companyId: 'NYC' })
         expect(table.state.operatingSet?.roundNumber).toBe(2)
@@ -123,7 +122,7 @@ describe('1846 corporate acquisitions', () => {
                 stations: { placedIds: [expect.any(String)] }
             }
         })
-        expect(table.state.machineState).toBe('CorporateFinance')
+        expect(table.state.machineState).toBe('LayingTrack')
         expect(table.state.activePlayerIds).toEqual(before.activePlayerIds)
         let replay = before
         for (const action of actions)
@@ -153,15 +152,7 @@ describe('1846 corporate acquisitions', () => {
         const offer = table.state.purchaseOffer
         assertExists(offer)
         expect(table.state.activePlayerIds).toEqual([offer.sellerPlayerId])
-        expect(() =>
-            table.act('CorporateFinance', {
-                companyId: 'NYC',
-                operation: 'pass',
-                shares: 0,
-                amount: 0,
-                playerId: buyer
-            })
-        ).toThrow()
+        expect(() => table.act('FinishTrack', { companyId: 'NYC', playerId: buyer })).toThrow()
         expect(() =>
             table.act('RespondToPurchaseOffer', {
                 offerId: offer.id,
@@ -248,7 +239,6 @@ describe('1846 corporate acquisitions', () => {
             )
         ).toBe(false)
         purchase(table, 'MS')
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         table.act('FinishTrack', { companyId: 'NYC' })
         const treasury = cash(table, 'NYC')
         table.act('FinishOperatingTurn', { companyId: 'NYC' })
@@ -257,7 +247,6 @@ describe('1846 corporate acquisitions', () => {
     })
     it('allows absorption during construction and train buying without resetting completed steps', () => {
         const table = major()
-        table.act('CorporateFinance', { companyId: 'NYC', operation: 'pass', shares: 0, amount: 0 })
         purchase(table, 'MS')
         const construction = new TrackConstruction(table.hydrated, TrackRules1846)
         const lay = construction.choices('C13')[0]

@@ -6,12 +6,11 @@
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const money = $derived(session.presentation.money)
-    const pass = $derived.by(() => {
-        const choice = session.financeChoices.find((choice) => choice.operation === 'pass')
-        assertExists(choice, 'Corporate finance always offers a pass')
-        return choice
+    const companyId = $derived.by(() => {
+        const choice = session.financeChoices[0]
+        assertExists(choice, 'The share transaction panel requires a legal transaction')
+        return choice.companyId
     })
-    const companyId = $derived(pass.companyId)
     const groups = $derived(
         (['issue', 'redeem'] as const)
             .map((operation) => ({
@@ -45,14 +44,6 @@
 {/snippet}
 
 <section class="corporate-finance" aria-label="Corporate finance">
-    <header class="finance-prompt">
-        <span>Issue or redeem shares, or</span>
-        <button
-            class="action-button inline-action"
-            disabled={!session.canChooseAction}
-            onclick={() => session.corporateFinance(pass)}>pass</button
-        >
-    </header>
     <dl class="finance-strip">
         <div class="finance-identity">
             <dt class="visually-hidden">Company</dt>
@@ -88,11 +79,6 @@
         flex-direction: column;
         align-items: center;
         gap: 14px;
-    }
-    .finance-prompt {
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
     .finance-strip {
         display: flex;

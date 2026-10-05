@@ -11,7 +11,6 @@ function constructionGame() {
     table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
-    table.act('CorporateFinance', { companyId: 'B&O', operation: 'pass', shares: 0, amount: 0 })
     return table
 }
 function stationRequest(table: ReturnType<typeof stockGame>) {

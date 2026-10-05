@@ -70,11 +70,7 @@ export function revenueMarkerChoices(state: MarkerState, playerId: string) {
     )
         return []
     const pending = state.pendingRevenueMarker
-    if (
-        !pending &&
-        !['CorporateFinance', 'LayingTrack', 'RunningTrains'].includes(state.machineState)
-    )
-        return []
+    if (!pending && !['LayingTrack', 'RunningTrains'].includes(state.machineState)) return []
     return state.companies.flatMap(({ id: privateCompanyId }) => {
         if (!isRevenuePrivate(privateCompanyId)) return []
         if (

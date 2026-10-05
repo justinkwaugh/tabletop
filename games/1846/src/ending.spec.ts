@@ -32,13 +32,6 @@ function advance(table: Table) {
             return table.finishTurn()
         case 'AssigningSteamboat':
             return table.act('AssignSteamboat')
-        case 'CorporateFinance':
-            return table.act('CorporateFinance', {
-                companyId,
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            })
         case 'LayingTrack':
             return table.act('FinishTrack', { companyId })
         case 'RunningTrains':
@@ -153,8 +146,9 @@ describe('1846 game endings', () => {
             playUntil(
                 table,
                 () =>
-                    table.state.machineState === 'CorporateFinance' &&
-                    table.state.operatingSet?.roundNumber === 2
+                    corporateFinanceChoices(table.hydrated).some(
+                        (choice) => choice.operation === 'issue'
+                    ) && table.state.operatingSet?.roundNumber === 2
             )
             const choice = corporateFinanceChoices(table.hydrated).find(
                 (choice) => choice.operation === 'issue'

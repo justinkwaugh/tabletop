@@ -94,8 +94,7 @@ class ScenarioInitializer1846 extends Initializer {
             if (position !== 'trading') {
                 for (let i = 0; i < 100; i++) {
                     const companyId = nextOperatingCompany(state)
-                    if (state.machineState === 'CorporateFinance' && companyId === start.companyId)
-                        break
+                    if (state.machineState === 'LayingTrack' && companyId === start.companyId) break
                     switch (state.machineState) {
                         case 'StockRound':
                             act('FinishStockTurn')
@@ -114,16 +113,10 @@ class ScenarioInitializer1846 extends Initializer {
                     }
                 }
                 assert(
-                    state.machineState === 'CorporateFinance',
-                    'Scenario must reach corporate finance'
+                    state.machineState === 'LayingTrack',
+                    "Scenario must reach the launched corporation's construction"
                 )
                 if (position !== 'operations') {
-                    act('CorporateFinance', {
-                        companyId: start.companyId,
-                        operation: 'pass',
-                        shares: 0,
-                        amount: 0
-                    })
                     if (position === 'stations' && start.companyId === 'IC') {
                         const request = {
                             companyId: start.companyId,
@@ -170,9 +163,17 @@ class ScenarioInitializer1846 extends Initializer {
                         }
                         if (position === 'powers' || position === 'transfers') {
                             state.phaseId = 'II'
-                            state.machineState = 'CorporateFinance'
-                            delete state.trackStep
-                            delete state.stationStep
+                            state.machineState = 'LayingTrack'
+                            state.trackStep = {
+                                companyId: start.companyId,
+                                lays: [],
+                                completed: false
+                            }
+                            state.stationStep = {
+                                companyId: start.companyId,
+                                placedStationIds: [],
+                                completed: false
+                            }
                             delete state.earningsDistribution
                             delete state.trainPurchaseStep
                             delete state.routeStep

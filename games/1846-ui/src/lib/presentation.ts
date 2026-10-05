@@ -7,6 +7,7 @@ import {
     type EighteenFortySixProjectedState
 } from '@tabletop/1846'
 import { createPhaseChart, moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import type { GameAction } from '@tabletop/common'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'
 import MeatPackingToken from './images/tokens/meat-packing.svg'
@@ -14,6 +15,17 @@ const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 },
     { definitionId: '18xx:9', rotation: 1 }
 ] as const
+function financeSummary(actions: readonly GameAction[]) {
+    const start = actions.findLastIndex(
+        (action) => action.type === 'StartOperatingTurn' || action.type === 'StartReceiverTurn'
+    )
+    const transactions = actions
+        .slice(start + 1)
+        .filter((action) => CorporateFinanceValidator.Check(action))
+    if (!transactions.length) return undefined
+    const shares = transactions.reduce((total, action) => total + action.shares, 0)
+    return `${transactions[0].operation === 'issue' ? 'Issued' : 'Redeemed'} ${shares}`
+}
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
     money: moneyFormat('$'),
     marketPoolId: 'open-market',
@@ -75,25 +87,6 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
     }),
     operatingSteps: [
         {
-            label: 'Finance',
-            states: ['CorporateFinance'],
-            actions: ['CorporateFinance'],
-            status: (_state, actions) => {
-                const start = actions.findLastIndex(
-                    (action) =>
-                        action.type === 'StartOperatingTurn' || action.type === 'StartReceiverTurn'
-                )
-                const finance = actions
-                    .slice(start + 1)
-                    .findLast((action) => CorporateFinanceValidator.Check(action))
-                return finance
-                    ? finance.operation === 'pass'
-                        ? 'Passed'
-                        : `${finance.operation === 'issue' ? 'Issued' : 'Redeemed'} ${finance.shares}`
-                    : undefined
-            }
-        },
-        {
             label: 'Build',
             states: ['LayingTrack'],
             actions: [
@@ -102,10 +95,13 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
                 'BuildPrivateTrack',
                 'PlaceCWIStation',
                 'FinishTrack',
-                'FinishStations'
+                'FinishStations',
+                'CorporateFinance'
             ],
-            status: (_state, _actions, summaries) =>
-                [summaries.track, summaries.station].filter(Boolean).join(' · ') || undefined
+            status: (_state, actions, summaries) =>
+                [financeSummary(actions), summaries.track, summaries.station]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
         },
         {
             label: 'Run',

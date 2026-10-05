@@ -22,20 +22,28 @@ import {
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 
+const FinanceOperation = Type.Union([Type.Literal('issue'), Type.Literal('redeem')])
 const FinanceChoice = Type.Object(
     {
         companyId: Type.String(),
-        operation: Type.Union([
-            Type.Literal('issue'),
-            Type.Literal('redeem'),
-            Type.Literal('pass')
-        ]),
-        shares: Type.Integer({ minimum: 0 }),
+        operation: FinanceOperation,
+        shares: Type.Integer({ minimum: 1 }),
         amount: Type.Integer({ minimum: 0 })
     },
     { additionalProperties: false }
 )
 export type FinanceChoice = Type.Static<typeof FinanceChoice>
+
+/** The direction a corporation committed to this turn: it may not both issue and redeem. */
+export const FinanceStep = Type.Object(
+    { companyId: Type.String(), operation: FinanceOperation },
+    { additionalProperties: false }
+)
+export type FinanceStep = Type.Static<typeof FinanceStep>
+
+// Rules §6.2 order issuing first, but nothing before the run changes its price (§6.33), limits
+// or payout (§6.73), so a president may issue or redeem at any point until routes are run.
+const CorporateFinanceStates: readonly string[] = ['LayingTrack', 'RunningTrains']
 
 export function corporateFinanceCertificates(
     state: FinancialState,
@@ -67,14 +75,17 @@ export function corporateIssueLimit(state: FinancialState, companyId: string): n
 }
 
 export function corporateFinanceChoices(state: HydratedEighteenFortySixState): FinanceChoice[] {
-    if (state.machineState !== 'CorporateFinance') return []
+    if (!CorporateFinanceStates.includes(state.machineState)) return []
     const companyId = nextOperatingCompany(state)
     assertExists(companyId, 'Corporate finance requires an operating company')
     const company = getCompany(state, companyId)
+    if (company.kind !== 'major') return []
     assert(
-        company.kind === 'major' && !company.closed && company.floated,
+        !company.closed && company.floated,
         'Corporate finance requires an open, floated major corporation'
     )
+    const committed =
+        state.financeStep?.companyId === companyId ? state.financeStep.operation : undefined
     const market = corporateFinanceCertificates(state, companyId, 'redeem')
     const space = companyMarketSpace(state.stockMarket, companyId)
     assertExists(space.moves.left, 'An operating corporation has an issuance price')
@@ -83,13 +94,15 @@ export function corporateFinanceChoices(state: HydratedEighteenFortySixState): F
     assertExists(redemptionSpaceId, 'An operating corporation has a redemption price')
     const redeemPrice =
         space.price === 550 ? 600 : stockMarketSpace(state.stockMarket, redemptionSpaceId).price
-    const issueLimit = corporateIssueLimit(state, companyId)
-    const redeemLimit = Math.min(
-        market.length,
-        Math.floor(finiteCashOwnedBy(state, { kind: 'company', companyId }) / redeemPrice)
-    )
+    const issueLimit = committed === 'redeem' ? 0 : corporateIssueLimit(state, companyId)
+    const redeemLimit =
+        committed === 'issue'
+            ? 0
+            : Math.min(
+                  market.length,
+                  Math.floor(finiteCashOwnedBy(state, { kind: 'company', companyId }) / redeemPrice)
+              )
     return [
-        { companyId, operation: 'pass', shares: 0, amount: 0 },
         ...Array.from({ length: Math.max(0, issueLimit) }, (_, i): FinanceChoice => ({
             companyId,
             operation: 'issue',
@@ -154,13 +167,11 @@ export class CorporateFinanceAction extends HydratableAction<typeof CorporateFin
         const company = { kind: 'company' as const, companyId: this.companyId }
         const bank = { kind: 'bank' as const }
         const issuing = this.operation === 'issue'
-        const certificates =
-            this.operation === 'pass'
-                ? []
-                : corporateFinanceCertificates(state, this.companyId, this.operation).slice(
-                      0,
-                      this.shares
-                  )
+        const certificates = corporateFinanceCertificates(
+            state,
+            this.companyId,
+            this.operation
+        ).slice(0, this.shares)
         const payments: CashPayment[] = this.amount
             ? [
                   {
@@ -176,6 +187,7 @@ export class CorporateFinanceAction extends HydratableAction<typeof CorporateFin
             if (issuing) certificate.poolId = 'open-market'
             else delete certificate.poolId
         }
+        state.financeStep = { companyId: this.companyId, operation: this.operation }
         this.metadata = {
             companyId: this.companyId,
             operation: this.operation,

@@ -323,7 +323,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
         expect(discarded.processedActions.map((action) => action.type)).toContain(
             'FinishReceiverTurn'
         )
-        expect(table.state.machineState).toBe('CorporateFinance')
+        expect(table.state.machineState).toBe('LayingTrack')
         const actions = [...result.processedActions, ...discarded.processedActions]
         let replay = before
         for (const action of actions)

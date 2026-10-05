@@ -19,7 +19,6 @@ function lastPhaseITrain() {
     table.finishStockRound()
     table.act('FinishTrack', { companyId: 'MS' })
     table.act('FinishTrack', { companyId: 'BIG4' })
-    table.act('CorporateFinance', { companyId: 'IC', operation: 'pass', shares: 0, amount: 0 })
     table.act('FinishTrack', { companyId: 'IC' })
     for (let i = 0; i < 3; i++) buyTrain(table, '2')
     table.act('FinishOperatingTurn', { companyId: 'IC' })

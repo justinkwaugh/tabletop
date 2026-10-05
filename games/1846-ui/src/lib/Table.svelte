@@ -71,16 +71,6 @@
                         onclick={() => session.assignSteamboat()}>Leave unassigned</button
                     >
                 </section>
-            {:else if state.machineState === 'CorporateFinance'}
-                <CompanyDecisions
-                    {session}
-                    trainColors={session.presentation.trainColors}
-                    showUndo={false}
-                />
-                {#if !session.privateActions.selection && !session.decisions.selection && !state.purchaseOffer}
-                    <CorporateFinance {session} />
-                    <ConstructionPowers {session} /><RevenuePowers {session} />
-                {/if}
             {:else if state.machineState === 'RunningReceiver'}
                 <AutomaticRoutes
                     {session}
@@ -93,26 +83,43 @@
                     <EmergencyTrains {session} />
                 </section>
             {:else}
-                {#if state.machineState === 'LayingTrack' && !state.purchaseOffer && !session.decisions.selection && !session.privateActions.selection}
-                    <nav aria-label="Construction mode" class="choices construction-mode">
-                        <button
-                            aria-pressed={session.constructionMode === 'track'}
-                            onclick={() => session.chooseConstructionMode('track')}
-                            disabled={!session.canChooseAction ||
-                                !session.validActionTypes.includes('LayTile')}>Lay track</button
-                        >
-                        {#if state.stationStep && !state.stationStep.completed}
+                {#if (state.machineState === 'LayingTrack' || (state.machineState === 'RunningTrains' && session.financeChoices.length)) && !state.purchaseOffer && !session.decisions.selection && !session.privateActions.selection}
+                    <nav aria-label="Operating mode" class="choices construction-mode">
+                        {#if state.machineState === 'LayingTrack'}
                             <button
-                                aria-pressed={session.constructionMode === 'stations'}
-                                onclick={() => session.chooseConstructionMode('stations')}
+                                aria-pressed={session.constructionMode === 'track'}
+                                onclick={() => session.chooseConstructionMode('track')}
                                 disabled={!session.canChooseAction ||
-                                    !session.validActionTypes.includes('PlaceStation')}
-                                >Place station</button
+                                    !session.validActionTypes.includes('LayTile')}>Lay track</button
+                            >
+                            {#if state.stationStep && !state.stationStep.completed}
+                                <button
+                                    aria-pressed={session.constructionMode === 'stations'}
+                                    onclick={() => session.chooseConstructionMode('stations')}
+                                    disabled={!session.canChooseAction ||
+                                        !session.validActionTypes.includes('PlaceStation')}
+                                    >Place station</button
+                                >
+                            {/if}
+                        {:else}
+                            <button
+                                aria-pressed={session.constructionMode !== 'finance'}
+                                onclick={() => session.chooseConstructionMode(undefined)}
+                                disabled={!session.canChooseAction}>Run trains</button
+                            >
+                        {/if}
+                        {#if session.financeChoices.length}
+                            <button
+                                aria-pressed={session.constructionMode === 'finance'}
+                                onclick={() => session.chooseConstructionMode('finance')}
+                                disabled={!session.canChooseAction}>{session.financeLabel}</button
                             >
                         {/if}
                     </nav>
                 {/if}
-                {#if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
+                {#if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
+                    <CorporateFinance {session} />
+                {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
                     <CompanyDecisions
                         {session}
                         trainColors={session.presentation.trainColors}

@@ -152,14 +152,7 @@ describe('1846 personal emergency train funding', () => {
         const before = structuredClone(table.state)
         expect(() => startFunding(table)).toThrow()
         expect(() => table.act('FinishOperatingTurn', { companyId: 'IC' })).toThrow()
-        expect(() =>
-            table.act('CorporateFinance', {
-                companyId: 'IC',
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            })
-        ).toThrow()
+        expect(() => table.act('FinishTrack', { companyId: 'IC' })).toThrow()
         for (const fields of [
             { playerId: 'p2' },
             { source: ActionSource.System },

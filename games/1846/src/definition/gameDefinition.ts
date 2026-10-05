@@ -111,7 +111,8 @@ import {
 import {
     CorporateFinance,
     CorporateFinanceValidator,
-    CorporateFinanceAction
+    CorporateFinanceAction,
+    corporateFinanceChoices
 } from '../corporateFinance.js'
 import { getCompany } from '@tabletop/18xx'
 import { RunTrains, isRunTrains, HydratedRunTrains, RunningTrainsHandler } from '@tabletop/18xx'
@@ -347,6 +348,11 @@ const rustingTrains = new RustingTrainsHandler('DistributingEarnings')
 const runningTrains = new RunningTrainsHandler(RouteRules1846, 'DistributingEarnings')
 const distributingEarnings = new DistributingEarningsHandler(EarningsRules1846, 'BuyingTrains')
 const layingTrack = new LayingTrackHandler(TrackRules1846, 'RunningTrains')
+function corporateFinanceActions(playerId: string, state: HydratedEighteenFortySixState) {
+    return state.isActivePlayer(playerId) && corporateFinanceChoices(state).length
+        ? ['CorporateFinance']
+        : []
+}
 const apiActions = actionRegistry.schemas
 export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighteenFortySixState> = {
     randomnessVersion: 1,
@@ -503,10 +509,8 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
             onAction(_action, { gameState }) {
                 const companyId = nextOperatingCompany(gameState)
                 assertExists(companyId, 'An operating turn requires a company')
-                if (inReceivership(gameState, companyId)) return 'RunningReceiver'
-                return getCompany(gameState, companyId).kind === 'major'
-                    ? 'CorporateFinance'
-                    : 'LayingTrack'
+                delete gameState.financeStep
+                return inReceivership(gameState, companyId) ? 'RunningReceiver' : 'LayingTrack'
             }
         },
         LayingTrack: {
@@ -529,11 +533,13 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                     ...(context.gameState.isActivePlayer(id) &&
                     stationChoices1846(context.gameState).length
                         ? ['PlaceStation']
-                        : [])
+                        : []),
+                    ...corporateFinanceActions(id, context.gameState)
                 ]
             },
             isValidAction(action, context) {
                 const state = context.gameState
+                if (action instanceof CorporateFinanceAction) return action.isValid(state)
                 if (isFinishStations(action))
                     return (
                         action.source === ActionSource.System &&
@@ -569,10 +575,16 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
         },
         RunningTrains: {
             enter: (context) => runningTrains.enter(context),
-            validActionsForPlayer: (id, context) =>
-                runningTrains.validActionsForPlayer(id, context),
-            isValidAction: (action, context) => runningTrains.isValidAction(action, context),
-            onAction(_action, { gameState }) {
+            validActionsForPlayer: (id, context) => [
+                ...runningTrains.validActionsForPlayer(id, context),
+                ...corporateFinanceActions(id, context.gameState)
+            ],
+            isValidAction: (action, context) =>
+                action instanceof CorporateFinanceAction
+                    ? action.isValid(context.gameState)
+                    : runningTrains.isValidAction(action, context),
+            onAction(action, { gameState }) {
+                if (action instanceof CorporateFinanceAction) return 'RunningTrains'
                 const companyId = gameState.routeStep?.companyId
                 assertExists(companyId, 'A train run requires an operating company')
                 if (trainsRustingAfterOperation(gameState, companyId).length) return 'RustingTrains'
@@ -622,18 +634,6 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
             },
             onAction(_action, { gameState }) {
                 return nextOperatingState1846(gameState)
-            }
-        },
-        CorporateFinance: {
-            enter() {},
-            validActionsForPlayer(playerId, { gameState }) {
-                return gameState.isActivePlayer(playerId) ? ['CorporateFinance'] : []
-            },
-            isValidAction(action, { gameState }) {
-                return action instanceof CorporateFinanceAction && action.isValid(gameState)
-            },
-            onAction() {
-                return 'LayingTrack'
             }
         },
         BuyingTrains: {

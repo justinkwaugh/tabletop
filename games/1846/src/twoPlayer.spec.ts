@@ -45,13 +45,6 @@ function advance(table: Table) {
             return table.finishTurn()
         case 'AssigningSteamboat':
             return table.act('AssignSteamboat')
-        case 'CorporateFinance':
-            return table.act('CorporateFinance', {
-                companyId,
-                operation: 'pass',
-                shares: 0,
-                amount: 0
-            })
         case 'LayingTrack':
             return table.act('FinishTrack', { companyId })
         case 'RunningTrains':
@@ -271,7 +264,7 @@ describe('1846 complete two-player rules', () => {
     it('shortens a last-train ending when the bank subsequently breaks in the current set', () => {
         const table = lastTrainGame()
         buyTrain(table, '6')
-        playUntil(table, () => table.state.machineState === 'CorporateFinance')
+        playUntil(table, () => corporateFinanceChoices(table.hydrated).length > 0)
         const bank = table.state.cash.find((cash) => cash.owner.kind === 'bank')
         assertExists(bank)
         bank.amount = 1

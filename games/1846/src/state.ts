@@ -3,6 +3,7 @@ import { EmergencyFundingFields } from './emergencyFunding.js'
 import { AcquisitionFields } from './acquisitions.js'
 import { RevenueMarkerFields } from './revenueMarkers.js'
 import { SteamboatFields } from './steamboat.js'
+import { FinanceStep } from './corporateFinance.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameState, HydratableGameState, Visibility, type PlayerState } from '@tabletop/common'
@@ -95,6 +96,7 @@ export const EighteenFortySixState = Type.Object(
         operatingSet: Type.Optional(OperatingSet),
         trackStep: Type.Optional(TrackStep),
         stationStep: Type.Optional(StationStep),
+        financeStep: Type.Optional(FinanceStep),
         ...StockCompanyFields,
         stockMarket: StockMarket,
         stockRound: StockRound,
@@ -115,7 +117,6 @@ export const EighteenFortySixState = Type.Object(
             Type.Literal('AssigningSteamboat'),
             Type.Literal('RunningTrains'),
             Type.Literal('SettlingIndependent'),
-            Type.Literal('CorporateFinance'),
             Type.Literal('DistributingEarnings'),
             Type.Literal('ClosingOperatingCorporation'),
             Type.Literal('BuyingTrains'),
@@ -159,6 +160,7 @@ export class HydratedEighteenFortySixState
     declare tileInventory: EighteenFortySixProjectedState['tileInventory']
     declare operatingSet?: EighteenFortySixProjectedState['operatingSet']
     declare stationStep?: EighteenFortySixProjectedState['stationStep']
+    declare financeStep?: EighteenFortySixProjectedState['financeStep']
     declare trackStep?: EighteenFortySixProjectedState['trackStep']
     declare phaseEvents: EighteenFortySixProjectedState['phaseEvents']
     declare phaseChange?: EighteenFortySixProjectedState['phaseChange']
