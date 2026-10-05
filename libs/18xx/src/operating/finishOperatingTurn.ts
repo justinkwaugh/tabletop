@@ -41,7 +41,7 @@ export function finishOperatingTurnReason(
         !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
         rules.requiresTrain(state, companyId)
     )
-        return 'This company must buy a train because its station connects to another revenue center.'
+        return 'This company must buy a train before finishing its operating turn.'
     return undefined
 }
 export const FinishOperatingTurn = Type.Object(

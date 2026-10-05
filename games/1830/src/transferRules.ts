@@ -12,6 +12,7 @@ export const EighteenThirtyTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
+        if (asset.kind !== 'private') return undefined
         return EighteenThirtyPhases.isAtLeast(state.phaseId, '3') &&
             !EighteenThirtyPhases.isAtLeast(state.phaseId, '5') &&
             privateOwner(state, asset.privateCompanyId)?.kind === 'player'

@@ -1,3 +1,131 @@
+import { EndingRules1846 } from '../ending.js'
+import {
+    PublicDistributionActions,
+    buyingOpeningCompaniesHandler,
+    ResumeOpeningPurchases,
+    ResumeOpeningPurchasesAction
+} from '../publicDistribution.js'
+import { endingActions, GameEndingHandler, FinalWealthScoring } from '@tabletop/18xx'
+import {
+    DeclareBankruptcy,
+    DeclareBankruptcyAction,
+    isDeclareBankruptcy1846,
+    bankruptcyShortfall
+} from '../bankruptcy.js'
+import { inReceivership } from '../receivership.js'
+import {
+    BuyReceiverShare,
+    BuyReceiverShareAction,
+    BuyReceiverShareValidator,
+    receiverShareChoices
+} from '../receiverShares.js'
+import {
+    StartReceiverTurn,
+    StartReceiverTurnAction,
+    StartReceiverValidator,
+    SettleReceiver,
+    SettleReceiverAction,
+    SettleReceiverValidator,
+    BuyReceiverTrain,
+    BuyReceiverTrainAction,
+    BuyReceiverValidator,
+    FinishReceiverTurn,
+    FinishReceiverTurnAction,
+    FinishReceiverValidator,
+    settlingReceiverHandler,
+    buyingReceiverHandler
+} from '../receiverOperations.js'
+import {
+    SellEmergencyShares,
+    SellEmergencySharesAction,
+    isSellEmergencyShares,
+    emergencyShareSaleChoices
+} from '../emergencyFunding.js'
+import {
+    EmergencyBuyTrain,
+    EmergencyBuyTrainAction,
+    isEmergencyBuyTrain,
+    emergencyTrainChoices,
+    emergencyFundingStart,
+    StartEmergencyFunding,
+    StartEmergencyFundingAction,
+    isStartEmergencyFunding
+} from '../emergencyTrain.js'
+import {
+    BuildPrivateTrack,
+    BuildPrivateTrackAction,
+    isBuildPrivateTrack
+} from '../privateConstruction.js'
+import { PlaceCWIStation, PlaceCWIStationAction, isPlaceCWIStation } from '../privateStation.js'
+import { PrivatePowersHandler } from '../privatePowersHandler.js'
+import { PurchaseOffersHandler, transferActions } from '@tabletop/18xx'
+import { TransferRules1846, AcquisitionSteps } from '../acquisitions.js'
+import {
+    AssignRevenueMarker,
+    AssignRevenueMarkerValidator,
+    AssignRevenueMarkerAction
+} from '../revenueMarkers.js'
+import {
+    PhaseRules1846,
+    AdvancePhase1846,
+    AdvancePhase1846Action,
+    isAdvancePhase1846,
+    advancingPhase1846Handler
+} from '../phases.js'
+import { TrainRules1846 } from '../trains.js'
+import {
+    DiscardTrain,
+    HydratedDiscardTrain,
+    isDiscardTrain,
+    DiscardingTrainsHandler,
+    RustTrains,
+    HydratedRustTrains,
+    isRustTrains,
+    RustingTrainsHandler,
+    trainsRustingAfterOperation,
+    BuyTrain,
+    isBuyTrain,
+    HydratedBuyTrain,
+    OrdinaryBuyingTrainsHandler,
+    StartStockRound,
+    HydratedStartStockRound,
+    canStartStockRound,
+    BetweenCompaniesState,
+    FinishOperatingTurn,
+    isFinishOperatingTurn,
+    HydratedFinishOperatingTurn
+} from '@tabletop/18xx'
+import { EarningsRules1846 } from '../earnings.js'
+import { earningsActions, DistributingEarningsHandler, endOperatingTurn } from '@tabletop/18xx'
+import { StationRules1846, stationChoices1846 } from '../stations.js'
+import {
+    PlaceStation,
+    isPlaceStation,
+    HydratedPlaceStation,
+    StationPlacement,
+    FinishStations,
+    isFinishStations,
+    HydratedFinishStations
+} from '@tabletop/18xx'
+import {
+    CorporateFinance,
+    CorporateFinanceValidator,
+    CorporateFinanceAction
+} from '../corporateFinance.js'
+import { getCompany } from '@tabletop/18xx'
+import { RunTrains, isRunTrains, HydratedRunTrains, RunningTrainsHandler } from '@tabletop/18xx'
+import { RouteRules1846 } from '../routes.js'
+import {
+    AssignSteamboat,
+    AssignSteamboatValidator,
+    AssignSteamboatAction,
+    steamboatOwner
+} from '../steamboat.js'
+import {
+    SettleIndependent,
+    SettleIndependentValidator,
+    SettleIndependentAction
+} from '../settleIndependent.js'
 import {
     defineAction,
     StartOperatingSet,
@@ -20,13 +148,14 @@ import {
     isFinishTrack,
     HydratedFinishTrack
 } from '@tabletop/18xx'
-import { OperatingRules1846, ValuationRules1846 } from '../operating.js'
+import { OperatingRules1846, ValuationRules1846, nextOperatingState1846 } from '../operating.js'
 import { TrackRules1846 } from '../track.js'
 import {
     CloseCorporation,
     CloseCorporationValidator,
     CloseCorporationAction,
-    corporationAwaitingClosure
+    corporationAwaitingClosure,
+    corporationClosureHandler
 } from '../closeCorporation.js'
 import {
     ActionRegistry,
@@ -37,6 +166,7 @@ import {
 import { StockRules1846, CompanyRules1846 } from '../stock.js'
 import {
     ActionSource,
+    assert,
     assertExists,
     Visibility,
     type GameDefinition,
@@ -60,10 +190,65 @@ import {
     PassAction,
     RevealAction
 } from '../actions.js'
-import { choicesFor } from '../distribution.js'
+import { choicesFor, hiddenDistribution } from '../distribution.js'
 import { EighteenFortySixInfo } from './info.js'
 
-const stockRegistry = new ActionRegistry([
+const actionRegistry = new ActionRegistry([
+    ...PublicDistributionActions,
+    ...endingActions(EndingRules1846),
+    defineAction(
+        DeclareBankruptcy,
+        isDeclareBankruptcy1846,
+        (data) => new DeclareBankruptcyAction(data)
+    ),
+    defineAction(
+        StartEmergencyFunding,
+        isStartEmergencyFunding,
+        (data) => new StartEmergencyFundingAction(data)
+    ),
+    defineAction(
+        SellEmergencyShares,
+        isSellEmergencyShares,
+        (data) => new SellEmergencySharesAction(data)
+    ),
+    defineAction(
+        EmergencyBuyTrain,
+        isEmergencyBuyTrain,
+        (data) => new EmergencyBuyTrainAction(data)
+    ),
+    defineAction(
+        BuildPrivateTrack,
+        isBuildPrivateTrack,
+        (data) => new BuildPrivateTrackAction(data)
+    ),
+    defineAction(PlaceCWIStation, isPlaceCWIStation, (data) => new PlaceCWIStationAction(data)),
+    ...transferActions(TransferRules1846, TrainRules1846, StockRules1846, true),
+    defineAction(AdvancePhase1846, isAdvancePhase1846, (data) => new AdvancePhase1846Action(data)),
+    defineAction(
+        DiscardTrain,
+        isDiscardTrain,
+        (data) => new HydratedDiscardTrain(data, TrainRules1846, PhaseRules1846)
+    ),
+    defineAction(RustTrains, isRustTrains, (data) => new HydratedRustTrains(data, TrainRules1846)),
+    defineAction(BuyTrain, isBuyTrain, (data) => new HydratedBuyTrain(data, TrainRules1846)),
+    defineAction(
+        FinishOperatingTurn,
+        isFinishOperatingTurn,
+        (data) => new HydratedFinishOperatingTurn(data, TrainRules1846, ValuationRules1846)
+    ),
+    ...earningsActions(
+        EarningsRules1846,
+        { operationEffects: () => [] },
+        StockRules1846,
+        'BuyingTrains'
+    ),
+    defineAction(
+        PlaceStation,
+        isPlaceStation,
+        (data) => new HydratedPlaceStation(data, StationRules1846)
+    ),
+    defineAction(FinishStations, isFinishStations, (data) => new HydratedFinishStations(data)),
+    defineAction(RunTrains, isRunTrains, (data) => new HydratedRunTrains(data, RouteRules1846)),
     defineAction(
         StartOperatingSet,
         isStartOperatingSet,
@@ -89,13 +274,26 @@ const stockHandler = new OrdinaryStockRoundHandler(
     'PreparingOperatingSet',
     CompanyRules1846
 )
-const layingTrack = new LayingTrackHandler(TrackRules1846, 'ReadyForRoutes')
+const buyingTrains = new OrdinaryBuyingTrainsHandler(TrainRules1846, BetweenCompaniesState)
+const rustingTrains = new RustingTrainsHandler('DistributingEarnings')
+const runningTrains = new RunningTrainsHandler(RouteRules1846, 'DistributingEarnings')
+const distributingEarnings = new DistributingEarningsHandler(EarningsRules1846, 'BuyingTrains')
+const layingTrack = new LayingTrackHandler(TrackRules1846, 'RunningTrains')
 const apiActions = {
+    StartReceiverTurn,
+    SettleReceiver,
+    BuyReceiverTrain,
+    FinishReceiverTurn,
+    BuyReceiverShare,
     ChooseDraftCard,
     PassFinalCompany,
     RevealDraft,
     CloseCorporation,
-    ...stockRegistry.schemas
+    AssignSteamboat,
+    SettleIndependent,
+    CorporateFinance,
+    AssignRevenueMarker,
+    ...actionRegistry.schemas
 }
 export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighteenFortySixState> = {
     randomnessVersion: 1,
@@ -103,14 +301,27 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
     playerColors: PlayerColors,
     apiActions,
     canonicalStateValidator: CanonicalValidator,
+    scoring: FinalWealthScoring,
     hydrator: {
-        hydrateState: (data) => new HydratedEighteenFortySixState(data),
+        hydrateState: (data) =>
+            new HydratedEighteenFortySixState(
+                data instanceof HydratedEighteenFortySixState ? data.dehydrate() : data
+            ),
         hydrateAction(data) {
+            if (StartReceiverValidator.Check(data)) return new StartReceiverTurnAction(data)
+            if (SettleReceiverValidator.Check(data)) return new SettleReceiverAction(data)
+            if (BuyReceiverValidator.Check(data)) return new BuyReceiverTrainAction(data)
+            if (FinishReceiverValidator.Check(data)) return new FinishReceiverTurnAction(data)
+            if (BuyReceiverShareValidator.Check(data)) return new BuyReceiverShareAction(data)
+            if (AssignRevenueMarkerValidator.Check(data)) return new AssignRevenueMarkerAction(data)
+            if (CorporateFinanceValidator.Check(data)) return new CorporateFinanceAction(data)
             if (ChooseValidator.Check(data)) return new ChooseAction(data)
             if (PassValidator.Check(data)) return new PassAction(data)
             if (RevealValidator.Check(data)) return new RevealAction(data)
             if (CloseCorporationValidator.Check(data)) return new CloseCorporationAction(data)
-            const stockAction = stockRegistry.hydrate(data)
+            if (AssignSteamboatValidator.Check(data)) return new AssignSteamboatAction(data)
+            if (SettleIndependentValidator.Check(data)) return new SettleIndependentAction(data)
+            const stockAction = actionRegistry.hydrate(data)
             if (stockAction) return stockAction
             throw Error('Unknown or invalid 1846 action')
         }
@@ -120,13 +331,14 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
         actions: Visibility.createActionProjector(apiActions)
     },
     stateHandlers: {
+        BuyingOpeningCompanies: buyingOpeningCompaniesHandler,
         Drafting: {
             enter() {},
             validActionsForPlayer(playerId, { gameState }) {
                 if (!gameState.isActivePlayer(playerId)) return []
                 return [
                     ...(choicesFor(gameState, playerId).length ? ['ChooseDraftCard'] : []),
-                    ...(gameState.draft.finalOffer ? ['PassFinalCompany'] : [])
+                    ...(hiddenDistribution(gameState).finalOffer ? ['PassFinalCompany'] : [])
                 ]
             },
             isValidAction(action, { gameState }) {
@@ -135,7 +347,7 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                         choicesFor(gameState, action.playerId).includes(action.cardId)) ||
                     (action instanceof PassAction &&
                         gameState.isActivePlayer(action.playerId) &&
-                        gameState.draft.finalOffer !== undefined)
+                        hiddenDistribution(gameState).finalOffer !== undefined)
                 )
             },
             onAction(_action, { gameState }) {
@@ -165,12 +377,19 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
             validActionsForPlayer: (playerId, context) =>
                 corporationAwaitingClosure(context.gameState)
                     ? []
-                    : stockHandler.validActionsForPlayer(playerId, context),
+                    : [
+                          ...stockHandler.validActionsForPlayer(playerId, context),
+                          ...(receiverShareChoices(context.gameState, playerId).length
+                              ? ['BuyReceiverShare']
+                              : [])
+                      ],
             isValidAction(action, context) {
                 const companyId = corporationAwaitingClosure(context.gameState)
                 return companyId
-                    ? action instanceof CloseCorporationAction && action.companyId === companyId
-                    : stockHandler.isValidAction(action, context)
+                    ? corporationClosureHandler.isValidAction(action, context)
+                    : action instanceof BuyReceiverShareAction
+                      ? action.isValid(context.gameState)
+                      : stockHandler.isValidAction(action, context)
             },
             onAction(_action, context) {
                 if (
@@ -200,18 +419,35 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                     canStartOperatingRound(gameState)
                 )
             },
-            onAction() {
-                return 'StartingOperatingTurn'
+            onAction(_action, { gameState }) {
+                return steamboatOwner(gameState)
+                    ? 'AssigningSteamboat'
+                    : nextOperatingState1846(gameState)
+            }
+        },
+        AssigningSteamboat: {
+            enter({ gameState }) {
+                const owner = steamboatOwner(gameState)
+                assertExists(owner, 'Steamboat assignment requires its player owner')
+                gameState.activePlayerIds = [owner]
+            },
+            validActionsForPlayer(playerId, { gameState }) {
+                return gameState.isActivePlayer(playerId) ? ['AssignSteamboat'] : []
+            },
+            isValidAction(action, { gameState }) {
+                return action instanceof AssignSteamboatAction && action.isValid(gameState)
+            },
+            onAction(_action, { gameState }) {
+                return nextOperatingState1846(gameState)
             }
         },
         StartingOperatingTurn: {
             enter(context) {
                 const companyId = nextOperatingCompany(context.gameState)
-                assertExists(
-                    companyId,
-                    'The opening operating round starts with an independent railroad'
-                )
-                context.addSystemAction(StartOperatingTurn, { companyId })
+                assertExists(companyId, 'An operating turn requires a company')
+                if (inReceivership(context.gameState, companyId))
+                    context.addSystemAction(StartReceiverTurn, { companyId })
+                else context.addSystemAction(StartOperatingTurn, { companyId })
             },
             validActionsForPlayer() {
                 return []
@@ -219,33 +455,273 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
             isValidAction(action, { gameState }) {
                 return (
                     action.source === ActionSource.System &&
-                    action instanceof HydratedStartOperatingTurn &&
+                    (action instanceof HydratedStartOperatingTurn ||
+                        action instanceof StartReceiverTurnAction) &&
                     action.companyId === nextOperatingCompany(gameState)
                 )
+            },
+            onAction(_action, { gameState }) {
+                const companyId = nextOperatingCompany(gameState)
+                assertExists(companyId, 'An operating turn requires a company')
+                if (inReceivership(gameState, companyId)) return 'RunningReceiver'
+                return getCompany(gameState, companyId).kind === 'major'
+                    ? 'CorporateFinance'
+                    : 'LayingTrack'
+            }
+        },
+        LayingTrack: {
+            enter(context) {
+                layingTrack.enter(context)
+                const state = context.gameState
+                const companyId = state.trackStep?.companyId
+                assertExists(companyId, 'Construction requires an operating company')
+                if (getCompany(state, companyId).kind !== 'major') return
+                state.stationStep ??= { companyId, placedStationIds: [], completed: false }
+                if (state.trackStep?.completed)
+                    context.addSystemAction(FinishStations, {
+                        companyId,
+                        playerId: state.activePlayerIds[0]
+                    })
+            },
+            validActionsForPlayer(id, context) {
+                return [
+                    ...layingTrack.validActionsForPlayer(id, context),
+                    ...(context.gameState.isActivePlayer(id) &&
+                    stationChoices1846(context.gameState).length
+                        ? ['PlaceStation']
+                        : [])
+                ]
+            },
+            isValidAction(action, context) {
+                const state = context.gameState
+                if (isFinishStations(action))
+                    return (
+                        action.source === ActionSource.System &&
+                        !!state.trackStep?.completed &&
+                        state.stationStep?.companyId === action.companyId &&
+                        !state.stationStep.completed &&
+                        state.isActivePlayer(action.playerId)
+                    )
+                if (!isPlaceStation(action)) return layingTrack.isValidAction(action, context)
+                const placement = new StationPlacement(state, StationRules1846)
+                return (
+                    action.source === ActionSource.User &&
+                    state.isActivePlayer(action.playerId) &&
+                    placement.canAct(action.playerId, action.companyId) &&
+                    placement.evaluate(action).details?.cost === action.expectedCost
+                )
+            },
+            onAction(action, { gameState }) {
+                if (isFinishStations(action)) return 'RunningTrains'
+                if (isFinishTrack(action) && !gameState.stationStep) return 'RunningTrains'
+                return 'LayingTrack'
+            }
+        },
+        RunningReceiver: new RunningTrainsHandler(RouteRules1846, 'SettlingReceiver'),
+        SettlingReceiver: settlingReceiverHandler,
+        BuyingReceiverTrain: buyingReceiverHandler,
+        FinishingReceiverTurn: buyingReceiverHandler,
+        GameOver: {
+            enter() {},
+            validActionsForPlayer: () => [],
+            isValidAction: () => false,
+            onAction: () => 'GameOver'
+        },
+        RunningTrains: {
+            enter: (context) => runningTrains.enter(context),
+            validActionsForPlayer: (id, context) =>
+                runningTrains.validActionsForPlayer(id, context),
+            isValidAction: (action, context) => runningTrains.isValidAction(action, context),
+            onAction(_action, { gameState }) {
+                const companyId = gameState.routeStep?.companyId
+                assertExists(companyId, 'A train run requires an operating company')
+                if (trainsRustingAfterOperation(gameState, companyId).length) return 'RustingTrains'
+                return getCompany(gameState, companyId).kind === 'minor'
+                    ? 'SettlingIndependent'
+                    : 'DistributingEarnings'
+            }
+        },
+        DistributingEarnings: {
+            enter: (context) => distributingEarnings.enter(context),
+            validActionsForPlayer: (id, context) =>
+                distributingEarnings.validActionsForPlayer(id, context),
+            isValidAction: (action, context) => distributingEarnings.isValidAction(action, context),
+            onAction(_action, { gameState }) {
+                return corporationAwaitingClosure(gameState)
+                    ? 'ClosingOperatingCorporation'
+                    : 'BuyingTrains'
+            }
+        },
+        ClosingOperatingCorporation: {
+            ...corporationClosureHandler,
+            onAction(action, { gameState }) {
+                assert(
+                    action instanceof CloseCorporationAction,
+                    'Closure requires its system action'
+                )
+                endOperatingTurn(gameState, action.companyId)
+                gameState.activePlayerIds = []
+                return nextOperatingState1846(gameState)
+            }
+        },
+        SettlingIndependent: {
+            enter(context) {
+                const companyId = nextOperatingCompany(context.gameState)
+                assertExists(companyId, 'Settlement requires an independent')
+                context.addSystemAction(SettleIndependent, { companyId })
+            },
+            validActionsForPlayer() {
+                return []
+            },
+            isValidAction(action, { gameState }) {
+                return (
+                    action instanceof SettleIndependentAction &&
+                    action.source === ActionSource.System &&
+                    action.companyId === nextOperatingCompany(gameState)
+                )
+            },
+            onAction(_action, { gameState }) {
+                return nextOperatingState1846(gameState)
+            }
+        },
+        CorporateFinance: {
+            enter() {},
+            validActionsForPlayer(playerId, { gameState }) {
+                return gameState.isActivePlayer(playerId) ? ['CorporateFinance'] : []
+            },
+            isValidAction(action, { gameState }) {
+                return action instanceof CorporateFinanceAction && action.isValid(gameState)
             },
             onAction() {
                 return 'LayingTrack'
             }
         },
-        LayingTrack: {
-            enter: (context) => layingTrack.enter(context),
-            validActionsForPlayer: (id, context) => layingTrack.validActionsForPlayer(id, context),
-            isValidAction: (action, context) => layingTrack.isValidAction(action, context),
-            onAction: (action) => (isFinishTrack(action) ? 'ReadyForRoutes' : 'LayingTrack')
+        BuyingTrains: {
+            enter: (context) => buyingTrains.enter(context),
+            validActionsForPlayer: (id, context) => [
+                ...buyingTrains.validActionsForPlayer(id, context),
+                ...(context.gameState.activePlayerIds.includes(id) &&
+                emergencyTrainChoices(context.gameState).length
+                    ? ['EmergencyBuyTrain']
+                    : []),
+                ...(context.gameState.activePlayerIds.includes(id) &&
+                emergencyFundingStart(context.gameState)
+                    ? ['StartEmergencyFunding']
+                    : [])
+            ],
+            isValidAction: (action, context) =>
+                action instanceof EmergencyBuyTrainAction ||
+                action instanceof StartEmergencyFundingAction
+                    ? action.isValid(context.gameState)
+                    : buyingTrains.isValidAction(action, context),
+            onAction(action, { gameState }) {
+                if (gameState.emergencyFunding) return 'FundingTrain'
+                if (gameState.phaseChange) {
+                    return 'AdvancingPhase'
+                }
+                if (!isFinishOperatingTurn(action)) return 'BuyingTrains'
+                gameState.activePlayerIds = []
+                return nextOperatingState1846(gameState)
+            }
         },
-        ReadyForRoutes: {
+        FundingTrain: {
             enter() {},
+            validActionsForPlayer(id, { gameState }) {
+                if (!gameState.activePlayerIds.includes(id)) return []
+                return [
+                    ...(bankruptcyShortfall(gameState) !== undefined
+                        ? ['DeclareBankruptcy1846']
+                        : []),
+                    ...(emergencyTrainChoices(gameState).length ? ['EmergencyBuyTrain'] : []),
+                    ...(emergencyShareSaleChoices(gameState).length ? ['SellEmergencyShares'] : [])
+                ]
+            },
+            isValidAction(action, { gameState }) {
+                return (
+                    (action instanceof EmergencyBuyTrainAction ||
+                        action instanceof SellEmergencySharesAction ||
+                        action instanceof DeclareBankruptcyAction) &&
+                    action.isValid(gameState)
+                )
+            },
+            onAction(_action, { gameState }) {
+                if (gameState.result) return 'GameOver'
+                if (
+                    !gameState.emergencyFunding &&
+                    gameState.trainPurchaseStep &&
+                    inReceivership(gameState, gameState.trainPurchaseStep.companyId)
+                )
+                    return 'BuyingReceiverTrain'
+                if (corporationAwaitingClosure(gameState)) return 'ClosingFundingCorporation'
+                if (gameState.phaseChange) return 'AdvancingPhase'
+                return gameState.emergencyFunding ? 'FundingTrain' : 'BuyingTrains'
+            }
+        },
+        ClosingFundingCorporation: {
+            ...corporationClosureHandler,
+            onAction(_action, { gameState }) {
+                return corporationAwaitingClosure(gameState)
+                    ? 'ClosingFundingCorporation'
+                    : 'FundingTrain'
+            }
+        },
+        AdvancingPhase: advancingPhase1846Handler,
+        DiscardingTrains: new DiscardingTrainsHandler(TrainRules1846, PhaseRules1846),
+        RustingTrains: {
+            enter: (context) => rustingTrains.enter(context),
+            validActionsForPlayer: () => [],
+            isValidAction: (action, context) => rustingTrains.isValidAction(action, context),
+            onAction(_action, { gameState }) {
+                const companyId = gameState.routeStep?.companyId
+                assertExists(companyId, 'Rusting requires an operating company')
+                return inReceivership(gameState, companyId)
+                    ? 'SettlingReceiver'
+                    : 'DistributingEarnings'
+            }
+        },
+        OperatingSet: {
+            enter(context) {
+                if (
+                    context.gameState.draft.kind === 'public' &&
+                    context.gameState.draft.stage === 'operating'
+                )
+                    context.addSystemAction(ResumeOpeningPurchases)
+                else context.addSystemAction(StartStockRound)
+            },
             validActionsForPlayer() {
                 return []
             },
-            isValidAction() {
-                return false
+            isValidAction(action, { gameState }) {
+                if (gameState.draft.kind === 'public' && gameState.draft.stage === 'operating')
+                    return (
+                        action instanceof ResumeOpeningPurchasesAction && action.isValid(gameState)
+                    )
+                return (
+                    action.source === ActionSource.System &&
+                    action instanceof HydratedStartStockRound &&
+                    canStartStockRound(gameState)
+                )
             },
-            onAction() {
-                return 'ReadyForRoutes'
+            onAction(action) {
+                return action instanceof ResumeOpeningPurchasesAction
+                    ? 'BuyingOpeningCompanies'
+                    : 'StockRound'
             }
         }
     }
+}
+for (const step of AcquisitionSteps) {
+    const handler = Runtime.stateHandlers[step]
+    assertExists(handler, 'A purchase window has an operating handler')
+    Runtime.stateHandlers[step] = new PurchaseOffersHandler(
+        new PrivatePowersHandler(handler),
+        TransferRules1846,
+        TrainRules1846
+    )
+}
+for (const [step, handler] of Object.entries(Runtime.stateHandlers)) {
+    if (step !== 'GameOver')
+        Runtime.stateHandlers[step] = new GameEndingHandler(handler, EndingRules1846)
 }
 export const Definition: GameDefinition<
     EighteenFortySixProjectedState,

@@ -65,7 +65,31 @@ for (const [id, hexes] of Object.entries(PrivateTrackBlocks))
         markers[hex] = [
             { id, label: id, description: `${id} reserves this hex while player-owned.` }
         ]
-for (const [id, ports] of Object.entries({ B8: 2, C5: 1, D14: 1, G19: 2, I1: 1 }))
+export const PortSymbols: Readonly<Record<string, number>> = { B8: 2, C5: 1, D14: 1, G19: 2, I1: 1 }
+export const EastWestBonuses: Readonly<Record<string, { side: 'east' | 'west'; amount: number }>> =
+    {
+        B18: { side: 'east', amount: 20 },
+        C17: { side: 'east', amount: 30 },
+        C21: { side: 'east', amount: 30 },
+        D22: { side: 'east', amount: 30 },
+        E23: { side: 'east', amount: 30 },
+        I17: { side: 'east', amount: 20 },
+        F22: { side: 'east', amount: 20 },
+        G21: { side: 'east', amount: 20 },
+        H20: { side: 'east', amount: 30 },
+        C5: { side: 'west', amount: 50 },
+        I1: { side: 'west', amount: 20 }
+    }
+for (const [id, bonus] of Object.entries(EastWestBonuses))
+    markers[id] = [
+        ...(markers[id] ?? []),
+        {
+            id: 'east-west',
+            label: `${bonus.side === 'east' ? 'E' : 'W'} +$${bonus.amount}`,
+            description: 'East–West bonus: count both endpoints.'
+        }
+    ]
+for (const [id, ports] of Object.entries(PortSymbols))
     markers[id] = [
         ...(markers[id] ?? []),
         {

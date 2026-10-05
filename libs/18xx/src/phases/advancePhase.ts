@@ -54,13 +54,13 @@ export class HydratedAdvancePhase
     declare metadata?: AdvancePhase['metadata']
     readonly #rules: PhaseRules
     readonly #trainRules: TrainRules
-    readonly #privateRules: PrivateRules
+    readonly #privateRules: Pick<PrivateRules, 'phaseEffects'>
     readonly #stockRules: StockRules
     constructor(
         data: AdvancePhase,
         rules: PhaseRules,
         trainRules: TrainRules,
-        privateRules: PrivateRules,
+        privateRules: Pick<PrivateRules, 'phaseEffects'>,
         stockRules: StockRules
     ) {
         super(data instanceof HydratedAdvancePhase ? data.dehydrate() : data, Validator)
@@ -78,7 +78,7 @@ export class HydratedAdvancePhase
         this.metadata = {
             companyChanges: companies.changes(state),
             event,
-            nextState: continuePhaseChange(state)
+            nextState: continuePhaseChange(state, this.#rules)
         }
     }
 }

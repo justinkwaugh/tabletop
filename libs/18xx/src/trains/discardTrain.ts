@@ -11,11 +11,11 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
-import { trainsOwnedBy, unownedTrain } from './train.js'
-import type { TrainRules } from './trainPurchase.js'
+import { unownedTrain } from './train.js'
+import { trainsCountingForLimit, type TrainRules } from './trainPurchase.js'
 import {
     continuePhaseChange,
+    phaseDecisionPlayers,
     type PhaseChangeState,
     type PhaseRules
 } from '../phases/phaseChange.js'
@@ -27,9 +27,9 @@ import {
 export function discardableTrains(
     state: PhaseChangeState,
     companyId: string,
-    rules: Pick<TrainRules, 'trainLimit'>
+    rules: Pick<TrainRules, 'trainLimit' | 'countsForLimit'>
 ) {
-    const trains = trainsOwnedBy(state, { kind: 'company', companyId })
+    const trains = trainsCountingForLimit(state, rules, companyId)
     return state.phaseChange?.discardCompanyIds[0] === companyId &&
         trains.length > rules.trainLimit(state, companyId)
         ? trains
@@ -82,8 +82,8 @@ export class HydratedDiscardTrain
         assert(
             this.source === ActionSource.User &&
                 state.activePlayerIds.includes(this.playerId) &&
-                controllingOwner(state, this.companyId)?.playerId === this.playerId,
-            'Only the deciding company’s controlling owner may discard'
+                phaseDecisionPlayers(state, this.companyId, this.#phases).includes(this.playerId),
+            'Only a deciding player may discard for this company'
         )
         const train = discardableTrains(state, this.companyId, this.#rules).find(
             (train) => train.id === this.trainId
@@ -101,20 +101,23 @@ export class HydratedDiscardTrain
             entry.id !== train.id ? entry : unownedTrain(entry, this.#phases.discardDestination)
         )
         if (
-            trainsOwnedBy(state, { kind: 'company', companyId: this.companyId }).length <=
+            trainsCountingForLimit(state, this.#rules, this.companyId).length <=
             this.#rules.trainLimit(state, this.companyId)
         )
             state.phaseChange!.discardCompanyIds.shift()
         this.metadata = {
             destination: this.#phases.discardDestination,
-            nextState: continuePhaseChange(state),
+            nextState: continuePhaseChange(state, this.#phases),
             ...departurePaymentsField(payments)
         }
     }
 }
 type State = HydratedGameState & PhaseChangeState
 export class DiscardingTrainsHandler implements MachineStateHandler<HydratedDiscardTrain, State> {
-    constructor(private readonly rules: TrainRules) {}
+    constructor(
+        private readonly rules: TrainRules,
+        private readonly phases?: Pick<PhaseRules, 'activePlayers'>
+    ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
         return (
@@ -131,7 +134,7 @@ export class DiscardingTrainsHandler implements MachineStateHandler<HydratedDisc
             companyId = state.phaseChange?.discardCompanyIds[0]
         return companyId &&
             state.activePlayerIds.includes(playerId) &&
-            controllingOwner(state, companyId)?.playerId === playerId &&
+            phaseDecisionPlayers(state, companyId, this.phases).includes(playerId) &&
             discardableTrains(state, companyId, this.rules).length
             ? ['DiscardTrain']
             : []

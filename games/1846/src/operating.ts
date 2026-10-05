@@ -1,5 +1,9 @@
-import { assertExists } from '@tabletop/common'
+import { Phases1846 } from './trains.js'
+import { assert, assertExists } from '@tabletop/common'
 import {
+    canStartOperatingRound,
+    canStartStockRound,
+    nextOperatingCompany,
     companyMarketSpace,
     floatedCompaniesInMarketOrder,
     getCompany,
@@ -8,8 +12,9 @@ import {
     type ValuationRules
 } from '@tabletop/18xx'
 import { DraftCompanies } from './catalog.js'
+import type { HydratedEighteenFortySixState } from './state.js'
 export const OperatingRules1846: OperatingRules = {
-    roundCount: () => 2,
+    roundCount: (state) => Phases1846.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
         const majors = floatedCompaniesInMarketOrder(state)
         const first =
@@ -46,4 +51,11 @@ export const ValuationRules1846: ValuationRules = {
         assertExists(privateCompany, 'A private or independent has a printed value')
         return [{ assetId: certificate.id, label: company.name, value: privateCompany.price }]
     }
+}
+
+export function nextOperatingState1846(state: HydratedEighteenFortySixState) {
+    if (nextOperatingCompany(state)) return 'StartingOperatingTurn'
+    if (canStartOperatingRound(state)) return 'StartingOperatingRound'
+    assert(canStartStockRound(state), 'An exhausted operating set must be ready for stock trading')
+    return 'OperatingSet'
 }

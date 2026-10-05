@@ -19,6 +19,7 @@ export interface PrivateTrackTerms {
     // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
     terrainDiscount?: number
+    free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
 }
@@ -81,10 +82,12 @@ export function privateTrackConstruction(
                 terms.locationIds.includes(locationId) &&
                 terms.definitionIds.includes(definitionId),
             terrainCost: (constructionState, request, cost) =>
-                Math.max(
-                    0,
-                    (rules.terrainCost?.(constructionState, request, cost) ?? cost) - discount
-                )
+                terms.free
+                    ? 0
+                    : Math.max(
+                          0,
+                          (rules.terrainCost?.(constructionState, request, cost) ?? cost) - discount
+                      )
         },
         terms.payer
     )

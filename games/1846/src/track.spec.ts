@@ -40,6 +40,7 @@ describe('1846 phase-I construction', () => {
             'CompleteStockRound',
             'StartOperatingSet',
             'StartOperatingRound',
+            'AssignSteamboat',
             'StartOperatingTurn'
         ])
         expect(table.state.operatingSet).toMatchObject({
@@ -98,7 +99,7 @@ describe('1846 phase-I construction', () => {
         ).toEqual([])
         expect(() => table.act('LayTile', second)).toThrow()
         table.act('FinishTrack', { companyId: 'MS' })
-        expect(table.state.machineState).toBe('ReadyForRoutes')
+        expect(table.state.machineState).toBe('RunningTrains')
         expect(
             table.state.companies.find((company) => company.id === 'MS')?.operated
         ).toBeUndefined()
@@ -182,7 +183,9 @@ describe('1846 phase-I construction', () => {
         (count) => {
             const { state } = start(count)
             expect(
-                state.trainInventory.trains.filter((train) => train.status === 'depot')
+                state.trainInventory.trains.filter(
+                    (train) => train.status === 'depot' && train.definitionId === '2'
+                )
             ).toHaveLength(count + 2)
             expect(
                 EighteenFortySixTileSet.availablePieces(state.tileInventory, '18xx:5')

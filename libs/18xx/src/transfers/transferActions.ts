@@ -6,6 +6,8 @@ import {
     OfferPurchase,
     HydratedOfferPurchase,
     RespondToPurchaseOffer,
+    OrdinaryOfferPurchase,
+    OrdinaryRespondToPurchaseOffer,
     HydratedRespondToPurchaseOffer,
     isOfferPurchase,
     isRespondToPurchaseOffer
@@ -14,16 +16,17 @@ import {
 export function transferActions(
     transfers: TransferRules,
     trains: TrainRules,
-    stocks: StockRules
+    stocks: StockRules,
+    companyAcquisitions = false
 ): ActionDefinition[] {
     return [
         defineAction(
-            RespondToPurchaseOffer,
+            companyAcquisitions ? RespondToPurchaseOffer : OrdinaryRespondToPurchaseOffer,
             isRespondToPurchaseOffer,
             (action) => new HydratedRespondToPurchaseOffer(action, transfers, trains, stocks)
         ),
         defineAction(
-            OfferPurchase,
+            companyAcquisitions ? OfferPurchase : OrdinaryOfferPurchase,
             isOfferPurchase,
             (action) => new HydratedOfferPurchase(action, transfers, trains)
         )

@@ -39,7 +39,9 @@ export function reorderPendingOperatingCompanies(
     const fixed = set.companyOrder.filter(
         (id) => set.completedCompanyIds.includes(id) || id === current
     )
-    const pending = set.companyOrder.filter((id) => !fixed.includes(id))
+    const pending = set.companyOrder.filter(
+        (id) => !fixed.includes(id) && !getCompany(state, id).closed
+    )
     const reordered = order.filter((id) => pending.includes(id))
     assert(reordered.length === pending.length, 'Operating order must retain every pending company')
     set.companyOrder = [...fixed, ...reordered]

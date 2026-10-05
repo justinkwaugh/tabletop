@@ -1,5 +1,30 @@
 import { EighteenFortySixMap, EighteenFortySixTileSet, Corporations } from '@tabletop/1846'
-import { towardTileEdge, type MapViewDefinition } from '@tabletop/18xx-ui'
+import {
+    towardTileEdge,
+    StandardTileLayouts,
+    type TileLayout,
+    type MapViewDefinition
+} from '@tabletop/18xx-ui'
+const ChicagoLayout: TileLayout = {
+    nodePositions: {
+        'city-0': towardTileEdge(0, 25),
+        'city-1': towardTileEdge(3, 25),
+        'city-2': towardTileEdge(4, 25),
+        'city-3': towardTileEdge(5, 25)
+    },
+    revenuePositions: {
+        'city-0': { x: -17, y: 25 },
+        'city-1': { x: -17, y: -25 },
+        'city-2': { x: -30, y: 0 },
+        'city-3': { x: 32, y: 0 }
+    }
+}
+export const TileLayouts1846: Readonly<Record<string, TileLayout>> = {
+    ...StandardTileLayouts,
+    '1846:298': ChicagoLayout,
+    '1846:299': ChicagoLayout,
+    '1846:300': ChicagoLayout
+}
 export const BoardAreas = {
     market: { x: -40, y: -150, width: 1700, height: 73 },
     depot: { x: -40, y: -50, width: 250, height: 130 }
@@ -16,18 +41,13 @@ export const MapView1846: MapViewDefinition = {
                 { label: company.id, color: colors[index] }
             ])
         ),
+        'C&WI': { label: 'C&WI', color: '#666666' },
         MS: { label: 'MS', color: '#8255a7' },
         BIG4: { label: 'B4', color: '#9c683d' }
     },
     layouts: {
-        D6: {
-            nodePositions: {
-                'city-0': towardTileEdge(0, 25),
-                'city-1': towardTileEdge(3, 25),
-                'city-2': towardTileEdge(4, 25),
-                'city-3': towardTileEdge(5, 25)
-            }
-        },
+        ...TileLayouts1846,
+        D6: ChicagoLayout,
         C21: { hideRevenue: true },
         F22: { hideRevenue: true }
     },

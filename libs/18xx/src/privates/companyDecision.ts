@@ -6,7 +6,11 @@ import { isOperatingStep } from '../operating/operatingSteps.js'
 import type { PhaseState } from '../phases/phaseChange.js'
 import type { StockState } from '../stock/stockState.js'
 import type { TrainState } from '../trains/train.js'
-import { PendingPurchaseOffer, isCompanyPurchaseOffer } from '../transfers/purchaseOffer.js'
+import {
+    PendingPurchaseOffer,
+    OrdinaryPendingPurchaseOffer,
+    isCompanyPurchaseOffer
+} from '../transfers/purchaseOffer.js'
 const Id = Type.String({ minLength: 1 })
 export const PrivateTrackLay = Type.Object(
     { privateCompanyId: Id, companyId: Id, playerId: Id },
@@ -33,7 +37,8 @@ export const PrivateWindowFields = { privatePowerWindow: Type.Optional(PrivatePo
 export const PrivateRequestFields = {
     privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true }))
 }
-export const PurchaseOfferFields = { purchaseOffer: Type.Optional(PendingPurchaseOffer) }
+export const PurchaseOfferFields = { purchaseOffer: Type.Optional(OrdinaryPendingPurchaseOffer) }
+export const CompanyAcquisitionOfferFields = { purchaseOffer: Type.Optional(PendingPurchaseOffer) }
 export const PrivateTrackFields = { privateTrackLay: Type.Optional(PrivateTrackLay) }
 export const PrivateStationFields = { privateStation: Type.Optional(PrivateStation) }
 export const TrackConsentFields = { trackConsent: Type.Optional(TrackConsent) }
@@ -51,7 +56,10 @@ export type CompanyDecisionState = StockState &
     ConstructionState &
     TrainState &
     PhaseState &
-    Type.Static<Type.TObject<typeof CompanyDecisionFields>> & { machineState: string }
+    Omit<Type.Static<Type.TObject<typeof CompanyDecisionFields>>, 'purchaseOffer'> & {
+        machineState: string
+        purchaseOffer?: PendingPurchaseOffer
+    }
 export type PrivatePowerUsage = Pick<CompanyDecisionState, 'usedPrivatePowerIds'>
 
 export function privatePowerUsed(state: PrivatePowerUsage, privateCompanyId: string): boolean {

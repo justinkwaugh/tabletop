@@ -22,7 +22,22 @@ export const PresidencyChange = Type.Object(
     { additionalProperties: false }
 )
 export type PresidencyChange = Type.Static<typeof PresidencyChange>
-export type PresidencyResult = { change?: PresidencyChange; reason?: string }
+export const PresidencyClaim = Type.Object(
+    {
+        companyId: Type.String(),
+        next: President,
+        presidentCertificateId: Type.String(),
+        exchangedCertificateIds: Type.Array(Type.String()),
+        poolId: Type.String()
+    },
+    { additionalProperties: false }
+)
+export type PresidencyClaim = Type.Static<typeof PresidencyClaim>
+export type PresidencyResult = {
+    change?: PresidencyChange
+    claim?: PresidencyClaim
+    reason?: string
+}
 
 export function certificatesForShares(
     certificates: readonly Portfolio[number][],
@@ -55,7 +70,6 @@ export function evaluatePresidency(
 ): PresidencyResult {
     const company = getCompany(state, companyId)
     const previous = company.president
-    assertExists(previous, 'A traded company requires a president')
     const president = state.certificates.find(
         (certificate) =>
             !certificate.retired &&
@@ -73,9 +87,9 @@ export function evaluatePresidency(
             : sharesOwned(state, companyId, owner)
     const eligible = candidates.filter((owner) => owned(owner) >= president.shares)
     const largest = Math.max(0, ...eligible.map(owned))
-    if (owned(previous) >= president.shares && owned(previous) >= largest) return {}
+    if (previous && owned(previous) >= president.shares && owned(previous) >= largest) return {}
     const next = eligible.find((owner) => owned(owner) === largest)
-    if (!next) return { reason: 'No eligible owner can take the presidency.' }
+    if (!next) return previous ? { reason: 'No eligible owner can take the presidency.' } : {}
     const exchangedCertificateIds = certificatesForShares(
         certificatesOwnedBy(state, next),
         companyId,
@@ -83,6 +97,21 @@ export function evaluatePresidency(
     )
     if (!exchangedCertificateIds)
         return { reason: 'The new president cannot exchange the required shares.' }
+    if (!previous) {
+        assert(
+            president.owner.kind === 'bank' && president.poolId,
+            'An unclaimed presidency must be held in a bank pool'
+        )
+        return {
+            claim: {
+                companyId,
+                next,
+                presidentCertificateId: president.id,
+                exchangedCertificateIds,
+                poolId: president.poolId
+            }
+        }
+    }
     return {
         change: {
             companyId,
@@ -119,4 +148,21 @@ export function playersAfterPresident(
         kind: 'player',
         playerId
     }))
+}
+
+export function applyPresidencyClaim(state: FinancialState, claim: PresidencyClaim): void {
+    const pool = state.certificatePools.find((pool) => pool.id === claim.poolId)
+    assertExists(pool, 'Presidency claim requires a certificate pool')
+    for (const id of [claim.presidentCertificateId, ...claim.exchangedCertificateIds]) {
+        const certificate = state.certificates.find((certificate) => certificate.id === id)
+        assert(certificate && !certificate.retired, 'Presidency claim requires a live certificate')
+        if (id === claim.presidentCertificateId) {
+            certificate.owner = claim.next
+            delete certificate.poolId
+        } else {
+            certificate.owner = pool.owner
+            certificate.poolId = pool.id
+        }
+    }
+    getCompany(state, claim.companyId).president = claim.next
 }

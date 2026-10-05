@@ -1,3 +1,4 @@
+import { BlockingStationLocations } from './stations.js'
 import { EighteenFortySixMap, AdditionalReservations } from './map.js'
 import { createInitialTrainInventory } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
@@ -32,7 +33,7 @@ export class Initializer extends BaseGameInitializer<
 > {
     initializeGameState(game: Game, base: UninitializedGameState): HydratedEighteenFortySixState {
         const count = game.players.length
-        assert(count >= 3 && count <= 5, '1846 supports three through five players')
+        assert(count >= 2 && count <= 5, '1846 supports two through five players')
         const random = new Prng(base.prng).random
         const players = game.players.map((player, index) => ({
             playerId: player.id,
@@ -44,12 +45,21 @@ export class Initializer extends BaseGameInitializer<
                 (company) => company.kind === 'private' && company.group === group
             ).map((company) => company.id)
             shuffle(candidates, random)
-            return candidates.slice(0, 6 - count)
+            return candidates.slice(0, count === 2 ? 2 : 6 - count)
         })
-        const removable = ['C&O', 'ERIE', 'PRR']
-        shuffle(removable, random)
-        const removedCorporationIds = removable.slice(0, 5 - count)
+        const removalGroups =
+            count === 2
+                ? [
+                      ['ERIE', 'GT', 'NYC', 'PRR'],
+                      ['B&O', 'C&O', 'IC']
+                  ]
+                : [['C&O', 'ERIE', 'PRR']]
+        const removedCorporationIds = removalGroups.flatMap((group) => {
+            shuffle(group, random)
+            return group.slice(0, count === 2 ? 1 : 5 - count)
+        })
         const privates = DraftCompanies.filter((company) => !removedPrivateIds.includes(company.id))
+        const independents = privates.filter((company) => company.kind === 'independent')
         const majors = Corporations.filter((company) => !removedCorporationIds.includes(company.id))
         const certificates: EighteenFortySixState['certificates'] = [
             ...majors.flatMap((company) => {
@@ -71,25 +81,47 @@ export class Initializer extends BaseGameInitializer<
                     : { kind: 'private' })
             }))
         ]
-        const stations: Station[] = Corporations.flatMap((company): Station[] =>
-            removedCorporationIds.includes(company.id)
-                ? [
-                      {
-                          id: `${company.id}:station:1`,
-                          companyId: company.id,
-                          status: 'placed',
-                          position: { locationId: company.home, nodeId: 'city', slot: 0 }
-                      }
-                  ]
-                : createCompanyStations(company.id, company.tokens)
-        )
+        const placedHomes = [
+            ...Corporations.filter((company) => removedCorporationIds.includes(company.id)),
+            ...independents
+        ]
+        const stations: Station[] = [
+            ...majors.flatMap((company) => createCompanyStations(company.id, company.tokens)),
+            ...placedHomes.map((company): Station => ({
+                id: `${company.id}:station:1`,
+                companyId: company.id,
+                status: 'placed',
+                position: { locationId: company.home, nodeId: 'city', slot: 0 }
+            }))
+        ]
+        if (count === 2)
+            for (const companyId of removedCorporationIds)
+                stations.push(
+                    companyId === 'ERIE'
+                        ? {
+                              id: `${companyId}:blocking`,
+                              companyId,
+                              status: 'placed',
+                              position: {
+                                  locationId: BlockingStationLocations[companyId],
+                                  nodeId: 'city',
+                                  slot: 0
+                              }
+                          }
+                        : { id: `${companyId}:blocking`, companyId, status: 'available' }
+                )
         const order = players.map((player) => player.playerId)
         const state = new HydratedEighteenFortySixState({
             ...base,
             players,
             activePlayerIds: [order[order.length - 1]],
-            machineState: 'Drafting',
+            machineState: count === 2 ? 'BuyingOpeningCompanies' : 'Drafting',
             phaseId: 'I',
+            phaseEvents: [],
+            bankruptPlayerIds: [],
+            independentAcquisitions: [],
+            revenueMarkers: [],
+            usedPrivatePowerIds: [],
             tileInventory: EighteenFortySixTileSet.createInventory(),
             stockMarket: createMarket(),
             stockRound: createStockRound(1),
@@ -121,43 +153,56 @@ export class Initializer extends BaseGameInitializer<
             ],
             certificatePools: [{ id: 'open-market', name: 'Market', owner: { kind: 'bank' } }],
             cash: [
-                { owner: { kind: 'bank' }, amount: BankSize[count] - count * 400 },
+                {
+                    owner: { kind: 'bank' },
+                    amount: BankSize[count] - count * (count === 2 ? 600 : 400)
+                },
                 ...players.map((player) => ({
                     owner: { kind: 'player' as const, playerId: player.playerId },
-                    amount: 400
+                    amount: count === 2 ? 600 : 400
                 })),
-                ...[...majors, ...privates.filter((company) => company.kind === 'independent')].map(
-                    (company) => ({
-                        owner: { kind: 'company' as const, companyId: company.id },
-                        amount: 0
-                    })
-                )
+                ...[...majors, ...independents].map((company) => ({
+                    owner: { kind: 'company' as const, companyId: company.id },
+                    amount: 0
+                }))
             ],
             certificates,
             stations,
             stationReservations: [
                 ...EighteenFortySixMap.stationReservations(),
-                ...AdditionalReservations
-            ].filter((reservation) => !removedCorporationIds.includes(reservation.companyId)),
+                ...AdditionalReservations,
+                ...(privates.some((company) => company.id === 'C&WI')
+                    ? [{ companyId: 'C&WI', locationId: 'D6', nodeId: 'city-3' }]
+                    : [])
+            ].filter(
+                (reservation) =>
+                    !placedHomes.some((company) => company.id === reservation.companyId)
+            ),
             trainInventory: createInitialTrainInventory(count),
-            draft: {
-                deck: [
-                    ...privates.map((company) => company.id),
-                    ...players.map((_, index) => `blank:${index + 1}`)
-                ],
-                participants: players.map((player) => ({
-                    playerId: player.playerId,
-                    packet: [],
-                    selections: []
-                })),
-                remainingCount: privates.length + count
-            },
+            draft:
+                count === 2
+                    ? { kind: 'public', stage: 'buying', passedPlayerIds: [] }
+                    : {
+                          kind: 'hidden',
+                          deck: [
+                              ...privates.map((company) => company.id),
+                              ...players.map((_, index) => `blank:${index + 1}`)
+                          ],
+                          participants: players.map((player) => ({
+                              playerId: player.playerId,
+                              packet: [],
+                              selections: []
+                          })),
+                          remainingCount: privates.length + count
+                      },
             purchases: []
         })
-        assert(state.draft.deck, 'Draft deck is required')
-        shuffle(state.draft.deck, state.getProtectedPrng().random)
         state.turnManager.startTurn(state.activePlayerIds[0], state.actionCount)
-        dealPacket(state)
+        if (state.draft.kind === 'hidden') {
+            assert(state.draft.deck, 'Draft deck is required')
+            shuffle(state.draft.deck, state.getProtectedPrng().random)
+            dealPacket(state)
+        }
         return state
     }
 }

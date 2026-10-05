@@ -4,10 +4,14 @@ import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
 import { TrainDefinition, unownedTrain, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
+const SupplyCount = Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
 const SupplyEntry = Type.Object(
     {
         definitionId: Type.String({ minLength: 1 }),
-        count: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
+        variantDefinitionIds: Type.Optional(
+            Type.Array(Type.String({ minLength: 1 }), { minItems: 1, uniqueItems: true })
+        ),
+        count: SupplyCount
     },
     { additionalProperties: false }
 )
@@ -15,7 +19,13 @@ export const TrainDepotDefinition = Type.Object(
     {
         id: Type.String({ minLength: 1 }),
         trains: Type.Array(TrainDefinition),
-        supply: Type.Array(SupplyEntry)
+        supply: Type.Array(SupplyEntry),
+        supplyVariants: Type.Optional(
+            Type.Record(
+                Type.String({ minLength: 1 }),
+                Type.Record(Type.String({ minLength: 1 }), SupplyCount)
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -34,12 +44,27 @@ export class TrainDepot {
                 definition.supply.length,
             'Duplicate train supply entry'
         )
+        const supplied = definition.supply.flatMap((entry) => [
+            entry.definitionId,
+            ...(entry.variantDefinitionIds ?? [])
+        ])
         assert(
-            definition.supply.every((entry) =>
-                definition.trains.some((train) => train.id === entry.definitionId)
-            ),
+            new Set(supplied).size === supplied.length,
+            'A train definition belongs to one supply'
+        )
+        assert(
+            supplied.every((id) => definition.trains.some((train) => train.id === id)),
             'Unknown train supply definition'
         )
+        for (const [id, counts] of Object.entries(definition.supplyVariants ?? {})) {
+            assert(id !== definition.id, 'A supply variant requires a distinct depot identity')
+            assert(
+                Object.keys(counts).every((id) =>
+                    definition.supply.some((entry) => entry.definitionId === id)
+                ),
+                'Unknown supply variant entry'
+            )
+        }
         this.definition = Clone(definition)
         deepFreeze(this.definition)
     }
@@ -48,26 +73,53 @@ export class TrainDepot {
         assertExists(definition, 'Unknown train definition')
         return definition
     }
-    createInventory(): TrainInventory {
+    purchaseDefinitionIds(): string[] {
+        return this.definition.supply.flatMap((entry) => [
+            entry.definitionId,
+            ...(entry.variantDefinitionIds ?? [])
+        ])
+    }
+    certificateDefinitions(definitionId: string): string[] {
+        const entry = this.supplyEntry(definitionId)
+        assertExists(entry, 'Train has no supply entry')
+        return [entry.definitionId, ...(entry.variantDefinitionIds ?? [])]
+    }
+    private supplyEntries(depotId: string) {
+        if (depotId === this.definition.id) return this.definition.supply
+        const counts = this.definition.supplyVariants?.[depotId]
+        assertExists(counts, 'Unknown train supply variant')
+        return this.definition.supply.map((entry) => ({
+            ...entry,
+            count: counts[entry.definitionId] ?? entry.count
+        }))
+    }
+    private supplyEntry(definitionId: string, depotId = this.definition.id) {
+        return this.supplyEntries(depotId).find(
+            (entry) =>
+                entry.definitionId === definitionId ||
+                entry.variantDefinitionIds?.includes(definitionId)
+        )
+    }
+    createInventory(depotId = this.definition.id): TrainInventory {
         let nextTrainNumber = 1
-        const trains = this.definition.supply.flatMap((entry): Train[] =>
+        const trains = this.supplyEntries(depotId).flatMap((entry): Train[] =>
             entry.count === 'unlimited'
                 ? []
                 : Array.from({ length: entry.count }, () => ({
-                      id: this.trainId(entry.definitionId, nextTrainNumber++),
+                      id: this.trainId(entry.definitionId, nextTrainNumber++, depotId),
                       definitionId: entry.definitionId,
                       status: 'depot'
                   }))
         )
-        return { depotId: this.definition.id, trains, nextTrainNumber }
+        return { depotId, trains, nextTrainNumber }
     }
     remaining(inventory: TrainInventory, definitionId: string): number | 'unlimited' {
-        const entry = this.definition.supply.find((entry) => entry.definitionId === definitionId)
+        const entry = this.supplyEntry(definitionId, inventory.depotId)
         assertExists(entry, 'Train is not supplied by this depot')
         return entry.count === 'unlimited'
             ? 'unlimited'
             : inventory.trains.filter(
-                  (train) => train.definitionId === definitionId && train.status === 'depot'
+                  (train) => train.definitionId === entry.definitionId && train.status === 'depot'
               ).length
     }
     nextDefinitionId(inventory: TrainInventory): string | undefined {
@@ -76,28 +128,35 @@ export class TrainDepot {
         )?.definitionId
     }
     nextTrain(inventory: TrainInventory, definitionId: string): Train | undefined {
-        const entry = this.definition.supply.find((entry) => entry.definitionId === definitionId)
+        const entry = this.supplyEntry(definitionId, inventory.depotId)
         if (!entry) return undefined
-        return entry.count === 'unlimited'
-            ? {
-                  id: this.trainId(definitionId, inventory.nextTrainNumber),
-                  definitionId,
-                  status: 'depot'
-              }
-            : inventory.trains.find(
-                  (train) => train.definitionId === definitionId && train.status === 'depot'
-              )
+        const train =
+            entry.count === 'unlimited'
+                ? {
+                      id: this.trainId(
+                          entry.definitionId,
+                          inventory.nextTrainNumber,
+                          inventory.depotId
+                      ),
+                      definitionId: entry.definitionId,
+                      status: 'depot' as const
+                  }
+                : inventory.trains.find(
+                      (train) =>
+                          train.definitionId === entry.definitionId && train.status === 'depot'
+                  )
+        return train ? { ...train, definitionId } : undefined
     }
     purchase(inventory: TrainInventory, trainId: string, definitionId: string, owner: Owner): void {
         const train =
             inventory.trains.find(
                 (train) =>
                     train.id === trainId &&
-                    train.definitionId === definitionId &&
+                    this.certificateDefinitions(train.definitionId).includes(definitionId) &&
                     train.status === 'market'
             ) ?? this.nextTrain(inventory, definitionId)
         assert(train?.id === trainId, 'This depot train is no longer available')
-        this.store(inventory, { ...train, status: 'owned', owner: { ...owner } })
+        this.store(inventory, { ...train, definitionId, status: 'owned', owner: { ...owner } })
     }
     export(inventory: TrainInventory, definitionId: string): Train {
         const train = this.nextTrain(inventory, definitionId)
@@ -118,27 +177,30 @@ export class TrainDepot {
         companyIds: readonly string[],
         playerIds: readonly string[]
     ): void {
-        assert(inventory.depotId === this.definition.id, 'Wrong train depot')
         assert(
             new Set(inventory.trains.map((train) => train.id)).size === inventory.trains.length,
             'Duplicate train identity'
         )
-        const initial = this.createInventory()
+        const initial = this.createInventory(inventory.depotId)
         assert(
             inventory.nextTrainNumber >= initial.nextTrainNumber,
             'Invalid train identity cursor'
         )
         for (const train of inventory.trains) {
             this.trainDefinition(train.definitionId)
-            const entry = this.definition.supply.find(
-                (entry) => entry.definitionId === train.definitionId
-            )
+            const entry = this.supplyEntry(train.definitionId, inventory.depotId)
             assertExists(entry, 'Train has no supply entry')
+            assert(
+                train.status !== 'depot' || train.definitionId === entry.definitionId,
+                'Depot stock must retain its supply definition'
+            )
             if (entry.count !== 'unlimited') {
                 assert(
                     initial.trains.some(
                         (entry) =>
-                            entry.id === train.id && entry.definitionId === train.definitionId
+                            entry.id === train.id &&
+                            this.supplyEntry(entry.definitionId)?.definitionId ===
+                                this.supplyEntry(train.definitionId)?.definitionId
                     ),
                     'Invalid finite train identity'
                 )
@@ -148,7 +210,7 @@ export class TrainDepot {
                     Number.isInteger(number) &&
                         number >= initial.nextTrainNumber &&
                         number < inventory.nextTrainNumber &&
-                        train.id === this.trainId(train.definitionId, number) &&
+                        train.id === this.trainId(entry.definitionId, number, inventory.depotId) &&
                         train.status !== 'depot',
                     'Invalid unlimited train identity'
                 )
@@ -171,7 +233,7 @@ export class TrainDepot {
             'Missing finite train'
         )
     }
-    private trainId(definitionId: string, number: number): string {
-        return `${this.definition.id}/${definitionId}/${number}`
+    private trainId(definitionId: string, number: number, depotId = this.definition.id): string {
+        return `${depotId}/${definitionId}/${number}`
     }
 }

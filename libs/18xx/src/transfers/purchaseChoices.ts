@@ -22,6 +22,9 @@ export function purchaseChoices(
     )
         return []
     const assets: PurchaseAsset[] = [
+        ...state.companies
+            .filter((company) => company.kind !== 'private')
+            .map((company) => ({ kind: 'company', companyId: company.id }) as const),
         ...state.trainInventory.trains.map(
             (train) => ({ kind: 'train', trainId: train.id }) as const
         ),

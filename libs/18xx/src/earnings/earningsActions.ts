@@ -10,7 +10,7 @@ import {
 
 export function earningsActions(
     earnings: EarningsRules,
-    privates: PrivateRules,
+    privates: Pick<PrivateRules, 'operationEffects'>,
     stock: StockRules,
     nextState: string
 ): ActionDefinition[] {

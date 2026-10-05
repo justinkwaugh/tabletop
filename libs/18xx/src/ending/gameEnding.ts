@@ -26,6 +26,15 @@ export interface EndingRules extends ValuationRules {
     /** Whether a round of the title's own is still to follow the final operating round. */
     roundPending?(state: EndingState): boolean
 }
+export function bankExhaustionAtSetEnd(state: OperatingState): GameEnding | undefined {
+    if (!state.bank.broken) return undefined
+    return {
+        reason: 'Bank broken',
+        finalOperatingSet:
+            (state.operatingSet?.number ?? 0) +
+            (!state.operatingSet || state.operatingSet.completed ? 1 : 0)
+    }
+}
 export function endingDue(state: EndingState, rules: EndingRules): boolean {
     if (!state.gameEnding) return false
     if (state.gameEnding.finalOperatingSet === undefined) return true
@@ -41,8 +50,9 @@ export function pendingEnding(state: EndingState, rules: EndingRules): GameEndin
     if (!trigger) return undefined
     if (
         !state.gameEnding ||
-        (trigger.finalOperatingSet === undefined &&
-            state.gameEnding.finalOperatingSet !== undefined)
+        (state.gameEnding.finalOperatingSet !== undefined &&
+            (trigger.finalOperatingSet === undefined ||
+                trigger.finalOperatingSet < state.gameEnding.finalOperatingSet))
     )
         return trigger
     return undefined

@@ -2,6 +2,7 @@
     import { onMount } from 'svelte'
     import { Harness, mountDynamicComponent } from '@tabletop/frontend-components'
     import { UiDefinition } from '@tabletop/1846-ui'
+    import '../../table.css'
     let target: HTMLDivElement
     onMount(
         () =>
@@ -12,5 +13,5 @@
     )
 </script>
 
-<svelte:head><title>1846 — Construction prototype</title></svelte:head>
+<svelte:head><title>1846 — The Race to the Midwest</title></svelte:head>
 <div bind:this={target}></div>

@@ -58,9 +58,7 @@ export type MapPlacement = {
 }
 
 export type MapMarkerArt =
-    | { imageUrl: string }
-    | { tileSymbol: TileSymbolName }
-    | { localLine: true }
+    { imageUrl: string } | { tileSymbol: TileSymbolName } | { localLine: true }
 
 export type MapDrawnLocation = {
     location: MapLocation
@@ -175,7 +173,7 @@ export function createMapDrawing(
     supply?: {
         tileSet: TileSet
         inventory: TileInventory
-        markers?: readonly LocationMarker[]
+        markers?: readonly Pick<LocationMarker, 'kind' | 'locationId'>[]
     },
     {
         layouts = {},

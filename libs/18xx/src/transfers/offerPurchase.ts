@@ -23,11 +23,20 @@ import {
     PendingPurchaseOffer,
     PurchaseOfferRequest,
     PurchaseOffer,
+    PurchaseEffects,
+    OrdinaryPurchaseAsset,
+    OrdinaryPurchaseOffer,
+    OrdinaryPendingPurchaseOffer,
     isCompanyPurchaseOffer,
     evaluatePurchaseOffer,
     settlePurchaseOffer,
     type TransferRules
 } from './purchaseOffer.js'
+const PurchaseMetadataFields = {
+    accepted: Type.Boolean(),
+    companyChanges: Type.Optional(CompanyChanges),
+    departurePayments: DeparturePayments
+}
 export const OfferPurchase = Type.Object(
     {
         ...PlayerAction.properties,
@@ -36,15 +45,27 @@ export const OfferPurchase = Type.Object(
         metadata: Type.Optional(
             Type.Object({
                 offer: PurchaseOffer,
-                accepted: Type.Boolean(),
-                companyChanges: Type.Optional(CompanyChanges),
-                departurePayments: DeparturePayments
+                ...PurchaseMetadataFields,
+                effects: Type.Optional(PurchaseEffects)
             })
         )
     },
     { additionalProperties: false }
 )
 export type OfferPurchase = Type.Static<typeof OfferPurchase>
+export const OrdinaryOfferPurchase = Type.Object(
+    {
+        ...OfferPurchase.properties,
+        asset: OrdinaryPurchaseAsset,
+        metadata: Type.Optional(
+            Type.Object({
+                offer: OrdinaryPurchaseOffer,
+                ...PurchaseMetadataFields
+            })
+        )
+    },
+    { additionalProperties: false }
+)
 const Validator = Compile(OfferPurchase)
 export class HydratedOfferPurchase
     extends HydratableAction<typeof OfferPurchase>
@@ -88,15 +109,16 @@ export class HydratedOfferPurchase
         }
         const companies = new CompanyChangeRecorder(state)
         const accepted = offer.buyerPlayerId === offer.sellerPlayerId
-        const payments = accepted
+        const settlement = accepted
             ? settlePurchaseOffer(state, offer, this.#rules, this.#trains)
-            : []
+            : { payments: [] }
         if (!accepted) state.purchaseOffer = offer
         this.metadata = {
             companyChanges: companies.changes(state),
             offer,
             accepted,
-            ...departurePaymentsField(payments)
+            ...(settlement.effects ? { effects: settlement.effects } : {}),
+            ...departurePaymentsField(settlement.payments)
         }
     }
 }
@@ -109,15 +131,26 @@ export const RespondToPurchaseOffer = Type.Object(
         metadata: Type.Optional(
             Type.Object({
                 offer: PendingPurchaseOffer,
-                accepted: Type.Boolean(),
-                companyChanges: Type.Optional(CompanyChanges),
-                departurePayments: DeparturePayments
+                ...PurchaseMetadataFields,
+                effects: Type.Optional(PurchaseEffects)
             })
         )
     },
     { additionalProperties: false }
 )
 export type RespondToPurchaseOffer = Type.Static<typeof RespondToPurchaseOffer>
+export const OrdinaryRespondToPurchaseOffer = Type.Object(
+    {
+        ...RespondToPurchaseOffer.properties,
+        metadata: Type.Optional(
+            Type.Object({
+                offer: OrdinaryPendingPurchaseOffer,
+                ...PurchaseMetadataFields
+            })
+        )
+    },
+    { additionalProperties: false }
+)
 const ResponseValidator = Compile(RespondToPurchaseOffer)
 export class HydratedRespondToPurchaseOffer
     extends HydratableAction<typeof RespondToPurchaseOffer>
@@ -169,9 +202,13 @@ export class HydratedRespondToPurchaseOffer
         const offer = state.purchaseOffer!
         const companies = new CompanyChangeRecorder(state)
         const payments: CashPayment[] = []
+        let effects: PurchaseEffects | undefined
         if (isCompanyPurchaseOffer(offer)) {
-            if (this.accept)
-                payments.push(...settlePurchaseOffer(state, offer, this.#rules, this.#trains))
+            if (this.accept) {
+                const settlement = settlePurchaseOffer(state, offer, this.#rules, this.#trains)
+                payments.push(...settlement.payments)
+                effects = settlement.effects
+            }
         } else {
             if (this.accept) settlePlayerPurchaseOffer(state, offer, this.#stocks)
             state.activePlayerIds = [offer.buyerPlayerId]
@@ -181,6 +218,7 @@ export class HydratedRespondToPurchaseOffer
             companyChanges: companies.changes(state),
             offer,
             accepted: this.accept,
+            ...(effects ? { effects } : {}),
             ...departurePaymentsField(payments)
         }
     }

@@ -93,3 +93,10 @@ export { marketColors } from './stock/marketColors.js'
 export { MarketTokenSize } from './stock/marketTokenLayout.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'
+
+export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { default as RouteBuilding } from './routes/RouteBuilding.svelte'
+export { runForHistoryStep } from './routes/runForHistoryStep.js'
+
+export { earningsForHistoryStep } from './earnings/earningsForHistoryStep.js'
+export { actionForHistoryStep } from './table/actionForHistoryStep.js'

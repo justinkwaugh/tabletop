@@ -8,7 +8,7 @@ import {
     type EighteenFortySixProjectedState
 } from './state.js'
 import { BankSize, DraftCompanies, isBlank } from './catalog.js'
-import { choicesFor } from './distribution.js'
+import { choicesFor, hiddenDistribution } from './distribution.js'
 
 function money(state: EighteenFortySixProjectedState) {
     return state.cash.reduce((total, cash) => {
@@ -35,31 +35,32 @@ describe('1846 setup and distribution', () => {
             state.players.map((player) => player.playerId).toReversed()
         )
         expect(
-            state.draft.participants.find((player) => player.playerId === state.activePlayerIds[0])
-                ?.packet
+            hiddenDistribution(state).participants.find(
+                (player) => player.playerId === state.activePlayerIds[0]
+            )?.packet
         ).toHaveLength(count + 2)
         expect(
             state.stations
                 .filter((station) => station.status === 'placed')
                 .map((station) => station.companyId)
                 .sort()
-        ).toEqual([...state.removedCorporationIds].sort())
+        ).toEqual([...state.removedCorporationIds, 'MS', 'BIG4'].sort())
         expect(
             state.certificates.some((certificate) =>
                 state.removedCorporationIds.includes(certificate.companyId)
             )
         ).toBe(false)
     })
-    it.each([2, 6])('rejects unsupported count %i', (count) =>
-        expect(() => start(count)).toThrow('three through five')
+    it.each([1, 6])('rejects unsupported count %i', (count) =>
+        expect(() => start(count)).toThrow('two through five')
     )
     it('rejects non-catalog canonical fields and does not manufacture missing secrets on hydration', () => {
         const { state } = start()
         expect(CanonicalValidator.Check({ ...state, loans: [] })).toBe(false)
         const copy = structuredClone(state)
-        delete copy.draft.deck
+        delete hiddenDistribution(copy).deck
         expect(CanonicalValidator.Check(copy)).toBe(false)
-        expect(new HydratedEighteenFortySixState(copy).draft.deck).toBeUndefined()
+        expect(hiddenDistribution(new HydratedEighteenFortySixState(copy)).deck).toBeUndefined()
     })
     it('rejects wrong actors, unavailable cards, forged system actions and invalid action flags', () => {
         const { game, state, engine } = start()
@@ -82,30 +83,36 @@ describe('1846 setup and distribution', () => {
     })
     it('recycles only the unchosen packet behind the untouched queue and defers payment', () => {
         const { game, state, engine } = start(5)
-        const buyer = state.draft.participants.find((p) => p.playerId === state.activePlayerIds[0])!
+        const buyer = hiddenDistribution(state).participants.find(
+            (p) => p.playerId === state.activePlayerIds[0]
+        )!
         assertExists(buyer.packet)
-        assertExists(state.draft.deck)
+        assertExists(hiddenDistribution(state).deck)
         const cardId = buyer.packet[0]
-        const remaining = [...state.draft.deck, ...buyer.packet.filter((id) => id !== cardId)]
+        const remaining = [
+            ...hiddenDistribution(state).deck,
+            ...buyer.packet.filter((id) => id !== cardId)
+        ]
         const result = engine.executeCanonicalAction({
             game,
             state,
             action: action(state, cardId)
         }).updatedState
-        const next = result.draft.participants.find(
+        const next = hiddenDistribution(result).participants.find(
             (p) => p.playerId === result.activePlayerIds[0]
         )!
         expect(result.activePlayerIds).toEqual([state.players.at(-2)?.playerId])
-        expect(next.packet?.slice(0, Math.min(state.draft.deck.length, 7))).toEqual(
-            state.draft.deck.slice(0, 7)
+        expect(next.packet?.slice(0, Math.min(hiddenDistribution(state).deck.length, 7))).toEqual(
+            hiddenDistribution(state).deck.slice(0, 7)
         )
-        expect([...(result.draft.deck ?? []), ...(next.packet ?? [])].sort()).toEqual(
+        expect([...(hiddenDistribution(result).deck ?? []), ...(next.packet ?? [])].sort()).toEqual(
             remaining.sort()
         )
         expect(result.cash).toEqual(state.cash)
         expect(result.certificates).toEqual(state.certificates)
         expect(
-            result.draft.participants.find((p) => p.playerId === buyer.playerId)?.selections
+            hiddenDistribution(result).participants.find((p) => p.playerId === buyer.playerId)
+                ?.selections
         ).toEqual([
             {
                 cardId,
@@ -163,10 +170,10 @@ describe('1846 setup and distribution', () => {
         'discounts %s to its debt floor %i and forces the next player to take it',
         (id, debt) => {
             const { game, state, engine } = start()
-            state.draft.deck = []
-            state.draft.remainingCount = 1
-            state.draft.finalOffer = { cardId: id, price: debt + 10 }
-            for (const player of state.draft.participants)
+            hiddenDistribution(state).deck = []
+            hiddenDistribution(state).remainingCount = 1
+            hiddenDistribution(state).finalOffer = { cardId: id, price: debt + 10 }
+            for (const player of hiddenDistribution(state).participants)
                 player.packet = player.playerId === state.activePlayerIds[0] ? [id] : []
             const expectedOwner = state.turnManager.turnOrder[1]
             const result = engine.executeCanonicalAction({ game, state, action: action(state) })
@@ -218,10 +225,10 @@ describe('1846 setup and distribution', () => {
     it('lets the current player buy the last company before it reaches the debt floor', () => {
         const { game, state, engine } = start()
         const playerId = state.activePlayerIds[0]
-        state.draft.deck = []
-        state.draft.remainingCount = 1
-        state.draft.finalOffer = { cardId: 'MS', price: 110 }
-        for (const player of state.draft.participants)
+        hiddenDistribution(state).deck = []
+        hiddenDistribution(state).remainingCount = 1
+        hiddenDistribution(state).finalOffer = { cardId: 'MS', price: 110 }
+        for (const player of hiddenDistribution(state).participants)
             player.packet = player.playerId === playerId ? ['MS'] : []
         const { updatedState } = engine.executeCanonicalAction({
             game,
@@ -260,10 +267,10 @@ describe('1846 setup and distribution', () => {
             { kind: 'spectator' as const }
         ]) {
             const projected = Runtime.visibility.state.project(initialState, perspective)
-            expect(projected.draft.deck).toBeUndefined()
+            expect(hiddenDistribution(projected).deck).toBeUndefined()
             expect(projected.protectedPrng).toEqual({ seed: 0, invocations: 0 })
             expect(projected.masterSeed).toBeUndefined()
-            for (const p of projected.draft.participants) {
+            for (const p of hiddenDistribution(projected).participants) {
                 const mine = perspective.kind === 'player' && p.playerId === perspective.playerId
                 expect(p.packet !== undefined).toBe(mine)
                 expect(p.selections !== undefined).toBe(mine)
@@ -284,8 +291,8 @@ describe('1846 setup and distribution', () => {
                 )
                     expect(recorded).not.toHaveProperty('cardId')
                 replay = engine.applyProcessedAction({ game, state: replay, action: recorded })
-                expect(replay.draft.deck).toBeUndefined()
-                for (const p of replay.draft.participants)
+                expect(hiddenDistribution(replay).deck).toBeUndefined()
+                for (const p of hiddenDistribution(replay).participants)
                     if (perspective.kind === 'spectator' || p.playerId !== perspective.playerId) {
                         expect(p.selections).toBeUndefined()
                         expect(p.packet).toBeUndefined()

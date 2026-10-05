@@ -44,10 +44,17 @@ export type HomeStationChoice = {
     positions: readonly HomePosition[]
 }
 export type OperatingStationState = StationPlacementState & { operatingSet?: OperatingSet }
+export type StationPlacementContext = StationRequest & { connected: boolean }
 export interface StationRules {
     map: RailwayMap
     tileSet: TileSet
-    placementCost(state: StationPlacementState, stationId: string): number
+    /** Without a destination context, returns the token's base price for presentation. */
+    placementCost(
+        state: StationPlacementState,
+        stationId: string,
+        context?: StationPlacementContext
+    ): number
+    allowsDisconnected?(state: StationPlacementState, request: StationRequest): boolean
     placementLimit(state: StationPlacementState, companyId: string): number
     pendingHomes(state: OperatingStationState): HomeStation[]
     /** Titles whose presidents choose a home city return the next operating company's choice. */
@@ -55,8 +62,7 @@ export interface StationRules {
     reservationOccupant?(reservation: StationReservation): string | undefined
 }
 export type StationEvaluation =
-    | { details: StationPlacementDetails; reason?: never }
-    | { details?: never; reason: string }
+    { details: StationPlacementDetails; reason?: never } | { details?: never; reason: string }
 
 export class StationPlacement {
     readonly mapState: RailwayMapState
@@ -108,9 +114,13 @@ export class StationPlacement {
         )
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
         const network = new TrackNetwork(this.mapState, this.state, companyId)
-        if (!network.reaches(position.locationId, { kind: 'node', nodeId: position.nodeId }))
+        const connected = network.reaches(position.locationId, {
+            kind: 'node',
+            nodeId: position.nodeId
+        })
+        if (!connected && !this.rules.allowsDisconnected?.(this.state, request))
             return { reason: 'This city is not connected to a company station.' }
-        const cost = this.rules.placementCost(this.state, stationId)
+        const cost = this.rules.placementCost(this.state, stationId, { ...request, connected })
         assert(Number.isInteger(cost) && cost >= 0, 'Invalid station cost')
         const cash = cashOwnedBy(this.state, { kind: 'company', companyId })
         if (cash === undefined || (cash !== 'unlimited' && cash < cost))

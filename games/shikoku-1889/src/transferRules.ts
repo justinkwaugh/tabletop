@@ -10,6 +10,7 @@ export const Shikoku1889TransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
+        if (asset.kind !== 'private') return undefined
         return Shikoku1889Phases.isAtLeast(state.phaseId, '3') &&
             !Shikoku1889Phases.isAtLeast(state.phaseId, '5') &&
             privateOwner(state, asset.privateCompanyId)?.kind === 'player'

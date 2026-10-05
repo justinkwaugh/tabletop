@@ -13,5 +13,5 @@
     )
 </script>
 
-<svelte:head><title>1846 — Construction prototype</title></svelte:head>
+<svelte:head><title>1846 — The Race to the Midwest</title></svelte:head>
 <div bind:this={target}></div>

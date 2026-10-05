@@ -236,6 +236,7 @@ describe('1846 first stock round', () => {
             'CloseCorporation',
             'StartOperatingSet',
             'StartOperatingRound',
+            'AssignSteamboat',
             'StartOperatingTurn'
         ])
         expect(result.processedActions[2].metadata).toMatchObject({

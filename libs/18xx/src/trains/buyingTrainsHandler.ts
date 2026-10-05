@@ -26,15 +26,13 @@ import { isBuyTrain, type HydratedBuyTrain } from './buyTrain.js'
 import { isFinishTrains, type FinishTrains, type HydratedFinishTrains } from './finishTrains.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { TrainPurchase, type TrainRules } from './trainPurchase.js'
-type State = HydratedGameState & OperatingTurnState & PhaseState & FundingState
-export class BuyingTrainsHandler implements MachineStateHandler<
-    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFinishTrains | HydratedFundTrain,
-    State
+type State = HydratedGameState & OperatingTurnState & Pick<PhaseState, 'phaseChange'>
+export class OrdinaryBuyingTrainsHandler<S extends State = State> implements MachineStateHandler<
+    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFinishTrains,
+    S
 > {
     constructor(
-        private readonly rules: TrainRules,
-        private readonly fundingRules: TrainFundingRules,
-        private readonly stocks: StockRules,
+        protected readonly rules: TrainRules,
         private readonly nextState: string
     ) {}
     private get finishType(): 'FinishOperatingTurn' | 'FinishTrains' {
@@ -47,9 +45,8 @@ export class BuyingTrainsHandler implements MachineStateHandler<
             ? isFinishTrains(action)
             : isFinishOperatingTurn(action)
     }
-    isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
+    isValidAction(action: HydratedAction, context: MachineContext<S>): boolean {
         const state = context.gameState
-        if (action instanceof HydratedFundTrain) return action.isValid(state)
         if (
             action.source !== ActionSource.User ||
             !action.playerId ||
@@ -64,7 +61,7 @@ export class BuyingTrainsHandler implements MachineStateHandler<
             : purchase.canAct(action.playerId, action.companyId) &&
                   !finishOperatingTurnReason(state, this.rules, action.companyId)
     }
-    validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
+    validActionsForPlayer(playerId: string, context: MachineContext<S>): string[] {
         const state = context.gameState
         const companyId = state.trainPurchaseStep?.companyId
         const purchase = new TrainPurchase(state, this.rules)
@@ -75,14 +72,6 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         )
             return []
         return [
-            ...(new EmergencyTrainFunding(
-                state,
-                this.fundingRules,
-                this.stocks,
-                this.rules
-            ).purchases().length
-                ? ['FundTrain']
-                : []),
             ...(purchase.offers().some((offer) => offer.evaluation.details) ||
             purchase.marketOffers().some((offer) => offer.details) ||
             purchase.exchanges().length
@@ -92,7 +81,7 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         ]
     }
 
-    enter(context: MachineContext<State>): void {
+    enter(context: MachineContext<S>): void {
         const state = context.gameState
         const operatingCompanyId = nextOperatingCompany(state)
         assertExists(operatingCompanyId, 'Step entry requires an operating company')
@@ -101,18 +90,61 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         }
     }
     onAction(
-        action:
-            | HydratedBuyTrain
-            | HydratedFinishOperatingTurn
-            | HydratedFinishTrains
-            | HydratedFundTrain,
-        context: MachineContext<State>
+        action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFinishTrains,
+        context: MachineContext<S>
     ): string {
-        if (action instanceof HydratedFundTrain) return 'FundingTrain'
         return this.isFinish(action)
             ? this.nextState
             : context.gameState.phaseChange
               ? 'AdvancingPhase'
               : context.gameState.machineState
+    }
+}
+
+export class BuyingTrainsHandler extends OrdinaryBuyingTrainsHandler<State & FundingState> {
+    constructor(
+        rules: TrainRules,
+        private readonly fundingRules: TrainFundingRules,
+        private readonly stocks: StockRules,
+        nextState: string
+    ) {
+        super(rules, nextState)
+    }
+    override isValidAction(
+        action: HydratedAction,
+        context: MachineContext<State & FundingState>
+    ): boolean {
+        return action instanceof HydratedFundTrain
+            ? action.isValid(context.gameState)
+            : super.isValidAction(action, context)
+    }
+    override validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<State & FundingState>
+    ): string[] {
+        const actions = super.validActionsForPlayer(playerId, context)
+        const state = context.gameState
+        const companyId = state.trainPurchaseStep?.companyId
+        if (
+            companyId &&
+            state.activePlayerIds.includes(playerId) &&
+            new TrainPurchase(state, this.rules).canAct(playerId, companyId) &&
+            new EmergencyTrainFunding(state, this.fundingRules, this.stocks, this.rules).purchases()
+                .length
+        )
+            return ['FundTrain', ...actions]
+        return actions
+    }
+    override onAction(
+        action:
+            | HydratedBuyTrain
+            | HydratedFinishOperatingTurn
+            | HydratedFinishTrains
+            | HydratedFundTrain,
+        context: MachineContext<State & FundingState>
+    ): string {
+        return action instanceof HydratedFundTrain
+            ? 'FundingTrain'
+            : super.onAction(action, context)
     }
 }

@@ -17,7 +17,7 @@ import {
     HydratedOfferPurchase,
     HydratedRespondToPurchaseOffer
 } from '../transfers/offerPurchase.js'
-import { purchaseChoices } from '../transfers/purchaseChoices.js'
+import { purchaseOfferActions } from '../transfers/purchaseOffersHandler.js'
 import { type TransferRules } from '../transfers/purchaseOffer.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import {
@@ -97,7 +97,7 @@ export class CompanyDecisionsHandler<
                 : actions
         }
         if (state.purchaseOffer)
-            return state.purchaseOffer.sellerPlayerId === playerId ? ['RespondToPurchaseOffer'] : []
+            return purchaseOfferActions(state, playerId, this.transfers, this.trains)
         if (state.trackConsent)
             return state.trackConsent.details.consentPlayerId === playerId
                 ? ['RespondToTrackConsent']
@@ -113,8 +113,7 @@ export class CompanyDecisionsHandler<
         const actions = this.handler.validActionsForPlayer(playerId, context)
         const companyId = this.transfers.operatingCompany(state)
         if (companyId && controllingOwner(state, companyId)?.playerId === playerId) {
-            if (purchaseChoices(state, playerId, this.transfers, this.trains).length)
-                actions.push('OfferPurchase')
+            actions.push(...purchaseOfferActions(state, playerId, this.transfers, this.trains))
             if (state.machineState === 'LayingTrack' && this.track.consentPlayerId) {
                 const construction = new TrackConstruction(state, this.track)
                 if (

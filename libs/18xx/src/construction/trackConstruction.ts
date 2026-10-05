@@ -92,6 +92,7 @@ export interface TrackRules {
         connected: boolean
         newTrack: boolean
         increasedCityRevenue: boolean
+        connectedCity: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
@@ -137,7 +138,8 @@ export class TrackConstruction {
                     home: this.rules.homeLocations(companyId).includes(locationId),
                     connected: false,
                     newTrack: false,
-                    increasedCityRevenue: false
+                    increasedCityRevenue: false,
+                    connectedCity: false
                 }))
         )
     }
@@ -319,7 +321,10 @@ export class TrackConstruction {
                 home: this.rules.homeLocations(companyId).includes(locationId),
                 connected: after.paths.some((path) => network.paths.has(path.id)),
                 newTrack,
-                increasedCityRevenue
+                increasedCityRevenue,
+                connectedCity: after.nodes.some(
+                    (node) => node.kind === 'city' && network.nodes.has(node.id)
+                )
             })
         )
             return {

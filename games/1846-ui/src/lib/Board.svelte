@@ -9,8 +9,8 @@
         mapViewport,
         viewportRect
     } from '@tabletop/18xx-ui'
-    import { EighteenFortySixTileSet } from '@tabletop/1846'
-    import { BoardAreas, MapView1846 } from './mapView.js'
+    import { TrainDepot1846, TrainRules1846, EighteenFortySixTileSet } from '@tabletop/1846'
+    import { BoardAreas, MapView1846, TileLayouts1846 } from './mapView.js'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
@@ -31,7 +31,8 @@
                 <MapScene
                     scene={session.mapScene}
                     tokens={session.mapTokens}
-                    reservations={state.stationReservations}
+                    routes={session.routeOverlays}
+                    reservations={session.constructionMapState.stationReservations}
                     stationAppearances={MapView1846.stations}
                     hexDiameter={140}
                     extents={Object.values(BoardAreas)}
@@ -53,21 +54,44 @@
                 </BoardInset>
                 <BoardInset label="Train depot" area={viewportRect(viewport, BoardAreas.depot)}>
                     <div class="depot">
-                        <h3>Phase I · yellow tiles</h3>
-                        <p>2 operating rounds · train limit 4</p>
+                        <h3>Phase {state.phaseId}</h3>
                         <p>
-                            2 trains · $80 · {state.trainInventory.trains.filter(
-                                (train) => train.status === 'depot'
-                            ).length} in depot
+                            2 operating rounds · train limit {TrainRules1846.trainLimit(state, '')}
                         </p>
-                        <p>Train buying is a later slice.</p>
+                        <p>
+                            2 trains · $80 · {TrainDepot1846.remaining(state.trainInventory, '2')} in
+                            depot
+                        </p>
+                        <p>
+                            3/5 · $160 or 4 · $180 · {TrainDepot1846.remaining(
+                                state.trainInventory,
+                                '4'
+                            )} shared certificates
+                        </p>
+                        <p>
+                            4/6 · $450 or 5 · $500 · {TrainDepot1846.remaining(
+                                state.trainInventory,
+                                '5'
+                            )} shared certificates
+                        </p>
+                        <p>
+                            6 · $800 or 7/8 · $900 · {TrainDepot1846.remaining(
+                                state.trainInventory,
+                                '6'
+                            )} certificates
+                        </p>
+                        {#if ['III', 'IV'].includes(state.phaseId)}<p>
+                                Higher offboard values and {state.phaseId === 'IV'
+                                    ? 'gray'
+                                    : 'brown'} upgrades are available.
+                            </p>{/if}
                     </div>
                 </BoardInset>
             </div>
         </ScalingWrapper>
     </div>
     {#if state.machineState === 'LayingTrack'}
-        <h3>{state.trackStep?.companyId} · lay up to two yellow tiles</h3>
+        <h3>{state.trackStep?.companyId} · two yellow lays, or one yellow lay and one upgrade</h3>
         <p>
             Select a highlighted hex, then a tile and orientation. Each button commits that lay.
             Costs shown include terrain and completed hexside connections.
@@ -99,6 +123,7 @@
                     >
                         <Tile
                             face={tile.face}
+                            layout={TileLayouts1846[tile.id]}
                             printedNumber={tile.printedNumber}
                             rotation={choice.rotation}
                             orientation={MapView1846.map.definition.orientation}
@@ -111,13 +136,28 @@
             </div>
             {#if !session.selectedTrackChoices.length}<p>No legal track lay here.</p>{/if}
         {/if}
+        {#if state.stationStep}
+            <section aria-label="Station placement">
+                <h3>Place one station · before, between, or after tile lays</h3>
+                {#each session.stationChoices as choice (`${choice.position.locationId}:${choice.position.nodeId}:${choice.position.slot}`)}
+                    <button
+                        disabled={!session.canSelectTrack}
+                        onclick={() => session.placeStation(choice)}
+                    >
+                        {choice.position.locationId} · {choice.position.nodeId} · slot {choice
+                            .position.slot + 1} · ${choice.cost}
+                    </button>
+                {:else}<p>No station placement is available now.</p>{/each}
+            </section>
+        {/if}
         <button disabled={!session.canSelectTrack} onclick={() => session.finishTrack()}
-            >Finish track</button
+            >{state.stationStep ? 'Finish construction' : 'Finish track'}</button
         >
     {/if}
     <details>
-        <summary>Phase I tile library</summary><TileLibraryViewer
+        <summary>Phase I–IV tile library</summary><TileLibraryViewer
             tiles={EighteenFortySixTileSet.definitions}
+            layouts={TileLayouts1846}
         />
     </details>
 </section>

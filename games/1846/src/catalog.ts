@@ -111,4 +111,4 @@ export function draftCompany(id: string): DraftCompany {
 export function isBlank(id: string): boolean {
     return id.startsWith('blank:')
 }
-export const BankSize: Readonly<Record<number, number>> = { 3: 6500, 4: 7500, 5: 9000 }
+export const BankSize: Readonly<Record<number, number>> = { 2: 7000, 3: 6500, 4: 7500, 5: 9000 }

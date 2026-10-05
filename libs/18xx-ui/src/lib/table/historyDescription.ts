@@ -645,7 +645,9 @@ function describeShared(
         const asset =
             purchaseAsset.kind === 'private'
                 ? companyName(purchaseAsset.privateCompanyId)
-                : `${state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)?.definitionId ?? purchaseAsset.trainId} train`
+                : purchaseAsset.kind === 'company'
+                  ? companyName(purchaseAsset.companyId)
+                  : `${state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)?.definitionId ?? purchaseAsset.trainId} train`
         return {
             text: accepted
                 ? `Bought ${asset}`
