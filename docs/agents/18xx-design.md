@@ -66,7 +66,7 @@ Keep prototype-only panels in the development harness or title UI. Promote visua
 modules into `@tabletop/18xx-ui` when they have demonstrated reusable value; shared
 tile rendering, tile-library viewing, and map rendering are explicit priorities
 from the start. Disposable presentation
-still follows the repository's action, authorization, and Back/Undo contracts.
+still follows the repository's action, authorization, and Undo contracts.
 
 ## Before settling an interface
 

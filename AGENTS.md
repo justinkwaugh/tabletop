@@ -30,7 +30,11 @@ Before designing or changing any 18xx model, Action, state/handler, logical or v
 
 ### Staged interactions
 
-For staged selection, auto-selection, `Back`, or `Undo` behavior, read `docs/user-interactions.md`.
+For multi-step action selection, auto-selection, or `Undo` behavior, and before adding any `Back` control, read `docs/user-interactions.md`.
+
+### Game UI layout
+
+When building or reworking a game UI's table layout, turn header, action area, board interaction, board scaling, small-screen behavior, player panels, or history panel, read `docs/game-ui-layout.md`.
 
 ### Local infrastructure
 
