@@ -1,7 +1,15 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { OathColors } from '@tabletop/oath'
-import { banditWarbandImage, pawnImage, pawnImageKeys, warbandImage, warbandImageKeys } from './pieceImages.js'
+import {
+    banditWarbandImage,
+    pawnImage,
+    pawnImageKeys,
+    warbandFigure,
+    warbandImage,
+    warbandImageKeys
+} from './pieceImages.js'
 import { OathGameColorizer } from '$lib/definitions/colorizer.js'
 
 /** Every warband the game can put on the board has a figure, in each colour the engine seats. */
@@ -12,6 +20,14 @@ describe('warband figure coverage', () => {
         expect(missing).toEqual([])
         // Five seat colours plus Imperial, fixed by the physical components.
         expect(needed).toHaveLength(6)
+    })
+
+    it('every warband figure carries its file’s pixel size', () => {
+        for (const color of OathColors) {
+            const svg = readFileSync(new URL(`./pieces/warband.${color}.svg`, import.meta.url), 'utf8')
+            const size = (attribute: string) => Number(svg.match(new RegExp(`<svg[^>]* ${attribute}="([0-9.]+)"`))?.[1])
+            expect(warbandFigure(color)).toEqual({ src: warbandImage(color), width: size('width'), height: size('height') })
+        }
     })
 
     it('no figure is orphaned — every file names a colour the platform knows', () => {

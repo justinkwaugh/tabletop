@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
-    import { warbandImage } from '$lib/images/pieceImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { warbandFigure } from '$lib/images/pieceImages.js'
     import { suitName } from '$lib/model/names.js'
     import { tokenParts } from '$lib/model/tokenText.js'
 
@@ -20,16 +20,23 @@
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
             title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
         />{:else if part.kind === 'warband'}<span class="token-text__count"
-            >{part.count}{#if warbandColors}<img
+            >{part.count}{#if warbandColors}{@const figure = warbandFigure(
+                    part.imperial ? warbandColors.imperial : warbandColors.own
+                )}<img
                     class="token-text__token"
-                    src={warbandImage(part.imperial ? warbandColors.imperial : warbandColors.own)}
+                    src={figure.src}
+                    width={figure.width}
+                    height={figure.height}
                     alt={part.words}
                     title={part.words}
                 />{/if}</span
-        >{:else}<span class="token-text__count"
+        >{:else}{@const token = part.kind === 'favor' ? favorToken() : secretToken()}<span
+            class="token-text__count"
             >{#if part.count !== undefined}{part.count}{/if}<img
                 class="token-text__token"
-                src={part.kind === 'favor' ? favorTokenImage() : secretTokenImage()}
+                src={token.src}
+                width={token.width}
+                height={token.height}
                 alt={part.kind === 'favor' ? 'favor' : part.count === 1 ? 'secret' : 'secrets'}
             /></span
         >{/if}

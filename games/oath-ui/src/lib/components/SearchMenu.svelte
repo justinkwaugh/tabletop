@@ -4,7 +4,7 @@
     import MenuCount from '$lib/components/MenuCount.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
-    import { favorTokenImage } from '$lib/images/tileImages.js'
+    import { favorToken } from '$lib/images/tileImages.js'
     import { regionName } from '$lib/model/names.js'
     import type { SearchRow } from '$lib/model/searchRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -57,7 +57,7 @@
                     {row.cost} Supply
                     {#if row.favorTo.length > 0}
                         <span class="text-oath-text-muted">+</span>
-                        <MenuCount count={row.favorTo.length} image={favorTokenImage()} />
+                        <MenuCount count={row.favorTo.length} image={favorToken()} />
                     {/if}
                 </span>
                 <span class="text-xs font-normal text-oath-text-muted"

@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Banner, OathType, PlayerStatus } from '@tabletop/oath'
 import {
     bannerImage,
+    favorToken,
     favorTokenImage,
     goalCardImage,
     reliquaryPlacardImage,
@@ -9,6 +11,7 @@ import {
     SUPPLY_TRACK,
     supplyTrackImage,
     oathkeeperTileImage,
+    secretToken,
     secretTokenImage,
     visionsMarkerImage
 } from './tileImages.js'
@@ -18,6 +21,15 @@ describe('tile and banner coverage', () => {
         expect(favorTokenImage()).toBeDefined()
         expect(secretTokenImage()).toBeDefined()
         expect(visionsMarkerImage()).toBeDefined()
+    })
+
+    it('the tokens carry their files’ pixel sizes', () => {
+        const pngSize = (name: string) => {
+            const header = readFileSync(new URL(`./tiles/${name}.png`, import.meta.url))
+            return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) }
+        }
+        expect(favorToken()).toEqual({ src: favorTokenImage(), ...pngSize('token.favor') })
+        expect(secretToken()).toEqual({ src: secretTokenImage(), ...pngSize('token.secret') })
     })
 
     it('R-2.11.a — the Oathkeeper title has both of its sides', () => {

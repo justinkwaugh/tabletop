@@ -16,8 +16,7 @@
         children: Snippet
     } = $props()
 
-    let scale = $state(1)
-    let height = $state<number | undefined>(undefined)
+    let naturalHeight = $state<number | undefined>(undefined)
     let columnHeight = $state(0)
 
     const portrait = new MediaQuery('(max-width: 640px) and (orientation: portrait)')
@@ -25,6 +24,10 @@
     let budget = $derived(
         (basis ?? columnHeight) * (portrait.current ? portraitFraction : fraction)
     )
+    let fitted = $derived(
+        naturalHeight === undefined ? undefined : fittedSize(naturalHeight, budget)
+    )
+    let scale = $derived(fitted?.scale ?? 1)
 
     const measureColumn: Attachment<HTMLElement> = (node) => {
         const column = node.parentElement
@@ -38,49 +41,41 @@
         return () => observer.disconnect()
     }
 
-    // Scaling changes text wrap and so height: read at full width, ignoring the resizes the
-    // read itself causes, then check that what settled still fits. A resize that landed while
-    // the read was in flight (an image finishing, a step's cards arriving) fails that check and
-    // is read again; two re-reads bound the width heuristic's own drift.
-    const fitToBudget: Attachment<HTMLElement> = (node) => {
-        const budgetNow = budget
-        if (budgetNow <= 0) return
+    function fullWidthHeight(node: HTMLElement): number {
+        const drawnWidth = node.style.width
+        node.style.width = '100%'
+        const height = node.scrollHeight
+        node.style.width = drawnWidth
+        return height
+    }
+
+    const measureNaturalHeight: Attachment<HTMLElement> = (node) => {
         let frame = 0
-        let reading = false
-        let rereads = 0
-        let settledHeight: number | undefined
         const measure = () => {
-            cancelAnimationFrame(frame)
-            reading = true
-            settledHeight = undefined
-            scale = 1
-            height = undefined
-            frame = requestAnimationFrame(() => {
-                const fitted = fittedSize(node.scrollHeight, budgetNow)
-                scale = fitted.scale
-                height = fitted.height
-                frame = requestAnimationFrame(() => {
-                    reading = false
-                    settledHeight = node.scrollHeight
-                    const shown = Math.ceil(settledHeight * scale)
-                    const misfit = shown > fitted.height || shown < fitted.height - 8
-                    if (misfit && rereads < 2) {
-                        rereads += 1
-                        measure()
-                    } else {
-                        rereads = 0
-                    }
-                })
-            })
+            naturalHeight = fullWidthHeight(node)
         }
-        const observer = new ResizeObserver(() => {
-            if (reading || settledHeight === undefined) return
-            if (node.scrollHeight !== settledHeight) measure()
+        const changesContent = (record: MutationRecord) =>
+            record.target !== node || record.type !== 'attributes'
+        const contentChanges = new MutationObserver((records) => {
+            if (records.some(changesContent)) measure()
         })
-        observer.observe(node)
+        // A refit inside a ResizeObserver callback resizes observed ancestors (the full-screen
+        // toolbar) in the same pass, which the browser reports as a ResizeObserver loop error.
+        const layoutChanges = new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+        })
+        contentChanges.observe(node, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true
+        })
+        layoutChanges.observe(node)
         measure()
         return () => {
-            observer.disconnect()
+            contentChanges.disconnect()
+            layoutChanges.disconnect()
             cancelAnimationFrame(frame)
         }
     }
@@ -89,11 +84,11 @@
 <div
     class="fit shrink-0"
     {@attach measureColumn}
-    style="height:{height !== undefined ? `${height}px` : 'auto'};"
+    style="height:{fitted ? `${fitted.height}px` : 'auto'};"
 >
     <div
         class="fit__inner"
-        {@attach fitToBudget}
+        {@attach measureNaturalHeight}
         style="width:{scale < 1 ? `${100 / scale}%` : '100%'}; transform:{scale < 1
             ? `scale(${scale})`
             : 'none'};"

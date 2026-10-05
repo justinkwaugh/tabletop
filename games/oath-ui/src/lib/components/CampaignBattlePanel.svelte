@@ -7,7 +7,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, plural, siteName, relicSiteName } from '$lib/model/names.js'
     import { spoilsSummary } from '$lib/model/spoils.js'
-    import { favorTokenImage } from '$lib/images/tileImages.js'
+    import { favorToken } from '$lib/images/tileImages.js'
 
     // R-5.5.5's sacrifice, then R-5.5.7's spoils: each needs the roll, or the surviving force, first.
     let gameSession = getGameSession()
@@ -27,6 +27,7 @@
 
     let busy = $derived(gameSession.busy)
     let spoils = $derived(gameSession.victory)
+    const burnToken = favorToken()
 
     // R-5.5.5.b, R-5.5.5.c — the exact winning sacrifice, or zero.
     let losses = $derived(gameSession.attackerLosses)
@@ -320,7 +321,13 @@
                     onclick={() => spoils.takeSpoils(true)}
                 >
                     …and burn {spoils.burnAmount}
-                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="favor" />
+                    <img
+                        class="h-5 w-auto burn"
+                        src={burnToken.src}
+                        width={burnToken.width}
+                        height={burnToken.height}
+                        alt="favor"
+                    />
                 </button>
             {/if}
         </div>
