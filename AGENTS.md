@@ -34,7 +34,7 @@ For multi-step action selection, auto-selection, or `Undo` behavior, and before 
 
 ### Game UI layout
 
-When building or reworking a game UI's table layout, turn header, action area, board scaling, small-screen behavior, player panels, or history panel, read `docs/game-ui-layout.md`.
+When building or reworking a game UI's table layout, turn header, action area, board interaction, board scaling, small-screen behavior, player panels, or history panel, read `docs/game-ui-layout.md`.
 
 ### Local infrastructure
 

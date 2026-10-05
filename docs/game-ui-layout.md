@@ -49,6 +49,12 @@ A bare "Waiting for…" line is the minimum. Give the space the same care as the
 
 In History View the action area explains the state on screen: what happened to produce it. As the player steps backward and forward, it describes the History Step that led to the displayed state: the User Action and the consequences its System Actions produced. `gameSession.actions` and `gameSession.currentAction` follow the displayed state, so read them, not the live game's history. Build the text, and the waiting view's account of the previous player's action, from each Action's input and `metadata` alone; `undoPatch` and `forwardPatch` belong to the engine and are never a source of history. When a description needs a fact the Action does not carry, such as a value from before the Action, have the handler record it in `metadata` (see [Actions](DESIGN.md#actions)). The history panel's descriptions can usually be shared here.
 
+## Acting on the board
+
+Players act where the thing is. When an action targets a piece, space, city, or other physical element of the board, make that element itself the target: highlight the valid choices on the board and let the player click the one they want. The action panel carries the prompt ("Choose a city") and choices that have no place on the board; it does not list the board's elements for selection.
+
+When a board selection needs a follow-up choice as part of a [staged selection](user-interactions.md), such as how many or which kind, offer it in a popup anchored beside the selected element, so the player's eyes and pointer stay where they are rather than travelling back up to the action panel. In `games/sol-ui`, choosing a mothership opens a picker beside it for how many sundivers to launch (`MovementPicker.svelte`). The shared `Floater` from `@tabletop/frontend-components` positions such popups against a reference element placed at the selection. The popup's choice is one more stage, so Undo steps back through it like any other.
+
 ## Board scaling
 
 ### Full screen
