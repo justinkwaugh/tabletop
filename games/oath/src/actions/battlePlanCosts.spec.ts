@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { HydratedCampaign, Campaign } from './campaign.js'
-import { HydratedCampaignDefend } from './campaignDefend.js'
+import { CampaignDefend, HydratedCampaignDefend } from './campaignDefend.js'
 import { CampaignTargetKind } from '../model/campaign.js'
-import { testPlayer, testState, openTurn } from '../testing/fixture.js'
+import { testPlayer, testState, openTurn, withChancellor } from '../testing/fixture.js'
 import { ongoingCampaign } from '../testing/required.js'
-import { buildAction } from '../testing/actions.js'
+import { buildAction, joinDefence } from '../testing/actions.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
+import { PlayerStatus, Suit } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { battlePlanUse } from '../testing/choices.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import { OathRevision } from '../util/revision.js'
@@ -36,10 +40,10 @@ function board(
 ) {
     const adv = (ids: string[] = []) => ids.map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
-        [
+        withChancellor([
             testPlayer({ playerId: 'att', color: Color.Blue, siteId: 'c1', supply: 5, warbandsOnBoard: { att: 3 }, advisers: adv(advisers.att), ...(holding.att ?? { favor: 4, secrets: 3 }) }),
             testPlayer({ playerId: 'def', color: Color.Red, siteId: 'c1', supply: 5, warbandsOnBoard: { def: 4 }, advisers: adv(advisers.def), ...(holding.def ?? { favor: 4, secrets: 3 }) })
-        ],
+        ]),
         {
             oathRevision,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
@@ -119,6 +123,20 @@ describe('R-7.1.2 — a side’s battle-plan costs are paid in order from one ho
         expect(reason(s, [SECOND_WIND, CRACKED_SAGE])).toBe('your battle plans cost 2 favor in all, you hold 1')
     })
 
+    it('the defender pays out of turn: Gleaming Armor’s secret goes facedown and still counts', () => {
+        const s = board(atRevision, { att: [ARMOR], def: [PROVISIONS, SHIELD_WALL] }, { def: { favor: 2, secrets: 1 } })
+        campaign([]).apply(s)
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'def', [battlePlanUse(PROVISIONS), battlePlanUse(SHIELD_WALL)])).toBe(
+            'your battle plans cost 2 secrets in all, you hold 1'
+        )
+        const hearth = s.favorBank[Suit.Hearth]
+        new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'def', plans: [battlePlanUse(PROVISIONS)] })).apply(s)
+        expect(s.getPlayerState('def').secrets).toBe(0)
+        expect(s.getPlayerState('def').secretsFacedown).toBe(1)
+        expect(s.getPlayerState('def').favor).toBe(1)
+        expect(s.favorBank[Suit.Hearth]).toBe(hearth + 1)
+    })
+
     it('the defender: two plans of a favor each, with one favor held, are refused', () => {
         const s = board(atRevision, { def: [PROVISIONS, SHIELD_WALL] }, { def: { favor: 1, secrets: 0 } })
         campaign([]).apply(s)
@@ -144,5 +162,55 @@ describe('R-X.4 — before revision 3 each plan is checked alone, as recorded', 
         expect(s.getPlayerState('att').secrets).toBe(-1)
         expect(s.tokensOn(SCOUTS).secrets).toBe(1)
         expect(s.tokensOn(OUTRIDERS).secrets).toBe(1)
+    })
+})
+
+describe('R-5.5.3.a — an ally answering pays its plans from its own holding', () => {
+    /** `att` attacks the Chancellor's site h1; the Citizen `cit` joins the defence. */
+    function allied(citizen: { favor: number; advisers: string[] }) {
+        const s = testState(
+            [
+                testPlayer({ playerId: 'att', color: Color.Red, status: PlayerStatus.Exile, siteId: 'h1', supply: 5, favor: 3, warbandsOnBoard: { att: 5 } }),
+                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
+                testPlayer({
+                    playerId: 'cit',
+                    color: Color.Blue,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'h1',
+                    favor: citizen.favor,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                    advisers: citizen.advisers.map((cardId) => ({ cardId, faceUp: true }))
+                })
+            ],
+            { oathRevision: atRevision, chancellorPlayerId: 'chan', warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } } }
+        )
+        openTurn(s, 'att')
+        new HydratedCampaign(
+            buildAction(Campaign, { playerId: 'att', defender: { kind: 'player', playerId: 'chan' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], attackDice: 2 })
+        ).apply(s)
+        joinDefence(s, 'cit', 'chan')
+        return s
+    }
+
+    it('the Citizen’s two plans of a favor each, with one favor, are refused; one alone is accepted', () => {
+        const s = allied({ favor: 1, advisers: [PROVISIONS, SHIELD_WALL] })
+        expect(HydratedCampaignDefend.answeringPlayerId(s)).toBe('cit')
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [battlePlanUse(PROVISIONS), battlePlanUse(SHIELD_WALL)])).toBe(
+            'your battle plans cost 2 favor in all, you hold 1'
+        )
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [battlePlanUse(PROVISIONS)])).toBeUndefined()
+    })
+})
+
+describe('R-X.4 — a Campaign recorded before revision 3 replays unchanged', () => {
+    it('Gleaming Armor on two free plans with one secret: recorded at minus one, replayed the same', () => {
+        const start = board(before, { att: [SCOUTS, OUTRIDERS], def: [ARMOR] }, { att: { favor: 4, secrets: 1 } }).dehydrate()
+        const game = testGame(['att', 'def', 'chancellor'])
+        const recorded = engine.runNext(buildAction(Campaign, { playerId: 'att', ...choice([SCOUTS, OUTRIDERS]) }), structuredClone(start), game)
+        expect(recorded.updatedState.players.find((p) => p.playerId === 'att')?.secrets).toBe(-1)
+
+        let replayed = structuredClone(start)
+        for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        expect(replayed).toEqual(recorded.updatedState)
     })
 })
