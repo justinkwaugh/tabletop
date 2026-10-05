@@ -64,7 +64,7 @@
     }
 
     .art img {
-        width: 78px;
+        width: 64px;
         height: 64px;
         display: block;
     }

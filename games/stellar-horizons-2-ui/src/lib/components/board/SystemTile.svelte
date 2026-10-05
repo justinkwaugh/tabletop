@@ -21,7 +21,11 @@
     const MARKER_SIZE = 74
     const BASE_SIZE = 58
 
-    let { frame, ships }: { frame: SystemFrame; ships: ShipPipLayout } = $props()
+    let {
+        frame,
+        ships,
+        dimmed = false
+    }: { frame: SystemFrame; ships: ShipPipLayout; dimmed?: boolean } = $props()
 
     const gameSession = getGameSession()
     const system = $derived(gameSession.gameState.systemState(frame.systemId))
@@ -51,6 +55,13 @@
         return (index - (bases.length - 1) / 2) * (BASE_SIZE + 6)
     }
 
+    function onTitleClick(event: MouseEvent) {
+        event.stopPropagation()
+        if (gameSession.focusedSystemId !== frame.systemId) {
+            gameSession.focusSystem(frame.systemId)
+        }
+    }
+
     async function onTileClick() {
         if (moveTarget) {
             await gameSession.moveSelectedShip(frame.systemId)
@@ -58,7 +69,12 @@
     }
 </script>
 
-<g transform="translate({frame.center.x} {frame.center.y})" data-system-id={frame.systemId}>
+<g
+    transform="translate({frame.center.x} {frame.center.y})"
+    data-system-id={frame.systemId}
+    class="tile"
+    class:dimmed
+>
     <image
         class="system-art"
         pointer-events="none"
@@ -127,6 +143,20 @@
         />
     {/each}
 
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <rect
+        class="title"
+        x={-frame.width * 0.28}
+        y={-frame.height * 0.47}
+        width={frame.width * 0.56}
+        height={frame.height * 0.11}
+        rx="8"
+        role="button"
+        tabindex="-1"
+        aria-label="Zoom into {systemName(frame.systemId)}"
+        onclick={onTitleClick}
+    ></rect>
+
     {#if moveTarget}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <g
@@ -145,6 +175,26 @@
 </g>
 
 <style>
+    .tile {
+        transition: opacity 650ms cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    .tile.dimmed {
+        opacity: 0.35;
+    }
+
+    .title {
+        fill: transparent;
+        stroke: transparent;
+        stroke-width: 2px;
+        cursor: zoom-in;
+    }
+
+    .title:hover {
+        fill: rgba(127, 211, 255, 0.1);
+        stroke: rgba(127, 211, 255, 0.6);
+    }
+
     .marker-value {
         font-size: 34px;
         font-weight: 800;

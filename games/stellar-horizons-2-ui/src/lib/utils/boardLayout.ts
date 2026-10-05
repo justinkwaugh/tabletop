@@ -12,7 +12,6 @@ import { STAR_MAP } from '@tabletop/stellar-horizons-2'
 import { SYSTEM_GEOMETRY } from '$lib/art/manifest.js'
 
 export const ART_SCALE = 0.5
-export const SHIP_COUNTER_ASPECT = 172 / 208
 export const BOARD_MARGIN = 40
 const LATTICE_RADIUS = 541 * ART_SCALE
 const BOARD_HEX: HexDefinition = {

@@ -2,13 +2,14 @@
     import { onMount, type ComponentProps } from 'svelte'
     import ScalingWrapper from '../ScalingWrapper.svelte'
     let { maxScale = 1, scrollable = false, modal = false, expandable = false, overpan = 'none', coverBelowScale,
-        boardWidth = 1000, boardHeight = 800, focus }:
+        boardWidth = 1000, boardHeight = 800, focus, focusOptions }:
         Pick<ComponentProps<typeof ScalingWrapper>, 'maxScale' | 'expandable' | 'overpan' | 'coverBelowScale'> & {
             boardWidth?: number
             boardHeight?: number
             scrollable?: boolean
             modal?: boolean
             focus?: Parameters<ScalingWrapper['focusRect']>[0]
+            focusOptions?: Parameters<ScalingWrapper['focusRect']>[1]
         } = $props()
     let clicks = $state(0)
     let dialog: HTMLDialogElement
@@ -18,7 +19,7 @@
             dialog.showModal()
             wrapper.focusRect({ x: 200, y: 200, width: 300, height: 200 })
         }
-        if (focus) wrapper.focusRect(focus)
+        if (focus) wrapper.focusRect(focus, focusOptions)
     })
 </script>
 <dialog bind:this={dialog} open={!modal} style="margin:0;padding:0;border:0"><div data-testid="table-scroll" style="width:400px;overflow:auto">

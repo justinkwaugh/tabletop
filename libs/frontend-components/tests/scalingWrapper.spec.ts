@@ -249,6 +249,21 @@ for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 150,
     })
 }
 
+for (const [inset, expected] of [
+    [{}, { x: -250, y: -200 }],
+    [{ insetRight: 100 }, { x: -300, y: -200 }],
+    [{ insetBottom: 100 }, { x: -250, y: -250 }]
+] as const) {
+    test(`focusing centres the target in the view left clear by ${JSON.stringify(inset)}`, async ({ page }) => {
+        await mountWrapper(page, { focus: { x: 400, y: 300, width: 100, height: 100 }, focusOptions: inset })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(1000)
+        const focused = await viewportOffset(board)
+        expect(focused.x).toBeCloseTo(expected.x)
+        expect(focused.y).toBeCloseTo(expected.y)
+    })
+}
+
 test('gestures shrink a focus overpan but never grow it, handing outward movement to the table', async ({ page }) => {
     await mountWrapper(page, { scrollable: true, overpan: 'focus', focus: { x: 0, y: 0, width: 100, height: 100 } })
     const board = page.getByTestId('board')

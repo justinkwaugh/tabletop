@@ -1,46 +1,67 @@
 <script lang="ts">
     import type { ShipState } from '@tabletop/stellar-horizons-2'
-    import { SHIP_ART } from '$lib/art/manifest.js'
-    import { SHIP_COUNTER_ASPECT } from '$lib/utils/boardLayout.js'
+    import { FLAGLESS_SHIP_ART, SHIP_ART } from '$lib/art/manifest.js'
 
-    let { ship, width }: { ship: ShipState; width: number } = $props()
-    const height = $derived(width * SHIP_COUNTER_ASPECT)
-    const badge = $derived(width * 0.12)
+    let { ship, size }: { ship: ShipState; size: number } = $props()
+    const clipId = $props.id()
+    const badge = $derived(size * 0.12)
+    const corner = $derived(size * 0.07)
+    const damaged = $derived(ship.damage > 0)
+    const art = $derived((damaged ? FLAGLESS_SHIP_ART : SHIP_ART)[ship.shipId])
+    const damageWidth = $derived(size * 0.3)
+    const damageHeight = $derived(size * 0.26)
+    const damageBadge = $derived.by(() => {
+        const inset = 1.5
+        const outer = corner - inset
+        const inner = size * 0.04
+        const right = inset + damageWidth
+        const bottom = inset + damageHeight
+        return [
+            `M ${inset} ${inset + outer}`,
+            `A ${outer} ${outer} 0 0 1 ${inset + outer} ${inset}`,
+            `H ${right}`,
+            `V ${bottom - inner}`,
+            `A ${inner} ${inner} 0 0 1 ${right - inner} ${bottom}`,
+            `H ${inset}`,
+            'Z'
+        ].join(' ')
+    })
 </script>
 
-<image href={SHIP_ART[ship.shipId]} {width} {height}></image>
-{#if ship.transit > 0}
-    <circle cx={width - badge} cy={badge} r={badge} class="eta"></circle>
-    <text
-        x={width - badge}
-        y={badge * 1.42}
-        text-anchor="middle"
-        font-size={badge * 1.25}
-        class="eta-text">{ship.transit}</text
-    >
-{/if}
-{#if ship.damage > 0}
-    <rect
-        x={width - badge * 2.2}
-        y={height - badge * 1.8}
-        width={badge * 2.2}
-        height={badge * 1.6}
-        rx="3"
-        class="damage"
+<clipPath id={clipId}>
+    <rect width={size} height={size} rx={corner}></rect>
+</clipPath>
+{#if damaged}
+    <filter id="{clipId}-glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation={size * 0.06}></feGaussianBlur>
+    </filter>
+    <rect width={size} height={size} rx={corner} class="damaged-glow" filter="url(#{clipId}-glow)"
     ></rect>
+{/if}
+<image href={art} width={size} height={size} clip-path="url(#{clipId})"></image>
+{#if damaged}
+    <rect
+        x="1.5"
+        y="1.5"
+        width={size - 3}
+        height={size - 3}
+        rx={corner - 1.5}
+        class="damaged-border"
+    ></rect>
+    <path d={damageBadge} class="damage"></path>
     <text
-        x={width - badge * 1.1}
-        y={height - badge * 0.55}
+        x={1.5 + damageWidth / 2}
+        y={1.5 + damageHeight * 0.72}
         text-anchor="middle"
-        font-size={badge * 1.2}
+        font-size={damageHeight * 0.62}
         class="badge-text">-{ship.damage}</text
     >
 {/if}
 {#if ship.settlements > 0}
-    <circle cx={badge * 1.1} cy={height - badge * 1.1} r={badge} class="cargo"></circle>
+    <circle cx={badge * 1.1} cy={size / 2} r={badge} class="cargo"></circle>
     <text
         x={badge * 1.1}
-        y={height - badge * 0.65}
+        y={size / 2 + badge * 0.45}
         text-anchor="middle"
         font-size={badge * 1.25}
         class="cargo-text">{ship.settlements}</text
@@ -48,26 +69,27 @@
 {/if}
 
 <style>
-    .eta {
-        fill: #f2c94c;
-        stroke: #000000;
-        stroke-width: 2px;
-    }
-
-    .eta-text,
     .cargo-text {
         font-weight: 900;
         fill: #111111;
     }
 
+    .damaged-glow {
+        fill: #ff3b30;
+    }
+
+    .damaged-border {
+        fill: none;
+        stroke: #d32f2f;
+        stroke-width: 3px;
+    }
+
     .damage {
-        fill: #b3261e;
-        stroke: #ffffff;
-        stroke-width: 1.5px;
+        fill: #d32f2f;
     }
 
     .badge-text {
-        font-weight: 800;
+        font-weight: 900;
         fill: #ffffff;
     }
 
