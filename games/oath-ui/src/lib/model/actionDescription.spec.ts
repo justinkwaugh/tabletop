@@ -10,6 +10,8 @@ import {
     type QuestionAnswer,
     HydratedMuster,
     HydratedPlayFacedownAdviser,
+    HydratedSearch,
+    HydratedSearchResolve,
     HydratedUseActionPower,
     IMPERIAL_WARBANDS,
     Muster,
@@ -18,7 +20,9 @@ import {
     PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
+    Search,
     SearchPlay,
+    SearchResolve,
     SearchSource,
     UseActionPower,
     ownWarbandOwner,
@@ -798,6 +802,30 @@ describe('the history tab describes every action', () => {
 
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe('played Wayside Inn to their site, gaining 1 secret (Book of Records)')
             expect(row(OathRevision.TurnFlow)).toBe('played Wayside Inn to their site, gaining 1 favor')
+        })
+
+        it('Land Warden — two cards played to the site under Book of Records: the row counts both secrets from revision 3', () => {
+            const LAND_WARDEN = 'denizen.hearth.land-warden'
+            const WOLVES = 'denizen.beast.wolves'
+            const INN = 'denizen.hearth.wayside-inn'
+            const FILLER = 'denizen.order.scouts'
+            const row = (oathRevision: OathRevision) => {
+                const state = testState(
+                    [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 3, supply: 6, relicIds: ['relic.book-of-records'], advisers: [{ cardId: LAND_WARDEN, faceUp: true }] })],
+                    { oathRevision, denizensBySite: { c1: [] }, siteCards: { c1: 'site.plains' } }
+                )
+                state.requireVault().worldDeck = [WOLVES, INN, FILLER]
+                const modifiers = [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }]
+                new HydratedSearch(buildAction(Search, { playerId: 'p1', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers })).apply(state)
+                const played = new HydratedSearchResolve(
+                    buildAction(SearchResolve, { playerId: 'p1', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: { cardId: INN, play: SearchPlay.Site } })
+                )
+                played.apply(state)
+                return describeAction(played.dehydrate(), nameOf)
+            }
+
+            expect(row(OathRevision.PlanCostsAndSearchPlays)).toBe('kept Wolves and played it to their site, gaining 2 secrets; 1 card went to the provinces discard pile')
+            expect(row(OathRevision.CostsAndFacedownModifiers)).toBe('kept Wolves and played it to their site, gaining 1 secret; 1 card went to the provinces discard pile')
         })
 
         it('R-6.2 — an Action power is named, since only a faceup card has one (R-5.1.4.II)', () => {

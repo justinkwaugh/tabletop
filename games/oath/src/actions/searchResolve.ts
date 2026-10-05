@@ -17,6 +17,8 @@ import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifier
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import type { ActiveModifier } from '../util/modifiers.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 /** R-9.4 */
 export function playShowsCard(play: SearchPlay, faceUp: boolean | undefined): boolean {
@@ -51,6 +53,8 @@ export const SearchResolveMetadata = Type.Object({
     /** Cracked Horn */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
     favorGained: Type.Number(),
+    /** Book of Records — one for each card played to a site. */
+    secretsGained: Type.Optional(Type.Number()),
     /** R-7.3.3 */
     whenPlayed: Type.Optional(Type.String()),
     /** Land Warden — the second card's When Played power, as it resolved. */
@@ -202,7 +206,8 @@ export class HydratedSearchResolve
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
                   seen: shown,
-                  discardTarget
+                  discardTarget,
+                  carried: secondPlayModifiers(state, carried)
               })
             : undefined
 
@@ -237,6 +242,7 @@ export class HydratedSearchResolve
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             favorGained: played.favorGained,
+            secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
             whenPlayed: played.whenPlayed,
             secondWhenPlayed: second?.whenPlayed,
             triggered: played.triggered,
@@ -326,9 +332,19 @@ export function reasonCannotPlaySecondCard(
     if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
         return 'the second card is played to your site or as an adviser'
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
-        faceUp: second.faceUp
+        faceUp: second.faceUp,
+        carried: secondPlayModifiers(state, searchPlayModifiers(state))
     })
     return reason ? `second card: ${reason}` : undefined
+}
+
+/** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */
+function secondPlayModifiers(
+    state: HydratedOathGameState,
+    carried: ActiveModifier[]
+): ActiveModifier[] | undefined {
+    // R-X.4 — a game created before this revision played the second card with no modifier.
+    return isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays) ? carried : undefined
 }
 
 /** Land Warden — "if you play at least one card to a site", with room for both there. */

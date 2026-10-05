@@ -244,7 +244,11 @@ function describeActionCited(
     }
     if (isSearchResolve(action)) {
         const kept = action.metadata?.playedCardId ?? action.metadata?.revealedKeptCardId
-        return `kept ${shownCard(kept)} and ${describePlay(action.play)}`
+        const secrets = action.metadata?.secretsGained ?? 0
+        return (
+            `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
+            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '')
+        )
     }
     if (isRecover(action)) {
         return action.target.kind === RecoverTargetKind.Banner
