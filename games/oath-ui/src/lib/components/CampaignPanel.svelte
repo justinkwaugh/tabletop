@@ -169,7 +169,7 @@
                             ? 'wide'
                             : target.kind === CampaignTargetKind.PawnAndFavor
                               ? 'piece'
-                              : 'card'}
+                              : 'relic'}
                         on={draft.hasTarget(target)}
                         points={targetPoints(target)}
                         disabled={busy}

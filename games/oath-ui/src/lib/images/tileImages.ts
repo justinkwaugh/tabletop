@@ -1,7 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import { Banner, MAX_SUPPLY, OathType, PlayerStatus } from '@tabletop/oath'
 import { bannerFiles, tileFiles } from './imageManifest.generated.js'
-import { imageNamed, indexByName } from './manifestIndex.js'
+import { imageNamed, indexByName, type SizedImage } from './manifestIndex.js'
 
 const tiles = indexByName(tileFiles)
 const banners = indexByName(bannerFiles)
@@ -11,6 +11,12 @@ export function favorTokenImage(): string {
 }
 export function secretTokenImage(): string {
     return imageNamed(tiles, 'token.secret')
+}
+export function favorToken(): SizedImage {
+    return { src: favorTokenImage(), width: 96, height: 84 }
+}
+export function secretToken(): SizedImage {
+    return { src: secretTokenImage(), width: 106, height: 89 }
 }
 export function visionsMarkerImage(): string {
     return imageNamed(tiles, 'marker.visions')

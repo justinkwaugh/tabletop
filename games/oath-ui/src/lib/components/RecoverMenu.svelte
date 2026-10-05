@@ -4,8 +4,9 @@
     import MenuCount from '$lib/components/MenuCount.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
+    import type { SizedImage } from '$lib/images/manifestIndex.js'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { bannerImage, favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { bannerImage, favorToken, secretToken } from '$lib/images/tileImages.js'
     import { bannerName, bannerTokenKind, cardName, siteName, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -38,8 +39,8 @@
         }
     }
 
-    function tokenOf(banner: Banner): string {
-        return bannerTokenKind(banner) === 'favor' ? favorTokenImage() : secretTokenImage()
+    function tokenOf(banner: Banner): SizedImage {
+        return bannerTokenKind(banner) === 'favor' ? favorToken() : secretToken()
     }
 </script>
 
@@ -53,7 +54,7 @@
                 image={relicImage(row.slotId)}
                 imageAlt=""
                 name={relicName(row.slotId)}
-                shape="card"
+                shape="relic"
                 points={{ kind: 'relic', slotId: row.slotId }}
             >
                 <MenuChoice
@@ -63,7 +64,7 @@
                 >
                     <span class="flex items-center gap-1.5 whitespace-nowrap">
                         {#if row.cost.kind === 'placeFavorInBank'}
-                            <MenuCount count={row.cost.amount} image={favorTokenImage()} />
+                            <MenuCount count={row.cost.amount} image={favorToken()} />
                             to
                             <img
                                 class="h-5 w-5"
@@ -74,9 +75,7 @@
                             burn
                             <MenuCount
                                 count={row.cost.amount}
-                                image={row.cost.kind === 'burnFavor'
-                                    ? favorTokenImage()
-                                    : secretTokenImage()}
+                                image={row.cost.kind === 'burnFavor' ? favorToken() : secretToken()}
                             />
                         {/if}
                     </span>

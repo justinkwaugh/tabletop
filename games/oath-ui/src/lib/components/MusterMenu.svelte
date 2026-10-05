@@ -3,8 +3,8 @@
     import MenuCount from '$lib/components/MenuCount.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
-    import { warbandImage } from '$lib/images/pieceImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { warbandFigure } from '$lib/images/pieceImages.js'
     import { cardName, plural, suitName } from '$lib/model/names.js'
     import type { MusterRow } from '$lib/model/musterRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -35,15 +35,12 @@
                 onclick={() => gameSession.chooseCard(row.cardId)}
             >
                 <span class="flex items-center gap-1.5">
-                    <MenuCount
-                        count={1}
-                        image={row.paysSecret ? secretTokenImage() : favorTokenImage()}
-                    />
+                    <MenuCount count={1} image={row.paysSecret ? secretToken() : favorToken()} />
                     <span class="text-oath-text-muted">→</span>
                     {#if owner}
                         <MenuCount
                             count={row.gain}
-                            image={warbandImage(gameSession.warbandColor(owner))}
+                            image={warbandFigure(gameSession.warbandColor(owner))}
                         />
                     {/if}
                 </span>

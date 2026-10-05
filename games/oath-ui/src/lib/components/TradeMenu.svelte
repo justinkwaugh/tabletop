@@ -4,7 +4,7 @@
     import MenuCount from '$lib/components/MenuCount.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { cardName, plural, suitName } from '$lib/model/names.js'
     import type { TradeChoice, TradeRow } from '$lib/model/tradeRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -40,12 +40,12 @@
                     <span class="flex items-center gap-1.5">
                         <MenuCount
                             count={choice.pay}
-                            image={forFavor ? secretTokenImage() : favorTokenImage()}
+                            image={forFavor ? secretToken() : favorToken()}
                         />
                         <span class="text-oath-text-muted">→</span>
                         <MenuCount
                             count={choice.gain}
-                            image={forFavor ? favorTokenImage() : secretTokenImage()}
+                            image={forFavor ? favorToken() : secretToken()}
                         />
                     </span>
                     {#if forFavor && choice.bankShort}
