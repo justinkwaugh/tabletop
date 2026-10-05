@@ -8,7 +8,6 @@
         historyLines,
         historyRounds,
         historySpaces,
-        type HistoryLine,
         type HistoryRound,
         type HistoryTurn
     } from '$lib/utils/historyTurns.js'
@@ -21,7 +20,7 @@
 
     let scrollContainer: HTMLDivElement | undefined = $state()
     type ReplayUiState = {
-        activeLineKey: string
+        activeTurnKey: string
         frozenActions: GameAction[]
         frozenScrollTop: number
         showFinishedMarker: boolean
@@ -41,13 +40,11 @@
             : !!(gameSession.game.finishedAt && !gameSession.isViewingHistory)
     )
 
-    function highlight(line: HistoryLine | undefined) {
-        gameSession.historyHighlight = line
-            ? historySpaces(line.actions, gameSession.gameState.board)
-            : []
+    function highlight(actions: GameAction[]) {
+        gameSession.historyHighlight = historySpaces(actions, gameSession.gameState.board)
     }
 
-    $effect(() => () => highlight(undefined))
+    $effect(() => () => highlight([]))
 
     function roundCard(round: number) {
         const cardId = gameSession.gameState.revealedCardIds[round]
@@ -56,10 +53,6 @@
 
     function turnTime(turn: HistoryTurn): string {
         return turn.lastAt ? timeAgo.format(turn.lastAt) : ''
-    }
-
-    function turnEnd(turn: HistoryTurn): GameAction | undefined {
-        return turn.actions.at(-1)
     }
 
     function roundEnd(round: HistoryRound): GameAction | undefined {
@@ -83,15 +76,15 @@
         activate()
     }
 
-    async function replayHistoryLine(line: HistoryLine) {
-        const start = line.actions[0].index
-        const end = line.actions.at(-1)?.index
+    async function replayTurn(turn: HistoryTurn) {
+        const start = turn.actions[0]?.index
+        const end = turn.actions.at(-1)?.index
         if (replayUiState || start === undefined || end === undefined) {
             return
         }
 
         const nextReplayUiState: ReplayUiState = {
-            activeLineKey: line.key,
+            activeTurnKey: turn.key,
             frozenActions: displayedActions.slice(),
             frozenScrollTop: scrollContainer?.scrollTop ?? 0,
             showFinishedMarker
@@ -162,24 +155,37 @@
                 </div>
                 {#each round.turns.toReversed() as turn (turn.key)}
                     {@const color = gameSession.colors.getPlayerUiColor(turn.playerId)}
-                    {@const end = turnEnd(turn)}
-                    <article class="turn" style:--player={color}>
+                    {@const replayable = turn.actions.length > 0}
+                    {@const replaying = replayUiState?.activeTurnKey === turn.key}
+                    <article
+                        class="turn"
+                        class:replaying
+                        class:dimmed={replayUiState && !replaying}
+                        style:--player={color}
+                    >
                         <div
                             class="turn-head"
-                            class:jumps={end}
+                            class:jumps={replayable}
                             role="button"
-                            tabindex={end && !replayUiState ? 0 : -1}
-                            aria-disabled={end ? undefined : 'true'}
-                            aria-label={end
-                                ? `Show the board after ${gameSession.getPlayerName(turn.playerId)}'s turn`
+                            tabindex={replayable && !replayUiState ? 0 : -1}
+                            aria-disabled={replayable ? undefined : 'true'}
+                            aria-label={replayable
+                                ? `Replay ${gameSession.getPlayerName(turn.playerId)}'s turn`
                                 : undefined}
-                            title={end ? 'Show the board after this turn' : undefined}
-                            onclick={() => jumpToHistoryAction(end)}
-                            onkeydown={(event) => onActivate(event, () => jumpToHistoryAction(end))}
+                            title={replayable ? 'Replay this turn' : undefined}
+                            onclick={() => replayTurn(turn)}
+                            onkeydown={(event) => onActivate(event, () => replayTurn(turn))}
+                            onpointerenter={() => highlight(turn.actions)}
+                            onpointerleave={() => highlight([])}
+                            onfocus={() => highlight(turn.actions)}
+                            onblur={() => highlight([])}
                         >
                             <PlayerName playerId={turn.playerId} />
                             {#if !turn.ended}
                                 <span class="in-progress">playing</span>
+                            {/if}
+                            {#if replaying}
+                                <span class="replaying-tag">Replaying</span>
                             {/if}
                             <span class="when">{turnTime(turn)}</span>
                         </div>
@@ -189,11 +195,7 @@
                                     <HistoryEntryRow
                                         {line}
                                         {color}
-                                        replaying={replayUiState?.activeLineKey === line.key}
-                                        dimmed={!!replayUiState &&
-                                            replayUiState.activeLineKey !== line.key}
-                                        onreplay={() => replayHistoryLine(line)}
-                                        onhighlight={(on) => highlight(on ? line : undefined)}
+                                        onhighlight={(on) => highlight(on ? line.actions : [])}
                                     />
                                 {/each}
                             </div>
@@ -267,6 +269,26 @@
     .turn-head.jumps:focus-visible {
         background: rgba(107, 63, 29, 0.08);
         outline: none;
+    }
+
+    .turn.replaying {
+        border-radius: 3px 8px 8px 3px;
+        background: rgba(224, 168, 58, 0.18);
+    }
+
+    .turn.dimmed {
+        opacity: 0.45;
+    }
+
+    .replaying-tag {
+        padding: 0 6px;
+        border-radius: 999px;
+        background: #e0a83a;
+        color: #3b2208;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
     }
 
     .round-label {

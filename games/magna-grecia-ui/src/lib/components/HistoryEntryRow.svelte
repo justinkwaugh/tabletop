@@ -13,16 +13,10 @@
     let {
         line,
         color,
-        replaying,
-        dimmed,
-        onreplay,
         onhighlight
     }: {
         line: HistoryLine
         color: string
-        replaying: boolean
-        dimmed: boolean
-        onreplay: () => void
         onhighlight: (on: boolean) => void
     } = $props()
 
@@ -31,27 +25,12 @@
     const entry = $derived(line.entry)
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="entry"
-    class:replaying
-    class:dimmed
-    role="button"
-    tabindex={dimmed || replaying ? -1 : 0}
-    aria-disabled={dimmed || replaying ? 'true' : undefined}
-    title={line.actions.length > 1 ? 'Replay these actions' : 'Replay this action'}
-    onclick={onreplay}
     onpointerenter={() => onhighlight(true)}
     onpointerleave={() => onhighlight(false)}
-    onfocusin={() => onhighlight(true)}
-    onfocusout={() => onhighlight(false)}
     in:fade={{ duration: 200 }}
-    onkeydown={(event) => {
-        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
-            return
-        }
-        event.preventDefault()
-        onreplay()
-    }}
 >
     <span class="icon">
         {#if entry.kind === 'road'}
@@ -99,9 +78,6 @@
             <PointsIcon size={13} />
         </span>
     {/if}
-    {#if replaying}
-        <span class="replaying-tag">Replaying</span>
-    {/if}
 </div>
 
 <style>
@@ -113,26 +89,11 @@
         column-gap: 8px;
         padding: 3px 6px 3px 8px;
         border-radius: 8px;
-        cursor: pointer;
-        transition:
-            background-color 120ms,
-            opacity 120ms;
+        transition: background-color 120ms;
     }
 
-    .entry:hover:not(.dimmed),
-    .entry:focus-visible {
-        background: rgba(107, 63, 29, 0.08);
-        outline: none;
-    }
-
-    .entry.replaying {
-        background: rgba(224, 168, 58, 0.25);
-        box-shadow: inset 0 0 0 1px rgba(138, 90, 18, 0.45);
-    }
-
-    .entry.dimmed {
-        opacity: 0.45;
-        cursor: default;
+    .entry:hover {
+        background: rgba(107, 63, 29, 0.06);
     }
 
     .icon {
@@ -181,19 +142,5 @@
 
     .points.gain {
         color: #3f6b2a;
-    }
-
-    .replaying-tag {
-        position: absolute;
-        top: -7px;
-        right: 6px;
-        padding: 0 6px;
-        border-radius: 999px;
-        background: #e0a83a;
-        color: #3b2208;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
     }
 </style>

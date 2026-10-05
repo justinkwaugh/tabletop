@@ -288,7 +288,7 @@ test('closing the resupply picker restores the chosen tool', async ({ page }) =>
     await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.resupplyOpen)).toBe(false)
 })
 
-test('turn and round headers jump to their end without starting a replay', async ({ page }) => {
+test('a turn header replays the turn and a round header jumps to its end', async ({ page }) => {
     await createGame(page)
     await page.getByRole('button', { name: /^Cities/ }).click()
     await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
@@ -315,14 +315,16 @@ test('turn and round headers jump to their end without starting a replay', async
             .toBe(false)
 
     await settled()
-    await page.getByRole('button', { name: 'Show the board at the end of round 1' }).click()
-    await expect.poll(actionIndex).toBe(2)
-
-    await settled()
-    const firstTurn = page.getByRole('button', { name: /^Show the board after .*'s turn$/ }).last()
+    const firstTurn = page.getByRole('button', { name: /^Replay .*'s turn$/ }).last()
     await firstTurn.focus()
     await page.keyboard.press('Enter')
-    await expect.poll(actionIndex).toBe(0)
+    await expect(page.getByText('Replaying', { exact: true })).toBeVisible()
+    await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0, { timeout: 10_000 })
+    await expect.poll(actionIndex).toBeUndefined()
+
+    await settled()
+    await page.getByRole('button', { name: 'Show the board at the end of round 1' }).click()
+    await expect.poll(actionIndex).toBe(2)
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
 })
 
