@@ -10,8 +10,9 @@ import {
 } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { CardKind, Region } from '../model/oathEnums.js'
+import { Banner, CardKind, Region } from '../model/oathEnums.js'
 import {
+    DARKEST_SECRET_WORLD_DECK_SUPPLY_COST,
     DISCARD_SEARCH_SUPPLY_COST,
     visionsDrawnAfter,
     worldDeckSearchCost
@@ -35,6 +36,7 @@ import {
     type ActionPlan
 } from '../util/modifiers.js'
 import { pawnSiteId, regionOfPawn } from '../powers/vocabulary.js'
+import { bannerHolder } from '../util/oathkeeper.js'
 
 /** R-5.1.2 — before any modifier. */
 export const SEARCH_DRAW_COUNT = 3
@@ -234,11 +236,16 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         return kind
     }
 
-    /** R-5.1.1 */
-    static supplyCost(state: HydratedOathGameState, source: SearchSource): number {
-        return source === SearchSource.WorldDeck
-            ? worldDeckSearchCost(state.visionsDrawn)
-            : DISCARD_SEARCH_SUPPLY_COST
+    /** R-5.1.1; the Banner of the Darkest Secret's "you" is its holder alone (R-10.28). */
+    static supplyCost(
+        state: HydratedOathGameState,
+        playerId: string,
+        source: SearchSource
+    ): number {
+        if (source === SearchSource.Discard) return DISCARD_SEARCH_SUPPLY_COST
+        return bannerHolder(state, Banner.DarkestSecret) === playerId
+            ? DARKEST_SECRET_WORLD_DECK_SUPPLY_COST
+            : worldDeckSearchCost(state.visionsDrawn)
     }
 
     static drawRegion(
@@ -309,7 +316,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         modifiers?: readonly ModifierUse[],
         tolls?: readonly string[]
     ): ActionPlan {
-        const base = HydratedSearch.supplyCost(state, source)
+        const base = HydratedSearch.supplyCost(state, playerId, source)
         const none: ActionPlan = { cost: base, active: [] }
         const player = state.getPlayerState(playerId)
         const particulars = { drawFrom: source }

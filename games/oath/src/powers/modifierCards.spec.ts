@@ -376,7 +376,7 @@ describe('Search modifiers', () => {
         search([modifierUse(CRY)], [BIRDSONG, RETURN]).apply(s)
         resolve(BIRDSONG, [RETURN]).apply(s)
         const p = s.getPlayerState('ruler')
-        expect(p.supply).toBe(3 - HydratedSearch.supplyCost(s, SearchSource.WorldDeck) + 1)
+        expect(p.supply).toBe(3 - HydratedSearch.supplyCost(s, 'ruler', SearchSource.WorldDeck) + 1)
         expect(p.warbandsOnBoard['ruler']).toBe(4)
 
         const t = board([CRY])

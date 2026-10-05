@@ -5,8 +5,9 @@ import { getPrng } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { buildAction } from '../testing/actions.js'
 import { HydratedSearch, Search, SEARCH_DRAW_COUNT, SearchSource } from './search.js'
-import { CardKind, Region } from '../model/oathEnums.js'
-import { testPlayer, testState } from '../testing/fixture.js'
+import { Banner, CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
+import { testBanners, testPlayer, testState } from '../testing/fixture.js'
+import { VISIONS_DRAWN_SUPPLY_COST } from '../data/visionsDrawnTrack.js'
 import { createOathVault, type OathVault } from '../model/vault.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 
@@ -48,18 +49,73 @@ function ready(playerOverrides = {}, stateOverrides = {}) {
     return testState([testPlayer({ siteId: 'c1', supply: 7, ...playerOverrides })], stateOverrides)
 }
 
+describe('Banner of the Darkest Secret — "spend 2 Supply if you\'re drawing from the world deck"', () => {
+    const holding = (holderId: string) => ({ banners: testBanners({ [Banner.DarkestSecret]: holderId }) })
+
+    it('charges its holder 2 for the world deck at every space of the track', () => {
+        for (const visionsDrawn of VISIONS_DRAWN_SUPPLY_COST.keys()) {
+            const state = ready({}, { visionsDrawn, ...holding('p1') })
+            expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.WorldDeck)).toBe(2)
+        }
+    })
+
+    it('charges everyone else the track', () => {
+        const state = testState(
+            [testPlayer({ siteId: 'c1' }), testPlayer({ playerId: 'p2', siteId: 'c1' })],
+            { visionsDrawn: 3, ...holding('p1') }
+        )
+        expect(HydratedSearch.supplyCost(state, 'p2', SearchSource.WorldDeck)).toBe(4)
+    })
+
+    it('is its holder\'s alone: a Citizen pays the track while the Chancellor holds it (R-10.28)', () => {
+        const state = testState(
+            [
+                testPlayer({ playerId: 'ch', status: PlayerStatus.Chancellor, siteId: 'c1' }),
+                testPlayer({ playerId: 'cit', status: PlayerStatus.Citizen, siteId: 'c1' })
+            ],
+            { visionsDrawn: 1, ...holding('ch') }
+        )
+        expect(HydratedSearch.supplyCost(state, 'ch', SearchSource.WorldDeck)).toBe(2)
+        expect(HydratedSearch.supplyCost(state, 'cit', SearchSource.WorldDeck)).toBe(3)
+    })
+
+    it('leaves a discard pile at 2', () => {
+        const state = ready({}, { visionsDrawn: 5, ...holding('p1') })
+        expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.Discard)).toBe(2)
+    })
+
+    it('lets its holder with 2 Supply search the world deck where the track says 3, and spends 2', () => {
+        const state = ready({ supply: 2 }, { visionsDrawn: 1, ...holding('p1') })
+        expect(HydratedSearch.legalSources(state, 'p1')).toContain(SearchSource.WorldDeck)
+
+        const action = serverSearch(state, vaultWith([D1, D2, D3]), 'p1', SearchSource.WorldDeck)
+
+        const p = state.getPlayerState('p1')
+        expect(p.supply).toBe(0)
+        expect(p.supplySpentThisTurn).toBe(2)
+        expect(action.metadata?.supplySpent).toBe(2)
+    })
+
+    it('still refuses a holder with 1 Supply', () => {
+        const state = ready({ supply: 1 }, { visionsDrawn: 1, ...holding('p1') })
+        expect(HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.WorldDeck)).toBe(
+            'costs 2 Supply, player has 1'
+        )
+    })
+})
+
 describe('Search cost (R-5.1.1, R-2.1.6)', () => {
     it('charges the Visions Drawn track for a world deck search', () => {
         const state = ready({}, { visionsDrawn: 0 })
-        expect(HydratedSearch.supplyCost(state, SearchSource.WorldDeck)).toBe(2)
+        expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.WorldDeck)).toBe(2)
 
         const later = ready({}, { visionsDrawn: 3 })
-        expect(HydratedSearch.supplyCost(later, SearchSource.WorldDeck)).toBe(4)
+        expect(HydratedSearch.supplyCost(later, 'p1', SearchSource.WorldDeck)).toBe(4)
     })
 
     it('charges a flat 2 for a discard pile whatever the track shows', () => {
         const state = ready({}, { visionsDrawn: 5 })
-        expect(HydratedSearch.supplyCost(state, SearchSource.Discard)).toBe(2)
+        expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.Discard)).toBe(2)
     })
 
     it('spends the Supply and records it for the Rest refund (R-4.3.4)', () => {
@@ -201,12 +257,12 @@ describe('Search draws from the world deck (R-5.1.2)', () => {
 
     it('makes the next Search cost more, via the track (R-2.1.6)', () => {
         const state = ready({}, { visionsDrawn: 0 })
-        expect(HydratedSearch.supplyCost(state, SearchSource.WorldDeck)).toBe(2)
+        expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.WorldDeck)).toBe(2)
 
         serverSearch(state, vaultWith([VISION, D1]), 'p1', SearchSource.WorldDeck)
 
         expect(state.visionsDrawn).toBe(1)
-        expect(HydratedSearch.supplyCost(state, SearchSource.WorldDeck)).toBe(3)
+        expect(HydratedSearch.supplyCost(state, 'p1', SearchSource.WorldDeck)).toBe(3)
     })
 
     it('leaves the track alone when no Vision is drawn', () => {
