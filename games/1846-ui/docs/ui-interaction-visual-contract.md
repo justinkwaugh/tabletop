@@ -62,7 +62,8 @@ runtime resumes public purchases automatically.
 - Issuing or redeeming shares is a mode beside track and station building, and beside
   Run trains, until routes are run. Each transaction commits immediately; the first one
   locks the turn to issuing or redeeming. Construction does not finish by itself while a
-  transaction is still possible; the president ends it with skip.
+  transaction is still possible; when issuing or redeeming is all that is left, the switch
+  selects it and its panel offers skip to end construction.
 - The operating-mode switch lists only modes that are available now and appears when
   there are at least two. A chosen mode lasts through that step's actions while it stays
   available; leaving the step, perspective or history view resets it.

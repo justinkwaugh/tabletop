@@ -71,16 +71,21 @@
                           : [])
                   ]
                 : []
-        const fallback = {
-            label: state.machineState === 'LayingTrack' ? 'Finish building' : 'Run trains',
-            selected: mode !== 'finance',
-            select: () => session.chooseConstructionMode(undefined)
-        }
-        return [...(base.length ? base : [fallback]), ...finance]
+        const routes =
+            state.machineState === 'LayingTrack'
+                ? []
+                : [
+                      {
+                          label: 'Run trains',
+                          selected: mode !== 'finance',
+                          select: () => session.chooseConstructionMode(undefined)
+                      }
+                  ]
+        return [...base, ...routes, ...finance]
     })
     const showOperatingModes = $derived(
         (state.machineState === 'LayingTrack' || state.machineState === 'RunningTrains') &&
-            operatingModes.length > 1 &&
+            (operatingModes.length > 1 || session.constructionMode === 'finance') &&
             !state.pendingRevenueMarker &&
             !session.privateDraft &&
             !state.purchaseOffer &&

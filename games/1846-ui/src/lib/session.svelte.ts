@@ -81,7 +81,11 @@ export class EighteenFortySixSession extends BaseSession {
         if (this.privateDraft) return 'track'
         const manual = this.manualConstructionMode
         if (manual && this.constructionModeAvailable(manual)) return manual
-        return this.validActionTypes.includes('LayTile') ? 'track' : 'stations'
+        if (this.validActionTypes.includes('LayTile')) return 'track'
+        if (this.validActionTypes.includes('PlaceStation')) return 'stations'
+        return this.gameState.machineState === 'LayingTrack' && this.financeChoices.length
+            ? 'finance'
+            : 'stations'
     })
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
@@ -318,6 +322,9 @@ export class EighteenFortySixSession extends BaseSession {
         if (operations.size > 1) return 'Issue / redeem'
         return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
     })
+    readonly financePrompt = $derived(
+        this.financeLabel === 'Issue / redeem' ? 'Issue or redeem shares' : this.financeLabel
+    )
     async corporateFinance(choice: FinanceChoice): Promise<void> {
         await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
     }

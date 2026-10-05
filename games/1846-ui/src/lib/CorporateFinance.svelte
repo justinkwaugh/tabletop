@@ -20,6 +20,10 @@
             .filter(({ choices }) => choices.length)
     )
     const appearance = $derived(session.mapView.stations[companyId])
+    const canFinishConstruction = $derived(
+        session.gameState.machineState === 'LayingTrack' &&
+            session.validActionTypes.includes('FinishTrack')
+    )
     const state = $derived(session.gameState)
     const owner = $derived({ kind: 'company' as const, companyId })
 </script>
@@ -44,6 +48,16 @@
 {/snippet}
 
 <section class="corporate-finance" aria-label="Corporate finance">
+    {#if canFinishConstruction}
+        <header class="finance-prompt">
+            <span>{session.financePrompt}, or</span>
+            <button
+                class="action-button inline-action"
+                disabled={!session.canChooseAction}
+                onclick={() => session.finishConstruction()}>skip</button
+            >
+        </header>
+    {/if}
     <dl class="finance-strip">
         <div class="finance-identity">
             <dt class="visually-hidden">Company</dt>
@@ -74,6 +88,11 @@
 </section>
 
 <style>
+    .finance-prompt {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
     .corporate-finance {
         display: flex;
         flex-direction: column;
