@@ -762,7 +762,7 @@ for (const step of AcquisitionSteps) {
 Runtime.stateHandlers.LayingTrack = new AutomaticTrackCompletionHandler(
     TrackRules1846,
     Runtime.stateHandlers.LayingTrack,
-    ['PlaceStation', 'BuildPrivateTrack', 'PlaceCWIStation']
+    ['PlaceStation', 'BuildPrivateTrack', 'PlaceCWIStation', 'CorporateFinance']
 )
 for (const [step, handler] of Object.entries(Runtime.stateHandlers)) {
     if (step !== 'GameOver')

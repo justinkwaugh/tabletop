@@ -4,6 +4,7 @@ import { TrackConstruction, StationPlacement, finiteCashOwnedBy } from '@tableto
 import { stockGame, start } from './testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { StationRules1846, stationChoices1846 } from './stations.js'
+import { corporateFinanceChoices } from './corporateFinance.js'
 
 function constructionGame() {
     const table = stockGame()
@@ -66,7 +67,7 @@ describe('1846 major construction', () => {
             state = table.engine.undoProcessedAction({ state, action })
         expect(state).toEqual(table.initialState)
     })
-    it('keeps station placement open after both tile lays', () => {
+    it('keeps construction open after both lays and a station while shares can still be issued', () => {
         const table = constructionGame()
         const home = table.state.stations.find(
             (station) => station.companyId === 'B&O' && station.status === 'placed'
@@ -90,19 +91,27 @@ describe('1846 major construction', () => {
             })
         }
         expect(table.state.trackStep?.lays).toHaveLength(2)
-        const before = structuredClone(table.state)
         const placed = table.act('PlaceStation', stationRequest(table))
         expect(table.state.stationStep?.placedStationIds).toHaveLength(1)
+        expect(placed.processedActions.map((action) => action.type)).toEqual(['PlaceStation'])
+        expect(table.state.machineState).toBe('LayingTrack')
+        const issues = corporateFinanceChoices(table.hydrated).filter(
+            (choice) => choice.operation === 'issue'
+        )
+        const block = issues.at(-1)
+        assertExists(block, 'The corporation can still issue shares')
+        const before = structuredClone(table.state)
+        const issued = table.act('CorporateFinance', block)
         expect(table.state.machineState).toBe('BuyingTrains')
-        expect(placed.processedActions.map((action) => action.type)).toEqual([
-            'PlaceStation',
+        expect(issued.processedActions.map((action) => action.type)).toEqual([
+            'CorporateFinance',
             'FinishTrack',
             'FinishStations',
             'RunTrains',
             'DistributeEarnings'
         ])
         let restored = table.state
-        for (const action of placed.processedActions.toReversed())
+        for (const action of issued.processedActions.toReversed())
             restored = table.engine.undoProcessedAction({ state: restored, action })
         expect(restored).toEqual(before)
     })

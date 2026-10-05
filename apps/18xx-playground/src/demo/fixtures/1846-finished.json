@@ -2026,6 +2026,14 @@
       "expectedCost": 0
     },
     {
+      "id": "recorded:finish-construction-0",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "IC"
+    },
+    {
       "id": "recorded:39",
       "gameId": "1846-12666",
       "type": "BuyTrain",
@@ -2342,6 +2350,14 @@
       "rotation": 1,
       "nodeMapping": {},
       "expectedCost": 20
+    },
+    {
+      "id": "recorded:finish-construction-1",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "IC"
     },
     {
       "id": "recorded:64",
@@ -2761,6 +2777,14 @@
       "expectedCost": 0
     },
     {
+      "id": "recorded:finish-construction-2",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "IC"
+    },
+    {
       "id": "recorded:98",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -2854,6 +2878,14 @@
       "rotation": 4,
       "nodeMapping": {},
       "expectedCost": 20
+    },
+    {
+      "id": "recorded:finish-construction-3",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "NYC"
     },
     {
       "id": "recorded:104",
@@ -3132,6 +3164,14 @@
         }
       ],
       "expectedCost": 0
+    },
+    {
+      "id": "recorded:finish-construction-4",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "gragatrim",
+      "companyId": "GT"
     },
     {
       "id": "recorded:123",
@@ -3659,6 +3699,14 @@
       "expectedCost": 80
     },
     {
+      "id": "recorded:finish-construction-5",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "gragatrim",
+      "companyId": "GT"
+    },
+    {
       "id": "recorded:168",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -3783,6 +3831,14 @@
         "city": "city"
       },
       "expectedCost": 20
+    },
+    {
+      "id": "recorded:finish-construction-6",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "NYC"
     },
     {
       "id": "recorded:174",
@@ -3945,6 +4001,14 @@
       "rotation": 4,
       "nodeMapping": {},
       "expectedCost": 20
+    },
+    {
+      "id": "recorded:finish-construction-7",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "IC"
     },
     {
       "id": "recorded:186",
@@ -4837,6 +4901,14 @@
       "expectedCost": 80
     },
     {
+      "id": "recorded:finish-construction-8",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "gragatrim",
+      "companyId": "GT"
+    },
+    {
       "id": "recorded:263",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -5122,6 +5194,14 @@
         "city": "city"
       },
       "expectedCost": 20
+    },
+    {
+      "id": "recorded:finish-construction-9",
+      "gameId": "1846-12666",
+      "type": "FinishTrack",
+      "source": "user",
+      "playerId": "hoolaking",
+      "companyId": "NYC"
     },
     {
       "id": "recorded:278",
