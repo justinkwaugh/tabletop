@@ -30,6 +30,8 @@ export interface ModifierParticulars {
     supplyCost?: number
     /** `Banner`'s value. */
     banner?: string
+    /** R-6.1 */
+    facedownAdviserPlay?: boolean
 }
 
 export interface EffectContext {

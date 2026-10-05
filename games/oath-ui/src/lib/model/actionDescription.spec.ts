@@ -9,9 +9,12 @@ import {
     type PowerQuestion,
     type QuestionAnswer,
     HydratedMuster,
+    HydratedPlayFacedownAdviser,
     HydratedUseActionPower,
     IMPERIAL_WARBANDS,
     Muster,
+    OathRevision,
+    PlayFacedownAdviser,
     PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
@@ -779,6 +782,22 @@ describe('the history tab describes every action', () => {
             )
             // R-10.5 — a discarded card is never named, so nothing is placed.
             expect(play(SearchPlay.Discard)).toBe('discarded a card')
+        })
+
+        it('R-6.1 — a facedown site play under Book of Records says it gained a secret, and why', () => {
+            const INN = 'denizen.hearth.wayside-inn'
+            const row = (oathRevision: OathRevision) => {
+                const state = testState(
+                    [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', relicIds: ['relic.book-of-records'], advisers: [{ cardId: INN, faceUp: false }] })],
+                    { oathRevision, denizensBySite: { c1: [] } }
+                )
+                const played = new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'p1', cardId: INN, play: SearchPlay.Site }))
+                played.apply(state)
+                return describeAction(played.dehydrate(), nameOf)
+            }
+
+            expect(row(OathRevision.CostsAndFacedownModifiers)).toBe('played Wayside Inn to their site, gaining 1 secret (Book of Records)')
+            expect(row(OathRevision.TurnFlow)).toBe('played Wayside Inn to their site, gaining 1 favor')
         })
 
         it('R-6.2 — an Action power is named, since only a faceup card has one (R-5.1.4.II)', () => {

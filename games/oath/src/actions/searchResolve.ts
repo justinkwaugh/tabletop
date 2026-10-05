@@ -13,7 +13,7 @@ import { discardCards } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
-import { carriedModifiers, modifierContext, runAfter } from '../util/modifiers.js'
+import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
@@ -160,11 +160,9 @@ export class HydratedSearchResolve
 
         const region = regionOfPawn(state, this.playerId)
 
-        const carried = carriedModifiers(state, state.pendingSearchModifiers)
+        const carried = searchPlayModifiers(state)
         state.pendingSearchModifiers = undefined
-        const discardTarget = carried
-            .map((m) => m.hooks.discardTo?.(modifierContext(state, this.playerId, m)))
-            .find((t) => t !== undefined)
+        const discardTarget = discardTargetOf(state, this.playerId, carried)
 
         // R-5.1.3, R-10.5 — to the next region's pile, or where Bracken says.
         discardCards(state, this.playerId, this.discardOrder, region, discardTarget)
@@ -285,6 +283,7 @@ export class HydratedSearchResolve
 
         // R-5.1.4
         return reasonCannotPlayCard(state, playerId, choice.keptCardId, choice.play, {
+            carried: searchPlayModifiers(state),
             discardFirstCardId: choice.discardFirstCardId,
             toSiteId: choice.toSiteId,
             faceUp: choice.faceUp,
@@ -319,9 +318,7 @@ export function reasonCannotPlaySecondCard(
     keptCardId: string,
     second: SearchSecondPlay
 ): string | undefined {
-    const allowed = carriedModifiers(state, state.pendingSearchModifiers).some(
-        (m) => m.hooks.secondPlay
-    )
+    const allowed = searchPlayModifiers(state).some((m) => m.hooks.secondPlay)
     if (!allowed) return 'only one drawn card may be played'
     const hand = state.getPlayerState(playerId).knownHand()
     if (second.cardId === keptCardId || !hand.includes(second.cardId))

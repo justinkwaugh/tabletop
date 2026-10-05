@@ -21,6 +21,7 @@ import { PowerChoice, PowerChoiceKind, reasonChoicesInvalid } from './powerChoic
 import { PowerUse } from '../model/powerUse.js'
 import { effectFor, type EffectContext, type ModifierHooks } from '../powers/registry.js'
 import { traitModifiers } from './reliquaryTraits.js'
+import type { DiscardTarget } from './discard.js'
 
 // R-7.4.1, R-7.4.2, R-X.1 — one use per action; a costed modifier pays at declaration.
 
@@ -245,6 +246,22 @@ export function carriedModifiers(
         active.push({ power, hooks, choices: use.choices ?? [], mandatory: false })
     }
     return active
+}
+
+/** R-7.4, R-5.1.4 — the modifiers a Search carries to its play. */
+export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifier[] {
+    return carriedModifiers(state, state.pendingSearchModifiers)
+}
+
+/** Bracken, Cracked Horn */
+export function discardTargetOf(
+    state: HydratedOathGameState,
+    playerId: string,
+    active: readonly ActiveModifier[]
+): DiscardTarget | undefined {
+    return active
+        .map((m) => m.hooks.discardTo?.(modifierContext(state, playerId, m)))
+        .find((t) => t !== undefined)
 }
 
 /** R-7.1.2 */

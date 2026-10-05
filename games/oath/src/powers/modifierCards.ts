@@ -257,7 +257,7 @@ registerModifier(
     }
 )
 
-// R-5.1 — this and Wild Cry apply at the play: `pendingSearchModifiers` carries them to `SearchResolve`.
+// R-5.1 — this and Wild Cry apply at the play, a Search's or a facedown adviser's (R-6.1).
 // "If you play a denizen card that was not a facedown adviser, gain favor from
 // the hearth bank." A Search plays from the hand, so every played denizen qualifies.
 registerModifier(
@@ -265,6 +265,10 @@ registerModifier(
     powerIndexOf('denizen.hearth.welcoming-party', PowerTiming.Modifier),
     {
         hooks: {
+            condition: (ctx) =>
+                ctx.particulars?.facedownAdviserPlay === true
+                    ? 'the card played is a facedown adviser'
+                    : undefined,
             after: (ctx) => {
                 const played = ctx.particulars?.playedCardId
                 if (!played || ctx.particulars?.playedTo === 'discard') return undefined

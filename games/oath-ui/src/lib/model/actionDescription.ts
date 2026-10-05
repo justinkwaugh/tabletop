@@ -306,7 +306,21 @@ function describeActionCited(
     }
     if (isPlayFacedownAdviser(action)) {
         // R-6.1 plays the adviser faceup, which shows it, or discards it, which does not.
-        return describeAdviserPlay(action.play, shownCard(action.metadata?.playedCardId))
+        const meta = action.metadata
+        const secrets = meta?.secretsGained ?? 0
+        const favor = meta?.favorGained ?? 0
+        const gained =
+            secrets > 0
+                ? `, gaining ${plural(secrets, 'secret')}`
+                : favor > 0
+                  ? `, gaining ${favor} favor`
+                  : ''
+        const modifiers = meta?.modifiers ?? []
+        return (
+            describeAdviserPlay(action.play, shownCard(meta?.playedCardId)) +
+            gained +
+            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '')
+        )
     }
     if (isUseActionPower(action)) {
         return (
