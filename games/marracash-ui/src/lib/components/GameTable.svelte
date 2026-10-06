@@ -160,6 +160,13 @@
         font-variant-numeric: lining-nums;
     }
 
+    .marracash-text :global(.marracash-prompt) {
+        font-family: 'MarraCash El Messiri', Georgia, serif;
+        font-weight: 700;
+        font-size: 17px;
+        letter-spacing: 0.01em;
+    }
+
     .marracash-text :global(.marracash-dirham-sign) {
         font-family: 'MarraCash Dirham Sign', serif;
         font-weight: 700;
