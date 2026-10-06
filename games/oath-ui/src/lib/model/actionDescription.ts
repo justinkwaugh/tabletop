@@ -244,7 +244,11 @@ function describeActionCited(
     }
     if (isSearchResolve(action)) {
         const kept = action.metadata?.playedCardId ?? action.metadata?.revealedKeptCardId
-        return `kept ${shownCard(kept)} and ${describePlay(action.play)}`
+        const secrets = action.metadata?.secretsGained ?? 0
+        return (
+            `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
+            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '')
+        )
     }
     if (isRecover(action)) {
         return action.target.kind === RecoverTargetKind.Banner
@@ -306,7 +310,21 @@ function describeActionCited(
     }
     if (isPlayFacedownAdviser(action)) {
         // R-6.1 plays the adviser faceup, which shows it, or discards it, which does not.
-        return describeAdviserPlay(action.play, shownCard(action.metadata?.playedCardId))
+        const meta = action.metadata
+        const secrets = meta?.secretsGained ?? 0
+        const favor = meta?.favorGained ?? 0
+        const gained =
+            secrets > 0
+                ? `, gaining ${plural(secrets, 'secret')}`
+                : favor > 0
+                  ? `, gaining ${favor} favor`
+                  : ''
+        const modifiers = meta?.modifiers ?? []
+        return (
+            describeAdviserPlay(action.play, shownCard(meta?.playedCardId)) +
+            gained +
+            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '')
+        )
     }
     if (isUseActionPower(action)) {
         return (
@@ -345,7 +363,9 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
-        return meta ? `${cardName(meta.cardId)}: ${meta.summary}` : 'answered a question'
+        return meta
+            ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
+            : 'answered a question'
     }
     if (isExileCitizen(action)) {
         // R-6.7 — the exiler pays the Citizen they throw out; R-9.3's leftover Imperial warbands are worth a clause.
@@ -446,16 +466,27 @@ function powerEffect(
 ): string {
     const summary = action.metadata?.summary
     if (!summary) return ''
-    const text = withoutCardName(summary, action.cardId)
+    return `: ${namedSummary(summary, action.cardId, action.playerId, names, viewerId)}`
+}
+
+/** An engine summary as a History row reads it: every seat named, "you" for the viewer alone. */
+function namedSummary(
+    summary: string,
+    cardId: string,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    const text = withoutCardName(summary, cardId)
     const actorAlone = !names.seats.some(
-        (playerId) => playerId !== action.playerId && seatPattern(playerId).test(text)
+        (playerId) => playerId !== actorId && seatPattern(playerId).test(text)
     )
-    const row = { actorId: action.playerId, actorAlone, viewerId }
+    const row = { actorId, actorAlone, viewerId }
     const named = names.seats.reduce(
         (sentence, playerId) => nameSeat(sentence, playerId, row, names.player),
         text
     )
-    return `: ${namedBanks(named)}`
+    return namedBanks(named)
 }
 
 function seatPattern(playerId: string, flags = ''): RegExp {

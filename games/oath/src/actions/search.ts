@@ -22,6 +22,7 @@ import { kindOf } from '../data/cardRegistry.js'
 import { topBackType } from '../model/vault.js'
 import { drawDiscardPile, drawWorldDeck } from '../util/knowledge.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
+import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/actionPayment.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
     firstForbid,
@@ -336,6 +337,11 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         // R-7.1.4 — Forced Labor's "unless they give favor" (`util/tolls.ts`).
         const unpaid = reasonTollsUnpaid(state, playerId, { kind: 'search' }, tolls)
         if (unpaid) return { cost, active, reason: unpaid }
+        const unaffordable = reasonCannotPayInAll(state, playerId, [
+            modifierPayment(active),
+            tollPayment(tolls)
+        ])
+        if (unaffordable) return { cost, active, reason: unaffordable }
         if (player.supply < cost) {
             return { cost, active, reason: `costs ${cost} Supply, player has ${player.supply}` }
         }

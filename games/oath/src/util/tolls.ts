@@ -5,6 +5,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { banditsRuleSite, isImperialPlayer, rulesSite } from './rule.js'
 import { areEnemies, persistentsInPlay, type PersistentContext } from './persistent.js'
 import { siteHolding } from './access.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 // R-7.1.4 — "…unless they give favor to its ruler": the player lists each toll on the action.
 export interface Toll {
@@ -19,6 +20,8 @@ export type TollOccasion =
     | { kind: 'travel'; toSiteId: string }
     | { kind: 'trade'; cardId: string }
     | { kind: 'search' }
+    /** R-6.1 — "as if you searched". */
+    | { kind: 'facedownPlay' }
 
 /** R-10.4 — "Give it to Chancellor if Empire, burn it if bandits". */
 export function payeeFor(ctx: PersistentContext): string | undefined {
@@ -64,6 +67,12 @@ export function tollsFor(
                 break
             case 'search':
                 demanded = hooks.tollToSearch?.(ctx, actorId) === true
+                break
+            case 'facedownPlay':
+                // R-X.4 — a game created before this revision played a facedown adviser with no toll.
+                demanded =
+                    isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays) &&
+                    hooks.tollToSearch?.(ctx, actorId) === true
                 break
         }
         if (demanded) tolls.push({ cardId: ctx.cardId, payeeId: payeeFor(ctx) })
@@ -152,5 +161,7 @@ function describeOccasion(occasion: TollOccasion): string {
             return `trade with ${occasion.cardId}`
         case 'search':
             return 'search from here'
+        case 'facedownPlay':
+            return 'play or discard a facedown adviser here'
     }
 }

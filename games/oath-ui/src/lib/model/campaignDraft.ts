@@ -357,37 +357,48 @@ export class CampaignDraft implements PanelDraft {
         this.flow.set('lossOrder', moved)
     }
 
-    get blockedBecause(): string | undefined {
-        const playerId = this.playerId
-        const defender = this.defender
-        const targets = this.targets
-        if (!playerId || !defender || targets.length === 0) return undefined
-        return reasonCampaignTargetsInvalid(this.session.gameState, playerId, defender, targets)
-    }
-
-    get declarable(): boolean {
-        return (
-            this.defender !== undefined &&
-            this.targets.length > 0 &&
-            this.attackDice !== undefined &&
-            this.blockedBecause === undefined
-        )
-    }
-
-    async declare(): Promise<void> {
+    /** What `declare` sends, once the defender, a target and the dice are chosen. */
+    private get declaration(): CampaignDeclaration | undefined {
         const playerId = this.playerId
         const defender = this.defender
         const attackDice = this.attackDice
-        if (!playerId || !defender || attackDice === undefined || !this.declarable) return
         const targets = this.targets
-        await this.session.declareCampaign({
+        if (!playerId || !defender || attackDice === undefined || targets.length === 0) {
+            return undefined
+        }
+        return {
             defender,
             targets,
             attackDice,
             plans: this.plans,
             flipSecret: campaignNeedsFlip(this.session.gameState, playerId, defender, targets),
             skullLossOrder: this.lossSources.length > 1 ? this.lossOrder : undefined
-        })
+        }
+    }
+
+    get blockedBecause(): string | undefined {
+        const playerId = this.playerId
+        const defender = this.defender
+        const targets = this.targets
+        if (!playerId || !defender || targets.length === 0) return undefined
+        const state = this.session.gameState
+        const targetReason = reasonCampaignTargetsInvalid(state, playerId, defender, targets)
+        if (targetReason) return targetReason
+        // R-7.1.2 — the declared plans are paid from one holding, so the engine judges them together.
+        const declaration = this.declaration
+        return declaration
+            ? HydratedCampaign.reasonCannotCampaign(state, playerId, declaration)
+            : undefined
+    }
+
+    get declarable(): boolean {
+        return this.declaration !== undefined && this.blockedBecause === undefined
+    }
+
+    async declare(): Promise<void> {
+        const declaration = this.declaration
+        if (!declaration || !this.declarable) return
+        await this.session.declareCampaign(declaration)
     }
 
     hasManualSelection(): boolean {

@@ -1,5 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import { usableFavor } from './favor.js'
+import { burnedFavorTaker } from './burn.js'
+import type { ActionPayment } from './actionPayment.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
     BattlePlanSide,
@@ -8,6 +11,7 @@ import {
     PowerTiming,
     powersWithTiming,
     type CardPower,
+    type PowerCost,
     powerKey
 } from '../data/cardPowers.js'
 import { denizensOnMap } from './access.js'
@@ -104,7 +108,9 @@ export function resolveBattlePlans(
     playerId: string,
     side: BattlePlanSide,
     uses: readonly BattlePlanUse[] | undefined,
-    parties: CampaignParties
+    parties: CampaignParties,
+    /** The Hidden Place's flipped secret, taken before the plans are paid. */
+    spentFirst?: ActionPayment
 ): { reason?: string; active: ActiveBattlePlan[] } {
     const active: ActiveBattlePlan[] = []
     const seen = new Set<string>()
@@ -191,7 +197,47 @@ export function resolveBattlePlans(
             active
         }
     }
+    // R-X.4 — a game created before this revision checked each plan alone.
+    if (isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays)) {
+        const extra = extraBattlePlanCost(state, playerId, parties, side)
+        const short = reasonCannotPayPlansInOrder(state, playerId, active, extra, spentFirst)
+        if (short) return { reason: short, active }
+    }
     return { active }
+}
+
+/**
+ * R-7.1.2 — a side's plans are paid one after another from one holding, as `applyBattlePlans`
+ * pays them: each printed cost, then the cost an enemy's card adds. A favor burned while the
+ * payer holds Vow of Renewal comes straight back to them, so it pays the next plan too.
+ */
+function reasonCannotPayPlansInOrder(
+    state: HydratedOathGameState,
+    playerId: string,
+    active: readonly ActiveBattlePlan[],
+    extra: PowerCost,
+    spentFirst: ActionPayment | undefined
+): string | undefined {
+    const takesBurns = burnedFavorTaker(state) === playerId
+    let favorOut = spentFirst?.favor ?? 0
+    let favorNeed = favorOut
+    let secrets = spentFirst?.secrets ?? 0
+    for (const plan of active) {
+        for (const cost of [plan.power.cost, extra]) {
+            favorNeed = Math.max(favorNeed, favorOut + favorNeeded(cost))
+            favorOut += favorNeeded(cost) - (takesBurns ? cost.burnFavor : 0)
+            secrets += secretsNeeded(cost)
+        }
+    }
+    const heldFavor = usableFavor(state, playerId)
+    if (favorNeed > heldFavor) {
+        return `your battle plans cost ${favorNeed} favor in all, you hold ${heldFavor}`
+    }
+    const heldSecrets = state.getPlayerState(playerId).secrets
+    if (secrets > heldSecrets) {
+        return `your battle plans cost ${secrets} ${secrets === 1 ? 'secret' : 'secrets'} in all, you hold ${heldSecrets}`
+    }
+    return undefined
 }
 
 /** R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones. */
