@@ -4,10 +4,11 @@
     import {
         CustomFont,
         ScalingWrapper,
-        DefaultSideContent,
         DefaultTableLayout,
+        DefaultTabs,
         GameChat,
-        GameSession
+        GameSession,
+        HistoryControls
     } from '@tabletop/frontend-components'
     import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
     import History from '$lib/components/History.svelte'
@@ -23,6 +24,7 @@
     import ElMessiriLatin from '$lib/fonts/ElMessiri-Latin.woff2'
     import NotoNaskhArabicDirhamSign from '$lib/fonts/NotoNaskhArabic-DirhamSign.woff2'
     import { NightZelligeBackground } from '$lib/utils/tableBackground.js'
+    import { PanelPalette } from '$lib/utils/playerPanel.js'
 
     let {
         gameSession
@@ -84,10 +86,37 @@
     fontWeight="bold"
 />
 
-<div class="marracash-text" style:background={NightZelligeBackground}>
+{#snippet historyControls(shape: 'framed' | 'band')}
+    <div class="history-controls {shape}">
+        <HistoryControls
+            borderClass=""
+            bgClass="bg-transparent"
+            enabledColor="history-control-on"
+            disabledColor="history-control-off"
+        />
+    </div>
+{/snippet}
+
+<div
+    class="marracash-text"
+    style:background={NightZelligeBackground}
+    style:--tile-deep={PanelPalette.tileDeep}
+    style:--trim={PanelPalette.trim}
+    style:--brass={PanelPalette.brass}
+    style:--gold={PanelPalette.gold}
+    style:--quiet={PanelPalette.quietCount}
+    style:--night={PanelPalette.night}
+>
     <DefaultTableLayout>
+        {#snippet mobileControlsContent()}
+            {@render historyControls('band')}
+        {/snippet}
         {#snippet sideContent()}
-            <DefaultSideContent>
+            <div class="max-sm:hidden">{@render historyControls('framed')}</div>
+            <DefaultTabs
+                activeTabClass="marracash-tab marracash-tab-active"
+                inactiveTabClass="marracash-tab marracash-tab-inactive"
+            >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
@@ -97,7 +126,7 @@
                 {#snippet chat()}
                     <GameChat timeColor="text-[#ad9c80]" />
                 {/snippet}
-            </DefaultSideContent>
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0">
@@ -158,6 +187,48 @@
         font-family: 'MarraCash El Messiri', Georgia, serif;
         font-weight: 700;
         font-variant-numeric: lining-nums;
+    }
+
+    .history-controls {
+        background: var(--night);
+    }
+
+    .history-controls.framed {
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 2px var(--trim);
+    }
+
+    .history-controls.band {
+        border-bottom: 2px solid var(--trim);
+    }
+
+    .marracash-text :global(.history-control-on) {
+        color: var(--gold);
+    }
+
+    .marracash-text :global(.history-control-off) {
+        color: color-mix(in srgb, var(--quiet) 45%, transparent);
+    }
+
+    .marracash-text :global(.marracash-tab) {
+        padding: 0.25rem 0.75rem;
+        border-radius: 8px;
+        border: 2px solid var(--trim);
+    }
+
+    .marracash-text :global(.marracash-tab-active) {
+        background: var(--brass);
+        color: var(--tile-deep);
+    }
+
+    .marracash-text :global(.marracash-tab-inactive) {
+        background: var(--night);
+        color: var(--gold);
+        border-color: color-mix(in srgb, var(--trim) 55%, transparent);
+    }
+
+    .marracash-text :global(.marracash-tab-inactive:hover) {
+        border-color: var(--trim);
     }
 
     .marracash-text :global(.marracash-prompt) {

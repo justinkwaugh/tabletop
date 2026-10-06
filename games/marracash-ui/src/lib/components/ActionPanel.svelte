@@ -51,7 +51,7 @@
 <style>
     .panel {
         --header-height: 34px;
-        margin-top: calc(var(--header-height) / 2 + 8px);
+        margin-top: calc(var(--header-height) / 2);
         border-radius: 10px;
         background: linear-gradient(var(--scroll-light), var(--scroll-deep));
         box-shadow:
