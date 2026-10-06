@@ -13,6 +13,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import PlayerAid from '$lib/components/PlayerAid.svelte'
     import { MarracashGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import CinzelBold from '$lib/fonts/Cinzel-Bold.woff2'
@@ -33,7 +34,8 @@
         throw new Error('GameTable expected a MarracashGameSession')
     }
 
-    setGameSession(untrack(() => ensureMarracashGameSession(gameSession)))
+    const marracashSession = untrack(() => ensureMarracashGameSession(gameSession))
+    setGameSession(marracashSession)
 
     // The zoom buttons sit over the board's top-left corner, where only mid-queue pawns are
     const ZoomControlsHeight = 52
@@ -73,7 +75,7 @@
             <div class="shrink-0">
                 <ActionPanel />
             </div>
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <!-- Below this fit the board's targets get too small to tap, so it opens zoomed in and pans -->
                 <ScalingWrapper
                     justify="center"
@@ -85,6 +87,9 @@
                         <Board />
                     </div>
                 </ScalingWrapper>
+                {#if marracashSession.playerAidOpen}
+                    <PlayerAid />
+                {/if}
             </div>
         {/snippet}
     </DefaultTableLayout>

@@ -84,6 +84,7 @@ export class MarracashGameSession extends GameSession<
             : historyHighlightFor(this.highlightedHistoryAction)
     )
     customerHighlight: CustomerHighlight | undefined = $state(undefined)
+    playerAidOpen = $state(false)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -234,6 +235,14 @@ export class MarracashGameSession extends GameSession<
         this.customerHighlight = same ? undefined : highlight
     }
 
+    togglePlayerAid() {
+        this.playerAidOpen = !this.playerAidOpen
+    }
+
+    closePlayerAid() {
+        this.playerAidOpen = false
+    }
+
     resetAction() {
         this.selection = {}
         this.hideQueueTooShort()
@@ -242,7 +251,6 @@ export class MarracashGameSession extends GameSession<
     selectFountain(fountainId: FountainId | undefined) {
         this.setSelection('fountain', fountainId)
     }
-
 
     chooseQueueEnd(end: QueueEnd) {
         this.updateRefill({ end })

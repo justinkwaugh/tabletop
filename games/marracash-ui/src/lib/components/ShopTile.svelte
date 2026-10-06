@@ -16,8 +16,14 @@
     let {
         shop,
         selectable,
-        spotlit = false
-    }: { shop: ShopState; selectable: boolean; spotlit?: boolean } = $props()
+        spotlit = false,
+        layer = 'whole'
+    }: {
+        shop: ShopState
+        selectable: boolean
+        spotlit?: boolean
+        layer?: 'whole' | 'awning' | 'sign'
+    } = $props()
     const gameSession = getGameSession()
 
     let rect = $derived(shopRect(shop.shopId, ShopTileInset))
@@ -41,7 +47,7 @@
     )
 </script>
 
-{#snippet body()}
+{#snippet awning()}
     <g transform="translate({rect.x} {rect.y})">
         {#if selectable || spotlit}
             <path
@@ -92,6 +98,9 @@
             ></circle>
         {/each}
     </g>
+{/snippet}
+
+{#snippet sign()}
     {#if shop.ownerId}
         <ShopSign
             ownerId={shop.ownerId}
@@ -104,7 +113,18 @@
     {/if}
 {/snippet}
 
-{#if selectable}
+{#snippet body()}
+    {#if layer !== 'sign'}
+        {@render awning()}
+    {/if}
+    {#if layer !== 'awning'}
+        {@render sign()}
+    {/if}
+{/snippet}
+
+{#if layer === 'sign'}
+    <g class="pointer-events-none" aria-hidden="true">{@render sign()}</g>
+{:else if selectable}
     <g
         role="button"
         tabindex="0"
