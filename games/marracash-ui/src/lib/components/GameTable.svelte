@@ -22,6 +22,7 @@
     import LibreCaslonTextBold from '$lib/fonts/LibreCaslonText-Bold.woff2'
     import ElMessiriLatin from '$lib/fonts/ElMessiri-Latin.woff2'
     import NotoNaskhArabicDirhamSign from '$lib/fonts/NotoNaskhArabic-DirhamSign.woff2'
+    import { NightZelligeBackground } from '$lib/utils/tableBackground.js'
 
     let {
         gameSession
@@ -83,7 +84,7 @@
     fontWeight="bold"
 />
 
-<div class="marracash-text">
+<div class="marracash-text" style:background={NightZelligeBackground}>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent>
