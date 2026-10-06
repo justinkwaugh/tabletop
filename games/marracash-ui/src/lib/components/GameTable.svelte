@@ -56,9 +56,6 @@
         read()
         return () => observer.disconnect()
     }
-
-    // The zoom buttons sit over the board's top-left corner, where only mid-queue pawns are
-    const ZoomControlsHeight = 52
 </script>
 
 <CustomFont
@@ -107,6 +104,8 @@
     style:--gold={PanelPalette.gold}
     style:--quiet={PanelPalette.quietCount}
     style:--night={PanelPalette.night}
+    style:--parchment={PanelPalette.parchment}
+    style:--cream={PanelPalette.cream}
     style:--door-mask={PointedArchMask}
     style:--door-wood={PanelPalette.doorWood}
     style:--door-grain={PanelPalette.doorGrain}
@@ -135,7 +134,16 @@
                     <History />
                 {/snippet}
                 {#snippet chat()}
-                    <GameChat timeColor="text-[#ad9c80]" />
+                    <GameChat
+                        bgColor="bg-(--night)"
+                        borderColor="border-(--trim)"
+                        timeColor="text-(--quiet)"
+                        messageTextColor="text-(--parchment)"
+                        composerTextColor="text-(--parchment)"
+                        messageHoverColor="hover:bg-(--tile-deep)"
+                        inputBgColor="bg-(--tile-deep)"
+                        inputBorderColor="border-(--trim)"
+                    />
                 {/snippet}
             </DefaultTabs>
         {/snippet}
@@ -148,12 +156,11 @@
                 <div class="h-full w-full" inert={marracashSession.playerAidOpen && !expanded}>
                     <ScalingWrapper
                         justify="center"
-                        controls={expanded ? 'bottom-left' : 'top-left'}
-                        insetTop={expanded ? 0 : ZoomControlsHeight}
+                        controls="bottom-left"
                         coverBelowScale={0.45}
                         expandable
                     >
-                        <div class="p-2" inert={marracashSession.playerAidOpen}>
+                        <div class="px-2 pt-3 pb-11" inert={marracashSession.playerAidOpen}>
                             <Board />
                         </div>
                         {#snippet toolbar()}
