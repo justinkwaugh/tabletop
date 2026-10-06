@@ -17,14 +17,14 @@
     {#each earnings.popups as popup (popup.id)}
         <div
             {@attach track(popup.id)}
-            class="absolute font-bold flex items-center gap-0.5 rounded-full border-2 border-black/25 py-0.5 pr-3 pl-2.5 text-[21px] leading-tight whitespace-nowrap opacity-0 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
-            style:font-family="'MarraCash Cinzel', Georgia, serif"
+            class="absolute font-bold flex items-center gap-0.5 rounded-full border-2 border-black/25 py-0.5 pr-3 pl-2.5 text-[23px] leading-tight whitespace-nowrap opacity-0 shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+            style:font-family="'MarraCash El Messiri', Georgia, serif"
             style:left="{popup.x}px"
             style:top="{popup.y}px"
             style:background-color={gameSession.colors.getPlayerBgColorValue(popup.playerId)}
             style:color={gameSession.colors.getPlayerTextColorValue(popup.playerId)}
         >
-            <span class="text-[29px] leading-none font-black">+</span>{popup.amount}
+            <span class="text-[31px] leading-none font-black">+</span>{popup.amount}
         </div>
     {/each}
 </div>

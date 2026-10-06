@@ -17,7 +17,7 @@
     import PlayerAid from '$lib/components/PlayerAid.svelte'
     import { MarracashGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
-    import CinzelBold from '$lib/fonts/Cinzel-Bold.woff2'
+    import ElMessiriBold from '$lib/fonts/ElMessiri-Bold.woff2'
     import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
     import LibreBaskervilleRegular from '$lib/fonts/LibreBaskerville-Regular.woff2'
     import LibreCaslonTextBold from '$lib/fonts/LibreCaslonText-Bold.woff2'
@@ -56,7 +56,12 @@
     const ZoomControlsHeight = 52
 </script>
 
-<CustomFont fontFamily="MarraCash Cinzel" url={CinzelBold} format="woff2" fontWeight="bold" />
+<CustomFont
+    fontFamily="MarraCash El Messiri"
+    url={ElMessiriBold}
+    format="woff2"
+    fontWeight="bold"
+/>
 <CustomFont
     fontFamily="Libre Caslon Text"
     url={LibreCaslonTextBold}
@@ -137,7 +142,7 @@
     }
 
     .marracash-text :global(.marracash-initial) {
-        font-family: 'MarraCash Cinzel', Georgia, serif;
+        font-family: 'MarraCash El Messiri', Georgia, serif;
         font-weight: 700;
     }
 </style>
