@@ -10,15 +10,19 @@ const ChipBelowOffset = 20
 // After the original's cardboard standees, whose tops are cut in a few shapes;
 // each seat gets its own so owners differ by more than colour. Every top keeps
 // its centre high enough for the frame and the top ornament to fit inside.
-const StandeeTops = [
-    'M -20 -6 V -38 A 20 16 0 0 1 20 -38 V -6 Z',
-    'M -20 -6 V -42 A 7 7 0 0 1 -8 -48 A 8 8 0 0 1 8 -48 A 7 7 0 0 1 20 -42 V -6 Z',
-    'M -20 -6 V -42 H -13 V -48 H -6 V -54 H 6 V -48 H 13 V -42 H 20 V -6 Z',
-    'M -20 -6 V -36 C -20 -46 -6 -44 0 -56 C 6 -44 20 -46 20 -36 V -6 Z'
-] as const
+const StandeeTops: ((bottom: number) => string)[] = [
+    (bottom) => `M -20 ${bottom} V -38 A 20 16 0 0 1 20 -38 V ${bottom} Z`,
+    (bottom) =>
+        `M -20 ${bottom} V -42 A 7 7 0 0 1 -8 -48 A 8 8 0 0 1 8 -48 A 7 7 0 0 1 20 -42 V ${bottom} Z`,
+    (bottom) =>
+        `M -20 ${bottom} V -42 H -13 V -48 H -6 V -54 H 6 V -48 H 13 V -42 H 20 V ${bottom} Z`,
+    (bottom) => `M -20 ${bottom} V -36 C -20 -46 -6 -44 0 -56 C 6 -44 20 -46 20 -36 V ${bottom} Z`
+]
 
-export function standeeOutline(seat: number): string {
-    return StandeeTops[seat % StandeeTops.length]
+const SignBottom = -6
+
+export function standeeOutline(seat: number, bottom = SignBottom): string {
+    return StandeeTops[seat % StandeeTops.length](bottom)
 }
 
 export type ShopSignLayout = { ground: Point; chip: Point }

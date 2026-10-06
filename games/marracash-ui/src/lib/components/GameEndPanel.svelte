@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Dirhams from '$lib/components/Dirhams.svelte'
     import type { Snippet } from 'svelte'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -35,7 +36,7 @@
             <li class="contents">
                 <span class="text-right font-semibold">{standing.rank}.</span>
                 <span class="justify-self-end"><PlayerTag playerId={standing.playerId} /></span>
-                <span class="text-left">{standing.money} Dirham</span>
+                <span class="text-left"><Dirhams amount={standing.money} /></span>
             </li>
         {/each}
     </ol>

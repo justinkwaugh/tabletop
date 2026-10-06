@@ -29,9 +29,7 @@
 
     const gameSession = getGameSession()
 
-    let seat = $derived(
-        gameSession.gameState.players.findIndex((player) => player.playerId === ownerId)
-    )
+    let seat = $derived(gameSession.seatOf(ownerId))
     let ownerName = $derived(gameSession.getPlayerName(ownerId))
     let fill = $derived(gameSession.colors.getPlayerBgColorValue(ownerId))
     let edge = $derived(signEdgeColor(gameSession.colors.getPlayerColor(ownerId)))

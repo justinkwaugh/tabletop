@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Dirhams from '$lib/components/Dirhams.svelte'
     import type { Snippet } from 'svelte'
     import { DirhamIncrement, getShop } from '@tabletop/marracash'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
@@ -29,7 +30,7 @@
 <div class="flex flex-col items-center gap-2">
     <p class="font-semibold">
         {@render lead?.()}
-        Sealed bid for the highlighted {shop?.color} shop. You have {myMoney} Dirham.
+        Sealed bid for the highlighted {shop?.color} shop. You have <Dirhams amount={myMoney} />
     </p>
     <div class="flex items-center gap-3">
         <button
@@ -53,8 +54,8 @@
     >
     <p class="text-sm">
         Still to bid:
-        {#each gameSession.gameState.auction?.awaitingBidderIds() ?? [] as playerId, index (playerId)}
-            {index > 0 ? ', ' : ''}<PlayerTag {playerId} />
+        {#each gameSession.gameState.auction?.awaitingBidderIds() ?? [] as playerId (playerId)}
+            {' '}<PlayerTag {playerId} />
         {/each}
     </p>
 </div>

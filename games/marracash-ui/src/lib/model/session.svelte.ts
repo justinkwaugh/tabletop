@@ -244,6 +244,10 @@ export class MarracashGameSession extends GameSession<
         this.customerHighlight = same ? undefined : highlight
     }
 
+    seatOf(playerId: string): number {
+        return this.gameState.players.findIndex((player) => player.playerId === playerId)
+    }
+
     setDraftBid(amount: number) {
         const auction = this.gameState.auction
         assertExists(auction, 'A draft bid needs an open auction')
