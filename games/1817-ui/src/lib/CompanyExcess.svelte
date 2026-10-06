@@ -65,7 +65,11 @@
                         onclick={() => session.removeStation(station.id)}
                     >
                         <svg width="90" height="90" viewBox="-53 -53 106 106" aria-hidden="true">
-                            <TileArtwork face={hex.face} drawing={hex.drawing} />
+                            <TileArtwork
+                                face={hex.face}
+                                drawing={hex.drawing}
+                                appearance={session.tileAppearance}
+                            />
                             <circle
                                 cx={point.x}
                                 cy={point.y}

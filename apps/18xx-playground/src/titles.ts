@@ -10,6 +10,7 @@ import {
 } from '@tabletop/the-old-prince'
 import { TheOldPrinceScenarios } from '@tabletop/the-old-prince/scenarios'
 import { UiDefinition as TheOldPrinceUi } from '@tabletop/the-old-prince-ui'
+import { TheOldPrinceMapView } from '@tabletop/the-old-prince-ui/playground'
 import {
     Shikoku1889BeginnerTileSet,
     Shikoku1889Map,
@@ -18,6 +19,7 @@ import {
 } from '@tabletop/shikoku-1889'
 import { Shikoku1889Scenarios } from '@tabletop/shikoku-1889/scenarios'
 import { UiDefinition as Shikoku1889Ui } from '@tabletop/shikoku-1889-ui'
+import { Shikoku1889MapView } from '@tabletop/shikoku-1889-ui/playground'
 import { EighteenThirtyMap, EighteenThirtyTileSet, EighteenThirtyTitleRules } from '@tabletop/1830'
 import { EighteenThirtyScenarios } from '@tabletop/1830/scenarios'
 import { UiDefinition as EighteenThirtyUi, EighteenThirtyMapView } from '@tabletop/1830-ui'
@@ -32,7 +34,7 @@ import type { EighteenXXTitleRules, RailwayMap, TileRotation, TileSet } from '@t
 import type { ScenarioDefinition, ScenarioPosition } from '@tabletop/18xx/scenarios'
 import type { Component } from 'svelte'
 import { scenarioHost, type ScenarioHostProps } from './scenarios/uiDefinitions.js'
-import type { TileLayout } from '@tabletop/18xx-ui'
+import type { MapViewDefinition, TileLayout } from '@tabletop/18xx-ui'
 
 export type FinishedGameFixture = {
     game: unknown
@@ -53,6 +55,8 @@ export type PlaygroundTitle = {
     /** Node positions for printed multi-node hexes, keyed by location. */
     mapLayouts?: Readonly<Record<string, TileLayout>>
     tileLayouts?: Readonly<Record<string, TileLayout>>
+    /** The title's map presentation, which the maps page draws as the game does. */
+    mapView?: MapViewDefinition
     /** A city where the maps page demonstrates a placed tile, token and route. */
     mapExample: {
         locationId: string
@@ -78,6 +82,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         scenarios: TheOldPrinceScenarios,
         host: scenarioHost(TheOldPrinceUi, TheOldPrinceScenarios),
         map: TheOldPrinceMap,
+        mapView: TheOldPrinceMapView,
         mapExample: { locationId: 'K19', definitionId: '18xx:5', rotation: 0, label: 'CB' },
         tileSets: { 'The Old Prince 1871': TheOldPrinceTileSet },
         positions: ['split', 'funding-chain'],
@@ -90,6 +95,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         scenarios: Shikoku1889Scenarios,
         host: scenarioHost(Shikoku1889Ui, Shikoku1889Scenarios),
         map: Shikoku1889Map,
+        mapView: Shikoku1889MapView,
         mapExample: { locationId: 'I2', definitionId: '18xx:5', rotation: 2, label: 'SR' },
         tileSets: {
             'Shikoku 1889': Shikoku1889TileSet,
@@ -106,6 +112,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         host: scenarioHost(EighteenThirtyUi, EighteenThirtyScenarios),
         map: EighteenThirtyMap,
         mapLayouts: EighteenThirtyMapView.layouts,
+        mapView: EighteenThirtyMapView,
         mapExample: { locationId: 'H10', definitionId: '18xx:57', rotation: 1, label: 'PRR' },
         tileSets: { '1830': EighteenThirtyTileSet },
         positions: ['diesel'],
@@ -119,6 +126,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         host: scenarioHost(EighteenSeventeenUi, EighteenSeventeenScenarios),
         map: EighteenSeventeenMap,
         mapLayouts: EighteenSeventeenMapView.layouts,
+        mapView: EighteenSeventeenMapView,
         mapExample: { locationId: 'F13', definitionId: '18xx:57', rotation: 0, label: 'PLE' },
         tileSets: { '1817': EighteenSeventeenTileSet },
         positions: ['optional-opening', 'company-powers', 'shorts'],
@@ -133,6 +141,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         host: scenarioHost(FortySixUi, Scenarios1846),
         map: EighteenFortySixMap,
         mapLayouts: MapView1846.layouts,
+        mapView: MapView1846,
         tileLayouts: TileLayouts1846,
         mapExample: { locationId: 'G7', definitionId: '18xx:5', rotation: 0, label: 'IC' },
         tileSets: { '1846': EighteenFortySixTileSet },

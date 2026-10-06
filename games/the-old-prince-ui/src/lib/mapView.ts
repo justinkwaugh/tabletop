@@ -50,7 +50,16 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     },
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
-    markerArt: { 'vernon-river-bridge': { imageUrl: VernonRiver } },
+    markerArt: { 'vernon-river-bridge': { imageUrl: VernonRiver }, shipyard: { hidden: true } },
+    // Summerside's and Charlottetown's X take their west corners; Malpeque Shipyard's two-stage
+    // revenue stacks on its open west side under a two-line name.
+    layouts: {
+        F14: { labelPosition: { x: -37, y: 0 } },
+        L16: { labelPosition: { x: -37, y: 0 } },
+        G11: { revenuePositions: { city: { x: -31, y: 0 } } },
+        T12: { revenuePositions: { city: { x: 33, y: 0 } } }
+    },
+    nameLines: { G11: ['Malpeque', 'Shipyard'] },
     // Printed city circles that sit off the generic hex centre on the published board, measured in
     // map units (hex radius 50) from MAP-AUGUST-01.jpg; see docs/board-artwork.md.
     publishedTileAppearance: TheOldPrincePublishedTileAppearance,
@@ -81,6 +90,8 @@ export const TheOldPrinceMapView: MapViewDefinition = {
         F14: { nodePositions: { city: { x: -0.3, y: 11.3 } } },
         L16: { nodePositions: { city: { x: 0.7, y: 11.6 } } }
     },
+    // Souris's and Wellington's track leaves over their tops, so their names curve under the city.
+    namesBelow: ['T12', 'D14'],
     stations: {
         'branch:CB': { color: '#886bab', label: 'CB', imageUrl: CBToken },
         'branch:SB': { color: '#a44684', label: 'SB', imageUrl: SBToken },

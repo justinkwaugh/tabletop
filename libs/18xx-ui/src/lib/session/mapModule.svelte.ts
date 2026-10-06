@@ -3,6 +3,13 @@ import { RailwayMapState, TrackNetwork, type EighteenXXState, type TileFace } fr
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
+import {
+    ClassicTileAppearance,
+    CustomTileAppearance,
+    MakerTileAppearance,
+    MutedTileAppearance,
+    type TileAppearance
+} from '../tiles/tileAppearance.js'
 import type { RoutesModule, RoutesSession } from './routesModule.svelte.js'
 import type { StationsModule, StationsState } from './stationsModule.svelte.js'
 import type { TrackModule } from './trackModule.svelte.js'
@@ -19,7 +26,16 @@ type MapState = Parameters<typeof stationMapTokens>[0] &
         >[]
     }
 export type MapSession = ModuleSession<MapState, unknown>
-export type MapStyle = 'classic' | 'muted'
+export const MapStyles = ['classic', 'muted', 'maker', 'custom'] as const
+/** The tile style games draw in until a player picks another. */
+export const DefaultMapStyle: MapStyle = 'custom'
+export type MapStyle = (typeof MapStyles)[number]
+export const MapStyleAppearances: Readonly<Record<MapStyle, TileAppearance>> = {
+    classic: ClassicTileAppearance,
+    muted: MutedTileAppearance,
+    maker: MakerTileAppearance,
+    custom: CustomTileAppearance
+}
 
 type Track = Pick<
     TrackModule,
@@ -90,7 +106,9 @@ export class MapModule {
             : this.tokens
     })
     style = $derived.by((): MapStyle =>
-        this.session.playerId ? (this.styles[this.session.playerId] ?? 'classic') : 'classic'
+        this.session.playerId
+            ? (this.styles[this.session.playerId] ?? DefaultMapStyle)
+            : DefaultMapStyle
     )
     selection = $derived.by((): MapSelection | undefined => {
         if (this.session.publishing) return undefined

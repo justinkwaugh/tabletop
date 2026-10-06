@@ -10,6 +10,11 @@
             "types": "./dist/index.d.ts",
             "svelte": "./dist/index.js",
             "import": "./dist/index.js"
+        },
+        "./playground": {
+            "types": "./dist/playground.d.ts",
+            "svelte": "./dist/playground.js",
+            "import": "./dist/playground.js"
         }
     },
     "files": [

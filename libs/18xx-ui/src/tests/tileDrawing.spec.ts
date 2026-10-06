@@ -10,6 +10,7 @@ import {
     type TileRotation
 } from '@tabletop/18xx'
 import { createTileDrawing } from '../lib/tiles/tileDrawing.js'
+import { revenueBadgeHalfWidth } from '../lib/tiles/revenueBadge.js'
 import { filterTileDefinitions } from '../lib/tiles/tilePresentation.js'
 import { tilePathPoint } from '../lib/tiles/tileTrackGeometry.js'
 import { StandardTileLayouts } from '../lib/tiles/standardTileLayouts.js'
@@ -155,6 +156,39 @@ describe('tile drawing geometry', () => {
             ['city-0', false],
             ['city-1', true]
         ])
+    })
+
+    it('spaces station slots for larger circles and keeps separate cities apart', () => {
+        const fourSlots = createTileDrawing(
+            StandardTileCatalog.get('18xx:14').face,
+            undefined,
+            0,
+            {},
+            { citySlotRadius: 14.4 }
+        )
+        const [first, second] = fourSlots.nodes[0].slots
+        expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeCloseTo(28.8)
+        expect(fourSlots.nodes[0].slotRadius).toBe(14.4)
+        const tile = StandardTileCatalog.get('18xx:59')
+        for (const radius of [10, 30]) {
+            const [a, b] = createTileDrawing(
+                tile.face,
+                undefined,
+                0,
+                StandardTileLayouts[tile.id],
+                { citySlotRadius: radius }
+            ).nodes
+            const gap = Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y)
+            expect(a.slotRadius).toBe(Math.min(radius, gap / 2 - 0.75))
+            expect(a.slotRadius + b.slotRadius).toBeLessThan(gap)
+        }
+    })
+
+    it('stretches a fixed revenue badge into a pill only for three digits or more', () => {
+        expect(revenueBadgeHalfWidth(90, 8.1, 10)).toBe(8.1)
+        const hundred = revenueBadgeHalfWidth(100, 8.1, 10)
+        expect(hundred).toBeGreaterThan(8.1 + 3)
+        expect(revenueBadgeHalfWidth(1000, 8.1, 10)).toBeGreaterThan(hundred)
     })
 
     it('renders a blank preprinted tile without requiring an invented tile number', () => {

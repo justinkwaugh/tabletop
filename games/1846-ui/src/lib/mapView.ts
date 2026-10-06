@@ -17,10 +17,11 @@ import {
 } from '@tabletop/18xx-ui'
 const ChicagoLayout: TileLayout = {
     nodePositions: {
-        'city-0': towardTileEdge(0, 25),
-        'city-1': towardTileEdge(3, 25),
-        'city-2': towardTileEdge(4, 25),
-        'city-3': towardTileEdge(5, 25)
+        // Out near the edges so four full-size stations fit, with little track showing.
+        'city-0': towardTileEdge(0, 29),
+        'city-1': towardTileEdge(3, 29),
+        'city-2': towardTileEdge(4, 29),
+        'city-3': towardTileEdge(5, 29)
     },
     // The four cities always share one revenue, shown once beside the label in the open west.
     hideRevenue: ['city-1', 'city-2', 'city-3'],
@@ -33,9 +34,41 @@ export const TileLayouts1846: Readonly<Record<string, TileLayout>> = {
     '1846:299': ChicagoLayout,
     '1846:300': ChicagoLayout
 }
+// Tile layouts are given before a pointy tile's 30° turn, so this lands above the bottom vertex.
+const SouthCorner = { x: 18, y: 31.2 }
+// Map symbol positions are on the drawn hex, so a pointy tile's northeast corner is direct.
+const NortheastCorner = { x: 28.6, y: -16.5 }
 const mapLayouts: Readonly<Record<string, TileLayout>> = {
     ...TileLayouts1846,
+    // Every offboard but Louisville stacks its revenues, with any bonus badge, beside the middle
+    // of its east edge.
+    ...Object.fromEntries(
+        EighteenFortySixMap.definition.locations
+            .filter(
+                (location) =>
+                    location.id !== 'J10' &&
+                    location.preprintedTile.nodes.some((node) => node.kind === 'offboard')
+            )
+            .map((location): [string, TileLayout] => [
+                location.id,
+                {
+                    revenueStack: 'column',
+                    revenueAlign: 'middle',
+                    // E and W sit in the south corner.
+                    ...(location.preprintedTile.labels.length ? { labelPosition: SouthCorner } : {})
+                }
+            ])
+    ),
     D6: ChicagoLayout,
+    // Cumberland's track enters from the northwest, so its revenues keep to the east like the rest.
+    H20: {
+        revenueStack: 'column',
+        revenueAlign: 'middle',
+        revenuePositions: { offboard: { x: 24.2, y: -14 } },
+        labelPosition: SouthCorner
+    },
+    // Detroit's Z sits a little east of where it would fall.
+    C15: { labelPosition: { x: 18, y: -27.8 } },
     C21: { hideRevenue: true },
     F22: { hideRevenue: true }
 }
@@ -87,7 +120,19 @@ export const MapView1846: MapViewDefinition = {
     },
     layouts: mapLayouts,
     joinedEdges: { C21: [5], D22: [2], F22: [0], G21: [3] },
-    hideLocationNames: true,
+    // Huntington's track leaves over its top, so its name curves under the city.
+    namesBelow: ['I15'],
+    // Chicago's Chi already names it.
+    hideLocationNames: ['D6'],
+    // Ports take northeast corners, and Holland's pair sits above its spike.
+    symbolPositions: {
+        I1: NortheastCorner,
+        C5: NortheastCorner,
+        D14: NortheastCorner,
+        // Wheeling's second port continues up the line of its northeast edge.
+        G19: [NortheastCorner, { x: 12.7, y: -25.7 }],
+        B8: { x: 20, y: -15 }
+    },
     markerArt: {
         IC: { centeredLabel: true },
         'east-west': { revenueBadge: true, arrows: true },

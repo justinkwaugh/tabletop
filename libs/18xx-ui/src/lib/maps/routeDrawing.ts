@@ -3,7 +3,9 @@ import type { TileDrawnNode } from '../tiles/tileDrawing.js'
 import type { MapDrawing, MapRoute } from './mapDrawing.js'
 
 export function cityOutline(node: TileDrawnNode): string {
-    const radius = node.slots.length > 1 ? 11.5 : node.slots.length ? 10.55 : 7
+    const radius = node.slots.length
+        ? node.slotRadius + (node.slots.length > 1 ? 1.5 : 0.55)
+        : node.dotRadius + 0.35
     const points = node.slots.length ? node.slots : [node.center]
     if (points.length === 1) {
         const { x, y } = points[0]

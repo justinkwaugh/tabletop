@@ -15,6 +15,7 @@
         mapViewport,
         type BoardArtwork,
         printedMapReservations,
+        mapBorderCosts,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -58,8 +59,6 @@
         extents?: readonly BoundingBox[]
         onselect?: (selection: MapSelection) => void
     } = $props()
-    const citySlotRadius = $derived(appearance.citySlotRadius ?? 10)
-    const tokenSize = $derived(2 * citySlotRadius)
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
@@ -80,15 +79,10 @@
     })
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
-    function nameLines(name: string): string[] {
-        if (name.length <= 18) return [name]
-        const breaks = [...name.matchAll(/\s+/g)].map((match) => match.index)
-        if (!breaks.length) return [name]
-        const split = breaks.reduce((best, index) =>
-            Math.abs(index - name.length / 2) < Math.abs(best - name.length / 2) ? index : best
-        )
-        return [name.slice(0, split), name.slice(split).trimStart()]
+    function borderColor(kind: string): string {
+        return kind === 'water' ? '#226db5' : kind === 'mountain' ? '#875e36' : '#b02235'
     }
+    const borderCosts = $derived(mapBorderCosts(scene))
 
     function select(event: MouseEvent | KeyboardEvent, target: MapSelection) {
         if (!onselect) return
@@ -236,6 +230,7 @@
                                 reservation.locationId === id && reservation.nodeId === node.node.id
                         )
                         .map((reservation) => reservation.companyId)}
+                    {@const tokenSize = 2 * node.slotRadius}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
@@ -295,10 +290,11 @@
                         {#if !entry.placed && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
                             {@const iconWidth = terrain.kinds.length * 19}
-                            {@const labelWidth = String(terrain.cost).length * 6.5}
+                            {@const cost = `${scene.terrainCostPrefix}${terrain.cost}`}
+                            {@const labelWidth = cost.length * 6.5}
                             <g
                                 data-map-terrain
-                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.some((kind) => kind === 'water' || kind === 'lake') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
+                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
@@ -329,11 +325,13 @@
                                     y="4"
                                     text-anchor="start"
                                     font-size="10"
-                                    font-weight="750">{terrain.cost}</text
+                                    font-weight="750">{cost}</text
                                 >
                             </g>
                         {/if}
                         {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
+                            {@const text = overlayLabels.map((label) => label.label).join(' ')}
+                            {@const font = appearance.labelFont ?? { size: 12, weight: 850 }}
                             <g
                                 data-map-upgrade-label
                                 transform="translate(-30 0)"
@@ -342,8 +340,13 @@
                                 fill={appearance.ink}
                                 stroke="none"
                             >
-                                <text x="0" font-size="12" font-weight="850"
-                                    >{overlayLabels.map((label) => label.label).join(' ')}</text
+                                <text
+                                    x="0"
+                                    font-size={text.length > 2
+                                        ? (font.longSize ?? font.size)
+                                        : font.size}
+                                    font-weight={font.weight}
+                                    font-family={font.family}>{text}</text
                                 >
                             </g>
                         {/if}
@@ -357,8 +360,8 @@
                                     data-map-marker-label={marker.id}
                                     text-anchor="middle"
                                     dominant-baseline="central"
-                                    font-size="12"
-                                    font-weight="800"
+                                    font-size="10"
+                                    font-weight="750"
                                     fill={appearance.ink}>{marker.label}</text
                                 >
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
@@ -429,14 +432,10 @@
                             {/if}
                         {/each}
                         <text y="36" font-size="5" font-weight="650" data-map-markers
-                            >{[
-                                ...(entry.location.upgradeLabels ?? [])
-                                    .filter((label) => !yellowUpgradeLabels.includes(label))
-                                    .map((label) => `${label.label} (${label.color})`),
-                                ...(entry.location.markers ?? [])
-                                    .filter((marker) => !entry.markerArt[marker.id])
-                                    .map((marker) => marker.label)
-                            ].join(' · ')}</text
+                            >{(entry.location.markers ?? [])
+                                .filter((marker) => !entry.markerArt[marker.id])
+                                .map((marker) => marker.label)
+                                .join(' · ')}</text
                         >
                     </g>
                 {/if}
@@ -479,7 +478,7 @@
                             data-map-slot={`${node.node.id}:${slot}`}
                             cx={point.x}
                             cy={point.y}
-                            r={citySlotRadius}
+                            r={node.slotRadius}
                             fill="transparent"
                             stroke={selected &&
                             selection?.kind === 'slot' &&
@@ -506,8 +505,8 @@
                 <g
                     data-map-outline={entry.location.id}
                     transform={`translate(${entry.center.x} ${entry.center.y})`}
-                    stroke="#566368"
-                    stroke-width="0.6"
+                    stroke={appearance.mapOutline?.color ?? '#566368'}
+                    stroke-width={appearance.mapOutline?.width ?? 0.6}
                     stroke-linecap="round"
                 >
                     {#each entry.outline as { start, end }, index (index)}
@@ -538,14 +537,37 @@
                             y1={start.y}
                             x2={end.x}
                             y2={end.y}
-                            stroke={border.kind === 'water'
-                                ? '#226db5'
-                                : border.kind === 'mountain'
-                                  ? '#875e36'
-                                  : '#b02235'}
+                            stroke={borderColor(border.kind)}
                             stroke-width="3"
                         ></line>
                     {/each}
+                </g>
+            {/each}
+            {#each borderCosts as cost (cost.key)}
+                {@const text = `${scene.terrainCostPrefix}${cost.amount}`}
+                {@const width = Math.max(12, text.length * 4.6 + 4)}
+                <g
+                    data-map-border-cost={cost.key}
+                    transform={`translate(${cost.x} ${cost.y})`}
+                    stroke="none"
+                >
+                    <rect
+                        x={-width / 2}
+                        y="-6"
+                        {width}
+                        height="12"
+                        rx="1.5"
+                        fill={borderColor(cost.kind)}
+                        stroke={appearance.paper}
+                        stroke-width="0.8"
+                    ></rect>
+                    <text
+                        text-anchor="middle"
+                        dominant-baseline="central"
+                        font-size="7.5"
+                        font-weight="800"
+                        fill={appearance.paper}>{text}</text
+                    >
                 </g>
             {/each}
         </g>
@@ -557,19 +579,55 @@
     {#if !artwork}
         <g data-map-layer="names" pointer-events="none" aria-hidden="true">
             {#each entries.filter((entry) => entry.nameShown) as entry (entry.location.id)}
-                {@const lines = nameLines(entry.location.name ?? '')}
+                {#if entry.nameArc}
+                    {@const arc = entry.nameArc}
+                    {@const pathId = `${perimeterMaskId}-name-${entry.location.id}`}
+                    <!-- Over the top the path runs clockwise; under the foot it runs back so the letters stay upright. -->
+                    {@const middle = (arc.below ? 90 : -90) + arc.rotation}
+                    {@const from = middle + (arc.below ? 120 : -120)}
+                    {@const to = middle + (arc.below ? -120 : 120)}
+                    <g
+                        class="map-annotations"
+                        transform={`translate(${entry.center.x + arc.center.x} ${entry.center.y + arc.center.y})`}
+                        fill={appearance.ink}
+                        paint-order="stroke"
+                        stroke={appearance.colors[entry.face.color]}
+                        stroke-width="1.4"
+                    >
+                        <path
+                            id={pathId}
+                            fill="none"
+                            stroke="none"
+                            d={`M ${arc.radius * Math.cos((from * Math.PI) / 180)} ${arc.radius * Math.sin((from * Math.PI) / 180)} A ${arc.radius} ${arc.radius} 0 1 ${arc.below ? 0 : 1} ${arc.radius * Math.cos((to * Math.PI) / 180)} ${arc.radius * Math.sin((to * Math.PI) / 180)}`}
+                        ></path>
+                        <text font-size="6" font-weight="700" letter-spacing="0.15"
+                            ><textPath href={`#${pathId}`} startOffset="50%" text-anchor="middle"
+                                >{entry.location.name}</textPath
+                            ></text
+                        >
+                    </g>
+                {/if}
+            {/each}
+            {#each entries.filter((entry) => entry.nameShown && !entry.nameArc) as entry (entry.location.id)}
+                {@const lines = entry.nameRows}
+                <!-- A name the title places itself matches the curved names in their styles. -->
+                {@const curved = entry.namePlaced && appearance.cityNameArcs}
                 <g
                     class="map-annotations"
-                    transform={`translate(${entry.center.x} ${entry.center.y})`}
-                    fill="#202c31"
+                    transform={`translate(${entry.center.x + entry.nameBaseline.x} ${entry.center.y})`}
+                    fill={curved ? appearance.ink : '#202c31'}
                     text-anchor="middle"
                     paint-order="stroke"
                     stroke={appearance.colors[entry.face.color]}
-                    stroke-width="1.7"
+                    stroke-width={curved ? 1.4 : 1.7}
                 >
-                    <text font-size="5" font-weight="650"
-                        >{#each lines as line, index (index)}<tspan x="0" y={-35 + index * 6}
-                                >{line}</tspan
+                    <text
+                        font-size={curved ? 6 : 5}
+                        font-weight={curved ? 700 : 650}
+                        letter-spacing={curved ? 0.15 : undefined}
+                        >{#each lines as line, index (index)}<tspan
+                                x="0"
+                                y={entry.nameBaseline.y + index * 6}>{line}</tspan
                             >{/each}</text
                     >
                 </g>
@@ -584,7 +642,7 @@
             }) as marker (marker.id)}
                 <g
                     data-map-marker-local-line={marker.id}
-                    transform={`translate(${entry.center.x + 4} ${entry.center.y + 32})`}
+                    transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? -30 : 32)})`}
                     fill={appearance.ink}
                     dominant-baseline="central"
                 >

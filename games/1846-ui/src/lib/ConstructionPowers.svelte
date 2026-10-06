@@ -52,6 +52,7 @@
                             printedNumber={tile.printedNumber}
                             rotation={choice.rotation}
                             orientation={MapView1846.map.definition.orientation}
+                            appearance={session.tileAppearance}
                             size={80}
                         />
                         {choice.locationId} · #{tile.printedNumber} · {choice.rotation * 60}° · ${choice.cost}

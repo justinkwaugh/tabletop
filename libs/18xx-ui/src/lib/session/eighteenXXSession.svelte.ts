@@ -41,11 +41,7 @@ import { companySharePrice } from '../table/companyPresentation.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
-import {
-    ClassicTileAppearance,
-    MutedTileAppearance,
-    type TileAppearance
-} from '../tiles/tileAppearance.js'
+import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
@@ -54,7 +50,7 @@ import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
-import { MapModule } from './mapModule.svelte.js'
+import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
@@ -139,7 +135,8 @@ export class EighteenXXSession<
                         definition.face,
                         orientation,
                         rotation,
-                        this.mapView.layouts?.[definitionId]
+                        this.mapView.layouts?.[definitionId],
+                        tileDrawingStyle(this.tileAppearance)
                     )
                 }
             })
@@ -366,22 +363,21 @@ export class EighteenXXSession<
         const published = this.publishedArtwork
             ? this.mapViewDefinition.publishedTileAppearance
             : undefined
-        return (
-            published ?? (this.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance)
-        )
+        return published ?? MapStyleAppearances[this.map.style]
     })
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
         const definition = this.mapViewDefinition
-        if (!this.publishedArtwork) return definition
+        const styled = { ...definition, drawingStyle: tileDrawingStyle(this.tileAppearance) }
+        if (!this.publishedArtwork) return styled
         if (
             !definition.publishedStations &&
             !definition.publishedLayouts &&
             !definition.publishedPlacements
         )
-            return definition
+            return styled
         return {
-            ...definition,
+            ...styled,
             stations: { ...definition.stations, ...definition.publishedStations },
             layouts: { ...definition.layouts, ...definition.publishedLayouts },
             placements: { ...definition.placements, ...definition.publishedPlacements }

@@ -6,7 +6,7 @@ export const MapExamples = Object.fromEntries(
 )
 
 function example(title: PlaygroundTitle) {
-    const { map, mapLayouts: layouts = {} } = title
+    const { map, mapLayouts: layouts = {}, mapView } = title
     const { locationId, definitionId, rotation, label } = title.mapExample
     const tileSet = title.rules.trackRules.tileSet
     const initial = tileSet.createInventory()
@@ -17,5 +17,5 @@ function example(title: PlaygroundTitle) {
     const routes: readonly MapRoute[] = [
         { id: 'example-segment', color: '#c52b64', segments: [{ locationId, pathId: 'edge-0' }] }
     ]
-    return { map, tileSet, initial, prepared, tokens, routes, layouts }
+    return { map, tileSet, initial, prepared, tokens, routes, layouts, mapView }
 }

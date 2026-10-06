@@ -7,6 +7,7 @@ export {
     type TileDrawing,
     type TileDrawnPath,
     type TileDrawnNode,
+    type TileDrawingStyle,
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
@@ -17,8 +18,13 @@ export { default as MapInspector } from './maps/MapInspector.svelte'
 export {
     ClassicTileAppearance,
     MutedTileAppearance,
+    MakerTileAppearance,
+    CustomTileAppearance,
+    TileAppearances,
+    tileDrawingStyle,
     type TileAppearance
 } from './tiles/tileAppearance.js'
+export { revenueBadgeHalfWidth } from './tiles/revenueBadge.js'
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 

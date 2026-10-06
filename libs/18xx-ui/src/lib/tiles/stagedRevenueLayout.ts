@@ -2,20 +2,30 @@ import type { Point } from '@tabletop/common'
 import type { TileRevenue } from '@tabletop/18xx'
 import { tilePathPoint, type TileDrawnPath } from './tileTrackGeometry.js'
 
-export type RevenueCell = Point & { stage: string; amount: number; width: number; height: number }
+export type RevenueCell = Point & {
+    stage: string
+    amount: number
+    /** The printed value: the amount, after any stage prefix such as D for diesel. */
+    text: string
+    width: number
+    height: number
+}
 
 export function stagedRevenueLayout(
     revenue: TileRevenue,
     anchor: Point,
     vertices: readonly Point[],
     paths: readonly TileDrawnPath[],
-    occupied: readonly Point[]
+    occupied: readonly Point[],
+    stageLabels: Readonly<Record<string, string>> = {},
+    stack?: 'column' | 'row',
+    /** The anchor is a layout's chosen position, so the cells centre on it. */
+    fixed = false
 ): RevenueCell[] {
     if (revenue.kind !== 'staged') return []
-    const width = Math.max(
-        17,
-        ...revenue.values.map((value) => String(value.amount).length * 6 + 5)
-    )
+    const text = (value: { stage: string; amount: number }) =>
+        `${stageLabels[value.stage] ?? ''}${value.amount}`
+    const width = Math.max(17, ...revenue.values.map((value) => text(value).length * 6 + 5))
     const height = 13
     const track = paths.flatMap((path) =>
         Array.from({ length: 21 }, (_, i) => tilePathPoint(path, i / 20))
@@ -26,13 +36,14 @@ export function stagedRevenueLayout(
     ]
     let best: RevenueCell[] = []
     let bestScore = -Infinity
-    for (const row of [true, false]) {
+    for (const row of stack ? [stack === 'row'] : [true, false]) {
         const centeredCandidates = [-30, -22, 22, 30].map((offset) =>
             row ? { x: 0, y: offset } : { x: offset, y: 0 }
         )
-        for (const center of [...centeredCandidates, ...candidates]) {
+        for (const center of fixed ? [anchor] : [...centeredCandidates, ...candidates]) {
             const cells = revenue.values.map((value, index) => ({
                 ...value,
+                text: text(value),
                 width,
                 height,
                 x: center.x + (row ? (index - (revenue.values.length - 1) / 2) * width : 0),

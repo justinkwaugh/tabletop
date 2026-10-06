@@ -6,8 +6,15 @@
         TileArtwork,
         createTileDrawing,
         ClassicTileAppearance,
-        MutedTileAppearance
+        CustomTileAppearance,
+        TileAppearances,
+        tileDrawingStyle,
+        revenueBadgeHalfWidth
     } from '@tabletop/18xx-ui'
+    import '@fontsource/inter/latin-700.css'
+    import '@fontsource/atkinson-hyperlegible/latin-700.css'
+    import '@fontsource/roboto-condensed/latin-700.css'
+    import '@fontsource/lato/latin-700.css'
     import { TileSpecimenGroups, SpecimenLayouts } from '../../demo/specimens.js'
     import { PreprintedTileExamples, TileReplacementExamples } from '../../demo/placements.js'
     let orientation = $state(HexOrientation.Flat)
@@ -15,7 +22,28 @@
     const rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
     const tiles = TileSpecimenGroups['All specimens']
     const overlayTile = tiles.find((tile) => tile.id === '18xx:14')!
-    const overlayDrawing = $derived(createTileDrawing(overlayTile.face, orientation, 1))
+    // Revenue type candidates, drawn in the Custom style's circle on its tile colours.
+    const revenueFonts = [
+        {
+            name: 'Classic (system sans)',
+            family: 'ui-sans-serif, system-ui, sans-serif',
+            weight: 750
+        },
+        { name: 'Inter', family: "'Inter', sans-serif", weight: 700 },
+        {
+            name: 'Atkinson Hyperlegible',
+            family: "'Atkinson Hyperlegible', sans-serif",
+            weight: 700
+        },
+        { name: 'Lato', family: "'Lato', sans-serif", weight: 700 },
+        { name: 'Roboto Condensed', family: "'Roboto Condensed', sans-serif", weight: 700 }
+    ]
+    const revenueValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150]
+    const revenueTiles = ['yellow', 'green', 'brown', 'gray', 'white']
+    const revenueCircle = CustomTileAppearance.revenueCircle!
+    const overlayDrawing = $derived(
+        createTileDrawing(overlayTile.face, orientation, 1, undefined, tileDrawingStyle(appearance))
+    )
 </script>
 
 <svelte:head><title>18xx visual specimens</title></svelte:head>
@@ -32,12 +60,65 @@
         >
         <label
             >Tile style<select bind:value={appearance}
-                ><option value={ClassicTileAppearance}>Classic</option><option
-                    value={MutedTileAppearance}>Muted</option
-                ></select
+                >{#each TileAppearances as option (option.name)}<option value={option}
+                        >{option.name}</option
+                    >{/each}</select
             ></label
         >
     </div>
+    <section aria-label="Revenue type">
+        <h2>Revenue type <small>Custom circle, 10 units; map scale then 3×</small></h2>
+        {#each revenueFonts as font (font.name)}
+            <figure class="revenue-font">
+                <figcaption>{font.name}</figcaption>
+                {#each [1, 3] as scale (scale)}
+                    <svg
+                        viewBox={`0 0 ${revenueValues.length * 30} 20`}
+                        width={revenueValues.length * 30 * scale}
+                        height={20 * scale}
+                        role="img"
+                        aria-label={`${font.name} revenues at ${scale}×`}
+                    >
+                        {#each revenueValues as value, index (value)}
+                            <rect
+                                x={index * 30}
+                                width="30"
+                                height="20"
+                                fill={CustomTileAppearance.colors[
+                                    revenueTiles[index % revenueTiles.length]
+                                ]}
+                            ></rect>
+                            {@const halfWidth = revenueBadgeHalfWidth(
+                                value,
+                                revenueCircle.radius,
+                                revenueCircle.fontSize
+                            )}
+                            <rect
+                                x={index * 30 + 15 - halfWidth}
+                                y={10 - revenueCircle.radius}
+                                width={2 * halfWidth}
+                                height={2 * revenueCircle.radius}
+                                rx={revenueCircle.radius}
+                                fill={CustomTileAppearance.paper}
+                                stroke={revenueCircle.ringColor}
+                                stroke-width={revenueCircle.ringWidth}
+                            ></rect>
+                            <text
+                                x={index * 30 + 15}
+                                y="10"
+                                text-anchor="middle"
+                                dominant-baseline="central"
+                                font-size={revenueCircle.fontSize}
+                                font-family={font.family}
+                                font-weight={font.weight}
+                                fill={CustomTileAppearance.ink}>{value}</text
+                            >
+                        {/each}
+                    </svg>
+                {/each}
+            </figure>
+        {/each}
+    </section>
     <section aria-label="Board composition example">
         <h2>SVG composition · route, token, location</h2>
         <svg
@@ -174,6 +255,14 @@
     section {
         border-top: 1px solid #d1d7c9;
         padding: 18px 0;
+    }
+    .revenue-font {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .revenue-font figcaption {
+        text-align: left;
     }
     .controls {
         display: flex;

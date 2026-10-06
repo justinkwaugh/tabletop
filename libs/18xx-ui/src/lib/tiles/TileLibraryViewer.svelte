@@ -7,7 +7,7 @@
         type TileInventoryCount
     } from '@tabletop/18xx'
     import Tile from './Tile.svelte'
-    import { ClassicTileAppearance, MutedTileAppearance } from './tileAppearance.js'
+    import { ClassicTileAppearance, TileAppearances } from './tileAppearance.js'
     import type { TileLayout } from './tileDrawing.js'
     import { StandardTileLayouts } from './standardTileLayouts.js'
     import {
@@ -91,6 +91,20 @@
                 ></select
             ></label
         >
+        <label
+            >Hex orientation<select bind:value={orientation}
+                ><option value={HexOrientation.Flat}>Flat top</option><option
+                    value={HexOrientation.Pointy}>Pointy top</option
+                ></select
+            ></label
+        >
+        <label
+            >Tile style<select bind:value={appearance}
+                >{#each TileAppearances as option (option.name)}<option value={option}
+                        >{option.name}</option
+                    >{/each}</select
+            ></label
+        >
     </div>
     <div class="body">
         <aside class="detail" bind:this={detailPanel} aria-label="Tile inspection">
@@ -153,20 +167,6 @@
                         }}>Reset</button
                     >
                 </div>
-                <label class="orientation"
-                    >Hex orientation<select bind:value={orientation}
-                        ><option value={HexOrientation.Flat}>Flat top</option><option
-                            value={HexOrientation.Pointy}>Pointy top</option
-                        ></select
-                    ></label
-                >
-                <label class="orientation"
-                    >Tile style<select bind:value={appearance}
-                        ><option value={ClassicTileAppearance}>Classic</option><option
-                            value={MutedTileAppearance}>Muted</option
-                        ></select
-                    ></label
-                >
                 <dl>
                     <dt>Catalog ID</dt>
                     <dd class="identifier">{selected.id}</dd>
@@ -289,7 +289,7 @@
     }
     .filters {
         display: grid;
-        grid-template-columns: 2fr 1fr 1.4fr 1fr;
+        grid-template-columns: 2fr 1fr 1.4fr 1fr 1fr 1fr;
         gap: 12px;
         padding-bottom: 22px;
         border-bottom: 1px solid var(--rail-border, #d9d9c9);
@@ -398,9 +398,6 @@
     }
     .rotation .reset {
         font-size: 12px;
-    }
-    .orientation {
-        margin-top: 14px;
     }
     dl {
         margin: 18px 0;

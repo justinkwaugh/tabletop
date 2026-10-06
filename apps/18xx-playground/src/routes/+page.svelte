@@ -1,10 +1,5 @@
 <script lang="ts">
-    import {
-        TileLibraryViewer,
-        Tile,
-        ClassicTileAppearance,
-        MutedTileAppearance
-    } from '@tabletop/18xx-ui'
+    import { TileLibraryViewer, Tile, TileAppearances } from '@tabletop/18xx-ui'
     import { StandardTileCatalog } from '@tabletop/18xx'
     import { TileSpecimenGroups, SpecimenLayouts, TileInventoryGroups } from '../demo/specimens.js'
 
@@ -34,7 +29,7 @@
     />
     <section class="style-preview" aria-label="Appearance comparison">
         <h2>Tile styles</h2>
-        {#each [ClassicTileAppearance, MutedTileAppearance] as appearance (appearance.name)}<figure>
+        {#each TileAppearances as appearance (appearance.name)}<figure>
                 <Tile
                     face={example.face}
                     printedNumber={example.printedNumber}

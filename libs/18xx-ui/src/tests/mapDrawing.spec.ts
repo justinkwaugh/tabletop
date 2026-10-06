@@ -4,11 +4,13 @@ import {
     RailwayMap,
     createCityTileFace,
     createOffboardTileFace,
+    createTrackTileFace,
     type TileEdge
 } from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
 import {
     createMapDrawing,
+    mapBorderCosts,
     mapSelectionPoint,
     mapSelectionRect,
     mapViewport
@@ -184,7 +186,7 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     const cells = entry.drawing.nodes[0].revenueCells
     const [badge, ...ports] = entry.revenueAnnotations
     assert(badge.kind === 'badge')
-    expect(badge.x).toBeCloseTo(cells[0].x)
+    expect(badge.x).toBeCloseTo(cells.reduce((sum, cell) => sum + cell.x, 0) / cells.length)
     expect(badge.y - badge.height / 2).toBeGreaterThan(
         Math.max(...cells.map((cell) => cell.y + cell.height / 2))
     )
@@ -201,4 +203,27 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     expect(Math.hypot(ports[0].x - ports[1].x, ports[0].y - ports[1].y)).toBeGreaterThanOrEqual(
         2 * 8.7
     )
+})
+
+it('shows a border cost until track meets across the border from both sides', () => {
+    const map = new RailwayMap({
+        id: 'borders',
+        name: 'Borders',
+        orientation: HexOrientation.Pointy,
+        locations: [0, 1, 2].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: r === 2,
+            preprintedTile: createTrackTileFace(r < 2 ? 'gray' : 'white', r < 2 ? [[2, 5]] : []),
+            borders:
+                r === 0
+                    ? [{ edge: 5, kind: 'water', cost: 40 }]
+                    : r === 1
+                      ? [{ edge: 5, kind: 'mountain', cost: 60 }]
+                      : [{ edge: 2, kind: 'mountain', cost: 60 }]
+        }))
+    })
+    expect(
+        mapBorderCosts(createMapDrawing(map)).map(({ amount, kind }) => ({ amount, kind }))
+    ).toEqual([{ amount: 60, kind: 'mountain' }])
 })

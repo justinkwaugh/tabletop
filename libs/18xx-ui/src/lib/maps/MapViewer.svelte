@@ -11,6 +11,7 @@
         type MapRoute
     } from './mapDrawing.js'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
+    import type { StationAppearance } from './stationPresentation.js'
     let {
         scene,
         legalLocationIds = [],
@@ -21,6 +22,7 @@
         tokens = [],
         routes = [],
         reservations,
+        stationAppearances,
         appearance = ClassicTileAppearance,
         revenueStageColors,
         onselect
@@ -34,6 +36,7 @@
         tokens?: readonly MapToken[]
         routes?: readonly MapRoute[]
         reservations?: readonly StationReservation[]
+        stationAppearances?: Readonly<Record<string, StationAppearance>>
         revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
         onselect?: (selection: MapSelection) => void
@@ -69,6 +72,7 @@
                     {tokens}
                     {routes}
                     {reservations}
+                    {stationAppearances}
                     {appearance}
                     {revenueStageColors}
                     {hexDiameter}
