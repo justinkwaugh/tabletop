@@ -6,7 +6,7 @@ import type { RailwayMap } from '../map/map.js'
 import { Station, StationReservation } from '../map/station.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
-import { TileRotation, type TileDefinition, type TileFace } from '../tiles/tile.js'
+import { TileRotation, type TileDefinition, type TileFace, type TileEdge } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import {
@@ -72,8 +72,7 @@ export const TrackLayDetails = Type.Object(
 )
 export type TrackLayDetails = Type.Static<typeof TrackLayDetails>
 export type TrackEvaluation =
-    | { details: TrackLayDetails; reason?: never }
-    | { reason: string; details?: never }
+    { details: TrackLayDetails; reason?: never } | { reason: string; details?: never }
 export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
@@ -93,9 +92,16 @@ export interface TrackRules {
         connected: boolean
         newTrack: boolean
         increasedCityRevenue: boolean
+        connectedCity: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
+    borderCost?(
+        state: ConstructionState,
+        request: TrackRequest,
+        edge: TileEdge,
+        cost: number
+    ): number
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
     afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
@@ -132,7 +138,8 @@ export class TrackConstruction {
                     home: this.rules.homeLocations(companyId).includes(locationId),
                     connected: false,
                     newTrack: false,
-                    increasedCityRevenue: false
+                    increasedCityRevenue: false,
+                    connectedCity: false
                 }))
         )
     }
@@ -266,8 +273,10 @@ export class TrackConstruction {
                 !before.paths.some((path) =>
                     path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
                 )
-            )
-                borderCost += Math.max(0, ...borders.map((border) => border.cost ?? 0))
+            ) {
+                const cost = Math.max(0, ...borders.map((border) => border.cost ?? 0))
+                borderCost += this.rules.borderCost?.(this.state, request, edge, cost) ?? cost
+            }
         }
         const printedTerrainCost =
             (!previous.placement ? (location.terrain?.cost ?? 0) : 0) +
@@ -312,7 +321,10 @@ export class TrackConstruction {
                 home: this.rules.homeLocations(companyId).includes(locationId),
                 connected: after.paths.some((path) => network.paths.has(path.id)),
                 newTrack,
-                increasedCityRevenue
+                increasedCityRevenue,
+                connectedCity: after.nodes.some(
+                    (node) => node.kind === 'city' && network.nodes.has(node.id)
+                )
             })
         )
             return {
@@ -358,12 +370,29 @@ export class TrackConstruction {
         }
         return pieces
     }
-    private basicTileAllowed(locationId: string, definition: TileDefinition): boolean {
+    hasFutureUpgrade(locationId: string): boolean {
+        const tile = this.mapState.tile(locationId)
+        const before = rotateTileFace(tile.face, tile.rotation)
+        return this.rules.tileSet.definitions.some(
+            (definition) =>
+                this.basicTileAllowed(locationId, definition, this.rules.colorOrder) &&
+                this.availablePieces(definition.id).length > 0 &&
+                Rotations.some(
+                    (rotation) =>
+                        tileUpgradeMappings(before, rotateTileFace(definition.face, rotation))
+                            .length > 0
+                )
+        )
+    }
+    private basicTileAllowed(
+        locationId: string,
+        definition: TileDefinition,
+        colors: readonly string[] = this.rules.availableColors(this.state)
+    ): boolean {
         const location = this.rules.map.location(locationId)
         const before = this.mapState.tile(locationId).face
         const after = definition.face
-        if (!location.buildable || !this.rules.availableColors(this.state).includes(after.color))
-            return false
+        if (!location.buildable || !colors.includes(after.color)) return false
         if (
             this.rules.colorOrder.indexOf(after.color) !==
             this.rules.colorOrder.indexOf(before.color) + 1

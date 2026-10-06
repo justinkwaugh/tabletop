@@ -82,6 +82,9 @@ const doubleCityCornerRevenues = {
 
 export const SpecimenLayouts: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
+    ...Object.fromEntries(
+        PlaygroundTitles.flatMap((title) => Object.entries(title.tileLayouts ?? {}))
+    ),
     'example:double-city': {
         nodePositions: { west: { x: -18, y: 0 }, east: { x: 18, y: 0 } },
         revenuePositionsByRotation: { 0: doubleCityCornerRevenues, 3: doubleCityCornerRevenues },

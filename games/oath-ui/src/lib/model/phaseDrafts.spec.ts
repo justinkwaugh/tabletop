@@ -37,6 +37,7 @@ const POVERTY = 'denizen.beast.vow-of-poverty'
 const INN = 'denizen.hearth.wayside-inn'
 const OAK = 'denizen.beast.the-old-oak'
 const SNARE = 'denizen.arcane.spirit-snare'
+const WITCHS_BARGAIN = 'denizen.arcane.witchs-bargain'
 
 function table(
     machineState: MachineState,
@@ -295,6 +296,23 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
         expect(draft.hasManualSelection()).toBe(false)
     })
 
+    it("a refusal names the other seat, not their id, and the reader reads “you”", () => {
+        const STEVE = 'Qx7_pL2mWb9-Rk4tYc1nZ'
+        const BARGAIN = { cardId: WITCHS_BARGAIN, powerIndex: 0 }
+        const session = opened(
+            table(MachineState.ActPhase, {}, { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] } }, [
+                testPlayer({ playerId: STEVE, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', favor: 0 })
+            ])
+        )
+        vi.spyOn(session, 'getPlayerName').mockImplementation((id) => (id === STEVE ? 'Steve' : 'Alice'))
+        session.chooseAction(ActionType.UseActionPower)
+        session.actionPowers.setPicks(BARGAIN, { ...emptyPicks(), count: { 1: 1, 2: 0 } })
+        const power = required(session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN), 'Witch\'s Bargain is offered')
+        expect(session.humanizeReason(session.actionPowers.reasonCannotUse(power))).toBe(
+            'Steve has 0 favor, not the 2 you would take'
+        )
+    })
+
     it('choosing another action ends its picks', () => {
         const session = usingIn()
         session.actionPowers.setPicks(INN_USE, ticked)
@@ -306,8 +324,8 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 
 /** R-6.6.1 — the Exile, then the relic space, then the terms. */
 describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
-    const offering = () => {
-        const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor }, {}, [
+    const offeringIn = () => {
+        const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] }, {}, [
             testPlayer({ playerId: 'exile2', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
         ])
         state.getPlayerState(CHANCELLOR).status = PlayerStatus.Exile
@@ -317,9 +335,23 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }
         const session = opened(state)
         session.chooseAction(ActionType.OfferCitizenship)
-        return session.citizenship
+        return session
     }
+    const offering = () => offeringIn().citizenship
     const [SLOT_A, SLOT_B] = ['reliquary.0', 'reliquary.1']
+
+    it('a refusal of the terms names the Exile, and the offerer reads “you”', () => {
+        const session = offeringIn()
+        const offer = session.citizenship
+        vi.spyOn(session, 'getPlayerName').mockImplementation((id) => (id === 'exile2' ? 'Bob' : 'Alice'))
+        offer.chooseExile('exile2')
+        offer.chooseReliquarySlot(SLOT_A)
+        offer.setTerm('givenFavor', 9)
+        expect(session.humanizeReason(offer.blockedBecause)).toBe('you promised 9 favor, with only 3 usable')
+        offer.setTerm('givenFavor', 0)
+        offer.setTerm('askedSecrets', 5)
+        expect(session.humanizeReason(offer.blockedBecause)).toBe('Bob promised 5 secrets, holding only 0')
+    })
 
     it('choosing the Exile clears the relic space and terms chosen for the last one', () => {
         const offer = offering()

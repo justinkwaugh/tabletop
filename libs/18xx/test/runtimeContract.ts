@@ -38,7 +38,7 @@ export function runtimeContractTests(
                 },
                 orderIndependent,
                 2
-            )
+            ) + '\n'
         ).toMatchFileSnapshot(snapshotPath)
     })
 }

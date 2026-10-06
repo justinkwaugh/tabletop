@@ -16,8 +16,25 @@ export const Shikoku1889MapView: MapViewDefinition = {
         depot: { x: 416, y: -200, width: 381, height: 187 }
     },
     map: Shikoku1889Map,
-    revenueStageColors: { diesel: '#b9bdc0' },
-    markerArt: { port: { tileSymbol: 'port' } },
+    // Diesel is a train, not a phase, so its value prints as D100 on charcoal.
+    revenueStageColors: { diesel: '#3b3f42' },
+    revenueStageLabels: { diesel: 'D' },
+    terrainCostPrefix: '¥',
+    // Kouchi's tracks fill its top and right, so its K, revenue and name take the open corners.
+    layouts: {
+        F9: { labelPosition: { x: 38, y: 0 }, revenuePositions: { city: { x: -17.2, y: -29.8 } } },
+        // Ohzu's revenue takes its northeast corner.
+        C4: { revenuePositions: { city: { x: 17.5, y: -30.3 } } },
+        // Kotohira's H sits in its west corner.
+        I4: { labelPosition: { x: -36, y: 0 } }
+    },
+    namePositions: { F9: { x: 0, y: 21.5 }, B7: { x: 0, y: 21.5 } },
+    terrainHeights: { F9: 31 },
+    markerArt: {
+        port: { tileSymbol: 'port' },
+        'ehime-railroad': { localLine: true },
+        'takamatsu-electric-track': { localLine: true, above: true }
+    },
     tileSet: Shikoku1889TileSet,
     stations: {
         KO: { color: '#d81e3e', label: 'KO', imageUrl: KOToken },

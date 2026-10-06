@@ -57,7 +57,13 @@ export class HydratedDeclareBankruptcy
     isValid(state: FundingState): boolean {
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
         if (state.machineState !== 'FundingTrain' || !state.trainFunding) return false
-        return this.source === ActionSource.System && funding.next().kind === 'bankrupt'
+        return (
+            (this.source === ActionSource.System ||
+                (this.source === ActionSource.User &&
+                    this.playerId !== undefined &&
+                    funding.canAct(this.playerId))) &&
+            funding.next().kind === 'bankrupt'
+        )
     }
     apply(state: HydratedGameState & FundingState): void {
         assert(this.isValid(state), 'Invalid DeclareBankruptcy action')

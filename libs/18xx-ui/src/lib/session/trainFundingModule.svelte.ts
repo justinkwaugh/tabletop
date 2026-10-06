@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import {
     BuyTrain,
     ContributeTrainFunds,
+    DeclareBankruptcy,
     EmergencyTrainFunding,
     FundTrain,
     IssueTreasuryShares,
@@ -21,26 +22,28 @@ type TrainFundingState = ConstructorParameters<typeof EmergencyTrainFunding>[0] 
 
 export type TrainFundingSession = ModuleSession<
     TrainFundingState,
-    Pick<EighteenXXTitleRules, 'trainFundingRules' | 'stockRules' | 'trainRules'>
+    Pick<EighteenXXTitleRules, 'stockRules' | 'trainRules'> &
+        Partial<Pick<EighteenXXTitleRules, 'trainFundingRules'>>
 >
 
 export class TrainFundingModule {
     constructor(private readonly session: TrainFundingSession) {}
 
-    model = $derived.by(
-        () =>
-            new EmergencyTrainFunding(
-                this.session.state,
-                this.session.rules.trainFundingRules,
-                this.session.rules.stockRules,
-                this.session.rules.trainRules
-            )
+    model = $derived.by(() =>
+        this.session.rules.trainFundingRules
+            ? new EmergencyTrainFunding(
+                  this.session.state,
+                  this.session.rules.trainFundingRules,
+                  this.session.rules.stockRules,
+                  this.session.rules.trainRules
+              )
+            : undefined
     )
     purchases = $derived.by(() =>
-        this.session.state.machineState === 'BuyingTrains' ? this.model.purchases() : []
+        this.session.state.machineState === 'BuyingTrains' ? (this.model?.purchases() ?? []) : []
     )
     choice = $derived.by(() =>
-        this.session.state.machineState === 'FundingTrain' ? this.model.next() : undefined
+        this.session.state.machineState === 'FundingTrain' ? this.model?.next() : undefined
     )
     canFund = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('FundTrain')
@@ -49,10 +52,18 @@ export class TrainFundingModule {
         () =>
             this.session.interactive &&
             this.session.state.machineState === 'FundingTrain' &&
-            this.session.validActionTypes.length > 0
+            this.session.validActionTypes.some((type) =>
+                [
+                    'IssueTreasuryShares',
+                    'ContributeTrainFunds',
+                    'SellFundingShares',
+                    'BuyTrain',
+                    'DeclareBankruptcy'
+                ].includes(type)
+            )
     )
     purchase = $derived.by(() => this.session.state.trainFunding?.purchase ?? this.purchases[0])
-    plan = $derived.by(() => (this.purchase ? this.model.preview(this.purchase) : undefined))
+    plan = $derived.by(() => (this.purchase ? this.model?.preview(this.purchase) : undefined))
     sales = $derived.by(() => (this.plan?.choice.kind === 'sell' ? this.plan.choice.sales : []))
     private actionsSinceFunding = $derived.by(() => {
         const actions = this.session.recordedActions
@@ -95,7 +106,8 @@ export class TrainFundingModule {
         if (sale) {
             await this.applyChoice(sale)
             await this.completeCashFunding(false)
-        } else await this.completeCashFunding(true)
+        } else if (this.choice?.kind === 'bankrupt') await this.applyChoice()
+        else await this.completeCashFunding(true)
     }
 
     private async applyChoice(sale?: ShareSaleDetails) {
@@ -103,6 +115,9 @@ export class TrainFundingModule {
         assert(this.canResolve && choice, 'Train funding is unavailable')
         const { applyAction, createPlayerAction } = this.session
         switch (choice.kind) {
+            case 'bankrupt':
+                await applyAction(createPlayerAction(DeclareBankruptcy, {}))
+                break
             case 'issue':
                 await applyAction(
                     createPlayerAction(IssueTreasuryShares, {

@@ -1,3 +1,4 @@
+import { AuctionAwardDetails, AuctionAwardRecorder } from './auctionAwardDetails.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -9,7 +10,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { activeAuction, canActInAuction, type OpeningAuctionState } from './auctionProcedure.js'
-import { type WaterfallAuctionRules, AuctionAward } from './waterfallAuction.js'
+import { type WaterfallAuctionRules } from './waterfallAuction.js'
 
 export const BuyAuctionLot = Type.Object(
     {
@@ -17,7 +18,7 @@ export const BuyAuctionLot = Type.Object(
         lotId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 0 }),
         type: Type.Literal('BuyAuctionLot'),
-        metadata: Type.Optional(AuctionAward)
+        metadata: Type.Optional(AuctionAwardDetails)
     },
     { additionalProperties: false }
 )
@@ -37,7 +38,7 @@ export class HydratedBuyAuctionLot
     declare playerId: string
     declare lotId: string
     declare expectedPrice: number
-    declare metadata?: AuctionAward
+    declare metadata?: AuctionAwardDetails
     readonly #rules: WaterfallAuctionRules
     constructor(data: BuyAuctionLot, rules: WaterfallAuctionRules) {
         super(
@@ -60,6 +61,8 @@ export class HydratedBuyAuctionLot
         assert(this.isValid(state), 'Invalid BuyAuctionLot action')
         const model = activeAuction(state, this.#rules)
         assert(model, 'Auction is not active')
-        this.metadata = model.purchase(this.playerId, this.lotId)
+        const recorder = new AuctionAwardRecorder(state)
+        const award = model.purchase(this.playerId, this.lotId)
+        this.metadata = recorder.award(state, award)
     }
 }

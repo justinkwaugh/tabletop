@@ -13,13 +13,20 @@ import {
 } from '../finance/finance.js'
 import type { StockState } from './stockState.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
-import { PresidencyChange, evaluatePresidency, applyPresidencyChange } from './presidency.js'
+import {
+    PresidencyChange,
+    PresidencyClaim,
+    evaluatePresidency,
+    applyPresidencyChange,
+    applyPresidencyClaim
+} from './presidency.js'
 import {
     certificateLimitAllows,
-    exceedsStockLimits,
+    stockCertificateCount,
     purchaseOwnershipCeiling,
     type StockRules
 } from './stockRules.js'
+import { mustSellShares } from './shareSale.js'
 
 export type ShareCertificate = Extract<Portfolio[number], { kind: 'share' }>
 export type PurchaseRequest = { playerId: string; buyer: Owner; certificateId: string }
@@ -32,14 +39,14 @@ export const SharePurchaseDetails = Type.Object(
         price: Type.Integer({ minimum: 1 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
+        presidencyClaim: Type.Optional(PresidencyClaim),
         coveredShortId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
 export type SharePurchaseDetails = Type.Static<typeof SharePurchaseDetails>
 export type SharePurchaseResult =
-    | { details: SharePurchaseDetails; reason?: never }
-    | { details?: never; reason: string }
+    { details: SharePurchaseDetails; reason?: never } | { details?: never; reason: string }
 export type ShareBuyResult =
     | { details: SharePurchaseDetails; poolId?: string; reason?: never }
     | { details?: never; reason: string }
@@ -70,7 +77,7 @@ export function evaluateShareAcquisition(
     terms: SharePurchaseTerms | string
 ): SharePurchaseResult {
     const { playerId, buyer } = request
-    if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
+    if (mustSellShares(state, playerId, rules))
         return { reason: 'Sell down to the stock limits before buying.' }
     if (!state.activePlayerIds.includes(playerId))
         return { reason: 'It is not this player’s turn.' }
@@ -110,8 +117,6 @@ export function evaluateShareTransfer(
             purchaseOwnershipCeiling(state, company.id, buyer, rules)
     )
         return { reason: 'The purchase exceeds the ownership limit.' }
-    if (!coveredShort && !certificateLimitAllows(state, buyer, certificate, rules))
-        return { reason: 'The purchase exceeds the certificate limit.' }
     assert(
         Number.isSafeInteger(terms.price) && terms.price > 0,
         'Purchase price must be a positive integer'
@@ -131,7 +136,7 @@ export function evaluateShareTransfer(
         remaining -= amount
     }
     if (remaining > 0) return { reason: 'The buyer cannot afford this purchase.' }
-    const projected = copyFinances(state)
+    const projected = { ...state, ...copyFinances(state) }
     const purchased = projected.certificates.find((item) => item.id === certificateId)
     assert(purchased && !purchased.retired, 'Missing purchased certificate')
     purchased.owner = buyer
@@ -142,6 +147,17 @@ export function evaluateShareTransfer(
         rules.presidencyCandidates(state, company.id)
     )
     if (presidency.reason) return { reason: presidency.reason }
+    if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)
+    if (
+        !coveredShort &&
+        !certificateLimitAllows(state, buyer, certificate, rules) &&
+        !(
+            presidency.claim &&
+            stockCertificateCount(projected, buyer, rules) <=
+                rules.certificateLimit(projected, buyer)
+        )
+    )
+        return { reason: 'The purchase exceeds the certificate limit.' }
     return {
         details: {
             certificateId,
@@ -151,6 +167,7 @@ export function evaluateShareTransfer(
             price: terms.price,
             payments,
             ...(presidency.change ? { presidency: presidency.change } : {}),
+            ...(presidency.claim ? { presidencyClaim: presidency.claim } : {}),
             ...(coveredShort ? { coveredShortId: coveredShort.id } : {})
         }
     }
@@ -172,6 +189,7 @@ export function applyShareTransfer(state: StockState, details: SharePurchaseDeta
     certificate.owner = details.buyer
     delete certificate.poolId
     if (details.presidency) applyPresidencyChange(state, details.presidency)
+    if (details.presidencyClaim) applyPresidencyClaim(state, details.presidencyClaim)
     if (details.coveredShortId)
         retireCertificates(state, [details.certificateId, details.coveredShortId])
 }

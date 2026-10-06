@@ -1,14 +1,12 @@
 <script lang="ts">
     import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
-    import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
-    import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import { PlaygroundTitles, playgroundTitle, type PlaygroundTitle } from '../../titles.js'
     import '../../table.css'
 
     type Position = ScenarioPosition | 'finished'
     // In menu order; title-specific positions appear only for titles that offer them.
     const Positions: readonly { id: Position; label: string; titleSpecific?: true }[] = [
-        { id: 'opening', label: 'Opening auction' },
+        { id: 'opening', label: 'Opening' },
         { id: 'optional-opening', label: 'Opening with options', titleSpecific: true },
         { id: 'trading', label: 'Stock round' },
         { id: 'starting', label: 'Company starts' },
@@ -32,14 +30,18 @@
     function positionsFor(title: PlaygroundTitle) {
         return Positions.filter(
             ({ id, titleSpecific }) =>
-                !titleSpecific ||
-                (id === 'finished'
-                    ? !!title.finishedGame
-                    : title.positions.some((position) => position === id))
+                (id === 'finished' ||
+                    !title.supportedPositions ||
+                    title.supportedPositions.some((position) => position === id)) &&
+                (!titleSpecific ||
+                    (id === 'finished'
+                        ? !!title.finishedGame
+                        : title.positions.some((position) => position === id)))
         )
     }
 
     let titleKey = $state(PlaygroundTitles[0].key)
+    let playerCount = $state(3)
     let position = $state<Position>('construction')
     const title = $derived(playgroundTitle(titleKey))
 </script>
@@ -54,6 +56,7 @@
             onchange={(event) => {
                 const next = playgroundTitle(event.currentTarget.value)
                 if (!positionsFor(next).some(({ id }) => id === position)) position = 'opening'
+                playerCount = 3
             }}
             >{#each PlaygroundTitles as { key, name } (key)}<option value={key}>{name}</option
                 >{/each}</select
@@ -62,10 +65,17 @@
             {#each positionsFor(title) as { id, label } (id)}<option value={id}>{label}</option
                 >{/each}
         </select>
+        {#if title.playerCounts && position !== 'finished'}
+            <select aria-label="Players" bind:value={playerCount}>
+                {#each title.playerCounts as count (count)}<option value={count}
+                        >{count} players</option
+                    >{/each}
+            </select>
+        {/if}
     </nav>
-    {#key `${titleKey}:${position}`}<FinanceExampleHost
-            definition={withScenarioUi(title.ui)}
+    {#key `${titleKey}:${position}:${playerCount}`}<title.host
             {position}
+            playerCount={title.playerCounts ? playerCount : undefined}
         />{/key}
 </div>
 

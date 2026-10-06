@@ -1089,8 +1089,6 @@
     }
    }
   ],
-  "tranches": [],
-  "ownershipLimitExemptions": [],
   "stations": [
    {
     "id": "AS:home",
@@ -12745,6 +12743,14 @@
    "gameId": "1817-15528",
    "source": "user",
    "playerId": "655",
+   "type": "PassConvertedShares",
+   "companyId": "BESS"
+  },
+  {
+   "id": "recorded:824:post-conversion-pass",
+   "gameId": "1817-15528",
+   "source": "user",
+   "playerId": "1594",
    "type": "PassConvertedShares",
    "companyId": "BESS"
   },

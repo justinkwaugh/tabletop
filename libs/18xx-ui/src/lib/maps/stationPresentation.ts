@@ -1,10 +1,21 @@
-import { assertExists, type BoundingBox } from '@tabletop/common'
-import type { StationState, RailwayMap, TileEdge, TileSet } from '@tabletop/18xx'
+import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
+import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
-import type { TileLayout } from '../tiles/tileDrawing.js'
+import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 
-export type StationAppearance = { label: string; color: string; imageUrl?: string }
+/** Tiles drawn side by side in place of a round token, at the token's height. */
+export type TokenTiles = {
+    orientation: HexOrientation
+    appearance: TileAppearance
+    tiles: readonly { face: TileFace; drawing: TileDrawing }[]
+}
+export type StationAppearance = {
+    label: string
+    color: string
+    imageUrl?: string
+    tiles?: TokenTiles
+}
 export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {
@@ -20,6 +31,23 @@ export type MapViewDefinition = {
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
     revenueStageColors?: Readonly<Record<string, string>>
+    /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
+    revenueStageLabels?: Readonly<Record<string, string>>
+    /** Printed before terrain costs, such as ¥. */
+    terrainCostPrefix?: string
+    /** Baseline of a location's name, by location id; names otherwise print across the top. */
+    namePositions?: Readonly<Record<string, Point>>
+    /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
+    nameLines?: Readonly<Record<string, readonly string[]>>
+    /**
+     * Where a location's revenue-sized symbols go, by location id, in place of clear space: the
+     * centre of their row, or each symbol's own centre.
+     */
+    symbolPositions?: Readonly<Record<string, Point | readonly Point[]>>
+    /** Locations whose curved city name runs under the city, reading along its foot. */
+    namesBelow?: readonly string[]
+    /** Height of a location's terrain cost row, by location id, where it is not placed below the stops. */
+    terrainHeights?: Readonly<Record<string, number>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
@@ -43,6 +71,13 @@ export type MapViewDefinition = {
      */
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
+    /** Measurements of the tile style in use, which space cities and place annotations. */
+    drawingStyle?: TileDrawingStyle
+    /**
+     * Leaves location names off the drawn map, or only the listed locations'; they still name
+     * hexes in labels and text.
+     */
+    hideLocationNames?: true | readonly string[]
 }
 export function stationMapTokens(
     state: StationState,

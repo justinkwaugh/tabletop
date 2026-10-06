@@ -23,6 +23,12 @@ import {
     type FundingChoice
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
+import {
+    EighteenThirtyStockRules,
+    EighteenThirtyTrainFundingRules,
+    EighteenThirtyTrainRules,
+    Definition as Thirty
+} from '@tabletop/1830'
 const Titles = [
     {
         definition: Top,
@@ -726,4 +732,87 @@ it('the funding-chain example exhausts Union Bank before its owner sells and buy
     for (const processed of recorded.toReversed())
         undone = engine.undoProcessedAction({ state: undone, action: processed })
     expect(undone).toEqual(state)
+})
+
+it('allows separate 1830 emergency sale blocks without falsely declaring bankruptcy', () => {
+    const { game, engine, state } = example(Thirty, 'funding', 4)
+    const other = state.certificates
+        .filter((certificate) => !certificate.retired)
+        .find((certificate) => certificate.id === 'NYC:share:2')!
+    other.owner = { kind: 'player', playerId: 'casey' }
+    const funding = (state: EighteenXXState) =>
+        new EmergencyTrainFunding(
+            state,
+            EighteenThirtyTrainFundingRules,
+            EighteenThirtyStockRules,
+            EighteenThirtyTrainRules
+        )
+    const purchase = funding(state).purchases()[0]
+    let current = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'FundTrain', {
+            companyId: purchase.companyId,
+            trainId: purchase.trainId,
+            definitionId: purchase.definitionId,
+            expectedPrice: purchase.price
+        })
+    }).updatedState
+    for (const proceeds of [100, 90]) {
+        current = engine.executeCanonicalAction({
+            game,
+            state: current,
+            action: action(current, 'SellFundingShares', {
+                seller: { kind: 'player', playerId: 'blair' },
+                companyId: 'PRR',
+                shares: 1,
+                expectedProceeds: proceeds
+            })
+        }).updatedState
+        expect(current.bankruptcy).toBeUndefined()
+    }
+    for (let step = 0; current.trainFunding && step < 4; step++) {
+        current = engine.executeCanonicalAction({
+            game,
+            state: current,
+            action: nextAction(current, funding(current).next())
+        }).updatedState
+    }
+    expect(current.trainFunding).toBeUndefined()
+    expect(current.bankruptcy).toBeUndefined()
+    expect(
+        current.trainInventory.trains.find((train) => train.id === purchase.trainId)
+    ).toMatchObject({ status: 'owned', owner: { kind: 'company', companyId: 'PRR' } })
+})
+
+it('keeps 1889 emergency sales in one block per company', () => {
+    const { state, game, engine } = example(Shikoku, 'funding', 4)
+    const funding = new EmergencyTrainFunding(
+        state,
+        Shikoku1889TrainFundingRules,
+        Shikoku1889StockRules,
+        Shikoku1889TrainRules
+    )
+    state.trainFunding = funding.begin(funding.purchases()[0])
+    const first = funding.next()
+    expect(first.kind).toBe('sell')
+    if (first.kind !== 'sell') throw Error('The president needs to sell')
+    const sale = first.sales.find((sale) => sale.proceeds === 100)!
+    state.machineState = 'FundingTrain'
+    const fields = { seller: sale.seller, companyId: sale.sales[0].companyId, shares: 1 }
+    const result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'SellFundingShares', { ...fields, expectedProceeds: 100 })
+    })
+    expect(() =>
+        engine.executeCanonicalAction({
+            game,
+            state: result.updatedState,
+            action: action(result.updatedState, 'SellFundingShares', {
+                ...fields,
+                expectedProceeds: 90
+            })
+        })
+    ).toThrow()
 })

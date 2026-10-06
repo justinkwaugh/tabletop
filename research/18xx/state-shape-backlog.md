@@ -1,11 +1,17 @@
 # State shape changes deferred until the deployed game finishes
 
-One Hosted Game of The Old Prince is in progress, and Hosted Games follow the current
-Publication. Its schema is closed (`additionalProperties: false`), so any of the changes
-below alters what an already-loaded client accepts. They wait until that game is finished
-or Common has a hydrate-time state migration. Each needs the runtime-contract snapshots in
-`games/*/test/fixtures/runtime-contract.json` regenerated deliberately, the deployed-game
-replay fixture retired or migrated, and TOP moved to `1.0.0` so clients reload.
+The title-state composition and removal of unused mechanism fields were implemented on
+2026-10-03; see [composed title state](title-state-design.md) for readers and release
+compatibility for the single existing TOP save. The remaining definition-data reductions
+below are separate work.
+
+When this backlog was measured, one Hosted Game of The Old Prince was in progress.
+Hosted Games follow the current Publication. Its schema is closed
+(`additionalProperties: false`), so the changes below affect what an already-loaded
+client accepts. Any further reduction needs an explicit saved-state reader, deliberate
+runtime-contract snapshot updates, deployed-game replay verification, and a matching
+major Logic/UI release so clients reload. The composition change above provides readers
+for TOP's removed empty field; it does not implement these definition-data reductions.
 
 Measured on the deployed game's latest State at action 181: 52,360 bytes as compact JSON
 (the exported file is 87 KB pretty-printed). Definition data restated in every State is

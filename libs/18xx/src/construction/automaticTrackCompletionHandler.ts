@@ -14,7 +14,8 @@ export class AutomaticTrackCompletionHandler<
 > implements MachineStateHandler<HydratedAction, State> {
     constructor(
         private readonly rules: Pick<TrackRules, 'availableColors' | 'allowance'>,
-        private readonly handler: MachineStateHandler<HydratedAction, State>
+        private readonly handler: MachineStateHandler<HydratedAction, State>,
+        private readonly additionalConstructionActions: readonly string[] = []
     ) {}
 
     private canFinish(context: MachineContext<State>, playerId: string): boolean {
@@ -33,7 +34,13 @@ export class AutomaticTrackCompletionHandler<
         if (actions.includes('TakeLoan') && this.hasLayLeft(state)) return false
         return !state.activePlayerIds.some((id) =>
             (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).some(
-                (action) => ['LayTile', 'LayPrivateTile', 'RequestTrackConsent'].includes(action)
+                (action) =>
+                    [
+                        'LayTile',
+                        'LayPrivateTile',
+                        'RequestTrackConsent',
+                        ...this.additionalConstructionActions
+                    ].includes(action)
             )
         )
     }

@@ -6,13 +6,12 @@ import { assert, assertExists } from '@tabletop/common'
 import { controllingOwner, getCompany } from '../finance/finance.js'
 import { stockMarketOrder } from '../stock/stockMarket.js'
 import {
-    trainsOwnedBy,
     unownedTrain,
     type Train,
     type TrainState,
     type TrainPurchaseState
 } from '../trains/train.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
+import { trainsCountingForLimit, type TrainRules } from '../trains/trainPurchase.js'
 import {
     DeparturePayments,
     settleTrainDepartures,
@@ -56,6 +55,7 @@ export const PhaseFields = {
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
 export type PhaseChangeState = StockState & TrainState & PhaseState & MapStateData
 export interface PhaseRules {
+    activePlayers?(state: PhaseChangeState, companyId: string): string[]
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     /** Companies in discard order, starting from the operating company when there is one. */
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
@@ -141,20 +141,29 @@ export function advancePhase(
         .discardOrder(state, change.continuation.companyId)
         .filter(
             (companyId) =>
-                trainsOwnedBy(state, { kind: 'company', companyId }).length >
+                trainsCountingForLimit(state, trainRules, companyId).length >
                 trainRules.trainLimit(state, companyId)
         )
     return event
 }
-export function continuePhaseChange(state: PhaseChangeState): string {
+export function phaseDecisionPlayers(
+    state: PhaseChangeState,
+    companyId: string,
+    rules?: Pick<PhaseRules, 'activePlayers'>
+): string[] {
+    if (rules?.activePlayers) return rules.activePlayers(state, companyId)
+    const owner = controllingOwner(state, companyId)
+    assertExists(owner, 'The deciding company requires a controlling owner')
+    return [owner.playerId]
+}
+export function continuePhaseChange(
+    state: PhaseChangeState,
+    rules?: Pick<PhaseRules, 'activePlayers'>
+): string {
     const change = state.phaseChange
     assertExists(change, 'Phase change requires a continuation')
     const companyId = change.discardCompanyIds[0] ?? change.continuation.companyId
-    if (companyId) {
-        const owner = controllingOwner(state, companyId)
-        assertExists(owner, 'The deciding company requires a controlling owner')
-        state.activePlayerIds = [owner.playerId]
-    }
+    if (companyId) state.activePlayerIds = phaseDecisionPlayers(state, companyId, rules)
     if (change.discardCompanyIds.length) return 'DiscardingTrains'
     const next = change.continuation.machineState
     delete state.phaseChange

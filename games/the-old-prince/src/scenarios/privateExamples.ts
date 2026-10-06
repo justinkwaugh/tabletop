@@ -1,8 +1,9 @@
-import { TheOldPrincePrivates } from '../index.js'
-import { assert, type PlayerState } from '@tabletop/common'
+import type { TrancheState } from '@tabletop/18xx'
 import { getCompany, type CompanyState } from '@tabletop/18xx'
+import { assert, type PlayerState } from '@tabletop/common'
+import { TheOldPrincePrivates } from '../index.js'
 export function prepareTheOldPrincePrivates(
-    state: CompanyState,
+    state: CompanyState & TrancheState,
     players: readonly PlayerState[]
 ): void {
     assert(players.length === 4, 'Private examples include the four-player Ice Boats')

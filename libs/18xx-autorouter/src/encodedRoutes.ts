@@ -4,7 +4,7 @@ import {
     cityIsBlocked,
     routePathResources,
     routeRevenue,
-    trainsOwnedBy,
+    RouteEvaluation,
     type RevenueCenter,
     type RoutePath,
     type RouteRules,
@@ -31,6 +31,7 @@ export class EncodedRoutes {
             this.centers.map((center, index) => [this.centerKey(center), index])
         )
         const resources = new Map<string, number>()
+        const junctions = new Map<string, number>()
         const locations = rules.map.definition.locations
         const hexIds = new Map(locations.map((location, index) => [location.id, index]))
         const tracks = locations.flatMap(({ id: locationId }) =>
@@ -95,6 +96,16 @@ export class EncodedRoutes {
                             : null,
                     next,
                     resources: pathResources,
+                    junctions: path.endpoints.flatMap((endpoint) =>
+                        endpoint.kind === 'node' &&
+                        network
+                            .face(locationId)
+                            .nodes.some(
+                                (node) => node.id === endpoint.nodeId && node.kind === 'junction'
+                            )
+                            ? [this.indexFor(junctions, this.endpointKey(locationId, endpoint))]
+                            : []
+                    ),
                     path: id,
                     hex,
                     terminal: false,
@@ -137,7 +148,7 @@ export class EncodedRoutes {
                 ]
             }
         })
-        const trains = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {
+        const trains = new RouteEvaluation(state, rules).runnableTrains(companyId).map((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
             const visitCosts = nodes.map((node) =>
@@ -147,6 +158,7 @@ export class EncodedRoutes {
                     : 1
             )
             const stages = rules.revenueStage(state, definition)
+            const policy = rules.revenuePolicy?.(definition)
             return {
                 id: train.id,
                 distance:
@@ -157,6 +169,12 @@ export class EncodedRoutes {
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
+                paying_stop_limit: policy?.payingStopLimit ?? null,
+                require_paying_token: policy?.requirePayingStation ?? false,
+                connection_bonuses: (policy?.connectionBonuses ?? []).map(({ from, to }) => ({
+                    from: this.centers.map((center) => from[center.locationId] ?? null),
+                    to: this.centers.map((center) => to[center.locationId] ?? null)
+                })),
                 revenues: nodes.map((node, index) => {
                     if (node.kind === 'junction')
                         throw new Error('A junction is not a revenue center')
@@ -171,13 +189,15 @@ export class EncodedRoutes {
             }
         })
         this.problem = {
-            version: 2,
+            version: 4,
             stops,
             arcs,
             trains,
             resource_count: resources.size,
+            junction_count: junctions.size,
             group_count: groupIds.size,
             hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
+            longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             budget_ms: timeLimitMs
         }
     }

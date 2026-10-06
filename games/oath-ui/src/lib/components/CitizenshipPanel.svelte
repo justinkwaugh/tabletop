@@ -183,7 +183,7 @@
 
         {#if offer.blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={offer.blockedBecause ?? ''} />
+                <TokenText text={gameSession.humanizeReason(offer.blockedBecause) ?? ''} />
             </p>
         {/if}
 

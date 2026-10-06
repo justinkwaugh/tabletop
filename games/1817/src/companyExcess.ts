@@ -1,3 +1,8 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -11,31 +16,24 @@ import {
     type HydratedGameState,
     type MachineContext
 } from '@tabletop/common'
-import {
-    unownedTrain,
-    DeparturePayments,
-    settleTrainDepartures,
-    type EighteenXXState,
-    type EighteenXXStateHandler,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+import { unownedTrain, DeparturePayments, settleTrainDepartures } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
-import { discardableTrains, presidentOf, removableStations } from './mergerRules.js'
+import { discardableTrains, presidentOf, removableStations, trimStations } from './mergerRules.js'
 import { activeAcquisitionRound, activeMergerRound } from './state.js'
 
-type State = HydratedGameState & EighteenXXState
-type Context = MachineContext<HydratedEighteenXXState>
+type State = HydratedGameState & EighteenSeventeenState
+type Context = MachineContext<HydratedEighteenSeventeenState>
 
-export function excessCompanyId(state: object): string | undefined {
+export function excessCompanyId(state: EighteenSeventeenState): string | undefined {
     return (
         activeMergerRound(state)?.conversion?.companyId ??
         activeAcquisitionRound(state)?.acquisition?.buyerId
     )
 }
 
-function excessCompanyFor(state: EighteenXXState, playerId: string): string | undefined {
+function excessCompanyFor(state: EighteenSeventeenState, playerId: string): string | undefined {
     const companyId = excessCompanyId(state)
     return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
@@ -43,7 +41,20 @@ function excessCompanyFor(state: EighteenXXState, playerId: string): string | un
 const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
 
 export const RemoveStation = Type.Object(
-    { ...CompanyFields, type: Type.Literal('RemoveStation'), stationId: Type.String() },
+    {
+        ...CompanyFields,
+        type: Type.Literal('RemoveStation'),
+        stationId: Type.String(),
+        metadata: Type.Optional(
+            Type.Object(
+                {
+                    locationId: Type.String(),
+                    destination: Type.Union([Type.Literal('available'), Type.Literal('removed')])
+                },
+                { additionalProperties: false }
+            )
+        )
+    },
     { additionalProperties: false }
 )
 export type RemoveStation = Type.Static<typeof RemoveStation>
@@ -62,11 +73,13 @@ export class HydratedRemoveStation
     declare playerId: string
     declare companyId: string
     declare stationId: string
+    declare metadata?: RemoveStation['metadata']
     constructor(data: RemoveStation) {
         super(data instanceof HydratedRemoveStation ? data.dehydrate() : data, RemoveValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
+            state.machineState === 'ReducingStations' &&
             excessCompanyFor(state, this.playerId) === this.companyId &&
             removableStations(state, this.companyId).some(
                 (station) => station.id === this.stationId
@@ -76,13 +89,26 @@ export class HydratedRemoveStation
     apply(state: State): void {
         assert(
             this.source === ActionSource.User && this.isValidFor(state),
-            'Only the president of the company over its limit removes its stations'
+            'Only the president may resolve the company’s station conflicts or limit'
         )
+        const chosen = removableStations(state, this.companyId).find(
+            (station) => station.id === this.stationId
+        )
+        assertExists(chosen, 'The station is eligible for removal')
         state.stations = state.stations.map((station) =>
             station.id === this.stationId
-                ? { id: station.id, companyId: station.companyId, status: 'removed' as const }
+                ? { id: station.id, companyId: station.companyId, status: 'available' as const }
                 : station
         )
+        trimStations(state, this.companyId)
+        this.metadata = {
+            locationId: chosen.position.locationId,
+            destination:
+                state.stations.find((station) => station.id === this.stationId)?.status ===
+                'removed'
+                    ? 'removed'
+                    : 'available'
+        }
     }
 }
 
@@ -120,8 +146,9 @@ export class HydratedDiscardMergedTrain
             DiscardValidator
         )
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
+            state.machineState === 'DiscardingMergedTrains' &&
             excessCompanyFor(state, this.playerId) === this.companyId &&
             discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
         )
@@ -148,8 +175,8 @@ export class HydratedDiscardMergedTrain
     }
 }
 
-/** A merged or acquiring company's president removes stations, or discards trains, over the limit. */
-export class CompanyExcessHandler implements EighteenXXStateHandler {
+/** The president resolves duplicate stations before station and train limits. */
+export class CompanyExcessHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedRemoveStation ||
             action instanceof HydratedDiscardMergedTrain
@@ -167,7 +194,7 @@ export class CompanyExcessHandler implements EighteenXXStateHandler {
     }
     enter(context: Context): void {
         const companyId = excessCompanyId(context.gameState)
-        assertExists(companyId, 'A merged or acquiring company is over its limits')
+        assertExists(companyId, 'A merged or acquiring company needs station or train choices')
         context.gameState.activePlayerIds = [presidentOf(context.gameState, companyId)]
     }
     onAction(_action: HydratedAction, context: Context): string {

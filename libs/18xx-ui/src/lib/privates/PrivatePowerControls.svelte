@@ -1,10 +1,10 @@
 <script lang="ts">
     import { getCompany, type PrivatePowerRequestDropReason } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import PrivateExchangeButton from './PrivateExchangeButton.svelte'
     import PrivateTrackPowerButton from './PrivateTrackPowerButton.svelte'
 
-    let { session }: { session: EighteenXXSession } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
     // An operating round offers the active player's powers under Use privates; a stock round
     // has no such control, so the strip keeps them.

@@ -1,3 +1,7 @@
+import { EighteenFortySixMap, EighteenFortySixTileSet } from '@tabletop/1846'
+import { Scenarios1846, ScenarioPositions1846 } from '@tabletop/1846/scenarios'
+import { UiDefinition as FortySixUi } from '@tabletop/1846-ui'
+import { MapView1846, TileLayouts1846, SessionRules1846 } from '@tabletop/1846-ui/playground'
 import { assertExists } from '@tabletop/common'
 import {
     TheOldPrinceMap,
@@ -6,6 +10,7 @@ import {
 } from '@tabletop/the-old-prince'
 import { TheOldPrinceScenarios } from '@tabletop/the-old-prince/scenarios'
 import { UiDefinition as TheOldPrinceUi } from '@tabletop/the-old-prince-ui'
+import { TheOldPrinceMapView } from '@tabletop/the-old-prince-ui/playground'
 import {
     Shikoku1889BeginnerTileSet,
     Shikoku1889Map,
@@ -14,6 +19,7 @@ import {
 } from '@tabletop/shikoku-1889'
 import { Shikoku1889Scenarios } from '@tabletop/shikoku-1889/scenarios'
 import { UiDefinition as Shikoku1889Ui } from '@tabletop/shikoku-1889-ui'
+import { Shikoku1889MapView } from '@tabletop/shikoku-1889-ui/playground'
 import { EighteenThirtyMap, EighteenThirtyTileSet, EighteenThirtyTitleRules } from '@tabletop/1830'
 import { EighteenThirtyScenarios } from '@tabletop/1830/scenarios'
 import { UiDefinition as EighteenThirtyUi, EighteenThirtyMapView } from '@tabletop/1830-ui'
@@ -24,17 +30,11 @@ import {
 } from '@tabletop/1817'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
 import { UiDefinition as EighteenSeventeenUi, EighteenSeventeenMapView } from '@tabletop/1817-ui'
-import type {
-    EighteenXXState,
-    EighteenXXTitleRules,
-    HydratedEighteenXXState,
-    RailwayMap,
-    TileRotation,
-    TileSet
-} from '@tabletop/18xx'
+import type { EighteenXXTitleRules, RailwayMap, TileRotation, TileSet } from '@tabletop/18xx'
 import type { ScenarioDefinition, ScenarioPosition } from '@tabletop/18xx/scenarios'
-import type { GameUiDefinition } from '@tabletop/frontend-components'
-import type { TileLayout } from '@tabletop/18xx-ui'
+import type { Component } from 'svelte'
+import { scenarioHost, type ScenarioHostProps } from './scenarios/uiDefinitions.js'
+import type { MapViewDefinition, TileLayout } from '@tabletop/18xx-ui'
 
 export type FinishedGameFixture = {
     game: unknown
@@ -48,12 +48,15 @@ export type PlaygroundTitle = {
     /** Short label used by the harness selectors. */
     key: string
     name: string
-    rules: EighteenXXTitleRules
+    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules'>
     scenarios: ScenarioDefinition
-    ui: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+    host: Component<ScenarioHostProps>
     map: RailwayMap
     /** Node positions for printed multi-node hexes, keyed by location. */
     mapLayouts?: Readonly<Record<string, TileLayout>>
+    tileLayouts?: Readonly<Record<string, TileLayout>>
+    /** The title's map presentation, which the maps page draws as the game does. */
+    mapView?: MapViewDefinition
     /** A city where the maps page demonstrates a placed tile, token and route. */
     mapExample: {
         locationId: string
@@ -65,6 +68,9 @@ export type PlaygroundTitle = {
     tileSets: Readonly<Record<string, TileSet>>
     /** Scenario positions only this title offers, beyond the shared ones. */
     positions: readonly ScenarioPosition[]
+    supportedPositions?: readonly ScenarioPosition[]
+    playerCounts?: readonly number[]
+    scenarioVersion?: number
     finishedGame?: () => Promise<{ default: FinishedGameFixture }>
 }
 
@@ -74,8 +80,9 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: 'The Old Prince 1871',
         rules: TheOldPrinceTitleRules,
         scenarios: TheOldPrinceScenarios,
-        ui: TheOldPrinceUi,
+        host: scenarioHost(TheOldPrinceUi, TheOldPrinceScenarios),
         map: TheOldPrinceMap,
+        mapView: TheOldPrinceMapView,
         mapExample: { locationId: 'K19', definitionId: '18xx:5', rotation: 0, label: 'CB' },
         tileSets: { 'The Old Prince 1871': TheOldPrinceTileSet },
         positions: ['split', 'funding-chain'],
@@ -86,8 +93,9 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: 'Shikoku 1889',
         rules: Shikoku1889TitleRules,
         scenarios: Shikoku1889Scenarios,
-        ui: Shikoku1889Ui,
+        host: scenarioHost(Shikoku1889Ui, Shikoku1889Scenarios),
         map: Shikoku1889Map,
+        mapView: Shikoku1889MapView,
         mapExample: { locationId: 'I2', definitionId: '18xx:5', rotation: 2, label: 'SR' },
         tileSets: {
             'Shikoku 1889': Shikoku1889TileSet,
@@ -101,9 +109,10 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: '1830',
         rules: EighteenThirtyTitleRules,
         scenarios: EighteenThirtyScenarios,
-        ui: EighteenThirtyUi,
+        host: scenarioHost(EighteenThirtyUi, EighteenThirtyScenarios),
         map: EighteenThirtyMap,
         mapLayouts: EighteenThirtyMapView.layouts,
+        mapView: EighteenThirtyMapView,
         mapExample: { locationId: 'H10', definitionId: '18xx:57', rotation: 1, label: 'PRR' },
         tileSets: { '1830': EighteenThirtyTileSet },
         positions: ['diesel'],
@@ -114,13 +123,32 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: '1817',
         rules: EighteenSeventeenTitleRules,
         scenarios: EighteenSeventeenScenarios,
-        ui: EighteenSeventeenUi,
+        host: scenarioHost(EighteenSeventeenUi, EighteenSeventeenScenarios),
         map: EighteenSeventeenMap,
         mapLayouts: EighteenSeventeenMapView.layouts,
+        mapView: EighteenSeventeenMapView,
         mapExample: { locationId: 'F13', definitionId: '18xx:57', rotation: 0, label: 'PLE' },
         tileSets: { '1817': EighteenSeventeenTileSet },
         positions: ['optional-opening', 'company-powers', 'shorts'],
         finishedGame: () => import('./demo/fixtures/1817-finished.json')
+    },
+    {
+        key: '1846',
+        name: '1846',
+        scenarioVersion: 31,
+        rules: SessionRules1846,
+        scenarios: Scenarios1846,
+        host: scenarioHost(FortySixUi, Scenarios1846),
+        map: EighteenFortySixMap,
+        mapLayouts: MapView1846.layouts,
+        mapView: MapView1846,
+        tileLayouts: TileLayouts1846,
+        mapExample: { locationId: 'G7', definitionId: '18xx:5', rotation: 0, label: 'IC' },
+        tileSets: { '1846': EighteenFortySixTileSet },
+        positions: [],
+        supportedPositions: ScenarioPositions1846,
+        finishedGame: () => import('./demo/fixtures/1846-finished.json'),
+        playerCounts: [2, 3, 4, 5]
     }
 ]
 

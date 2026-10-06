@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import GameEnding from '../ending/GameEnding.svelte'
     import TrackBuilding from '../maps/TrackBuilding.svelte'
     import StationBuilding from '../maps/StationBuilding.svelte'
@@ -23,7 +23,7 @@
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         privateOperationDescription: (id: string, companyId: string) => string | undefined
-        session: EighteenXXSession
+        session: EighteenXXSessionView
     } = $props()
     const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
@@ -40,7 +40,7 @@
             excludeTrainPurchases={trainBuying}
         />
     {/if}
-    {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && gameState.purchaseOffer?.asset.kind !== 'private'}
+    {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && !gameState.purchaseOffer}
         {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
             <CompanyFormation {session} />
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}

@@ -358,6 +358,7 @@ export const StandardTileCatalog = new TileCatalog([
     standardTile('546', junctionFace('brown', [0, 2, 3, 4])),
     standardTile('592', cityFace('green', [0, 2, 4], 50, 2, ['B'])),
     standardTile('593', cityFace('brown', [0, 2, 3, 4], 60, 3, ['B'])),
+    standardTile('51', cityFace('gray', [0, 1, 2, 3, 4], 50, 2)),
     standardTile('597', cityFace('gray', [0, 1, 2, 3, 4], 80, 3, ['B'])),
     standardTile('611', cityFace('brown', [0, 1, 2, 3, 4], 40, 2)),
     standardTile('619', cityFace('green', [0, 2, 3, 4], 30, 2)),

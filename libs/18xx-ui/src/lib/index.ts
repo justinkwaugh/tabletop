@@ -7,6 +7,7 @@ export {
     type TileDrawing,
     type TileDrawnPath,
     type TileDrawnNode,
+    type TileDrawingStyle,
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
@@ -17,8 +18,13 @@ export { default as MapInspector } from './maps/MapInspector.svelte'
 export {
     ClassicTileAppearance,
     MutedTileAppearance,
+    MakerTileAppearance,
+    CustomTileAppearance,
+    TileAppearances,
+    tileDrawingStyle,
     type TileAppearance
 } from './tiles/tileAppearance.js'
+export { revenueBadgeHalfWidth } from './tiles/revenueBadge.js'
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 
@@ -54,6 +60,7 @@ export { departurePaymentsDetail, joinDetails, ownerName } from './table/history
 export type {
     CompanyColumn,
     MarketZone,
+    MarketZoneBanner,
     PrivateTokenPresentation,
     TitleFact,
     TitlePresentation,
@@ -66,6 +73,7 @@ export { default as OperatingActions } from './table/OperatingActions.svelte'
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
 
 export { default as CompanyToken } from './tokens/CompanyToken.svelte'
+export { default as SlidingToggle } from './table/SlidingToggle.svelte'
 export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
@@ -91,3 +99,15 @@ export * from './stock/marketAnimationSource.js'
 
 export { marketColors } from './stock/marketColors.js'
 export { MarketTokenSize } from './stock/marketTokenLayout.js'
+
+export { default as BoardInset } from './maps/BoardInset.svelte'
+
+export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { default as RouteBuilding } from './routes/RouteBuilding.svelte'
+export { runForHistoryStep } from './routes/runForHistoryStep.js'
+
+export { earningsForHistoryStep } from './earnings/earningsForHistoryStep.js'
+export { actionForHistoryStep } from './table/actionForHistoryStep.js'
+
+export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
+export { default as StationBuilding } from './maps/StationBuilding.svelte'

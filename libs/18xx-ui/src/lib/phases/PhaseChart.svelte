@@ -11,6 +11,7 @@
         depotOnly = false,
         currentPhaseId,
         trainColors,
+        phaseColors,
         tileColors,
         tileColorNames,
         onclose
@@ -21,6 +22,7 @@
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
+        phaseColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
         onclose: () => void
@@ -76,6 +78,7 @@
         {depotOnly}
         {currentPhaseId}
         {trainColors}
+        {phaseColors}
         {tileColors}
         {tileColorNames}
     />

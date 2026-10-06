@@ -1,8 +1,12 @@
-<script lang="ts">
+<script
+    lang="ts"
+    generics="Raw extends EighteenXXState, State extends HydratedEighteenXXState & HydratedGameState<Raw> & Raw"
+>
     import { onMount, onDestroy, untrack } from 'svelte'
     import { migrateOperatingIncome } from './migrateOperatingIncome.js'
     import { playgroundTitleForType } from '../titles.js'
     import { migrateCompanyNames } from './migrateCompanyNames.js'
+    import { loadCompatibleExample } from './loadCompatibleExample.js'
     import { Compile } from 'typebox/compile'
     import {
         assertExists,
@@ -29,7 +33,7 @@
         position = 'trading',
         playerCount
     }: {
-        definition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+        definition: GameUiDefinition<Raw, State>
         position?: ScenarioPosition | 'finished'
         playerCount?: number
     } = $props()
@@ -39,13 +43,14 @@
         )
     )
     setAppContext(app)
-    let session: GameSession<EighteenXXState, HydratedEighteenXXState> | undefined = $state.raw()
+    let session: GameSession<Raw, State> | undefined = $state.raw()
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
     const scenario = untrack(() => position)
     const players = untrack(() => playerCount)
-    const exampleName = `Finances example · 26 · ${scenario} · ${players ?? 'default'}`
+    const version = untrack(() => playgroundTitleForType(definition.info.id).scenarioVersion ?? 26)
+    const exampleName = `Finances example · ${version} · ${scenario} · ${players ?? 'default'}`
 
     onMount(() => {
         void load()
@@ -56,8 +61,8 @@
         bridge?.dispose()
     })
 
-    async function loadCompatibleExample() {
-        for (const game of [
+    async function loadSavedExample() {
+        const candidates = [
             ...app.gameService.activeGames,
             ...app.gameService.finishedGames
         ].filter(
@@ -66,30 +71,24 @@
                 (scenario === 'finished'
                     ? game.status === GameStatus.Finished
                     : game.config?.examplePosition === scenario)
-        )) {
-            try {
-                return await app.gameService.loadGame(game.id)
-            } catch (cause) {
-                if (
-                    !(cause instanceof Error) ||
-                    cause.message !== 'Complete canonical gameState is required'
-                )
-                    throw cause
-            }
-        }
-        return undefined
+        )
+        return loadCompatibleExample(candidates, (id) => app.gameService.loadGame(id))
     }
 
     async function load() {
         try {
             const runtime = await definition.runtime()
+            const validator = runtime.canonicalStateValidator
+            assertExists(validator, 'An 18xx runtime validates its canonical state')
+            const canonical = (state: GameState): state is Raw => validator.Check(state)
             await app.gameService.loadGames()
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
-            let loaded = await loadCompatibleExample()
+            let loaded = await loadSavedExample()
             if (disposed) return
             if (
                 loaded?.game?.state &&
+                canonical(loaded.game.state) &&
                 migrateOperatingIncome(
                     loaded.game.state,
                     loaded.actions,
@@ -151,9 +150,6 @@
             const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
             assertExists(game.state, 'Local example has no gameState')
-            const validator = runtime.canonicalStateValidator
-            assertExists(validator, 'An 18xx runtime validates its canonical state')
-            const canonical = (state: GameState): state is EighteenXXState => validator.Check(state)
             if (!canonical(game.state))
                 throw new Error('Local example has an invalid finance gameState')
             if (migrateCompanyNames(loaded)) {

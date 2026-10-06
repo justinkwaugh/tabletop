@@ -1,13 +1,14 @@
-import type { Owner } from '../finance/finance.js'
 import {
     TrackConstruction,
+    type TrackEvaluation,
     type TrackLayDetails,
     type TrackLayEffects,
-    type TrackRules,
     type TrackRequest,
-    type TrackEvaluation
+    type TrackRules
 } from '../construction/trackConstruction.js'
+import type { Owner } from '../finance/finance.js'
 import type { CompanyDecisionState } from './companyDecision.js'
+import { privatePowerUsed } from './companyDecision.js'
 export interface PrivateTrackTerms {
     companyId: string
     locationIds: readonly string[]
@@ -18,6 +19,7 @@ export interface PrivateTrackTerms {
     // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
     terrainDiscount?: number
+    free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
 }
@@ -80,10 +82,12 @@ export function privateTrackConstruction(
                 terms.locationIds.includes(locationId) &&
                 terms.definitionIds.includes(definitionId),
             terrainCost: (constructionState, request, cost) =>
-                Math.max(
-                    0,
-                    (rules.terrainCost?.(constructionState, request, cost) ?? cost) - discount
-                )
+                terms.free
+                    ? 0
+                    : Math.max(
+                          0,
+                          (rules.terrainCost?.(constructionState, request, cost) ?? cost) - discount
+                      )
         },
         terms.payer
     )
@@ -100,7 +104,7 @@ export function evaluatePrivateTrack(
     if (
         !terms ||
         terms.companyId !== request.companyId ||
-        state.usedPrivatePowerIds.includes(privateCompanyId)
+        privatePowerUsed(state, privateCompanyId)
     )
         return { reason: 'This private tile lay is unavailable.' }
     return privateTrackConstruction(state, terms, track).evaluate(request)

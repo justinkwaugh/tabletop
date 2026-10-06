@@ -1,7 +1,4 @@
-import { assert } from '@tabletop/common'
-import { PassableBidding, type EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
-import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
-import type { GameSession } from '@tabletop/frontend-components'
+import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 import {
     AcquireCompany,
     AcquisitionRoundStates,
@@ -42,12 +39,22 @@ import {
     conversionPreview,
     buyersFor,
     stationPurchase,
-    treasuryShareIds
+    treasuryShareIds,
+    SellConvertedShares,
+    convertedShareSales
 } from '@tabletop/1817'
+import { assert } from '@tabletop/common'
+import { PassableBidding } from '@tabletop/18xx'
+import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
-const BaseSession = createEighteenXXSessionClass(
+const BaseSession: ReturnType<
+    typeof createEighteenXXSessionClass<
+        typeof EighteenSeventeenState,
+        HydratedEighteenSeventeenState
+    >
+> = createEighteenXXSessionClass(
     EighteenSeventeenTitleRules,
     EighteenSeventeenMapView,
     EighteenSeventeenPresentation
@@ -136,6 +143,10 @@ export class EighteenSeventeenSession extends BaseSession {
             price: conversion.price,
             remaining: treasuryShareIds(state, conversion.companyId).length,
             traderIds: conversion.traderIds,
+            sales:
+                playerId && this.validActionTypes.includes('SellConvertedShares')
+                    ? convertedShareSales(state, playerId)
+                    : [],
             purchase:
                 playerId && this.validActionTypes.includes('BuyConvertedShare')
                     ? convertedSharePurchase(state, playerId).details
@@ -296,6 +307,19 @@ export class EighteenSeventeenSession extends BaseSession {
             })
         )
     }
+    async sellConvertedShares(shares: number) {
+        const sale = this.convertedShareTrading?.sales.find(
+            (sale) => sale.sales[0].shares === shares
+        )
+        assert(sale, 'The player cannot sell this block now')
+        await this.applyAction(
+            this.createPlayerAction(SellConvertedShares, {
+                companyId: sale.sales[0].companyId,
+                shares,
+                expectedProceeds: sale.proceeds
+            })
+        )
+    }
     async passConvertedShares() {
         await this.applyAction(
             this.createPlayerAction(PassConvertedShares, {
@@ -355,9 +379,7 @@ export class EighteenSeventeenSession extends BaseSession {
     }
 }
 
-export function requireEighteenSeventeenSession(
-    session: GameSession<EighteenXXState, HydratedEighteenXXState>
-): EighteenSeventeenSession {
+export function requireEighteenSeventeenSession(session: unknown): EighteenSeventeenSession {
     assert(session instanceof EighteenSeventeenSession, 'Expected a 1817 session')
     return session
 }

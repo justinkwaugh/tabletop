@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertExists } from '@tabletop/common'
+import { assertExists, ActionSource } from '@tabletop/common'
 import {
     addCompanyStations,
     cashOwnedBy,
@@ -23,7 +23,7 @@ import {
     treasuryPoolId,
     trimStations
 } from './index.js'
-import { mergerRoundCompanyId } from './mergerRound.js'
+import { mergerRoundCompanyId, convertedShareSales } from './mergerRound.js'
 import { mergerRoundOf } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
@@ -122,6 +122,81 @@ describe('conversion', () => {
         expect(stations(play.state, 'PLE')).toBe(2)
         expect(treasury(play.state, 'PLE')).toBe(cash + 2 * 60 + 100 - 50)
         expect(play.state.machineState).toBe('AcquisitionRound')
+    })
+
+    it('offers a cashless shareholder a sale, then ends their turn without moving the price', () => {
+        const play = mergerRound((state) => {
+            const account = state.cash.find(
+                (cash) => cash.owner.kind === 'player' && cash.owner.playerId === 'alex'
+            )
+            assertExists(account, 'Alex has an account')
+            account.amount = 0
+        })
+        play.act('ConvertCompany', { companyId: 'BA' })
+        expect(convertedShareSales(play.state, 'blair')).toEqual([])
+        expect(() =>
+            play.act('SellConvertedShares', { companyId: 'BA', shares: 1, expectedProceeds: 110 })
+        ).toThrow()
+        play.act('PassConvertedShares', { companyId: 'BA' })
+        // Casey may buy before Alex in this seating order.
+        while (play.state.activePlayerIds[0] !== 'alex')
+            play.act('PassConvertedShares', { companyId: 'BA' })
+        expect(play.valid('alex')).toEqual(['SellConvertedShares', 'PassConvertedShares'])
+        const before = structuredClone(play.state)
+        expect(() =>
+            play.act('SellConvertedShares', { companyId: 'BA', shares: 1, expectedProceeds: 100 })
+        ).toThrow()
+        const result = play.engine.executeCanonicalAction({
+            game: play.game,
+            state: before,
+            action: {
+                id: 'converted-sale',
+                gameId: play.game.id,
+                source: ActionSource.User,
+                playerId: 'alex',
+                type: 'SellConvertedShares',
+                companyId: 'BA',
+                shares: 1,
+                expectedProceeds: 110
+            }
+        })
+        const sold = result.updatedState
+        expect(sharesOwned(sold, 'BA', player('alex'))).toBe(0)
+        expect(cashOwnedBy(sold, player('alex'))).toBe(110)
+        expect(price(sold, 'BA')).toBe(110)
+        expect(sold.activePlayerIds).not.toEqual(['alex'])
+        let replay = before
+        for (const action of result.processedActions)
+            replay = play.engine.applyProcessedAction({ game: play.game, state: replay, action })
+        expect(replay).toEqual(sold)
+        let undone = sold
+        for (const action of [...result.processedActions].reverse())
+            undone = play.engine.undoProcessedAction({ state: undone, action })
+        expect(undone).toEqual(before)
+    })
+
+    it('allows a shareholder to sell after a merger leaves no treasury shares', () => {
+        const play = mergerRound((state) => {
+            pleWithFiveShares(state)
+            const certificate = state.certificates.find(
+                (certificate) => certificate.poolId === treasuryPoolId('BA')
+            )
+            assertExists(certificate, 'BA has one treasury share')
+            certificate.owner = player('blair')
+            delete certificate.poolId
+        })
+        play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
+        expect(treasuryShareIds(play.state, 'BA')).toEqual([])
+        // The president has nothing to buy and is automatically passed.
+        expect(play.state.machineState).toBe('TradingConvertedShares')
+        expect(play.valid('blair')).toContain('SellConvertedShares')
+        expect(
+            convertedShareSales(play.state, 'blair').map((sale) => sale.sales[0].shares)
+        ).toEqual([1, 2, 3])
+        play.act('SellConvertedShares', { companyId: 'BA', shares: 2, expectedProceeds: 160 })
+        expect(sharesOwned(play.state, 'BA', player('blair'))).toBe(1)
+        expect(play.state.activePlayerIds).not.toContain('blair')
+        expect(play.state.machineState).toBe('BorrowingAfterConversion')
     })
 
     it('previews the shares and stations a conversion brings before the president converts', () => {

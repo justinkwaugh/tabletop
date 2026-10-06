@@ -1,3 +1,16 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
+import {
+    dropCompany,
+    activeMergerRound,
+    mergerRoundOf,
+    setMergerRound,
+    type Conversion,
+    type MergerRound
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -26,11 +39,12 @@ import {
     nextOperatingCompany,
     settleCashPayments,
     turnOrderFrom,
-    type EighteenXXState,
     type OperatingState,
-    type EighteenXXStateHandler,
-    type HydratedEighteenXXState,
-    type SharePurchaseResult
+    type SharePurchaseResult,
+    ShareSaleDetails,
+    applyShareSale,
+    evaluateShareDisposal,
+    sharesOwned
 } from '@tabletop/18xx'
 import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -46,62 +60,56 @@ import {
     sizeAfterConversion,
     stationPurchase,
     stationsForConversion,
-    stationsOverLimit,
+    removableStations,
     trainsOverLimit,
     treasuryShareIds,
     trimStations
 } from './mergerRules.js'
-import {
-    dropCompany,
-    activeMergerRound,
-    mergerRoundOf,
-    setMergerRound,
-    type Conversion,
-    type MergerRound
-} from './state.js'
-import { EighteenSeventeenStockRules } from './stockRules.js'
+import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
-type State = HydratedGameState & EighteenXXState
-type Context = MachineContext<HydratedEighteenXXState>
+type State = HydratedGameState & EighteenSeventeenState
+type Context = MachineContext<HydratedEighteenSeventeenState>
 
-function requireRound(state: object): MergerRound {
+function requireRound(state: EighteenSeventeenState): MergerRound {
     const round = activeMergerRound(state)
     assertExists(round, 'A merger round is in progress')
     return round
 }
 
-function requireConversion(state: object): Conversion {
+function requireConversion(state: EighteenSeventeenState): Conversion {
     const conversion = requireRound(state).conversion
     assertExists(conversion, 'A company has converted or merged')
     return conversion
 }
 
-function decidingCompanyId(state: object): string | undefined {
+function decidingCompanyId(state: EighteenSeventeenState): string | undefined {
     return requireRound(state).companyIds[0]
 }
 
-export function mergerRoundCompanyId(state: object): string | undefined {
+export function mergerRoundCompanyId(state: EighteenSeventeenState): string | undefined {
     const round = activeMergerRound(state)
     return round?.conversion?.companyId ?? round?.companyIds[0]
 }
 
-function convertingCompanyFor(state: EighteenXXState, playerId: string): string | undefined {
+function convertingCompanyFor(state: EighteenSeventeenState, playerId: string): string | undefined {
     const companyId = requireRound(state).conversion?.companyId
     return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
 
-export function stateAfterConversion(state: EighteenXXState): string {
+export function stateAfterConversion(state: EighteenSeventeenState): string {
     const conversion = requireRound(state).conversion
     if (!conversion) return 'MergerRound'
-    if (stationsOverLimit(state, conversion.companyId)) return 'ReducingStations'
+    if (removableStations(state, conversion.companyId).length) return 'ReducingStations'
     if (trainsOverLimit(state, conversion.companyId)) return 'DiscardingMergedTrains'
-    if (conversion.traderIds.length && treasuryShareIds(state, conversion.companyId).length)
-        return 'TradingConvertedShares'
+    if (conversion.traderIds.length) return 'TradingConvertedShares'
     return 'BorrowingAfterConversion'
 }
 
-function beginConversion(state: EighteenXXState, conversion: Omit<Conversion, 'traderIds'>): void {
+function beginConversion(
+    state: EighteenSeventeenState,
+    conversion: Omit<Conversion, 'traderIds'>
+): void {
     const round = requireRound(state)
     dropCompany(round, conversion.companyId)
     round.convertedIds.push(conversion.companyId)
@@ -114,7 +122,9 @@ function beginConversion(state: EighteenXXState, conversion: Omit<Conversion, 't
     }
 }
 
-export function mergerRoundDue(state: OperatingState): boolean {
+export function mergerRoundDue(
+    state: OperatingState & Pick<EighteenSeventeenState, 'mergerRound' | 'acquisitionRound'>
+): boolean {
     const set = state.operatingSet
     const latest = mergerRoundOf(state)
     return (
@@ -212,7 +222,9 @@ export class HydratedEndMergerRound
 }
 
 /** Opens the merger round once an operating round's companies and exports are done. */
-export function startsMergerRounds(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function startsMergerRounds(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(
         handler,
         StartMergerRound,
@@ -249,7 +261,7 @@ export function isConvertCompany(action: GameAction): action is ConvertCompany {
     )
 }
 
-function decidesFor(state: EighteenXXState, playerId: string, companyId: string): boolean {
+function decidesFor(state: EighteenSeventeenState, playerId: string, companyId: string): boolean {
     return (
         decidingCompanyId(state) === companyId &&
         !requireRound(state).conversion &&
@@ -268,7 +280,7 @@ export class HydratedConvertCompany
     constructor(data: ConvertCompany) {
         super(data instanceof HydratedConvertCompany ? data.dehydrate() : data, ConvertValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return decidesFor(state, this.playerId, this.companyId) && canConvert(state, this.companyId)
     }
     apply(state: State): void {
@@ -327,7 +339,7 @@ export class HydratedMergeCompanies
     constructor(data: MergeCompanies) {
         super(data instanceof HydratedMergeCompanies ? data.dehydrate() : data, MergeValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             decidesFor(state, this.playerId, this.companyId) &&
             !mergeReason(state, this.companyId, this.targetId, requireRound(state).convertedIds)
@@ -365,7 +377,7 @@ export function isPassMerger(action: GameAction): action is PassMerger {
     )
 }
 
-function mergerOptions(state: EighteenXXState, companyId: string): string[] {
+function mergerOptions(state: EighteenSeventeenState, companyId: string): string[] {
     return [
         ...(canConvert(state, companyId) ? ['ConvertCompany'] : []),
         ...(mergeTargetIds(state, companyId, requireRound(state).convertedIds).length
@@ -381,7 +393,7 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
     constructor(data: PassMerger) {
         super(data instanceof HydratedPassMerger ? data.dehydrate() : data, PassMergerValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             decidesFor(state, this.playerId, this.companyId) &&
             (this.source === ActionSource.User || !mergerOptions(state, this.companyId).length)
@@ -395,7 +407,7 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
 }
 
 /** Each company in turn converts, merges or passes, until the round's companies are done. */
-export class MergerRoundHandler implements EighteenXXStateHandler {
+export class MergerRoundHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         const state = context.gameState
         if (isEndMergerRound(action))
@@ -455,13 +467,13 @@ export function isBuyConvertedShare(action: GameAction): action is BuyConvertedS
     )
 }
 
-function currentTrader(state: EighteenXXState): string | undefined {
+function currentTrader(state: EighteenSeventeenState): string | undefined {
     return requireRound(state).conversion?.traderIds[0]
 }
 
 /** The converted company's next treasury share bought by the player whose turn it is. */
 export function convertedSharePurchase(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string
 ): SharePurchaseResult {
     const conversion = requireRound(state).conversion
@@ -492,7 +504,7 @@ export class HydratedBuyConvertedShare
     constructor(data: BuyConvertedShare) {
         super(data instanceof HydratedBuyConvertedShare ? data.dehydrate() : data, BuyValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             requireRound(state).conversion?.companyId === this.companyId &&
             convertedSharePurchase(state, this.playerId).details?.price === this.expectedPrice
@@ -509,6 +521,93 @@ export class HydratedBuyConvertedShare
             requireConversion(state).traderIds.shift()
         this.metadata = details
     }
+}
+
+export function convertedShareSales(
+    state: EighteenSeventeenState,
+    playerId: string
+): ShareSaleDetails[] {
+    const conversion = requireRound(state).conversion
+    if (
+        !conversion ||
+        currentTrader(state) !== playerId ||
+        presidentOf(state, conversion.companyId) === playerId
+    )
+        return []
+    const seller = { kind: 'player' as const, playerId }
+    const choices: ShareSaleDetails[] = []
+    for (let shares = 1; shares <= sharesOwned(state, conversion.companyId, seller); shares++) {
+        const result = evaluateShareDisposal(
+            state,
+            seller,
+            [{ companyId: conversion.companyId, shares }],
+            {
+                saleTerms: marketSale,
+                presidencyCandidates: EighteenSeventeenStockRules.presidencyCandidates
+            }
+        )
+        if (result.details) choices.push(result.details)
+    }
+    return choices
+}
+
+export const SellConvertedShares = Type.Object(
+    {
+        ...CompanyFields,
+        type: Type.Literal('SellConvertedShares'),
+        shares: Type.Integer({ minimum: 1 }),
+        expectedProceeds: Type.Integer({ minimum: 1 }),
+        metadata: Type.Optional(ShareSaleDetails)
+    },
+    { additionalProperties: false }
+)
+export type SellConvertedShares = Type.Static<typeof SellConvertedShares>
+const SellValidator = Compile(SellConvertedShares)
+export function isSellConvertedShares(action: GameAction): action is SellConvertedShares {
+    return (
+        action instanceof HydratedSellConvertedShares ||
+        (action.type === 'SellConvertedShares' && SellValidator.Check(action))
+    )
+}
+export class HydratedSellConvertedShares
+    extends HydratableAction<typeof SellConvertedShares>
+    implements SellConvertedShares
+{
+    declare type: 'SellConvertedShares'
+    declare playerId: string
+    declare companyId: string
+    declare shares: number
+    declare expectedProceeds: number
+    declare metadata?: ShareSaleDetails
+    constructor(data: SellConvertedShares) {
+        super(data instanceof HydratedSellConvertedShares ? data.dehydrate() : data, SellValidator)
+    }
+    private sale(state: EighteenSeventeenState): ShareSaleDetails | undefined {
+        return convertedShareSales(state, this.playerId).find(
+            (details) =>
+                details.sales[0].companyId === this.companyId &&
+                details.sales[0].shares === this.shares &&
+                details.proceeds === this.expectedProceeds
+        )
+    }
+    isValidFor(state: EighteenSeventeenState): boolean {
+        return this.source === ActionSource.User && !!this.sale(state)
+    }
+    apply(state: State): void {
+        const details = this.sale(state)
+        assert(this.source === ActionSource.User && details, 'Choose a legal post-conversion sale')
+        applyShareSale(state, details)
+        EighteenSeventeenStockRules.afterSale?.(state)
+        requireConversion(state).traderIds.shift()
+        this.metadata = details
+    }
+}
+
+function canTradeConvertedShares(state: EighteenSeventeenState, playerId: string): boolean {
+    return (
+        !!convertedSharePurchase(state, playerId).details ||
+        convertedShareSales(state, playerId).length > 0
+    )
 }
 
 export const PassConvertedShares = Type.Object(
@@ -536,12 +635,11 @@ export class HydratedPassConvertedShares
             PassSharesValidator
         )
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             requireRound(state).conversion?.companyId === this.companyId &&
             currentTrader(state) === this.playerId &&
-            (this.source === ActionSource.User ||
-                !convertedSharePurchase(state, this.playerId).details)
+            (this.source === ActionSource.User || !canTradeConvertedShares(state, this.playerId))
         )
     }
     apply(state: State): void {
@@ -550,10 +648,11 @@ export class HydratedPassConvertedShares
     }
 }
 
-/** From the president, players in turn buy the converted company's treasury shares or pass. */
-export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
+/** The president buys; other shareholders may buy once, sell a block, or pass. */
+export class TradingConvertedSharesHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedBuyConvertedShare ||
+            action instanceof HydratedSellConvertedShares ||
             action instanceof HydratedPassConvertedShares
             ? action.isValidFor(context.gameState)
             : false
@@ -563,6 +662,7 @@ export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
         if (currentTrader(state) !== playerId) return []
         return [
             ...(convertedSharePurchase(state, playerId).details ? ['BuyConvertedShare'] : []),
+            ...(convertedShareSales(state, playerId).length ? ['SellConvertedShares'] : []),
             'PassConvertedShares'
         ]
     }
@@ -572,7 +672,7 @@ export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
         const playerId = currentTrader(state)
         assertExists(playerId, 'A player is trading')
         state.activePlayerIds = [playerId]
-        if (!convertedSharePurchase(state, playerId).details)
+        if (!canTradeConvertedShares(state, playerId))
             context.addSystemAction(PassConvertedShares, {
                 playerId,
                 companyId: conversion.companyId
@@ -609,7 +709,7 @@ export function isFinishConversionLoans(action: GameAction): action is FinishCon
     )
 }
 
-function canBorrow(state: EighteenXXState, playerId: string): boolean {
+function canBorrow(state: EighteenSeventeenState, playerId: string): boolean {
     const conversion = requireRound(state).conversion
     return (
         !!conversion &&
@@ -631,7 +731,7 @@ export class HydratedFinishConversionLoans
             FinishValidator
         )
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             convertingCompanyFor(state, this.playerId) === this.companyId &&
             (this.source === ActionSource.User || !canBorrow(state, this.playerId))
@@ -665,7 +765,7 @@ export class HydratedFinishConversionLoans
 }
 
 /** The converted company may borrow, then buys the stations its size needs. */
-export class BorrowingAfterConversionHandler implements EighteenXXStateHandler {
+export class BorrowingAfterConversionHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         const state = context.gameState
         if (isTakeLoan(action))

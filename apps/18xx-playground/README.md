@@ -1,7 +1,7 @@
 # 18xx Playground
 
-Standalone development host for shared 18xx tiles, maps, and playable title prototypes.
-This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, 1830 and 1817. Shared libraries must
+Standalone development host for shared 18xx tiles, maps, and playable titles.
+This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, 1830, 1817 and 1846. Shared libraries must
 not depend on game packages, including through development dependencies or tests.
 Title definitions remain in their game packages; the app supplies them to the
 reusable viewer through its public interface.
@@ -28,6 +28,9 @@ pnpm --filter @tabletop/18xx-playground dev:scenarios
 
 That runs this app on port 4188 and opens `/table`. If it is already running,
 visit `http://localhost:4188/table` instead of starting another server.
+
+1846 uses the shared table and offers opening, stock, construction, station,
+route, train, private purchase and ending scenarios for 2–5 players.
 
 ## Scenarios
 
@@ -75,9 +78,10 @@ The production build writes a static app to `build`.
 actions, map, market, tile manifest, spreadsheet and grouped history.
 It uses Game Sessions and local harness services. Games are persisted locally and
 restored on revisit. The position selector includes focused scenarios and real
-opening auctions; TOP also has a finished-game fixture for forward/backward history.
+opening auctions and recorded finished games for forward/backward history. 1846
+uses recording 12666, including phase-IV trains and its developed map.
 
-TOP supports 3–4 players; standard Shikoku 1889 and 1830 support 2–6, and 1817 3–12. Stock and operating
+TOP supports 3–4 players; standard Shikoku 1889 and 1830 support 2–6, 1817 3–12, and 1846 2–5. Stock and operating
 Actions run through the canonical engine, including complete-game replay and Undo.
 See [complete-game verification](../../research/18xx/complete-game-verification.md)
 and [client autorouting](../../research/18xx/autorouter-design.md). These are still

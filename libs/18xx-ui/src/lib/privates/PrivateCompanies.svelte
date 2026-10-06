@@ -1,7 +1,8 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { privateOwner } from '@tabletop/18xx'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
+        $props()
     const selection = $derived(session.privates.exchangeSelection)
 </script>
 

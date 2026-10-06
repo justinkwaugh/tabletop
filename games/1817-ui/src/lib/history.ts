@@ -9,6 +9,7 @@ import {
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     EighteenSeventeenLoanRules,
+    EighteenSeventeenMap,
     LoanSharkCash,
     LoanSharkId,
     isAcquireCompany,
@@ -33,7 +34,8 @@ import {
     isPassConvertedShares,
     isPassMerger,
     isRemoveStation,
-    isShortShare
+    isShortShare,
+    isSellConvertedShares
 } from '@tabletop/1817'
 import { plural } from './plural.js'
 
@@ -106,9 +108,14 @@ export function eighteenSeventeenHistoryDescription(
             text: `Bought a ${companyName(action.companyId)} share`,
             value: money(action.expectedPrice)
         }
+    if (isSellConvertedShares(action))
+        return {
+            text: `Sold ${plural(action.shares, `${companyName(action.companyId)} share`)}`,
+            value: money(action.expectedProceeds)
+        }
     if (isPassConvertedShares(action) && action.source === ActionSource.User)
         return {
-            text: `Bought no more ${companyName(action.companyId)} shares`,
+            text: `Passed on ${companyName(action.companyId)} shares`,
             routine: true
         }
     if (isFinishConversionLoans(action) && action.metadata?.liquidation)
@@ -124,7 +131,16 @@ export function eighteenSeventeenHistoryDescription(
             value: money(action.metadata.payment.amount)
         }
     if (isRemoveStation(action))
-        return { text: `Removed a ${companyName(action.companyId)} station` }
+        return {
+            text:
+                action.metadata?.destination === 'available'
+                    ? `Returned a ${companyName(action.companyId)} station to its charter`
+                    : `Removed a ${companyName(action.companyId)} station`,
+            detail:
+                action.metadata &&
+                (EighteenSeventeenMap.location(action.metadata.locationId).name ??
+                    action.metadata.locationId)
+        }
     if (isDiscardMergedTrain(action))
         return {
             text: `Discarded a ${companyName(action.companyId)} train`,

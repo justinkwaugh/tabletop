@@ -111,3 +111,45 @@ describe('OperatingTurnModule', () => {
         await expect(operating(buying, []).module.finish()).rejects.toThrow()
     })
 })
+
+it('uses title completion policy for finance and combined construction, stopping for decisions', async () => {
+    const state: State = $state({ ...minimalPlayState(), machineState: 'Finance' })
+    const { session } = testSession(state, { trainRules: minimalTrainRules }, [])
+    const completed: string[] = []
+    let interrupt = false
+    const module = new OperatingTurnModule(
+        session,
+        {
+            finishTrack: async () => {
+                throw Error('Sequential track completion was used')
+            },
+            finishStations: async () => {
+                throw Error('Sequential station completion was used')
+            },
+            trainSelected: () => false,
+            hasLocalSelection: () => false
+        },
+        () =>
+            ['Finance', 'Build'].includes(state.machineState)
+                ? {
+                      lastTarget: 2,
+                      finish: async () => {
+                          completed.push(state.machineState)
+                          state.machineState = state.machineState === 'Finance' ? 'Build' : 'Run'
+                          if (interrupt) state.purchaseOffer = purchaseOffer
+                      }
+                  }
+                : undefined,
+        (state) => ['Finance', 'Build', 'Run'].indexOf(state)
+    )
+    expect(module.canSkipTo(2)).toBe(true)
+    expect(module.canSkipTo(3)).toBe(false)
+    await module.skipTo(2)
+    expect(completed).toEqual(['Finance', 'Build'])
+    state.machineState = 'Finance'
+    interrupt = true
+    await module.skipTo(2)
+    expect(state.machineState).toBe('Build')
+    expect(completed).toEqual(['Finance', 'Build', 'Finance'])
+    expect(module.canSkipTo(2)).toBe(false)
+})

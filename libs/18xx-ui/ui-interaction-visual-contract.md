@@ -667,10 +667,16 @@ may merge with is a card of its own below ("Or merge with") with its treasury, l
 assets, whose Merge button names the merged size and price, the treasury shares the merged
 company would hold and its stations. While players trade the converted company's treasury shares, the
 panel names the shares left and their price, who chooses now and who follows; that player
-buys a share or passes. The president then takes loans and finishes, buying the stations
+buys a share, sells a named block (unless president), or passes. Sell buttons show
+the share count and proceeds, and commit through the session immediately. A sale ends
+that player's turn. Shareholders with no cash or no treasury shares available still
+receive their sell/pass choice. These choices add no local selection or Back step;
+Undo restores the committed action through the usual history lifecycle.
+The president then takes loans and finishes, buying the stations
 owed (the panel says when the treasury cannot pay, and the button reads Finish and
 liquidate). A merged company over a limit removes a named station or discards a train.
-History records conversions and mergers as important rows, purchases with their price, the
+History records conversions and mergers as important rows, purchases with their price,
+sales with their quantity and proceeds, the
 stations bought or the liquidation, and the removals and discards; players' passes are
 routine.
 
@@ -765,15 +771,36 @@ Issuance and contributions require explicit confirmation of the displayed amount
 A share-sale selection is a manual Game Session selection: Back clears it, and Undo
 clears it before reversing a committed Action. Selections hide in History View and
 while updatingVisibleState, and clear in beforeNewState. Components call session
-methods for every Action. Other operating, private, and stock actions are
-unavailable during funding. Only the responsible player may act.
+methods for every Action. Other operating and stock actions are unavailable during
+funding. Any-turn private exchanges remain available under the title's terms,
+including out-of-turn exchanges when supported. Their existing selection and
+confirmation controls preserve the funding obligation. Only the responsible
+player may perform funding actions; exchange-only permission enables none of them.
 
 The selected train purchase uses existing phase-change and discard handling and
 returns to ordinary train buying. Bankruptcy is a system consequence of exhausted
-legal funding sources; the panel shows the company, player, and remaining
-shortfall. It offers no further gameplay actions. Engine Undo restores the funding
+legal funding sources unless an optional private exchange is still available. In
+that case, the funding window stays open and the responsible player may exchange
+or choose Declare bankruptcy. A presidency-changing exchange transfers funding
+responsibility to the new president while retaining the train and sale history.
+Once bankruptcy is declared, the panel shows the company, player, and remaining
+shortfall and offers no further gameplay actions. Engine Undo restores the funding
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
+
+### 1817 merger and acquisition station choices
+
+A duplicate New York placement requires a choice even below the eight-piece limit.
+The Company limits panel first offers only stations in the conflicting hex. Each
+button shows the current tile with a red cross on the placement to remove and names
+the upper/lower (or left/right) city. It uses the map's canonical face and drawing
+in both board presentations. The prompt explains that one station stays. The
+other returns to the charter unless excess beyond eight must leave play.
+After conflicts, any remaining station-limit choices precede train discards.
+Buttons call the session's RemoveStation method directly and disable while busy,
+updating visible state, or viewing history. Engine Undo restores the placements
+and decision. Action metadata determines whether history says the piece returned
+to the charter or left play; presentation never reads patches to infer it.
 
 ## Game table shell
 
@@ -2185,3 +2212,22 @@ including TOP's stalled-auction fallback and 1889's waterfall auction. TOP's
 branch-split editor uses the same centering. Negotiated purchase and track-consent
 responses remain grouped within the centered operating controls. Tall lists grow
 the scrollable action body; narrow layouts retain their natural content height.
+
+History descriptions read recorded auction awards and company effects from Action
+metadata. Historical balances, round headings, operating orders, and map previews
+read states through Common's RecordedHistory; the family does not interpret engine
+patch paths. Map previews retain their existing session lifetime and render owners;
+the cached preview is invalidated by displayed state, action prefix, or map
+presentation changes. Older records without descriptive metadata omit those
+details; an auction resolution with no recorded outcome is labelled “Auction
+resolved.” This adopts new Logic and UI artifacts together for all four 18xx titles,
+with no host-bridge change.
+
+## Title state in shared controls
+
+A title session preserves its schema-derived State and hydrated State class through
+Live View, History and exploration. Shared panels accept `EighteenXXSessionView`, which
+exposes the family controls and displayed State without owning the title runtime or
+renderer. Title panels retain their concrete session type. Both views refer to the same
+session; action authorization, transient selection lifetimes, Back/Undo and visible
+state publication keep their existing ownership and order.

@@ -58,6 +58,7 @@ export interface EarningsRules {
         companyId: string,
         distribution: DistributionSummary
     ): { move?: StockMarketMove; bonusPerShare: number }
+    afterDistribution?(state: DistributionState, companyId: string): void
 }
 export function dividendEntitlements(
     state: FinancialState,

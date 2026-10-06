@@ -9,8 +9,11 @@ pub struct Problem {
     arcs: Vec<Arc>,
     trains: Vec<Train>,
     resource_count: usize,
+    junction_count: usize,
     group_count: usize,
     hex_bonuses: Vec<i32>,
+    #[serde(default)]
+    longest_route_bonus_per_stop: i32,
     budget_ms: f64,
 }
 
@@ -30,6 +33,7 @@ struct Arc {
     to: Option<usize>,
     next: Vec<usize>,
     resources: Vec<usize>,
+    junctions: Vec<usize>,
     path: usize,
     hex: usize,
     terminal: bool,
@@ -45,6 +49,71 @@ struct Train {
     visit_costs: Vec<u32>,
     revenues: Vec<i32>,
     first_bonus: Vec<i32>,
+    #[serde(default)]
+    paying_stop_limit: Option<usize>,
+    #[serde(default)]
+    require_paying_token: bool,
+    #[serde(default)]
+    connection_bonuses: Vec<PaidConnectionBonus>,
+}
+
+#[derive(Deserialize, PartialEq)]
+struct PaidConnectionBonus {
+    from: Vec<Option<i32>>,
+    to: Vec<Option<i32>>,
+}
+
+impl Train {
+    fn paid_revenue(&self, visits: &[usize], stops: &[Stop]) -> i32 {
+        let count = self
+            .paying_stop_limit
+            .unwrap_or(visits.len())
+            .min(visits.len());
+        if count == visits.len() {
+            return self.selected_revenue(visits);
+        }
+        let mut best = 0;
+        self.select_payments(visits, stops, 0, count, &mut Vec::new(), &mut best);
+        best
+    }
+
+    fn select_payments(
+        &self,
+        visits: &[usize],
+        stops: &[Stop],
+        start: usize,
+        count: usize,
+        selected: &mut Vec<usize>,
+        best: &mut i32,
+    ) {
+        if selected.len() == count {
+            if !self.require_paying_token || selected.iter().any(|&id| stops[id].token) {
+                *best = (*best).max(self.selected_revenue(selected));
+            }
+            return;
+        }
+        for index in start..=visits.len() - (count - selected.len()) {
+            selected.push(visits[index]);
+            self.select_payments(visits, stops, index + 1, count, selected, best);
+            selected.pop();
+        }
+    }
+
+    fn selected_revenue(&self, paid: &[usize]) -> i32 {
+        let bonuses: i32 = self
+            .connection_bonuses
+            .iter()
+            .map(|bonus| {
+                let from = paid.iter().filter_map(|&id| bonus.from[id]).max();
+                let to = paid.iter().filter_map(|&id| bonus.to[id]).max();
+                match (from, to) {
+                    (Some(from), Some(to)) => from + to,
+                    _ => 0,
+                }
+            })
+            .sum();
+        paid.iter().map(|&id| self.revenues[id]).sum::<i32>() + bonuses
+    }
 }
 
 struct Connection {
@@ -61,6 +130,7 @@ struct Connection {
 #[derive(Clone)]
 struct Candidate {
     revenue: i32,
+    visits: usize,
     connections: Vec<usize>,
     resources: Vec<u64>,
     reversed: bool,
@@ -118,7 +188,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 2 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
+    if problem.version != 4 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
         return Err("Unsupported problem version or budget".into());
     }
     for stop in &problem.stops {
@@ -131,6 +201,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
             || arc.to.is_some_and(|s| s >= n)
             || arc.next.iter().any(|&a| a >= problem.arcs.len())
             || arc.resources.iter().any(|&r| r >= problem.resource_count)
+            || arc.junctions.iter().any(|&j| j >= problem.junction_count)
             || arc.hex >= problem.hex_bonuses.len()
             || arc.resources.is_empty()
         {
@@ -145,6 +216,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
         if arc.from != reverse.to
             || arc.to != reverse.from
             || arc.resources != reverse.resources
+            || arc.junctions != reverse.junctions
             || arc.path != reverse.path
             || arc.hex != reverse.hex
             || arc.terminal != reverse.terminal
@@ -158,6 +230,17 @@ fn validate(problem: &Problem) -> Result<(), String> {
     }
     for train in &problem.trains {
         if train.visit_costs.len() != n
+            || train.paying_stop_limit == Some(0)
+            || train.connection_bonuses.iter().any(|bonus| {
+                bonus.from.len() != n
+                    || bonus.to.len() != n
+                    || bonus
+                        .from
+                        .iter()
+                        .chain(&bonus.to)
+                        .flatten()
+                        .any(|&amount| amount < 0)
+            })
             || train.revenues.len() != n
             || train.first_bonus.len() != n
             || train
@@ -169,7 +252,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
             return Err("Unsupported train revenue profile".into());
         }
     }
-    if problem.hex_bonuses.iter().any(|&b| b < 0) {
+    if problem.longest_route_bonus_per_stop < 0 || problem.hex_bonuses.iter().any(|&b| b < 0) {
         return Err("Negative hex bonus".into());
     }
     Ok(())
@@ -178,6 +261,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
 struct Compiler<'a> {
     problem: &'a Problem,
     used: Vec<bool>,
+    junction_segments: Vec<u8>,
     walking: Vec<usize>,
     connections: Vec<Connection>,
     deadline: f64,
@@ -188,17 +272,27 @@ struct Compiler<'a> {
 impl Compiler<'_> {
     fn walk(&mut self, from: usize, arc_id: usize) {
         self.expansions += 1;
-        if self.exhausted || self.expansions.is_multiple_of(4096) && milliseconds() > self.deadline
+        if self.exhausted
+            || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
+                && milliseconds() > self.deadline
         {
             self.exhausted = true;
             return;
         }
         let arc = &self.problem.arcs[arc_id];
-        if arc.resources.iter().any(|&r| self.used[r]) {
+        if arc.resources.iter().any(|&r| self.used[r])
+            || arc
+                .junctions
+                .iter()
+                .any(|&j| self.junction_segments[j] >= 2)
+        {
             return;
         }
         for &r in &arc.resources {
             self.used[r] = true;
+        }
+        for &j in &arc.junctions {
+            self.junction_segments[j] += 1;
         }
         self.walking.push(arc_id);
         if let Some(to) = arc.to {
@@ -251,6 +345,9 @@ impl Compiler<'_> {
             }
         }
         self.walking.pop();
+        for &j in &arc.junctions {
+            self.junction_segments[j] -= 1;
+        }
         for &r in &arc.resources {
             self.used[r] = false;
         }
@@ -297,7 +394,9 @@ impl Search<'_> {
             last_bonus,
         } = value;
         self.expansions += 1;
-        if self.exhausted || self.expansions.is_multiple_of(4096) && milliseconds() > self.deadline
+        if self.exhausted
+            || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
+                && milliseconds() > self.deadline
         {
             self.exhausted = true;
             return;
@@ -317,13 +416,31 @@ impl Search<'_> {
         let last_bonus = if bonus != 0 { bonus } else { last_bonus };
         if node > start && token && stop.endpoint && (!self.train.requires_city || city) {
             self.count += 1;
-            let total = revenue + first_bonus.max(last_bonus);
-            if !self.best_only || self.candidates.first().is_none_or(|c| c.revenue < total) {
+            let visits = self.walking.len() + 1;
+            let payment_adjustment = if self.train.paying_stop_limit.is_some()
+                || !self.train.connection_bonuses.is_empty()
+            {
+                let stops: Vec<_> = std::iter::once(start)
+                    .chain(self.walking.iter().map(|&id| self.connections[id].to))
+                    .collect();
+                self.train.paid_revenue(&stops, &self.problem.stops)
+                    - stops.iter().map(|&id| self.train.revenues[id]).sum::<i32>()
+            } else {
+                0
+            };
+            let total = revenue + payment_adjustment + first_bonus.max(last_bonus);
+            let fleet_bonus = self.problem.longest_route_bonus_per_stop;
+            if !self.best_only
+                || self.candidates.first().is_none_or(|c| {
+                    c.revenue + c.visits as i32 * fleet_bonus < total + visits as i32 * fleet_bonus
+                })
+            {
                 if self.best_only {
                     self.candidates.clear();
                 }
                 self.candidates.push(Candidate {
                     revenue: total,
+                    visits,
                     connections: self.walking.clone(),
                     resources: self.used.clone(),
                     reversed: last_bonus > first_bonus,
@@ -405,6 +522,8 @@ impl Search<'_> {
 struct Selection<'a> {
     candidates: &'a [Rc<Vec<Candidate>>],
     upper: Vec<i32>,
+    longest_upper: Vec<usize>,
+    longest_bonus: i32,
     used: Vec<u64>,
     current: Vec<(usize, usize)>,
     best: Vec<(usize, usize)>,
@@ -415,22 +534,28 @@ struct Selection<'a> {
 }
 
 impl Selection<'_> {
-    fn walk(&mut self, train: usize, revenue: i32) {
+    fn walk(&mut self, train: usize, revenue: i32, longest: usize) {
         self.expansions += 1;
-        if self.exhausted || self.expansions.is_multiple_of(4096) && milliseconds() > self.deadline
+        if self.exhausted
+            || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
+                && milliseconds() > self.deadline
         {
             self.exhausted = true;
             return;
         }
-        if revenue > self.revenue {
-            self.revenue = revenue;
+        let total = revenue + longest as i32 * self.longest_bonus;
+        if total > self.revenue {
+            self.revenue = total;
             self.best.clone_from(&self.current);
         }
-        if train == self.candidates.len() || revenue + self.upper[train] <= self.revenue {
+        let bonus_upper = longest.max(self.longest_upper[train]) as i32 * self.longest_bonus;
+        if train == self.candidates.len()
+            || revenue + self.upper[train] + bonus_upper <= self.revenue
+        {
             return;
         }
         for (index, candidate) in self.candidates[train].iter().enumerate() {
-            if revenue + candidate.revenue + self.upper[train + 1] <= self.revenue {
+            if revenue + candidate.revenue + self.upper[train + 1] + bonus_upper <= self.revenue {
                 break;
             }
             if candidate
@@ -445,7 +570,11 @@ impl Selection<'_> {
                 *used |= bits;
             }
             self.current.push((train, index));
-            self.walk(train + 1, revenue + candidate.revenue);
+            self.walk(
+                train + 1,
+                revenue + candidate.revenue,
+                longest.max(candidate.visits),
+            );
             self.current.pop();
             for (used, bits) in self.used.iter_mut().zip(&candidate.resources) {
                 *used &= !bits;
@@ -454,7 +583,7 @@ impl Selection<'_> {
                 break;
             }
         }
-        self.walk(train + 1, revenue);
+        self.walk(train + 1, revenue, longest);
     }
 }
 
@@ -464,6 +593,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     let mut compiler = Compiler {
         problem,
         used: vec![false; problem.resource_count],
+        junction_segments: vec![0; problem.junction_count],
         walking: vec![],
         connections: vec![],
         deadline: started + problem.budget_ms,
@@ -495,6 +625,9 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                 && other.requires_city == train.requires_city
                 && other.revenues == train.revenues
                 && other.first_bonus == train.first_bonus
+                && other.paying_stop_limit == train.paying_stop_limit
+                && other.require_paying_token == train.require_paying_token
+                && other.connection_bonuses == train.connection_bonuses
         }) {
             candidates.push(Rc::clone(&candidates[previous]));
             counts.push(counts[previous]);
@@ -569,9 +702,16 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             .candidates
             .sort_unstable_by_key(|a| std::cmp::Reverse(a.revenue));
         let mut seen = HashSet::new();
-        search
-            .candidates
-            .retain(|c| seen.insert(c.resources.clone()));
+        search.candidates.retain(|c| {
+            seen.insert((
+                c.resources.clone(),
+                if problem.longest_route_bonus_per_stop > 0 {
+                    c.visits
+                } else {
+                    0
+                },
+            ))
+        });
         counts.push(search.count);
         expansions += search.expansions;
         path_exhaustive &= !search.exhausted;
@@ -579,12 +719,17 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     }
     let path_finished = milliseconds();
     let mut upper = vec![0; candidates.len() + 1];
+    let mut longest_upper = vec![0; candidates.len() + 1];
     for t in (0..candidates.len()).rev() {
         upper[t] = upper[t + 1] + candidates[t].first().map_or(0, |c| c.revenue);
+        longest_upper[t] =
+            longest_upper[t + 1].max(candidates[t].iter().map(|c| c.visits).max().unwrap_or(0));
     }
     let mut selection = Selection {
         candidates: &candidates,
         upper,
+        longest_upper,
+        longest_bonus: problem.longest_route_bonus_per_stop,
         used: vec![0; problem.resource_count.div_ceil(64)],
         current: vec![],
         best: vec![],
@@ -593,7 +738,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         deadline: path_finished + problem.budget_ms,
         exhausted: false,
     };
-    selection.walk(0, 0);
+    selection.walk(0, 0, 0);
     let routes = selection
         .best
         .iter()

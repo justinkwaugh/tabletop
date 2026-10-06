@@ -65,13 +65,13 @@ export class HydratedDistributeEarnings
     declare choice: EarningsChoice
     declare metadata?: DistributeEarnings['metadata']
     readonly #rules: EarningsRules
-    readonly #privateRules: PrivateRules
+    readonly #privateRules: Pick<PrivateRules, 'operationEffects'>
     readonly #stockRules: StockRules
     readonly #nextState: string
     constructor(
         data: DistributeEarnings,
         rules: EarningsRules,
-        privateRules: PrivateRules,
+        privateRules: Pick<PrivateRules, 'operationEffects'>,
         stockRules: StockRules,
         nextState: string
     ) {
@@ -93,7 +93,7 @@ export class HydratedDistributeEarnings
         )
         const result = distribution.evaluate(this.companyId, this.choice)
         assert(result.details, result.reason ?? 'Invalid distribution')
-        settleCashPayments(state, result.details.payments)
+        applyEarningsDistribution(state, result.details)
         const chargesPaid = result.details.charges
             ? chargePlayers(
                   state,
@@ -101,16 +101,9 @@ export class HydratedDistributeEarnings
                   this.#nextState
               )
             : []
-        if (result.details.marketMove)
-            placeStockMarker(
-                state.stockMarket,
-                this.companyId,
-                result.details.marketMove.toMarketSpaceId
-            )
-        getCompany(state, this.companyId).operated = true
-        state.earningsDistribution = result.details
         const privateEffects = this.#privateRules.operationEffects(state, this.companyId)
         applyPrivateEffects(state, privateEffects, this.#stockRules)
+        this.#rules.afterDistribution?.(state, this.companyId)
         this.metadata = {
             ...result.details,
             ...(chargesPaid.length ? { chargesPaid } : {}),
@@ -138,4 +131,15 @@ export class HydratedDistributeEarnings
             })
             .sort((a, b) => rotated.indexOf(a.playerId) - rotated.indexOf(b.playerId))
     }
+}
+
+export function applyEarningsDistribution(
+    state: DistributionState,
+    details: Type.Static<typeof EarningsDetails>
+): void {
+    settleCashPayments(state, details.payments)
+    if (details.marketMove)
+        placeStockMarker(state.stockMarket, details.companyId, details.marketMove.toMarketSpaceId)
+    getCompany(state, details.companyId).operated = true
+    state.earningsDistribution = details
 }

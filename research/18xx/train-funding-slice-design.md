@@ -66,16 +66,21 @@ recomputed after each committed action. Excess sale proceeds remain with the sel
 `FundTrain` explicitly enters compulsory funding from train buying, retaining the
 opportunity to negotiate a treasury-funded company train before committing. It is
 unavailable when no train is required, a train is already owned, or the company can
-afford the cheapest eligible bank train. `FundingTrain` permits only its next
-funding action. Private powers, transfers, stock actions, and finishing the turn
-cannot interrupt or escape that procedure.
+afford the cheapest eligible bank train. `FundingTrain` permits its next funding
+action and any-turn private exchanges allowed by the title. Exchanges preserve
+the committed purchase and sales; current ownership determines the liable player
+and contributors. Transfers, ordinary stock actions, other private powers, and
+finishing the turn cannot escape that procedure. See
+[rereview corrections](rereview-corrections-design.md).
 
 `IssueTreasuryShares`, `ContributeTrainFunds`, and `SellFundingShares` validate
 current authority and exact amounts before settlement. `BuyTrain` remains the
 actual train purchase Action, restricted here to the funded train. Its existing
 phase/rusting/discard cascade resumes ordinary train buying. A system
 `DeclareBankruptcy` enters a terminal `Bankrupt` state when all legal sources are
-exhausted. This includes any final contribution, so the remaining player cash is
+exhausted. An available optional exchange postpones automatic bankruptcy, allowing
+the responsible player to exchange or explicitly declare bankruptcy. This includes
+any final contribution, so the remaining player cash is
 already in the railway treasury. Final scoring and the platform result are slice
 19; no winner or loser is fabricated from bankruptcy alone.
 

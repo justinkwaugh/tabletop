@@ -162,7 +162,7 @@ describe('MapModule', () => {
 
     it('keeps a map style per player', () => {
         const { map } = table('StockRound', [])
-        expect(map.style).toBe('classic')
+        expect(map.style).toBe('custom')
         map.setStyle('muted')
         expect(map.style).toBe('muted')
     })

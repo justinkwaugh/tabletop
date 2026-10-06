@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 2, "budget_ms": 30000,
+        "version": 4, "junction_count": 1, "budget_ms": 30000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -23,7 +23,7 @@ fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
             "first_bonus": vec![0; nodes],
         })).collect::<Vec<_>>(),
         "arcs": edges.iter().enumerate().flat_map(|(id, &(a, b))| [(a,b),(b,a)].map(|(from,to)| json!({
-            "from": from, "to": to, "next": [], "resources": [id], "path": id, "hex": id, "crossings": 0, "terminal": false,
+            "from": from, "to": to, "next": [], "junctions": [], "resources": [id], "path": id, "hex": id, "crossings": 0, "terminal": false,
         }))).collect::<Vec<_>>(),
     })
 }
@@ -40,6 +40,46 @@ fn station_can_be_interior_and_routes_may_share_the_station() {
 fn track_cannot_be_reused_across_trains() {
     let p = graph(3, &[(0, 1), (1, 2)], &[3, 3]);
     assert_eq!(solve(&p)["revenue"], 60);
+}
+
+#[test]
+fn express_trains_pay_a_station_and_optimize_paid_connection_bonuses() {
+    let mut p = graph(5, &[(0, 1), (1, 2), (2, 3), (3, 4)], &[5]);
+    p["trains"][0]["revenues"] = json!([10, 30, 40, 50, 60]);
+    p["trains"][0]["paying_stop_limit"] = json!(3);
+    p["trains"][0]["require_paying_token"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 120);
+    p["trains"][0]["connection_bonuses"] = json!([{
+        "from": [null, 70, null, null, null],
+        "to": [null, null, null, null, 50],
+    }]);
+    assert_eq!(solve(&p)["revenue"], 220);
+    p["trains"][0]["paying_stop_limit"] = json!(2);
+    assert_eq!(solve(&p)["revenue"], 70);
+    p["trains"][0]["require_paying_token"] = json!(false);
+    assert_eq!(solve(&p)["revenue"], 210);
+}
+
+#[test]
+fn longest_route_bonus_is_paid_once_for_the_fleet() {
+    let mut p = graph(3, &[(0, 1), (0, 2)], &[2, 2]);
+    p["longest_route_bonus_per_stop"] = json!(10);
+    assert_eq!(solve(&p)["revenue"], 90);
+}
+
+#[test]
+fn longest_route_bonus_influences_single_train_candidate_selection() {
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
+    p["trains"][0]["revenues"] = json!([10, 20, 0]);
+    p["longest_route_bonus_per_stop"] = json!(10);
+    assert_eq!(solve(&p)["revenue"], 60);
+    assert_eq!(
+        solve(&p)["routes"][0]["connections"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
 }
 
 #[test]
@@ -93,12 +133,12 @@ fn edge_ports_only_connect_through_the_neighbor() {
     let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
     p["trains"][0]["revenues"] = json!([10, 100, 30]);
     p["arcs"] = json!([
-        {"from": 0, "to": null, "next": [4], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 0, "next": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": 1, "to": null, "next": [4], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 1, "next": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 2, "next": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false},
-        {"from": 2, "to": null, "next": [1,3], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false}
+        {"from": 0, "to": null, "next": [4], "junctions": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 0, "next": [], "junctions": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": 1, "to": null, "next": [4], "junctions": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 1, "next": [], "junctions": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 2, "next": [], "junctions": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false},
+        {"from": 2, "to": null, "next": [1,3], "junctions": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false}
     ]);
     assert_eq!(solve(&p)["revenue"], 40);
 }
@@ -134,7 +174,7 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
     permutations(&mut (0..stops.len()).collect(), &mut vec![], &mut paths);
     let mut candidates = vec![];
     for train in p["trains"].as_array().unwrap() {
-        let mut choices = vec![(0, 0u64)];
+        let mut choices = vec![(0, 0u64, 0usize)];
         for path in &paths {
             if !path.iter().any(|&n| stops[n]["token"] == true)
                 || path.iter().any(|&n| stops[n]["allowed"] == false)
@@ -180,10 +220,48 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
             let Some(route_edges) = route_edges else {
                 continue;
             };
-            let revenue: i64 = path
-                .iter()
-                .map(|&n| train["revenues"][n].as_i64().unwrap())
-                .sum::<i64>()
+            let paying_count = train["paying_stop_limit"]
+                .as_u64()
+                .map_or(path.len(), |n| n as usize)
+                .min(path.len());
+            let paid_revenue = (0u64..1 << path.len())
+                .filter(|bits| bits.count_ones() as usize == paying_count)
+                .filter_map(|bits| {
+                    let paid: Vec<_> = path
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| bits & (1 << index) != 0)
+                        .map(|(_, &node)| node)
+                        .collect();
+                    if train["require_paying_token"] == true
+                        && !paid.iter().any(|&node| stops[node]["token"] == true)
+                    {
+                        return None;
+                    }
+                    let mut revenue = paid
+                        .iter()
+                        .map(|&node| train["revenues"][node].as_i64().unwrap())
+                        .sum::<i64>();
+                    if let Some(bonuses) = train["connection_bonuses"].as_array() {
+                        for bonus in bonuses {
+                            let from = paid
+                                .iter()
+                                .filter_map(|&node| bonus["from"][node].as_i64())
+                                .max();
+                            let to = paid
+                                .iter()
+                                .filter_map(|&node| bonus["to"][node].as_i64())
+                                .max();
+                            if let (Some(from), Some(to)) = (from, to) {
+                                revenue += from + to;
+                            }
+                        }
+                    }
+                    Some(revenue)
+                })
+                .max()
+                .unwrap();
+            let revenue: i64 = paid_revenue
                 + route_edges
                     .iter()
                     .map(|&e| p["hex_bonuses"][e].as_i64().unwrap())
@@ -196,22 +274,30 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
             choices.push((
                 revenue,
                 route_edges.iter().fold(0u64, |bits, &e| bits | (1 << e)),
+                path.len(),
             ));
         }
         candidates.push(choices);
     }
-    fn product(lists: &[Vec<(i64, u64)>], used: u64) -> i64 {
+    fn product(lists: &[Vec<(i64, u64, usize)>], used: u64, longest: usize, bonus: i64) -> i64 {
         if lists.is_empty() {
-            return 0;
+            return longest as i64 * bonus;
         }
         lists[0]
             .iter()
-            .filter(|(_, bits)| bits & used == 0)
-            .map(|&(value, bits)| value + product(&lists[1..], used | bits))
+            .filter(|(_, bits, _)| bits & used == 0)
+            .map(|&(value, bits, visits)| {
+                value + product(&lists[1..], used | bits, longest.max(visits), bonus)
+            })
             .max()
             .unwrap()
     }
-    product(&candidates, 0)
+    product(
+        &candidates,
+        0,
+        0,
+        p["longest_route_bonus_per_stop"].as_i64().unwrap_or(0),
+    )
 }
 
 #[test]
@@ -264,6 +350,20 @@ fn agrees_with_unpruned_permutation_oracle_on_200_graphs() {
             solve(&p)["revenue"].as_i64().unwrap(),
             exhaustive_oracle(&p, &edges),
             "case {case}: {p}"
+        );
+        p["longest_route_bonus_per_stop"] = json!((case % 3) * 10);
+        for (id, train) in p["trains"].as_array_mut().unwrap().iter_mut().enumerate() {
+            train["paying_stop_limit"] = json!(1 + (case + id) % 4);
+            train["require_paying_token"] = json!(case % 2 == 0);
+            train["connection_bonuses"] = json!([{
+                "from": [0, 30, null, null, null],
+                "to": [null, null, 20, null, 50],
+            }]);
+        }
+        assert_eq!(
+            solve(&p)["revenue"].as_i64().unwrap(),
+            exhaustive_oracle(&p, &edges),
+            "scored case {case}: {p}"
         );
     }
 }
@@ -319,4 +419,42 @@ fn required_city_is_separate_from_the_station_requirement() {
     assert_eq!(solve(&p)["revenue"], 0);
     p["stops"][1]["city"] = json!(true);
     assert_eq!(solve(&p)["revenue"], 30);
+}
+
+#[test]
+fn junction_cannot_be_revisited_between_stops() {
+    let mut p = graph(2, &[(0, 1); 4], &[2]);
+    for id in 0..4 {
+        let fwd = id * 2;
+        let rev = fwd + 1;
+        p["arcs"][fwd]["from"] = if id == 0 { json!(0) } else { Value::Null };
+        p["arcs"][fwd]["to"] = if id == 3 { json!(1) } else { Value::Null };
+        p["arcs"][fwd]["next"] = if id == 3 { json!([]) } else { json!([fwd + 2]) };
+        p["arcs"][rev]["to"] = p["arcs"][fwd]["from"].clone();
+        p["arcs"][rev]["from"] = p["arcs"][fwd]["to"].clone();
+        p["arcs"][rev]["next"] = if id == 0 { json!([]) } else { json!([rev - 2]) };
+    }
+    p["arcs"][0]["junctions"] = json!([0]);
+    p["arcs"][1]["junctions"] = json!([0]);
+    p["arcs"][2]["junctions"] = json!([0]);
+    p["arcs"][3]["junctions"] = json!([0]);
+    assert_eq!(solve(&p)["revenue"], 30);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 0);
+}
+
+#[test]
+fn junction_can_be_revisited_after_another_stop_and_by_another_train() {
+    let mut p = graph(4, &[(0, 1), (1, 2), (2, 3)], &[4]);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 100);
+    let mut p = graph(3, &[(0, 1), (0, 2)], &[2, 2]);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 70);
 }

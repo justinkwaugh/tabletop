@@ -370,7 +370,7 @@ it.each([
         })
         const updated = result.updatedState
         const advancement = result.processedActions.find(isAdvancePhase)!
-        const changes = historyCompanyChanges(result.processedActions, updated)
+        const changes = historyCompanyChanges(result.processedActions)
         const description = historyDescription(
             advancement,
             updated,

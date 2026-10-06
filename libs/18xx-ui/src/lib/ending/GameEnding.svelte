@@ -1,7 +1,17 @@
 <script lang="ts">
     import type { EighteenXXState } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, position }: { session: EighteenXXSession; position?: EighteenXXState } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    type EndingPosition = Pick<EighteenXXState, 'gameEnding' | 'finalWealth' | 'winningPlayerIds'>
+    let {
+        session,
+        position
+    }: {
+        session: Pick<EighteenXXSessionView, 'getPlayerName'> & {
+            gameState: EndingPosition
+            presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
+        }
+        position?: EndingPosition
+    } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(position ?? session.gameState)
     const standings = $derived(gameState.finalWealth?.toSorted((a, b) => b.total - a.total) ?? [])

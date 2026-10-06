@@ -18,7 +18,7 @@
     import { warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason, siteName } from '$lib/model/names.js'
+    import { cardName, siteName } from '$lib/model/names.js'
 
     // R-6.1, R-6.3, R-6.5, R-6.7, R-9.4; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
     let { action }: { action: ActionType } = $props()
@@ -146,7 +146,7 @@
                         {/if}
                         {#if reason}
                             <p class="text-[11px] text-oath-danger">
-                                <TokenText text={humanizeReason(reason) ?? ''} />
+                                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                             </p>
                         {/if}
                         <button

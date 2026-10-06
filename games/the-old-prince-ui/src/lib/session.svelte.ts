@@ -1,27 +1,27 @@
-import { TheOldPrincePresentation } from './presentation.js'
 import { getCompany } from '@tabletop/18xx'
-import UnknownToken from './images/tokens/unknown.svg'
-import StraightTile from './images/tokens/straight-tile.svg'
-import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
-import { TheOldPrinceMapView } from './mapView.js'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { type GameSession } from '@tabletop/frontend-components'
-import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
+import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
+import StraightTile from './images/tokens/straight-tile.svg'
+import UnknownToken from './images/tokens/unknown.svg'
+import { TheOldPrinceMapView } from './mapView.js'
+import { TheOldPrincePresentation } from './presentation.js'
 
 import { assert } from '@tabletop/common'
 import {
-    TheOldPrinceBranchSplit,
     SplitCompany,
+    TheOldPrinceBranchSplit,
     isSplitCompany,
     type BranchSplitAllocation
 } from '@tabletop/the-old-prince'
 import {
-    chooseSplitParent,
-    chooseSplitBranch,
-    chooseSplitPrice,
-    chooseSplitAllocation,
     backSplitSelection,
     chooseSplitAction,
+    chooseSplitAllocation,
+    chooseSplitBranch,
+    chooseSplitParent,
+    chooseSplitPrice,
     hasSplitSelection,
     splitRequest,
     type BranchSplitSelection
@@ -211,7 +211,7 @@ export class TheOldPrinceSession extends BaseSession {
     }
 }
 export function requireTheOldPrinceSession(
-    session: GameSession<EighteenXXState, HydratedEighteenXXState>
+    session: GameSession<TheOldPrinceState, HydratedTheOldPrinceState>
 ): TheOldPrinceSession {
     assert(session instanceof TheOldPrinceSession, 'Expected a TOP session')
     return session

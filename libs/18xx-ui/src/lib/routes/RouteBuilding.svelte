@@ -1,7 +1,32 @@
 <script lang="ts">
-    import type { RouteResult } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    import type { OperatingResult, RouteResult } from '@tabletop/18xx'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let {
+        session,
+        recordedResult,
+        showUndo = true
+    }: {
+        showUndo?: boolean
+        recordedResult?: OperatingResult
+        session: Pick<EighteenXXSessionView, 'undo' | 'busy' | 'isViewingHistory'> & {
+            gameState: Pick<EighteenXXSessionView['gameState'], 'routeStep' | 'companies'>
+            presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
+            routes: Pick<
+                EighteenXXSessionView['routes'],
+                | 'editor'
+                | 'editorVisible'
+                | 'canRun'
+                | 'selectTrain'
+                | 'selectStart'
+                | 'appendPath'
+                | 'save'
+                | 'edit'
+                | 'remove'
+                | 'back'
+                | 'confirm'
+            >
+        }
+    } = $props()
     const money = $derived(session.presentation.money)
     function breakdown(route: RouteResult): string {
         return [
@@ -12,20 +37,20 @@
         ].join(' + ')
     }
     const editor = $derived(session.routes.editor)
-    const step = $derived(session.gameState.routeStep)
+    const step = $derived(
+        recordedResult
+            ? { companyId: recordedResult.companyId, result: recordedResult }
+            : session.gameState.routeStep
+    )
     const visible = $derived(session.routes.editorVisible)
     const current = $derived(visible ? editor.route : undefined)
     const preview = $derived(visible ? editor.preview : undefined)
     const evaluation = $derived(visible ? editor.combinedPreview : undefined)
-    const results = $derived(
-        step?.result?.routes ??
-            (visible
-                ? editor.routes.flatMap((route) => {
-                      const result = editor.evaluation.evaluateRoute(step!.companyId, route).result
-                      return result ? [result] : []
-                  })
-                : [])
+    const previewResult = $derived(
+        evaluation?.result?.routes.find((route) => route.trainId === current?.trainId) ??
+            preview?.result
     )
+    const results = $derived(step?.result?.routes ?? (visible ? editor.savedResults : []))
 </script>
 
 {#if step}
@@ -92,13 +117,13 @@
                         </div>
                     {/if}
                     {#if preview?.reason}<p role="status">{preview.reason}</p>{/if}
-                    {#if preview?.result}<p>
-                            Distance: {preview.result.distance} · Revenue: {money(
-                                preview.result.revenue
+                    {#if previewResult}<p>
+                            Distance: {previewResult.distance} · Revenue: {money(
+                                previewResult.revenue
                             )}
                         </p>
                         <p>
-                            {breakdown(preview.result)}
+                            {breakdown(previewResult)}
                         </p>{/if}
                     <button disabled={!session.routes.canRun} onclick={() => session.routes.back()}
                         >Back</button

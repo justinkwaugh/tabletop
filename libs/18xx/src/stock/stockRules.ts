@@ -1,22 +1,22 @@
 import { assertExists } from '@tabletop/common'
-import type { StockRoundRules } from './stockRoundRules.js'
 import {
-    sameOwner,
     certificatesInPool,
     certificatesOwnedBy,
     getCompany,
+    sameOwner,
     sharesOwned,
     type Owner,
     type Portfolio,
     type President
 } from '../finance/finance.js'
-import { companyMarketSpace } from './stockMarket.js'
-import type { StockState } from './stockState.js'
-import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
-import type { StockInstructionRules } from './stockInstruction.js'
-import type { MultipleBuyRules } from './turnPurchases.js'
-import type { PrivateSaleRules } from './privateSale.js'
 import type { CompanyAuctionRules } from './companyAuction.js'
+import type { PrivateSaleRules } from './privateSale.js'
+import type { ShareCertificate, SharePurchaseTerms } from './sharePurchase.js'
+import type { StockInstructionRules } from './stockInstruction.js'
+import { companyMarketSpace } from './stockMarket.js'
+import type { StockRoundRules } from './stockRoundRules.js'
+import type { StockState } from './stockState.js'
+import type { MultipleBuyRules } from './turnPurchases.js'
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -73,7 +73,7 @@ export function purchaseOwnershipCeiling(
     state: StockState,
     companyId: string,
     buyer: Owner,
-    rules: StockRules
+    rules: Pick<StockRules, 'ownershipLimit'>
 ): number {
     const company = getCompany(state, companyId)
     assertExists(company.shareCount, 'Ownership limits require a share count')
@@ -86,9 +86,10 @@ export function certificateLimitAllows(
     certificate: Portfolio[number],
     rules: StockRules
 ): boolean {
+    const weight = rules.certificateWeight(state, certificate)
     return (
-        stockCertificateCount(state, owner, rules) + rules.certificateWeight(state, certificate) <=
-        rules.certificateLimit(state, owner)
+        weight === 0 ||
+        stockCertificateCount(state, owner, rules) + weight <= rules.certificateLimit(state, owner)
     )
 }
 
@@ -120,7 +121,7 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
                 sharesOwned(state, company.id, owner) * 100 >
                 Math.max(
                     rules.ownershipLimit(state, company.id, owner) * company.shareCount,
-                    ...state.ownershipLimitExemptions
+                    ...(state.ownershipLimitExemptions ?? [])
                         .filter(
                             (exemption) =>
                                 exemption.companyId === company.id &&

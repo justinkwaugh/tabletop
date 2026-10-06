@@ -1,3 +1,5 @@
+import type { EighteenSeventeenState } from './state.js'
+import type { TrainPurchaseState } from '@tabletop/18xx'
 import { PhaseTable, TrainDepot, type DeparturePayment, type TrainRules } from '@tabletop/18xx'
 import { inventorPaid } from './state.js'
 import { InventorId, ScrapperId, companyHolding } from './privateHolders.js'
@@ -98,7 +100,10 @@ export const EighteenSeventeenTrainRules: TrainRules = {
     purchaseLimit: () => 'unlimited',
     // The Inventor's company is paid the first time each type departs while it holds the
     // Inventor; the Scrapper's company is paid for each of its trains that rusts.
-    afterTrainsDepart(state, departures) {
+    afterTrainsDepart(
+        state: TrainPurchaseState & Pick<EighteenSeventeenState, 'inventorPaid'>,
+        departures
+    ) {
         const payments: DeparturePayment[] = []
         const paid = [...inventorPaid(state)]
         const inventorCompanyId = companyHolding(state, InventorId)
@@ -118,7 +123,7 @@ export const EighteenSeventeenTrainRules: TrainRules = {
             )
                 payments.push(bankPays(scrapperCompanyId, scrap, ScrapperId))
         }
-        if (paid.length > inventorPaid(state).length) Object.assign(state, { inventorPaid: paid })
+        if (paid.length > inventorPaid(state).length) state.inventorPaid = paid
         return payments
     }
 }

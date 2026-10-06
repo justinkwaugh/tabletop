@@ -17,6 +17,8 @@ export interface TrainRules {
     availableDefinitions(state: TrainPurchaseState): string[]
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number
+    countsForLimit?(state: TrainPurchaseState, train: Train): boolean
+    marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
@@ -25,6 +27,15 @@ export interface TrainRules {
         state: TrainPurchaseState,
         departures: readonly TrainDeparture[]
     ): DeparturePayment[]
+}
+export function trainsCountingForLimit(
+    state: TrainPurchaseState,
+    rules: Pick<TrainRules, 'countsForLimit'>,
+    companyId: string
+): Train[] {
+    return trainsOwnedBy(state, { kind: 'company', companyId }).filter(
+        (train) => rules.countsForLimit?.(state, train) ?? true
+    )
 }
 export const TrainPurchaseRequest = Type.Object(
     {
@@ -42,8 +53,7 @@ export const TrainPurchaseDetails = Type.Object(
 )
 export type TrainPurchaseDetails = Type.Static<typeof TrainPurchaseDetails>
 export type TrainPurchaseEvaluation =
-    | { details: TrainPurchaseDetails; reason?: never }
-    | { details?: never; reason: string }
+    { details: TrainPurchaseDetails; reason?: never } | { details?: never; reason: string }
 export class TrainPurchase {
     constructor(
         private readonly state: TrainPurchaseState,
@@ -61,7 +71,7 @@ export class TrainPurchase {
         remaining: number | 'unlimited'
         evaluation: TrainPurchaseEvaluation
     }[] {
-        return this.rules.depot.definition.supply.map(({ definitionId }) => {
+        return this.rules.depot.purchaseDefinitionIds().map((definitionId) => {
             const train = this.rules.depot.nextTrain(this.state.trainInventory, definitionId)
             return {
                 definitionId,
@@ -86,12 +96,12 @@ export class TrainPurchase {
         return companyId
             ? this.state.trainInventory.trains
                   .filter((train) => train.status === 'market')
-                  .map((train) =>
-                      this.evaluate({
-                          companyId,
-                          trainId: train.id,
-                          definitionId: train.definitionId
-                      })
+                  .flatMap((train) =>
+                      (
+                          this.rules.marketDefinitions?.(this.state, train) ?? [train.definitionId]
+                      ).map((definitionId) =>
+                          this.evaluate({ companyId, trainId: train.id, definitionId })
+                      )
                   )
             : []
     }
@@ -123,7 +133,9 @@ export class TrainPurchase {
         const marketTrain = this.state.trainInventory.trains.find(
             (train) =>
                 train.id === trainId &&
-                train.definitionId === definitionId &&
+                (
+                    this.rules.marketDefinitions?.(this.state, train) ?? [train.definitionId]
+                ).includes(definitionId) &&
                 train.status === 'market'
         )
         const train =
@@ -150,8 +162,10 @@ export class TrainPurchase {
         )
             return { reason: 'This train cannot be exchanged for that purchase.' }
         if (
-            trainsOwnedBy(this.state, { kind: 'company', companyId }).length -
-                (exchanged ? 1 : 0) >=
+            trainsCountingForLimit(this.state, this.rules, companyId).length -
+                (exchanged && (this.rules.countsForLimit?.(this.state, exchanged) ?? true)
+                    ? 1
+                    : 0) >=
             limit
         )
             return { reason: 'The company is at its train limit.' }

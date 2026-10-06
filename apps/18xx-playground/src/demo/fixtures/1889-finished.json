@@ -2354,8 +2354,6 @@
                 }
             }
         ],
-        "tranches": [],
-        "ownershipLimitExemptions": [],
         "stations": [
             {
                 "id": "AR:home",

@@ -1,13 +1,14 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBiddingCard from './AuctionBiddingCard.svelte'
     import { auctionLotDetails } from './auctionLotDetails.js'
 
     let {
         session,
         lotInfo
-    }: { session: EighteenXXSession; lotInfo: (id: string) => { description: string } } = $props()
+    }: { session: EighteenXXSessionView; lotInfo: (id: string) => { description: string } } =
+        $props()
     const money = $derived(session.presentation.money)
     const model = $derived.by(() => {
         assertExists(session.offers.model, 'Bidding requires an offer auction')

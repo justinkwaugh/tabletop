@@ -1,21 +1,21 @@
-import { expect, it } from 'vitest'
-import { cashOwnedBy, EighteenXXStateValidator } from '@tabletop/18xx'
+import { cashOwnedBy } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { assertExists, Color, Prng, type PlayerState } from '@tabletop/common'
+import { expect, it } from 'vitest'
 import {
     EighteenThirtyStockRules,
     EighteenThirtyTrainDepot,
     EighteenThirtyTrainRules
 } from './index.js'
-import { EighteenThirtyScenarios } from './scenarios/index.js'
 import { createEighteenThirtyOpening } from './openingAuction.js'
-import { assertExists, Color, Prng, type PlayerState } from '@tabletop/common'
+import { EighteenThirtyScenarios } from './scenarios/index.js'
 
 const StartingCash = { 2: 1200, 3: 800, 4: 600, 5: 480, 6: 400 } as const
 const CertificateLimits = { 2: 28, 3: 20, 4: 16, 5: 13, 6: 11 } as const
 
 it.each([2, 3, 4, 5, 6] as const)('creates the %i-player opening', (count) => {
     const { state } = exampleGame(EighteenThirtyScenarios, 'opening', count)
-    expect(EighteenXXStateValidator.Check(state)).toBe(true)
+    expect(EighteenThirtyScenarios.runtime.canonicalStateValidator?.Check(state)).toBe(true)
     expect(state.companies.filter((company) => company.kind === 'private')).toHaveLength(6)
     expect(state.companies.filter((company) => company.kind === 'major')).toHaveLength(8)
     expect(

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, disabled }: { session: EighteenXXSession; disabled: boolean } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, disabled }: { session: EighteenXXSessionView; disabled: boolean } = $props()
     const money = $derived(session.presentation.money)
     let prices = $derived.by((): Record<string, number> => {
         void session.gameState

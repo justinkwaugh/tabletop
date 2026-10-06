@@ -1,3 +1,4 @@
+import { historyStates, type HistoryStates } from './historyStates.js'
 import {
     isAdvancePhase,
     isBuyShares,
@@ -63,31 +64,25 @@ function roundClosingAction(reversed: readonly GameAction[], position: number): 
 export function historyRounds(
     actions: readonly GameAction[],
     state: EighteenXXState,
+    states: HistoryStates = historyStates(actions, state),
     orderChanges: ReadonlyMap<string, HistoryOperatingOrder> = historyOperatingOrder(
         actions,
-        state
+        states
     ),
-    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
+    cash: ReadonlyMap<string, HistoryCash> = historyCash(states),
     title: HistoryTitle = {}
 ): HistoryRound[] {
     const titleRounds = title.rounds ?? []
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
-    let phase = state.phaseId
-    let stock = state.stockRound.number
-    let operating = state.stockRound.completed
-    let set = state.operatingSet?.number ?? 1
-    let round = state.operatingSet?.roundNumber ?? 1
-    let auction = !!(
-        (state.offerAuction && !state.offerAuction.completed) ||
-        (state.openingAuction && !state.openingAuction.completed) ||
-        (state.selectionAuction && !state.selectionAuction.completed)
-    )
     // Walking back from the end, a title's round is open between its end and its start.
     let openRound = titleRounds.find((round) => round.inProgress(state))
     const rounds: HistoryRound[] = []
     const reversed = actions.toReversed()
     for (const [position, action] of reversed.entries()) {
+        const snapshot = states.get(action.id)
+        if (!snapshot) continue
+        const { phase, stock, operating, set, round, auction } = snapshot.after
         const closing = roundClosingAction(reversed, position)
         openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
         const heading = auction
@@ -149,29 +144,13 @@ export function historyRounds(
                       ? { kind: 'action' as const, id: action.id, action }
                       : undefined))
         if (entry) section.entries.push(entry)
-        if (isResolveSelectionAuction(action) && action.metadata?.completed) auction = true
-        for (const patch of action.undoPatch ?? []) {
-            if (patch.op !== 'add' && patch.op !== 'replace') continue
-            if (patch.path === '/phaseId') {
-                phase = patch.value
-                section.startActionIndex = action.index
-                if (section.phases[0] !== phase) section.phases.unshift(phase)
-            } else if (patch.path === '/stockRound') {
-                stock = patch.value.number
-                operating = patch.value.completed
-            } else if (patch.path === '/stockRound/number') stock = patch.value
-            else if (patch.path === '/stockRound/completed') operating = patch.value
-            else if (patch.path === '/operatingSet') {
-                set = patch.value.number
-                round = patch.value.roundNumber
-            } else if (patch.path === '/operatingSet/number') set = patch.value
-            else if (patch.path === '/operatingSet/roundNumber') round = patch.value
-            else if (
-                patch.path === '/offerAuction/completed' ||
-                patch.path === '/openingAuction/completed'
-            )
-                auction = !patch.value
-        }
+        const previousPhase = snapshot.before?.phase
+        if (
+            previousPhase !== undefined &&
+            previousPhase !== phase &&
+            section.phases[0] !== previousPhase
+        )
+            section.phases.unshift(previousPhase)
     }
     return rounds.filter(
         (section) => section.entries.length > 0 || section.operatingOrder !== undefined

@@ -1,3 +1,4 @@
+import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -25,7 +26,11 @@ const Fields = Type.Object({
     type: Type.Literal('AdvancePhase'),
     metadata: Type.Optional(
         Type.Object(
-            { event: PhaseEvent, nextState: Type.String() },
+            {
+                event: PhaseEvent,
+                nextState: Type.String(),
+                companyChanges: Type.Optional(CompanyChanges)
+            },
             { additionalProperties: false }
         )
     )
@@ -49,13 +54,13 @@ export class HydratedAdvancePhase
     declare metadata?: AdvancePhase['metadata']
     readonly #rules: PhaseRules
     readonly #trainRules: TrainRules
-    readonly #privateRules: PrivateRules
+    readonly #privateRules: Pick<PrivateRules, 'phaseEffects'>
     readonly #stockRules: StockRules
     constructor(
         data: AdvancePhase,
         rules: PhaseRules,
         trainRules: TrainRules,
-        privateRules: PrivateRules,
+        privateRules: Pick<PrivateRules, 'phaseEffects'>,
         stockRules: StockRules
     ) {
         super(data instanceof HydratedAdvancePhase ? data.dehydrate() : data, Validator)
@@ -66,10 +71,15 @@ export class HydratedAdvancePhase
     }
     apply(state: HydratedGameState & PhaseChangeState): void {
         assert(this.source === ActionSource.System, 'Phase advancement requires a system action')
+        const companies = new CompanyChangeRecorder(state)
         const event = advancePhase(state, this.#rules, this.#trainRules)
         event.privateEffects = this.#privateRules.phaseEffects(state)
         applyPrivateEffects(state, event.privateEffects, this.#stockRules)
-        this.metadata = { event, nextState: continuePhaseChange(state) }
+        this.metadata = {
+            companyChanges: companies.changes(state),
+            event,
+            nextState: continuePhaseChange(state, this.#rules)
+        }
     }
 }
 export class AdvancingPhaseHandler implements MachineStateHandler<

@@ -1,7 +1,6 @@
 import { assert } from '@tabletop/common'
 import {
     RouteEvaluation,
-    trainsOwnedBy,
     type TrainRunningState,
     type RouteRules,
     type TrainRoute,
@@ -24,9 +23,7 @@ export class RouteEditor {
         return this.state.routeStep?.companyId
     }
     get trains() {
-        return this.companyId
-            ? trainsOwnedBy(this.state, { kind: 'company', companyId: this.companyId })
-            : []
+        return this.companyId ? this.evaluation.runnableTrains(this.companyId) : []
     }
     get centers() {
         return this.evaluation.network.centers()
@@ -48,6 +45,22 @@ export class RouteEditor {
         return this.companyId && this.route && this.preview?.result
             ? this.evaluation.evaluate(this.companyId, [...this.routes, this.route])
             : this.submission
+    }
+    get savedResults() {
+        const combined = this.combinedPreview?.result
+        if (combined)
+            return combined.routes.filter((result) =>
+                this.routes.some((route) => route.trainId === result.trainId)
+            )
+        return (
+            this.submission?.result?.routes ??
+            this.routes.flatMap((route) => {
+                const result = this.companyId
+                    ? this.evaluation.evaluateRoute(this.companyId, route).result
+                    : undefined
+                return result ? [result] : []
+            })
+        )
     }
     get extensions() {
         return this.start ? this.evaluation.network.extensions(this.start, this.paths) : []

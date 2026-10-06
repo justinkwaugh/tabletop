@@ -1,10 +1,11 @@
 import { expect } from 'vitest'
-import { trainsOwnedBy, type EighteenXXState } from '@tabletop/18xx'
+import { trainsOwnedBy } from '@tabletop/18xx'
+import type { EighteenSeventeenState } from '../src/state.js'
 import type { ExamplePlay } from '@tabletop/18xx/scenarios'
 import { acquisitionRoundCompanyId } from '../src/acquisitionRound.js'
 import { mergerRoundCompanyId } from '../src/mergerRound.js'
 
-function actingCompanyId(state: EighteenXXState): string | undefined {
+function actingCompanyId(state: EighteenSeventeenState): string | undefined {
     return (
         state.trackStep?.companyId ??
         state.trainPurchaseStep?.companyId ??
@@ -27,7 +28,10 @@ const CompanyPasses = [
 ]
 
 /** Lays no track, runs, buys and borrows nothing and declines every merger and sale. */
-export function passUntil(play: ExamplePlay, until: (state: EighteenXXState) => boolean) {
+export function passUntil(
+    play: ExamplePlay<EighteenSeventeenState>,
+    until: (state: EighteenSeventeenState) => boolean
+) {
     for (let step = 0; step < 100 && !until(play.state); step++) {
         const actions = play.valid(play.state.activePlayerIds[0])
         const companyId = actingCompanyId(play.state)

@@ -1269,8 +1269,6 @@
     }
    }
   ],
-  "tranches": [],
-  "ownershipLimitExemptions": [],
   "stations": [
    {
     "id": "AS:home",
@@ -11862,6 +11860,14 @@
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
    "playerId": "10573",
+   "type": "PassConvertedShares",
+   "companyId": "NYSW"
+  },
+  {
+   "id": "recorded:872:post-conversion-pass",
+   "gameId": "1817-1817_game_end_bankrupt",
+   "source": "user",
+   "playerId": "12235",
    "type": "PassConvertedShares",
    "companyId": "NYSW"
   },

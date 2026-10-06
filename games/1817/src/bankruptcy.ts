@@ -1,3 +1,5 @@
+import type { EighteenSeventeenState } from './state.js'
+import type { CashCrisisState } from '@tabletop/18xx'
 import {
     getCompany,
     stockMarketOrder,
@@ -18,7 +20,7 @@ export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
     // Every share and short goes to the market without changing a presidency, so each company
     // the player presides is liquidated without a president. The market's shorts close against
     // its shares.
-    bankrupt(state, playerId) {
+    bankrupt(state: CashCrisisState & Pick<EighteenSeventeenState, 'formerPresidents'>, playerId) {
         const market = marketPool(state)
         for (const certificate of state.certificates)
             if (

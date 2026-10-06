@@ -42,7 +42,7 @@
     <p>Match every card with a customer of its color in your shops.</p>
     <div class="my-1 flex justify-center gap-1">
         {#each hand as entry, index (index)}
-            <AntiqueCard card={entry.card} matched={entry.covered} surface="parchment" />
+            <AntiqueCard card={entry.card} covered={entry.covered} surface="parchment" />
         {/each}
     </div>
     <p class="text-center text-xs text-[#5a4630] italic">

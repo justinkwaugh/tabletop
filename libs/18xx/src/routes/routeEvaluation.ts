@@ -1,12 +1,18 @@
 import { trainsOwnedBy } from '../trains/train.js'
 import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
+import {
+    payingRouteStops,
+    routeConnectionBonuses,
+    type RouteRevenueStop,
+    type RouteRevenuePolicy
+} from './routeScoring.js'
 import { controllingOwner, getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
-import type { TrainDefinition } from '../trains/train.js'
+import type { TrainDefinition, Train } from '../trains/train.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
 import type {
@@ -17,7 +23,13 @@ import type {
     TrainRunningState,
     TrainRoute
 } from './route.js'
+export type { RouteRevenueStop } from './routeScoring.js'
 export interface RouteRules {
+    canOperate?(state: TrainRunningState, playerId: string, companyId: string): boolean
+    longestRouteBonusPerStop?(state: TrainRunningState, companyId: string): number
+    canRunTrain?(state: TrainRunningState, train: Train): boolean
+    revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
+
     map: RailwayMap
     tileSet: TileSet
     depot: TrainDepot
@@ -36,11 +48,9 @@ export interface RouteRules {
     ): number
 }
 export type RouteEvaluationResult =
-    | { result: RouteResult; reason?: never }
-    | { result?: never; reason: string }
+    { result: RouteResult; reason?: never } | { result?: never; reason: string }
 export type OperatingEvaluation =
-    | { result: OperatingResult; reason?: never }
-    | { result?: never; reason: string }
+    { result: OperatingResult; reason?: never } | { result?: never; reason: string }
 export class RouteEvaluation {
     readonly network: RouteNetwork
     constructor(
@@ -53,7 +63,7 @@ export class RouteEvaluation {
     }
     cannotRun(companyId: string): boolean {
         return (
-            !trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
+            !this.runnableTrains(companyId).length ||
             !hasStationRoute(this.network.mapState, this.state, companyId)
         )
     }
@@ -62,7 +72,14 @@ export class RouteEvaluation {
             this.state.routeStep?.companyId === companyId &&
             !this.state.routeStep.result &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            (this.rules.canOperate
+                ? this.rules.canOperate(this.state, playerId, companyId)
+                : controllingOwner(this.state, companyId)?.playerId === playerId)
+        )
+    }
+    runnableTrains(companyId: string): Train[] {
+        return trainsOwnedBy(this.state, { kind: 'company', companyId }).filter(
+            (train) => this.rules.canRunTrain?.(this.state, train) ?? true
         )
     }
     evaluateRoute(companyId: string, route: TrainRoute, complete = true): RouteEvaluationResult {
@@ -73,6 +90,8 @@ export class RouteEvaluation {
             !sameOwner(train.owner, { kind: 'company', companyId })
         )
             return { reason: 'The company does not own this train.' }
+        if (this.rules.canRunTrain?.(this.state, train) === false)
+            return { reason: 'This train cannot run this operating round.' }
         const definition = this.rules.depot.trainDefinition(train.definitionId)
         const traced = this.network.trace(route.start, route.paths)
         if (!traced.trace) return { reason: traced.reason }
@@ -136,12 +155,27 @@ export class RouteEvaluation {
             )
                 return { reason: 'The route must include a station of this company.' }
         }
-        const payments = trace.visits.map((visit) => ({
+        const visits = trace.visits.map((visit): RouteRevenueStop => ({
             locationId: visit.locationId,
             nodeId: visit.nodeId,
-            amount: this.revenue(visit, definition)
+            amount: this.revenue(visit, definition),
+            bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
+            companyStation: this.state.stations.some(
+                (station) =>
+                    station.status === 'placed' &&
+                    station.companyId === companyId &&
+                    station.position.locationId === visit.locationId &&
+                    station.position.nodeId === visit.nodeId
+            )
         }))
-        const bonuses = this.bonuses(companyId, definition, route, trace)
+        const policy = this.rules.revenuePolicy?.(definition) ?? {}
+        const paying = payingRouteStops(visits, policy)
+        const payments = paying.map(({ locationId, nodeId, amount }) => ({
+            locationId,
+            nodeId,
+            amount
+        }))
+        const bonuses = [...this.bonuses(route, paying), ...routeConnectionBonuses(paying, policy)]
         return {
             result: {
                 ...route,
@@ -172,33 +206,47 @@ export class RouteEvaluation {
             for (const key of trace.resources) resources.add(key)
             results.push(evaluation.result)
         }
+        const bonusPerStop = this.rules.longestRouteBonusPerStop?.(this.state, companyId) ?? 0
+        const longest = results.reduce<RouteResult | undefined>(
+            (best, route) =>
+                !best ||
+                route.visits.length > best.visits.length ||
+                (route.visits.length === best.visits.length && route.trainId > best.trainId)
+                    ? route
+                    : best,
+            undefined
+        )
+        const scored = results.map((route): RouteResult => {
+            const bonuses =
+                bonusPerStop > 0 && route === longest
+                    ? route.visits.map((visit) => ({
+                          locationId: visit.locationId,
+                          amount: bonusPerStop
+                      }))
+                    : []
+            return bonuses.length
+                ? {
+                      ...route,
+                      bonuses: [...(route.bonuses ?? []), ...bonuses],
+                      revenue: route.revenue + bonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
+                  }
+                : route
+        })
         return {
             result: {
                 companyId,
-                routes: results,
-                revenue: results.reduce((sum, route) => sum + route.revenue, 0)
+                routes: scored,
+                revenue: scored.reduce((sum, route) => sum + route.revenue, 0)
             }
         }
     }
-    private bonuses(
-        companyId: string,
-        train: TrainDefinition,
-        route: TrainRoute,
-        trace: RouteTrace
-    ): RouteBonus[] {
+    private bonuses(route: TrainRoute, paying: readonly RouteRevenueStop[]): RouteBonus[] {
         const hexes = new Set([
-            ...route.paths.map((path) => path.locationId),
-            ...trace.visits.map((visit) => visit.locationId)
+            route.start.locationId,
+            ...route.paths.map((path) => path.locationId)
         ])
         return [
-            ...trace.visits.map((visit) => ({
-                locationId: visit.locationId,
-                amount:
-                    this.rules.stopBonus?.(this.state, train, companyId, {
-                        locationId: visit.locationId,
-                        nodeId: visit.nodeId
-                    }) ?? 0
-            })),
+            ...paying.map((stop) => ({ locationId: stop.locationId, amount: stop.bonus })),
             ...[...hexes].map((locationId) => ({
                 locationId,
                 amount: this.rules.hexBonus?.(this.state, locationId) ?? 0

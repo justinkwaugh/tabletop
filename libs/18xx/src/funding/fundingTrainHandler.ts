@@ -14,13 +14,18 @@ import { HydratedIssueTreasuryShares } from './issueTreasuryShares.js'
 import { HydratedSellFundingShares } from './sellFundingShares.js'
 import { HydratedContributeTrainFunds } from './contributeTrainFunds.js'
 import { HydratedDeclareBankruptcy, DeclareBankruptcy } from './declareBankruptcy.js'
+import { controllingOwner } from '../finance/finance.js'
+import { privateExchangeOffers } from '../privates/privateExchange.js'
+import type { PrivateRules } from '../privates/privateRules.js'
 export class FundingTrainHandler<
     State extends HydratedGameState & FundingState
 > implements MachineStateHandler<HydratedAction, State> {
     constructor(
         private readonly rules: TrainFundingRules,
         private readonly stocks: StockRules,
-        private readonly trains: TrainRules
+        private readonly trains: TrainRules,
+        private readonly privates: PrivateRules,
+        private readonly outOfTurnExchanges: boolean
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
@@ -61,16 +66,26 @@ export class FundingTrainHandler<
             case 'buy':
                 return ['BuyTrain']
             case 'bankrupt':
-                return []
+                return ['DeclareBankruptcy']
         }
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
         assertExists(state.trainFunding, 'Missing train funding')
+        const companyId = state.trainFunding.purchase.companyId
+        const president = controllingOwner(state, companyId)
+        assertExists(president, 'The company requiring a train has a controlling owner')
+        state.trainFunding.playerId = president.playerId
+        state.trainFunding.contributors = this.rules.contributors(state, companyId)
         state.activePlayerIds = [state.trainFunding.playerId]
         if (
             new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next().kind ===
-            'bankrupt'
+                'bankrupt' &&
+            !state.players.some(
+                (player) =>
+                    (this.outOfTurnExchanges || state.activePlayerIds.includes(player.playerId)) &&
+                    privateExchangeOffers(state, player.playerId, this.privates, this.stocks).length
+            )
         )
             context.addSystemAction(DeclareBankruptcy, {})
     }

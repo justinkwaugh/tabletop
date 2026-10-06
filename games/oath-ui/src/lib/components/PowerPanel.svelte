@@ -5,7 +5,7 @@
     import CardImage from '$lib/components/CardImage.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
     import { cardCostLine, printedPowerWords, type ActionCard } from '$lib/model/actionCards.js'
 
@@ -120,7 +120,7 @@
                 {/if}
                 {#if reason}
                     <p class="text-[11px] text-oath-danger">
-                        <TokenText text={humanizeReason(reason) ?? ''} />
+                        <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                     </p>
                 {/if}
                 <button

@@ -5,6 +5,7 @@ export const TheOldPrinceTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
+        if (asset.kind !== 'private') return undefined
         return asset.privateCompanyId === 'HS' &&
             companyId !== 'PEIR' &&
             TheOldPrincePhases.isAtLeast(state.phaseId, '4H') &&

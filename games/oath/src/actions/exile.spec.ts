@@ -154,7 +154,11 @@ describe('Exiling a Citizen (R-6.7)', () => {
         )
         state.getPlayerState('cit').status = PlayerStatus.Exile
         expect(() => exileCitizen('chan', 'cit').apply(state)).toThrow(
-            /is a exile, not a Citizen/
+            'cit is an Exile, not a Citizen'
+        )
+        state.getPlayerState('cit').status = PlayerStatus.Chancellor
+        expect(HydratedExileCitizen.reasonCannotExile(state, 'chan', 'cit')).toBe(
+            'cit is the Chancellor, not a Citizen'
         )
     })
 
@@ -231,6 +235,16 @@ describe('Self-Exiling (R-6.8)', () => {
     it('refuses a player who is not a Citizen', () => {
         const state = table({ favor: 40, status: PlayerStatus.Exile })
         expect(() => selfExile('cit').apply(state)).toThrow(/only a Citizen can self-exile/)
+    })
+
+    it('says to the player what they are instead of a Citizen', () => {
+        const state = table({ status: PlayerStatus.Exile })
+        expect(HydratedSelfExile.reasonCannotSelfExile(state, 'cit')).toBe(
+            'only a Citizen can self-exile, and you are an Exile'
+        )
+        expect(HydratedSelfExile.reasonCannotSelfExile(state, 'chan')).toBe(
+            'only a Citizen can self-exile, and you are the Chancellor'
+        )
     })
 
     it('refuses when the favor is short', () => {

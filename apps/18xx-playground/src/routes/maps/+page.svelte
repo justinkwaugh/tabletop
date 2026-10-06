@@ -3,7 +3,8 @@
         MapViewer,
         createMapDrawing,
         ClassicTileAppearance,
-        MutedTileAppearance,
+        TileAppearances,
+        tileDrawingStyle,
         type MapSelection
     } from '@tabletop/18xx-ui'
     import { MapExamples } from '../../demo/maps.js'
@@ -21,11 +22,17 @@
                 tileSet: example.tileSet,
                 inventory: prepared ? example.prepared : example.initial
             },
-            { layouts: example.layouts }
+            {
+                ...example.mapView,
+                layouts: { ...example.mapView?.layouts, ...example.layouts },
+                drawingStyle: tileDrawingStyle(appearance)
+            }
         )
     )
+    // A new title or sample tile clears the selection; a tile style keeps every map target.
     let selection = $derived.by((): MapSelection | undefined => {
-        scene
+        example
+        prepared
         return undefined
     })
 </script>
@@ -46,9 +53,9 @@
         >
         <label
             >Tile style<select bind:value={appearance}
-                ><option value={ClassicTileAppearance}>Classic</option><option
-                    value={MutedTileAppearance}>Muted</option
-                ></select
+                >{#each TileAppearances as option (option.name)}<option value={option}
+                        >{option.name}</option
+                    >{/each}</select
             ></label
         >
         <label class="checkbox"
@@ -59,6 +66,8 @@
         {scene}
         {selection}
         {appearance}
+        stationAppearances={example.mapView?.stations}
+        revenueStageColors={example.mapView?.revenueStageColors}
         tokens={prepared ? example.tokens : []}
         routes={prepared ? example.routes : []}
         onselect={(next) => (selection = next)}

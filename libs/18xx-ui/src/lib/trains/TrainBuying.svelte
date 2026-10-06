@@ -5,7 +5,7 @@
     import CompanyTrainBuying from './CompanyTrainBuying.svelte'
     import TrainFunding from './TrainFunding.svelte'
     import PhaseChanges from '../phases/PhaseChanges.svelte'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         trainColors,
@@ -13,7 +13,7 @@
     }: {
         trainColors: Readonly<Record<string, string>>
         showUndo?: boolean
-        session: EighteenXXSession
+        session: EighteenXXSessionView
     } = $props()
     const money = $derived(session.presentation.money)
     const step = $derived(session.gameState.trainPurchaseStep)

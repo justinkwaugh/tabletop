@@ -5,9 +5,9 @@
     import TrackBuilding from './TrackBuilding.svelte'
     import MapViewer from './MapViewer.svelte'
     import TileLibraryViewer from '../tiles/TileLibraryViewer.svelte'
-    import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session }: { session: EighteenXXSession } = $props()
+    import { MapStyleAppearances, MapStyles } from '../session/mapModule.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSessionView } = $props()
     let showTiles = $state(false)
     const historyDisabled = $derived(
         session.busy || session.updatingVisibleState || session.history.isDisabled()
@@ -20,12 +20,15 @@
         <label
             >Tile style <select
                 value={session.map.style}
-                onchange={(event) =>
-                    session.map.setStyle(
-                        event.currentTarget.value === 'muted' ? 'muted' : 'classic'
-                    )}
+                onchange={(event) => {
+                    const value = event.currentTarget.value
+                    const style = MapStyles.find((style) => style === value)
+                    if (style) session.map.setStyle(style)
+                }}
             >
-                <option value="classic">Classic</option><option value="muted">Muted</option>
+                {#each MapStyles as style (style)}<option value={style}
+                        >{MapStyleAppearances[style].name}</option
+                    >{/each}
             </select></label
         >
         <div class="history" aria-label="Game history">
@@ -100,7 +103,7 @@
         tokens={session.map.displayedTokens}
         reservations={session.track.preview?.stationReservations ??
             session.stations.displayState.stationReservations}
-        appearance={session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
+        appearance={MapStyleAppearances[session.map.style]}
         onselect={(selection) => session.map.select(selection)}
     />
     <details bind:open={showTiles}>

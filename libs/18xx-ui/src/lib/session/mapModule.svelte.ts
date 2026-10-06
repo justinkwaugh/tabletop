@@ -3,6 +3,13 @@ import { RailwayMapState, TrackNetwork, type EighteenXXState, type TileFace } fr
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
+import {
+    ClassicTileAppearance,
+    CustomTileAppearance,
+    MakerTileAppearance,
+    MutedTileAppearance,
+    type TileAppearance
+} from '../tiles/tileAppearance.js'
 import type { RoutesModule, RoutesSession } from './routesModule.svelte.js'
 import type { StationsModule, StationsState } from './stationsModule.svelte.js'
 import type { TrackModule } from './trackModule.svelte.js'
@@ -11,10 +18,24 @@ import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
-        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep' | 'locationMarkers'
-    >
+        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
+    > & {
+        locationMarkers?: readonly Pick<
+            import('@tabletop/18xx').LocationMarker,
+            'kind' | 'locationId'
+        >[]
+    }
 export type MapSession = ModuleSession<MapState, unknown>
-export type MapStyle = 'classic' | 'muted'
+export const MapStyles = ['classic', 'muted', 'maker', 'custom'] as const
+/** The tile style games draw in until a player picks another. */
+export const DefaultMapStyle: MapStyle = 'custom'
+export type MapStyle = (typeof MapStyles)[number]
+export const MapStyleAppearances: Readonly<Record<MapStyle, TileAppearance>> = {
+    classic: ClassicTileAppearance,
+    muted: MutedTileAppearance,
+    maker: MakerTileAppearance,
+    custom: CustomTileAppearance
+}
 
 type Track = Pick<
     TrackModule,
@@ -63,11 +84,12 @@ export class MapModule {
         private readonly track: Track,
         private readonly stations: Stations,
         private readonly routes: Routes,
-        private readonly companyAuction: CompanyAuction
+        private readonly companyAuction: CompanyAuction,
+        private readonly displayState: () => MapState = () => session.state
     ) {}
 
-    scene = $derived.by(() => this.draw(this.session.state.tileInventory))
-    tokens = $derived.by(() => stationMapTokens(this.session.state, this.view().stations))
+    scene = $derived.by(() => this.draw(this.displayState().tileInventory))
+    tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
     displayedScene = $derived.by(() => {
         const preview = this.track.displayedPreview
@@ -83,9 +105,10 @@ export class MapModule {
             ? stationMapTokens(this.stations.displayState, this.view().stations)
             : this.tokens
     })
-    style = $derived.by(
-        (): MapStyle =>
-            this.session.playerId ? (this.styles[this.session.playerId] ?? 'classic') : 'classic'
+    style = $derived.by((): MapStyle =>
+        this.session.playerId
+            ? (this.styles[this.session.playerId] ?? DefaultMapStyle)
+            : DefaultMapStyle
     )
     selection = $derived.by((): MapSelection | undefined => {
         if (this.session.publishing) return undefined
@@ -256,7 +279,7 @@ export class MapModule {
         const view = this.view()
         return createMapDrawing(
             view.map,
-            { tileSet: view.tileSet, inventory, markers: this.session.state.locationMarkers },
+            { tileSet: view.tileSet, inventory, markers: this.displayState().locationMarkers },
             view
         )
     }

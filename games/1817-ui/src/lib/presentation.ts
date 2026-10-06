@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from '@tabletop/1817'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import {
     MarketPoolId,
@@ -18,7 +19,7 @@ import {
 } from './titleFacts.js'
 import { EighteenSeventeenTrainColors } from './trainPresentation.js'
 
-export const EighteenSeventeenPresentation: TitlePresentation = {
+export const EighteenSeventeenPresentation: TitlePresentation<EighteenSeventeenState> = {
     money: moneyFormat('$'),
     phaseChart: EighteenSeventeenPhaseChart,
     trainColors: EighteenSeventeenTrainColors,

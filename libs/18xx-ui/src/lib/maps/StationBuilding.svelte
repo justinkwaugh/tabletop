@@ -1,6 +1,16 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let {
+        session,
+        showUndo = true,
+        onSkip = () => session.stations.finish(),
+        canSkip
+    }: {
+        showUndo?: boolean
+        onSkip?: () => Promise<void>
+        canSkip?: boolean
+        session: EighteenXXSessionView
+    } = $props()
     const step = $derived(session.gameState.stationStep)
     const selection = $derived(session.stations.selection)
 </script>
@@ -11,8 +21,9 @@
             <span>Choose a city to place a station or</span>
             <button
                 class="action-button inline-action"
-                onclick={() => session.stations.finish()}
-                disabled={!session.stations.canPlace || !!selection.placement}>skip</button
+                onclick={onSkip}
+                disabled={!(canSkip ?? session.stations.canPlace) || !!selection.placement}
+                >skip</button
             >
             {#if showUndo}<button
                     onclick={() => session.undo()}

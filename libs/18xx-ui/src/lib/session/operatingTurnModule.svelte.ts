@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import {
     FinishOperatingTurn,
     FinishTrains,
+    nextOperatingCompany,
     finishOperatingTurnReason,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -31,16 +32,22 @@ type Steps = {
     trainSelected(): boolean
     hasLocalSelection(): boolean
 }
-const LastSkippableStep = 2
+export type OperatingStepCompletion = {
+    lastTarget: number
+    finish(): Promise<void>
+}
 
 export class OperatingTurnModule {
     private skipping = $state(false)
     constructor(
         private readonly session: OperatingTurnSession,
-        private readonly steps: Steps
+        private readonly steps: Steps,
+        private readonly completion: () => OperatingStepCompletion | undefined = () =>
+            OperatingTurnModule.defaultCompletion(this.session, this.steps),
+        private readonly stepIndex: (state: string) => number | undefined = operatingStepIndex
     ) {}
 
-    step = $derived.by(() => operatingStepIndex(this.session.state.machineState))
+    step = $derived.by(() => this.stepIndex(this.session.state.machineState))
     finishReason = $derived.by(() => {
         const companyId = this.session.state.trainPurchaseStep?.companyId
         return companyId
@@ -62,15 +69,16 @@ export class OperatingTurnModule {
 
     canSkipTo(target: number): boolean {
         const current = this.step
+        const completion = this.completion()
         return (
+            completion !== undefined &&
             current !== undefined &&
             target > current &&
-            target <= LastSkippableStep &&
+            target <= completion.lastTarget &&
             !this.skipping &&
             this.session.interactive &&
             !this.steps.hasLocalSelection() &&
-            !this.interrupted(this.session.state) &&
-            this.session.validActionTypes.includes(current === 0 ? 'FinishTrack' : 'FinishStations')
+            !this.interrupted(this.session.state)
         )
     }
     async skipTo(target: number) {
@@ -81,14 +89,18 @@ export class OperatingTurnModule {
         this.skipping = true
         try {
             while (this.step !== undefined && this.step < target) {
-                if (this.step === 0) await this.steps.finishTrack()
-                else if (
-                    this.step === 1 &&
-                    this.session.validActionTypes.includes('FinishStations')
+                const completion = this.completion()
+                if (
+                    !completion ||
+                    target > completion.lastTarget ||
+                    !this.session.interactive ||
+                    this.steps.hasLocalSelection()
                 )
-                    await this.steps.finishStations()
-                else break
+                    break
+                const previousStep = this.step
+                await completion.finish()
                 await this.session.settled()
+                if (this.step === previousStep) break
                 const state = this.session.state
                 if (
                     state.operatingSet?.number !== roundId[0] ||
@@ -112,8 +124,28 @@ export class OperatingTurnModule {
         )
     }
 
+    static defaultCompletion(
+        session: OperatingTurnSession,
+        steps: Pick<Steps, 'finishTrack' | 'finishStations'>
+    ): OperatingStepCompletion | undefined {
+        if (
+            session.state.machineState === 'LayingTrack' &&
+            session.validActionTypes.includes('FinishTrack')
+        )
+            return { lastTarget: 2, finish: () => steps.finishTrack() }
+        if (
+            session.state.machineState === 'PlacingStation' &&
+            session.validActionTypes.includes('FinishStations')
+        )
+            return { lastTarget: 2, finish: () => steps.finishStations() }
+        return undefined
+    }
     private operatingCompany(state: OperatingTurnState) {
-        return state.trackStep?.companyId ?? state.stationStep?.companyId
+        return (
+            nextOperatingCompany(state) ??
+            state.trackStep?.companyId ??
+            state.stationStep?.companyId
+        )
     }
     private interrupted(state: OperatingTurnState) {
         return !!(state.purchaseOffer || state.trackConsent || state.privateTrackLay)

@@ -18,11 +18,11 @@ function board() {
 describe('one transfer validator for exchanges and Citizenship terms', () => {
     it('refuses the same over-promise with the same words from either route', () => {
         const s = board()
-        const expected = 'chan promised 3 favor but has 2'
+        const expected = 'chan promised 3 favor, with only 2 usable'
         expect(reasonTermsInvalid(s, 'chan', 'ex', { fromScepterHolder: { favor: 3 } })).toBe(expected)
         expect(reasonExchangeInvalid(s, 'chan', 'ex', { fromProposer: { favor: 3 } })).toBe(expected)
-        expect(reasonTermsInvalid(s, 'chan', 'ex', { fromExile: { relicCardIds: ['relic.cup-of-plenty'] } })).toBe('ex promised relic.cup-of-plenty, which they do not hold')
-        expect(reasonExchangeInvalid(s, 'ex', 'chan', { fromProposer: { relicCardIds: ['relic.cup-of-plenty'] } })).toBe('ex promised relic.cup-of-plenty, which they do not hold')
+        expect(reasonTermsInvalid(s, 'chan', 'ex', { fromExile: { relicCardIds: ['relic.cup-of-plenty'] } })).toBe('ex promised relic.cup-of-plenty without holding it')
+        expect(reasonExchangeInvalid(s, 'ex', 'chan', { fromProposer: { relicCardIds: ['relic.cup-of-plenty'] } })).toBe('ex promised relic.cup-of-plenty without holding it')
     })
 
     it('refuses a fraction and a negative amount on both routes', () => {
@@ -33,7 +33,8 @@ describe('one transfer validator for exchanges and Citizenship terms', () => {
 
     it('checks a promised banner is held, and accepts what the promiser has', () => {
         const s = board()
-        expect(reasonTransferInvalid(s, 'ex', 'chan', { banners: [Banner.PeoplesFavor] })).toBe('ex promised the peoplesFavor, which they do not hold')
+        expect(reasonTransferInvalid(s, 'ex', 'chan', { banners: [Banner.PeoplesFavor] })).toBe('ex promised the peoplesFavor without holding it')
+        expect(reasonTransferInvalid(s, 'ex', 'chan', { secrets: 2 })).toBe('ex promised 2 secrets, holding only 0')
         expect(reasonTransferInvalid(s, 'chan', 'ex', { favor: 2, secrets: 1, relicCardIds: ['relic.cup-of-plenty'], banners: [Banner.PeoplesFavor] })).toBeUndefined()
     })
 

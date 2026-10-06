@@ -31,8 +31,8 @@ import {
     type WinRule
 } from '@tabletop/oath'
 import type { GameAction } from '@tabletop/common'
-import { bannerName, cardName, goalText, oathName } from '$lib/model/names.js'
-import { searchStoppedOnVision, type NameOf } from '$lib/model/actionDescription.js'
+import { bannerName, cardName, goalText, oathName, type NameOf } from '$lib/model/names.js'
+import { searchStoppedOnVision } from '$lib/model/actionDescription.js'
 import { ENDINGS, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'

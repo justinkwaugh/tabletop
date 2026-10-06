@@ -43,8 +43,7 @@ import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 
 export type StockTrade =
-    | { kind: 'purchase'; request: PurchaseRequest }
-    | { kind: 'sale'; request: SaleRequest }
+    { kind: 'purchase'; request: PurchaseRequest } | { kind: 'sale'; request: SaleRequest }
 
 type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateSharePurchase>[0] &
@@ -210,7 +209,10 @@ export class StockModule implements LocalSelection {
                 .filter((certificate) => !certificate.retired)
                 .filter(
                     (certificate) =>
-                        certificate.kind === 'share' && certificate.poolId !== undefined
+                        certificate.kind === 'share' &&
+                        (certificate.poolId !== undefined ||
+                            (certificate.owner.kind === 'company' &&
+                                certificate.owner.companyId === certificate.companyId))
                 )
                 .map((certificate) => {
                     const request = { playerId, buyer, certificateId: certificate.id }

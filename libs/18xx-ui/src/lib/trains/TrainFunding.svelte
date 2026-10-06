@@ -3,13 +3,13 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from './TrainBadge.svelte'
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         trainColors,
         showUndo = true
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         showUndo?: boolean
     } = $props()

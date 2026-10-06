@@ -12,11 +12,12 @@ import { settleCashPayments } from '../finance/cashPayments.js'
 import { cashOwnedBy, privateOwner } from '../finance/finance.js'
 import type { PendingPurchaseOffer, PlayerPurchaseOffer } from '../transfers/purchaseOffer.js'
 import type { StockState } from './stockState.js'
-import { certificateLimitAllows, exceedsStockLimits, type StockRules } from './stockRules.js'
+import { certificateLimitAllows, type StockRules } from './stockRules.js'
 import { markTurnPurchase } from './sharePurchase.js'
 import { recordStockAction } from './stockRoundRules.js'
 import { recordTurnPurchase, type StockTurnPurchaseState } from './turnPurchases.js'
 import { certificateValue, type ValuationRules } from '../ending/finalWealth.js'
+import { mustSellShares } from './shareSale.js'
 
 export type PrivateSaleState = StockState &
     StockTurnPurchaseState & { machineState: string; purchaseOffer?: PendingPurchaseOffer }
@@ -54,7 +55,7 @@ export function privateSaleReason(
     if (state.machineState !== 'StockRound' || state.stockRound.completed)
         return 'Privates are sold between players during stock rounds.'
     if (state.stockRound.turn.bought) return 'A private must be the turn’s first purchase.'
-    if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
+    if (mustSellShares(state, playerId, rules))
         return 'Sell down to the stock limits before buying.'
     const company = state.companies.find((company) => company.id === privateCompanyId)
     if (company?.kind !== 'private' || company.closed) return 'This is not an open private.'

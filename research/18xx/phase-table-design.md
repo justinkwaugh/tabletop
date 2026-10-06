@@ -42,7 +42,7 @@ the engine and domain studies.
   titles, and is triggered by a train purchase: in 11 titles a rust trigger starts no
   phase (1824, 1835, 18CZ, 2038). Five titles list several triggers; 15 give a train
   variant its own; 28 have obsolete trains that survive until they next run. Delayed or
-  conditional rust is code in every title that has it, TOP's never-run 4+ included.
+  conditional rust is code in every title that has it, TOP's first-opportunity 4+ included.
 - **Events** attach to trains, not phases, in 115 of 130 titles, 9 of them on the Nth
   copy. Private abilities keyed by phase are a separate channel in 32 titles.
 - **Operating rounds** are read from the phase when the stock round ends in 98 profiles,
@@ -63,7 +63,7 @@ rusts once the phase that train starts has been reached; comparisons between pha
 
 Title-owned: the table and the train definitions; anything that depends on the company or
 on history. 1889 keeps diesel availability and its exchange price; TOP keeps the
-never-run 4+ rusting after it next runs, PEIR's purchase limit and exemption from needing
+4+ with no prior operating opportunity rusting after its next opportunity, PEIR's purchase limit and exemption from needing
 a train. Private closure, exchange windows and price ranges stay title rules and use
 `isAtLeast` in place of index arithmetic.
 

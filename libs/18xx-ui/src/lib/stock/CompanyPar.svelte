@@ -1,8 +1,8 @@
 <script lang="ts">
     import { getCompany, stockMarketSpace } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { marketColors } from './marketColors.js'
-    let { session }: { session: EighteenXXSession } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const pending = $derived(session.gameState.pendingPar)
 </script>
 

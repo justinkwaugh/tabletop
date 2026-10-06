@@ -5,7 +5,8 @@ import {
     InventorId,
     type AcquireCompany,
     type CloseCompanySale,
-    type PassMerger
+    type PassMerger,
+    type SellConvertedShares
 } from '@tabletop/1817'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
@@ -182,6 +183,21 @@ describe('1817’s history', () => {
         ).toMatchObject({
             text: 'The bank liquidated PLE',
             detail: 'Golden Parachute paid alex $40'
+        })
+    })
+
+    it('describes a post-conversion sale from its action without patches', () => {
+        const action: SellConvertedShares = {
+            ...base,
+            id: 'sell',
+            type: 'SellConvertedShares',
+            companyId: 'BA',
+            shares: 2,
+            expectedProceeds: 220
+        }
+        expect(eighteenSeventeenHistoryDescription(action, names, money, shared)).toEqual({
+            text: 'Sold 2 BA shares',
+            value: '$220'
         })
     })
 

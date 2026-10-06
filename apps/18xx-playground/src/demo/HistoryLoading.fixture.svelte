@@ -27,6 +27,7 @@
             {historyComplete}
             phaseColors={{ '2': '#ffffff' }}
             onJump={() => {}}
+            onReturn={() => {}}
             onOrderChange={(first) => (newestFirst = first)}
         >
             {#snippet children(round)}

@@ -4,11 +4,11 @@ import {
     type InitialPosition
 } from '@tabletop/18xx'
 import { EighteenSeventeenCorporations } from './corporations.js'
-import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenMap } from './map.js'
+import { EighteenSeventeenPrivateCatalog } from './privates.js'
+import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenTrainDepot } from './trains.js'
-import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 
 const bank = { kind: 'bank' } as const
 
@@ -70,8 +70,6 @@ export function createEighteenSeventeenPosition(
                 owner: bank
             }))
         ],
-        tranches: [],
-        ownershipLimitExemptions: [],
         stations: EighteenSeventeenCorporations.flatMap((company) =>
             createCompanyStations(company.id, 1)
         ),

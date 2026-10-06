@@ -1,31 +1,32 @@
-import { peirCompanies } from './companies.js'
-import { TheOldPrincePhases } from './trains.js'
-import { assert, assertExists } from '@tabletop/common'
 import {
+    applyPresidencyChange,
+    applyStationPlacement,
     availableCompanyTranche,
-    homeStationId,
-    fullCapitalizationPayments,
-    presidentCertificate,
-    sharesStillToFloat,
-    exchangeCertificate,
-    grantOwnershipLimitExemption,
     closePrivate,
     evaluatePresidency,
-    applyPresidencyChange,
+    exchangeCertificate,
+    fullCapitalizationPayments,
     getCompany,
+    grantOwnershipLimitExemption,
+    homeStationId,
+    presidentCertificate,
     replaceStation,
-    applyStationPlacement,
     sameOwner,
-    unownedTrain,
+    sharesStillToFloat,
     stockMarketSpace,
+    unownedTrain,
     type CompanyRules,
     type FormationState,
     type StockState
 } from '@tabletop/18xx'
+import { assert, assertExists } from '@tabletop/common'
+import { peirCompanies } from './companies.js'
 import { peirPresident } from './peir.js'
 import { TheOldPrinceStockRules, theOldPrincePurchasePayers } from './stockRules.js'
+import { TheOldPrincePhases } from './trains.js'
 
 export function availableTheOldPrinceTranche(state: FormationState) {
+    assertExists(state.tranches, 'TOP company formation requires tranches')
     return availableCompanyTranche(state.tranches, (companyId) => {
         const company = getCompany(state, companyId)
         return (

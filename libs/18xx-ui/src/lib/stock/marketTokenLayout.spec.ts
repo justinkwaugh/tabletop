@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import { createRectangularStockMarket, placeStockMarker } from '@tabletop/18xx'
+import type { Point } from '@tabletop/common'
 import {
     marketTokenLayout,
     expandedMarketStack,
@@ -9,6 +10,34 @@ import {
     MarketTokenSize,
     marketLowerRightSpace
 } from './marketTokenLayout.js'
+
+function expectSingleOrderedColumn(expanded: readonly Point[], marketWidth: number) {
+    expect(expanded.length).toBeGreaterThan(3)
+    for (const [index, point] of expanded.entries()) {
+        expect(point.x).toBe(expanded[0].x)
+        expect(point.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        expect(point.x + MarketTokenSize / 2).toBeLessThanOrEqual(marketWidth)
+        expect(point.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        if (index) expect(point.y - expanded[index - 1].y).toBeGreaterThanOrEqual(MarketTokenSize)
+    }
+}
+
+it('keeps narrow-cell stacks below prices and uses the cell width for market movement', () => {
+    const cell = { width: 36, height: 96 }
+    const market = createRectangularStockMarket([[40, 50, 60, 70]], () => 'white')
+    for (const id of ['A', 'B', 'C', 'D', 'E', 'F', 'G']) placeStockMarker(market, id, '0:0')
+    for (const token of marketTokenLayout(market, cell)) {
+        expect(token.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
+        expect(token.x + MarketTokenSize / 2).toBeLessThanOrEqual(cell.width)
+        expect(token.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(20)
+        expect(token.y + MarketTokenSize / 2).toBeLessThanOrEqual(cell.height)
+    }
+    expectSingleOrderedColumn(expandedMarketStack(market, '0:0', cell), 4 * cell.width)
+    const before = marketTokenLayout(market, cell).find((token) => token.companyId === 'A')!
+    placeStockMarker(market, 'A', '0:1')
+    const after = marketTokenLayout(market, cell).find((token) => token.companyId === 'A')!
+    expect(after.x - before.x).toBe(cell.width)
+})
 
 it('centers one token and stacks two vertically, right of the price, without overlap', () => {
     const market = createRectangularStockMarket([[100]], () => 'white')
@@ -26,7 +55,7 @@ it('centers one token and stacks two vertically, right of the price, without ove
     expect(b.y - a.y).toBeGreaterThanOrEqual(MarketTokenSize)
     expect(a.z).toBeGreaterThan(b.z)
 })
-it('fits crowded stacks and expands every token without overlap, including linear markets', () => {
+it('fits crowded stacks and expands them into one ordered column, including linear markets', () => {
     for (const prices of [
         [[60, 80, 100, 120]],
         [
@@ -45,21 +74,10 @@ it('fits crowded stacks and expands every token without overlap, including linea
             expect(item.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
             expect(item.y + MarketTokenSize / 2).toBeLessThanOrEqual(MarketCellHeight)
         }
-        const expanded = expandedMarketStack(market, '0:0')
-        for (const [index, point] of expanded.entries()) {
-            expect(point.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
-            expect(point.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
-            expect(point.x + MarketTokenSize / 2).toBeLessThanOrEqual(
-                prices[0].length * MarketCellWidth
-            )
-            expect(point.y + MarketTokenSize / 2).toBeLessThanOrEqual(
-                prices.length * MarketCellHeight
-            )
-            for (const other of expanded.slice(index + 1))
-                expect(Math.hypot(point.x - other.x, point.y - other.y)).toBeGreaterThanOrEqual(
-                    MarketTokenSize
-                )
-        }
+        expectSingleOrderedColumn(
+            expandedMarketStack(market, '0:0'),
+            prices[0].length * MarketCellWidth
+        )
     }
 })
 it('keeps stack layer order when a marker arrives in an occupied cell', () => {

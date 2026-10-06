@@ -1,13 +1,19 @@
 import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '@tabletop/common'
 import { assert } from '@tabletop/common'
+import type * as Type from 'typebox'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
-import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
 import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
+import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
 import type { CompanyState } from '../company/companyState.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { StockMarket } from '../stock/stockMarket.js'
 import type { TrainState } from '../trains/train.js'
-import type { HydratedEighteenXXState } from './eighteenXXState.js'
+import type {
+    EighteenXXRuntimeSchema,
+    EighteenXXState,
+    HydratedEighteenXXState,
+    TitleStateSchema
+} from './eighteenXXState.js'
 
 export type OpeningSetup = {
     players: readonly PlayerState[]
@@ -18,11 +24,21 @@ export type OpeningSetup = {
 export type InitialPosition = CompanyState &
     MapStateData &
     TrainState & { stockMarket: StockMarket }
-export type Opening = {
+export type InitialTitleState<Schema extends TitleStateSchema> = Omit<
+    Type.Static<Schema>,
+    keyof EighteenXXState
+>
+
+export type Opening<
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
+> = {
     position: InitialPosition
-    titleState?: Readonly<Record<string, unknown>>
-    begin(state: HydratedEighteenXXState): void
-}
+    begin(state: State): void
+} & (Record<never, never> extends InitialTitleState<Schema>
+    ? { titleState?: InitialTitleState<Schema> }
+    : { titleState: InitialTitleState<Schema> })
 
 function beginWith(state: HydratedEighteenXXState, machineState: string, playerId: string): void {
     state.turnManager.newFirstPlayer(playerId)

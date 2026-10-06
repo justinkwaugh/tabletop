@@ -10,8 +10,9 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { exceedsStockLimits, type StockRules } from './stockRules.js'
+import { type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
+import { mustSellShares } from './shareSale.js'
 
 export const FinishStockTurn = Type.Object(
     {
@@ -51,7 +52,7 @@ export class HydratedFinishStockTurn
             'Only the acting player can finish the turn'
         )
         assert(
-            !exceedsStockLimits(state, { kind: 'player', playerId: this.playerId }, this.#rules),
+            !mustSellShares(state, this.playerId, this.#rules),
             'Sell down to the stock limits before finishing'
         )
         assert(!state.stockRound.completed, 'The stock round has completed')

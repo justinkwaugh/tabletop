@@ -9,7 +9,7 @@ variable/cash-funded dividends require later extensions. Their local primary
 procedures and the domain study's income and decision-order sections informed
 these distinctions. No source implementation is copied.
 
-TOP prototype §§7.1,7.5,7.7,10.2 specifies bank/treasury shares paying the company,
+TOP prototype §§7.1,7.5,7.7,10.2 specifies eligible bank/treasury shares paying the company,
 PEIR surviving player rights, rounded-up per-right payments, rounded-up retained
 half, PEIR last, and $40 extra per share when a paying marker already at 400 would
 move right. King's Mail pays $80 per OR. Justin relayed the designer's correction on
@@ -54,3 +54,33 @@ income, company order, replay and complete cascade Undo. Eight browser checks
 pass for earnings, complete operating sets, routes and train purchases. All four
 Svelte checks and all shared/title package builds pass. The TOP payment preview
 was also inspected visually. Auto-routing remains entirely outside action processing.
+
+## Reserved TOP shares — review finding 7
+
+The user confirmed on 2026-10-03 that reserved shares do not pay dividends to the
+corporation. Shortline's three shares held for private exchanges are excluded
+until released. Their economic units remain in the ten-share denominator; their
+unpaid dividends stay in the bank. With six player-held units, one market unit
+and three reserved units, a $100 payout pays $60 to players and $10 to Shortline.
+Releasing a reserved share makes it eligible for its current owner's dividend.
+Withholding still retains the full revenue. Reserved shares also receive none of
+the market-ceiling bonus.
+
+Rechecked the catalog's 275 entitlement assignments across all 130 titles and
+TOP's pinned dividend procedure (`g_1871/step/dividend.rb`, which excludes
+unbuyable shares). The survey distinguishes economic units, market/treasury
+recipients, unsold-share eligibility, and owner/treasury splits. 1830 and 1889's
+IPO nonpayment and 1817's treasury/short payments confirm that eligibility is a
+title policy. This correction uses the existing `dividendEntitlements` recipient
+callback to exclude TOP's `reserved` pool; no shared rule or state changes.
+Tests cover zero through three released reservations, unchanged market payments
+and withholding, and exclusion from the ceiling bonus.
+
+The existing deployed-game fixture contains two historical Shortline payouts
+(Actions 136 and 177) that each overpaid its treasury by $12: three reserved units
+at $4 per unit. The original fixture is retained. Its per-Action re-execution test
+expects the corrected payout for those two Actions and exact state equality for
+all other recorded behavior, apart from the previously documented auction PRNG
+change. Loading the saved state preserves its recorded balances; this rules fix
+does not retroactively adjust the hosted game. The separate finished-game fixture
+still reaches its existing final wealth and passes replay/Undo.

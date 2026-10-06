@@ -1,35 +1,33 @@
 <script lang="ts">
-    import PrivateCard from './PrivateCard.svelte'
-    import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showEntry = true }: { session: EighteenXXSession; showEntry?: boolean } =
+    import CompanyPurchaseCard from './CompanyPurchaseCard.svelte'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, showEntry = true }: { session: EighteenXXSessionView; showEntry?: boolean } =
         $props()
-    const money = $derived(session.presentation.money)
     const mine = $derived(
-        session.decisions.privatePurchases.filter(
+        session.decisions.companyPurchases.filter(
             (option) =>
                 option.request.seller.kind === 'player' &&
                 option.request.seller.playerId === session.myPlayer?.id
         )
     )
     const others = $derived(
-        session.decisions.privatePurchases.filter((option) => !mine.includes(option))
+        session.decisions.companyPurchases.filter((option) => !mine.includes(option))
     )
     const source = $derived(session.privateActions.purchaseSource)
     const choices = $derived(source === 'mine' ? mine : others)
     const selection = $derived(session.decisions.selection)
 </script>
 
-{#if (showEntry || source) && (session.decisions.privatePurchases.length || (selection?.kind === 'purchase' && selection.request.asset.kind === 'private'))}
-    <section aria-label="Buy privates">
+{#if (showEntry || source) && (session.decisions.companyPurchases.length || (selection?.kind === 'purchase' && selection.request.asset.kind !== 'train'))}
+    <section aria-label={session.presentation.privatePurchaseLabel ?? 'Buy privates'}>
         {#if !source}
             <button
                 onclick={() =>
                     session.privateActions.choosePurchaseSource(mine.length ? 'mine' : 'other')}
-                >Buy privates</button
+                >{session.presentation.privatePurchaseLabel ?? 'Buy privates'}</button
             >
         {:else}
-            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && selection.request.asset.kind === 'private')}
+            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && selection.request.asset.kind !== 'train')}
                 <p class="prompt">{session.presentation.privatePurchaseHeading}</p>
             {/if}
             {#if mine.length && others.length}
@@ -47,24 +45,21 @@
                         >{/if}
                 </div>
             {/if}
-            {#if selection?.kind === 'purchase' && selection.request.asset.kind === 'private'}
-                {@const company = getCompany(
-                    session.gameState,
-                    selection.request.asset.privateCompanyId
-                )}
-                {@const terms = session.decisions.privatePurchases.find(
-                    (option) =>
-                        option.request.asset.kind === 'private' &&
-                        option.request.asset.privateCompanyId === company.id
+            {#if selection?.kind === 'purchase' && selection.request.asset.kind !== 'train'}
+                {@const companyId =
+                    selection.request.asset.kind === 'private'
+                        ? selection.request.asset.privateCompanyId
+                        : selection.request.asset.companyId}
+                {@const terms = session.decisions.companyPurchases.find((option) =>
+                    option.request.asset.kind === 'private'
+                        ? option.request.asset.privateCompanyId === companyId
+                        : option.request.asset.kind === 'company' &&
+                          option.request.asset.companyId === companyId
                 )}
                 <div class="selected-private">
-                    <PrivateCard
-                        {money}
-                        phaseColors={session.presentation.phaseColors}
-                        token={session.privateCompanyTokens[company.id]}
-                        name={company.name}
-                        description=""
-                        income={company.privateRevenue ?? 0}
+                    <CompanyPurchaseCard
+                        {session}
+                        {companyId}
                         purchaseRange={terms
                             ? { minimum: terms.minimum, maximum: terms.maximum }
                             : undefined}
@@ -76,7 +71,7 @@
                 <div class="price">
                     <label
                         >Price $<input
-                            aria-label="Private purchase price"
+                            aria-label="Company purchase price"
                             type="number"
                             min={terms?.minimum}
                             max={terms?.maximum}
@@ -105,23 +100,19 @@
             {:else}
                 <div class="privates">
                     {#each choices as option, i (i)}
-                        {#if option.request.asset.kind === 'private'}
-                            {@const company = getCompany(
-                                session.gameState,
-                                option.request.asset.privateCompanyId
-                            )}
+                        {#if option.request.asset.kind !== 'train'}
+                            {@const companyId =
+                                option.request.asset.kind === 'private'
+                                    ? option.request.asset.privateCompanyId
+                                    : option.request.asset.companyId}
                             <button
                                 class="private"
                                 onclick={() =>
                                     session.decisions.selectPurchaseOffer(option.request)}
                             >
-                                <PrivateCard
-                                    {money}
-                                    phaseColors={session.presentation.phaseColors}
-                                    token={session.privateCompanyTokens[company.id]}
-                                    name={company.name}
-                                    description=""
-                                    income={company.privateRevenue ?? 0}
+                                <CompanyPurchaseCard
+                                    {session}
+                                    {companyId}
                                     purchaseRange={{
                                         minimum: option.minimum,
                                         maximum: option.maximum

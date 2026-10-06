@@ -338,6 +338,108 @@ it.each([true, false])(
         expect(replay).toEqual(current)
     }
 )
+it.each([false, true])(
+    'TOP consumes a pre-diesel 4+ opportunity even when omitted (another train runs: %s)',
+    (runAnotherTrain) => {
+        const { game, engine, state } = example(Top, 'diesel')
+        const four = trainsOwnedBy(state, { kind: 'company', companyId: 'ML' })[0]
+        const other = state.trainInventory.trains.find((train) => train.definitionId === '7')!
+        if (runAnotherTrain)
+            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+                train.id === other.id
+                    ? { ...train, status: 'owned', owner: { kind: 'company', companyId: 'ML' } }
+                    : train
+            )
+        delete state.trainPurchaseStep
+        state.machineState = 'RunningTrains'
+        state.routeStep = { companyId: 'ML' }
+        const run = engine.executeCanonicalAction({
+            game,
+            state,
+            action: action(state, 'RunTrains', {
+                companyId: 'ML',
+                routes: runAnotherTrain
+                    ? [
+                          {
+                              trainId: other.id,
+                              start: { locationId: 'L16', nodeId: 'city' },
+                              paths: [
+                                  { locationId: 'L16', pathId: 'edge-5' },
+                                  { locationId: 'M17', pathId: 'town-edge-2' }
+                              ]
+                          }
+                      ]
+                    : []
+            })
+        })
+        const settled = runAnotherTrain
+            ? engine.executeCanonicalAction({
+                  game,
+                  state: run.updatedState,
+                  action: action(run.updatedState, 'DistributeEarnings', {
+                      companyId: 'ML',
+                      choice: 'withhold'
+                  })
+              })
+            : run
+        const current = settled.updatedState
+        expect(current.fourPlusTrainIdsWithOperatingOpportunity).toEqual([four.id])
+        expect(
+            current.trainInventory.trains.find((train) => train.id === four.id)?.hasRun
+        ).toBeUndefined()
+        expect(TheOldPrincePhaseRules.rustTiming({ ...current, phaseId: 'D' }, four)).toBe(
+            'immediate'
+        )
+        const processed = runAnotherTrain
+            ? [...run.processedActions, ...settled.processedActions]
+            : run.processedActions
+        let replay = state
+        for (const entry of processed)
+            replay = engine.applyProcessedAction({ game, state: replay, action: entry })
+        expect(replay).toEqual(current)
+        for (const entry of [...processed].reverse())
+            replay = engine.undoProcessedAction({ state: replay, action: entry })
+        expect(replay).toEqual(state)
+        if (!runAnotherTrain) {
+            const diesel = engine.executeCanonicalAction({
+                game,
+                state: current,
+                action: buy(current, TheOldPrinceTrainRules, 'D')
+            })
+            expect(
+                diesel.updatedState.trainInventory.trains.find((train) => train.id === four.id)
+            ).toMatchObject({ status: 'removed' })
+        }
+    }
+)
+it('TOP preserves the first opportunity of a 4+ bought after settling earnings', () => {
+    const { game, engine, state } = example(Top, 'diesel')
+    const four = trainsOwnedBy(state, { kind: 'company', companyId: 'ML' })[0]
+    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+        train.id === four.id
+            ? { id: train.id, definitionId: train.definitionId, status: 'depot' }
+            : train
+    )
+    delete state.trainPurchaseStep
+    state.machineState = 'RunningTrains'
+    state.routeStep = { companyId: 'ML' }
+    let current = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'RunTrains', { companyId: 'ML', routes: [] })
+    }).updatedState
+    expect(current.fourPlusTrainIdsWithOperatingOpportunity).toBeUndefined()
+    for (const rank of ['4+', 'D'])
+        current = engine.executeCanonicalAction({
+            game,
+            state: current,
+            action: buy(current, TheOldPrinceTrainRules, rank)
+        }).updatedState
+    expect(current.trainInventory.trains.find((train) => train.id === four.id)).toMatchObject({
+        status: 'owned',
+        rustsAfterOperation: true
+    })
+})
 it('changes construction colors immediately and keeps TOP starting-price permissions phase-sensitive', () => {
     const { state } = example(Top, 'starting')
     state.phaseId = '3H'

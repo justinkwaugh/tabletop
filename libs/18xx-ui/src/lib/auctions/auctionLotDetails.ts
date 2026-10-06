@@ -1,9 +1,9 @@
 import { assertExists } from '@tabletop/common'
 import type { AuctionLot, EighteenXXState } from '@tabletop/18xx'
-import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
 export function auctionLotDetail(
-    session: EighteenXXSession,
+    session: EighteenXXSessionView,
     lot: AuctionLot,
     gameState: EighteenXXState = session.gameState
 ) {
@@ -15,13 +15,13 @@ export function auctionLotDetail(
     return { ...lot, company, share, token }
 }
 
-export function privateLotDetail(session: EighteenXXSession, lot: AuctionLot) {
+export function privateLotDetail(session: EighteenXXSessionView, lot: AuctionLot) {
     const detail = auctionLotDetail(session, lot)
     assertExists(detail.company, `Auction lot ${lot.id} must be a private company`)
     return { ...detail, company: detail.company }
 }
 
-export function auctionLotDetails(session: EighteenXXSession, lotIds: readonly string[]) {
+export function auctionLotDetails(session: EighteenXXSessionView, lotIds: readonly string[]) {
     const model = session.offers.model
     assertExists(model, 'Offer lots require an offer auction')
     return lotIds

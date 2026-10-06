@@ -86,7 +86,6 @@ compare with the search optimum. Native tests use a separate permutation oracle.
   their numeric-distance encoding to wire version 2. Those fixtures and adapters
   remain outside the repository.
 
-
 ## Table integration
 
 The existing family survey above also governs the worker protocol, action panel,
@@ -115,3 +114,34 @@ Verification includes real browser workers for both titles, map/panel revenue
 agreement, commit and Undo, abandoning an in-flight calculation, and execution of
 the packaged worker with its emitted WASM. Time-limited results are labeled;
 this integration does not claim that a nonexhaustive search found the optimum.
+
+## Native non-additive revenue
+
+1846 adds a revenue policy shared by the canonical evaluator and the encoder:
+maximum paying stops, whether the paid subset must include a company station,
+and bonuses for paid connections between two location sets. Bonuses choose the
+highest-value paid location on each side, and pay only when both sides occur.
+The native search enumerates paid subsets independently of visit capacity and
+maximizes payments plus connection bonuses. Ordinary trains retain their additive
+fast path. Company state supplies the longest-route bonus per visited stop; 1846
+uses this for Mail Contract ownership. Fleet selection pays it once, not per train.
+
+This follows the full-catalog visit/payment and fleet survey above. Express payment
+limits are distinct from train distance (1846, 1825, 1858), and 1846's longest-route
+bonus is distinct from 1862 service groups, 1860 fleet connectivity and shared-stop
+payment. Those latter mechanisms are not claimed as supported. Titles without
+these features supply no revenue policy or longest-route bonus.
+
+Rust remains the only route search and fleet optimizer. No TypeScript callbacks execute during native search. Train profiles include payment/connection policy
+when sharing candidates. Single-train selection considers the longest-route bonus;
+resource dominance retains different visit counts when that bonus is active.
+Fleet upper bounds include the longest remaining candidate, so pruning cannot
+discard a lower-base-revenue route that wins through its fleet bonus. Final routes
+are checked by the canonical evaluator, including exact total revenue agreement.
+The private wire protocol is version 4; workers and WASM are rebuilt together.
+
+Verification covers the recorded Erie OR 6.2 position ($850), canonical replay of
+the full 1846 game, paid-station selection, paid-only connection bonuses, identical
+and distinct train profiles, and longest-route bonus assignment. The independent
+native permutation oracle now also checks 200 graphs with payment limits,
+connection bonuses and fleet bonuses, in addition to their ordinary profiles.

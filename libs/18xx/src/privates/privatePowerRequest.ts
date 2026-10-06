@@ -1,5 +1,3 @@
-import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
@@ -8,10 +6,13 @@ import {
     assert,
     type HydratedGameState
 } from '@tabletop/common'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import type { TrackRules } from '../construction/trackConstruction.js'
 import { getCompany, privateOwner } from '../finance/finance.js'
 import type { CompanyDecisionState } from './companyDecision.js'
+import { privatePowerUsed } from './companyDecision.js'
 import { privateTrackConstruction, type PrivatePowerRules } from './privatePowers.js'
-import type { TrackRules } from '../construction/trackConstruction.js'
 
 export const PrivatePowerRequestDropReason = Type.Union([
     Type.Literal('no-legal-use'),
@@ -83,7 +84,7 @@ export function requestablePrivateIds(
             owner?.kind === 'player' &&
             owner.playerId === playerId &&
             !getCompany(state, id).closed &&
-            !state.usedPrivatePowerIds.includes(id)
+            !privatePowerUsed(state, id)
         )
     })
 }

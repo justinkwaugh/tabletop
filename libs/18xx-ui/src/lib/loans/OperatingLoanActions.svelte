@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session }: { session: EighteenXXSession } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const companyId = $derived(session.loans.operatingCompanyId)
     const rules = $derived(session.loans.rules)

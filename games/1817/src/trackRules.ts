@@ -10,11 +10,11 @@ import {
     type TrackRules
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
-import { CityTile, MineMarker, RanchMarker } from './privatePowerRules.js'
 import { CityTilePrivates } from './privates.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases } from './trains.js'
 import { EfficientTrackId, ExpressTrackId, companyHolding, privateOpen } from './privateHolders.js'
+import { CityTile, MineMarker, RanchMarker } from './privateMarkers.js'
 
 const SecondLayCost = 20
 const ExpressFirstLayCost = 10

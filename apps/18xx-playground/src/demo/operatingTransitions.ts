@@ -94,7 +94,7 @@ export function operatingTransitionTests(
     })
     it('allows a composed sequence to enter train running directly after track', () => {
         const { runtime, game, state } = fixture()
-        const engine = new GameEngine({
+        const engine = new GameEngine<EighteenXXState, HydratedEighteenXXState>({
             ...runtime,
             stateHandlers: {
                 ...runtime.stateHandlers,

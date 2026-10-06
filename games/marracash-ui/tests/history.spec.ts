@@ -145,7 +145,7 @@ test('reduced motion glides a move instead of walking it and stills the turn bor
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await createGame(page)
     await playOpeningRound(page)
-    const pulsing = page.locator('.pulse-border').first()
+    const pulsing = page.locator('.turn').first()
     await expect(pulsing).toBeVisible()
     expect(await pulsing.evaluate((element) => getComputedStyle(element).animationName)).toBe(
         'none'

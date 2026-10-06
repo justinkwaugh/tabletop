@@ -1,3 +1,4 @@
+import type { EighteenSeventeenStateHandler } from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -14,7 +15,6 @@ import {
     getCompany,
     placeStockMarker,
     trainsOwnedBy,
-    type EighteenXXStateHandler,
     type OperatingState,
     type StockMarket,
     type StockState,
@@ -98,8 +98,8 @@ function trainlessCompany(state: OperatingState & TrainState): string | undefine
 
 /** Liquidates a company that ends its turn without a train before play moves on. */
 export function liquidatesTrainlessCompanies(
-    handler: EighteenXXStateHandler
-): EighteenXXStateHandler {
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(
         handler,
         LiquidateCompany,

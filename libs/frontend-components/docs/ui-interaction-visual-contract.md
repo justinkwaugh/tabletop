@@ -389,3 +389,12 @@ The Game Session owns history availability, download status, and synchronization
 ### Render ownership
 
 The existing game table owns State presentation. Shared history controls own loading, failure, and retry presentation. Downloading historical Actions alone does not change the displayed Game State, clear local selections, or trigger a board transition.
+
+## Session interface for shared controls
+
+The shared session context exposes `GameSessionView`: displayed state, player/chat
+controls, history navigation, Undo and exploration entry points. The concrete session
+retains its title-specific State, renderer and runtime, and owns context replacement.
+The view is a type-level interface to the same object, so it introduces no second state
+store, lifecycle or event subscription. Host bridge messages and mixed-artifact
+compatibility are unchanged; see ADR 0004.

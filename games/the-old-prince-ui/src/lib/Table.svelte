@@ -6,7 +6,7 @@
     } from '@tabletop/the-old-prince'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+    import type { TheOldPrinceState, HydratedTheOldPrinceState } from '@tabletop/the-old-prince'
     import {
         GameTable,
         MarketTokenSize,
@@ -20,8 +20,9 @@
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()
     function lotInfo(id: string) {
         const privateCompany = session.privates.companies.find((company) => company.id === id)
         if (privateCompany)

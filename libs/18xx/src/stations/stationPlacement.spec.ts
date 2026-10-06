@@ -125,3 +125,26 @@ it('rejects a second station anywhere in the same hex, including another city', 
     })
     expect(new StationPlacement(state, { ...rules, map }).openSlots('A', '1', 'city')).toEqual([])
 })
+
+it('allows explicit remote placement while preserving cost, capacity and allowance checks', () => {
+    const { state, rules } = fixture(1)
+    state.stations = state.stations.filter((station) => station.id !== 'A:home')
+    state.stationReservations = []
+    expect(new StationPlacement(state, rules).choices('A:extra')).toEqual([])
+    const remoteRules: StationRules = {
+        ...rules,
+        allowsDisconnected: (_state, request) => request.position.locationId === '1',
+        placementCost: (_state, _id, context) => (context?.connected === false ? 100 : 40)
+    }
+    const choices = new StationPlacement(state, remoteRules).choices('A:extra')
+    expect(choices).toHaveLength(1)
+    expect(choices[0].cost).toBe(100)
+    state.cash[0].amount = 99
+    expect(new StationPlacement(state, remoteRules).choices('A:extra')).toEqual([])
+    state.cash[0].amount = 100
+    state.stationReservations = [{ companyId: 'B', locationId: '1', nodeId: 'city' }]
+    expect(new StationPlacement(state, remoteRules).choices('A:extra')).toEqual([])
+    state.stationReservations = []
+    state.stationStep!.placedStationIds.push('earlier')
+    expect(new StationPlacement(state, remoteRules).choices('A:extra')).toEqual([])
+})

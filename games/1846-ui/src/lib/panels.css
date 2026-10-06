@@ -1,0 +1,147 @@
+.midwest-actions {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    color: var(--rail-text, #514536);
+    font-size: 13px;
+    padding: 8px 12px;
+}
+.midwest-actions section {
+    padding: 8px 0;
+}
+.midwest-actions h2,
+.midwest-actions h3 {
+    font-size: 14px;
+    font-weight: 650;
+    margin: 6px 0;
+}
+.midwest-actions p {
+    margin: 6px 0 10px;
+}
+.midwest-actions .choices {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.midwest-actions .operating-mode {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+.midwest-actions .operating-mode .sliding-toggle {
+    background: var(--rail-surface-inset, #1b232d);
+    box-shadow: inset 0 0 0 1px var(--rail-border, #c7b8a6);
+}
+.midwest-actions .operating-mode button {
+    position: relative;
+    padding: 6px 18px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--rail-muted, #7f8e9e);
+    font-size: 13px;
+    line-height: 18px;
+}
+.midwest-actions .operating-mode button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--rail-text, #e3e9ef);
+}
+.midwest-actions .operating-mode button[aria-pressed='true'] {
+    background: transparent;
+    color: #ffffff;
+    font-weight: 600;
+}
+.midwest-actions .operating-mode button:disabled {
+    opacity: 0.35;
+}
+.midwest-actions button {
+    font: inherit;
+    padding: 8px 12px;
+    border: 1px solid var(--rail-border, #c7b8a6);
+    border-radius: 4px;
+    background: var(--rail-surface, #fffdf8);
+    color: var(--rail-text, #514536);
+    cursor: pointer;
+}
+.midwest-actions button:hover:not(:disabled),
+.midwest-actions button[aria-pressed='true'] {
+    background: var(--rail-surface-selected, #ded0c2);
+}
+.midwest-actions button:focus-visible {
+    outline: 2px solid #a87948;
+    outline-offset: 2px;
+}
+.midwest-actions button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.midwest-actions .draft {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+}
+.midwest-actions .draft-heading {
+    max-width: 44rem;
+    text-align: center;
+}
+.midwest-actions .draft-heading h2 {
+    font-size: 16px;
+}
+.midwest-actions .draft-heading p,
+.midwest-actions .draft-note,
+.midwest-actions .draft-waiting {
+    margin: 4px 0 0;
+    color: var(--rail-muted, #786550);
+    text-align: center;
+}
+.midwest-actions .draft-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 14px;
+}
+.midwest-actions .draft-gate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 28px;
+    border: 2px dashed var(--rail-border, #c7b8a6);
+    border-radius: 10px;
+}
+.midwest-actions .draft-gate p {
+    margin: 0;
+}
+.midwest-actions .draft-commitments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 8px;
+}
+.midwest-actions .commitments-label {
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rail-muted, #786550);
+}
+.midwest-actions .commitment {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--rail-surface-raised, #efe7db);
+}
+.midwest-actions .commitments-total {
+    margin-left: 6px;
+}
+.midwest-actions button.draft-hide {
+    border: 0;
+    background: none;
+    color: var(--rail-muted, #786550);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

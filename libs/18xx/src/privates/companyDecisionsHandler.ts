@@ -1,5 +1,3 @@
-import { TrackConstruction, type TrackRules } from '../construction/trackConstruction.js'
-import { purchaseChoices } from '../transfers/purchaseChoices.js'
 import {
     type HydratedAction,
     type HydratedGameState,
@@ -8,32 +6,35 @@ import {
 } from '@tabletop/common'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
-import { controllingOwner } from '../finance/finance.js'
-import { type TransferRules } from '../transfers/purchaseOffer.js'
-import {
-    HydratedOfferPurchase,
-    HydratedRespondToPurchaseOffer
-} from '../transfers/offerPurchase.js'
 import {
     HydratedRequestTrackConsent,
     HydratedRespondToTrackConsent
 } from '../construction/trackConsent.js'
+import { TrackConstruction, type TrackRules } from '../construction/trackConstruction.js'
+import { controllingOwner } from '../finance/finance.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import {
-    HydratedLayPrivateTile,
-    HydratedLayPrivateTileOutOfTurn,
-    HydratedDeclinePrivateTile
-} from './layPrivateTile.js'
-import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
+    HydratedOfferPurchase,
+    HydratedRespondToPurchaseOffer
+} from '../transfers/offerPurchase.js'
+import { purchaseOfferActions } from '../transfers/purchaseOffersHandler.js'
+import { type TransferRules } from '../transfers/purchaseOffer.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
-import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
-import { HydratedPlacePrivateMarker } from './placePrivateMarker.js'
 import {
     pendingCompanyDecision,
     pendingDecisionPlayerId,
+    privatePowerUsed,
     type CompanyDecisionState
 } from './companyDecision.js'
+import {
+    HydratedDeclinePrivateTile,
+    HydratedLayPrivateTile,
+    HydratedLayPrivateTileOutOfTurn
+} from './layPrivateTile.js'
+import { HydratedPlacePrivateMarker } from './placePrivateMarker.js'
+import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import type { PrivatePowerRules } from './privatePowers.js'
+import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
 export function isCompanyDecisionAction(
     action: HydratedAction
 ): action is
@@ -96,7 +97,7 @@ export class CompanyDecisionsHandler<
                 : actions
         }
         if (state.purchaseOffer)
-            return state.purchaseOffer.sellerPlayerId === playerId ? ['RespondToPurchaseOffer'] : []
+            return purchaseOfferActions(state, playerId, this.transfers, this.trains)
         if (state.trackConsent)
             return state.trackConsent.details.consentPlayerId === playerId
                 ? ['RespondToTrackConsent']
@@ -112,8 +113,7 @@ export class CompanyDecisionsHandler<
         const actions = this.handler.validActionsForPlayer(playerId, context)
         const companyId = this.transfers.operatingCompany(state)
         if (companyId && controllingOwner(state, companyId)?.playerId === playerId) {
-            if (purchaseChoices(state, playerId, this.transfers, this.trains).length)
-                actions.push('OfferPurchase')
+            actions.push(...purchaseOfferActions(state, playerId, this.transfers, this.trains))
             if (state.machineState === 'LayingTrack' && this.track.consentPlayerId) {
                 const construction = new TrackConstruction(state, this.track)
                 if (
@@ -133,7 +133,7 @@ export class CompanyDecisionsHandler<
             (company) => company.kind === 'private' && !company.closed
         )) {
             if (
-                !state.usedPrivatePowerIds.includes(company.id) &&
+                !privatePowerUsed(state, company.id) &&
                 this.powers.trackTerms(state, company.id, playerId)
             )
                 actions.push('LayPrivateTile')
@@ -167,7 +167,7 @@ export class CompanyDecisionsHandler<
                 (company) =>
                     company.kind === 'private' &&
                     !company.closed &&
-                    !state.usedPrivatePowerIds.includes(company.id) &&
+                    !privatePowerUsed(state, company.id) &&
                     hasLegalPrivateTrackUse(state, company.id, playerId, this.powers, this.track)
             )
         )

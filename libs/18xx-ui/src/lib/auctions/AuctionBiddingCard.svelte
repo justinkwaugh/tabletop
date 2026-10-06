@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import AuctionLotCard from './AuctionLotCard.svelte'
     import AuctionBidControl from './AuctionBidControl.svelte'
@@ -16,7 +16,7 @@
         onBid,
         onPass
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         lot: {
             id: string
             name: string

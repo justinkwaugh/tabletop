@@ -3,7 +3,7 @@
     import { tableHeaderState } from './tableHeaderState.js'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { CompanyNameVariants } from './companyPresentation.js'
     let {
@@ -20,7 +20,7 @@
         onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
     } = $props()
     let compact = $state(false)
@@ -51,6 +51,11 @@
     }
     const gameState = $derived(tableHeaderState(session))
     const titleRounds = $derived(session.presentation.titleRounds)
+    const opening = $derived(
+        session.presentation.openingRound?.inProgress(gameState)
+            ? session.presentation.openingRound
+            : undefined
+    )
     const auction = $derived(
         Boolean(
             (gameState.openingAuction && !gameState.openingAuction.completed) ||
@@ -95,6 +100,11 @@
         <strong>
             {#if gameState.result}
                 Game over
+            {:else if opening}
+                <span class="round-full" aria-hidden={compact}>{opening.name}</span><span
+                    class="round-short"
+                    aria-hidden={!compact}>{opening.abbreviation}</span
+                >
             {:else if auction}
                 <span class="auction-label max-sm:hidden">Opening auction</span><span
                     class="auction-label sm:hidden">Auction</span

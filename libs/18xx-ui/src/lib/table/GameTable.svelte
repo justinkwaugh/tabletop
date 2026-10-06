@@ -48,7 +48,7 @@
         ScalingWrapper,
         setGameSession
     } from '@tabletop/frontend-components'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         isMapSelectionValid,
         mapSelectionRect,
@@ -91,7 +91,7 @@
         historyDescription,
         privateOperationDescription
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
         boardInformation?: Snippet
@@ -356,10 +356,7 @@
     )
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const maskPlacementLocations = $derived(
-        !consentPreview &&
-            (choosingCity ||
-                session.track.showChoices ||
-                session.gameState.machineState === 'PlacingStation')
+        !consentPreview && (choosingCity || session.track.showChoices || session.stations.canPlace)
     )
     const placementLocationIds = $derived(
         choosingCity
@@ -406,7 +403,7 @@
     }
     let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
     const runningCompanyId = $derived(
-        !session.isViewingHistory && session.gameState.machineState === 'RunningTrains'
+        !session.isViewingHistory && session.routes.editorVisible
             ? session.gameState.routeStep?.companyId
             : undefined
     )
@@ -763,10 +760,14 @@
             area={viewportRect(boardViewport, boardAreas.market)}
         >
             {@const corner = boardInformation
-                ? marketLowerRightSpace(session.gameState.stockMarket)
+                ? marketLowerRightSpace(
+                      session.gameState.stockMarket,
+                      session.presentation.marketCell
+                  )
                 : undefined}
             <div class="board-market">
                 <StockMarketScene
+                    cell={session.presentation.marketCell}
                     animation={session.marketAnimation}
                     appearances={session.mapView.stations}
                     market={session.gameState.stockMarket}
@@ -797,6 +798,7 @@
                     chart={phaseChart}
                     currentPhaseId={session.gameState.phaseId}
                     {trainColors}
+                    {phaseColors}
                     tileColors={tileAppearance.colors}
                     tileColorNames={tileAppearance.colorNames}
                 />
@@ -824,7 +826,7 @@
             <span class="information-label">Phase</span>
             <TrainBadge
                 name={session.gameState.phaseId}
-                color={trainColors[session.gameState.phaseId]}
+                color={phaseColors[session.gameState.phaseId]}
             />
         </span>
         <span class="game-information-item">
@@ -1076,6 +1078,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={headerState.phaseId}
                                     {trainColors}
+                                    {phaseColors}
                                     tileColors={tileAppearance.colors}
                                     tileColorNames={tileAppearance.colorNames}
                                 />
@@ -1088,6 +1091,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={session.gameState.phaseId}
                                     {trainColors}
+                                    {phaseColors}
                                     tileColors={tileAppearance.colors}
                                     tileColorNames={tileAppearance.colorNames}
                                 />
@@ -1194,6 +1198,7 @@
                                         allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
                                     >
                                         <StockMarketScene
+                                            cell={session.presentation.marketCell}
                                             animation={session.marketAnimation}
                                             appearances={session.mapView.stations}
                                             renderScale={2}
@@ -1302,6 +1307,7 @@
                 chart={phaseChart}
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
+                {phaseColors}
                 tileColors={tileAppearance.colors}
                 tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showPhaseChart = false)}

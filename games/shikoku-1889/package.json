@@ -20,7 +20,7 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
-        "check": "tsgo --noEmit",
+        "check": "tsgo --noEmit && tsgo -p tsconfig.test-types.json",
         "test": "vitest run",
         "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts",
         "lint": "eslint ."

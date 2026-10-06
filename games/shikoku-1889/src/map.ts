@@ -52,14 +52,14 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     K4: [
         {
             id: 'takamatsu-electric-track',
-            label: 'A',
+            label: 'TR',
             description: 'No upgrades while Takamatsu Electric Track is player-owned.'
         }
     ],
     C4: [
         {
             id: 'ehime-railroad',
-            label: 'C',
+            label: 'ER',
             description:
                 'No upgrades while Ehime Railroad is player-owned; selling it grants its seller an immediate upgrade opportunity.'
         }
@@ -161,7 +161,7 @@ export const Shikoku1889Map = new RailwayMap({
             )
         ),
         ...locations('F9', city('green', [2, 3, 4, 5], 30, 2, ['K']), {
-            terrain: { cost: 80, kinds: [] }
+            terrain: { cost: 80, kinds: ['water'] }
         })
     ]
 })

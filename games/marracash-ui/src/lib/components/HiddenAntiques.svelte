@@ -1,46 +1,64 @@
 <script lang="ts">
-    let { count }: { count: number } = $props()
+    import { AntiquesPerPlayer } from '@tabletop/marracash'
+    import { PanelPalette } from '$lib/utils/playerPanel.js'
 
-    const CardWidth = 26
-    const CardHeight = 36
-    const Spread = 9
-    const FanDegrees = 8
-    const Back = '#8e2a22'
-    const Gold = '#e0b54f'
+    const FanStepDegrees = 7
+    const FanDropPerStep = 1.5
     const Star =
-        'M 0 -7 L 2 -2.6 L 6.5 -4.4 L 3.6 -0.4 L 6.5 3.6 L 2 2.2 L 0 6.6 L -2 2.2 L -6.5 3.6 L -3.6 -0.4 L -6.5 -4.4 L -2 -2.6 Z'
+        'M13 11 L15 15.5 L19.5 15.5 L16 18.5 L17.5 23 L13 20.2 L8.5 23 L10 18.5 L6.5 15.5 L11 15.5 Z'
 
-    let width = $derived(CardWidth + Spread * (count - 1) + 10)
-    let middle = $derived((count - 1) / 2)
+    const middle = (AntiquesPerPlayer - 1) / 2
 </script>
 
-<svg {width} height={CardHeight + 10} viewBox="0 0 {width} {CardHeight + 10}" aria-hidden="true">
-    {#each Array.from({ length: count }, (_, index) => index) as index (index)}
-        <g
-            transform="translate({5 + CardWidth / 2 + index * Spread} {CardHeight / 2 +
-                6}) rotate({(index - middle) * FanDegrees})"
-        >
-            <rect
-                x={-CardWidth / 2}
-                y={-CardHeight / 2}
-                width={CardWidth}
-                height={CardHeight}
-                rx="3"
-                fill={Back}
-                stroke="#3b120e"
-                stroke-width="1"
-            ></rect>
-            <rect
-                x={-CardWidth / 2 + 2.5}
-                y={-CardHeight / 2 + 2.5}
-                width={CardWidth - 5}
-                height={CardHeight - 5}
-                rx="2"
-                fill="none"
-                stroke={Gold}
-                stroke-width="0.9"
-            ></rect>
-            <path d={Star} fill={Gold}></path>
-        </g>
-    {/each}
-</svg>
+<div class="flex items-center gap-2.5 pb-0.5 pl-3">
+    <div class="relative -top-1 flex">
+        {#each { length: AntiquesPerPlayer } as _, index (index)}
+            <svg
+                class="card-back"
+                width="26"
+                height="36"
+                viewBox="0 0 26 36"
+                aria-hidden="true"
+                style:transform="rotate({(index - middle) * FanStepDegrees}deg) translateY({Math.abs(
+                    index - middle
+                ) * FanDropPerStep}px)"
+            >
+                <rect
+                    x="0.75"
+                    y="0.75"
+                    width="24.5"
+                    height="34.5"
+                    rx="3"
+                    fill={PanelPalette.cardBack}
+                    stroke={PanelPalette.brass}
+                    stroke-width="1.5"
+                ></rect>
+                <rect
+                    x="3.5"
+                    y="3.5"
+                    width="19"
+                    height="29"
+                    rx="1.5"
+                    fill="none"
+                    stroke={PanelPalette.brass}
+                    stroke-opacity="0.5"
+                    stroke-width="0.8"
+                ></rect>
+                <path d={Star} fill={PanelPalette.brass}></path>
+            </svg>
+        {/each}
+    </div>
+    <span class="text-xs italic" style:color={PanelPalette.cream}
+        >{AntiquesPerPlayer} hidden antiques</span
+    >
+</div>
+
+<style>
+    .card-back {
+        transform-origin: 50% 100%;
+        filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 0.45));
+    }
+    .card-back + .card-back {
+        margin-left: -14px;
+    }
+</style>

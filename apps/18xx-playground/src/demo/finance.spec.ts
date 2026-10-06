@@ -2,7 +2,6 @@ import { getCompany, cashOwnedBy } from '@tabletop/18xx'
 import { expect, it } from 'vitest'
 import { Color, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { TopScenarios as Top, ShikokuScenarios as Shikoku } from '../scenarios/definitions.js'
-import { EighteenXXStateValidator } from '@tabletop/18xx'
 
 it.each([Top, Shikoku])(
     'round-trips the $info.id finance example through its runtime',
@@ -27,7 +26,7 @@ it.each([Top, Shikoku])(
             definition
         )
         const { initialState } = new GameEngine(definition.runtime).startGame(game)
-        expect(EighteenXXStateValidator.Check(initialState)).toBe(true)
+        expect(definition.runtime.canonicalStateValidator?.Check(initialState)).toBe(true)
         const state = definition.runtime.hydrator.hydrateState(
             JSON.parse(JSON.stringify(initialState))
         )
@@ -129,6 +128,8 @@ it.each([Top, Shikoku])(
                 cash: [...initialState.cash, initialState.cash[0]]
             })
         ).toThrow('Duplicate')
-        expect(EighteenXXStateValidator.Check({ ...initialState, unexpected: true })).toBe(false)
+        expect(
+            definition.runtime.canonicalStateValidator?.Check({ ...initialState, unexpected: true })
+        ).toBe(false)
     }
 )

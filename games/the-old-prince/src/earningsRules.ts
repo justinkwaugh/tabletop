@@ -4,9 +4,12 @@ import {
     dividendMarketMove,
     companyMarketSpace,
     getCompany,
+    trainsOwnedBy,
+    type DistributionState,
     type EarningsRules
 } from '@tabletop/18xx'
 import { peirShares } from './peir.js'
+import type { TheOldPrinceState } from './state.js'
 export const TheOldPrinceEarningsRules: EarningsRules = {
     choices: (_state, companyId) =>
         companyId === 'PEIR' ? ['pay', 'half-pay', 'withhold'] : ['pay', 'withhold'],
@@ -18,7 +21,11 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
     },
     entitlements: (state, companyId) =>
         dividendEntitlements(state, companyId, (certificate) =>
-            certificate.owner.kind === 'bank' ? { kind: 'company', companyId } : certificate.owner
+            certificate.poolId === 'reserved'
+                ? undefined
+                : certificate.owner.kind === 'bank'
+                  ? { kind: 'company', companyId }
+                  : certificate.owner
         ),
     retainedRevenue: (_state, _companyId, choice, revenue) =>
         choice === 'withhold' ? revenue : choice === 'half-pay' ? Math.ceil(revenue / 2) : 0,
@@ -39,5 +46,21 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
                     ? 40
                     : 0
         }
+    },
+    afterDistribution(
+        state: DistributionState &
+            Pick<TheOldPrinceState, 'fourPlusTrainIdsWithOperatingOpportunity'>,
+        companyId
+    ) {
+        const trains = trainsOwnedBy(state, { kind: 'company', companyId }).filter(
+            (train) => train.definitionId === '4+'
+        )
+        if (!trains.length) return
+        state.fourPlusTrainIdsWithOperatingOpportunity = [
+            ...new Set([
+                ...(state.fourPlusTrainIdsWithOperatingOpportunity ?? []),
+                ...trains.map((train) => train.id)
+            ])
+        ]
     }
 }

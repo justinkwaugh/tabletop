@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Dirhams from '$lib/components/Dirhams.svelte'
     import type { GameAction } from '@tabletop/common'
+    import DirhamAmount from '$lib/components/DirhamAmount.svelte'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import {
         getShop,
@@ -44,7 +44,7 @@
     {:else if action.amount === 0}
         passed.
     {:else}
-        bid <Dirhams amount={action.amount} />
+        bid <DirhamAmount amount={action.amount} />
     {/if}
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}

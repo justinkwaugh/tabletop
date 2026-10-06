@@ -42,6 +42,13 @@
             ]
         if (trading && valid.includes('PassConvertedShares'))
             return [
+                ...trading.sales.map((sale) => ({
+                    label: `Sell ${plural(sale.sales[0].shares, 'share')}`,
+                    detail: money(sale.proceeds),
+                    ariaLabel: `Sell ${plural(sale.sales[0].shares, 'share')} (${money(sale.proceeds)})`,
+                    disabled: busy,
+                    onclick: () => session.sellConvertedShares(sale.sales[0].shares)
+                })),
                 ...(trading.purchase
                     ? [
                           {

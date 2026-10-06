@@ -2,7 +2,6 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     RunTrains,
-    trainsOwnedBy,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type OperatingResult,
@@ -17,9 +16,16 @@ import type { LocalSelection } from './localSelections.js'
 
 type RoutesState = ConstructorParameters<typeof RouteEvaluation>[0] &
     Pick<EighteenXXState, 'machineState'>
-export type RoutesSession<State extends RoutesState = RoutesState> = ModuleSession<
-    State,
-    Pick<EighteenXXTitleRules, 'routeRules'>
+export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
+    ModuleSession<State, Pick<EighteenXXTitleRules, 'routeRules'>>,
+    | 'state'
+    | 'rules'
+    | 'validActionTypes'
+    | 'publishing'
+    | 'selectionsVisible'
+    | 'interactive'
+    | 'createPlayerAction'
+    | 'applyAction'
 >
 export type RouteOverlay = { id: string; color: string; segments: readonly RoutePath[] }
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
@@ -41,13 +47,17 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         () => this.session.interactive && this.session.validActionTypes.includes('RunTrains')
     )
     editorVisible = $derived.by(
-        () => this.session.selectionsVisible && this.session.state.machineState === 'RunningTrains'
+        () => this.session.selectionsVisible && this.session.validActionTypes.includes('RunTrains')
     )
     solved = $derived.by((): SolvedRoutes<State> | undefined => {
         if (!this.editorVisible) return undefined
         const state = this.session.state
         const companyId = state.routeStep?.companyId
-        if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
+        if (
+            companyId &&
+            !new RouteEvaluation(state, this.session.rules.routeRules).runnableTrains(companyId)
+                .length
+        ) {
             const checked = this.evaluate(state, companyId, [])
             assertExists(checked.result, checked.reason ?? 'Invalid empty train run')
             return { state, result: checked.result, exhaustive: true }

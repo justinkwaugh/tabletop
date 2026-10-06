@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MarketColor } from '@tabletop/marracash'
-import {
-    antiqueColorSummary,
-    completedSetLabel,
-    missingAntiquesSummary,
-    sortedAntiques
-} from './antiqueItems.js'
+import { antiqueColorSummary, missingAntiquesSummary, sortedAntiques } from './antiqueItems.js'
 
 function cards(...colors: MarketColor[]) {
     return colors.map((color, index) => ({ color, value: 50 + 25 * index }))
@@ -57,10 +52,5 @@ describe('antique colour summary', () => {
         expect(missingAntiquesSummary(progress.map((entry) => ({ ...entry, covered: true })))).toBe(
             'Set complete'
         )
-    })
-
-    it('names a completed set by its finishing order', () => {
-        expect(completedSetLabel(0)).toBe('First completed set')
-        expect(completedSetLabel(2)).toBe('Third completed set')
     })
 })

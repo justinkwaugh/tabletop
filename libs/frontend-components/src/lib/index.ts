@@ -71,3 +71,5 @@ export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'
 
 export { restoreWorkspace, restoreWorkspaceTabs, saveWorkspace } from './components/workspacePersistence.js'
 export { workspaceLayout } from './components/tabWorkspace.js'
+
+export type { GameSessionView, GameHistoryView } from './model/gameSessionView.js'

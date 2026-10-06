@@ -1,3 +1,4 @@
+import type { EighteenSeventeenStateHandler } from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -13,7 +14,6 @@ import {
     closePrivate,
     finiteCashOwnedBy,
     privateOwningCompany,
-    type EighteenXXStateHandler,
     type StationState,
     type StockState
 } from '@tabletop/18xx'
@@ -79,7 +79,9 @@ export class HydratedBuyOwedStations
 }
 
 /** Buys owed stations as soon as a company's treasury can pay for them. */
-export function buysOwedStations(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function buysOwedStations(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(handler, BuyOwedStations, (state) => {
         const companyId = companyAbleToBuyStations(state)
         return companyId ? { companyId } : undefined
@@ -87,7 +89,9 @@ export function buysOwedStations(handler: EighteenXXStateHandler): EighteenXXSta
 }
 
 /** A company that still owes stations when the stock round ends is liquidated. */
-export function liquidatesUnpaidStations(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function liquidatesUnpaidStations(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(
         handler,
         LiquidateCompany,
@@ -140,7 +144,9 @@ export class HydratedCloseTrainStation
 }
 
 /** A company's Train Station closes as the stock round ends, whether or not it gave a station. */
-export function closesTrainStation(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function closesTrainStation(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(handler, CloseTrainStation, (state) => {
         const companyId = privateOwningCompany(state, TrainStationId)
         return companyId ? { companyId } : undefined

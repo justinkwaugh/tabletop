@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { OfferAuctionPanel, type EighteenXXSession } from '@tabletop/18xx-ui'
-    let { session, showUndo = true }: { session: EighteenXXSession; showUndo?: boolean } = $props()
+    import { OfferAuctionPanel, type EighteenXXSessionView } from '@tabletop/18xx-ui'
+    let { session, showUndo = true }: { session: EighteenXXSessionView; showUndo?: boolean } =
+        $props()
     const gameState = $derived(session.gameState)
 </script>
 

@@ -13,6 +13,7 @@ export type SolverArc = {
     to: number | null
     next: number[]
     resources: number[]
+    junctions: number[]
     path: number
     hex: number
     terminal: boolean
@@ -26,6 +27,9 @@ export type SolverTrain = {
     visit_costs: number[]
     revenues: number[]
     first_bonus: number[]
+    paying_stop_limit: number | null
+    require_paying_token: boolean
+    connection_bonuses: { from: (number | null)[]; to: (number | null)[] }[]
 }
 export type SolverProblem = {
     version: number
@@ -33,8 +37,10 @@ export type SolverProblem = {
     arcs: SolverArc[]
     trains: SolverTrain[]
     resource_count: number
+    junction_count: number
     group_count: number
     hex_bonuses: number[]
+    longest_route_bonus_per_stop: number
     budget_ms: number
 }
 const Index = Type.Integer({ minimum: 0 })

@@ -7,19 +7,22 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import {
-    EighteenXXStateValidator,
     isDistributeEarnings,
     isFinishOperatingTurn,
     isStartOperatingRound,
     operatingRoundSnapshot,
     getCompany,
-    type ValuationRules
+    type ValuationRules,
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
 
-export function migrateOperatingIncome(
-    state: GameState,
+export function migrateOperatingIncome<
+    Raw extends GameState,
+    State extends HydratedGameState<Raw> & HydratedEighteenXXState
+>(
+    state: Raw,
     actions: GameAction[],
-    engine: GameEngine<GameState, HydratedGameState>,
+    engine: GameEngine<Raw, State>,
     rules: ValuationRules
 ): boolean {
     const needsSnapshot = (action: GameAction) =>
@@ -32,12 +35,9 @@ export function migrateOperatingIncome(
     let cursor = state
     for (const action of actions.toReversed()) {
         if (needsSnapshot(action)) {
-            assert(
-                EighteenXXStateValidator.Check(cursor),
-                'Local income migration requires finance state'
-            )
+            const incomeState = engine.runtime.hydrator.hydrateState(cursor)
             if (action.type === 'FinishOperatingTurn') {
-                Reflect.set(action, 'metadata', operatingRoundSnapshot(cursor, rules))
+                Reflect.set(action, 'metadata', operatingRoundSnapshot(incomeState, rules))
             } else {
                 const metadata: unknown = Reflect.get(action, 'metadata')
                 assert(
@@ -45,15 +45,15 @@ export function migrateOperatingIncome(
                     'Recorded income action requires metadata'
                 )
                 if (action.type === 'StartOperatingRound') {
-                    Reflect.set(metadata, 'snapshot', operatingRoundSnapshot(cursor, rules))
+                    Reflect.set(metadata, 'snapshot', operatingRoundSnapshot(incomeState, rules))
                 } else {
                     const companyId: unknown = Reflect.get(action, 'companyId')
                     assert(typeof companyId === 'string', 'Distribution requires a company')
-                    Reflect.set(metadata, 'companyName', getCompany(cursor, companyId).name)
-                    if (cursor.operatingSet)
+                    Reflect.set(metadata, 'companyName', getCompany(incomeState, companyId).name)
+                    if (incomeState.operatingSet)
                         Reflect.set(metadata, 'round', {
-                            number: cursor.operatingSet.number,
-                            roundNumber: cursor.operatingSet.roundNumber
+                            number: incomeState.operatingSet.number,
+                            roundNumber: incomeState.operatingSet.roundNumber
                         })
                 }
             }

@@ -1,19 +1,19 @@
-import './styles.css'
 import { Shikoku1889TitleRules } from '@tabletop/shikoku-1889'
+import './styles.css'
 
-import { Shikoku1889MapView } from './mapView.js'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
-import { Definition } from '@tabletop/shikoku-1889'
 import {
     DefaultColorizer,
     mountDynamicComponent,
     type GameUIRuntime
 } from '@tabletop/frontend-components'
-import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+import type { HydratedShikoku1889State, Shikoku1889State } from '@tabletop/shikoku-1889'
+import { Definition } from '@tabletop/shikoku-1889'
+import { Shikoku1889MapView } from './mapView.js'
 import { Shikoku1889Presentation } from './presentation.js'
 import Table from './Table.svelte'
 
-export const UiRuntime: GameUIRuntime<EighteenXXState, HydratedEighteenXXState> = {
+export const UiRuntime: GameUIRuntime<Shikoku1889State, HydratedShikoku1889State> = {
     ...Definition.runtime,
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
     sessionClass: createEighteenXXSessionClass(

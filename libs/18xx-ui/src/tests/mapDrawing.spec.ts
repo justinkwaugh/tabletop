@@ -1,9 +1,16 @@
 import { expect, it } from 'vitest'
-import { HexOrientation } from '@tabletop/common'
-import { RailwayMap, createCityTileFace, type TileEdge } from '@tabletop/18xx'
+import { assert, HexOrientation } from '@tabletop/common'
+import {
+    RailwayMap,
+    createCityTileFace,
+    createOffboardTileFace,
+    createTrackTileFace,
+    type TileEdge
+} from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
 import {
     createMapDrawing,
+    mapBorderCosts,
     mapSelectionPoint,
     mapSelectionRect,
     mapViewport
@@ -114,4 +121,109 @@ it('leaves joined edges out of the outline and hides a duplicate revenue', () =>
     expect(second.drawing.nodes[0].revenueHidden).toBe(false)
     const plain = createMapDrawing(map).locations[0]
     expect(plain.outline).toHaveLength(6)
+})
+
+it('divides neighbouring offboard areas and joins the hexes of one area', () => {
+    const map = new RailwayMap({
+        id: 'offboards',
+        name: 'Offboards',
+        orientation: HexOrientation.Pointy,
+        locations: [0, 1, 2, 3].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: false,
+            preprintedTile:
+                r < 3
+                    ? createOffboardTileFace([1], { kind: 'fixed', amount: 30 })
+                    : createCityTileFace('gray', [2], 10, 1)
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        joinedEdges: { 'location-0': [5], 'location-1': [2] }
+    })
+    expect(
+        scene.locations.map((entry) => [
+            entry.outline.length,
+            entry.joints.length,
+            entry.divisions.length
+        ])
+    ).toEqual([
+        [5, 1, 0],
+        [4, 1, 1],
+        [5, 0, 1],
+        [6, 0, 0]
+    ])
+})
+
+it('prints a bonus badge beneath the revenue and each port clear of it inside the hex', () => {
+    const map = new RailwayMap({
+        id: 'ports',
+        name: 'Ports',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'harbour',
+                name: 'Harbour',
+                coordinates: { q: 0, r: 0 },
+                buildable: false,
+                preprintedTile: createOffboardTileFace([1], {
+                    kind: 'staged',
+                    values: [
+                        { stage: 'yellow', amount: 40 },
+                        { stage: 'brown', amount: 10 }
+                    ]
+                }),
+                markers: [
+                    { id: 'bonus', label: '+$20', description: 'Bonus' },
+                    { id: 'ports', label: 'Port ×2', description: 'Ports', count: 2 }
+                ]
+            }
+        ]
+    })
+    const [entry] = createMapDrawing(map, undefined, {
+        markerArt: { bonus: { revenueBadge: true }, ports: { revenueSymbol: 'port' } }
+    }).locations
+    const cells = entry.drawing.nodes[0].revenueCells
+    const [badge, ...ports] = entry.revenueAnnotations
+    assert(badge.kind === 'badge')
+    expect(badge.x).toBeCloseTo(cells.reduce((sum, cell) => sum + cell.x, 0) / cells.length)
+    expect(badge.y - badge.height / 2).toBeGreaterThan(
+        Math.max(...cells.map((cell) => cell.y + cell.height / 2))
+    )
+    expect(ports).toHaveLength(2)
+    for (const port of ports) {
+        assert(port.kind === 'symbol')
+        expect(Math.hypot(port.x, port.y) + port.radius).toBeLessThan(43.3)
+        for (const cell of cells)
+            expect(
+                Math.abs(port.x - cell.x) > port.radius + cell.width / 2 ||
+                    Math.abs(port.y - cell.y) > port.radius + cell.height / 2
+            ).toBe(true)
+    }
+    expect(Math.hypot(ports[0].x - ports[1].x, ports[0].y - ports[1].y)).toBeGreaterThanOrEqual(
+        2 * 8.7
+    )
+})
+
+it('shows a border cost until track meets across the border from both sides', () => {
+    const map = new RailwayMap({
+        id: 'borders',
+        name: 'Borders',
+        orientation: HexOrientation.Pointy,
+        locations: [0, 1, 2].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: r === 2,
+            preprintedTile: createTrackTileFace(r < 2 ? 'gray' : 'white', r < 2 ? [[2, 5]] : []),
+            borders:
+                r === 0
+                    ? [{ edge: 5, kind: 'water', cost: 40 }]
+                    : r === 1
+                      ? [{ edge: 5, kind: 'mountain', cost: 60 }]
+                      : [{ edge: 2, kind: 'mountain', cost: 60 }]
+        }))
+    })
+    expect(
+        mapBorderCosts(createMapDrawing(map)).map(({ amount, kind }) => ({ amount, kind }))
+    ).toEqual([{ amount: 60, kind: 'mountain' }])
 })

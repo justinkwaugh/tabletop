@@ -1,5 +1,12 @@
-import type { GameAction } from '@tabletop/common'
-import type { CertificatePool, EighteenXXState } from '@tabletop/18xx'
+import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
+import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
+import type {
+    CertificatePool,
+    EighteenXXState,
+    StockInstructionStopReason,
+    TileRotation
+} from '@tabletop/18xx'
+import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
 import type {
@@ -7,18 +14,23 @@ import type {
     CompanyPricePresentation,
     NumberedShareNames
 } from '../table/companyPresentation.js'
-import type { StockInstructionStopReason } from '@tabletop/18xx'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
+import type { TerrainIconName } from '../maps/terrainIcons.js'
 
-export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: TileSymbolName }
+export type PrivateTokenPresentation =
+    | { companyId: string }
+    | { tileSymbol: TileSymbolName }
+    | { terrain: TerrainIconName }
+    | { imageUrl: string }
+    | { tiles: readonly { definitionId: string; rotation: TileRotation }[] }
 
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
 /** A round of the title's own that follows an operating round and is numbered after it. */
-export type TitleRound = {
+export type TitleRound<State extends GameState = EighteenXXState> = {
     name: string
     abbreviation: string
-    inProgress: (state: EighteenXXState) => boolean
+    inProgress(state: State): boolean
     starts: (action: GameAction) => boolean
     ends: (action: GameAction) => boolean
 }
@@ -26,19 +38,30 @@ export type TitleRound = {
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
 
+/**
+ * A label above a market zone, drawn across its spaces as an arrow toward its far end or as a span
+ * between its ends.
+ */
+export type MarketZoneBanner = { label: string; shape: 'arrow' | 'span' }
+
 /** The meaning of the market spaces of one colour, for their descriptions and the legend. */
-export type MarketZone = { color: string; name: string; description: string }
+export type MarketZone = {
+    color: string
+    name: string
+    description: string
+    banner?: MarketZoneBanner
+}
 
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
-export type CompanyColumn = {
+export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
     label: string
     /** What the column sorts by; companies without a value sort last. */
-    value: (state: EighteenXXState, companyId: string) => number | undefined
-    text: (state: EighteenXXState, companyId: string) => string
+    value(state: State, companyId: string): number | undefined
+    text(state: State, companyId: string): string
 }
 
-export type TitlePresentation = {
+export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData
@@ -59,12 +82,24 @@ export type TitlePresentation = {
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
-    titleRounds?: readonly TitleRound[]
+    operatingSteps?: readonly {
+        label: string
+        states: readonly string[]
+        actions: readonly string[]
+        status?(
+            state: State,
+            actions: readonly GameAction[],
+            summaries: OperatingStepStatuses
+        ): string | undefined
+    }[]
+    openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
+    titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
-    gameFacts?: (state: EighteenXXState) => readonly TitleFact[]
-    companyColumns?: readonly CompanyColumn[]
+    gameFacts?(state: State): readonly TitleFact[]
+    companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
-    companyFacts?: (state: EighteenXXState, companyId: string) => readonly TitleFact[]
+    companyFacts?(state: State, companyId: string): readonly TitleFact[]
+    marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     /**
      * Published card artwork for the published presentation, keyed by private company id or

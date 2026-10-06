@@ -1,4 +1,5 @@
 import {
+    bankExhaustionAtSetEnd,
     certificateWealthItem,
     getCompany,
     marketShareValue,
@@ -8,14 +9,7 @@ import { EighteenThirtyPrivateCatalog } from './privates.js'
 export const EighteenThirtyEndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
-        if (state.bank.broken)
-            return {
-                reason: 'Bank broken',
-                finalOperatingSet:
-                    (state.operatingSet?.number ?? 0) +
-                    (!state.operatingSet || state.operatingSet.completed ? 1 : 0)
-            }
-        return undefined
+        return bankExhaustionAtSetEnd(state)
     },
     certificateItems(state, certificate) {
         const company = getCompany(state, certificate.companyId)

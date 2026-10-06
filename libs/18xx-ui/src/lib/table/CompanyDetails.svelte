@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { privatePowerUsed } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
         companySharePrice,
@@ -19,7 +20,7 @@
         type Owner,
         type CertificatePool
     } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -46,7 +47,7 @@
         canPurchase?: (entry: CompanyOwnership) => boolean
         purchaseSources?: Snippet<[CompanyOwnership]>
         onPreviewMap?: (action: GameAction) => void
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         displayName?: string
         company: Company
@@ -362,8 +363,7 @@
             >
         </div>
         {#if !vertical && !item.closed && description}<p>{description}</p>{/if}
-        {#if gameState.usedPrivatePowerIds.includes(item.id)}<span class="status"
-                >One-time power used</span
+        {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
     </article>
 {/snippet}
@@ -389,13 +389,18 @@
         border-radius: 7px;
     }
     .vertical header {
-        flex-wrap: wrap;
+        align-items: flex-start;
         gap: 5px;
         background: var(--rail-surface-raised, #e5dccf);
     }
     .vertical .identity {
-        flex-shrink: 1;
+        flex: 1;
+        min-width: 0;
+        align-items: flex-start;
         gap: 7px;
+    }
+    .vertical .identity > :global(svg) {
+        flex-shrink: 0;
     }
     .vertical h2 {
         white-space: normal;

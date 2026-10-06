@@ -98,3 +98,100 @@ it('keeps Market returns separate from new supply, including unlimited train ide
     expect(depot.nextTrain(inventory, 'express')!.id).not.toBe(train.id)
     depot.validateInventory(inventory, ['A', 'B'], [])
 })
+
+function variantDepot() {
+    return new TrainDepot({
+        id: 'variants',
+        trains: [
+            {
+                id: '4',
+                name: '4',
+                price: 180,
+                distance: { measure: 'revenue-centers', maximum: 4 }
+            },
+            {
+                id: '3/5',
+                name: '3/5',
+                price: 160,
+                distance: { measure: 'revenue-centers', maximum: 5 }
+            }
+        ],
+        supply: [{ definitionId: '4', variantDefinitionIds: ['3/5'], count: 2 }]
+    })
+}
+it('offers alternative definitions of the same finite physical train without duplicating supply', () => {
+    const depot = variantDepot()
+    const inventory = depot.createInventory()
+    const four = depot.nextTrain(inventory, '4')!
+    const express = depot.nextTrain(inventory, '3/5')!
+    expect(express.id).toBe(four.id)
+    expect(express.definitionId).toBe('3/5')
+    expect(inventory.trains).toHaveLength(2)
+    expect(depot.purchaseDefinitionIds()).toEqual(['4', '3/5'])
+    depot.purchase(inventory, express.id, '3/5', { kind: 'company', companyId: 'A' })
+    expect(inventory.trains[0]).toMatchObject({ id: four.id, definitionId: '3/5', status: 'owned' })
+    expect(depot.remaining(inventory, '4')).toBe(1)
+    expect(depot.remaining(inventory, '3/5')).toBe(1)
+    expect(() =>
+        depot.purchase(inventory, four.id, '4', { kind: 'company', companyId: 'A' })
+    ).toThrow()
+    depot.validateInventory(inventory, ['A'], [])
+    const next = depot.nextTrain(inventory, '4')!
+    depot.purchase(inventory, next.id, '4', { kind: 'company', companyId: 'A' })
+    expect(depot.nextTrain(inventory, '3/5')).toBeUndefined()
+    expect(depot.remaining(inventory, '4')).toBe(0)
+})
+it('retains the physical supply identity for unlimited alternative definitions', () => {
+    const definition = structuredClone(variantDepot().definition)
+    definition.supply[0].count = 'unlimited'
+    const depot = new TrainDepot(definition)
+    const inventory = depot.createInventory()
+    const first = depot.nextTrain(inventory, '3/5')!
+    expect(first.id).toBe(depot.nextTrain(inventory, '4')?.id)
+    depot.purchase(inventory, first.id, '3/5', { kind: 'company', companyId: 'A' })
+    depot.validateInventory(inventory, ['A'], [])
+    expect(depot.nextTrain(inventory, '4')?.id).not.toBe(first.id)
+})
+it('rejects overlapping variant supplies and definitions not supplied on a certificate', () => {
+    const definition = structuredClone(variantDepot().definition)
+    definition.supply.push({ definitionId: '3/5', count: 1 })
+    expect(() => new TrainDepot(definition)).toThrow('one supply')
+    const depot = variantDepot()
+    const inventory = depot.createInventory()
+    inventory.trains[0].definitionId = 'missing'
+    expect(() => depot.validateInventory(inventory, [], [])).toThrow()
+})
+
+it('selects finite or unlimited supply by inventory identity without changing train definitions', () => {
+    const varied = new TrainDepot({
+        ...depot.definition,
+        supplyVariants: { short: { local: 1, express: 2 } }
+    })
+    const standard = varied.createInventory()
+    const short = varied.createInventory('short')
+    expect(varied.remaining(standard, 'express')).toBe('unlimited')
+    expect(varied.remaining(short, 'local')).toBe(1)
+    expect(varied.remaining(short, 'express')).toBe(2)
+    for (const definitionId of ['local', 'express', 'express']) {
+        const offered = varied.nextTrain(short, definitionId)!
+        varied.purchase(short, offered.id, definitionId, { kind: 'company', companyId: 'A' })
+    }
+    expect(varied.nextDefinitionId(short)).toBeUndefined()
+    expect(varied.nextTrain(short, 'express')).toBeUndefined()
+    expect(varied.remaining(standard, 'express')).toBe('unlimited')
+    varied.validateInventory(short, ['A'], [])
+    varied.validateInventory(standard, [], [])
+    const returned = short.trains.at(-1)!
+    short.trains[short.trains.length - 1] = {
+        id: returned.id,
+        definitionId: returned.definitionId,
+        status: 'market'
+    }
+    expect(varied.remaining(short, 'express')).toBe(0)
+    varied.purchase(short, returned.id, 'express', { kind: 'company', companyId: 'B' })
+    varied.validateInventory(short, ['A', 'B'], [])
+    expect(() => varied.createInventory('unknown')).toThrow('Unknown train supply variant')
+    expect(
+        () => new TrainDepot({ ...depot.definition, supplyVariants: { short: { missing: 1 } } })
+    ).toThrow('Unknown supply variant entry')
+})

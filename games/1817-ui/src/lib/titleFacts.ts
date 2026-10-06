@@ -1,5 +1,6 @@
+import type { EighteenSeventeenState } from '@tabletop/1817'
 import { moneyFormat, type CompanyColumn, type MarketZone, type TitleFact } from '@tabletop/18xx-ui'
-import { companyLoans, getCompany, interestOwed, type EighteenXXState } from '@tabletop/18xx'
+import { companyLoans, getCompany, interestOwed } from '@tabletop/18xx'
 import {
     EighteenSeventeenLoanRules,
     MarketZoneColors,
@@ -11,13 +12,13 @@ import {
 
 const money = moneyFormat('$')
 
-const started = (state: EighteenXXState, companyId: string) => {
+const started = (state: EighteenSeventeenState, companyId: string) => {
     const company = getCompany(state, companyId)
     return company.kind !== 'private' && !!company.started
 }
 
 /** The opening's seed money while it lasts, and once the game's end is set, when it ends. */
-export function eighteenSeventeenGameFacts(state: EighteenXXState): TitleFact[] {
+export function eighteenSeventeenGameFacts(state: EighteenSeventeenState): TitleFact[] {
     const facts: TitleFact[] = []
     const seedMoney = seedMoneyLeft(state)
     if (state.selectionAuction && !state.selectionAuction.completed && seedMoney !== undefined)
@@ -36,7 +37,7 @@ export function eighteenSeventeenGameFacts(state: EighteenXXState): TitleFact[] 
 }
 
 /** A company's loans against its limit, as "2/5". */
-export function loansAgainstLimit(state: EighteenXXState, companyId: string): string {
+export function loansAgainstLimit(state: EighteenSeventeenState, companyId: string): string {
     return `${companyLoans(state, companyId)}/${EighteenSeventeenLoanRules.capacity(state, companyId)}`
 }
 
@@ -44,9 +45,9 @@ export function loansAgainstLimit(state: EighteenXXState, companyId: string): st
 function startedColumn(
     id: string,
     label: string,
-    value: (state: EighteenXXState, companyId: string) => number,
-    text: (state: EighteenXXState, companyId: string) => string
-): CompanyColumn {
+    value: (state: EighteenSeventeenState, companyId: string) => number,
+    text: (state: EighteenSeventeenState, companyId: string) => string
+): CompanyColumn<EighteenSeventeenState> {
     return {
         id,
         label,
@@ -56,7 +57,7 @@ function startedColumn(
     }
 }
 
-export const EighteenSeventeenCompanyColumns: readonly CompanyColumn[] = [
+export const EighteenSeventeenCompanyColumns: readonly CompanyColumn<EighteenSeventeenState>[] = [
     startedColumn('size', 'Size', corporationShareCount, (state, companyId) =>
         String(corporationShareCount(state, companyId))
     ),
@@ -65,7 +66,7 @@ export const EighteenSeventeenCompanyColumns: readonly CompanyColumn[] = [
 
 /** A started company's size, the interest it owes, stations it still owes, and its zone. */
 export function eighteenSeventeenCompanyFacts(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string
 ): TitleFact[] {
     if (!started(state, companyId)) return []
@@ -84,7 +85,7 @@ export function eighteenSeventeenCompanyFacts(
 }
 
 /** The closing zone a company's price is in, when it is in one. */
-export function zoneFact(state: EighteenXXState, companyId: string): TitleFact | undefined {
+export function zoneFact(state: EighteenSeventeenState, companyId: string): TitleFact | undefined {
     const zone = closingZone(state.stockMarket, companyId)
     return zone
         ? { label: 'Zone', value: zone === 'acquisition' ? 'Acquisition' : 'Liquidation' }

@@ -30,7 +30,7 @@ it('starts each phase with its train and rusts each train on schedule', () => {
     })
 })
 
-it('lets a company-owned 4+ that never ran survive until it next runs', () => {
+it('grants a company-owned 4+ diesel grace only before its first operating opportunity', () => {
     const players = ['a', 'b', 'c'].map((playerId) => ({ playerId, color: 'blue' as const }))
     const { position } = createTheOldPrinceOpening({
         players,
@@ -48,6 +48,18 @@ it('lets a company-owned 4+ that never ran survive until it next runs', () => {
     })
     expect(TheOldPrincePhaseRules.rustTiming(state, owned(false))).toBe('after-operation')
     expect(TheOldPrincePhaseRules.rustTiming(state, owned(true))).toBe('immediate')
+    const afterOpportunity = {
+        ...state,
+        fourPlusTrainIdsWithOperatingOpportunity: ['4+:1']
+    }
+    expect(TheOldPrincePhaseRules.rustTiming(afterOpportunity, owned(false))).toBe('immediate')
+    expect(
+        TheOldPrincePhaseRules.rustTiming(afterOpportunity, {
+            ...owned(false),
+            status: 'owned',
+            owner: { kind: 'company', companyId: 'ML' }
+        })
+    ).toBe('immediate')
     expect(
         TheOldPrincePhaseRules.rustTiming(state, {
             id: '4+:2',

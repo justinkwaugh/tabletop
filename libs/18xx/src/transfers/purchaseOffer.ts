@@ -9,19 +9,24 @@ import {
     sameOwner
 } from '../finance/finance.js'
 import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
-import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
+import { trainCanBeTraded } from '../trains/train.js'
+import { trainsCountingForLimit, type TrainRules } from '../trains/trainPurchase.js'
 import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import { settleTrainDepartures } from '../trains/trainDepartures.js'
+import { AssetTransfer, StationTransfer } from '../company/companyMerger.js'
 
 const Id = Type.String({ minLength: 1 })
-export const PurchaseAsset = Type.Union([
+export const OrdinaryPurchaseAsset = Type.Union([
     Type.Object({ kind: Type.Literal('train'), trainId: Id }, { additionalProperties: false }),
     Type.Object(
         { kind: Type.Literal('private'), privateCompanyId: Id },
         { additionalProperties: false }
     )
+])
+export const PurchaseAsset = Type.Union([
+    ...OrdinaryPurchaseAsset.anyOf,
+    Type.Object({ kind: Type.Literal('company'), companyId: Id }, { additionalProperties: false })
 ])
 export type PurchaseAsset = Type.Static<typeof PurchaseAsset>
 export const PurchaseOfferRequest = Type.Object(
@@ -62,7 +67,20 @@ export const PlayerPurchaseOffer = Type.Object(
 export type PlayerPurchaseOffer = Type.Static<typeof PlayerPurchaseOffer>
 /** The offer awaiting its seller's answer: a company's purchase or a player's. */
 export const PendingPurchaseOffer = Type.Union([PurchaseOffer, PlayerPurchaseOffer])
+export const OrdinaryPurchaseOffer = Type.Object(
+    { ...PurchaseOffer.properties, asset: OrdinaryPurchaseAsset },
+    { additionalProperties: false }
+)
+export const OrdinaryPendingPurchaseOffer = Type.Union([OrdinaryPurchaseOffer, PlayerPurchaseOffer])
 export type PendingPurchaseOffer = Type.Static<typeof PendingPurchaseOffer>
+export const PurchaseEffects = Type.Object(
+    {
+        assets: Type.Optional(AssetTransfer),
+        stations: Type.Optional(StationTransfer)
+    },
+    { additionalProperties: false }
+)
+export type PurchaseEffects = Type.Static<typeof PurchaseEffects>
 export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is PurchaseOffer {
     return 'companyId' in offer
 }
@@ -74,7 +92,7 @@ export interface TransferRules {
         companyId: string,
         asset: PurchaseAsset
     ): { minimum: number; maximum?: number } | undefined
-    afterPurchase(state: CompanyDecisionState, offer: PurchaseOffer): void
+    afterPurchase(state: CompanyDecisionState, offer: PurchaseOffer): PurchaseEffects | void
     /**
      * Who makes up a price the buyer's treasury cannot cover, in order, and the highest price
      * they may fund; undefined when the treasury must pay alone.
@@ -87,6 +105,28 @@ export interface TransferRules {
 }
 export type PurchaseFunding = { contributors: readonly Owner[]; maximumPrice: number }
 export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): Owner | undefined {
+    if (asset.kind === 'company') {
+        const company = state.companies.find((item) => item.id === asset.companyId)
+        if (!company || company.closed || !company.shareCount) return undefined
+        const shares = state.certificates.filter(
+            (certificate) => !certificate.retired && certificate.companyId === company.id
+        )
+        const first = shares[0]
+        if (!first || first.retired || first.owner.kind !== 'player') return undefined
+        const owner = first.owner
+        return shares.every(
+            (certificate) =>
+                !certificate.retired &&
+                certificate.kind === 'share' &&
+                sameOwner(certificate.owner, owner)
+        ) &&
+            shares.reduce(
+                (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
+                0
+            ) === company.shareCount
+            ? owner
+            : undefined
+    }
     if (asset.kind === 'private') {
         const company = state.companies.find((item) => item.id === asset.privateCompanyId)
         return company?.kind === 'private' && !company.closed
@@ -141,7 +181,7 @@ export function evaluatePurchaseOffer(
         if (state.companies.find((item) => item.id === owner.companyId)?.closed)
             return { reason: 'A closed company cannot sell trains.' }
         if (
-            trainsOwnedBy(state, { kind: 'company', companyId: request.companyId }).length >=
+            trainsCountingForLimit(state, trains, request.companyId).length >=
             trains.trainLimit(state, request.companyId)
         )
             return { reason: 'The buyer is at its train limit.' }
@@ -153,7 +193,7 @@ export function settlePurchaseOffer(
     offer: PurchaseOffer,
     rules: TransferRules,
     trains: TrainRules
-): CashPayment[] {
+): { payments: CashPayment[]; effects?: PurchaseEffects } {
     const evaluation = evaluatePurchaseOffer(state, offer, rules, trains)
     assert(
         evaluation.buyerPlayerId === offer.buyerPlayerId &&
@@ -182,7 +222,7 @@ export function settlePurchaseOffer(
         )
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.companyId)
-    } else {
+    } else if (asset.kind === 'private') {
         const certificate = state.certificates.find(
             (item) =>
                 !item.retired &&
@@ -193,9 +233,18 @@ export function settlePurchaseOffer(
         assert(!certificate.retired, 'The private must remain open')
         certificate.owner = owner
         delete certificate.poolId
+    } else {
+        for (const certificate of state.certificates)
+            if (!certificate.retired && certificate.companyId === asset.companyId) {
+                certificate.owner = owner
+                delete certificate.poolId
+            }
+        const company = state.companies.find((company) => company.id === asset.companyId)
+        assertExists(company, 'An acquired company exists')
+        company.president = owner
     }
-    rules.afterPurchase(state, offer)
-    return payments
+    const effects = rules.afterPurchase(state, offer)
+    return { payments, ...(effects ? { effects } : {}) }
 }
 
 function canFund(

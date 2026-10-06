@@ -1,288 +1,261 @@
-import { GameEnding } from '../ending/gameEnding.js'
-import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
-import { OfferPileFields, type OfferPileAuction } from '../auctions/offerPileAuction.js'
-import { AuctionFields, type WaterfallAuction } from '../auctions/waterfallAuction.js'
-import {
-    SelectionAuctionFields,
-    validateSelectionAuction,
-    type SelectionAuction
-} from '../auctions/selectionAuction.js'
-import { validatePendingPar, type PendingPar } from '../company/pendingPar.js'
-import { FundingFields, type TrainFunding, type Bankruptcy } from '../funding/trainFunding.js'
-import {
-    CompanyDecisionFields,
-    type PrivateTrackLay,
-    type PrivateStation,
-    type TrackConsent,
-    type PrivatePowerWindow
-} from '../privates/companyDecision.js'
-import { type PendingPurchaseOffer } from '../transfers/purchaseOffer.js'
-import { PhaseFields, type PhaseEvent, type PhaseChange } from '../phases/phaseChange.js'
-import { EarningsFields, type EarningsDetails } from '../earnings/earningsDistribution.js'
-import { RouteFields, type RouteStep } from '../routes/route.js'
-import { TrainFields, type TrainInventory, type TrainPurchaseStep } from '../trains/train.js'
-import type { TrainDepot } from '../trains/trainDepot.js'
-import { StationStep } from '../stations/stationPlacement.js'
-import { TrackStep } from '../construction/trackConstruction.js'
-import { MapFields, RailwayMapState } from '../map/mapState.js'
-import { LocationMarkerFields, type LocationMarker } from '../map/locationMarkers.js'
-import type { RailwayMap } from '../map/map.js'
-import type { PhaseTable } from '../phases/phaseTable.js'
-import type { TileSet, TileInventory } from '../tiles/inventory.js'
-import { OperatingSet } from '../operating/operatingSet.js'
-import { CompanyFields, type CompanyState } from '../company/companyState.js'
-import { validateStations } from '../map/station.js'
-import * as Type from 'typebox'
-import { Compile, type Validator } from 'typebox/compile'
+import type { TitleComponents } from './titleComponents.js'
 import {
     GameState,
+    Visibility,
+    type Color,
+    type GameResult,
     HydratableGameState,
     assert,
     type HydratedGameState,
     type PlayerState
 } from '@tabletop/common'
-import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
-import { StockRound } from '../stock/stockRound.js'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { OfferPileFields } from '../auctions/offerPileAuction.js'
+import { SelectionAuctionFields } from '../auctions/selectionAuction.js'
+import { AuctionFields } from '../auctions/waterfallAuction.js'
+import { CompanyFields, CompanyTranche, OwnershipLimitExemption } from '../company/companyState.js'
+import { PendingParFields } from '../company/pendingPar.js'
+import { TrackStep, validateTrackStep } from '../construction/trackConstruction.js'
+import { EarningsFields, validateEarningsDistribution } from '../earnings/earningsDistribution.js'
+import { EndingFields, validateFinalResults } from '../ending/finalWealth.js'
+import { GameEnding } from '../ending/gameEnding.js'
 import {
-    CompanyAuctionFields,
-    validateCompanyAuction,
-    type CompanyAuction
-} from '../stock/companyAuction.js'
-import { FinanceFields, validateFinances, type FinancialState } from '../finance/finance.js'
-import { validateStockRound } from '../stock/stockRound.js'
-import { validateOperatingSet } from '../operating/operatingSet.js'
-import { validateTrackStep } from '../construction/trackConstruction.js'
-import { validateStationStep } from '../stations/stationPlacement.js'
-import { validateWaterfallAuction } from '../auctions/waterfallAuction.js'
-import { validateTrainFunding } from '../funding/trainFunding.js'
-import { validateFinalResults } from '../ending/finalWealth.js'
-import { validateCompanyDecisions } from '../privates/companyDecision.js'
-import { StockTurnPurchaseFields, type StockTurnPurchase } from '../stock/turnPurchases.js'
-import { validateRouteStep } from '../routes/route.js'
-import { validatePhaseChange } from '../phases/phaseChange.js'
-import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
-import { validateTrainPurchaseStep } from '../trains/train.js'
-import { LoanFields, validateLoanStep, type LoanStep } from '../loans/loans.js'
-import { CashCrisisFields, validateCashCrisis, type CashCrisis } from '../funding/cashCrisis.js'
+    FinanceFields,
+    OrdinaryCertificate,
+    OrdinaryCompany,
+    validateFinances
+} from '../finance/finance.js'
+import { CashCrisisFields } from '../funding/cashCrisis.js'
+import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
+import { LoanFields } from '../loans/loans.js'
+import { LocationMarkerFields } from '../map/locationMarkers.js'
+import type { RailwayMap } from '../map/map.js'
+import { MapFields, RailwayMapState } from '../map/mapState.js'
+import { validateStations } from '../map/station.js'
+import { OperatingSet, validateOperatingSet } from '../operating/operatingSet.js'
+import { PhaseFields, validatePhaseChange } from '../phases/phaseChange.js'
+import type { PhaseTable } from '../phases/phaseTable.js'
+import {
+    CompanyDecisionFields,
+    CompanyAcquisitionOfferFields,
+    PurchaseOfferFields,
+    validateCompanyDecisions
+} from '../privates/companyDecision.js'
+import { RouteFields, validateRouteStep } from '../routes/route.js'
+import { StationStep, validateStationStep } from '../stations/stationPlacement.js'
+import { CompanyAuctionFields } from '../stock/companyAuction.js'
+import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
+import { StockRound, validateStockRound } from '../stock/stockRound.js'
+import { StockTurnPurchaseFields } from '../stock/turnPurchases.js'
+import type { TileSet } from '../tiles/inventory.js'
+import { TrainFields, validateTrainPurchaseStep } from '../trains/train.js'
+import type { TrainDepot } from '../trains/trainDepot.js'
 
-const FamilyMachineState = Type.Union([
-    Type.Literal('StockRound'),
-    Type.Literal('OfferingLot'),
-    Type.Literal('OfferBidding'),
-    Type.Literal('WaterfallAuction'),
-    Type.Literal('AuctionBidding'),
-    Type.Literal('SelectionAuction'),
-    Type.Literal('StartingOperatingSet'),
-    Type.Literal('OperatingSet'),
-    Type.Literal('LayingTrack'),
-    Type.Literal('PlacingStation'),
-    Type.Literal('StationsComplete'),
-    Type.Literal('BuyingTrains'),
-    Type.Literal('FundingTrain'),
-    Type.Literal('Bankrupt'),
-    Type.Literal('GameOver'),
-    Type.Literal('AdvancingPhase'),
-    Type.Literal('DiscardingTrains'),
-    Type.Literal('RustingTrains'),
-    Type.Literal('RunningTrains'),
-    Type.Literal('DistributingEarnings'),
-    Type.Literal('RepayingLoans'),
-    Type.Literal('RaisingCash')
-])
-const FamilyFields = Type.Object({
-    // Serialized marker retained so games created before the runtime left the examples folder keep loading.
+export const RailwayMachineStates = [
+    'StockRound',
+    'StartingOperatingSet',
+    'OperatingSet',
+    'LayingTrack',
+    'PlacingStation',
+    'StationsComplete',
+    'BuyingTrains',
+    'FundingTrain',
+    'Bankrupt',
+    'GameOver',
+    'AdvancingPhase',
+    'DiscardingTrains',
+    'RustingTrains',
+    'RunningTrains',
+    'DistributingEarnings'
+] as const
+export const OfferAuctionMachineStates = ['OfferingLot', 'OfferBidding'] as const
+export const WaterfallAuctionMachineStates = ['WaterfallAuction', 'AuctionBidding'] as const
+export const SelectionAuctionMachineStates = ['SelectionAuction'] as const
+export const LoanMachineStates = ['RepayingLoans'] as const
+export const CashCrisisMachineStates = ['RaisingCash'] as const
+export type EighteenXXMachineState =
+    | (typeof RailwayMachineStates)[number]
+    | (typeof OfferAuctionMachineStates)[number]
+    | (typeof WaterfallAuctionMachineStates)[number]
+    | (typeof SelectionAuctionMachineStates)[number]
+    | (typeof LoanMachineStates)[number]
+    | (typeof CashCrisisMachineStates)[number]
+
+export const RailwayFields = {
+    // Retained for saved games created before the runtime left the examples folder.
     example: Type.Literal('finances'),
-    machineState: FamilyMachineState,
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
     trackStep: Type.Optional(TrackStep),
     stationStep: Type.Optional(StationStep),
     stockMarket: StockMarket,
     ...FinanceFields,
+    companies: Type.Array(OrdinaryCompany),
+    certificates: Type.Array(OrdinaryCertificate),
     ...EndingFields,
     gameEnding: Type.Optional(GameEnding),
     ...FundingFields,
-    ...AuctionFields,
-    ...SelectionAuctionFields,
-    ...OfferPileFields,
     ...CompanyFields,
     ...MapFields,
-    ...LocationMarkerFields,
     ...TrainFields,
     ...PhaseFields,
     ...EarningsFields,
-    ...CompanyDecisionFields,
-    ...RouteFields,
-    ...StockTurnPurchaseFields,
-    ...CompanyAuctionFields,
-    ...LoanFields,
-    ...CashCrisisFields
-})
-export const EighteenXXState: Type.TObject<
-    Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
-> = Type.Object(
-    {
-        ...GameState.properties,
-        ...FamilyFields.properties
-    },
-    { additionalProperties: false }
-)
-export type EighteenXXMachineState = Type.Static<typeof FamilyMachineState>
-type TitleMachineState = { machineState: Type.TUnsafe<string> }
-type TitleStateSchema<Fields extends Type.TProperties = Record<never, never>> = Type.TObject<
-    Omit<typeof EighteenXXState.properties, 'machineState'> & Fields & TitleMachineState
+    ...PurchaseOfferFields,
+    ...RouteFields
+}
+type RuntimeFields = Omit<
+    typeof RailwayFields,
+    'companies' | 'certificates' | 'example' | 'purchaseOffer'
+> &
+    typeof FinanceFields &
+    Omit<typeof CompanyDecisionFields, 'purchaseOffer'> &
+    typeof CompanyAcquisitionOfferFields &
+    typeof StockTurnPurchaseFields &
+    typeof PendingParFields &
+    typeof AuctionFields &
+    typeof SelectionAuctionFields &
+    typeof OfferPileFields &
+    typeof LocationMarkerFields &
+    typeof CompanyAuctionFields &
+    typeof LoanFields &
+    typeof CashCrisisFields & {
+        example: Type.TOptional<typeof RailwayFields.example>
+        tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
+        ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
+    }
+// Enum member ordering is not part of the state contract. Declaration emit and
+// visibility projection may reorder it while preserving the same value type.
+type TitleGameFields = {
+    players: Type.TArray<
+        Type.TObject<{
+            playerId: Type.TString
+            color: Type.TEnum<Color[]>
+        }>
+    >
+    result: Type.TOptional<Type.TEnum<GameResult[]>>
+    machineState: Type.TString | Type.TUnsafe<string> | Type.TUnion<Type.TLiteral<string>[]>
+}
+type ProjectedGameStateSchema = ReturnType<
+    typeof Visibility.createProjectionSchema<typeof GameState>
 >
-export type EighteenXXState = Type.Static<TitleStateSchema>
-export type EighteenXXStateValidator = Validator<Record<never, never>, TitleStateSchema>
+export type TitleStateSchema =
+    | Type.TObject<Omit<typeof GameState.properties, keyof TitleGameFields> & TitleGameFields>
+    | Type.TObject<
+          Omit<ProjectedGameStateSchema['properties'], keyof TitleGameFields> & TitleGameFields
+      >
+export type EighteenXXRuntimeSchema = Type.TObject<typeof GameState.properties & RuntimeFields>
+export type EighteenXXState<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> =
+    Type.Static<Schema>
+export type HydratedEighteenXXState<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> =
+    HydratedGameState<Type.Static<Schema>> & Type.Static<Schema>
 
-export function extendEighteenXXState<Fields extends Type.TProperties>(
-    fields: Fields,
-    machineStates: readonly string[] = []
-): TitleStateSchema<Fields> {
-    for (const name of [...Object.keys(fields), ...machineStates])
-        assert(
-            !(name in EighteenXXState.properties) &&
-                !FamilyMachineState.anyOf.some((literal) => literal.const === name),
-            `${name} already belongs to the 18xx family state`
-        )
+export type ComposedStateSchema<
+    Fields extends Type.TProperties,
+    Machine extends string
+> = Type.TObject<
+    Omit<typeof GameState.properties, 'machineState'> &
+        Fields & { machineState: Type.TUnsafe<Machine> }
+>
+
+export function composeEighteenXXState<
+    Fields extends Type.TProperties,
+    const States extends readonly string[]
+>(fields: Fields, machineStates: States): ComposedStateSchema<Fields, States[number]> {
+    for (const name of Object.keys(fields))
+        assert(!(name in GameState.properties), `${name} already belongs to the game state`)
+    assert(new Set(machineStates).size === machineStates.length, 'Duplicate machine state')
     return Type.Object(
         {
-            ...EighteenXXState.properties,
+            ...GameState.properties,
             ...fields,
-            machineState: Type.Unsafe<string>(
-                Type.Union([
-                    ...FamilyMachineState.anyOf,
-                    ...machineStates.map((name) => Type.Literal(name))
-                ])
+            machineState: Type.Unsafe<States[number]>(
+                Type.Union(machineStates.map((name) => Type.Literal(name)))
             )
         },
         { additionalProperties: false }
     )
 }
-export const EighteenXXStateValidator: EighteenXXStateValidator = Compile(extendEighteenXXState({}))
-export class HydratedEighteenXXState
-    extends HydratableGameState<TitleStateSchema, PlayerState>
-    implements EighteenXXState
-{
-    declare offerAuction?: OfferPileAuction
-    declare openingAuction?: WaterfallAuction
-    declare selectionAuction?: SelectionAuction
-    declare pendingPar?: PendingPar
-    declare trainFunding?: TrainFunding
-    declare bankruptcy?: Bankruptcy
-    declare gameEnding?: GameEnding
-    declare finalWealth?: PlayerWealth[]
-    declare privatePowerWindow?: PrivatePowerWindow
-    declare privatePowerRequests?: string[]
-    declare purchaseOffer?: PendingPurchaseOffer
-    declare stockTurnPurchases?: StockTurnPurchase[]
-    declare companyAuction?: CompanyAuction
-    declare interestRate?: number
-    declare loanStep?: LoanStep
-    declare cashCrisis?: CashCrisis
-    declare bankruptPlayerIds?: string[]
-    declare privateTrackLay?: PrivateTrackLay
-    declare privateStation?: PrivateStation
-    declare trackConsent?: TrackConsent
-    declare usedPrivatePowerIds: string[]
-    declare earningsDistribution?: EarningsDetails
-    declare phaseEvents: PhaseEvent[]
-    declare phaseChange?: PhaseChange
-    declare routeStep?: RouteStep
-    declare trainInventory: TrainInventory
-    declare trainPurchaseStep?: TrainPurchaseStep
-    declare tileInventory: TileInventory
-    declare locationMarkers?: LocationMarker[]
-    declare phaseId: string
-    declare tranches: CompanyState['tranches']
-    declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']
-    declare stations: CompanyState['stations']
-    declare stationReservations: CompanyState['stationReservations']
-    declare example: 'finances'
-    declare machineState: string
-    declare operatingSet?: OperatingSet
-    declare stationStep?: StationStep
-    declare trackStep?: TrackStep
-    declare stockRound: StockRound
-    declare stockMarket: StockMarket
-    declare companies: FinancialState['companies']
-    declare bank: FinancialState['bank']
-    declare certificatePools: FinancialState['certificatePools']
-    declare cash: FinancialState['cash']
-    declare certificates: FinancialState['certificates']
-    constructor(
-        data: EighteenXXState,
-        map: RailwayMap,
-        tileSet: TileSet,
-        depot: TrainDepot,
-        validator: EighteenXXStateValidator = EighteenXXStateValidator
-    ) {
-        super(data instanceof HydratedEighteenXXState ? data.dehydrate() : data, validator)
-        assert(
-            new Set(this.players.map((player) => player.playerId)).size === this.players.length,
-            'Duplicate player identity'
-        )
-        validateStockRound(this)
-        validateOperatingSet(this)
-        validateTrackStep(this)
-        validateStationStep(this)
-        validateWaterfallAuction(this)
-        validateSelectionAuction(this)
-        validateCompanyAuction(this)
-        validatePendingPar(this)
-        validateTrainFunding(this)
-        validateFinalResults(this)
-        validateCompanyDecisions(this)
-        new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
-        depot.validateInventory(
-            this.trainInventory,
-            this.companies.map((company) => company.id),
-            this.players.map((player) => player.playerId)
-        )
-        validateRouteStep(this)
-        validatePhaseChange(this)
-        validateEarningsDistribution(this)
-        validateTrainPurchaseStep(this)
-        validateLoanStep(this)
-        validateCashCrisis(this)
-        validateStations(
-            this,
-            this.companies.map((company) => company.id)
-        )
-        validateStockMarket(
-            this.stockMarket,
-            this.companies.map((company) => company.id)
-        )
-        validateFinances(
-            this,
-            this.players.map((player) => player.playerId)
-        )
+
+class StateHydrator<Schema extends TitleStateSchema> extends HydratableGameState<
+    Schema,
+    PlayerState
+> {}
+
+export type EighteenXXStateDefinition<
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> = {
+    schema: Schema
+    read(data: unknown): unknown
+    hydrate(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot): State
+}
+
+export function defineEighteenXXState<Schema extends TitleStateSchema>(
+    schema: Schema,
+    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[],
+    readStored?: (data: unknown) => unknown
+): EighteenXXStateDefinition<Schema> {
+    const validator = Compile(schema)
+    function read(data: unknown): unknown {
+        const stored = data instanceof StateHydrator ? data.dehydrate() : data
+        return readStored ? readStored(stored) : stored
+    }
+    return {
+        schema,
+        read,
+        hydrate(data, map, tileSet, depot) {
+            const stored = read(data)
+            if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
+            const core = new StateHydrator(stored, validator)
+            const state = Object.assign(core, core.dehydrate(), { turnManager: core.turnManager })
+            assert(
+                new Set(state.players.map((player) => player.playerId)).size ===
+                    state.players.length,
+                'Duplicate player identity'
+            )
+            for (const validate of validations) validate(state, { map, tileSet, depot })
+            return state
+        }
     }
 }
 
-export type EighteenXXStateDefinition = {
-    schema: Type.TObject
-    hydrate(
-        data: EighteenXXState,
-        map: RailwayMap,
-        tileSet: TileSet,
-        depot: TrainDepot
-    ): HydratedEighteenXXState
-}
-export const FamilyStateDefinition: EighteenXXStateDefinition = {
-    schema: EighteenXXState,
-    hydrate: (data, map, tileSet, depot) => new HydratedEighteenXXState(data, map, tileSet, depot)
+export type StateValidation<State> = (state: State, components: TitleComponents) => void
+
+export const validateRailwayState: StateValidation<EighteenXXState> = (
+    state,
+    { map, tileSet, depot }
+) => {
+    validateStockRound(state)
+    validateOperatingSet(state)
+    validateTrackStep(state)
+    validateStationStep(state)
+    validateTrainFunding(state)
+    validateFinalResults(state)
+    validateCompanyDecisions(state)
+    validateRouteStep(state)
+    validatePhaseChange(state)
+    validateEarningsDistribution(state)
+    validateTrainPurchaseStep(state)
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    const companyIds = state.companies.map((company) => company.id)
+    depot.validateInventory(
+        state.trainInventory,
+        companyIds,
+        state.players.map((player) => player.playerId)
+    )
+    validateStations(state, companyIds)
+    validateStockMarket(state.stockMarket, companyIds)
+    validateFinances(
+        state,
+        state.players.map((player) => player.playerId)
+    )
 }
 
-export function inKnownPhase(
-    state: HydratedEighteenXXState,
+export function inKnownPhase<State extends HydratedEighteenXXState>(
+    state: State,
     phases: PhaseTable
-): HydratedEighteenXXState {
+): State {
     assert(phases.has(state.phaseId), `Unknown phase ${state.phaseId}`)
-    return state
-}
-
-export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {
-    assert(state instanceof HydratedEighteenXXState, 'Expected hydrated 18xx state')
     return state
 }

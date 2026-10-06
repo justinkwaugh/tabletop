@@ -1,11 +1,5 @@
 import { type GameDefinition } from '@tabletop/common'
-import {
-    createEighteenXXRuntime,
-    defineAction,
-    type EighteenXXState,
-    type EighteenXXTitleRules,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { EighteenSeventeenEndingRules } from '../endingRules.js'
 import { EighteenSeventeenAuctionRules, createEighteenSeventeenOpening } from '../openingAuction.js'
 import { EighteenSeventeenTrainFundingRules } from '../trainFundingRules.js'
@@ -22,7 +16,11 @@ import { EighteenSeventeenOperatingRules } from '../roundRules.js'
 import { EighteenSeventeenCompanyRules } from '../companyRules.js'
 import { EighteenSeventeenStockRules } from '../stockRules.js'
 import { EighteenSeventeenInfo } from './info.js'
-import { EighteenSeventeenStateDefinition } from '../state.js'
+import {
+    EighteenSeventeenStateDefinition,
+    EighteenSeventeenState,
+    type HydratedEighteenSeventeenState
+} from '../state.js'
 import { EighteenSeventeenLoanRules } from '../loanRules.js'
 import { EighteenSeventeenCashCrisisRules } from '../bankruptcy.js'
 import {
@@ -53,7 +51,10 @@ import {
     isPassConvertedShares,
     isPassMerger,
     isStartMergerRound,
-    startsMergerRounds
+    startsMergerRounds,
+    HydratedSellConvertedShares,
+    SellConvertedShares,
+    isSellConvertedShares
 } from '../mergerRound.js'
 import {
     CompanyExcessHandler,
@@ -141,7 +142,10 @@ import {
     isLiquidateCompany
 } from '../liquidation.js'
 
-export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
+export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
+    typeof EighteenSeventeenState,
+    HydratedEighteenSeventeenState
+> = {
     state: EighteenSeventeenStateDefinition,
     endingRules: EighteenSeventeenEndingRules,
     selectionAuctionRules: EighteenSeventeenAuctionRules,
@@ -205,6 +209,11 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
             (action) => new HydratedMergeCompanies(action)
         ),
         defineAction(PassMerger, isPassMerger, (action) => new HydratedPassMerger(action)),
+        defineAction(
+            SellConvertedShares,
+            isSellConvertedShares,
+            (action) => new HydratedSellConvertedShares(action)
+        ),
         defineAction(
             BuyConvertedShare,
             isBuyConvertedShare,
@@ -295,7 +304,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     ]
 }
 
-export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+export const Definition: GameDefinition<EighteenSeventeenState, HydratedEighteenSeventeenState> = {
     info: EighteenSeventeenInfo,
     runtime: createEighteenXXRuntime(EighteenSeventeenTitleRules)
 }

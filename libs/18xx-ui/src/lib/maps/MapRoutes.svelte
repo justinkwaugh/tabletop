@@ -21,10 +21,10 @@
                     {#each entry.drawing.nodes.filter((node) => node.node.kind !== 'city') as node (node.node.id)}
                         {#if node.node.kind === 'town' && appearance.townMarker === 'bar' && node.townAngle !== undefined}
                             <rect
-                                x="-7.5"
-                                y="-3.5"
-                                width="15"
-                                height="7"
+                                x="-9"
+                                y="-4.5"
+                                width="18"
+                                height="9"
                                 transform={`translate(${node.center.x} ${node.center.y}) rotate(${node.townAngle})`}
                             ></rect>
                         {:else if node.node.kind === 'offboard'}
@@ -39,11 +39,7 @@
                             <circle
                                 cx={node.center.x}
                                 cy={node.center.y}
-                                r={node.node.kind === 'town'
-                                    ? node.townAngle === undefined
-                                        ? 6.65
-                                        : 4.55
-                                    : 3}
+                                r={node.node.kind === 'town' ? node.dotRadius + 0.35 : 3}
                             ></circle>
                         {/if}
                     {/each}

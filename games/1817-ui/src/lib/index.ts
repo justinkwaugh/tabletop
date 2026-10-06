@@ -1,8 +1,11 @@
 import { EighteenSeventeenInfo } from '@tabletop/1817'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
-import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 
-export const UiDefinition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState> = {
+export const UiDefinition: GameUiDefinition<
+    EighteenSeventeenState,
+    HydratedEighteenSeventeenState
+> = {
     info: { ...EighteenSeventeenInfo, thumbnailUrl: '' },
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }

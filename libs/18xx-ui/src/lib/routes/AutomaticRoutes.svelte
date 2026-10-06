@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import TrainRunTable from './TrainRunTable.svelte'
 
     let {
@@ -9,7 +9,7 @@
         onFocusRoute,
         trainColors
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>

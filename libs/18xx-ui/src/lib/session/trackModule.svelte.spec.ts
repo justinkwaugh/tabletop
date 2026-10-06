@@ -179,3 +179,18 @@ describe('TrackModule', () => {
         expect(() => module.selectLocation(module.locationIds[0])).toThrow()
     })
 })
+
+it('relinquishes track selection when the title selects another construction mode', () => {
+    const harness = laying()
+    const module = new TrackModule(
+        harness.session,
+        () => ({ map: minimalTrackMap, tileSet: minimalTrackTileSet }),
+        noPrivateAction,
+        { selectPrivateTile: () => {}, confirm: async () => {} },
+        () => {},
+        () => false
+    )
+    expect(module.canBuild).toBe(false)
+    expect(module.selection).toEqual({})
+    expect(module.locationIds).toEqual([])
+})

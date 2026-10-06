@@ -1,27 +1,31 @@
-import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
+    PlayerAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { applyTrackLay } from '../construction/layTile.js'
 import {
-    TrackRequest,
     TrackLayDetails,
+    TrackRequest,
     type TrackLayEffects,
     type TrackRules
 } from '../construction/trackConstruction.js'
-import { applyTrackLay } from '../construction/layTile.js'
-import { closePrivate } from './privateCompany.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
-import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
-import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
-import { endPrivatePowerRequest } from './privatePowerRequest.js'
-import { privateStationPositions } from './privateStation.js'
 import type { StationRules } from '../stations/stationPlacement.js'
+import {
+    pendingCompanyDecision,
+    recordPrivatePowerUse,
+    type CompanyDecisionState
+} from './companyDecision.js'
+import { closePrivate } from './privateCompany.js'
+import { endPrivatePowerRequest } from './privatePowerRequest.js'
+import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
+import { privateStationPositions } from './privateStation.js'
 export const LayPrivateTile = Type.Object(
     {
         ...PlayerAction.properties,
@@ -61,7 +65,7 @@ function applyPrivateLay(
         terms.payer,
         terms.countsAsOrdinaryLay === true
     )
-    if (!terms.reusable) state.usedPrivatePowerIds.push(lay.privateCompanyId)
+    if (!terms.reusable) recordPrivatePowerUse(state, lay.privateCompanyId)
     const powerEffects = powers.afterTrackLay?.(state, lay.privateCompanyId, details)
     if (powerEffects) {
         settleCashPayments(state, powerEffects.payments)
@@ -236,7 +240,7 @@ export class HydratedDeclinePrivateTile
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Only the entitled seller may decline this tile lay')
-        state.usedPrivatePowerIds.push(this.privateCompanyId)
+        recordPrivatePowerUse(state, this.privateCompanyId)
         delete state.privateTrackLay
     }
 }

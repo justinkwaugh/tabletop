@@ -4,22 +4,30 @@ import {
     GameStorage,
     PlayerStatus,
     type Game,
-    type GameDefinition
+    type GameDefinition,
+    type HydratedGameState
 } from '@tabletop/common'
-import type { EighteenXXState, HydratedEighteenXXState } from '../game/eighteenXXState.js'
+import type { President } from '../finance/finance.js'
+import type {
+    EighteenXXState,
+    HydratedEighteenXXState,
+    TitleStateSchema
+} from '../game/eighteenXXState.js'
 import type { EighteenXXTitleRules } from '../game/eighteenXXTitleRules.js'
 import type { BuyShares } from '../stock/buyShares.js'
-import type { President } from '../finance/finance.js'
 import { ScenarioInitializer, type ScenarioFixtures } from './scenarioInitializer.js'
 import { ScenarioConfigurator, type ScenarioPosition } from './scenarioPosition.js'
 
 export type ScenarioDefinition = GameDefinition<EighteenXXState, HydratedEighteenXXState>
 
-export function withScenarios(
-    definition: ScenarioDefinition,
-    rules: EighteenXXTitleRules,
-    fixtures: ScenarioFixtures
-): ScenarioDefinition {
+export function withScenarios<
+    Schema extends TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
+>(
+    definition: GameDefinition<EighteenXXState<Schema>, State>,
+    rules: EighteenXXTitleRules<Schema, State>,
+    fixtures: ScenarioFixtures<Schema, State>
+): GameDefinition<EighteenXXState<Schema>, State> {
     return {
         info: { ...definition.info, configurator: new ScenarioConfigurator() },
         runtime: { ...definition.runtime, initializer: new ScenarioInitializer(rules, fixtures) }
@@ -27,10 +35,10 @@ export function withScenarios(
 }
 
 // Examples are pinned by their numeric public seed, which a generated master seed would replace.
-export function startFromPublicSeed(
-    runtime: ScenarioDefinition['runtime'],
-    game: Game
-): EighteenXXState {
+export function startFromPublicSeed<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(runtime: GameDefinition<Raw, State>['runtime'], game: Game): Raw {
     return new GameEngine({ ...runtime, randomnessVersion: undefined }).startGame(game).initialState
 }
 
@@ -42,15 +50,18 @@ const FourPlayerPositions: readonly ScenarioPosition[] = [
 ]
 const PlayerIds = ['alex', 'blair', 'casey', 'drew', 'elliot', 'fran']
 
-export function exampleGame(
-    definition: ScenarioDefinition,
+export function exampleGame<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(
+    definition: GameDefinition<Raw, State>,
     examplePosition: ScenarioPosition = 'trading',
     playerCount = FourPlayerPositions.includes(examplePosition) ? 4 : 3,
     seed = 5
 ): {
     game: Game
-    engine: GameEngine<EighteenXXState, HydratedEighteenXXState>
-    state: EighteenXXState
+    engine: GameEngine<Raw, State>
+    state: Raw
 } {
     const game = definition.runtime.initializer.initializeGame(
         {

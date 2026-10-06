@@ -9,6 +9,7 @@ import {
 } from '@tabletop/18xx'
 import { TheOldPrinceStockRules } from './stockRules.js'
 export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
+    sellInBlocks: true,
     afterShareSale(state) {
         reorderPendingOperatingCompanies(state, TheOldPrinceOperatingRules.companyOrder(state))
     },

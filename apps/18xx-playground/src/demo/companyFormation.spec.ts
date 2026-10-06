@@ -456,7 +456,7 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     })
     expect(sharesOwned(result.updatedState, 'MS', blair)).toBe(3)
     const flotation = result.processedActions.find(isFloatCompany)!
-    const changes = historyCompanyChanges(result.processedActions, result.updatedState)
+    const changes = historyCompanyChanges(result.processedActions)
     const description = historyDescription(
         flotation,
         result.updatedState,
@@ -468,6 +468,6 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     expect(description.detail).toContain('PEIR President: blair → casey')
     expect(description.detail).toContain('blair exchanged PEIR #3 for 1 MS')
     const before = structuredClone(result.updatedState)
-    historyCompanyChanges(result.processedActions, result.updatedState)
+    historyCompanyChanges(result.processedActions)
     expect(result.updatedState).toEqual(before)
 })

@@ -1,3 +1,4 @@
+import { recordedSource } from './recordedHistory.js'
 import jsonpatch from 'fast-json-patch'
 import { deriveGameSeeds, generateMasterSeed } from '../../util/gameSeeds.js'
 import { generateSeed } from '../../util/prng.js'
@@ -57,10 +58,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
     }
 
     recordedState(state: T, exploration?: ExplorationState): T {
-        const checkpoint = exploration?.checkpoint
-        return checkpoint && state.actionCount === exploration.actionCount
-            ? this.restore(state, checkpoint.source)
-            : state
+        return recordedSource(state, exploration)
     }
 
     backward(state: T, action: GameAction, exploration?: ExplorationState): T {

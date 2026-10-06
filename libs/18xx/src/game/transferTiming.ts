@@ -9,7 +9,8 @@ export const EighteenXXTransferTiming: Pick<TransferRules, 'operatingCompany' | 
     canPurchase(state, companyId, asset) {
         return (
             asset.kind === 'private' ||
-            (state.machineState === 'BuyingTrains' &&
+            (asset.kind === 'train' &&
+                state.machineState === 'BuyingTrains' &&
                 state.trainPurchaseStep?.companyId === companyId)
         )
     }

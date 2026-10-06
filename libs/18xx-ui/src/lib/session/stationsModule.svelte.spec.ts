@@ -107,3 +107,32 @@ describe('StationsModule', () => {
         ).toThrow('Choose an available station')
     })
 })
+
+it('places a station during interleaved construction without a FinishStations action', async () => {
+    const harness = placing(['PlaceStation'])
+    harness.session.state.machineState = 'LayingTrack'
+    const module = new StationsModule(
+        harness.session,
+        () => {},
+        () => false,
+        () => true
+    )
+    expect(module.canPlace).toBe(true)
+    const choice = module.choices[0]
+    expect(choice).toBeDefined()
+    module.selectPosition(choice)
+    await module.confirm()
+    expect(harness.applied).toMatchObject([{ type: 'PlaceStation', companyId: TestCompanyId }])
+})
+
+it('does not expose station choices while the title has selected track construction', () => {
+    const harness = placing(['PlaceStation'])
+    const module = new StationsModule(
+        harness.session,
+        () => {},
+        () => false,
+        () => false
+    )
+    expect(module.canPlace).toBe(false)
+    expect(module.selection).toEqual({})
+})

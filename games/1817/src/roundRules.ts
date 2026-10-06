@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from './state.js'
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
 import { corporationShareCount } from './corporations.js'
 import { isLiquidated } from './liquidation.js'
@@ -24,7 +25,7 @@ export const EighteenSeventeenStockRoundRules: StockRoundRules = {
     soldOut: (state, companyId) =>
         corporationShareCount(state, companyId) > 2 &&
         playerHoldings(state, companyId) >= corporationShareCount(state, companyId),
-    squeezed: (state, companyId) =>
+    squeezed: (state: StockState & Pick<EighteenSeventeenState, 'shortSqueeze'>, companyId) =>
         eighteenSeventeenOptions(state).shortSqueeze &&
         playerHoldings(state, companyId) > corporationShareCount(state, companyId),
     // Each share left in the market pool, less the market's shorts, moves the company down.

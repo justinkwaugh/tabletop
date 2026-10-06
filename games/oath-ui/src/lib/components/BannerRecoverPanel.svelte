@@ -4,7 +4,7 @@
     import CountPicker from '$lib/components/CountPicker.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { bannerName, bannerTokenKind, humanizeReason } from '$lib/model/names.js'
+    import { bannerName, bannerTokenKind } from '$lib/model/names.js'
 
     // R-5.4.2 the bid; R-5.4.4 the bank the People's Favor's old favor starts returning to.
     let gameSession = getGameSession()
@@ -43,7 +43,7 @@
         {/if}
         {#if reason}
             <p class="text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
             </p>
         {/if}
         <button

@@ -25,11 +25,11 @@ test('protected views show only the cash each perspective may see', async ({ pag
     await enterProtectedMode(page)
 
     await viewAs(page, 'Amira')
-    await expect(page.getByText(/^1200\s*د\.م\.$/)).toHaveCount(1)
+    await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(1)
     await expect(page.getByText('Cash hidden')).toHaveCount(3)
 
     await viewAs(page, 'Spectator')
-    await expect(page.getByText(/^1200\s*د\.م\.$/)).toHaveCount(0)
+    await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(0)
     await expect(page.getByText('Cash hidden')).toHaveCount(4)
 
     await viewAs(page, 'Host View')

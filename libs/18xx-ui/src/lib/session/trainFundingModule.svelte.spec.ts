@@ -49,6 +49,10 @@ describe('TrainFundingModule', () => {
     it('can resolve only while funding a train with some valid action', () => {
         expect(funding('FundingTrain', ['ContributeTrainFunds']).module.canResolve).toBe(true)
         expect(funding('FundingTrain', []).module.canResolve).toBe(false)
+        expect(funding('FundingTrain', ['ExchangePrivateOutOfTurn']).module.canResolve).toBe(false)
+        expect(
+            funding('FundingTrain', ['DeclareBankruptcy', 'ExchangePrivate']).module.canResolve
+        ).toBe(true)
         expect(funding('BuyingTrains', ['FundTrain']).module.canResolve).toBe(false)
     })
 

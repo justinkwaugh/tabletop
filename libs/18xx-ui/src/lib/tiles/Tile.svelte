@@ -3,7 +3,7 @@
     import type { TileFace, TileRotation } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import { createTileDrawing, type TileDrawing, type TileLayout } from './tileDrawing.js'
-    import type { TileAppearance } from './tileAppearance.js'
+    import { tileDrawingStyle, type TileAppearance } from './tileAppearance.js'
     import TileArtwork from './TileArtwork.svelte'
 
     let {
@@ -33,7 +33,9 @@
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
-    const drawing = $derived(createTileDrawing(face, orientation, rotation, layout))
+    const drawing = $derived(
+        createTileDrawing(face, orientation, rotation, layout, tileDrawingStyle(appearance))
+    )
     const description = $derived(
         label ??
             `${printedNumber ? `Tile ${printedNumber}` : 'Printed hex'}, ${appearance?.colorNames?.[face.color] ?? face.color}${face.labels.length ? `, ${face.labels.join(', ')}` : ''}, rotation ${rotation * 60} degrees`
