@@ -7,6 +7,7 @@ import {
     oraclePlaceId,
     spaceKey,
     type HydratedBoard,
+    type Market,
     type Network,
     type Place,
     type PlaceId,
@@ -114,16 +115,36 @@ export function oracleViews(board: HydratedBoard, network: Network): OracleView[
     })
 }
 
-export function marketViews(board: HydratedBoard, network: Network): MarketView[] {
-    const slotsUsed = new Map<string, number>()
+// Markets gather on their place's anchor tile, one slot each, so a merged city shows its markets
+// together. A place holding more than the slots allow (a city merged before a merge removed second
+// markets) spills on to its next tile.
+function marketLayout(
+    board: HydratedBoard
+): { market: Market; tile: AxialCoordinates; slot: Point }[] {
+    const slotsUsed = new Map<PlaceId, number>()
     return board.markets.map((market) => {
-        const tileKey = `${market.coords.q},${market.coords.r}`
-        const index = slotsUsed.get(tileKey) ?? 0
-        slotsUsed.set(tileKey, index + 1)
-        const center = hexCenter(market.coords)
-        const slot = MARKET_SLOTS[index % MARKET_SLOTS.length]
+        const place = board.marketPlace(market)
+        const index = slotsUsed.get(place.id) ?? 0
+        slotsUsed.set(place.id, index + 1)
+        const spaceIndex = Math.floor(index / MARKET_SLOTS.length) % place.spaces.length
         return {
-            key: `${tileKey}:${index}`,
+            market,
+            tile: place.spaces[spaceIndex],
+            slot: MARKET_SLOTS[index % MARKET_SLOTS.length]
+        }
+    })
+}
+
+export function marketTile(board: HydratedBoard, market: Market): AxialCoordinates {
+    const placed = marketLayout(board).find((entry) => entry.market === market)
+    return placed?.tile ?? market.coords
+}
+
+export function marketViews(board: HydratedBoard, network: Network): MarketView[] {
+    return marketLayout(board).map(({ market, tile, slot }) => {
+        const center = hexCenter(tile)
+        return {
+            key: `${spaceKey(market.coords)}:${market.playerId}`,
             point: { x: center.x + slot.x, y: center.y + slot.y },
             playerId: market.playerId,
             sold: market.sold,

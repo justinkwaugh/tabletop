@@ -40,6 +40,7 @@ export const Board = Type.Object({
     cities: Type.Array(City),
     oracles: Type.Array(Oracle),
     markets: Type.Array(Market),
+    lostMarkets: Type.Optional(Type.Record(Type.String(), Type.Number())),
     nextCityNumber: Type.Number()
 })
 
@@ -50,6 +51,7 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
     declare cities: City[]
     declare oracles: Oracle[]
     declare markets: Market[]
+    declare lostMarkets?: Record<string, number>
     declare nextCityNumber: number
 
     constructor(data: Board) {
@@ -181,7 +183,8 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
     marketsRemaining(playerId: string): number {
         return (
             MARKETS_PER_PLAYER -
-            this.markets.filter((market) => market.playerId === playerId).length
+            this.markets.filter((market) => market.playerId === playerId).length -
+            (this.lostMarkets?.[playerId] ?? 0)
         )
     }
 
@@ -196,20 +199,57 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
         return city
     }
 
-    extendCity(cityId: string, coords: AxialCoordinates): string[] {
+    extendCity(
+        cityId: string,
+        coords: AxialCoordinates
+    ): { mergedCityIds: string[]; removedMarkets: Market[] } {
         const city = this.city(cityId)
+        const settledSpaces = [...city.spaces]
         city.spaces.push(coords)
-        const mergedIds = this.adjacentCities(coords)
+        const mergedCityIds = this.adjacentCities(coords)
             .filter((other) => other.id !== city.id && other.playerId === city.playerId)
             .map((other) => other.id)
-        for (const mergedId of mergedIds) {
+        for (const mergedId of mergedCityIds) {
             this.mergeCity(city, this.city(mergedId))
         }
-        return mergedIds
+        return { mergedCityIds, removedMarkets: this.removeExcessMarkets(city, settledSpaces) }
     }
 
     addMarket(market: Market) {
         this.markets.push(market)
+    }
+
+    // A player may hold one market per city, so when a merge or a claimed village gives one a
+    // second, the market they would rather lose leaves the game: a sold one before an unsold one,
+    // then one that came with the absorbed city or village before one already in this city, then
+    // the newer.
+    private removeExcessMarkets(city: City, settledSpaces: AxialCoordinates[]): Market[] {
+        const settled = (market: Market) =>
+            settledSpaces.some((space) => sameCoordinates(space, market.coords))
+        const kept = new Map<string, Market>()
+        for (const market of this.marketsAt(cityPlaceId(city.id))) {
+            const current = kept.get(market.playerId)
+            if (
+                !current ||
+                (current.sold && !market.sold) ||
+                (current.sold === market.sold && !settled(current) && settled(market))
+            ) {
+                kept.set(market.playerId, market)
+            }
+        }
+        const removed = this.marketsAt(cityPlaceId(city.id)).filter(
+            (market) => kept.get(market.playerId) !== market
+        )
+        if (removed.length === 0) {
+            return []
+        }
+        this.markets = this.markets.filter((market) => !removed.includes(market))
+        const lostMarkets = { ...this.lostMarkets }
+        for (const market of removed) {
+            lostMarkets[market.playerId] = (lostMarkets[market.playerId] ?? 0) + 1
+        }
+        this.lostMarkets = lostMarkets
+        return removed
     }
 
     updateOracleAttention(network: Network): OracleChange[] {

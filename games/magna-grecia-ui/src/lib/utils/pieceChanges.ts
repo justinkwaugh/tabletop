@@ -32,7 +32,11 @@ export function pieceChanges(from: HydratedBoard, to: HydratedBoard): PieceChang
         arrivingMarkets: markets.added,
         leavingMarkets: markets.removed,
         changedMarkets: markets.kept.filter(
-            ({ from, to }) => from.active !== to.active || from.sold !== to.sold
+            ({ from, to }) =>
+                from.active !== to.active ||
+                from.sold !== to.sold ||
+                from.point.x !== to.point.x ||
+                from.point.y !== to.point.y
         ),
         turnedOracles: oracles.kept.filter(
             ({ from, to }) =>
