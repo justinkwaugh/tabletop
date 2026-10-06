@@ -19,6 +19,10 @@
     import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
     import LibreBaskervilleRegular from '$lib/fonts/LibreBaskerville-Regular.woff2'
     import LibreCaslonTextBold from '$lib/fonts/LibreCaslonText-Bold.woff2'
+    // PROTOTYPE: player card name and money face; ship a subset woff2 if it stays.
+    import ElMessiriVariable from '$lib/fonts/ElMessiri-Variable.ttf'
+    // PROTOTYPE: only the glyphs of the dirham sign د.م. (Google Fonts text= subset).
+    import DirhamSignFont from '$lib/fonts/NotoNaskhArabic-DirhamSign.woff2'
 
     let {
         gameSession
@@ -43,6 +47,18 @@
 <CustomFont
     fontFamily="Libre Caslon Text"
     url={LibreCaslonTextBold}
+    format="woff2"
+    fontWeight="bold"
+/>
+<CustomFont
+    fontFamily="MarraCash El Messiri"
+    url={ElMessiriVariable}
+    format="truetype"
+    fontWeight="400 700"
+/>
+<CustomFont
+    fontFamily="MarraCash Dirham Sign"
+    url={DirhamSignFont}
     format="woff2"
     fontWeight="bold"
 />
