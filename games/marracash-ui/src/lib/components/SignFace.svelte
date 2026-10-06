@@ -1,18 +1,25 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { SignCream, SignFrame, SignOrnaments } from '$lib/utils/shopSign.js'
+    import {
+        SignBottomOrnament,
+        SignCream,
+        SignFrame,
+        SignTopOrnament
+    } from '$lib/utils/shopSign.js'
 
     let {
         outline,
         fill,
         edge,
         edgeWidth = 1.5,
+        ornaments = [SignTopOrnament, SignBottomOrnament],
         children
     }: {
         outline: string
         fill: string
         edge: string
         edgeWidth?: number
+        ornaments?: readonly string[]
         children: Snippet
     } = $props()
 </script>
@@ -27,7 +34,7 @@
     stroke-linejoin="round"
     opacity="0.9"
 ></path>
-{#each SignOrnaments as ornament (ornament)}
+{#each ornaments as ornament (ornament)}
     <path d={ornament} fill={SignCream} opacity="0.9"></path>
 {/each}
 {@render children()}

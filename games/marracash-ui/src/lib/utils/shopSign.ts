@@ -40,10 +40,8 @@ export const SignFrame = {
     transform: `translate(0 ${SignFrameCenterY}) scale(${SignFrameScale}) translate(0 ${-SignFrameCenterY})`,
     strokeWidth: 1.3 / SignFrameScale
 }
-export const SignOrnaments = [
-    'M -3.5 -45 L 0 -48.5 L 3.5 -45 L 0 -41.5 Z',
-    'M -3 -13.5 L 0 -16 L 3 -13.5 L 0 -11 Z'
-] as const
+export const SignTopOrnament = 'M -3.5 -45 L 0 -48.5 L 3.5 -45 L 0 -41.5 Z'
+export const SignBottomOrnament = 'M -3 -13.5 L 0 -16 L 3 -13.5 L 0 -11 Z'
 export const SignFaceCenterY = -28.75
 
 export type ShopSignLayout = { ground: Point; chip: Point }

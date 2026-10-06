@@ -2,7 +2,12 @@
     import SignFace from '$lib/components/SignFace.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ElMessiriCapHeight, PanelPalette } from '$lib/utils/playerPanel.js'
-    import { playerStandeeOutline, SignFaceCenterY, signInitial } from '$lib/utils/shopSign.js'
+    import {
+        playerStandeeOutline,
+        SignFaceCenterY,
+        signInitial,
+        SignTopOrnament
+    } from '$lib/utils/shopSign.js'
 
     const InitialSize = 27
 
@@ -18,6 +23,7 @@
         fill={gameSession.colors.getPlayerBgColorValue(playerId)}
         edge={PanelPalette.brass}
         edgeWidth={1.75}
+        ornaments={[SignTopOrnament]}
     >
         <text
             x="0"
