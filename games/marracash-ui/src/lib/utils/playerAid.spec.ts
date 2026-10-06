@@ -22,11 +22,11 @@ describe('player aid tables', () => {
     it('splits the mover and auction bonuses at their rule thresholds', () => {
         expect(moverBonusRows()).toEqual([
             { label: 'up to 300', amount: 50 },
-            { label: '400 or more', amount: 100 }
+            { label: 'over 300', amount: 100 }
         ])
         expect(auctionBonusRows()).toEqual([
             { label: 'up to 500', amount: 100 },
-            { label: '525 or more', amount: 200 }
+            { label: 'over 500', amount: 200 }
         ])
     })
 

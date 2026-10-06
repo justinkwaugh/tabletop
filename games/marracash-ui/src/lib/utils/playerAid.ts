@@ -31,7 +31,7 @@ export function moverBonusRows(): AidAmountRow[] {
     const higherIncome = LowMoverCutProfitLimit + PaymentPerCustomerStep
     return [
         { label: `up to ${LowMoverCutProfitLimit}`, amount: moverCut(LowMoverCutProfitLimit, 1) },
-        { label: `${higherIncome} or more`, amount: moverCut(higherIncome, 1) }
+        { label: `over ${LowMoverCutProfitLimit}`, amount: moverCut(higherIncome, 1) }
     ]
 }
 
@@ -39,7 +39,7 @@ export function auctionBonusRows(): AidAmountRow[] {
     const higherBid = LowAuctioneerCutLimit + DirhamIncrement
     return [
         { label: `up to ${LowAuctioneerCutLimit}`, amount: auctioneerCut(LowAuctioneerCutLimit) },
-        { label: `${higherBid} or more`, amount: auctioneerCut(higherBid) }
+        { label: `over ${LowAuctioneerCutLimit}`, amount: auctioneerCut(higherBid) }
     ]
 }
 

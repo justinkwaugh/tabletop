@@ -28,7 +28,7 @@ test('the ? button lays the turn, money and antique cards over the board', async
         await expect(aid(page).getByRole('region', { name: card })).toBeVisible()
     }
     await expect(aid(page)).toContainText('Move not allowed after Auction')
-    await expect(aid(page)).toContainText('525 or more')
+    await expect(aid(page)).toContainText('over 500')
     await expect(aid(page)).toContainText('+ best 5 cards')
 
     await page.keyboard.press('Escape')
