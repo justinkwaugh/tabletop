@@ -84,12 +84,12 @@ export function reasonTransferInvalid(
     const favor = transfer.favor ?? 0
     if (!Number.isInteger(favor) || favor < 0) return 'a promised amount cannot be negative'
     const usable = usableFavor(state, fromId)
-    if (usable < favor) return `${fromId} promised ${favor} favor but has ${usable}`
+    if (usable < favor) return `${fromId} promised ${favor} favor, with only ${usable} usable`
     const secrets = transfer.secrets ?? 0
     if (!Number.isInteger(secrets) || secrets < 0) return 'a promised amount cannot be negative'
     // R-7.1.2.a — facedown secrets cannot be handed over, so only the faceup count is checked.
     if (from.secrets < secrets)
-        return `${fromId} promised ${secrets} secrets but has ${from.secrets}`
+        return `${fromId} promised ${secrets} secrets, holding only ${from.secrets}`
     if (secrets > 0) {
         const silenced = reasonPersistentForbidsGivingSecrets(state, fromId)
         if (silenced) return silenced
@@ -103,20 +103,20 @@ export function reasonTransferInvalid(
     }
     for (const cardId of transfer.relicCardIds ?? []) {
         if (!from.relicIds.includes(cardId))
-            return `${fromId} promised ${cardId}, which they do not hold`
+            return `${fromId} promised ${cardId} without holding it`
     }
     for (const banner of transfer.banners ?? []) {
         if (bannerHolder(state, banner) !== fromId)
-            return `${fromId} promised the ${banner}, which they do not hold`
+            return `${fromId} promised the ${banner} without holding it`
     }
     for (const site of transfer.sites ?? []) {
         if (!rulesSite(state, fromId, site.siteId))
-            return `${fromId} promised ${site.siteId}, which they do not rule`
+            return `${fromId} promised ${site.siteId} without ruling it`
         if (!Number.isInteger(site.warbands) || site.warbands < 1)
             return `${toId} must move at least one warband to ${site.siteId}`
         const owner = boardWarbandOwnerOf(state, toId)
         if (!owner || countOf(to.warbandsOnBoard, owner) < site.warbands) {
-            return `${toId} has fewer than ${site.warbands} warbands on their board to move to ${site.siteId}`
+            return `${toId}'s board has fewer than ${site.warbands} warbands to move to ${site.siteId}`
         }
     }
     // R-9.4 — read from the public rows alone, so an answer never tells what a facedown card is.

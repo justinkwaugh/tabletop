@@ -6,7 +6,7 @@
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
 
     // R-5.5.3, R-7.5.2 — the defending side's battle plans, answered knowing
     // the pools and not the roll. R-5.5.3.a: the defender first, then each ally.
@@ -95,7 +95,7 @@
         {/each}
         {#if blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
             </p>
         {/if}
         <button

@@ -8,6 +8,7 @@ import { PlayerStatus } from '../model/oathEnums.js'
 import { ShownPlayerPolicy } from '../model/question.js'
 import { canUseGrandScepter, holdsGrandScepter, reliquarySlot } from '../util/imperial.js'
 import { peekRelicInVault } from '../util/hiddenInputs.js'
+import { statusName } from '../util/citizenship.js'
 
 /** R-6.1, R-9.4, R-6.6.1 */
 export enum LetPeekSubjectKind {
@@ -119,7 +120,7 @@ export class HydratedLetPeek extends HydratableAction<typeof LetPeek> implements
             return 'the Grand Scepter cannot be used on the turn it was taken'
         }
         if (shown.status !== PlayerStatus.Exile) {
-            return `${toPlayerId} is a ${shown.status}, not an Exile`
+            return `${toPlayerId} is ${statusName(shown.status)}, not an Exile`
         }
         if (!reliquarySlot(state, subject.slotId)) {
             return `${subject.slotId} is not an occupied space in the Imperial Reliquary`

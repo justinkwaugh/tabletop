@@ -87,7 +87,7 @@ describe('Letting another player peek (R-6.1, R-9.4, R-6.6.1)', () => {
         )
         expect(() =>
             letPeek(reliquary('rel-1')).apply(board({ p2Status: PlayerStatus.Citizen }))
-        ).toThrow('not an Exile')
+        ).toThrow('p2 is a Citizen, not an Exile')
         expect(() => letPeek(reliquary('rel-9')).apply(board())).toThrow('not an occupied space')
     })
 

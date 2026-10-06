@@ -9,6 +9,7 @@ import { CitizenshipTerms, CitizenshipTransfer } from '../model/citizenship.js'
 import { ConsentRequestKind } from '../model/consent.js'
 import { canUseGrandScepter, holdsGrandScepter, reliquarySlot } from '../util/imperial.js'
 import { reasonTransferInvalid } from '../util/exchange.js'
+import { statusName } from '../util/citizenship.js'
 
 export { CitizenshipTerms, CitizenshipTransfer }
 
@@ -103,7 +104,7 @@ export class HydratedOfferCitizenship
         if (!exile) return `no such player ${choice.exilePlayerId}`
         // R-6.6.1: "any Exile (including yourself)", so no self-offer check.
         if (exile.status !== PlayerStatus.Exile) {
-            return `${choice.exilePlayerId} is a ${exile.status}, not an Exile`
+            return `${choice.exilePlayerId} is ${statusName(exile.status)}, not an Exile`
         }
 
         if (!reliquarySlot(state, choice.reliquarySlotId)) {

@@ -3,7 +3,7 @@
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { cardsThatCan } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
@@ -47,8 +47,8 @@
     }
 
     function blockedBecause(entry: ActionEntry): string | undefined {
-        return reasonActionUnavailable(gameState, seat.playerId, entry.type, (id: string) =>
-            gameSession.getPlayerName(id)
+        return gameSession.humanizeReason(
+            reasonActionUnavailable(gameState, seat.playerId, entry.type)
         )
     }
 
@@ -68,7 +68,7 @@
     )
 
     function refusal(entry: ActionEntry): string | undefined {
-        const why = humanizeReason(blockedBecause(entry))
+        const why = blockedBecause(entry)
         const can = cardsThatCan(cards, entry.type, cardName)
         return why && can ? `${why}. ${can}` : why
     }
@@ -197,7 +197,7 @@
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
     {#if tappedReason}
         <span class="text-oath-danger"
-            ><TokenText text={humanizeReason(tappedReason) ?? ''} />{tappedCards ? '.' : ''}</span
+            ><TokenText text={tappedReason} />{tappedCards ? '.' : ''}</span
         >
         {#if tappedCards}
             <span class="text-oath-text">{tappedCards}</span>

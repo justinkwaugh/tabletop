@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState, endDieIsRolled } from '@tabletop/oath'
+    import { MachineState } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeAction } from '$lib/model/actionDescription.js'
     import { heldTurnOf } from '$lib/model/campaignTurn.js'
@@ -57,9 +57,6 @@
     )
     let activePlayerId = $derived(gameState.activePlayerIds[0])
     let heldTurn = $derived(heldTurnOf(gameState))
-
-    // R-3.3 — from round 5 every Rest could end the game.
-    let endDieLive = $derived(endDieIsRolled(gameState))
 </script>
 
 <div
@@ -86,11 +83,6 @@
             </span>
         {/if}
         <span class="text-sm text-oath-text-muted">{phase}</span>
-        {#if endDieLive}
-            <span class="text-xs rounded bg-oath-danger-soft text-oath-danger px-2 py-0.5"
-                >end die live</span
-            >
-        {/if}
         {#if undoTooltip}
             <button
                 type="button"

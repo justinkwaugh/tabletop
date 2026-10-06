@@ -61,7 +61,9 @@
             {consentQuestion(gameState, asked, (id) => gameSession.getPlayerName(id))}
         </p>
         {#if grantBlockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">{grantBlockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                {gameSession.humanizeReason(grantBlockedBecause)}
+            </p>
         {/if}
         <div class="flex gap-2">
             <button
@@ -144,7 +146,7 @@
 
         {#if blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={blockedBecause ?? ''} />
+                <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
             </p>
         {/if}
 

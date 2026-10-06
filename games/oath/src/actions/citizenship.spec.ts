@@ -120,7 +120,13 @@ describe('Offering Citizenship (R-6.6.1)', () => {
     it('refuses a target who is not an Exile', () => {
         const { state, vault } = table()
         state.getPlayerState('ex').status = PlayerStatus.Citizen
-        expect(() => serverOffer(state, vault, {})).toThrow(/is a citizen, not an Exile/)
+        expect(() => serverOffer(state, vault, {})).toThrow('ex is a Citizen, not an Exile')
+        expect(
+            HydratedOfferCitizenship.reasonCannotOffer(state, 'chan', {
+                exilePlayerId: 'chan',
+                reliquarySlotId: 'rel-1'
+            })
+        ).toBe('chan is the Chancellor, not an Exile')
     })
 
     it('must name exactly one occupied Reliquary space (R-2.3)', () => {
@@ -205,12 +211,12 @@ describe('The binding exchange (R-6.6.1, R-7.6.3-H1, R-9.6)', () => {
         const { state, vault } = table()
         expect(() =>
             serverOffer(state, vault, { terms: { fromExile: { favor: 99 } } })
-        ).toThrow(/ex promised 99 favor but has 3/)
+        ).toThrow('ex promised 99 favor, with only 3 usable')
         expect(() =>
             serverOffer(state, vault, {
                 terms: { fromScepterHolder: { relicCardIds: [OTHER_RELIC] } }
             })
-        ).toThrow(/chan promised relic.unnamed-2, which they do not hold/)
+        ).toThrow('chan promised relic.unnamed-2 without holding it')
     })
 
     it('gives a promised banner without the seize penalty (the banners\' Q&A)', () => {
@@ -239,7 +245,7 @@ describe('The binding exchange (R-6.6.1, R-7.6.3-H1, R-9.6)', () => {
             serverOffer(state, vault, {
                 terms: { fromExile: { banners: [Banner.DarkestSecret] } }
             })
-        ).toThrow(/ex promised the darkestSecret, which they do not hold/)
+        ).toThrow('ex promised the darkestSecret without holding it')
     })
 })
 

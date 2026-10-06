@@ -27,7 +27,6 @@
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { humanizeReason } from '$lib/model/names.js'
     import {
         MINOR_TARGETED_ACTIONS,
         MODIFIABLE_ACTIONS,
@@ -155,7 +154,7 @@
                     </p>
                     {#if woodReason}
                         <p class="text-[11px] text-oath-danger">
-                            <TokenText text={humanizeReason(woodReason) ?? ''} />
+                            <TokenText text={gameSession.humanizeReason(woodReason) ?? ''} />
                         </p>
                     {/if}
                     <button
