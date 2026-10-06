@@ -1,5 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte'
+    import type { Attachment } from 'svelte/attachments'
     import {
         CustomFont,
         ScalingWrapper,
@@ -36,6 +37,20 @@
 
     const marracashSession = untrack(() => ensureMarracashGameSession(gameSession))
     setGameSession(marracashSession)
+
+    // The shared wrapper exposes full screen only as its dialog becoming modal.
+    let expanded = $state(false)
+    const watchExpansion: Attachment<HTMLElement> = (node) => {
+        const dialog = node.closest('dialog')
+        if (!dialog) return
+        const read = () => {
+            expanded = dialog.matches(':modal')
+        }
+        const observer = new MutationObserver(read)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
+        read()
+        return () => observer.disconnect()
+    }
 
     // The zoom buttons sit over the board's top-left corner, where only mid-queue pawns are
     const ZoomControlsHeight = 52
@@ -79,15 +94,27 @@
                 <!-- Below this fit the board's targets get too small to tap, so it opens zoomed in and pans -->
                 <ScalingWrapper
                     justify="center"
-                    controls="top-left"
-                    insetTop={ZoomControlsHeight}
+                    controls={expanded ? 'bottom-left' : 'top-left'}
+                    insetTop={expanded ? 0 : ZoomControlsHeight}
                     coverBelowScale={0.45}
+                    expandable
                 >
                     <div class="p-2">
                         <Board />
                     </div>
+                    {#snippet toolbar()}
+                        <!-- Full screen is a modal dialog, so the action panel and the aid must come inside it. -->
+                        <div {@attach watchExpansion}>
+                            {#if expanded}
+                                <ActionPanel />
+                                {#if marracashSession.playerAidOpen}
+                                    <PlayerAid />
+                                {/if}
+                            {/if}
+                        </div>
+                    {/snippet}
                 </ScalingWrapper>
-                {#if marracashSession.playerAidOpen}
+                {#if marracashSession.playerAidOpen && !expanded}
                     <PlayerAid />
                 {/if}
             </div>

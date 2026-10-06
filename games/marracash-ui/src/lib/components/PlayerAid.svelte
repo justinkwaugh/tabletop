@@ -10,12 +10,12 @@
 <svelte:window onkeydown={(event) => event.key === 'Escape' && gameSession.closePlayerAid()} />
 
 <div
-    class="absolute inset-0 z-40 flex items-center justify-center overflow-auto p-3"
+    class="absolute inset-0 z-40 flex overflow-auto p-3"
     role="presentation"
     onclick={() => gameSession.closePlayerAid()}
 >
     <div
-        class="flex flex-wrap items-start justify-center gap-3.5"
+        class="m-auto flex max-w-full flex-wrap items-start justify-center gap-3.5"
         role="dialog"
         aria-label="Player aid"
         tabindex="-1"

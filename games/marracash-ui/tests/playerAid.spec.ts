@@ -71,3 +71,30 @@ test('an auction dims the board but keeps fountains and shop signs above the ove
     expect(order.firstFountain).toBeGreaterThan(order.overlayIndex)
     expect(order.firstSign).toBeGreaterThan(order.overlayIndex)
 })
+
+test.describe('on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('the aid scrolls from its first card instead of cutting it off', async ({ page }) => {
+        await createGame(page)
+        await aidButton(page).click()
+        const top = await aid(page).evaluate((cards) => {
+            const area = cards.parentElement
+            return cards.getBoundingClientRect().top - (area?.getBoundingClientRect().top ?? 0)
+        })
+        expect(top).toBeGreaterThanOrEqual(0)
+        await expect(aid(page).getByRole('region', { name: 'Your Turn' })).toBeInViewport()
+    })
+})
+
+test('full screen keeps the action panel and the aid', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: 'Enter full screen' }).click()
+    const fullScreen = page.getByRole('dialog', { name: 'Full screen view' })
+    await expect(fullScreen.getByRole('region', { name: 'Actions' })).toBeVisible()
+    await fullScreen.getByRole('button', { name: 'Player aid' }).click()
+    await expect(fullScreen.getByRole('dialog', { name: 'Player aid' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(fullScreen).toHaveCount(0)
+    await expect(aid(page)).toBeVisible()
+})
