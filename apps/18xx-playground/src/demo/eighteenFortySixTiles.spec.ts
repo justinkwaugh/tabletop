@@ -17,15 +17,7 @@ it('renders every supplied tile in the library and both board orientations', () 
                 expect(drawing.nodes).toHaveLength(tile.face.nodes.length)
                 expect(drawing.paths).toHaveLength(tile.face.paths.length)
                 if (['1846:298', '1846:299', '1846:300'].includes(tile.id))
-                    for (const first of drawing.nodes)
-                        for (const second of drawing.nodes)
-                            if (first !== second)
-                                expect(
-                                    Math.hypot(
-                                        first.revenuePosition.x - second.revenuePosition.x,
-                                        first.revenuePosition.y - second.revenuePosition.y
-                                    )
-                                ).toBeGreaterThan(16)
+                    expect(drawing.nodes.filter((node) => !node.revenueHidden)).toHaveLength(1)
             }
     expect(MapView1846.layouts?.['1846:298']).toEqual(TileLayouts1846['1846:298'])
 })

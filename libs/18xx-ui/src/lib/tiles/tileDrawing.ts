@@ -38,7 +38,7 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
-    hideRevenue?: true
+    hideRevenue?: true | readonly string[]
 }
 
 export type TileDrawnNode = {
@@ -192,6 +192,8 @@ export function createTileDrawing(
     const nodes = face.nodes.map((node): TileDrawnNode => {
         const center = centers.get(node.id)
         assertExists(center, `Unknown tile node ${node.id}`)
+        const revenueHidden =
+            layout.hideRevenue === true || (layout.hideRevenue?.includes(node.id) ?? false)
         const hint =
             layout.revenuePositionsByOrientation?.[orientation]?.[node.id] ??
             layout.revenuePositionsByRotation?.[rotation]?.[node.id] ??
@@ -222,7 +224,7 @@ export function createTileDrawing(
                       paths,
                       occupied
                   )
-        if (node.kind !== 'junction')
+        if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
         const townAngle = automaticTownPaths.has(node.id)
             ? townMarkerAngle(center, paths)
@@ -233,7 +235,7 @@ export function createTileDrawing(
             slots: node.kind === 'city' ? stationPositions(node.stationSlots, center, angle) : [],
             revenuePosition,
             revenueCells,
-            revenueHidden: layout.hideRevenue === true,
+            revenueHidden,
             townAngle
         }
     })

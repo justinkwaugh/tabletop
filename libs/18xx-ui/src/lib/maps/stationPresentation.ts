@@ -54,6 +54,8 @@ export type MapViewDefinition = {
      */
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
+    /** Leaves location names off the drawn map; they still name hexes in labels and text. */
+    hideLocationNames?: true
 }
 export function stationMapTokens(
     state: StationState,

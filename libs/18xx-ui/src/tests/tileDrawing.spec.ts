@@ -146,6 +146,17 @@ describe('tile drawing geometry', () => {
         expect(junction.paths.every((path) => path.end === junction.nodes[0].center)).toBe(true)
     })
 
+    it('hides the revenue of only the listed nodes', () => {
+        const drawing = createTileDrawing(StandardTileCatalog.get('18xx:59').face, undefined, 0, {
+            ...StandardTileLayouts['18xx:59'],
+            hideRevenue: ['city-1']
+        })
+        expect(drawing.nodes.map((node) => [node.node.id, node.revenueHidden])).toEqual([
+            ['city-0', false],
+            ['city-1', true]
+        ])
+    })
+
     it('renders a blank preprinted tile without requiring an invented tile number', () => {
         const face: TileFace = { color: 'white', nodes: [], paths: [], labels: [] }
         expect(createTileDrawing(face).paths).toEqual([])

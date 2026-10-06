@@ -70,7 +70,9 @@ export const MapLocation = Type.Object(
                     {
                         id: Identifier,
                         label: Identifier,
-                        description: Identifier
+                        description: Identifier,
+                        /** How many times the marker's symbol is printed, such as two ports. */
+                        count: Type.Optional(Type.Integer({ minimum: 1 }))
                     },
                     { additionalProperties: false }
                 )

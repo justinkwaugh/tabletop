@@ -22,12 +22,10 @@ const ChicagoLayout: TileLayout = {
         'city-2': towardTileEdge(4, 25),
         'city-3': towardTileEdge(5, 25)
     },
-    revenuePositions: {
-        'city-0': { x: -17, y: 25 },
-        'city-1': { x: -17, y: -25 },
-        'city-2': { x: -30, y: 0 },
-        'city-3': { x: 32, y: 0 }
-    }
+    // The four cities always share one revenue, shown once beside the label in the open west.
+    hideRevenue: ['city-1', 'city-2', 'city-3'],
+    revenuePositions: { 'city-0': { x: -35, y: 1 } },
+    labelPosition: { x: -23, y: 19 }
 }
 export const TileLayouts1846: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
@@ -89,5 +87,10 @@ export const MapView1846: MapViewDefinition = {
     },
     layouts: mapLayouts,
     joinedEdges: { C21: [5], D22: [2], F22: [0], G21: [3] },
-    revenueStageColors: { I: '#efd34b', II: '#5aa776', III: '#b8824c', IV: '#a7a7a7' }
+    hideLocationNames: true,
+    markerArt: {
+        IC: { centeredLabel: true },
+        'east-west': { revenueBadge: true, arrows: true },
+        ports: { revenueSymbol: 'port' }
+    }
 }

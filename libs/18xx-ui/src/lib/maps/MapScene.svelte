@@ -7,6 +7,7 @@
     import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
+    import { PortSymbol } from '../tiles/tileSymbols.js'
     import { MountainIcon } from './terrainIcons.js'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
@@ -219,6 +220,7 @@
                             : appearance}
                         {revenueStageColors}
                         showZeroRevenue={false}
+                        joints={entry.joints}
                     >
                         {#snippet trackOverlay()}
                             {@render selectedTrack()}
@@ -350,6 +352,15 @@
                             {#if art && 'imageUrl' in art && !entry.placed}
                                 <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
+                            {:else if art && 'centeredLabel' in art && !entry.placed}
+                                <text
+                                    data-map-marker-label={marker.id}
+                                    text-anchor="middle"
+                                    dominant-baseline="central"
+                                    font-size="12"
+                                    font-weight="800"
+                                    fill={appearance.ink}>{marker.label}</text
+                                >
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
                                 <g
                                     data-map-marker-symbol={art.tileSymbol}
@@ -362,6 +373,58 @@
                                         ink={appearance.ink}
                                         paper={appearance.paper}
                                     />
+                                </g>
+                            {/if}
+                        {/each}
+                        {#each entry.revenueAnnotations as annotation, index (index)}
+                            {#if annotation.kind === 'badge'}
+                                <g
+                                    data-map-revenue-badge={annotation.markerId}
+                                    transform={`translate(${annotation.x} ${annotation.y})`}
+                                    stroke="none"
+                                >
+                                    {#if annotation.arrows}
+                                        {@const x = annotation.width / 2}
+                                        {@const y = annotation.height / 2}
+                                        <polygon
+                                            points={`${-x - y},0 ${-x},${-y} ${x},${-y} ${x + y},0 ${x},${y} ${-x},${y}`}
+                                            fill={appearance.ink}
+                                        ></polygon>
+                                    {:else}
+                                        <rect
+                                            x={-annotation.width / 2}
+                                            y={-annotation.height / 2}
+                                            width={annotation.width}
+                                            height={annotation.height}
+                                            rx="5.5"
+                                            fill={appearance.ink}
+                                        ></rect>
+                                    {/if}
+                                    <text
+                                        text-anchor="middle"
+                                        dominant-baseline="central"
+                                        font-size="8"
+                                        font-weight="800"
+                                        fill={appearance.paper}>{annotation.label}</text
+                                    >
+                                </g>
+                            {:else}
+                                <g
+                                    data-map-revenue-symbol={annotation.markerId}
+                                    transform={`translate(${annotation.x} ${annotation.y}) scale(${annotation.radius / PortSymbol.radius})`}
+                                >
+                                    <title>{annotation.label}</title>
+                                    <TileSymbol
+                                        symbol={annotation.symbol}
+                                        ink={appearance.ink}
+                                        paper={appearance.colors.blue ?? appearance.paper}
+                                    />
+                                    <circle
+                                        r={PortSymbol.radius}
+                                        fill="none"
+                                        stroke="#5d584a"
+                                        stroke-width="0.5"
+                                    ></circle>
                                 </g>
                             {/if}
                         {/each}
@@ -450,6 +513,16 @@
                     {#each entry.outline as { start, end }, index (index)}
                         <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}></line>
                     {/each}
+                    {#each entry.divisions as { start, end }, index (index)}
+                        <line
+                            data-map-division
+                            x1={start.x}
+                            y1={start.y}
+                            x2={end.x}
+                            y2={end.y}
+                            stroke-width="2"
+                        ></line>
+                    {/each}
                 </g>
             {/each}
         </g>
@@ -483,7 +556,7 @@
     {/if}
     {#if !artwork}
         <g data-map-layer="names" pointer-events="none" aria-hidden="true">
-            {#each entries.filter((entry) => entry.location.name && !entry.placed) as entry (entry.location.id)}
+            {#each entries.filter((entry) => entry.nameShown) as entry (entry.location.id)}
                 {@const lines = nameLines(entry.location.name ?? '')}
                 <g
                     class="map-annotations"

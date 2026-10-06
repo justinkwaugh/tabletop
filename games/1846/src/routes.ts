@@ -10,7 +10,7 @@ import {
 import { revenueMarkerValue, type RevenueMarkerState } from './revenueMarkers.js'
 import { EighteenFortySixMap, PortSymbols, EastWestBonuses } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
-import { TrainDepot1846 } from './trains.js'
+import { Phases1846, TrainDepot1846 } from './trains.js'
 import type { SteamboatState } from './steamboat.js'
 
 const PayingStopLimits: Readonly<Record<string, number>> = { '3/5': 3, '4/6': 4, '7/8': 7 }
@@ -36,7 +36,7 @@ export const RouteRules1846: RouteRules = {
     map: EighteenFortySixMap,
     tileSet: EighteenFortySixTileSet,
     depot: TrainDepot1846,
-    revenueStage: (state) => [state.phaseId === 'II' ? 'I' : state.phaseId],
+    revenueStage: (state) => Phases1846.phase(state.phaseId).tileColors,
     revenuePolicy: (train) => ({
         payingStopLimit: PayingStopLimits[train.id],
         requirePayingStation: true,

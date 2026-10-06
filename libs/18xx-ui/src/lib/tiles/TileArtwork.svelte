@@ -1,6 +1,6 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
-    import { assert, assertExists } from '@tabletop/common'
+    import { assert, assertExists, type Point } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import type { TileDrawing } from './tileDrawing.js'
@@ -15,6 +15,7 @@
         highlightedPathIds = [],
         revenueStageColors = {},
         showZeroRevenue = true,
+        joints = [],
         trackOverlay,
         overlays
     }: {
@@ -24,6 +25,8 @@
         revenueStageColors?: Readonly<Record<string, string>>
         highlightedPathIds?: readonly string[]
         showZeroRevenue?: boolean
+        /** Edges shared with another hex of the same printed area, drawn without a seam. */
+        joints?: readonly { start: Point; end: Point }[]
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
@@ -131,6 +134,11 @@
         stroke={appearance.edge?.color ?? '#453e32'}
         stroke-width={appearance.edge?.width ?? 0.65}
     ></polygon>
+    {#each joints as { start, end }, index (index)}
+        <!-- Covers the antialiased gap where two fills meet. -->
+        <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={fill} stroke-width="1.5"
+        ></line>
+    {/each}
     {#if appearance.grain}
         <polygon
             data-tile-grain

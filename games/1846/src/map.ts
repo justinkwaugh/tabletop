@@ -80,22 +80,26 @@ export const EastWestBonuses: Readonly<Record<string, { side: 'east' | 'west'; a
         C5: { side: 'west', amount: 50 },
         I1: { side: 'west', amount: 20 }
     }
+// Buffalo and Pittsburgh each span two hexes; their E and bonus are printed once, in the other hex.
+const SecondAreaHexes = ['C21', 'F22']
 for (const [id, bonus] of Object.entries(EastWestBonuses))
-    markers[id] = [
-        ...(markers[id] ?? []),
-        {
-            id: 'east-west',
-            label: `${bonus.side === 'east' ? 'E' : 'W'} +$${bonus.amount}`,
-            description: 'East–West bonus: count both endpoints.'
-        }
-    ]
+    if (!SecondAreaHexes.includes(id))
+        markers[id] = [
+            ...(markers[id] ?? []),
+            {
+                id: 'east-west',
+                label: `+${bonus.amount}`,
+                description: 'East–West bonus: count both endpoints.'
+            }
+        ]
 for (const [id, ports] of Object.entries(PortSymbols))
     markers[id] = [
         ...(markers[id] ?? []),
         {
             id: 'ports',
             label: `Port ×${ports}`,
-            description: `${ports} port symbols for Steamboat Company.`
+            description: `${ports} port symbols for Steamboat Company.`,
+            count: ports
         }
     ]
 const locations = createLetterNumberLocationFactory({
@@ -119,12 +123,16 @@ const endpoint = (edges: readonly TileEdge[], early: number, late: number) =>
     offboard(
         edges,
         createStagedTileRevenue([
-            ['I', early],
-            ['II', early],
-            ['III', late],
-            ['IV', late]
+            ['yellow', early],
+            ['brown', late]
         ])
     )
+const withAreaLabel = (location: MapLocation): MapLocation => {
+    const bonus = EastWestBonuses[location.id]
+    if (!bonus || SecondAreaHexes.includes(location.id)) return location
+    const label = bonus.side === 'east' ? 'E' : 'W'
+    return { ...location, preprintedTile: { ...location.preprintedTile, labels: [label] } }
+}
 export const EighteenFortySixMap = new RailwayMap({
     id: '1846',
     name: '1846: The Race to the Midwest',
@@ -163,25 +171,13 @@ export const EighteenFortySixMap = new RailwayMap({
             ...border(1, 'mountain', 60),
             stopGroup: 'East'
         }),
-        ...locations('C21', endpoint([0], 30, 60), {
-            borders: [{ edge: 5, kind: 'impassable' }],
-            stopGroup: 'East'
-        }),
-        ...locations('D22', endpoint([1], 30, 60), {
-            borders: [{ edge: 2, kind: 'impassable' }],
-            stopGroup: 'East'
-        }),
+        ...locations('C21', endpoint([0], 30, 60), { stopGroup: 'East' }),
+        ...locations('D22', endpoint([1], 30, 60), { stopGroup: 'East' }),
         ...locations('E23', endpoint([1], 20, 50), { stopGroup: 'East' }),
         ...locations('I17', endpoint([1], 20, 50), { stopGroup: 'East' }),
-        ...locations('F22', endpoint([1], 30, 70), {
-            borders: [{ edge: 0, kind: 'impassable' }],
-            stopGroup: 'East'
-        }),
+        ...locations('F22', endpoint([1], 30, 70), { stopGroup: 'East' }),
         ...locations('G21', endpoint([1, 2], 30, 70), {
-            borders: [
-                { edge: 1, kind: 'mountain', cost: 20 },
-                { edge: 3, kind: 'impassable' }
-            ],
+            ...border(1, 'mountain', 20),
             stopGroup: 'East'
         }),
         ...locations('H20', endpoint([2], 20, 40), { stopGroup: 'East' }),
@@ -212,7 +208,7 @@ export const EighteenFortySixMap = new RailwayMap({
             ]
         }),
         ...locations('D16', track('blue', []))
-    ]
+    ].map(withAreaLabel)
 })
 
 export const AdditionalReservations: readonly StationReservation[] = [
