@@ -151,9 +151,10 @@ test('reduced motion glides a move instead of walking it and stills the turn bor
         'none'
     )
 
+    // A move into no shop, so no earnings bubbles hold the timeline past the glide
     await watchWalkers(page)
-    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
-    await page.getByRole('button', { name: 'Move visitors to fountain 4' }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
     expect(await walkerMilliseconds(page)).toBeLessThan(500)
-    await expect(page.getByRole('button', { name: 'Fountain 4', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Fountain 6', exact: true })).toBeVisible()
 })

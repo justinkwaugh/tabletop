@@ -18,6 +18,7 @@
     import { FountainPawnSize } from '$lib/utils/fountainPawns.js'
     import CityWall from '$lib/components/CityWall.svelte'
     import CityGates from '$lib/components/CityGates.svelte'
+    import EarningsPopupLayer from '$lib/components/EarningsPopupLayer.svelte'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
         BoardHeight,
@@ -292,6 +293,7 @@
             {/each}
         </g>
     </svg>
+    <EarningsPopupLayer earnings={visitorMoveAnimator.earnings} />
 </div>
 
 <style>
