@@ -21,3 +21,7 @@ Permission granted by Ryan Spangler to Justin Waugh on 2025-01-15 for non-commer
 ### Marracash
 
 Permission granted by Stefan Dorra to Justin Waugh on 2026-10-04 for non-commercial use of Marracash when hosted on https://boardtogether.games. This permission does not currently extend to its graphical assets.
+
+### Magna Grecia
+
+Permission granted by Leo Colovini and Michael Schacht to Justin Waugh on 2026-10-06 for non-commercial use of Magna Grecia when hosted on https://boardtogether.games
