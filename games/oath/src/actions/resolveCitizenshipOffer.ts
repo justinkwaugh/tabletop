@@ -257,12 +257,13 @@ export class HydratedResolveCitizenshipOffer
             return undefined
         }
 
-        if (!choice || choice.length === 0) {
+        const selection = choice ?? []
+        if (selection.length === 0 && available > 0) {
             return `only ${available} Imperial warbands are available for ${wanted} warbands; the Exile must choose which are replaced`
         }
-        const exceeds = selectionExceedsForce(choice, all)
+        const exceeds = selectionExceedsForce(selection, all)
         if (exceeds) return exceeds
-        const chosen = forceTotal(choice)
+        const chosen = forceTotal(selection)
         if (chosen !== available) {
             // R-9.3: "as many as possible", so the count is fixed even though the allocation is free.
             return `must choose exactly ${available} warbands to replace, not ${chosen}`
