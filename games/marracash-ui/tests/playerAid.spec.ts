@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { auctionFirstShop, board, createGame, playOpeningRound } from './helpers'
 
 let pageErrors: string[] = []
@@ -95,6 +95,45 @@ test('full screen keeps the action panel and the aid', async ({ page }) => {
     await fullScreen.getByRole('button', { name: 'Player aid' }).click()
     await expect(fullScreen.getByRole('dialog', { name: 'Player aid' })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(fullScreen).toHaveCount(0)
-    await expect(aid(page)).toBeVisible()
+    await expect(aid(page)).toHaveCount(0)
+    await expect(fullScreen.getByRole('region', { name: 'Actions' })).toBeVisible()
+})
+
+test('a bid being raised carries across full screen and back', async ({ page }) => {
+    await createGame(page)
+    await auctionFirstShop(page)
+    const raise = (scope: Locator) => scope.getByRole('button', { name: 'Raise bid' }).click()
+    const shownBid = (scope: Locator) => scope.getByRole('region', { name: 'Actions' })
+    await raise(page.locator('body'))
+    await raise(page.locator('body'))
+    await expect(shownBid(page.locator('body'))).toContainText('150')
+
+    await page.getByRole('button', { name: 'Enter full screen' }).click()
+    const fullScreen = page.getByRole('dialog', { name: 'Full screen view' })
+    await expect(shownBid(fullScreen)).toContainText('150')
+    await raise(fullScreen)
+    await expect(shownBid(fullScreen)).toContainText('175')
+
+    await fullScreen.getByRole('button', { name: 'Exit full screen' }).click()
+    await expect(page.getByRole('region', { name: 'Actions' })).toHaveCount(1)
+    await expect(shownBid(page.locator('body'))).toContainText('175')
+})
+
+test('the aid takes keyboard focus, keeps the board out of reach and hands focus back', async ({
+    page
+}) => {
+    await createGame(page)
+    await aidButton(page).focus()
+    await page.keyboard.press('Enter')
+    await expect(aid(page)).toBeFocused()
+    await expect(page.locator('g[aria-label^="Auction shop"]').first()).not.toBeFocused()
+    expect(
+        await page
+            .getByRole('img', { name: 'MarraCash market' })
+            .evaluate((market) => market.closest('[inert]') !== null)
+    ).toBe(true)
+
+    await page.keyboard.press('Escape')
+    await expect(aid(page)).toHaveCount(0)
+    await expect(aidButton(page)).toBeFocused()
 })

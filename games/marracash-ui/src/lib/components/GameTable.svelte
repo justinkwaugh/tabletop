@@ -92,28 +92,30 @@
             </div>
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <!-- Below this fit the board's targets get too small to tap, so it opens zoomed in and pans -->
-                <ScalingWrapper
-                    justify="center"
-                    controls={expanded ? 'bottom-left' : 'top-left'}
-                    insetTop={expanded ? 0 : ZoomControlsHeight}
-                    coverBelowScale={0.45}
-                    expandable
-                >
-                    <div class="p-2">
-                        <Board />
-                    </div>
-                    {#snippet toolbar()}
-                        <!-- Full screen is a modal dialog, so the action panel and the aid must come inside it. -->
-                        <div {@attach watchExpansion}>
-                            {#if expanded}
-                                <ActionPanel />
-                                {#if marracashSession.playerAidOpen}
-                                    <PlayerAid />
-                                {/if}
-                            {/if}
+                <div class="h-full w-full" inert={marracashSession.playerAidOpen && !expanded}>
+                    <ScalingWrapper
+                        justify="center"
+                        controls={expanded ? 'bottom-left' : 'top-left'}
+                        insetTop={expanded ? 0 : ZoomControlsHeight}
+                        coverBelowScale={0.45}
+                        expandable
+                    >
+                        <div class="p-2" inert={marracashSession.playerAidOpen}>
+                            <Board />
                         </div>
-                    {/snippet}
-                </ScalingWrapper>
+                        {#snippet toolbar()}
+                            <!-- Full screen is a modal dialog, so the action panel and the aid must come inside it. -->
+                            <div {@attach watchExpansion}>
+                                {#if expanded}
+                                    <ActionPanel />
+                                    {#if marracashSession.playerAidOpen}
+                                        <PlayerAid />
+                                    {/if}
+                                {/if}
+                            </div>
+                        {/snippet}
+                    </ScalingWrapper>
+                </div>
                 {#if marracashSession.playerAidOpen && !expanded}
                     <PlayerAid />
                 {/if}

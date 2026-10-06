@@ -82,9 +82,15 @@ During bidding, while waiting for others, and in History View, the session repor
     - Lifetime: a hover highlight ends when the pointer leaves the slot; a toggled one stays until toggled again or another slot takes its place. Either ends when the Players tab unmounts. It survives History View steps and new states.
     - Validity: it names a player and colour, not shops, so it haloes the matching chips of whatever state is shown, including each History View step.
 
+- **Draft bid** (`draftBid` in the session):
+    - Meaning: the amount the seated player has dialled up in the bid panel but not yet placed.
+    - Producer: `BidPanel`'s − and + buttons. Consumer: every mounted `BidPanel`, so the table's panel and the full-screen panel always show the same amount.
+    - Lifetime: replaced by the next − or + press.
+    - Validity: stored with its auction and bidder, and read as undefined (the minimum bid) once either no longer matches, so a new auction or the next hotseat bidder starts from the minimum while other players' bids arriving mid-draft leave it alone. It is always clamped to the current minimum and the bidder's cash.
+
 - **Player aid** (`playerAidOpen` in the session):
     - Meaning: the player aid cards are open over the board.
-    - Producer: the header's **?** toggles it; Escape or a click outside the cards closes it. Consumers: `GameTable` lays `PlayerAid` over the board area, inside the full-screen view while it is open, and the **?** shows its open state. The cards centre in that area when they fit and otherwise scroll from the first card, so none is cut off on a phone.
+    - Producer: the header's **?** toggles it; Escape or a click outside the cards closes it. Consumers: `GameTable` lays `PlayerAid` over the board area, inside the full-screen view while it is open, and the **?** shows its open state. The cards centre in that area when they fit and otherwise scroll from the first card, so none is cut off on a phone. While open, the aid holds keyboard focus (returned to whatever opened it on close), the covered board is inert so Tab can't reach its shops, and Escape inside it closes the aid without leaving full screen.
     - Lifetime: stays open across state changes and History View steps until closed.
 
 - **Short-queue warning** (`showQueueTooShort` in the session):
@@ -145,4 +151,5 @@ Scenarios naming a test are checked by the Playwright suite in `tests/`; the res
 19. **Undo after the turn passes on** (`tests/turns.spec.ts`, Admin in the harness): after the placement that empties the last entrance passes the turn on, Undo returns the previous player to the refill with the visitors back in the queue. In a hosted game that player's own Undo does the same until the next player acts; the harness's local seat is always the active player, so these tests reach it through Admin.
 20. **Sealed bid corrections** (`src/actions/auction.spec.ts` in the logic package, `tests/turns.spec.ts`): with four players, A starts an auction and bids 300, B bids 200, C bids 150, A undoes, D passes, C undoes, A bids 100 and C bids 250; the auction stays open until that last bid, then C wins at 250. Each Undo takes back only that player's bid and keeps the others'.
 21. **Player aid** (`tests/playerAid.spec.ts`): the **?** opens the Your Turn, Money and Antiques cards over the board; Escape or a click outside closes them; with Antique Cards off only Your Turn and Money appear. On a phone the first card starts at the top of the scrollable area. During an auction the fountains and shop signs are drawn above the dimming overlay.
-22. **Full screen** (`tests/playerAid.spec.ts`): entering full screen shows the action panel above the board and the **?** opens the aid there; Escape leaves full screen with the aid still open on the table.
+22. **Full screen** (`tests/playerAid.spec.ts`): entering full screen shows the action panel above the board and the **?** opens the aid there; Escape then closes the aid and stays in full screen. A bid raised on the table carries into full screen and back (`tests/playerAid.spec.ts`).
+23. **Aid keyboard focus** (`tests/playerAid.spec.ts`): opening the aid with Enter on the **?** focuses the aid, the board sits under an inert ancestor, and Escape closes it with focus back on the **?**.
