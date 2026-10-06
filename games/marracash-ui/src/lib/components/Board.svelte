@@ -18,6 +18,7 @@
     import { FountainPawnSize } from '$lib/utils/fountainPawns.js'
     import CityWall from '$lib/components/CityWall.svelte'
     import CityGates from '$lib/components/CityGates.svelte'
+    import EarningsPopupLayer from '$lib/components/EarningsPopupLayer.svelte'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
         BoardHeight,
@@ -61,6 +62,7 @@
         )
     )
     let dimmed = $derived(spotlightShop !== undefined || liftedFountains.length > 0)
+    let fountainsAboveDimming = $derived(spotlightShop !== undefined)
 
     let hoveredRoute = $derived.by<Route | undefined>(() => {
         gameSession.updatingVisibleState
@@ -118,7 +120,7 @@
     }
 </script>
 
-{#snippet fountainSpot(fountain: FountainState)}
+{#snippet fountainSpot(fountain: FountainState, layer: 'whole' | 'basin' = 'whole')}
     {@const isSource = gameSession.selectedFountainId === fountain.fountainId}
     {@const isDestination = gameSession.destinationFountainIds.includes(fountain.fountainId)}
     {@const selectable =
@@ -137,6 +139,7 @@
         onpreview={isDestination
             ? (previewing) => previewDestination(fountain.fountainId, previewing)
             : undefined}
+        {layer}
     />
 {/snippet}
 
@@ -201,16 +204,19 @@
                 <ShopTile
                     {shop}
                     selectable={gameSession.auctionableShopIds.includes(shop.shopId)}
+                    layer={dimmed ? 'awning' : 'whole'}
                 />
             {/each}
 
-            {#each groundFountains as fountain (fountain.fountainId)}
-                {@render fountainSpot(fountain)}
-            {/each}
+            {#if !fountainsAboveDimming}
+                {#each groundFountains as fountain (fountain.fountainId)}
+                    {@render fountainSpot(fountain, dimmed ? 'basin' : 'whole')}
+                {/each}
+            {/if}
 
             {#if dimmed}
                 <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
-                <g opacity="0.5">
+                <g opacity="0.25">
                     <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
                     {#each GatePillars as pillar (`${pillar.x},${pillar.y}`)}
                         {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
@@ -225,6 +231,22 @@
                         {/each}
                     {/each}
                 </g>
+                {#each groundShops as shop (shop.shopId)}
+                    <ShopTile {shop} selectable={false} layer="sign" />
+                {/each}
+                {#each groundFountains as fountain (fountain.fountainId)}
+                    {#if fountainsAboveDimming}
+                        {@render fountainSpot(fountain)}
+                    {:else}
+                        <FountainSpot
+                            {fountain}
+                            selectable={false}
+                            selected={false}
+                            onselect={() => {}}
+                            layer="visitors"
+                        />
+                    {/if}
+                {/each}
             {/if}
 
             {#if spotlightShop}
@@ -271,6 +293,7 @@
             {/each}
         </g>
     </svg>
+    <EarningsPopupLayer earnings={visitorMoveAnimator.earnings} />
 </div>
 
 <style>

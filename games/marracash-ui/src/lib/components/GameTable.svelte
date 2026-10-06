@@ -1,5 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte'
+    import type { Attachment } from 'svelte/attachments'
     import {
         CustomFont,
         ScalingWrapper,
@@ -13,9 +14,9 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import PlayerAid from '$lib/components/PlayerAid.svelte'
     import { MarracashGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
-    import CinzelBold from '$lib/fonts/Cinzel-Bold.woff2'
     import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
     import LibreBaskervilleRegular from '$lib/fonts/LibreBaskerville-Regular.woff2'
     import LibreCaslonTextBold from '$lib/fonts/LibreCaslonText-Bold.woff2'
@@ -36,13 +37,27 @@
         throw new Error('GameTable expected a MarracashGameSession')
     }
 
-    setGameSession(untrack(() => ensureMarracashGameSession(gameSession)))
+    const marracashSession = untrack(() => ensureMarracashGameSession(gameSession))
+    setGameSession(marracashSession)
+
+    // The shared wrapper exposes full screen only as its dialog becoming modal.
+    let expanded = $state(false)
+    const watchExpansion: Attachment<HTMLElement> = (node) => {
+        const dialog = node.closest('dialog')
+        if (!dialog) return
+        const read = () => {
+            expanded = dialog.matches(':modal')
+        }
+        const observer = new MutationObserver(read)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
+        read()
+        return () => observer.disconnect()
+    }
 
     // The zoom buttons sit over the board's top-left corner, where only mid-queue pawns are
     const ZoomControlsHeight = 52
 </script>
 
-<CustomFont fontFamily="MarraCash Cinzel" url={CinzelBold} format="woff2" fontWeight="bold" />
 <CustomFont
     fontFamily="Libre Caslon Text"
     url={LibreCaslonTextBold}
@@ -88,18 +103,35 @@
             <div class="shrink-0">
                 <ActionPanel />
             </div>
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="relative grow-0 overflow-hidden" style="flex:1;">
                 <!-- Below this fit the board's targets get too small to tap, so it opens zoomed in and pans -->
-                <ScalingWrapper
-                    justify="center"
-                    controls="top-left"
-                    insetTop={ZoomControlsHeight}
-                    coverBelowScale={0.45}
-                >
-                    <div class="p-2">
-                        <Board />
-                    </div>
-                </ScalingWrapper>
+                <div class="h-full w-full" inert={marracashSession.playerAidOpen && !expanded}>
+                    <ScalingWrapper
+                        justify="center"
+                        controls={expanded ? 'bottom-left' : 'top-left'}
+                        insetTop={expanded ? 0 : ZoomControlsHeight}
+                        coverBelowScale={0.45}
+                        expandable
+                    >
+                        <div class="p-2" inert={marracashSession.playerAidOpen}>
+                            <Board />
+                        </div>
+                        {#snippet toolbar()}
+                            <!-- Full screen is a modal dialog, so the action panel and the aid must come inside it. -->
+                            <div {@attach watchExpansion}>
+                                {#if expanded}
+                                    <ActionPanel />
+                                    {#if marracashSession.playerAidOpen}
+                                        <PlayerAid />
+                                    {/if}
+                                {/if}
+                            </div>
+                        {/snippet}
+                    </ScalingWrapper>
+                </div>
+                {#if marracashSession.playerAidOpen && !expanded}
+                    <PlayerAid />
+                {/if}
             </div>
         {/snippet}
     </DefaultTableLayout>
@@ -118,7 +150,7 @@
     }
 
     .marracash-text :global(.marracash-initial) {
-        font-family: 'MarraCash Cinzel', Georgia, serif;
+        font-family: 'MarraCash El Messiri', Georgia, serif;
         font-weight: 700;
     }
 

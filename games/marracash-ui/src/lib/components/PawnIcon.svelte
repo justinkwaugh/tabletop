@@ -16,12 +16,13 @@
     const Width = PawnWidth + 2 * Margin
     const Height = Bottom - Top
     const DefaultHeight = 19
+    const PlainFill = '#8a6a46'
 
     let {
         color,
         height = DefaultHeight,
         hollow = false
-    }: { color: MarketColor; height?: number; hollow?: boolean } = $props()
+    }: { color?: MarketColor; height?: number; hollow?: boolean } = $props()
     const gameSession = getGameSession()
 </script>
 
@@ -32,7 +33,9 @@
     viewBox="{-Width / 2} {Top} {Width} {Height}"
     aria-hidden="true"
 >
-    {#if hollow}
+    {#if !color}
+        <path d={PawnOutline} fill={PlainFill}></path>
+    {:else if hollow}
         <path
             d={PawnOutline}
             fill="none"

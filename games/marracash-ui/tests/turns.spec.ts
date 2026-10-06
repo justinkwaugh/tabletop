@@ -104,7 +104,7 @@ test('a turn ends on its second move without a confirmation and can still be und
     await createGame(page)
     await playOpeningRound(page)
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
-    const turnPlayer = page.locator('h1', { hasText: '⇢' })
+    const turnPlayer = page.locator('.turn h1')
     await expect(undo).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
@@ -174,7 +174,7 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
 test('Concealed Cash hides other players’ cash', async ({ page }) => {
     await createGame(page, { concealedCash: true })
     await expect(page.getByText('Cash hidden')).toHaveCount(3)
-    await expect(page.getByText('1200 Dirham')).toHaveCount(1)
+    await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(1)
 })
 
 test('the history keeps other players’ bids sealed until the auction resolves', async ({

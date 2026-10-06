@@ -13,8 +13,8 @@
         All bids are in.
     {:else}
         Waiting for
-        {#each gameSession.gameState.activePlayerIds as playerId, index (playerId)}
-            {index > 0 ? ', ' : ''}<PlayerTag {playerId} />
+        {#each gameSession.gameState.activePlayerIds as playerId (playerId)}
+            {' '}<PlayerTag {playerId} />
         {/each}
     {/if}
 </p>

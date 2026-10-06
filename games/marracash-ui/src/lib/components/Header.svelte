@@ -14,7 +14,7 @@
         {#if gameSession.isViewingHistory}
             History
         {:else if gameSession.gameState.result}
-            Game over
+            End of game
         {:else if gameSession.isMyTurn}
             Your turn
         {:else if turnPlayerId}
@@ -27,12 +27,28 @@
             turn
         {/if}
     </div>
-    {#if gameSession.canUndo}
+    <div class="flex items-center">
+        {#if gameSession.canUndo}
+            <button
+                type="button"
+                class="h-9 rounded-md px-3 tracking-[0.08em] uppercase hover:bg-[#8a6a46]/15 disabled:opacity-40"
+                disabled={gameSession.busy}
+                onclick={() => gameSession.undo()}>Undo</button
+            >
+        {/if}
         <button
             type="button"
-            class="rounded-md px-2 py-0.5 tracking-[0.08em] uppercase hover:bg-[#8a6a46]/15 disabled:opacity-40"
-            disabled={gameSession.busy}
-            onclick={() => gameSession.undo()}>Undo</button
+            aria-label="Player aid"
+            aria-expanded={gameSession.playerAidOpen}
+            class="group flex h-9 w-9 items-center justify-center"
+            onclick={() => gameSession.togglePlayerAid()}
         >
-    {/if}
+            <span
+                class="flex h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] text-[15px] leading-none tracking-normal {gameSession.playerAidOpen
+                    ? 'border-[#5e2716] bg-[#8a3d26] text-[#f8ecd2]'
+                    : 'border-[#8a6a46] bg-[#efe0c0] text-[#3d2f1f] group-hover:bg-[#e3cfa8]'}"
+                >?</span
+            >
+        </button>
+    </div>
 </div>

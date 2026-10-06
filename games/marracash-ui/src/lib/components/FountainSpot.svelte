@@ -39,7 +39,8 @@
         destination = false,
         label = `Fountain ${fountain.fountainId}`,
         onselect,
-        onpreview
+        onpreview,
+        layer = 'whole'
     }: {
         fountain: FountainState
         selectable: boolean
@@ -49,6 +50,7 @@
         label?: string
         onselect: () => void
         onpreview?: (previewing: boolean) => void
+        layer?: 'whole' | 'basin' | 'visitors'
     } = $props()
 
     let definition = $derived(getFountain(fountain.fountainId))
@@ -56,7 +58,6 @@
     let outline = $derived(definition.entrance ? eightPointedStar : octagon)
     let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
     const gameSession = getGameSession()
-
 
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
@@ -98,7 +99,7 @@
     })
 </script>
 
-{#snippet body()}
+{#snippet basin()}
     {#if destination}
         <path
             class="destination-pulse"
@@ -173,6 +174,9 @@
             stroke-linejoin="round"
         ></path>
     {/if}
+{/snippet}
+
+{#snippet visitors()}
     {#if crowded}
         <rect
             x={tallyPanel.x}
@@ -205,7 +209,18 @@
     {/if}
 {/snippet}
 
-{#if selectable}
+{#snippet body()}
+    {#if layer !== 'visitors'}
+        {@render basin()}
+    {/if}
+    {#if layer !== 'basin'}
+        {@render visitors()}
+    {/if}
+{/snippet}
+
+{#if layer === 'visitors'}
+    <g class="pointer-events-none" aria-hidden="true">{@render visitors()}</g>
+{:else if selectable}
     <g
         role="button"
         tabindex="0"

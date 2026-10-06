@@ -145,15 +145,16 @@ test('reduced motion glides a move instead of walking it and stills the turn bor
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await createGame(page)
     await playOpeningRound(page)
-    const pulsing = page.locator('.pulse-border').first()
+    const pulsing = page.locator('.turn').first()
     await expect(pulsing).toBeVisible()
     expect(await pulsing.evaluate((element) => getComputedStyle(element).animationName)).toBe(
         'none'
     )
 
+    // A move into no shop, so no earnings bubbles hold the timeline past the glide
     await watchWalkers(page)
-    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
-    await page.getByRole('button', { name: 'Move visitors to fountain 4' }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
     expect(await walkerMilliseconds(page)).toBeLessThan(500)
-    await expect(page.getByRole('button', { name: 'Fountain 4', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Fountain 6', exact: true })).toBeVisible()
 })

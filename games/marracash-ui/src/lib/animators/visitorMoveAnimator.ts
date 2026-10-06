@@ -20,6 +20,7 @@ import type { MarracashGameSession } from '$lib/model/session.svelte.js'
 import { cellCenter, distance, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
 import { fountainPawnPositions } from '$lib/utils/fountainPawns.js'
 import { shopBranch } from '$lib/utils/routePreview.js'
+import { EarningsPopups } from '$lib/animators/earningsPopups.svelte.js'
 
 const WalkPixelsPerSecond = 240
 const WalkSpacing = 35
@@ -55,7 +56,10 @@ export class VisitorMoveAnimator {
     private nextTripId = 0
     private readonly listener = (change: GameStateChange) => this.onGameStateChange(change)
 
-    constructor(private gameSession: VisitorAnimationHost) {}
+    constructor(
+        private gameSession: VisitorAnimationHost,
+        readonly earnings = new EarningsPopups()
+    ) {}
 
     register() {
         this.gameSession.addGameStateChangeListener(this.listener)
@@ -64,6 +68,7 @@ export class VisitorMoveAnimator {
     unregister() {
         this.gameSession.removeGameStateChangeListener(this.listener)
         this.elements.clear()
+        this.earnings.clear()
     }
 
     setElement(id: string, element: gsap.TweenTarget | undefined) {
@@ -73,11 +78,19 @@ export class VisitorMoveAnimator {
 
     private async onGameStateChange({ from, to, action, animationContext }: GameStateChange) {
         if (!from) return
-        if (!action || (isMoveVisitors(action) && prefersReducedMotion.current)) {
+        if (!action) {
+            this.earnings.clear()
             await this.animateDirect(from, to, animationContext)
+        } else if (isMoveVisitors(action) && prefersReducedMotion.current) {
+            if (action.metadata) this.earnings.prepare(action.id, action.metadata, action.playerId)
+            await this.animateDirect(from, to, animationContext)
+            await tick()
+            this.earnings.scheduleStill(animationContext.actionTimeline, DirectSeconds)
+            animationContext.afterAnimations(() => this.earnings.clear())
         } else if (isMoveVisitors(action) && action.metadata) {
             const route = routeFrom(action.fountainId, action.direction)
             assertExists(route, `No route leaves fountain ${action.fountainId} ${action.direction}`)
+            this.earnings.prepare(action.id, action.metadata, action.playerId)
             await this.animateWalk(action.id, route, action.metadata, from, animationContext)
         }
     }
@@ -102,6 +115,7 @@ export class VisitorMoveAnimator {
             result.entries.map((entry) => [entry.shopId, from.getShopState(entry.shopId).customers])
         )
 
+        const lastEntries = new Map<ShopId, number>()
         const departures = evenlySpacedDepartures(plans)
         const lineLengths = plans.map((plan, order) => departures[order] + this.pathLength(plan))
         const speed = Math.max(
@@ -155,7 +169,12 @@ export class VisitorMoveAnimator {
                 undefined,
                 at + ShopEntrySeconds
             )
+            lastEntries.set(shopId, Math.max(lastEntries.get(shopId) ?? 0, at + ShopEntrySeconds))
         })
+        for (const [shopId, enteredAt] of lastEntries) {
+            this.earnings.schedule(shopId, timeline, enteredAt)
+        }
+        animationContext.afterAnimations(() => this.earnings.clear())
     }
 
     // Pawns leave from the back, so the crowd left behind is the front of the visitor list.

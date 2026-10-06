@@ -44,7 +44,7 @@
     {:else if action.amount === 0}
         passed.
     {:else}
-        bid <DirhamAmount amount={action.amount} />.
+        bid <DirhamAmount amount={action.amount} />
     {/if}
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}

@@ -8,11 +8,20 @@
     const CardWidth = 38
     const CardHeight = 50
 
+    // The player aid shows its example hand on parchment, where the panel's teal glaze would jar
+    const ParchmentGlaze = 'rgba(0, 0, 0, 0.04)'
+
     let {
         card,
         covered,
-        unpaid = false
-    }: { card: Antique; covered: boolean; unpaid?: boolean } = $props()
+        unpaid = false,
+        surface = 'panel'
+    }: {
+        card: Antique
+        covered: boolean
+        unpaid?: boolean
+        surface?: 'panel' | 'parchment'
+    } = $props()
     const gameSession = getGameSession()
 
     let palette = $derived(gameSession.marketPalettes[card.color])
@@ -33,7 +42,11 @@
         width={CardWidth - 2}
         height={CardHeight - 2}
         rx="4"
-        fill={covered ? PanelPalette.parchment : PanelPalette.glaze}
+        fill={covered
+            ? PanelPalette.parchment
+            : surface === 'parchment'
+              ? ParchmentGlaze
+              : PanelPalette.glaze}
         stroke={covered ? PanelPalette.brass : palette.fill}
         stroke-width="1.75"
         stroke-dasharray={covered ? undefined : '3.5 2.5'}
@@ -45,7 +58,7 @@
         text-anchor="middle"
         class="marracash-merchant"
         font-size="11"
-        fill={covered ? palette.stroke : PanelPalette.cream}
+        fill={covered || surface === 'parchment' ? palette.stroke : PanelPalette.cream}
         text-decoration={unpaid ? 'line-through' : undefined}>{card.value}</text
     >
 </svg>
