@@ -133,14 +133,14 @@ Every colour an Oath component names is one of these tokens, declared once in `s
 | `accent-soft` | amber-950 at 60 % | the picked item's and the active tab's background |
 | `control`, `control-hover` | stone-700, stone-600 | buttons that are not the primary action |
 | `primary`, `primary-hover`, `primary-text` | amber-700, amber-600, stone-50 | the one primary button per panel, and Undo |
-| `danger`, `danger-soft` | rose-400, rose-900 at 70 % | targets, losses, refusals, the end die live |
+| `danger`, `danger-soft` | rose-400, rose-900 at 70 % | targets, losses, refusals |
 | `divider` | stone-700 at 60 % | faint rules between groups, unpicked option borders |
 | `goal-oath`, `goal-vision`, `goal-successor` | amber-500, stone-100, the goal tile's purple | the goal symbols: the Oath's, a Vision's, the Successor's |
 | `vision-rust`, `vision-gold`, `vision-teal`, `vision-cream` | the Vision back's rust, gold, teal and cream | the Vision seen notice, in the Vision back's colours: its ground, frame, edge and lettering |
 
 - Amber means "yours to act on": a pick, the staged action, the primary button, Undo. Nothing decorative is amber beyond the frame.
 - The Vision colours are the Vision back's art, used by the Vision seen notice alone; they carry no meaning elsewhere.
-- Rose means "costs or threatens": a Campaign target, a loss, a refusal's reason, the end die while it is live, and the buttons that kill warbands or burn favor.
+- Rose means "costs or threatens": a Campaign target, a loss, a refusal's reason, and the buttons that kill warbands or burn favor.
 - Text on a surface is `text` or `text-muted`, never black; dark text appears only on an amber chip.
 - The phone layout uses the same tokens; nothing is re-coloured for width.
 
