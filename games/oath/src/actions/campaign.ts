@@ -415,10 +415,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (choice.attackDice < 0) {
             return 'must declare at least 0 attack dice'
         }
-        const board =
-            warbandsOnBoardOf(state, playerId) + HydratedCampaign.siteForceOf(state, playerId)
-        if (choice.attackDice > board) {
-            return `can add at most ${board} attack dice, one per warband in your force`
+        const most = HydratedCampaign.maxAttackDice(state, playerId)
+        if (choice.attackDice > most) {
+            return `can add at most ${most} attack dice, one per warband in your force`
         }
         const lossOrderReason = reasonLossOrderOutsideForce(
             state,
@@ -491,6 +490,11 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (sneakAttackOfferedTo(state, playerId)) return 0
         const player = state.getPlayerState(playerId)
         return player.freeCampaignAtAction === state.actionCount ? 0 : CAMPAIGN_SUPPLY_COST
+    }
+
+    /** R-5.5.2 — one attack die per warband in the force: the board and the sites it reaches. */
+    static maxAttackDice(state: HydratedOathGameState, playerId: string): number {
+        return warbandsOnBoardOf(state, playerId) + HydratedCampaign.siteForceOf(state, playerId)
     }
 
     private static siteForceOf(state: HydratedOathGameState, playerId: string): number {
