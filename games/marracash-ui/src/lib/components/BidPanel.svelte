@@ -28,7 +28,7 @@
 </script>
 
 <div class="flex flex-col items-center gap-2">
-    <p class="font-semibold">
+    <p class="marracash-prompt">
         {@render lead?.()}
         Sealed bid for the highlighted {shop?.color} shop. You have <DirhamAmount
             amount={myMoney}

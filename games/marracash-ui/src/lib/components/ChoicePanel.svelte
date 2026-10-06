@@ -15,7 +15,9 @@
 </script>
 
 {#if gameSession.selectedFountainId === undefined}
-    <p class="font-semibold">{@render lead?.()}{prompt.charAt(0).toUpperCase()}{prompt.slice(1)}.</p>
+    <p class="marracash-prompt">
+        {@render lead?.()}{prompt.charAt(0).toUpperCase()}{prompt.slice(1)}.
+    </p>
 {:else}
-    <p class="font-semibold">{@render lead?.()}Choose the destination for these visitors.</p>
+    <p class="marracash-prompt">{@render lead?.()}Choose the destination for these visitors.</p>
 {/if}

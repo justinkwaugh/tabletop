@@ -8,7 +8,10 @@ export const PanelPalette = {
     cream: '#f3e6c4',
     glaze: '#1d4a55',
     quietCount: '#86a7ad',
-    cardBack: '#8f2a24'
+    cardBack: '#8f2a24',
+    scrollLight: '#f7eedc',
+    scrollDeep: '#f0e2c4',
+    scrollInset: '#f4e8cf'
 } as const
 
 export const ElMessiriCapHeight = 0.66

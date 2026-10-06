@@ -7,7 +7,7 @@
     const gameSession = getGameSession()
 </script>
 
-<p class="font-semibold">
+<p class="marracash-prompt">
     {@render lead?.()}
     {#if gameSession.gameState.activePlayerIds.length === 0 && gameSession.gameState.auction}
         All bids are in.
