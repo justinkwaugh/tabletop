@@ -26,6 +26,12 @@ import {
 } from '../util/modifiers.js'
 import { countOf } from '../util/warbands.js'
 import { pawnSiteId } from '../util/pawn.js'
+import {
+    favorPayment,
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment
+} from '../util/actionPayment.js'
 import { ownWarbandOwner } from '../util/rule.js'
 
 /** R-5.2.1 */
@@ -197,6 +203,11 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
             }
         if (!placesSecret && usableFavor(state, playerId) < 1)
             return { cost, active, reason: 'requires one favor to place on the card' }
+        const unaffordable = reasonCannotPayInAll(state, playerId, [
+            modifierPayment(active),
+            placesSecret ? secretPayment(1) : favorPayment(1)
+        ])
+        if (unaffordable) return { cost, active, reason: unaffordable }
         // R-7.1.4 — a persistent "cannot muster from …" (Forest Council).
         const persistent = reasonPersistentForbidsMuster(state, playerId, cardId)
         if (persistent) return { cost, active, reason: persistent }

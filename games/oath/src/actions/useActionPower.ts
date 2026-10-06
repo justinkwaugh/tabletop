@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, Visibility } from '@table
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
+import { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
 import { PowerTiming } from '../data/cardPowers.js'
 import { PowerChoice, type LegalPowerUse } from '../util/powerChoice.js'
@@ -23,6 +24,8 @@ export type UseActionPowerMetadata = Type.Static<typeof UseActionPowerMetadata>
 export const UseActionPowerMetadata = Type.Object({
     ...PowerOutcome.properties,
     summary: Type.String(),
+    /** R-10.13 — whose warbands the summary counts, when they were one owner's. */
+    warbandOwner: Type.Optional(WarbandOwner),
     /** R-9.4 */
     reveal: Type.Optional(Visibility.protect(HiddenReveal, { policy: Visibility.Policy.Actor })),
     // Applied by the Act Phase state handler.
@@ -104,6 +107,7 @@ export class HydratedUseActionPower
         this.metadata = {
             ...outcome,
             summary: result.summary,
+            warbandOwner: result.warbandOwner,
             reveal,
             endsActPhase: result.endsActPhase === true ? true : undefined,
             opensSearch: result.opensSearch || undefined

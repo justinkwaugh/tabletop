@@ -94,6 +94,8 @@ export function powerOutcomeOf(result: EffectResult): PowerOutcome {
         disclosed: result.disclosed || undefined,
         peeked: result.peeked,
         mergePiles: result.mergePiles,
+        visionDrawn: result.visionDrawn || undefined,
+        targetPlayerId: result.targetPlayerId,
         pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined
     }
 }

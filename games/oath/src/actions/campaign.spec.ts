@@ -445,17 +445,19 @@ describe('the defense total (R-5.5.4)', () => {
 })
 
 describe('skulls (R-5.5.5)', () => {
-    it('kills one warband in the attacker\'s force per skull, immediately', () => {
+    it('kills one warband in the attacker\'s force per skull, immediately, and records how many', () => {
         const seed = seedRollingSkulls(1)
         const state = table({ prng: { seed, invocations: 0 } })
+        const action = campaign({ attackDice: 5 })
 
-        expectWarbandsConserved(state, () => campaign({ attackDice: 5 }).apply(state))
+        expectWarbandsConserved(state, () => action.apply(state))
 
         const attacker = state.getPlayerState(ATTACKER)
         const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
         expect(skulls).toBeGreaterThan(0)
         expect(attacker.warbandsOnBoard[ATTACKER]).toBe(5 - skulls)
         expect(attacker.warbandsInPersonalBank[ATTACKER]).toBe(7 + skulls)
+        expect(action.metadata?.battle?.skullsKilled).toBe(skulls)
     })
 
     it('still counts the two swords on the skull face', () => {

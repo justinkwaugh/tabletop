@@ -1,4 +1,8 @@
-import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineContext,
+    type MachineStateHandler
+} from '@tabletop/common'
 import { MachineState, toMachineState } from './states.js'
 import { SetupStateHandler } from '../stateHandlers/setup.js'
 import { WakePhaseStateHandler } from '../stateHandlers/wakePhase.js'
@@ -15,12 +19,15 @@ import { OathkeeperChoiceStateHandler } from '../stateHandlers/oathkeeperChoice.
 import { ConsentRequestStateHandler } from '../stateHandlers/consentRequest.js'
 import { PowerQuestionStateHandler } from '../stateHandlers/powerQuestion.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { applyForcedTitleChanges } from '../util/title.js'
 import { settleQueue } from '../util/questionAnswers.js'
 import { carryFreeActions } from '../util/freeActions.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { HydratedLetPeek, isLetPeek } from '../actions/letPeek.js'
+import { TransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { ActionType } from './actions.js'
 
 type OathStateHandler = MachineStateHandler<HydratedAction, HydratedOathGameState>
@@ -41,16 +48,38 @@ function wrapOnAction(
 
 /** R-2.11-H1 — the Oathkeeper title is re-evaluated after every action. */
 function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
-    return wrapOnAction(handler, (action, context) => {
-        const next = handler.onAction(action, context)
-        const gameState = context.gameState
-        if (gameState.winningPlayerIds.length > 0) return next
+    return {
+        isValidAction: (action, context) =>
+            isTransferOathkeeper(action) || handler.isValidAction(action, context),
+        validActionsForPlayer: (playerId, context) =>
+            handler.validActionsForPlayer(playerId, context),
+        enter: (context) => handler.enter(context),
+        onAction: (action, context) => {
+            const gameState = context.gameState
+            const next = isTransferOathkeeper(action)
+                ? toMachineState(gameState.machineState)
+                : handler.onAction(action, context)
+            if (gameState.winningPlayerIds.length > 0) return next
 
-        applyForcedTitleChanges(gameState, toMachineState(next))
+            settleTitle(context, toMachineState(next))
 
-        // R-2.11.b leaves the outgoing holder a choice, so the machine detours.
-        return gameState.pendingOathkeeperChoice ? MachineState.OathkeeperChoice : next
-    })
+            // R-2.11.b leaves the outgoing holder a choice, so the machine detours.
+            return gameState.pendingOathkeeperChoice ? MachineState.OathkeeperChoice : next
+        }
+    }
+}
+
+/** A recorded move is applied by its own System Action, so the History can read it. */
+function settleTitle(context: MachineContext<HydratedOathGameState>, resume: MachineState) {
+    const gameState = context.gameState
+    if (!isAtLeastOathRevision(gameState, OathRevision.TurnFlow)) {
+        applyForcedTitleChanges(gameState, resume)
+        return
+    }
+    if (context.getPendingActions().some(isTransferOathkeeper)) return
+    applyForcedTitleChanges(gameState, resume, (move) =>
+        context.addSystemAction(TransferOathkeeper, move)
+    )
 }
 
 /** The inner handler's destination is where the held turn resumes. */
@@ -124,6 +153,7 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.WakePhase]: withContinuousTitle(new WakePhaseStateHandler()),
     [MachineState.ActPhase]: withContinuousTitle(withPowerQuestions(new ActPhaseStateHandler())),
     [MachineState.RestPhase]: withContinuousTitle(new RestPhaseStateHandler()),
+    [MachineState.EndOfRound]: withContinuousTitle(new EndOfRoundStateHandler()),
     [MachineState.Searching]: withContinuousTitle(withPowerQuestions(new SearchingStateHandler())),
     [MachineState.CampaignPlans]: withContinuousTitle(
         withPowerQuestions(new CampaignPlansStateHandler())

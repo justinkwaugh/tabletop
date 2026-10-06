@@ -51,6 +51,6 @@ export * from './persistence/firestore/tournamentStore.js'
 export * from './persistence/stores/tournamentStore.js'
 
 export { TournamentTask, TournamentResultsEmailTask } from './competitions/tournamentTasks.js'
-export { GameAutoStartTask } from './games/publicGameAutoStart.js'
+export { GameAutoStartTask } from './games/gameAutoStart.js'
 
 export * from './games/catalogService.js'

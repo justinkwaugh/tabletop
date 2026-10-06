@@ -17,3 +17,6 @@ export function worldDeckSearchCost(visionsDrawn: number): number {
 
 /** R-5.1.1 */
 export const DISCARD_SEARCH_SUPPLY_COST = 2
+
+/** Banner of the Darkest Secret — its holder's world-deck Search, in place of the track's cost. */
+export const DARKEST_SECRET_WORLD_DECK_SUPPLY_COST = 2

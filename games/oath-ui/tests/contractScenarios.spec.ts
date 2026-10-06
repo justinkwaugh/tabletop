@@ -1150,7 +1150,7 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
 
-test('scenario 35: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
+test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
     await openTable(page, 'restBanks')
     const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
     await expect(banks.first()).toBeVisible()
@@ -1366,4 +1366,265 @@ test('scenario 57: with the Search open, the card is found with the powers and i
     await expect(free).toBeVisible()
     await expect(free).not.toContainText('Mushrooms')
     await expect(deck).toHaveCount(0)
+})
+
+test('scenario 58: a Vision drawn and the title changing hands are framed History rows; the drawer sees the Vision, another seat its back', async ({ page }) => {
+    await openTable(page, 'majorEvents')
+    await page.getByRole('tab', { name: 'History' }).click()
+
+    const drawn = page.locator('[data-major-event="visionDrawn"]')
+    await expect(drawn).toBeVisible()
+    await expect(drawn).toContainText('Vision drawn')
+    await expect(drawn).toContainText('the draw stopped on a Vision')
+    await expect(drawn).toContainText('Search cost up: the world deck now costs 3 Supply')
+    await expect(drawn.getByRole('img', { name: 'Conquest' })).toBeVisible()
+
+    const title = page.locator('[data-major-event="oathkeeper"]')
+    await expect(title).toBeVisible()
+    await expect(title).toContainText('took the Oathkeeper title from')
+    await expect(title.getByRole('img', { name: 'the Oathkeeper title' })).toBeVisible()
+    await expect(page.locator('.history').getByText('The game was started')).toBeVisible()
+
+    const other = await call(page, 'viewOffTheClock')
+    expect(other).toBe('ann')
+    await expect(drawn.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
+    await expect(drawn.getByRole('img', { name: 'Conquest' })).toHaveCount(0)
+})
+
+test('scenario 59: every seat is told a Vision was seen, the drawer too; each clears it for itself, and it stays cleared on reopening', async ({ page }) => {
+    await openTable(page, 'majorEvents')
+    const seen = page.getByRole('dialog', { name: 'A Vision was seen' })
+    await expect(seen).toBeVisible()
+    await expect(seen).toContainText('have seen a Vision')
+    await expect(seen.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
+    await expect(page.locator('.panel')).toBeVisible()
+
+    await magnifiers(page).first().click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await expect(seen).toBeVisible()
+
+    await seen.getByRole('button', { name: 'The pig foresaw this: clear' }).click()
+    await expect(seen).toHaveCount(0)
+
+    expect(await call(page, 'viewOffTheClock')).toBe('ann')
+    await expect(seen).toBeVisible()
+    await expect(seen).toContainText('me has seen a Vision')
+    await page.getByRole('tab', { name: 'Chat' }).click()
+    await page.locator('textarea').dispatchEvent('keydown', { key: 'Escape' })
+    await expect(seen).toBeVisible()
+
+    await call(page, 'open', 'majorEvents')
+    await expect(seen).toHaveCount(0)
+    expect(await call(page, 'viewOffTheClock')).toBe('ann')
+    await expect(seen).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(seen).toHaveCount(0)
+})
+
+test('scenario 35: at Rest every bank a power names is a button of one size; a tap on one uses the power; an empty bank is not tappable', async ({ page }) => {
+    await openTable(page, 'restTurnFlow')
+    const powers = page.getByRole('list', { name: 'Rest powers' })
+    await expect(powers).toBeVisible()
+    await expect(grid(page)).toContainText('Your Supply has refreshed. Rest powers, once each:')
+    const banks = powers.getByRole('button', { name: /bank: take 1 favor/ })
+    await expect(banks).toHaveCount(5)
+    await expect(powers.getByRole('button', { name: 'Discord bank: take 0 favor, 0 in bank' })).toBeVisible()
+    await expect(powers.getByRole('listitem')).toHaveCount(2)
+    await expect(powers).toContainText('Vow of Obedience')
+    await expect(powers).toContainText('Insomnia')
+    await expect(powers.getByRole('button', { name: /^Discord bank/ })).toBeDisabled()
+    const sizes = await powers.locator('.rest-button').evaluateAll((buttons) =>
+        buttons.map((button) => `${Math.round(button.getBoundingClientRect().width)}x${Math.round(button.getBoundingClientRect().height)}`)
+    )
+    expect(new Set(sizes)).toEqual(new Set(['80x48']))
+    await expect(grid(page).getByRole('button', { name: 'End your turn' })).toBeVisible()
+
+    const before = await call(page, 'tableFacts')
+    await powers.getByRole('button', { name: /^Arcane bank/ }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
+    expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
+    const used = powers.locator('.rest-row--used')
+    await expect(used).toHaveCount(1)
+    await expect(used).toContainText('Vow of Obedience')
+    await expect(used).toContainText('used: took 1')
+    await expect(used.getByRole('button', { name: /bank: take/ })).toHaveCount(0)
+    await expect(powers.getByRole('listitem').filter({ hasText: 'Insomnia' }).getByRole('button', { name: /^1/ })).toBeEnabled()
+})
+
+test('scenario 60: between rounds the Chancellor rolls the end die; the last seat’s Undo stays until the roll; each seat reads the stakes', async ({ page }) => {
+    await openTable(page, 'endOfRound')
+    const info = page.locator('.info')
+    await expect(info).toContainText('Your roll')
+    await expect(info).toContainText('End of round 6')
+    await expect(grid(page)).toContainText('End of round 6 of 8')
+    await expect(grid(page)).toContainText('The Empire holds the Oathkeeper title, so you roll the end die.')
+    await expect(grid(page)).toContainText('A 5 or higher ends the game: you win as the Chancellor.')
+    await expect(grid(page)).toContainText("The roll can't be undone.")
+
+    expect(await call(page, 'viewOffTheClock')).toBe('dev')
+    await expect(info).toContainText("'s roll")
+    await expect(grid(page)).toContainText('to roll the end die.')
+    await expect(grid(page)).toContainText('A 5 or higher ends the game:')
+    await expect(grid(page).getByRole('button', { name: 'Roll the end die' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible()
+
+    await openTable(page, 'endOfRound')
+    await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
+    await expect(page.getByTitle('the end die, rolled at the close of each round from round 5')).toContainText(/last [1-6]/)
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(page.locator('[data-major-event="endDie"]')).toContainText('rolled the end die:')
+    await expect(page.locator('[data-major-event="endDie"]')).toContainText('end of round 6')
+    expect(await call(page, 'viewOffTheClock')).toBe('dev')
+    await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0)
+})
+
+type PanelFrame = { scale: number; box: number; drawn: number }
+type PanelRecord = { frames: PanelFrame[]; errors: string[] }
+
+/** Samples the last fitted panel on every animation frame from the first one it exists, and every error the window reports (a ResizeObserver loop error reaches the window, not `pageerror`). */
+function installPanelRecorder() {
+    const record: PanelRecord = { frames: [], errors: [] }
+    Reflect.set(window, 'panelRecord', record)
+    window.addEventListener('error', (event) => record.errors.push(event.message))
+    const sample = () => {
+        const inners = document.querySelectorAll('.fit__inner')
+        const inner = inners[inners.length - 1]
+        const box = inner?.parentElement
+        if (inner && box) {
+            record.frames.push({
+                scale: new DOMMatrixReadOnly(getComputedStyle(inner).transform).a,
+                box: box.getBoundingClientRect().height,
+                drawn: inner.getBoundingClientRect().height
+            })
+        }
+        requestAnimationFrame(sample)
+    }
+    requestAnimationFrame(sample)
+}
+
+const recordPanel = (page: Page) => page.evaluate(installPanelRecorder)
+
+const panelRecord = (page: Page) => page.evaluate((): PanelRecord => Reflect.get(window, 'panelRecord'))
+
+async function waitFrames(page: Page, count: number) {
+    await page.evaluate(async (count) => {
+        for (let frame = 0; frame < count; frame++) await new Promise(requestAnimationFrame)
+    }, count)
+}
+
+async function panelImagesLoaded(page: Page) {
+    await page.waitForFunction(() =>
+        [...document.querySelectorAll('.fit__inner img')].every((image) => image instanceof HTMLImageElement && image.complete)
+    )
+    await waitFrames(page, 8)
+}
+
+function expectFittedOnEveryFrame({ frames, errors }: PanelRecord) {
+    expect(frames.length).toBeGreaterThan(0)
+    expect(frames.filter((frame) => frame.scale >= 1)).toEqual([])
+    expect(frames.filter((frame) => frame.drawn > frame.box + 1)).toEqual([])
+    expect(errors).toEqual([])
+}
+
+async function stepColumnHeight(page: Page, heights: number[]) {
+    for (const height of heights) {
+        await page.setViewportSize({ width: 375, height })
+        await waitFrames(page, 8)
+    }
+}
+
+async function chooseTravel(page: Page) {
+    await tile(page, 'Travel').last().click()
+    await expect(page.getByRole('list', { name: 'Destinations in the Cradle' }).last()).toBeVisible()
+    await waitFrames(page, 8)
+}
+
+test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on every frame', () => {
+    test.use({ viewport: { width: 375, height: 660 } })
+
+    test('the panel’s first frame on opening the table is already fitted', async ({ page }) => {
+        await page.addInitScript(installPanelRecorder)
+        await openTable(page, 'actPhase')
+        await expect(tile(page, 'Travel')).toBeVisible()
+        await panelImagesLoaded(page)
+        expectFittedOnEveryFrame(await panelRecord(page))
+    })
+
+    test('the column’s height changing in steps, as an address bar slides, never draws the panel unscaled', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await expect(tile(page, 'Travel')).toBeVisible()
+        await recordPanel(page)
+        await stepColumnHeight(page, [640, 620, 600, 580, 600, 620, 640, 660])
+        const record = await panelRecord(page)
+        expectFittedOnEveryFrame(record)
+        expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(4)
+    })
+
+    test('a step with different content refits without an unscaled frame', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 620 })
+        await openTable(page, 'actPhase')
+        await expect(tile(page, 'Travel')).toBeVisible()
+        await recordPanel(page)
+        await chooseTravel(page)
+        const record = await panelRecord(page)
+        expectFittedOnEveryFrame(record)
+        expect(record.frames[0].scale - record.frames[record.frames.length - 1].scale).toBeGreaterThan(0.3)
+    })
+
+    test('in full screen, the window’s height changing and a new step never draw the panel unscaled', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 580 })
+        await openTable(page, 'actPhase')
+        await expect(tile(page, 'Travel')).toBeVisible()
+        await recordPanel(page)
+        await page.getByRole('button', { name: 'Enter full screen' }).click()
+        await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
+        expect(await page.locator('.fit__inner').last().evaluate((inner) => inner.closest('.fullscreen-panel') !== null)).toBe(true)
+        await panelImagesLoaded(page)
+        await stepColumnHeight(page, [560, 540, 520, 540, 560, 580])
+        await chooseTravel(page)
+        const record = await panelRecord(page)
+        expectFittedOnEveryFrame(record)
+        expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(3)
+    })
+})
+
+test('scenario 61: a panel image that arrives after its panel changes nothing it was laid out with', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.route(/token\.favor\.png/, async (route) => {
+        if (route.request().resourceType() !== 'image') return route.continue()
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await route.continue()
+    })
+    await page.addInitScript(installPanelRecorder)
+    await openTable(page, 'actPhase')
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    await tile(page, 'Muster').click()
+    const prompt = page.locator('.panel').getByText('Choose a card at your site to place')
+    await expect(prompt).toBeVisible()
+    const token = prompt.getByRole('img', { name: 'favor' })
+    const box = page.locator('.fit').last()
+    const layout = async () => ({
+        complete: await token.evaluate((image) => image instanceof HTMLImageElement && image.complete),
+        tokenWidth: await token.evaluate((image) => image.getBoundingClientRect().width),
+        boxHeight: await box.evaluate((element) => element.getBoundingClientRect().height)
+    })
+    const before = await layout()
+    expect(before.complete).toBe(false)
+    expect(before.tokenWidth).toBeGreaterThan(0)
+    await panelImagesLoaded(page)
+    const after = await layout()
+    expect(after.complete).toBe(true)
+    expect(after.tokenWidth).toBeCloseTo(before.tokenWidth, 1)
+    expect(after.boxHeight).toBe(before.boxHeight)
+    const { frames, errors } = await panelRecord(page)
+    expect(frames.filter((frame) => frame.drawn > frame.box + 1)).toEqual([])
+    expect(errors).toEqual([])
+})
+
+test('scenario 61: on a desktop a panel that fits is drawn unscaled', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await expect(tile(page, 'Travel')).toBeVisible()
+    await expect(page.locator('.fit__inner')).toHaveCSS('transform', 'none')
 })

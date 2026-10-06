@@ -49,3 +49,12 @@ for (const fast of [false, true]) {
         await expect(controls.getByRole('button', { name: 'go to current' })).toBeVisible()
     })
 }
+
+test('history that arrives during a resumed sync check is applied once the check finishes', async ({ page }) => {
+    await page.goto('/session-test.html')
+    const result = await page.evaluate(async () => {
+        const fixture = await import(new URL('/src/lib/model/tests/privateHandSession.fixture.ts', location.href).href)
+        return fixture.verifyHistoryArrivingDuringResumedSynchronization()
+    })
+    expect(result).toBe(true)
+})

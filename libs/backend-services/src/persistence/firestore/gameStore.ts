@@ -86,7 +86,7 @@ import {
     TournamentGameError
 } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
-import { publicGameAutoStartChange } from '../../games/publicGameAutoStart.js'
+import { gameAutoStartChange } from '../../games/gameAutoStart.js'
 import {
     StoredTournamentSchedule,
     loadTournamentSchedule
@@ -489,7 +489,7 @@ export class FirestoreGameStore implements GameStore {
                 updatedFields.push('status')
             }
 
-            const autoStart = publicGameAutoStartChange(existingGame, updatedGame, Date.now())
+            const autoStart = gameAutoStartChange(existingGame, updatedGame, Date.now())
             if (autoStart) {
                 Object.assign(updatedGame, autoStart)
                 Object.assign(fieldsToUpdate, autoStart)

@@ -17,3 +17,7 @@ Permission granted by Clay Ross to Justin Waugh on 2024-10-21 for non-commercial
 ### Sol
 
 Permission granted by Ryan Spangler to Justin Waugh on 2025-01-15 for non-commercial use of Sol and its graphical assets when hosted on https://boardtogether.games
+
+### Marracash
+
+Permission granted by Stefan Dorra to Justin Waugh on 2026-10-04 for non-commercial use of Marracash when hosted on https://boardtogether.games. This permission does not currently extend to its graphical assets.

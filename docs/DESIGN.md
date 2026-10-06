@@ -9,6 +9,7 @@ This document is the architectural map for implementing a new game title or maki
 - For a structural change to an existing game, inspect the current canonical interfaces and trace the affected behavior through that game. The new-game completion checklist is not relevant unless the change alters game registration or package boundaries.
 - For a new game, use a maintained sibling game for package configuration and integration conventions, while treating the canonical interfaces as authoritative.
 - For a Hosted Game that must conceal game information from clients, read the implemented [hidden-information contract](hidden-information.md) and [per-title adoption catalog](hidden-information-game-catalog.md).
+- For a new game's UI, start from the [default table layout](game-ui-layout.md).
 - For UI-only work, also read [user interaction semantics](user-interactions.md), the game’s visual contract when present, and the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md) when animation is involved.
 
 ## Canonical interfaces
@@ -131,13 +132,19 @@ Every Game State or Action relationship to a Player must use that Player's stabl
 
 A game may store color when color is itself a rule-relevant fact, but color is not Player Identity. Changing preferred colors, color-blind presentation, or another visual treatment must not change player attribution, game rules, scoring, action availability, replay, or undo.
 
+### Turns, rounds, and phases
+
+Manage turns and turn order with the shared turn manager (`HydratedTurnManager`). Start and end turns, advance to the next player, and change the order (reversal, a new first player) through it rather than tracking an active player, seat index, or order array elsewhere in Game State.
+
+A round manager (`HydratedRoundManager`) and phase manager (`HydratedPhaseManager`) can track rounds and phases. Neither is required, but their series record action-index boundaries that the history panel can use for grouping and navigation, so adopt them when the game's rules have rounds or phases that players would navigate by.
+
 Before implementing a game-model mechanism, search `libs/common/src/game/components` and existing games for the same concept. Prefer extending an established mechanism when the semantics match. Keep game-specific rule differences local when they do not justify changing a shared contract.
 
 “Game-model component” in this document means a reusable logic mechanism, not a Svelte component.
 
 ## Game UI
 
-The game session owns action construction and application. Svelte components render state, collect input, and call session methods. For multi-step local selection, follow [the staged interaction, Back, and Undo semantics](user-interactions.md).
+The game session owns action construction and application. Svelte components render state, collect input, and call session methods. Lay out the table following the [game UI layout](game-ui-layout.md). For multi-step local selection, follow [the staged selection and Undo semantics](user-interactions.md).
 
 A game UI with cross-layer visual effects, interaction precedence, or shared transient visual state must maintain a contract using the [UI interaction visual-contract guide](ui-interaction-visual-contract.md). Animation must follow the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md), including its rules for coordinated timelines, history navigation, and the narrow `animate:flip` exception.
 
@@ -168,7 +175,7 @@ Verify the parts affected by the change:
 - Actions validate, apply, and emit metadata correctly.
 - State entry, transitions, and system-action cascades follow the rules.
 - Seeded behavior is deterministic.
-- UI drafts, Back, Undo, and history navigation have coverage when applicable.
+- UI drafts, Undo, and history navigation have coverage when applicable.
 - Relevant package tests, checks, and builds pass. Inspect current package scripts rather than relying on commands copied into documentation.
 
 ## New game completion

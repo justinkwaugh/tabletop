@@ -99,10 +99,11 @@ The current value of one Draft Stage.
 A Draft Entry created through explicit user input.
 
 **Auto Draft Entry**:
-A transient Draft Entry supplied by the Game Client without explicit user input. It does not consume Back or Undo.
+A transient Draft Entry supplied by the Game Client without explicit user input. An Undo press never stops on it.
 
-**Back**:
-Removal of the latest Manual Draft Entry and any downstream Draft Entries that depend on it. Back changes an Action Draft; Undo changes Processed Action history.
+**Undo**:
+The Game Client's single reversal control. While an Action Draft holds a Manual Draft Entry, Undo removes the latest one and any downstream Draft Entries that depend on it; otherwise it reverses the Undo Candidate in Processed Action history.
+_Avoid_: Back
 
 ## Exploration
 

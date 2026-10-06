@@ -1,7 +1,13 @@
 import { gainFavorFromBank, spendFavor, usableFavor } from '../util/favor.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import {
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assert,
+    assertExists
+} from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Suit } from '../model/oathEnums.js'
@@ -12,6 +18,14 @@ import { persistentMatchingAdvisers, reasonPersistentForbidsTrade } from '../uti
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import { pawnSiteId } from '../util/pawn.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import {
+    favorPayment,
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment,
+    tollPayment
+} from '../util/actionPayment.js'
 import {
     foldNumber,
     modifierContext,
@@ -122,6 +136,8 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
 
         const forFavor = this.option === TradeOption.ForFavor
         if (forFavor) {
+            if (isAtLeastOathRevision(state, OathRevision.CostsAndFacedownModifiers))
+                assert(player.secrets >= 1, `${this.playerId} has no secret left to place`)
             player.secrets -= 1
             state.addTokensOn(this.cardId, { secrets: 1 })
         } else {
@@ -257,14 +273,6 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         // R-7.1.4 — Curfew's "unless they give favor" (`util/tolls.ts`).
         const unpaid = reasonTollsUnpaid(state, playerId, { kind: 'trade', cardId }, tolls)
         if (unpaid) return { cost, active, reason: unpaid }
-        if (
-            tolls &&
-            tolls.length > 0 &&
-            usableFavor(state, playerId) - tolls.length <
-                (option === TradeOption.ForSecrets ? 2 : 0)
-        ) {
-            return { cost, active, reason: 'after the toll, not enough favor is left to place' }
-        }
         if (option === TradeOption.ForFavor && player.secrets < 1) {
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
@@ -279,7 +287,22 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         if (option === TradeOption.ForSecrets && usableFavor(state, playerId) < 2) {
             return { cost, active, reason: 'trading for secrets requires two favor to place' }
         }
+        const unaffordable = reasonCannotPayInAll(state, playerId, [
+            modifierPayment(active),
+            tollPayment(tolls),
+            HydratedTrade.placement(state, option)
+        ])
+        if (unaffordable) return { cost, active, reason: unaffordable }
         return { cost, active }
+    }
+
+    /** R-5.3.2 — what the Trade itself places on the card. */
+    private static placement(state: HydratedOathGameState, option: TradeOption) {
+        if (option === TradeOption.ForSecrets) return favorPayment(2)
+        // R-X.4 — before this revision the placed secret was not totalled, and could leave secrets below zero.
+        return secretPayment(
+            isAtLeastOathRevision(state, OathRevision.CostsAndFacedownModifiers) ? 1 : 0
+        )
     }
 
     static tradeableSitesFor(

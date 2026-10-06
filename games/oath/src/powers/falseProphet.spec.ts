@@ -93,7 +93,7 @@ describe('False Prophet — "When played, if you\'re an Exile, gain one warband 
         expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(2)
         expect(s.getPlayerState(ME)).toMatchObject({ favor: 4, secrets: 2 })
         expect(s.getPlayerState(ME).advisers).toEqual([{ cardId: PROPHET, faceUp: true }])
-        expect(whenPlayed).toBe(`False Prophet: gained a warband and put it on ${FAITH}, which me now also has revealed`)
+        expect(whenPlayed).toBe(`False Prophet: gained a warband and put it on ${FAITH}, now revealed for me too`)
         expect(s.getPlayerState(FOE).revealedVisionId).toBe(FAITH)
     })
 

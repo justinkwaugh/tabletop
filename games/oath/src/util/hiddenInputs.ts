@@ -240,22 +240,13 @@ export function commitHiddenOutputs(
                         ...(shown.has(cardId) ? ['everyone'] : [])
                     ]
                 }
-                if (action.metadata.discardToWorldDeck === true)
-                    putUnderWorldDeckKnown(state, action.metadata.discardedCardIds, discards)
-                else
-                    putOnDiscardPile(
-                        state,
-                        action.metadata.discardPileRegion,
-                        action.metadata.discardedCardIds,
-                        action.metadata.discardToBottom === true,
-                        discards
-                    )
+                depositPlayDiscards(state, action.metadata, discards)
             }
             commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
-            discardRecorded(state, action.metadata, deposit)
+            depositPlayDiscards(state, action.metadata, deposit)
             commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.SetupChoice:
@@ -322,6 +313,27 @@ function heldRelicAnswered(action: AnswerQuestion): string | undefined {
     return action.answer.kind === PowerQuestionKind.BottomRelic
         ? action.answer.heldRelicCardId
         : undefined
+}
+
+/** R-5.1.3, R-10.5 — where a play's discards went: the next region's pile, or where Bracken or Cracked Horn sent them. */
+interface PlayDiscards {
+    discardPileRegion: Region
+    discardedCardIds: string[]
+    discardToBottom?: boolean
+    discardToWorldDeck?: boolean
+}
+
+function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, deposit: Deposit) {
+    if (play.discardToWorldDeck === true)
+        putUnderWorldDeckKnown(state, play.discardedCardIds, deposit)
+    else
+        putOnDiscardPile(
+            state,
+            play.discardPileRegion,
+            play.discardedCardIds,
+            play.discardToBottom === true,
+            deposit
+        )
 }
 
 interface RecordedDiscard {

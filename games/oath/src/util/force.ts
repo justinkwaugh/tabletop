@@ -16,6 +16,12 @@ export function forceTotal(force: readonly WarbandGroup[]): number {
     return force.reduce((sum, group) => sum + group.count, 0)
 }
 
+/** R-10.13 — the owner of every warband in the groups, when they are one owner's. */
+export function soleOwner(groups: readonly WarbandGroup[]): WarbandOwner | undefined {
+    const owners = new Set(groups.filter((group) => group.count > 0).map((group) => group.owner))
+    return owners.size === 1 ? [...owners][0] : undefined
+}
+
 /** R-10.13 — their own warbands first, then the others on the board: the order losses come from. */
 export function boardOwnersOwnFirst(
     state: HydratedOathGameState,
@@ -235,11 +241,25 @@ export function gainWarbandsToBoard(
     playerId: string,
     count: number
 ): number {
+    return gainWarbandsWithOwner(state, playerId, count).gained
+}
+
+export function gainWarbandsWithOwner(
+    state: HydratedOathGameState,
+    playerId: string,
+    count: number
+): { owner?: WarbandOwner; gained: number } {
     const player = state.getPlayerState(playerId)
     const own = ownWarbandOwner(state, playerId)
     const available = countOf(player.warbandsInPersonalBank, own)
     const gained = Math.max(0, Math.min(count, available))
     player.warbandsInPersonalBank[own] = available - gained
     addWarbandsToBoard(state, playerId, own, gained)
-    return gained
+    return { owner: gained > 0 ? own : undefined, gained }
+}
+
+/** R-5.5.6 — every survivor goes to its board, so only owners and boards tell the losses apart. */
+export function defeatChoiceMatters(force: readonly WarbandGroup[]): boolean {
+    if (new Set(force.map((group) => group.owner)).size > 1) return true
+    return force.some((group) => group.at.kind === 'board')
 }

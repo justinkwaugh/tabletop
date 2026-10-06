@@ -45,6 +45,10 @@ import type { GameUIRuntime } from '../../definition/gameUiDefinition.js'
 import { NotificationChannel, NotificationEventType } from '../../services/notificationService.js'
 
 export class PrivateHandSession extends GameSession<SharedState, HydratedPrivateHandState> {
+    animationHold?: Promise<void>
+    override async onGameStateChange() {
+        await this.animationHold
+    }
     play(cardId: string) {
         return this.applyAction(this.createPlayerAction(PlaySchema, { cardId }))
     }
@@ -168,6 +172,7 @@ function client(
     options: {
         historyComplete?: boolean
         pendingHistory?: Promise<void>
+        pendingSync?: Promise<void>
         failHistory?: boolean
         modernNotifications?: boolean
     } = {}
@@ -187,6 +192,7 @@ function client(
     const notifications = new Notifications()
     const api = new Remote(host, perspective)
     api.pendingHistory = options.pendingHistory
+    api.pendingSync = options.pendingSync
     api.failHistory = options.failHistory ?? false
     const bridge = new BridgedContext({
         authorizationService: authorization,
@@ -1078,6 +1084,42 @@ export async function verifySubscribedStartup() {
             await settle(c.session)
             assert(Number(c.api.syncChecks) === count, 'Subscription performed duplicate sync checks')
         }
+        return true
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function verifyHistoryArrivingDuringResumedSynchronization() {
+    const host = new PrivateHandHost()
+    host.apply({ id: 'resumed-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })
+    const history = Promise.withResolvers<void>()
+    const c = client(host, p1, undefined, { historyComplete: false, pendingHistory: history.promise })
+    try {
+        await settle(c.session)
+        assert(!c.session.hasCompleteHistory, 'History was complete before loading')
+        const animation = Promise.withResolvers<void>()
+        c.session.animationHold = animation.promise
+        const delivered = c.notify(host.apply({ id: 'resumed-sync-second-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p2', type: 'draw', revealsInfo: true }))
+        await tick()
+        assert(c.session.busy, 'The delivered action did not keep the session busy')
+        const sync = Promise.withResolvers<void>()
+        c.api.pendingSync = sync.promise
+        const checksBefore = c.api.syncChecks
+        const queued = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+        await tick()
+        assert(c.api.syncChecks === checksBefore, 'The sync check ran while the session was busy')
+        animation.resolve()
+        await delivered
+        await tick()
+        await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        assert(c.api.syncChecks === checksBefore + 1, 'The queued sync check did not resume')
+        history.resolve()
+        await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        sync.resolve()
+        await queued
+        await settle(c.session)
+        assert(c.session.hasCompleteHistory, 'History loaded during a resumed sync check was never applied')
         return true
     } finally {
         c.dispose()

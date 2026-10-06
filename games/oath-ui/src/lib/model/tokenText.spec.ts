@@ -60,3 +60,51 @@ describe('panel text as tokens and symbols', () => {
         ])
     })
 })
+
+describe('History text, which draws warbands too', () => {
+    const history = (t: string) => tokenParts(t, { warbands: true })
+
+    it('draws a counted warband as its token, keeping the words for its alt', () => {
+        expect(history('killed a warband on your board')).toEqual([
+            text('killed '),
+            { kind: 'warband', count: 1, imperial: false, words: 'warband' },
+            text(' on your board')
+        ])
+    })
+
+    it('marks the Empire’s warbands, and swallows a named owner into the token', () => {
+        expect(history('moved 2 Imperial warbands to you')).toEqual([
+            text('moved '),
+            { kind: 'warband', count: 2, imperial: true, words: 'Imperial warbands' },
+            text(' to you')
+        ])
+        expect(history("moved 3 of Bob's warbands to the Plains")).toEqual([
+            text('moved '),
+            { kind: 'warband', count: 3, imperial: false, words: "of Bob's warbands" },
+            text(' to the Plains')
+        ])
+    })
+
+    it('leaves an uncounted mention as words', () => {
+        expect(history('let Bob move the warbands')).toEqual([text('let Bob move the warbands')])
+    })
+
+    it('leaves warbands as words in the panels', () => {
+        expect(tokenParts('get 2 warbands')).toEqual([text('get 2 warbands')])
+    })
+    it('keeps a card’s name whole, though it holds a token’s word', () => {
+        expect(tokenParts('used A Small Favor, placing a favor on it')).toEqual([
+            text('used A Small Favor, placing '),
+            { kind: 'favor', count: 1 },
+            text(' on it')
+        ])
+        expect(tokenParts('mustered at Secret Police, gaining 2 warbands', { warbands: true })).toEqual([
+            text('mustered at Secret Police, gaining '),
+            { kind: 'warband', count: 2, imperial: false, words: 'warbands' }
+        ])
+        expect(tokenParts('used Secret Signal: gained a secret')).toEqual([
+            text('used Secret Signal: gained '),
+            { kind: 'secret', count: 1 }
+        ])
+    })
+})

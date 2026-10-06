@@ -10,6 +10,7 @@ import {
     HydratedCampaignSacrifice,
     HydratedOathGameState,
     MachineState,
+    OathRevision,
     PowerChoiceKind,
     PowerTiming,
     cardPowers,
@@ -309,5 +310,52 @@ describe('a battle plan whose text asks a choice (R-5.5.3)', () => {
 
         draft.setPlanPicks(giant, { ...emptyPicks(), option: { 0: 0 } })
         expect(draft.plans[0].choices).toEqual([{ kind: PowerChoiceKind.Yes }])
+    })
+})
+
+describe('R-7.1.2 — the declared battle plans are judged together, as the engine pays them', () => {
+    const ZEALOTS = 'denizen.discord.zealots'
+    const SLANDER = 'denizen.discord.slander'
+    const planOf = (cardId: string) => ({
+        cardId,
+        powerIndex: required(
+            cardPowers(cardId).find((power) => power.timing === PowerTiming.BattlePlan),
+            `${cardId}’s battle plan`
+        ).powerIndex
+    })
+
+    /** `me` rules Zealots and Slander, a favor each, and holds one favor. */
+    function twoPlans(oathRevision: OathRevision) {
+        const state = board()
+        state.oathRevision = oathRevision
+        state.players[0].favor = 1
+        state.players[0].advisers = [ZEALOTS, SLANDER].map((cardId) => ({ cardId, faceUp: true }))
+        state.players[0].adviserIds = [ZEALOTS, SLANDER]
+        const session = openSessionOn(tableOf(state))
+        session.chooseAction(ActionType.Campaign)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        draft.setAttackDice(2)
+        return draft
+    }
+
+    it('two plans the one favor cannot both pay are refused with the total, and one alone may be declared', () => {
+        const draft = twoPlans(OathRevision.PlanCostsAndSearchPlays)
+        draft.declarePlan(planOf(ZEALOTS), true)
+        expect(draft.blockedBecause).toBeUndefined()
+        expect(draft.declarable).toBe(true)
+
+        draft.declarePlan(planOf(SLANDER), true)
+        expect(draft.blockedBecause).toBe('your battle plans cost 2 favor in all, you hold 1')
+        expect(draft.declarable).toBe(false)
+    })
+
+    it('R-X.4 — before revision 3 each plan is judged alone, so both may be declared', () => {
+        const draft = twoPlans(OathRevision.CostsAndFacedownModifiers)
+        draft.declarePlan(planOf(ZEALOTS), true)
+        draft.declarePlan(planOf(SLANDER), true)
+        expect(draft.blockedBecause).toBeUndefined()
+        expect(draft.declarable).toBe(true)
     })
 })

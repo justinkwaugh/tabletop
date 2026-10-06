@@ -1,6 +1,8 @@
-# Public game automatic start
+# Game automatic start
 
-When the final seat of a Public Game is Joined, the game-update transaction that makes it Ready also records `autoStartAt` one minute later. The backend then enqueues an internal `/tasks/games/autoStart` request carrying the game ID and that timestamp. The same transaction logic clears `autoStartAt` when a Player leaves, when the Owner makes the game invite-only, or when the game starts. A queued task is never deleted. Its timestamp acts as the countdown's identity, so a task from a cancelled or restarted countdown does nothing.
+A game starts automatically when it is a Public Game, or when its Owner holds no seat. Only administrators and developers may create a game they do not play in, so this covers games they set up for others.
+
+When the final seat of such a game is Joined, the game-update transaction that makes it Ready also records `autoStartAt` one minute later. The backend then enqueues an internal `/tasks/games/autoStart` request carrying the game ID and that timestamp. The same transaction logic clears `autoStartAt` when a Player leaves, when the Owner makes a game they play in invite-only or takes a seat in an invite-only game, or when the game starts. A queued task is never deleted. Its timestamp acts as the countdown's identity, so a task from a cancelled or restarted countdown does nothing.
 
 Enqueue failures propagate to the joining Player or updating Owner. The committed countdown remains, and retrying the join or update enqueues its task again. Duplicate tasks share the countdown's identity, so at most one starts the game.
 

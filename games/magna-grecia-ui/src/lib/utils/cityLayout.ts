@@ -57,7 +57,7 @@ export function cityLayout(spaces: AxialCoordinates[], founding: AxialCoordinate
     }
 }
 
-function outerEdges(spaces: AxialCoordinates[]): CityEdge[] {
+export function outerEdges(spaces: AxialCoordinates[]): CityEdge[] {
     return spaces.flatMap((space) => {
         const center = hexCenter(space)
         return ClockwisePointyHexDirections.flatMap((direction, index) => {

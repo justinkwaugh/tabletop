@@ -39,6 +39,8 @@ import {
     ResolveCitizenshipOffer,
     ResolveOathkeeper,
     ResolveWake,
+    RollEndDie,
+    HydratedRollEndDie,
     Search,
     SearchPlay,
     shroudedWoodChooser,
@@ -73,7 +75,9 @@ import {
     type WakeFavorStep,
     type WarbandGroup,
     type WarbandMoveOption,
-    type WarbandOwner
+    type WarbandOwner,
+    IMPERIAL_WARBANDS,
+    ownWarbandOwner
 } from '@tabletop/oath'
 import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
@@ -96,8 +100,17 @@ import {
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
+import { VisionsSeen } from './visionsSeen.svelte.js'
 import { siteName } from './names.js'
-import type { HistoryNames } from './actionDescription.js'
+import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
+import {
+    endingRule,
+    gameEndEvent,
+    historyRows,
+    type HistoryRow,
+    type MajorEvent,
+    type MajorEventContext
+} from './majorEvents.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import {
     adviserDiscardFirstOptions,
@@ -156,6 +169,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly consent = new ConsentDraft(this)
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
+    readonly visionsSeen = new VisionsSeen(this)
 
     readonly campaign = new CampaignDraft(this)
     readonly setup = new SetupDraft(this)
@@ -267,7 +281,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get historyNames(): HistoryNames {
         return {
             player: (playerId) => this.getPlayerName(playerId),
-            site: (slotId) => siteName(this.gameState, slotId)
+            site: (slotId) => siteName(this.gameState, slotId),
+            seats: this.gameState.players.map((player) => player.playerId)
         }
     }
 
@@ -279,6 +294,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     async completeRest(): Promise<void> {
         await this.commit(this.createPlayerAction(CompleteRest, { type: ActionType.CompleteRest }))
+    }
+
+    /** R-3.3 — the Chancellor's roll between rounds; it draws on the protected stream, so it is final. */
+    async rollEndDie(): Promise<void> {
+        const playerId = this.myPlayer?.id
+        assert(
+            playerId !== undefined && HydratedRollEndDie.canDoRollEndDie(this.gameState, playerId),
+            'Only the Chancellor rolls the end die, between rounds'
+        )
+        await this.commit(this.createPlayerAction(RollEndDie, { type: ActionType.RollEndDie }))
     }
 
     async useRestPower(cardId: string, powerIndex: number, choices: PowerChoice[]): Promise<void> {
@@ -697,7 +722,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             conspiracy: this.adviserConspiracy,
             discardedAdviserCardIds: this.adviserPlayDiscards,
             toSiteId: this.adviserToSite,
-            discardFirstCardId: this.adviserDiscardFirst
+            discardFirstCardId: this.adviserDiscardFirst,
+            tolls: HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         })
     }
 
@@ -725,6 +751,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         toSiteId?: string,
         discardFirstCardId?: string
     ): Promise<void> {
+        const playerId = this.liveTurnSeatId
+        assertExists(playerId, 'A facedown adviser is played only by the live seat')
+        const tolls = HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         await this.commit(
             this.createPlayerAction(PlayFacedownAdviser, {
                 type: ActionType.PlayFacedownAdviser,
@@ -734,7 +763,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 ...(conspiracy ? { conspiracy } : {}),
                 ...(discardedAdviserCardIds.length > 0 ? { discardedAdviserCardIds } : {}),
                 ...(toSiteId ? { toSiteId } : {}),
-                ...(discardFirstCardId ? { discardFirstCardId } : {})
+                ...(discardFirstCardId ? { discardFirstCardId } : {}),
+                ...(tolls.length > 0 ? { tolls } : {})
             })
         )
     }
@@ -1022,6 +1052,36 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** R-10.13 — warbands show their owner's seat colour; the Empire's show the Chancellor's. */
     warbandColor(owner: WarbandOwner): Color {
         return this.colors.getPlayerColor(this.gameState.warbandBankHolderOf(owner))
+    }
+
+    get historyRows(): HistoryRow[] {
+        return historyRows(this.actions, this.majorEventContext)
+    }
+
+    /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */
+    get gameEndRow(): (MajorEvent & { sentence: string }) | undefined {
+        const state = this.gameState
+        const [winnerId] = state.winningPlayerIds
+        const rule = endingRule(this.actions)
+        if (winnerId === undefined || rule === undefined) return undefined
+        return gameEndEvent(state, winnerId, rule, this.majorEventContext)
+    }
+
+    private get majorEventContext(): Omit<MajorEventContext, 'campaign'> {
+        return {
+            viewerId: this.myPlayer?.id,
+            nameOf: (playerId) => this.getPlayerName(playerId),
+            oathType: this.gameState.oathType
+        }
+    }
+
+    /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */
+    historyWarbandColors(action: GameAction): { own: Color; imperial: Color } {
+        const imperial = this.warbandColor(IMPERIAL_WARBANDS)
+        const owner = rowWarbandOwner(action, (playerId) =>
+            ownWarbandOwner(this.gameState, playerId)
+        )
+        return { own: owner === undefined ? imperial : this.warbandColor(owner), imperial }
     }
 
     warbandOwnerName(owner: WarbandOwner): string {

@@ -24,6 +24,7 @@
     import SetupPanel from '$lib/components/SetupPanel.svelte'
     import WakePanel from '$lib/components/WakePanel.svelte'
     import RestPanel from '$lib/components/RestPanel.svelte'
+    import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { humanizeReason } from '$lib/model/names.js'
@@ -83,6 +84,8 @@
         {:else}
             <CampaignPlansPanel />
         {/if}
+    {:else if gameState.machineState === MachineState.EndOfRound}
+        <EndOfRoundPanel />
     {:else if !isMyTurn}
         <p class="text-sm text-oath-text-muted">Waiting for another player.</p>
     {:else if gameState.machineState === MachineState.CampaignSacrifice || gameState.machineState === MachineState.CampaignDefeat || gameState.machineState === MachineState.CampaignVictory}

@@ -113,7 +113,7 @@ import {
     TournamentGameError
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
-import { enqueueGameAutoStart, type GameAutoStartTask } from './publicGameAutoStart.js'
+import { enqueueGameAutoStart, type GameAutoStartTask } from './gameAutoStart.js'
 
 export class GameService {
     constructor(

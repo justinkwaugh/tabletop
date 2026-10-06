@@ -10,6 +10,7 @@
         type OracleChange
     } from '@tabletop/magna-grecia'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { plural, resupplyText } from '$lib/utils/historyTurns.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
@@ -17,10 +18,6 @@
     const oracleChanges: OracleChange[] = $derived(
         isPlaceRoad(action) || isPlaceCity(action) ? (action.metadata?.oracleChanges ?? []) : []
     )
-
-    function plural(count: number, noun: string): string {
-        return `${count} ${noun}${count === 1 ? '' : 's'}`
-    }
 </script>
 
 <span
@@ -46,7 +43,7 @@
             <span>, joining cities</span>
         {/if}
     {:else if isResupply(action)}
-        <span>resupplied {plural(action.roads, 'road')} and {plural(action.cities, 'city')}</span>
+        <span>resupplied {resupplyText(action.roads, action.cities)}</span>
     {:else if isBuildMarket(action)}
         <span>built a market for {plural(action.metadata?.cost ?? 0, 'point')}</span>
     {:else if isSellMarket(action)}

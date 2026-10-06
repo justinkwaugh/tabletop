@@ -50,5 +50,9 @@
   {
     "gameId": "magna-grecia",
     "packageId": "magna-grecia"
+  },
+  {
+    "gameId": "marracash",
+    "packageId": "marracash"
   }
 ]

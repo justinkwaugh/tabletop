@@ -13,10 +13,12 @@ import { discardCards } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
-import { carriedModifiers, modifierContext, runAfter } from '../util/modifiers.js'
+import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import type { ActiveModifier } from '../util/modifiers.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 /** R-9.4 */
 export function playShowsCard(play: SearchPlay, faceUp: boolean | undefined): boolean {
@@ -51,6 +53,8 @@ export const SearchResolveMetadata = Type.Object({
     /** Cracked Horn */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
     favorGained: Type.Number(),
+    /** Book of Records — one for each card played to a site. */
+    secretsGained: Type.Optional(Type.Number()),
     /** R-7.3.3 */
     whenPlayed: Type.Optional(Type.String()),
     /** Land Warden — the second card's When Played power, as it resolved. */
@@ -160,11 +164,9 @@ export class HydratedSearchResolve
 
         const region = regionOfPawn(state, this.playerId)
 
-        const carried = carriedModifiers(state, state.pendingSearchModifiers)
+        const carried = searchPlayModifiers(state)
         state.pendingSearchModifiers = undefined
-        const discardTarget = carried
-            .map((m) => m.hooks.discardTo?.(modifierContext(state, this.playerId, m)))
-            .find((t) => t !== undefined)
+        const discardTarget = discardTargetOf(state, this.playerId, carried)
 
         // R-5.1.3, R-10.5 — to the next region's pile, or where Bracken says.
         discardCards(state, this.playerId, this.discardOrder, region, discardTarget)
@@ -204,14 +206,16 @@ export class HydratedSearchResolve
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
                   seen: shown,
-                  discardTarget
+                  discardTarget,
+                  carried: secondPlayModifiers(state, carried)
               })
             : undefined
 
         // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
         const after = runAfter(state, this.playerId, carried, {
             playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
-            playedTo: this.play
+            playedTo: this.play,
+            secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
         })
 
         const pileDeposits = [
@@ -239,6 +243,7 @@ export class HydratedSearchResolve
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             favorGained: played.favorGained,
+            secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
             whenPlayed: played.whenPlayed,
             secondWhenPlayed: second?.whenPlayed,
             triggered: played.triggered,
@@ -285,6 +290,7 @@ export class HydratedSearchResolve
 
         // R-5.1.4
         return reasonCannotPlayCard(state, playerId, choice.keptCardId, choice.play, {
+            carried: searchPlayModifiers(state),
             discardFirstCardId: choice.discardFirstCardId,
             toSiteId: choice.toSiteId,
             faceUp: choice.faceUp,
@@ -319,9 +325,7 @@ export function reasonCannotPlaySecondCard(
     keptCardId: string,
     second: SearchSecondPlay
 ): string | undefined {
-    const allowed = carriedModifiers(state, state.pendingSearchModifiers).some(
-        (m) => m.hooks.secondPlay
-    )
+    const allowed = searchPlayModifiers(state).some((m) => m.hooks.secondPlay)
     if (!allowed) return 'only one drawn card may be played'
     const hand = state.getPlayerState(playerId).knownHand()
     if (second.cardId === keptCardId || !hand.includes(second.cardId))
@@ -329,9 +333,30 @@ export function reasonCannotPlaySecondCard(
     if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
         return 'the second card is played to your site or as an adviser'
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
-        faceUp: second.faceUp
+        faceUp: second.faceUp,
+        carried: secondPlayModifiers(state, searchPlayModifiers(state))
     })
     return reason ? `second card: ${reason}` : undefined
+}
+
+/** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */
+function secondPlayModifiers(
+    state: HydratedOathGameState,
+    carried: ActiveModifier[]
+): ActiveModifier[] | undefined {
+    // R-X.4 — a game created before this revision played the second card with no modifier.
+    return isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays) ? carried : undefined
+}
+
+/** Land Warden — Wild Cry and Welcoming Party look at both cards played (R-7.4.2: and pay once). */
+function shownSecondCardForAfter(
+    state: HydratedOathGameState,
+    second: SearchSecondPlay | undefined
+): string | undefined {
+    // R-X.4 — a game created before this revision looked at the kept card only.
+    if (!second || !isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays))
+        return undefined
+    return playShowsCard(second.play, second.faceUp) ? second.cardId : undefined
 }
 
 /** Land Warden — "if you play at least one card to a site", with room for both there. */

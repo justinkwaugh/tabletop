@@ -11,6 +11,7 @@ import {
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
 import type { RollRules, WarbandGroup } from '../model/campaign.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
 import { assert } from '@tabletop/common'
@@ -25,10 +26,14 @@ export interface ModifierParticulars {
     playedCardId?: string
     /** `SearchPlay`'s value. */
     playedTo?: string
+    /** Land Warden — the second card, when it is shown (never a discard). */
+    secondPlayedCardId?: string
     /** Greedy — after the cost fold. */
     supplyCost?: number
     /** `Banner`'s value. */
     banner?: string
+    /** R-6.1 */
+    facedownAdviserPlay?: boolean
 }
 
 export interface EffectContext {
@@ -60,6 +65,8 @@ export interface PlayerPlanContext extends EffectContext {
 
 export interface EffectResult extends PowerOutcome {
     summary: string
+    /** R-10.13 — whose warbands an Action power's summary counts, when they were one owner's. */
+    warbandOwner?: WarbandOwner
     /** R-4.2 */
     endsActPhase?: boolean
     /** Oracle — "as if you searched". */

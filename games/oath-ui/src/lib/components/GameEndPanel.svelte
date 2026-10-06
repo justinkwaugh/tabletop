@@ -2,14 +2,14 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ENDINGS, recordedWinner } from '$lib/model/endings.js'
-    import { recordedWinRule } from '$lib/model/actionLog.js'
+    import { endingRule } from '$lib/model/majorEvents.js'
 
     // R-3 — which of the four endings fired, read from the action log.
     let gameSession = getGameSession()
     let state = $derived(gameSession.gameState)
 
     let winner = $derived(recordedWinner(state))
-    let wonBy = $derived(recordedWinRule(gameSession.actions))
+    let wonBy = $derived(endingRule(gameSession.actions))
 </script>
 
 <div

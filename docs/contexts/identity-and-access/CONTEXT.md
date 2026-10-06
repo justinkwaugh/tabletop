@@ -113,7 +113,7 @@ An additive grant that makes Alpha Game Titles visible to an Active Account in c
 _Avoid_: Alpha entitlement, Alpha access role
 
 **Developer Role**:
-An additive grant exposing developer tooling, such as debug views and the host view of a Game, to an Active Account. It confers no administrative authority.
+An additive grant exposing developer tooling, such as debug views and the host view of a Game, to an Active Account. It includes the Alpha and Beta Catalog Visibility Grants, so Alpha and Beta Game Titles are visible in catalog discovery. It confers no administrative authority.
 
 **Assignable Role**:
 A Role Assignment an Administrator may grant or revoke for another User Account: the Alpha Catalog Visibility Grant, the Beta Catalog Visibility Grant, and the Developer Role. The Admin Role is not assignable through this path.

@@ -14,7 +14,8 @@ import {
     CampaignTarget,
     type CampaignState,
     CampaignTargetKind,
-    LossSource
+    LossSource,
+    type WarbandGroup
 } from '../model/campaign.js'
 import type { CampaignDeclaration } from '../model/pendingCampaign.js'
 import { ConsentRequestKind } from '../model/consent.js'
@@ -34,7 +35,7 @@ import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer, rulingWarbandOwners, warbandsAt } from '../util/rule.js'
 import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import { reasonPersistentForbidsCampaign, persistentForceSites } from '../util/persistent.js'
-import { warbandsOnBoardOf } from '../util/force.js'
+import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import {
     applyBattlePlans,
@@ -49,6 +50,7 @@ import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.
 import { attackingSiteOf, sitesWithTargets, targetedSiteIds } from '../util/campaignSite.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { flipSecretFacedown, reasonSitesForbidTargets } from '../util/siteTravel.js'
+import { secretPayment } from '../util/actionPayment.js'
 import { countOf } from '../util/warbands.js'
 import { campaignAsIfSiteNow } from '../util/freeActions.js'
 
@@ -65,9 +67,18 @@ export function reasonAttackerPlansInvalid(
     playerId: string,
     parties: CampaignParties,
     targets: readonly CampaignTarget[],
-    plans: readonly BattlePlanUse[] | undefined
+    plans: readonly BattlePlanUse[] | undefined,
+    /** The Hidden Place — the secret flipped with the declaration is not there to pay a plan. */
+    flipSecret = false
 ): string | undefined {
-    const resolved = resolveBattlePlans(state, playerId, BattlePlanSide.Attacker, plans, parties)
+    const resolved = resolveBattlePlans(
+        state,
+        playerId,
+        BattlePlanSide.Attacker,
+        plans,
+        parties,
+        flipSecret ? secretPayment(1) : undefined
+    )
     if (resolved.reason) return resolved.reason
     if (
         targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) &&
@@ -326,14 +337,14 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
               )
         const awaitingDefender = answering.length > 0
 
-        let skullsKilled = 0
+        let skullKills: WarbandGroup[] = []
         if (awaitingDefender) {
             campaign.pendingDefenderPlans = {
                 skullLossOrder: declaration.skullLossOrder,
                 queue: answering
             }
         } else {
-            skullsKilled = rollCampaign(state, campaign, declaration.skullLossOrder)
+            skullKills = rollCampaign(state, campaign, declaration.skullLossOrder)
         }
 
         return {
@@ -341,7 +352,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             defensePool: pools.defensePool,
             defense: campaign.defense,
             swords: campaign.swords,
-            skullsKilled,
+            skullsKilled: forceTotal(skullKills),
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
             planNotes: attackerPlans.notes.length > 0 ? attackerPlans.notes : undefined,
@@ -438,7 +449,14 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
                 ? 'a facedown relic at a site can be targeted only with Relic Hunter to declare'
                 : undefined
         }
-        return reasonAttackerPlansInvalid(state, playerId, parties, choice.targets, choice.plans)
+        return reasonAttackerPlansInvalid(
+            state,
+            playerId,
+            parties,
+            choice.targets,
+            choice.plans,
+            choice.flipSecret === true
+        )
     }
 
     /** R-5.5.1, R-5.5.2 */

@@ -12,7 +12,7 @@
 
     const NEUTRAL_COLOR = '#c0673f'
     const HEX_VIEW = '-48 -53 96 106'
-    const MARKET_VIEW = '-15 -14 31 31'
+    const MARKET_VIEW = '-14 -13 28 28'
     const LEGEND_ROAD: RoadEnds = [PointyHexDirection.West, PointyHexDirection.East]
     const hexShape = localHexPoints()
     const LEGEND_CITY_SPACE = { q: 0, r: 0 }

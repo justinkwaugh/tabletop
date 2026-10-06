@@ -9,9 +9,9 @@ export function canDiscoverTitle(metadata: GameMetadata, roles: readonly Role[])
     if (roles.includes(Role.Admin)) return true
     switch (getTitleVisibility(metadata)) {
         case GameVisibility.Alpha:
-            return roles.includes(Role.AlphaTester)
+            return roles.includes(Role.AlphaTester) || roles.includes(Role.Developer)
         case GameVisibility.Beta:
-            return roles.includes(Role.BetaTester)
+            return roles.includes(Role.BetaTester) || roles.includes(Role.Developer)
         case GameVisibility.Public:
             return true
     }

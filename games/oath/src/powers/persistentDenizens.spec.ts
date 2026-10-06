@@ -27,6 +27,8 @@ import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { reasonTransferInvalid } from '../util/exchange.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { INN, FILLER } from '../testing/cards.js'
+import { askQuestion } from '../util/questions.js'
+import { PowerQuestionKind } from '../model/question.js'
 
 const FOREST = 'denizen.beast.forest-council'
 const GOSSIP = 'denizen.discord.gossip'
@@ -134,6 +136,12 @@ describe('enemies of the ruler', () => {
         // Ruling a nomad card lifts it.
         l.getPlayerState('other').setAdvisers([{ cardId: TENTS, faceUp: true }])
         expect(HydratedCampaign.reasonCannotCampaign(l, 'other', relicTarget)).toBeUndefined()
+    })
+
+    it('Lost Tongue’s refusal names no seat as “you”, so a Relic Thief note that carries it reads the same at every seat', () => {
+        const l = board({}, { ruler: [TONGUE] }, { ruler: { relicIds: ['relic.cup-of-plenty'] } })
+        const refused = askQuestion(l, 'ruler', { kind: PowerQuestionKind.RelicThiefRoll, cardId: 'denizen.discord.relic-thief', askedPlayerId: 'other', powerIndex: 0, takerPlayerId: 'ruler', relicCardIds: ['relic.cup-of-plenty'] })
+        expect(refused).toBe("other cannot use Relic Thief: Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card")
     })
 
     it('Spell Breaker — enemies of its ruler cannot use powers that cost secrets', () => {
@@ -291,7 +299,7 @@ describe('travel and triggers', () => {
         const a = new HydratedTravel(buildAction(Travel, { playerId: 'other', siteId: 'c2' }))
         a.apply(v)
         expect(v.getPlayerState('other').warbandsOnBoard['other']).toBe(2)
-        expect(a.metadata?.modifierNotes).toEqual(['Grasping Vines: killed a warband on your board'])
+        expect(a.metadata?.modifierNotes).toEqual(["Grasping Vines: killed a warband on other's board"])
         const r = board({ c1: [VINES] })
         new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c2' })).apply(r)
         expect(r.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)

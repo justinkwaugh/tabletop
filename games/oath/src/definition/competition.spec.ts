@@ -25,6 +25,7 @@ import { SetupChoice } from '../actions/setupChoice.js'
 import { ResolveWake, type WakeFavorStep } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { CompleteRest } from '../actions/completeRest.js'
+import { RollEndDie } from '../actions/rollEndDie.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import {
     applyPeoplesFavorStep,
@@ -148,9 +149,12 @@ function peoplesFavorSteps(state: OathProjectedState, playerId: string): WakeFav
     return steps
 }
 
-/** R-4.1 to R-4.3 — the active seat's Wake, a turn of no actions, and its Rest; a Wake that wins ends there. */
+/** R-4.1 to R-4.3 — the active seat's Wake, a turn of no actions, and its Rest; a Wake that wins ends there. R-3.3 — the Chancellor's end die between rounds. */
 function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
     const [playerId] = state.activePlayerIds
+    if (state.machineState === MachineState.EndOfRound) {
+        return engine.runNext(buildAction(RollEndDie, { playerId }), state, game).updatedState
+    }
     let next = state
     if (next.machineState === MachineState.WakePhase) {
         next = engine.runNext(buildAction(ResolveWake, {
@@ -160,7 +164,10 @@ function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
     }
     if (next.machineState === MachineState.EndOfGame) return next
     next = engine.runNext(buildAction(EndActPhase, { playerId }), next, game).updatedState
-    return engine.runNext(buildAction(CompleteRest, { playerId }), next, game).updatedState
+    // R-4.3.5 — the Rest waits on the seat only while it holds a Rest power it can use.
+    return next.machineState === MachineState.RestPhase
+        ? engine.runNext(buildAction(CompleteRest, { playerId }), next, game).updatedState
+        : next
 }
 
 function playUntilTheEnd(game: Game, initial: OathProjectedState): OathProjectedState {
@@ -219,12 +226,12 @@ describe('Oath tournament results', () => {
         expectOneScoredWinner(game, finished, order[1])
     })
 
-    it('R-3.3 — a Stable Regime Rest victory passes validateGameResult and scores its one winner', () => {
+    it('R-3.3 — a Stable Regime victory by the Chancellor’s end die passes validateGameResult and scores its one winner', () => {
         const { game, order, finished } = finishedWithin(3, (round) => round < 8)
         expectOneScoredWinner(game, finished, order[0])
     })
 
-    it('R-3.4 — a War Exhaustion Rest victory passes validateGameResult and scores its one winner', () => {
+    it('R-3.4 — a War Exhaustion victory at the automatic Rest passes validateGameResult and scores its one winner', () => {
         const { game, order, finished } = finishedWithin(3, (round) => round === 8)
         expectOneScoredWinner(game, finished, order[0])
     })

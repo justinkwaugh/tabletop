@@ -6,6 +6,7 @@ import {
     type LossSource,
     type RolledAttackFace,
     type RolledDefenseFace,
+    type WarbandGroup,
     type WarbandLocation
 } from '../model/campaign.js'
 import {
@@ -49,7 +50,7 @@ export function rollCampaign(
     state: HydratedOathGameState,
     campaign: CampaignState,
     skullLossOrder?: readonly LossSource[]
-): number {
+): WarbandGroup[] {
     const parties = partiesOf(campaign)
 
     // R-5.5.4 — the doubling faces multiply the shields only, never the warbands.
@@ -66,7 +67,7 @@ export function rollCampaign(
         campaign.attackRoll = []
         campaign.defense = 0
         campaign.swords = 0
-        return 0
+        return []
     }
     const prng = state.getProtectedPrng()
     applyDefenseRoll(campaign, rollDefenseDice(prng, campaign.defensePool))
@@ -79,12 +80,9 @@ export function rollCampaign(
     const jinxed = askRerolls(state, campaign)
     if (jinxed) {
         campaign.pendingSkullKills = { skulls, order: [...(skullLossOrder ?? [])] }
-        return 0
+        return []
     }
-    const killed = campaign.ignoreSkulls
-        ? 0
-        : killForSkulls(state, campaign, skulls, skullLossOrder)
-    return killed
+    return campaign.ignoreSkulls ? [] : killForSkulls(state, campaign, skulls, skullLossOrder)
 }
 
 /** R-5.5.4 */
@@ -161,8 +159,8 @@ function killForSkulls(
     campaign: CampaignState,
     skulls: number,
     skullLossOrder: readonly LossSource[] = []
-): number {
-    if (skulls <= 0) return 0
+): WarbandGroup[] {
+    if (skulls <= 0) return []
     return killFromAttackingForce(state, campaign, skulls, skullLossOrder)
 }
 
@@ -215,12 +213,13 @@ export function killFromAttackingForce(
     campaign: CampaignState,
     count: number,
     declaredOrder: readonly LossSource[] = []
-): number {
+): WarbandGroup[] {
     const sources = attackingForceSources(state, campaign.attackerPlayerId, campaign.forceSiteIds)
     const order = [
         ...declaredOrder.filter((source) => sources.some((held) => sameLossSource(held, source))),
         ...sources.filter((held) => !declaredOrder.some((source) => sameLossSource(held, source)))
     ]
+    const killed: WarbandGroup[] = []
     let remaining = count
     for (const { at, owner } of order) {
         if (remaining === 0) break
@@ -228,13 +227,14 @@ export function killFromAttackingForce(
             at.kind === 'board'
                 ? state.getPlayerState(at.playerId).warbandsOnBoard
                 : warbandsAt(state, at.siteId)
-        const killed = Math.min(countOf(here, owner), remaining)
-        if (killed > 0) {
-            killOrRedirect(state, campaign, at, owner, killed)
-            remaining -= killed
+        const dying = Math.min(countOf(here, owner), remaining)
+        if (dying > 0) {
+            killOrRedirect(state, campaign, at, owner, dying)
+            killed.push({ at, owner, count: dying })
+            remaining -= dying
         }
     }
-    return count - remaining
+    return killed
 }
 
 /** R-10.13, unless Hospital places them on its site. */

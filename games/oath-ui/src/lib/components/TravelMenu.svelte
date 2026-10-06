@@ -4,7 +4,7 @@
     import MenuCount from '$lib/components/MenuCount.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
-    import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { cardName, regionName } from '$lib/model/names.js'
     import type { TravelChoice, TravelRow } from '$lib/model/travelRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -73,11 +73,11 @@
                                 {way.cost} Supply
                                 {#if way.tolls.length > 0}
                                     <span class="text-oath-text-muted">+</span>
-                                    <MenuCount count={way.tolls.length} image={favorTokenImage()} />
+                                    <MenuCount count={way.tolls.length} image={favorToken()} />
                                 {/if}
                                 {#if way.flipSecret}
                                     <span class="text-oath-text-muted">+ flip</span>
-                                    <MenuCount count={1} image={secretTokenImage()} />
+                                    <MenuCount count={1} image={secretToken()} />
                                 {/if}
                             </span>
                             {#if way.tolls.length > 0}
