@@ -35,7 +35,7 @@
             y={-PawnCountChip.height / 2}
             {width}
             height={PawnCountChip.height}
-            rx="8"
+            rx="10"
             fill="none"
             stroke="#ffffff"
             stroke-width="9"
@@ -47,7 +47,7 @@
         y={-PawnCountChip.height / 2}
         {width}
         height={PawnCountChip.height}
-        rx="8"
+        rx="10"
         fill="#ffffff"
         fill-opacity="0.85"
         stroke={palette.stroke}

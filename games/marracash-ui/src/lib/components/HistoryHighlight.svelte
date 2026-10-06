@@ -9,7 +9,7 @@
     } from '$lib/utils/boardGeometry.js'
     import { shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
     import { routeLine, shopBranch } from '$lib/utils/routePreview.js'
-    import { awningOutline } from '$lib/utils/awning.js'
+    import { stallOutline } from '$lib/utils/stalls.js'
     import {
         eightPointedStar,
         EntranceRadii,
@@ -109,7 +109,7 @@
         {@const rect = shopRect(highlight.shopId, ShopTileInset)}
         <path
             transform="translate({rect.x} {rect.y})"
-            d={awningOutline(rect.width, rect.height)}
+            d={stallOutline(highlight.shopId, rect.width, rect.height)}
             fill="none"
             stroke={White}
             stroke-width="5"
