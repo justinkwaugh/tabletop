@@ -12,6 +12,7 @@ import {
     PlaceCity,
     PlaceRoad,
     Resupply,
+    isEndTurn,
     RoadShape,
     SellMarket,
     legalRoadEnds,
@@ -107,6 +108,8 @@ export class MagnaGreciaGameSession extends GameSession<
 
     // The board's targets and previews step aside while placed pieces settle.
     boardAnimating = $derived(this.cityFlow !== undefined || this.pieceArrivals !== undefined)
+
+    historyHighlight: AxialCoordinates[] = $state([])
 
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
@@ -379,6 +382,11 @@ export class MagnaGreciaGameSession extends GameSession<
             return
         }
         await super.undo()
+    }
+
+    // Ending a turn changes nothing on the table, so history steps over it.
+    override shouldAutoStepAction(action: GameAction, next?: GameAction) {
+        return isEndTurn(action) || super.shouldAutoStepAction(action, next)
     }
 
     resetAction() {

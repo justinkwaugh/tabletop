@@ -2,6 +2,6 @@ export enum MachineState {
     ChoosingAction = 'ChoosingAction',
     Bidding = 'Bidding',
     RefillingEntrances = 'RefillingEntrances',
-    ConfirmingTurn = 'ConfirmingTurn',
+    EndingTurn = 'EndingTurn',
     EndOfGame = 'EndOfGame'
 }

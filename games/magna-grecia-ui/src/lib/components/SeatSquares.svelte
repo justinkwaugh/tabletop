@@ -31,7 +31,7 @@
             style:--seat-text={seat.textColor}
             title={seat.name}
         >
-            {seat.initial}
+            <span class="initial">{seat.initial}</span>
         </li>
     {/each}
 </ol>
@@ -58,6 +58,13 @@
         font-family: system-ui, sans-serif;
         font-size: calc(var(--size) * 0.59);
         font-weight: 700;
+    }
+
+    /* Centres the capital itself rather than the font's line box. */
+    .initial {
+        display: block;
+        line-height: 1;
+        text-box: trim-both cap alphabetic;
     }
 
     .seats li.current {

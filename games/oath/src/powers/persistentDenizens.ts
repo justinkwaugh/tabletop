@@ -116,7 +116,7 @@ function lostTongue(
     )
     return rulesNomad
         ? undefined
-        : "Lost Tongue: you cannot take its holder's relics or banners without ruling a nomad card"
+        : "Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card"
 }
 registerPersistent(LOST_TONGUE, powerIndexOf(LOST_TONGUE, PowerTiming.Persistent), {
     forbidsBannerTake: (ctx, actorId, _banner, holderId) => lostTongue(ctx, actorId, holderId),

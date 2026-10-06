@@ -147,10 +147,7 @@ export const MarracashGameState = Type.Evaluate(
                 policy: Visibility.Policy.HostOnly,
                 redaction: Visibility.redaction.emptyArray()
             }),
-            antiqueRevealOrder: Type.Array(Type.String()),
-            // Absent from games started under 0.1.0, which keep their confirmation step and wider
-            // Undo barriers so that their recorded Actions still replay the same way.
-            undoStopsOnlyAtReveals: Type.Optional(Type.Literal(true))
+            antiqueRevealOrder: Type.Array(Type.String())
         })
     ])
 )
@@ -187,7 +184,6 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare finalRound: boolean
     declare pendingAntiqueSets: string[]
     declare antiqueRevealOrder: string[]
-    declare undoStopsOnlyAtReveals?: true
 
     constructor(data: MarracashProjectedState) {
         super(data, MarracashProjectedStateValidator)

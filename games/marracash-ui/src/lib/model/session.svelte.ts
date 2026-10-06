@@ -3,7 +3,6 @@ import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     BringVisitors,
-    ConfirmTurn,
     isValidVisitorCount,
     type MarketColor,
     MaxVisitorsBroughtIn,
@@ -94,7 +93,6 @@ export class MarracashGameSession extends GameSession<
     readonly canAuction = $derived(this.canTake(ActionType.StartAuction))
     readonly canBid = $derived(this.canTake(ActionType.PlaceBid))
     readonly canRefill = $derived(this.canTake(ActionType.BringVisitors))
-    readonly canConfirm = $derived(this.canTake(ActionType.ConfirmTurn))
     // A choice staged mid-transition would be cleared as the new state publishes.
     private readonly canChooseMove = $derived(this.canMove && !this.busy)
     private readonly canChooseShop = $derived(this.canAuction && !this.busy)
@@ -283,10 +281,6 @@ export class MarracashGameSession extends GameSession<
     async startAuction(shopId: ShopId) {
         if (this.busy) return
         await this.applyAction(this.createPlayerAction(StartAuction, { shopId }))
-    }
-
-    async confirmTurn() {
-        await this.applyAction(this.createPlayerAction(ConfirmTurn, {}))
     }
 
     async placeBid(amount: number) {

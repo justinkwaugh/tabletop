@@ -2,11 +2,11 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     MachineState,
     SearchPlay,
-    carriedModifiers,
     reasonCannotPairSecondPlay,
     reasonCannotPlaceCard,
     reasonCannotPlayCard,
     reasonCannotPlaySecondCard,
+    searchPlayModifiers,
     type LegalChoice,
     type PowerChoice,
     type SearchSecondPlay
@@ -261,10 +261,7 @@ export class SearchDraft implements PanelDraft {
     get secondAllowed() {
         return (
             this.playerId !== undefined &&
-            carriedModifiers(
-                this.session.gameState,
-                this.session.gameState.pendingSearchModifiers
-            ).some((m) => m.hooks.secondPlay)
+            searchPlayModifiers(this.session.gameState).some((m) => m.hooks.secondPlay)
         )
     }
 
@@ -324,7 +321,8 @@ export class SearchDraft implements PanelDraft {
         return (
             reasonCannotPlaceCard(this.session.gameState, playerId, cardId, SearchPlay.Site, {
                 toSiteId,
-                discardFirstCardId
+                discardFirstCardId,
+                carried: searchPlayModifiers(this.session.gameState)
             }) === undefined
         )
     }

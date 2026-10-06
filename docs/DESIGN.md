@@ -132,6 +132,12 @@ Every Game State or Action relationship to a Player must use that Player's stabl
 
 A game may store color when color is itself a rule-relevant fact, but color is not Player Identity. Changing preferred colors, color-blind presentation, or another visual treatment must not change player attribution, game rules, scoring, action availability, replay, or undo.
 
+### Turns, rounds, and phases
+
+Manage turns and turn order with the shared turn manager (`HydratedTurnManager`). Start and end turns, advance to the next player, and change the order (reversal, a new first player) through it rather than tracking an active player, seat index, or order array elsewhere in Game State.
+
+A round manager (`HydratedRoundManager`) and phase manager (`HydratedPhaseManager`) can track rounds and phases. Neither is required, but their series record action-index boundaries that the history panel can use for grouping and navigation, so adopt them when the game's rules have rounds or phases that players would navigate by.
+
 Before implementing a game-model mechanism, search `libs/common/src/game/components` and existing games for the same concept. Prefer extending an established mechanism when the semantics match. Keep game-specific rule differences local when they do not justify changing a shared contract.
 
 “Game-model component” in this document means a reusable logic mechanism, not a Svelte component.

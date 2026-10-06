@@ -16,7 +16,7 @@
         name: string
         detail?: string
         tag: string
-        shape?: 'wide' | 'card' | 'piece'
+        shape?: 'wide' | 'relic' | 'piece'
         on: boolean
         disabled: boolean
         points?: MenuPointerTarget
@@ -25,7 +25,7 @@
 
     const SHAPES = {
         wide: 'h-8 w-11 rounded object-cover',
-        card: 'h-10 w-auto rounded',
+        relic: 'h-10 w-10 rounded',
         piece: 'h-8 w-8 object-contain'
     }
 </script>

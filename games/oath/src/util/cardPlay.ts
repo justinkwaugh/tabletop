@@ -18,7 +18,7 @@ import { effectFor, type EffectContext } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
-import { carriedModifiers, modifierContext, type ActiveModifier } from './modifiers.js'
+import { modifierContext, type ActiveModifier } from './modifiers.js'
 import {
     advisersTowardLimit,
     cannotPlayVisionsFaceup,
@@ -144,6 +144,8 @@ export interface CardPlayOptions {
 /** R-5.1.4.I */
 export interface CardPlayResult {
     favorGained: number
+    /** Book of Records */
+    secretsGained: number
     discarded: string[]
     /** R-7.3.3 */
     whenPlayed?: string
@@ -172,6 +174,7 @@ export function playCard(
         discarded.push(id)
     }
     let favorGained = 0
+    let secretsGained = 0
     let sitePower: string | undefined
 
     switch (play) {
@@ -192,7 +195,8 @@ export function playCard(
             assertExists(suit, `${cardId} has no suit`)
             if ((options.carried ?? []).some((m) => m.hooks.sitePlayGainsSecret)) {
                 // Book of Records — "you must gain a secret instead of favor".
-                player.secrets += 1
+                secretsGained = 1
+                player.secrets += secretsGained
             } else {
                 // R-9.3 — component-limited; take as much as the bank holds.
                 favorGained = gainFavorFromBank(state, playerId, suit, 1)
@@ -269,6 +273,7 @@ export function playCard(
     const triggered = playedFaceup ? afterCardPlayedPersistent(state, playerId, cardId) : []
     return {
         favorGained,
+        secretsGained,
         discarded,
         whenPlayed,
         sitePower,
@@ -382,16 +387,14 @@ function reasonDiscardFirstInvalid(
     playerId: string,
     here: string,
     destination: string,
-    cardId: string
+    cardId: string,
+    carried: readonly ActiveModifier[]
 ): string | undefined {
     const at = siteHolding(state, cardId)
     const allowed =
         // R-11.10 — the Great Slum, when it is the site played to.
         (at === destination && categoryAt(state, destination) === 'greatSlum') ||
-        (at === destination &&
-            carriedModifiers(state, state.pendingSearchModifiers).some(
-                (m) => m.hooks.discardFirstAtSitePlay === true
-            )) ||
+        (at === destination && carried.some((m) => m.hooks.discardFirstAtSitePlay === true)) ||
         (holdsPeoplesFavor(state, playerId) && at !== undefined && sameRegion(state, at, here))
     if (!allowed) {
         return "only the Great Slum, Crop Rotation, or holding the People's Favor, lets a card be discarded first"
@@ -432,7 +435,7 @@ export function reasonCannotPlaceCard(
                     holdsPeoplesFavor(state, playerId) && sameRegion(state, target, here)
                 const allowed =
                     byFavor ||
-                    carriedModifiers(state, state.pendingSearchModifiers).some((m) =>
+                    (options.carried ?? []).some((m) =>
                         m.hooks.playAnywhere?.({
                             ...modifierContext(state, playerId, m),
                             particulars: { playedCardId: cardId, playedTo: play }
@@ -447,7 +450,8 @@ export function reasonCannotPlaceCard(
                         playerId,
                         here,
                         target,
-                        first
+                        first,
+                        options.carried ?? []
                     )
                     if (firstReason) return firstReason
                 }
@@ -475,7 +479,8 @@ export function reasonCannotPlaceCard(
                         playerId,
                         here,
                         here,
-                        first
+                        first,
+                        options.carried ?? []
                     )
                     if (firstReason) return firstReason
                 }

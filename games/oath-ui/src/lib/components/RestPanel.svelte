@@ -5,6 +5,7 @@
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { cardImage } from '$lib/images/cardImages.js'
+    import { cardAspect } from '$lib/images/cardShape.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason, suitName } from '$lib/model/names.js'
@@ -40,7 +41,12 @@
                         : 'bg-oath-surface-raised'}"
                 >
                     <span class="relative shrink-0">
-                        <img class="h-10 w-auto rounded" src={cardImage(row.cardId)} alt={name} />
+                        <img
+                            class="h-10 rounded"
+                            style:aspect-ratio={cardAspect({ cardId: row.cardId })}
+                            src={cardImage(row.cardId)}
+                            alt={name}
+                        />
                         <Magnifier preview={{ cardId: row.cardId, label: name }} label={name} />
                     </span>
                     <span class="rest-row__name min-w-0">

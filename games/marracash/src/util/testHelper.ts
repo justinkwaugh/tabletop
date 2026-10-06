@@ -100,9 +100,6 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
         },
         bringVisitors(playerId: string, end: QueueEnd, count: number, entranceId: FountainId) {
             return act(playerId, ActionType.BringVisitors, { end, count, entranceId })
-        },
-        confirmTurn(playerId: string) {
-            return act(playerId, ActionType.ConfirmTurn)
         }
     }
 }
@@ -139,10 +136,6 @@ export function playToEnd(session: TestSession): MarracashProjectedState {
                 for (const bidder of [...state.activePlayerIds]) {
                     session.bid(bidder, bidder === auction.bidding.auctioneerId ? 100 : 0)
                 }
-                break
-            }
-            case MachineState.ConfirmingTurn: {
-                session.confirmTurn(playerId)
                 break
             }
             case MachineState.RefillingEntrances: {

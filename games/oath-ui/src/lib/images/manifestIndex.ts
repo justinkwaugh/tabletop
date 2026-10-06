@@ -5,6 +5,13 @@ export function indexByName(files: Record<string, string>): Map<string, string> 
     return new Map(Object.entries(files).map(([path, url]) => [fileStem(path), url]))
 }
 
+/** An image with its file's pixel size, so an `<img>` drawn at one set dimension has its box before the file arrives. */
+export interface SizedImage {
+    src: string
+    width: number
+    height: number
+}
+
 // The coverage specs prove every name a lookup can build is bundled.
 export function imageNamed(index: ReadonlyMap<string, string>, name: string): string {
     const url = index.get(name)

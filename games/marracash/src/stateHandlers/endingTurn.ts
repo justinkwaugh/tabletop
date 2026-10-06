@@ -7,41 +7,33 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
-import { HydratedConfirmTurn, isConfirmTurn } from '../actions/confirmTurn.js'
 import {
     HydratedCompleteAntiqueSet,
     isCompleteAntiqueSet,
     isNextAntiqueSetCompletion
 } from '../actions/completeAntiqueSet.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
-import { queueTurnCommit } from '../util/automaticActions.js'
 import { activateTurnPlayer, finishTurn } from '../util/turns.js'
 
-type ConfirmingTurnAction = HydratedConfirmTurn | HydratedCompleteAntiqueSet | HydratedEndTurn
+type EndingTurnAction = HydratedCompleteAntiqueSet | HydratedEndTurn
 
-export class ConfirmingTurnStateHandler implements MachineStateHandler<
-    ConfirmingTurnAction,
+// The turn's queued antique set completions and its EndTurn run here; no player acts.
+export class EndingTurnStateHandler implements MachineStateHandler<
+    EndingTurnAction,
     HydratedMarracashGameState
 > {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedMarracashGameState>
-    ): action is ConfirmingTurnAction {
-        const gameState = context.gameState
-        if (isConfirmTurn(action)) {
-            return gameState.activePlayerIds.includes(action.playerId)
-        }
+    ): action is EndingTurnAction {
         if (isCompleteAntiqueSet(action)) {
-            return isNextAntiqueSetCompletion(action, gameState)
+            return isNextAntiqueSetCompletion(action, context.gameState)
         }
         return isEndTurn(action) && action.source === ActionSource.System
     }
 
-    validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedMarracashGameState>
-    ): ActionType[] {
-        return context.gameState.activePlayerIds.includes(playerId) ? [ActionType.ConfirmTurn] : []
+    validActionsForPlayer(): ActionType[] {
+        return []
     }
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
@@ -49,16 +41,12 @@ export class ConfirmingTurnStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        action: ConfirmingTurnAction,
+        action: EndingTurnAction,
         context: MachineContext<HydratedMarracashGameState>
     ): MachineState {
         switch (true) {
-            case isConfirmTurn(action): {
-                queueTurnCommit(context)
-                return MachineState.ConfirmingTurn
-            }
             case isCompleteAntiqueSet(action): {
-                return MachineState.ConfirmingTurn
+                return MachineState.EndingTurn
             }
             case isEndTurn(action): {
                 return finishTurn(context.gameState)

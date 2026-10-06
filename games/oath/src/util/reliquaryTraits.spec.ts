@@ -7,18 +7,18 @@ import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { ActionType } from '../definition/actions.js'
-import { PlayerStatus, Suit } from '../model/oathEnums.js'
+import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { reliquarySlotId } from './setup.js'
 import { RELIQUARY_MODIFIERS } from '../data/reliquary.js'
 import { forceTotal } from './force.js'
 import { mandatoryModifiers } from './modifiers.js'
-import { testPlayer, testState, openTurn } from '../testing/fixture.js'
+import { testBanners, testPlayer, testState, testVaultWithDiscards, openTurn } from '../testing/fixture.js'
 import { BRUTAL, CARELESS, DECADENT, GREEDY, hasTrait, uncoveredTraits } from './reliquaryTraits.js'
 import '../powers/index.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
-import { INN } from '../testing/cards.js'
+import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const RETURN = 'denizen.hearth.awaited-return'
@@ -188,6 +188,27 @@ describe('Greedy — Search (R-6.6.2.a)', () => {
                 })
             ).apply(dear)
         ).toThrow(/Greedy/)
+    })
+})
+
+describe('Greedy and the Banner of the Darkest Secret', () => {
+    it('sees the holder\'s 2, so the holder may search the world deck where the track says 3', () => {
+        const s = board(
+            [GREEDY],
+            { visionsDrawn: 1, banners: testBanners({ [Banner.DarkestSecret]: 'ruler' }) },
+            { supply: 5 }
+        )
+        expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.WorldDeck)).toBeUndefined()
+        const vault = testVaultWithDiscards({})
+        vault.worldDeck = [INN, TENTS, FILLER, RETURN, 'denizen.beast.rangers', 'denizen.hearth.ballot-box']
+        s.vault = vault
+        const search = new HydratedSearch(
+            buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.WorldDeck, revealsInfo: true })
+        )
+        search.apply(s)
+        expect(s.getPlayerState('ruler').supply).toBe(3)
+        expect(search.metadata?.supplySpent).toBe(2)
+        expect(search.metadata?.cardsDrawn).toBe(5)
     })
 })
 

@@ -50,6 +50,7 @@ import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.
 import { attackingSiteOf, sitesWithTargets, targetedSiteIds } from '../util/campaignSite.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { flipSecretFacedown, reasonSitesForbidTargets } from '../util/siteTravel.js'
+import { secretPayment } from '../util/actionPayment.js'
 import { countOf } from '../util/warbands.js'
 import { campaignAsIfSiteNow } from '../util/freeActions.js'
 
@@ -66,9 +67,18 @@ export function reasonAttackerPlansInvalid(
     playerId: string,
     parties: CampaignParties,
     targets: readonly CampaignTarget[],
-    plans: readonly BattlePlanUse[] | undefined
+    plans: readonly BattlePlanUse[] | undefined,
+    /** The Hidden Place — the secret flipped with the declaration is not there to pay a plan. */
+    flipSecret = false
 ): string | undefined {
-    const resolved = resolveBattlePlans(state, playerId, BattlePlanSide.Attacker, plans, parties)
+    const resolved = resolveBattlePlans(
+        state,
+        playerId,
+        BattlePlanSide.Attacker,
+        plans,
+        parties,
+        flipSecret ? secretPayment(1) : undefined
+    )
     if (resolved.reason) return resolved.reason
     if (
         targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) &&
@@ -439,7 +449,14 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
                 ? 'a facedown relic at a site can be targeted only with Relic Hunter to declare'
                 : undefined
         }
-        return reasonAttackerPlansInvalid(state, playerId, parties, choice.targets, choice.plans)
+        return reasonAttackerPlansInvalid(
+            state,
+            playerId,
+            parties,
+            choice.targets,
+            choice.plans,
+            choice.flipSecret === true
+        )
     }
 
     /** R-5.5.1, R-5.5.2 */

@@ -52,9 +52,9 @@ describe('a Vision drawn (R-5.1.2, R-2.7.1, R-9.4)', () => {
     })
 
     it('says when the world deck’s cost steps, and when Visions open (R-2.1.6, R-3.2)', () => {
-        expect(majorEventOf(search({ visionsDrawn: 1, stoppedOnVision: true }), context())?.consequence).toBe('Search cost up: the world deck now costs 3 Supply')
+        expect(majorEventOf(search({ visionsDrawn: 1, stoppedOnVision: true }), context())?.consequence).toBe('Search cost up: the world deck now costs 3 Supply, 2 for the Darkest Secret’s holder')
         expect(majorEventOf(search({ visionsDrawn: 2, stoppedOnVision: true }), context())?.consequence).toBeUndefined()
-        expect(majorEventOf(search({ visionsDrawn: 3, stoppedOnVision: true }), context())?.consequence).toBe('Search cost up: the world deck now costs 4 Supply · Visions can now win')
+        expect(majorEventOf(search({ visionsDrawn: 3, stoppedOnVision: true }), context())?.consequence).toBe('Search cost up: the world deck now costs 4 Supply, 2 for the Darkest Secret’s holder · Visions can now win')
     })
 
     it('gives another seat nothing for a Search recorded before the public flag', () => {

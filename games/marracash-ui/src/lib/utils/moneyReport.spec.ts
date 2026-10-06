@@ -109,17 +109,16 @@ describe('MarraCash money report', () => {
         expect(latestTurnStep([])).toEqual([])
     })
 
-    it('reports an antique set when the turn that completed it is confirmed', () => {
-        const confirmed = latestTurnStep([
+    it('reports an antique set when the turn that completed it ends', () => {
+        const ended = latestTurnStep([
             action(ActionType.MoveVisitors, ActionSource.User),
-            action(ActionType.ConfirmTurn, ActionSource.User),
             action(ActionType.CompleteAntiqueSet, ActionSource.System, {
                 collectorId: 'bashir',
                 metadata: { cards: [], rank: 1, payout: 525 }
             }),
             action(ActionType.EndTurn, ActionSource.System)
         ])
-        expect(moneyReports(confirmed)).toEqual([
+        expect(moneyReports(ended)).toEqual([
             {
                 kind: 'antiqueSet',
                 collectorId: 'bashir',

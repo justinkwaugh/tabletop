@@ -288,21 +288,87 @@ test('closing the resupply picker restores the chosen tool', async ({ page }) =>
     await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.resupplyOpen)).toBe(false)
 })
 
-test('the keyboard jump button jumps to history without starting a replay', async ({ page }) => {
+test('a turn header replays the turn and a round header jumps to its end', async ({ page }) => {
     await createGame(page)
     await page.getByRole('button', { name: /^Cities/ }).click()
     await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
     await citySettled(page)
     await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    const markets = () =>
+        page.evaluate(() => window.magnaGreciaSession.gameState.board.markets.length)
+    const marketsBefore = await markets()
+    await page.getByRole('button', { name: 'Build market', exact: true }).click()
+    await page.getByRole('button', { name: 'Build a market here', exact: true }).first().click()
+    await expect.poll(markets).toBe(marketsBefore + 1)
+    await page.getByRole('button', { name: 'End turn', exact: true }).click()
     await page.getByRole('tab', { name: 'History' }).click()
 
-    const jump = page.getByRole('button', { name: 'Jump to this action in history' }).last()
-    await jump.focus()
+    const actionIndex = () =>
+        page.evaluate(() =>
+            window.magnaGreciaSession.isViewingHistory
+                ? window.magnaGreciaSession.history.actionIndex
+                : undefined
+        )
+    const settled = () =>
+        expect
+            .poll(() => page.evaluate(() => window.magnaGreciaSession.history.isDisabled()))
+            .toBe(false)
+
+    await settled()
+    const firstTurn = page.getByRole('button', { name: /^Replay .*'s turn$/ }).last()
+    await firstTurn.focus()
     await page.keyboard.press('Enter')
-    await expect
-        .poll(() => page.evaluate(() => window.magnaGreciaSession.isViewingHistory))
-        .toBe(true)
+    await expect(page.getByText('Replaying', { exact: true })).toBeVisible()
+    await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0, { timeout: 10_000 })
+    await expect.poll(actionIndex).toBeUndefined()
+
+    await settled()
+    await page.getByRole('button', { name: 'Show the board at the end of round 1' }).click()
+    await expect.poll(actionIndex).toBe(2)
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
+})
+
+test('history leaves out ended turns, outlines a hovered row and steps over ended turns', async ({
+    page
+}) => {
+    await createGame(page)
+    const currentType = () =>
+        page.evaluate(() => window.magnaGreciaSession.history.currentAction?.type)
+    for (let turn = 0; turn < 2; turn++) {
+        await page.getByRole('button', { name: 'Build market', exact: true }).click()
+        await page.getByRole('button', { name: 'Build a market here', exact: true }).first().click()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.magnaGreciaSession.gameState.board.markets.length)
+            )
+            .toBe(turn + 1)
+        await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    }
+
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(page.getByText('Built a market', { exact: true })).toHaveCount(2)
+    await expect(page.getByText('ended their turn', { exact: true })).toHaveCount(0)
+
+    const highlighted = () => page.evaluate(() => window.magnaGreciaSession.historyHighlight.length)
+    await page.getByText('Built a market', { exact: true }).first().hover()
+    await expect.poll(highlighted).toBe(1)
+    await page.getByRole('tab', { name: 'History' }).hover()
+    await expect.poll(highlighted).toBe(0)
+
+    // Each step plays its pieces' animation, and the controls wait for it.
+    const step = async (name: 'step backwards' | 'step forwards', toIndex: number) => {
+        await expect
+            .poll(() => page.evaluate(() => window.magnaGreciaSession.history.isDisabled()))
+            .toBe(false)
+        await page.getByRole('button', { name }).click()
+        await expect
+            .poll(() => page.evaluate(() => window.magnaGreciaSession.history.actionIndex))
+            .toBe(toIndex)
+        expect(await currentType()).toBe('BuildMarket')
+    }
+    await step('step backwards', 2)
+    await step('step backwards', 0)
+    await step('step forwards', 2)
 })
 
 test('the map goes full screen with the turn controls docked above it', async ({ page }) => {

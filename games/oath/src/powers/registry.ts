@@ -26,10 +26,14 @@ export interface ModifierParticulars {
     playedCardId?: string
     /** `SearchPlay`'s value. */
     playedTo?: string
+    /** Land Warden — the second card, when it is shown (never a discard). */
+    secondPlayedCardId?: string
     /** Greedy — after the cost fold. */
     supplyCost?: number
     /** `Banner`'s value. */
     banner?: string
+    /** R-6.1 */
+    facedownAdviserPlay?: boolean
 }
 
 export interface EffectContext {

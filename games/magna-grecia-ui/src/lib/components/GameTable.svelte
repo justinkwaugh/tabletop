@@ -79,14 +79,18 @@
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
-                enabledColor="text-[#4a2c12]"
+                enabledColor="text-[#6b3f1d]"
                 disabledColor="text-[#cbb89a]"
-                borderClass="border-[#8c5b2e] border-b-2"
+                borderClass="border-[#6b3f1d] border-b-2"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
-                <HistoryControls enabledColor="text-[#4a2c12]" disabledColor="text-[#cbb89a]" />
+                <HistoryControls
+                    enabledColor="text-[#6b3f1d]"
+                    disabledColor="text-[#cbb89a]"
+                    borderClass="rounded-lg border-2 border-[#6b3f1d]"
+                />
             </div>
             <DefaultTabs
                 playersTitle="Settlers"

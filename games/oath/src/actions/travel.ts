@@ -34,6 +34,12 @@ import { nextActionIndex } from '../util/freeActions.js'
 import { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
+import {
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment,
+    tollPayment
+} from '../util/actionPayment.js'
 
 export type TravelMetadata = Type.Static<typeof TravelMetadata>
 export const TravelMetadata = Type.Object({
@@ -309,6 +315,18 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         )
         if (unpaid)
             return { reason: unpaid, cost, active: resolved.active, siteNotes: siteTerms.notes }
+        const unaffordable = reasonCannotPayInAll(state, playerId, [
+            modifierPayment(resolved.active),
+            tollPayment(tolls),
+            secretPayment(flipSecret ? 1 : 0)
+        ])
+        if (unaffordable)
+            return {
+                reason: unaffordable,
+                cost,
+                active: resolved.active,
+                siteNotes: siteTerms.notes
+            }
         if (
             travelFreeByToll(state, playerId, siteId, tolls) ||
             wayStationRuled(state, playerId, siteId)

@@ -4,6 +4,7 @@
     import MapLegend from './MapLegend.svelte'
     import RoundTab from './RoundTab.svelte'
     import UpcomingTab from './UpcomingTab.svelte'
+    import HistoryHighlightLayer from './board/HistoryHighlightLayer.svelte'
     import PiecesLayer from './board/PiecesLayer.svelte'
     import SeaLayer from './board/SeaLayer.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
@@ -79,6 +80,7 @@
                 {#if !gameSession.boardAnimating}
                     <TargetLayer />
                 {/if}
+                <HistoryHighlightLayer />
             </svg>
             <div class="map-legend">
                 <MapLegend />

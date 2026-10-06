@@ -25,7 +25,7 @@
                 image={cardBack(CardKind.Relic)}
                 imageAlt=""
                 name={nameOf(slotId)}
-                shape="card"
+                shape="relic"
                 points={{ kind: 'relic', slotId }}
             >
                 <MenuChoice
