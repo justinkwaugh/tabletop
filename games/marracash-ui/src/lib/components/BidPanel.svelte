@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import { DirhamIncrement, getShop } from '@tabletop/marracash'
+    import DirhamAmount from '$lib/components/DirhamAmount.svelte'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { holdRepeat } from '$lib/utils/holdRepeat.js'
@@ -30,7 +31,9 @@
 <div class="flex flex-col items-center gap-2">
     <p class="font-semibold">
         {@render lead?.()}
-        Sealed bid for the highlighted {shop?.color} shop. You have {myMoney} Dirham.
+        Sealed bid for the highlighted {shop?.color} shop. You have <DirhamAmount
+            amount={myMoney}
+        />.
     </p>
     <div class="flex items-center gap-3">
         <button

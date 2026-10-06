@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
 import { pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
 
 export const SignShadowOffset = { x: 2.5, y: 3 }
@@ -20,6 +21,30 @@ const StandeeTops = [
 export function standeeOutline(seat: number): string {
     return StandeeTops[seat % StandeeTops.length]
 }
+
+export function playerStandeeOutline(
+    players: readonly HydratedMarracashPlayerState[],
+    playerId: string
+): string {
+    return standeeOutline(players.findIndex((player) => player.playerId === playerId))
+}
+
+export function signInitial(name: string): string {
+    return name.charAt(0).toUpperCase()
+}
+
+export const SignCream = '#f6e7c1'
+const SignFrameScale = 0.84
+const SignFrameCenterY = -28
+export const SignFrame = {
+    transform: `translate(0 ${SignFrameCenterY}) scale(${SignFrameScale}) translate(0 ${-SignFrameCenterY})`,
+    strokeWidth: 1.3 / SignFrameScale
+}
+export const SignOrnaments = [
+    'M -3.5 -45 L 0 -48.5 L 3.5 -45 L 0 -41.5 Z',
+    'M -3 -13.5 L 0 -16 L 3 -13.5 L 0 -11 Z'
+] as const
+export const SignFaceCenterY = -28.75
 
 export type ShopSignLayout = { ground: Point; chip: Point }
 

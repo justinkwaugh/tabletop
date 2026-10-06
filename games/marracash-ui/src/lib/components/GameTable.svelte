@@ -19,6 +19,8 @@
     import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
     import LibreBaskervilleRegular from '$lib/fonts/LibreBaskerville-Regular.woff2'
     import LibreCaslonTextBold from '$lib/fonts/LibreCaslonText-Bold.woff2'
+    import ElMessiriLatin from '$lib/fonts/ElMessiri-Latin.woff2'
+    import NotoNaskhArabicDirhamSign from '$lib/fonts/NotoNaskhArabic-DirhamSign.woff2'
 
     let {
         gameSession
@@ -43,6 +45,18 @@
 <CustomFont
     fontFamily="Libre Caslon Text"
     url={LibreCaslonTextBold}
+    format="woff2"
+    fontWeight="bold"
+/>
+<CustomFont
+    fontFamily="MarraCash El Messiri"
+    url={ElMessiriLatin}
+    format="woff2"
+    fontWeight="bold"
+/>
+<CustomFont
+    fontFamily="MarraCash Dirham Sign"
+    url={NotoNaskhArabicDirhamSign}
     format="woff2"
     fontWeight="bold"
 />
@@ -104,6 +118,17 @@
 
     .marracash-text :global(.marracash-initial) {
         font-family: 'MarraCash Cinzel', Georgia, serif;
+        font-weight: 700;
+    }
+
+    .marracash-text :global(.marracash-merchant) {
+        font-family: 'MarraCash El Messiri', Georgia, serif;
+        font-weight: 700;
+        font-variant-numeric: lining-nums;
+    }
+
+    .marracash-text :global(.marracash-dirham-sign) {
+        font-family: 'MarraCash Dirham Sign', serif;
         font-weight: 700;
     }
 </style>

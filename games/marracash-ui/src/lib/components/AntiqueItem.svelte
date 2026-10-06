@@ -2,10 +2,9 @@
     import { MarketColor } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let { color, matched }: { color: MarketColor; matched: boolean } = $props()
+    let { color }: { color: MarketColor } = $props()
     const gameSession = getGameSession()
 
-    const Unmatched = { fill: '#ffffff', line: '#3b3b3b', detail: '#9a9a9a' }
     const LanternHoles = [
         { x: 16, y: 19.5 },
         { x: 20, y: 19.5 },
@@ -15,9 +14,7 @@
     ]
 
     let palette = $derived(gameSession.marketPalettes[color])
-    let ink = $derived(
-        matched ? { fill: palette.fill, line: palette.stroke, detail: palette.stroke } : Unmatched
-    )
+    let ink = $derived({ fill: palette.fill, line: palette.stroke, detail: palette.stroke })
 </script>
 
 <g stroke={ink.line} stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
