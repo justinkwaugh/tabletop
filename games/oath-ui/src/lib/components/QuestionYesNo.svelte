@@ -1,6 +1,5 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { humanizeReason } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { yes, no }: { yes: string; no: string } = $props()
@@ -13,7 +12,7 @@
 
 {#if blockedBecause}
     <p class="mb-2 text-[11px] text-oath-danger">
-        <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+        <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
     </p>
 {/if}
 <div class="flex gap-2">

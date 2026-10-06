@@ -8,7 +8,7 @@
     import { cardAspect } from '$lib/images/cardShape.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason, suitName } from '$lib/model/names.js'
+    import { cardName, suitName } from '$lib/model/names.js'
 
     // R-4.3.5, R-7.3.4 — Rest powers once each. R-X.3 — from round 5, R-3.3's end die stops undo here.
     let gameSession = getGameSession()
@@ -133,7 +133,7 @@
                         <button
                             class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
                             disabled={busy || !!reason}
-                            title={reason ?? ''}
+                            title={gameSession.humanizeReason(reason) ?? ''}
                             onclick={() => draft.use(p)}
                         >
                             Use
@@ -152,7 +152,7 @@
                     {/if}
                     {#if reason}
                         <p class="mb-1 text-[11px] text-oath-danger">
-                            <TokenText text={humanizeReason(reason) ?? ''} />
+                            <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                         </p>
                     {/if}
                 {/each}
@@ -171,7 +171,7 @@
 
         {#if blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={blockedBecause ?? ''} />
+                <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
             </p>
         {/if}
 

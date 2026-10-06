@@ -8,7 +8,7 @@ import { reasonPersistentForbidsExile } from '../util/persistent.js'
 import { ActionType } from '../definition/actions.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { canUseGrandScepter, holdsGrandScepter } from '../util/imperial.js'
-import { becomeExile } from '../util/citizenship.js'
+import { becomeExile, statusName } from '../util/citizenship.js'
 
 // R-6.7
 export const EXILE_CITIZEN_BASE_COST = 5
@@ -116,7 +116,7 @@ export class HydratedExileCitizen
         const seated = reasonPersistentForbidsExile(state, citizenPlayerId)
         if (seated) return seated
         if (citizen.status !== PlayerStatus.Citizen) {
-            return `${citizenPlayerId} is a ${citizen.status}, not a Citizen`
+            return `${citizenPlayerId} is ${statusName(citizen.status)}, not a Citizen`
         }
 
         const cost = HydratedExileCitizen.exileCost(state, playerId, citizenPlayerId)

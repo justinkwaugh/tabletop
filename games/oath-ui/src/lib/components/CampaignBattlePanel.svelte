@@ -96,7 +96,7 @@
             </div>
             {#if defeat.blockedBecause}
                 <p class="mb-2 text-[11px] text-oath-danger">
-                    <TokenText text={defeat.blockedBecause ?? ''} />
+                    <TokenText text={gameSession.humanizeReason(defeat.blockedBecause) ?? ''} />
                 </p>
             {/if}
             <button
@@ -169,7 +169,7 @@
         {/if}
         {#if needed > 0 && winBlockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                You cannot win this battle: {winBlockedBecause}
+                You cannot win this battle: {gameSession.humanizeReason(winBlockedBecause)}
             </p>
         {/if}
 
@@ -195,7 +195,9 @@
         </div>
 
         {#if loseBlockedBecause}
-            <p class="mt-2 text-[11px] text-oath-danger">{loseBlockedBecause}</p>
+            <p class="mt-2 text-[11px] text-oath-danger">
+                {gameSession.humanizeReason(loseBlockedBecause)}
+            </p>
         {/if}
 
         <p class="mt-2 text-[11px] text-oath-text-muted">
@@ -299,7 +301,7 @@
         {/if}
         {#if spoils.blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={spoils.blockedBecause ?? ''} />
+                <TokenText text={gameSession.humanizeReason(spoils.blockedBecause) ?? ''} />
             </p>
         {/if}
         <div class="flex gap-2">

@@ -5,7 +5,7 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
 
     // R-5.5.2.a then R-5.5.3 — the Citizens asked to join have answered; the attacker's plans come next.
     let gameSession = getGameSession()
@@ -63,7 +63,7 @@
         {/each}
         {#if reason}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
             </p>
         {/if}
         <button

@@ -2,7 +2,7 @@
     import { PowerQuestionKind, SearchPlay, type PowerQuestion } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
@@ -40,7 +40,7 @@
     <button
         class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!reveal}
-        title={humanizeReason(reveal)}
+        title={gameSession.humanizeReason(reveal)}
         onclick={() => draft.playVision(SearchPlay.RevealedVision)}
     >
         Reveal it as your Vision
@@ -48,7 +48,7 @@
     <button
         class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!adviser}
-        title={humanizeReason(adviser)}
+        title={gameSession.humanizeReason(adviser)}
         onclick={() => draft.playVision(SearchPlay.Adviser)}
     >
         Keep it as a facedown adviser
@@ -56,7 +56,7 @@
     <button
         class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!discard}
-        title={humanizeReason(discard)}
+        title={gameSession.humanizeReason(discard)}
         onclick={() => draft.playVision(SearchPlay.Discard)}
     >
         Discard it

@@ -186,7 +186,7 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: false })
         expect(s.getPlayerState('ruler').favor).toBe(3)
         expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })])).toMatch(/cannot include sites/)
-        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', { fromCounterparty: { favor: 5 } })])).toMatch(/promised 5 favor but has 2/)
+        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', { fromCounterparty: { favor: 5 } })])).toMatch(/promised 5 favor, with only 2 usable/)
         expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', {})])).toMatch(/exchange is empty/)
         expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('ruler', { fromProposer: { favor: 1 } })])).toMatch(/not among the options/)
     })
@@ -195,7 +195,7 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
         const s = rulerTable([TINKERS_FAIR])
         actionPowerUse('ruler', TINKERS_FAIR, [exchange('other', { fromProposer: { favor: 3 } })]).apply(s)
         s.getPlayerState('ruler').favor = 1
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow(/promised 3 favor but has 1/)
+        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow('promised 3 favor, with only 1 usable')
     })
 
     it('Deed Writer: the old ruler pulls every warband off the site and the new ruler moves in their own count', () => {
@@ -211,9 +211,9 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
 
     it('Deed Writer refuses a site the giver does not rule, a move of nothing, and more warbands than the board holds', () => {
         const probe = (terms: ExchangeTerms) => HydratedUseActionPower.reasonCannotUse(rulerTable([DEED_WRITER]), 'ruler', DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange('other', terms)])
-        expect(probe({ fromProposer: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toMatch(/do not rule/)
+        expect(probe({ fromProposer: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBe('ruler promised p1 without ruling it')
         expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toMatch(/at least one warband/)
-        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toMatch(/fewer than 3 warbands/)
+        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBe("other's board has fewer than 3 warbands to move to c2")
         expect(probe({ fromProposer: { relicCardIds: [CUP] } })).toMatch(/cannot include relics/)
     })
 })

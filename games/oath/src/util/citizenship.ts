@@ -190,6 +190,17 @@ export function visionDeposits(conversion: ConversionResult): PileDeposit[] | un
         : undefined
 }
 
+const STATUS_NAMES: Record<PlayerStatus, string> = {
+    [PlayerStatus.Chancellor]: 'the Chancellor',
+    [PlayerStatus.Exile]: 'an Exile',
+    [PlayerStatus.Citizen]: 'a Citizen'
+}
+
+/** A status by its printed name, with its article. */
+export function statusName(status: PlayerStatus): string {
+    return STATUS_NAMES[status]
+}
+
 /** R-6.6.2 — "ends their Act Phase **if it is their turn**". */
 export function citizenshipEndsActPhase(state: HydratedOathGameState, playerId: string): boolean {
     return holdsTheTurn(state, playerId)

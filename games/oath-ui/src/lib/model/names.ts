@@ -136,9 +136,67 @@ export function stripRules(text: string): string {
         .trim()
 }
 
-export function humanizeReason(reason: string | undefined): string | undefined {
+export function humanizeReason(
+    reason: string | undefined,
+    seats: Seats,
+    viewerId: string | undefined
+): string | undefined {
     if (!reason) return reason
-    return nameIds(stripRules(reason), slotLabel)
+    return nameSeats(nameIds(stripRules(reason), slotLabel), seats, viewerId)
+}
+
+export type NameOf = (playerId: string) => string
+
+export type Seats = {
+    player: NameOf
+    seats: readonly string[]
+}
+
+/** Every seat named and the viewer "you"; an actor named alone owns "their own". */
+export function nameSeats(
+    text: string,
+    seats: Seats,
+    viewerId: string | undefined,
+    actorId?: string
+): string {
+    const actorAlone = !seats.seats.some(
+        (playerId) => playerId !== actorId && seatPattern(playerId).test(text)
+    )
+    const reader = { actorId, actorAlone, viewerId }
+    return seats.seats.reduce(
+        (sentence, playerId) => nameSeat(sentence, playerId, reader, seats.player),
+        text
+    )
+}
+
+// Whole ids only: nanoids may begin or end with `-` or `_`, which `\b` does not treat as word characters.
+function seatPattern(playerId: string, after = '', flags = ''): RegExp {
+    return new RegExp(`(?<![\\w-])${escapeRegExp(playerId)}${after}(?![\\w-])`, flags)
+}
+
+function nameSeat(
+    text: string,
+    playerId: string,
+    reader: { actorId: string | undefined; actorAlone: boolean; viewerId: string | undefined },
+    nameOf: NameOf
+): string {
+    const own = playerId === reader.actorId
+    const isViewer = playerId === reader.viewerId
+    const whose = isViewer
+        ? own
+            ? 'your own'
+            : 'your'
+        : own && reader.actorAlone
+          ? 'their own'
+          : `${nameOf(playerId)}'s`
+    const seat = isViewer ? 'you' : nameOf(playerId)
+    const named = text.replace(seatPattern(playerId, "['’]s", 'g'), () => whose)
+    const agreed = isViewer
+        ? named
+              .replace(seatPattern(playerId, ' is', 'g'), () => 'you are')
+              .replace(seatPattern(playerId, ' has', 'g'), () => 'you have')
+        : named
+    return agreed.replace(seatPattern(playerId, '', 'g'), () => seat)
 }
 
 /** Card, site and Reliquary ids inside engine text, named for a reader. */
