@@ -12,7 +12,7 @@
     let outline = $derived(playerStandeeOutline(gameSession.gameState.players, playerId))
 </script>
 
-<svg class="sign" width="46" height="57" viewBox="-23 -58 46 56" aria-hidden="true">
+<svg class="sign" width="58" height="72" viewBox="-23 -58 46 56" aria-hidden="true">
     <SignFace
         {outline}
         fill={gameSession.colors.getPlayerBgColorValue(playerId)}

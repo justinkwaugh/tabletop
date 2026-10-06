@@ -11,7 +11,7 @@
 </script>
 
 <div class="flex items-center gap-2.5 pb-0.5 pl-3">
-    <div class="flex">
+    <div class="relative -top-1 flex">
         {#each { length: AntiquesPerPlayer } as _, index (index)}
             <svg
                 class="card-back"

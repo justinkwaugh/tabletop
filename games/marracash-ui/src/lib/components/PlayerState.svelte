@@ -64,16 +64,15 @@
     style:--tile-light={PanelPalette.tileLight}
     style:--tile-deep={PanelPalette.tileDeep}
     style:--trim={PanelPalette.trim}
+    style:--brass={PanelPalette.brass}
+    style:--gold={PanelPalette.gold}
 >
-    <div class="flex w-[70px] shrink-0 flex-col items-center pt-0.5">
+    <div class="relative flex w-[70px] shrink-0 justify-center pt-0.5">
         <PlayerSign playerId={player.id} name={player.name} />
         <span
-            class="marracash-merchant mt-0.5 text-center text-[12px] leading-none whitespace-nowrap"
-            style:color={PanelPalette.gold}
-            >{shopCount}/{MaxShopsPerPlayer}
-            <span class="text-[10px] font-semibold tracking-wider" style:color={PanelPalette.cream}
-                >SHOPS</span
-            ></span
+            class="marracash-merchant shop-badge"
+            aria-label="{shopCount} of {MaxShopsPerPlayer} shops"
+            >{shopCount}/{MaxShopsPerPlayer}</span
         >
     </div>
 
@@ -99,16 +98,18 @@
         <div class="mt-1.5 basis-full pl-0.5">
             {#if revealRank >= 0}
                 <div class="flex items-center gap-1">
-                    {#each revealedCards as card, index (index)}
-                        <AntiqueCard {card} covered unpaid={!paidCards.includes(card)} />
-                    {/each}
+                    <div class="raised flex gap-1">
+                        {#each revealedCards as card, index (index)}
+                            <AntiqueCard {card} covered unpaid={!paidCards.includes(card)} />
+                        {/each}
+                    </div>
                     {@render tally(`${shortOrdinal(revealRank)} set`, payout)}
                 </div>
             {:else if isMe && hand.length > 0}
                 <div class="flex items-center gap-1">
                     <button
                         type="button"
-                        class="flex cursor-pointer gap-1"
+                        class="raised flex cursor-pointer gap-1"
                         aria-expanded={showHandSummary}
                         onclick={() => (showHandSummary = !showHandSummary)}
                     >
@@ -165,6 +166,26 @@
 
     .panel {
         --dirham-sign-size: 0.65em;
+    }
+
+    .shop-badge {
+        position: absolute;
+        bottom: 1px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 2px 6px 1px;
+        border-radius: 999px;
+        font-size: 11px;
+        line-height: 1;
+        white-space: nowrap;
+        color: var(--gold);
+        background: var(--tile-deep);
+        box-shadow: 0 0 0 1.5px var(--brass);
+    }
+
+    .raised {
+        position: relative;
+        top: -4px;
     }
 
     .name {
