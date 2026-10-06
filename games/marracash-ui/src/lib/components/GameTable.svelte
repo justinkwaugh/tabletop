@@ -25,6 +25,7 @@
     import NotoNaskhArabicDirhamSign from '$lib/fonts/NotoNaskhArabic-DirhamSign.woff2'
     import { NightZelligeBackground } from '$lib/utils/tableBackground.js'
     import { PanelPalette } from '$lib/utils/playerPanel.js'
+    import { PointedArchMask } from '$lib/utils/doorwayTab.js'
 
     let {
         gameSession
@@ -106,6 +107,15 @@
     style:--gold={PanelPalette.gold}
     style:--quiet={PanelPalette.quietCount}
     style:--night={PanelPalette.night}
+    style:--door-mask={PointedArchMask}
+    style:--door-wood={PanelPalette.doorWood}
+    style:--door-grain={PanelPalette.doorGrain}
+    style:--door-shadow={PanelPalette.doorShadow}
+    style:--door-ink={PanelPalette.doorInk}
+    style:--lamp-glow={PanelPalette.lampGlow}
+    style:--lamp={PanelPalette.lamp}
+    style:--lamp-edge={PanelPalette.lampEdge}
+    style:--threshold-shadow={PanelPalette.thresholdShadow}
 >
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
@@ -114,6 +124,7 @@
         {#snippet sideContent()}
             <div class="max-sm:hidden">{@render historyControls('framed')}</div>
             <DefaultTabs
+                fontClass="marracash-merchant"
                 activeTabClass="marracash-tab marracash-tab-active"
                 inactiveTabClass="marracash-tab marracash-tab-inactive"
             >
@@ -210,25 +221,82 @@
         color: color-mix(in srgb, var(--quiet) 45%, transparent);
     }
 
+    .marracash-text :global([role='tablist']:has(.marracash-tab)) {
+        gap: 6px;
+        margin: 0;
+        padding: 0 6px;
+        border-bottom: 3px solid var(--trim);
+        box-shadow: 0 3px 0 -1px var(--threshold-shadow);
+    }
+
+    .marracash-text :global([role='tablist']:has(.marracash-tab) > li) {
+        display: flex;
+        flex: 1;
+        margin: 0;
+    }
+
     .marracash-text :global(.marracash-tab) {
-        padding: 0.25rem 0.75rem;
-        border-radius: 8px;
-        border: 2px solid var(--trim);
+        flex: 1;
+        height: 38px;
+        padding: 13px 6px 3px;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        isolation: isolate;
+    }
+
+    .marracash-text :global(.marracash-tab > div) {
+        justify-content: center;
+    }
+
+    .marracash-text :global(.marracash-tab::before),
+    .marracash-text :global(.marracash-tab::after) {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        mask: var(--door-mask);
+    }
+
+    .marracash-text :global(.marracash-tab::before) {
+        inset: 0;
+        background: var(--trim);
+    }
+
+    .marracash-text :global(.marracash-tab::after) {
+        inset: 2.5px 2.5px 0;
+    }
+
+    .marracash-text :global(.marracash-tab:focus-visible) {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
     }
 
     .marracash-text :global(.marracash-tab-active) {
-        background: var(--brass);
-        color: var(--tile-deep);
+        color: var(--door-ink);
+    }
+
+    .marracash-text :global(.marracash-tab-active::after) {
+        background: radial-gradient(
+            ellipse 85% 100% at 50% 100%,
+            var(--lamp-glow) 0%,
+            var(--lamp) 55%,
+            var(--lamp-edge) 100%
+        );
     }
 
     .marracash-text :global(.marracash-tab-inactive) {
-        background: var(--night);
         color: var(--gold);
-        border-color: color-mix(in srgb, var(--trim) 55%, transparent);
+    }
+
+    .marracash-text :global(.marracash-tab-inactive::after) {
+        background: repeating-linear-gradient(
+            90deg,
+            var(--door-wood) 0 9px,
+            var(--door-grain) 9px 10px
+        );
     }
 
     .marracash-text :global(.marracash-tab-inactive:hover) {
-        border-color: var(--trim);
+        filter: brightness(1.2);
     }
 
     .marracash-text :global(.marracash-prompt) {
