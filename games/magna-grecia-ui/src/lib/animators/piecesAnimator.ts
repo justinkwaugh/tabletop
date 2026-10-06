@@ -49,6 +49,7 @@ const ACTION = {
     roadDrop: 0.24,
     marketRise: 0.45,
     marketShift: 0.35,
+    marketMove: 0.75,
     marketLeave: 0.3,
     soldStamp: 0.3,
     oracleTurn: 0.65
@@ -58,6 +59,7 @@ const FAST = {
     roadDrop: 0.15,
     marketRise: 0.16,
     marketShift: 0.16,
+    marketMove: 0.18,
     marketLeave: 0.15,
     soldStamp: 0.15,
     oracleTurn: 0.18
@@ -141,11 +143,12 @@ export class PiecesAnimator {
                 node.setAttribute('opacity', `${Math.min(1, p * 6)}`)
             })
         }
+        // A market a merge takes out of the game sinks as the others gather, once the tile is down.
         for (const market of changes.leavingMarkets) {
             const node = this.elements.get(`market:${market.key}`)
             if (!node) continue
             const top = marketTop(marketState(market))
-            play(0, timing.marketLeave, 'power2.in', (p) => {
+            play(after, timing.marketLeave, 'power2.in', (p) => {
                 setMarketTop(node, top + (MARKET_BASE - top) * p)
                 node.setAttribute('opacity', `${1 - p * p}`)
             })
@@ -171,7 +174,23 @@ export class PiecesAnimator {
         if (!node) return
         const fromTop = marketTop(marketState(from))
         const toTop = marketTop(marketState(to))
-        if (fromTop !== toTop) {
+        if (from.point.x !== to.point.x || from.point.y !== to.point.y) {
+            // A market gathering on its city's founding tile sinks where it stood and rises there.
+            play(after, timing.marketMove, 'none', (p) => {
+                const sinking = p < MOVE_SINK_SHARE
+                const { x, y } = sinking ? from.point : to.point
+                node.setAttribute('transform', `translate(${x} ${y})`)
+                if (sinking) {
+                    const q = (p / MOVE_SINK_SHARE) ** 2
+                    setMarketTop(node, fromTop + (MARKET_BASE - fromTop) * q)
+                    node.setAttribute('opacity', `${1 - q}`)
+                } else {
+                    const q = backOut((p - MOVE_SINK_SHARE) / (1 - MOVE_SINK_SHARE))
+                    setMarketTop(node, MARKET_BASE + (toTop - MARKET_BASE) * q)
+                    node.setAttribute('opacity', `${Math.min(1, q * 6)}`)
+                }
+            })
+        } else if (fromTop !== toTop) {
             const rising = toTop < fromTop
             play(after, timing.marketShift, rising ? 'back.out(1.8)' : 'power2.inOut', (p) =>
                 setMarketTop(node, fromTop + (toTop - fromTop) * p)
@@ -234,6 +253,14 @@ export class PiecesAnimator {
             }
         })
     }
+}
+
+const MOVE_SINK_SHARE = 0.4
+
+// GSAP's back.out(1.6), for the rise half of a move drawn inside one linear tween.
+function backOut(p: number): number {
+    const overshoot = 1.6
+    return 1 + (overshoot + 1) * (p - 1) ** 3 + overshoot * (p - 1) ** 2
 }
 
 function marketState(market: MarketView): MarketState {
