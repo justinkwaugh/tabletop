@@ -17,7 +17,8 @@
                 >{color} shop</span
             >.
         {:else}
-            <PlayerTag playerId={outcome.collectorId} /> completed their antique set.
+            <PlayerTag playerId={outcome.collectorId} /> completed
+            {outcome.collectorId === gameSession.myPlayer?.id ? 'your' : 'their'} antique set.
         {/if}
     </span>{' '}
 {/each}

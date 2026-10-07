@@ -64,7 +64,7 @@
     }
 
     .body {
-        padding: calc(var(--header-height) / 2 + 5px) 16px 12px;
+        padding: calc(var(--header-height) / 2 + 5px) 16px 16px;
     }
 
     @media (max-width: 639px) {
@@ -73,8 +73,7 @@
         }
 
         .body {
-            padding-inline: 10px;
-            padding-bottom: 10px;
+            padding: calc(var(--header-height) / 2 + 8px) 10px 12px;
         }
     }
 </style>

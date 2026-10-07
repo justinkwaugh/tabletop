@@ -159,6 +159,12 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             format: 'es',
             sourcemap: true
         },
+        // The host loads the artifact as plain ES modules, so a bare import Rollup can't resolve
+        // (such as a SvelteKit $app/* module) would stop the game UI from loading at all.
+        onwarn: (warning, handler) => {
+            if (warning.code === 'UNRESOLVED_IMPORT') throw new Error(warning.message)
+            handler(warning)
+        },
         plugins: [
             createResolveJsExtensions(packageRoot),
             createLibAlias(packageRoot),

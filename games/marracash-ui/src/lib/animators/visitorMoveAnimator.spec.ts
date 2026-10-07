@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-    defaultGameConfig,
-    GameEngine,
-    normalizeGameConfig,
-    PlayerStatus
-} from '@tabletop/common'
+import { defaultGameConfig, GameEngine, normalizeGameConfig, PlayerStatus } from '@tabletop/common'
 import { AnimationContext, type GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     Definition,
@@ -25,7 +20,9 @@ function startingState(): HydratedMarracashGameState {
             id: 'animation-test',
             typeId: MarracashInfo.id,
             ownerId: 'owner',
-            config: normalizeGameConfig(defaultGameConfig(MarracashInfo.configurator?.options ?? [])),
+            config: normalizeGameConfig(
+                defaultGameConfig(MarracashInfo.configurator?.options ?? [])
+            ),
             players: Array.from({ length: 3 }, (_, index) => ({
                 id: `p${index}`,
                 name: `Player ${index}`,

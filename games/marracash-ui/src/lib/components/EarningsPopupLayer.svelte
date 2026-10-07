@@ -24,7 +24,10 @@
             style:background-color={gameSession.colors.getPlayerBgColorValue(popup.playerId)}
             style:color={gameSession.colors.getPlayerTextColorValue(popup.playerId)}
         >
-            <span class="text-[31px] leading-none font-black">+</span>{popup.amount}
+            <!-- El Messiri's digits sit high in their line box -->
+            <span class="relative top-[3px] flex items-center gap-0.5"
+                ><span class="text-[31px] leading-none font-black">+</span>{popup.amount}</span
+            >
         </div>
     {/each}
 </div>

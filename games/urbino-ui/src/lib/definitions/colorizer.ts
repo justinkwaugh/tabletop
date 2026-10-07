@@ -5,9 +5,9 @@ export class UrbinoGameColorizer extends DefaultColorizer {
     override getUiColor(color?: string): string {
         switch (color) {
             case Color.White:
-                return '#f5f0e8'
+                return '#f3e6cc'
             case Color.Brown:
-                return '#a05a2c'
+                return '#b8693a'
             default:
                 return '#888888'
         }
@@ -16,9 +16,9 @@ export class UrbinoGameColorizer extends DefaultColorizer {
     override getBgColor(color?: string): string {
         switch (color) {
             case Color.White:
-                return 'bg-[#f5f0e8]'
+                return 'bg-[#f3e6cc]'
             case Color.Brown:
-                return 'bg-[#a05a2c]'
+                return 'bg-[#b8693a]'
             default:
                 return 'bg-[#888888]'
         }
@@ -27,9 +27,9 @@ export class UrbinoGameColorizer extends DefaultColorizer {
     override getBorderColor(color?: string): string {
         switch (color) {
             case Color.White:
-                return 'border-[#f5f0e8]'
+                return 'border-[#f3e6cc]'
             case Color.Brown:
-                return 'border-[#a05a2c]'
+                return 'border-[#b8693a]'
             default:
                 return 'border-[#888888]'
         }

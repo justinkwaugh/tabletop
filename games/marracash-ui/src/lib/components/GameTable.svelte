@@ -26,6 +26,7 @@
     import { NightZelligeBackground } from '$lib/utils/tableBackground.js'
     import { PanelPalette } from '$lib/utils/playerPanel.js'
     import { PointedArchMask } from '$lib/utils/doorwayTab.js'
+    import { TableDisplayScale } from '$lib/utils/boardGeometry.js'
 
     let {
         gameSession
@@ -157,7 +158,7 @@
                     <ScalingWrapper
                         justify="center"
                         controls="bottom-left"
-                        coverBelowScale={0.45}
+                        coverBelowScale={0.45 / TableDisplayScale}
                         expandable
                     >
                         <div class="px-2 pt-3 pb-11" inert={marracashSession.playerAidOpen}>

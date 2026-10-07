@@ -21,7 +21,9 @@ async function inView(page: Page, targets: Locator): Promise<Locator> {
     throw new Error('No target is in view')
 }
 
-test('a touch screen moves with one tap and toggles highlights by tapping', async ({ page }) => {
+test('a touch screen moves with one tap, toggles highlights and replays a turn by tapping', async ({
+    page
+}) => {
     test.setTimeout(120_000)
     await createGame(page)
 
@@ -51,10 +53,11 @@ test('a touch screen moves with one tap and toggles highlights by tapping', asyn
     await expect(counter).toHaveAttribute('aria-pressed', 'false')
 
     await page.getByRole('tab', { name: /History/ }).tap()
-    const entry = page.locator('.history [role=button]').filter({ hasText: 'moved' }).first()
-    const arrows = page.locator('marker[id^="marracash-history-arrow"]')
-    await entry.tap()
-    await expect(arrows.first()).toBeAttached()
-    await entry.tap()
-    await expect(arrows).toHaveCount(0)
+    const card = page.locator('.turn-card').filter({ hasText: 'Moved' }).first()
+    // History refuses a replay while the move is still settling; its icons light up once it is ready
+    const back = page.getByRole('button', { name: 'step backwards' }).filter({ visible: true })
+    await expect(back.locator('svg.history-control-on')).toHaveCount(1)
+    await card.tap()
+    await expect(card).toHaveClass(/replaying/)
+    await expect(card).not.toHaveClass(/replaying/, { timeout: 15_000 })
 })

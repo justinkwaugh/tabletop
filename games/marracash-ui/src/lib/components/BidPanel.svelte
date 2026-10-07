@@ -2,9 +2,10 @@
     import type { Snippet } from 'svelte'
     import { DirhamIncrement, getShop } from '@tabletop/marracash'
     import DirhamAmount from '$lib/components/DirhamAmount.svelte'
-    import PlayerTag from '$lib/components/PlayerTag.svelte'
+    import BidSeals from '$lib/components/BidSeals.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { holdRepeat } from '$lib/utils/holdRepeat.js'
+    import { openBidders } from '$lib/utils/historyTurns.js'
 
     let { lead }: { lead?: Snippet } = $props()
     const gameSession = getGameSession()
@@ -54,10 +55,13 @@
         onclick={() => gameSession.placeBid(clampedAmount)}
         >{clampedAmount === 0 ? 'Pass' : 'Place bid'}</button
     >
-    <p class="text-sm">
-        Still to bid:
-        {#each gameSession.gameState.auction?.awaitingBidderIds() ?? [] as playerId (playerId)}
-            {' '}<PlayerTag {playerId} />
-        {/each}
-    </p>
+    {#if gameSession.gameState.auction}
+        <div class="flex justify-center text-sm">
+            <BidSeals
+                bidders={openBidders(gameSession.gameState.auction)}
+                signHeight={18}
+                spread={false}
+            />
+        </div>
+    {/if}
 </div>

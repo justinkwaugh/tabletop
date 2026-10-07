@@ -1,110 +1,163 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState, BuildingType, computeDistrictScores } from '@tabletop/urbino'
+    import { BuildingType, computeDistrictScores } from '@tabletop/urbino'
+    import { TablePalette, isDarkColor, woodFill } from '$lib/theme.js'
+    import PieceIcon from './PieceIcon.svelte'
 
     const session = getGameSession()
     const state = $derived(session.gameState)
 
     const liveScores = $derived(computeDistrictScores(state.board, state.monumentsVariant))
 
-    const MONUMENTS = [
-        { name: 'Town Wall',    sequence: [BuildingType.House,   BuildingType.House,   BuildingType.House],   pts: 6  },
-        { name: 'Ducal Palace', sequence: [BuildingType.Palace,  BuildingType.House,   BuildingType.Palace],  pts: 10 },
-        { name: 'Cathedral',    sequence: [BuildingType.Tower,   BuildingType.Palace,  BuildingType.Tower],   pts: 16 },
+    const SUPPLY = [
+        { type: BuildingType.House, singular: 'house', plural: 'houses', start: 18, columns: 9 },
+        { type: BuildingType.Palace, singular: 'palace', plural: 'palaces', start: 6, columns: 6 },
+        { type: BuildingType.Tower, singular: 'tower', plural: 'towers', start: 3, columns: 3 }
     ]
 
-    function isActivePlayer(playerId: string): boolean {
-        return state.activePlayerIds.includes(playerId)
+    const PIECE_SIZE = 19
+
+    const MONUMENTS = [
+        { name: 'Town Wall', sequence: [BuildingType.House, BuildingType.House, BuildingType.House], pts: 6 },
+        { name: 'Ducal Palace', sequence: [BuildingType.Palace, BuildingType.House, BuildingType.Palace], pts: 10 },
+        { name: 'Cathedral', sequence: [BuildingType.Tower, BuildingType.Palace, BuildingType.Tower], pts: 16 }
+    ]
+
+    function remaining(player: (typeof state.players)[number], type: BuildingType): number {
+        if (type === BuildingType.House) return player.houses
+        if (type === BuildingType.Palace) return player.palaces
+        return player.towers
     }
 </script>
 
-<div class="flex flex-col gap-3 p-3">
+<div class="flex flex-col gap-4 p-3">
     {#each state.players as player (player.playerId)}
         {@const uiColor = session.colors.getPlayerUiColor(player.playerId)}
-        <div
-            class="rounded-lg border-2 p-3 transition-all"
-            style:border-color={isActivePlayer(player.playerId) ? uiColor : 'transparent'}
-            style:background-color={isActivePlayer(player.playerId) ? `${uiColor}22` : 'transparent'}
-        >
-            <div class="mb-2 flex items-center gap-2">
-                <div
-                    class="h-4 w-4 rounded-full border border-gray-400"
-                    style:background-color={uiColor}
-                ></div>
-                <PlayerName playerId={player.playerId} additionalClasses="font-semibold" />
-                {#if isActivePlayer(player.playerId)}
-                    <span class="ml-auto text-xs text-[#6b3a2a]">Active</span>
+        {@const active = state.activePlayerIds.includes(player.playerId)}
+        <div class="player" class:active>
+            <div
+                class="flex items-center gap-2 px-3 py-2"
+                style:background={woodFill(uiColor)}
+                style:color={session.colors.getPlayerTextColorValue(player.playerId)}
+            >
+                <PlayerName
+                    playerId={player.playerId}
+                    backgroundOpacity={0}
+                    additionalClasses="!p-0 urbino-display !text-[23px] leading-tight tracking-[0.04em]"
+                />
+                {#if active}
+                    <span class="urbino-display rounded-full bg-black/15 px-2 text-[10px] tracking-[0.16em]">BUILDING</span>
                 {/if}
+                <span class="ml-auto flex items-baseline gap-1">
+                    <span class="urbino-display text-[26px] leading-none">{liveScores.get(player.playerId) ?? 0}</span>
+                    <span class="text-[13px] opacity-75">pts</span>
+                </span>
             </div>
-            <div class="mb-2 text-xl font-bold text-[#2c1810]">{liveScores.get(player.playerId) ?? 0} pts</div>
-            <div class="flex gap-3 text-sm">
-                {#each [{ type: BuildingType.House, count: player.houses, label: 'Houses' }, { type: BuildingType.Palace, count: player.palaces, label: 'Palaces' }, { type: BuildingType.Tower, count: player.towers, label: 'Towers' }] as { type, count, label } (type)}
-                    <span class="flex items-center gap-1" style:color={uiColor} title="{label}: {count}">
-                        <svg viewBox="0 0 20 20" width="17" height="17" fill={uiColor} stroke="#483737" stroke-width="1" stroke-linejoin="round">
-                            {#if type === BuildingType.House}
-                                <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
-                                <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
-                            {:else if type === BuildingType.Palace}
-                                <path d="M 1,11.5 L 19,11.5 L 19,17.5 L 1,17.5 Z" />
-                                <path d="M 10,2.5 L 19,11.5 L 1,11.5 Z" />
-                                <path d="M 2.5,7 L 10,2.25 L 10,5.5 L 1,11.5 Z" />
-                                <path d="M 10,2.25 L 17.5,7 L 19,11.5 L 10,5.5 Z" />
+            <div
+                class="tray grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5"
+                class:light-tray={isDarkColor(uiColor)}
+            >
+                {#each SUPPLY as supply (supply.type)}
+                    {@const left = remaining(player, supply.type)}
+                    <div class="grid gap-[2px]" style:grid-template-columns="repeat({supply.columns}, {PIECE_SIZE}px)">
+                        {#each { length: supply.start } as _, slot (slot)}
+                            {#if slot < left}
+                                <PieceIcon
+                                    buildingType={supply.type}
+                                    color={uiColor}
+                                    buildingStyle={session.buildingStyle}
+                                    size={PIECE_SIZE}
+                                />
                             {:else}
-                                <path d="M 2.3,8.7 L 17.7,8.7 L 17.7,19 L 2.3,19 Z" />
-                                <path d="M 10,4.1 L 17.2,8.7 L 17.2,10.3 L 2.8,10.3 L 2.8,8.7 Z" />
-                                <path d="M 3.6,4.9 L 10,1 L 10,3.6 L 2.3,8.7 Z" />
-                                <path d="M 10,1 L 16.4,4.9 L 17.2,8.7 L 10,3.6 Z" />
+                                <span class="spent" style:width="{PIECE_SIZE}px" style:height="{PIECE_SIZE}px"></span>
                             {/if}
-                        </svg>
-                        {count}
-                    </span>
+                        {/each}
+                    </div>
+                    <div class="flex w-[4.4rem] flex-col items-center gap-[3px]">
+                        <span class="supply-count urbino-display text-[18px] leading-none text-(--cream)">{left}</span>
+                        <span class="supply-label urbino-display text-[9.5px] leading-none tracking-[0.12em] text-(--cream-quiet) uppercase">
+                            {left === 1 ? supply.singular : supply.plural}
+                        </span>
+                    </div>
                 {/each}
             </div>
         </div>
     {/each}
 
     {#if state.monumentsVariant}
-        <div class="rounded-lg border border-[#c8bfaf] bg-[#f5f0e8] p-3">
-            <div class="mb-2 text-[15px] font-semibold uppercase tracking-wide text-[#6b5040]">Monuments</div>
-            <div class="flex flex-col gap-2">
-                {#each MONUMENTS as m (m.name)}
+        <div class="urbino-plank rounded-lg border-2 border-(--maple-edge) p-3 shadow-[0_3px_8px_rgb(0_0_0/0.35)]">
+            <div class="urbino-display mb-2 text-[14px] tracking-[0.16em]">MONUMENTS</div>
+            <div class="flex flex-col gap-1.5">
+                {#each MONUMENTS as monument (monument.name)}
                     <div class="flex items-center gap-2">
                         <div class="flex gap-0.5">
-                            {#each m.sequence as type, i (i)}
-                                <svg
-                                    viewBox="0 0 20 20"
-                                    width="23"
-                                    height={type === BuildingType.Tower ? 25.3 : 23}
-                                    preserveAspectRatio={type === BuildingType.Tower ? 'none' : 'xMidYMid meet'}
-                                    fill="#8b7355"
-                                    stroke="#483737"
-                                    stroke-width="1"
-                                    stroke-linejoin="round"
-                                    class="select-none"
-                                >
-                                    {#if type === BuildingType.House}
-                                        <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
-                                        <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
-                                    {:else if type === BuildingType.Palace}
-                                        <path d="M 1,11.5 L 19,11.5 L 19,17.5 L 1,17.5 Z" />
-                                        <path d="M 10,2.5 L 19,11.5 L 1,11.5 Z" />
-                                        <path d="M 2.5,7 L 10,2.25 L 10,5.5 L 1,11.5 Z" />
-                                        <path d="M 10,2.25 L 17.5,7 L 19,11.5 L 10,5.5 Z" />
-                                    {:else}
-                                        <path d="M 2.3,8.7 L 17.7,8.7 L 17.7,19 L 2.3,19 Z" />
-                                        <path d="M 10,4.1 L 17.2,8.7 L 17.2,10.3 L 2.8,10.3 L 2.8,8.7 Z" />
-                                        <path d="M 3.6,4.9 L 10,1 L 10,3.6 L 2.3,8.7 Z" />
-                                        <path d="M 10,1 L 16.4,4.9 L 17.2,8.7 L 10,3.6 Z" />
-                                    {/if}
-                                </svg>
+                            {#each monument.sequence as type, i (i)}
+                                <PieceIcon
+                                    buildingType={type}
+                                    color={TablePalette.mapleDeep}
+                                    buildingStyle={session.buildingStyle}
+                                    size={22}
+                                />
                             {/each}
                         </div>
-                        <span class="text-[15px] text-[#2c1810]">{m.name}</span>
-                        <span class="ml-auto text-[15px] font-semibold text-[#6b3a2a]">{m.pts} pts</span>
+                        <span class="text-[16px]">{monument.name}</span>
+                        <span class="urbino-display ml-auto text-[15px]">{monument.pts}</span>
                     </div>
                 {/each}
             </div>
         </div>
     {/if}
 </div>
+
+<style>
+    .player {
+        overflow: hidden;
+        border-radius: 10px;
+        border: 2px solid var(--slate-edge);
+        box-shadow: 0 3px 8px rgb(0 0 0 / 0.35);
+        transition:
+            border-color 200ms,
+            box-shadow 200ms;
+    }
+
+    .player.active {
+        border-color: var(--gold);
+        box-shadow:
+            0 0 0 1px var(--gold),
+            0 0 14px color-mix(in oklab, var(--gold) 55%, transparent),
+            0 3px 8px rgb(0 0 0 / 0.35);
+    }
+
+    .tray {
+        background: linear-gradient(180deg, #26313b, #2d3a46);
+        box-shadow: inset 0 3px 6px rgb(0 0 0 / 0.45);
+    }
+
+    .tray.light-tray {
+        background: var(--maple-plank);
+        box-shadow: inset 0 3px 6px rgb(60 30 0 / 0.35);
+    }
+
+    .light-tray .spent {
+        background-color: rgb(60 30 0 / 0.14);
+        box-shadow: inset 0 0 0 1px rgb(60 30 0 / 0.12);
+    }
+
+    .light-tray :global(.supply-count) {
+        color: var(--ink);
+    }
+
+    .light-tray :global(.supply-label) {
+        color: var(--ink-quiet);
+    }
+
+    .spent {
+        display: block;
+        padding: 3px;
+        background-clip: content-box;
+        border-radius: 3px;
+        background-color: rgb(0 0 0 / 0.2);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+    }
+</style>
