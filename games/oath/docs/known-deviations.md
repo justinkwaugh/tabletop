@@ -9,7 +9,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Battle-plan costs:** in a game created before revision 3 (R-X.4) each plan's cost is checked alone against the untouched holding, so a side can declare plans it cannot pay in full: the payment throws, or Gleaming Armor's added secret leaves its payer below zero.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
 - **Secret Signal:** refused under Careless when trading for secrets; its Q&A allows it.
-- **Mushrooms with Augury:** the draw depends on the order the two are declared; the Q&A says two are drawn.
 - **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
 - **Giant Python:** counts the Oathkeeper's dice and ignores a Chancellor's ally holding Python; its Q&As say otherwise.
 - **Rusting Ray:** "you hold the Darkest Secret" is read as its user alone, not the user's side (R-10.28-H1).

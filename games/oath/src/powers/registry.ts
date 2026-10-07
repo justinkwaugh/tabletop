@@ -98,6 +98,8 @@ export interface ModifierHooks {
     recoverSecrets?: (base: number, ctx: EffectContext) => number
     /** R-5.1.2 — the Vision stop still applies. */
     drawCount?: (base: number, ctx: EffectContext) => number
+    /** Mushrooms — replaces the count before any `drawCount` adds to it. */
+    setsDrawCount?: number
     /** Truthful Harp — the kept card too. */
     revealsDraw?: boolean
     /** R-7.1.2.a */

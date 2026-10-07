@@ -86,7 +86,7 @@ registerModifier(
                     ? undefined
                     : 'you are not searching a discard pile',
             spendsNoSupply: () => true,
-            drawCount: () => 1,
+            setsDrawCount: 1,
             drawsFromBottom: true
         }
     }

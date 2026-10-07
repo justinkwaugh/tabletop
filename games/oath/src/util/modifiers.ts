@@ -302,6 +302,30 @@ export function foldSupplyCost(
     return foldNumber('supplyCost', base, state, playerId, active, particulars)
 }
 
+/** Mushrooms with Augury — a count one modifier sets is the base the others add to. */
+export function foldDrawCount(
+    base: number,
+    state: HydratedOathGameState,
+    playerId: string,
+    active: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']> = {}
+): number {
+    const setBy = (m: ActiveModifier) => m.hooks.setsDrawCount
+    if (!isAtLeastOathRevision(state, OathRevision.CardFixes1)) {
+        return foldInDeclarationOrder(
+            'drawCount',
+            base,
+            state,
+            playerId,
+            active,
+            particulars,
+            setBy
+        )
+    }
+    const set = active.map(setBy).find((count) => count !== undefined)
+    return foldNumber('drawCount', set ?? base, state, playerId, active, particulars)
+}
+
 /** R-X.4 — before revision 4 a value one modifier set stood at its place in the declaration order. */
 function foldInDeclarationOrder(
     seam: 'supplyCost' | 'drawCount',
