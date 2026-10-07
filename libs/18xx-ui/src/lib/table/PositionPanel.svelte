@@ -121,10 +121,13 @@
     }
     const latest = $derived.by(() => {
         const paired = purchaseWithFlotation(actions)
-        const action = paired?.flotation ?? actions.findLast((item) => !isHistoryBookkeeping(item))
+        // The last action a player would care about: routine steps, such as a turn starting,
+        // leave the action before them showing.
+        const action =
+            paired?.flotation ??
+            actions.findLast((item) => !isHistoryBookkeeping(item) && !describe(item).routine)
         if (!action) return
         const description = describe(action)
-        if (description.routine) return
         const purchase = paired?.purchase
         const actor = description.omitActor
             ? undefined

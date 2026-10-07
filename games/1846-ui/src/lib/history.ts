@@ -11,7 +11,8 @@ import {
     isDeclareBankruptcy1846,
     isBuyReceiverShare,
     isBuyReceiverTrain,
-    isSettleReceiver
+    isSettleReceiver,
+    StartReceiverValidator
 } from '@tabletop/1846'
 import type { TitleActionDescription } from '@tabletop/18xx-ui'
 
@@ -35,6 +36,11 @@ export const describe1846Action: TitleActionDescription = (action, companyName) 
         case 'ResumeOpeningPurchases':
             return { text: 'Opening purchases resume', omitActor: true }
     }
+    if (StartReceiverValidator.Check(action))
+        return {
+            text: `Started ${companyName(action.companyId)}’s receivership turn`,
+            routine: true
+        }
     if (CorporateFinanceValidator.Check(action))
         return {
             text: `${companyName(action.companyId)} ${action.operation === 'issue' ? 'issued' : 'redeemed'} ${action.shares} ${action.shares === 1 ? 'share' : 'shares'} for $${action.amount}`

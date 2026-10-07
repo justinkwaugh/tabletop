@@ -49,12 +49,16 @@
     const orderChanges = $derived(historyOperatingOrder(context.actions, states))
     const cash = $derived(historyCash(states))
     const companyChanges = $derived(historyCompanyChanges(context.actions))
-    // A system action the title describes is one of its own events.
+    // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
         historyRounds(context.actions, gameState, states, orderChanges, cash, {
-            isEvent: (action) =>
-                action.source === ActionSource.System &&
-                !!describeAction?.(action, companyName, () => describeShared(action)),
+            isEvent: (action) => {
+                if (action.source !== ActionSource.System) return false
+                const description = describeAction?.(action, companyName, () =>
+                    describeShared(action)
+                )
+                return !!description && !description.routine
+            },
             rounds: session.presentation.titleRounds
         })
     )
