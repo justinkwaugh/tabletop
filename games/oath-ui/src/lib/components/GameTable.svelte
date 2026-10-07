@@ -21,9 +21,18 @@
     import VisionSeenOverlay from '$lib/components/VisionSeenOverlay.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import FocusChooser from '$lib/components/FocusChooser.svelte'
+    import TravelFraming from '$lib/components/TravelFraming.svelte'
     import { MachineState } from '@tabletop/oath'
     import type { BoundingBox } from '@tabletop/common'
-    import { focusRect, siteFocusRect, type FocusView } from '$lib/definitions/boardFocusAreas.js'
+    import {
+        allSitesFrameRect,
+        focusRect,
+        siteFocusRect,
+        travelFrameRect,
+        type FocusView
+    } from '$lib/definitions/boardFocusAreas.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import type { TravelFrame } from '$lib/model/travelOnTheMap.js'
 
     import type { HydratedOathGameState, OathProjectedState } from '@tabletop/oath'
     import { setGameSession, toOathSession } from '$lib/model/sessionContext.svelte.js'
@@ -40,6 +49,8 @@
     let boardFocus = $state<{
         key: string
         view: FocusView | undefined
+        /** What a Travel on a phone framed: its step, not the player, chose this focus. */
+        travel?: TravelFrame
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
 
@@ -69,6 +80,33 @@
 
     function focusView(view: FocusView) {
         focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
+    }
+
+    // Travel on a phone frames the lit map while the step is open (upright one region, sideways
+    // every site), and gives back the view it found when the step closes, unless a pan or zoom
+    // by hand took the view over first.
+    const layout = new PhoneLayout()
+    let travelOnMap = $derived(
+        layout.phone && oath.siteOffers.some((offer) => offer.intent === 'travel')
+    )
+
+    function frameTravel(frame: TravelFrame) {
+        if (!wrapper) return
+        const restore =
+            boardFocus?.travel !== undefined ? boardFocus.restore : wrapper.captureView()
+        boardFocus = { key: `travel:${frame}`, view: undefined, travel: frame, restore }
+        wrapper.focusRect(frame === 'all' ? allSitesFrameRect() : travelFrameRect(frame), {
+            animate: true,
+            maxScale: FOCUS_MAX_SCALE,
+            padding: FOCUS_PADDING
+        })
+    }
+
+    function releaseTravelFrame() {
+        if (boardFocus?.travel === undefined) return
+        const { restore } = boardFocus
+        boardFocus = undefined
+        restore({ animate: true })
     }
 
     let windowHeight = $state(0)
@@ -193,6 +231,16 @@
                     <Board />
                     {#snippet overlay()}
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
+                        {#if travelOnMap}
+                            {#key layout.upright}
+                                <TravelFraming
+                                    upright={layout.upright}
+                                    framed={boardFocus?.travel}
+                                    onframe={frameTravel}
+                                    onrelease={releaseTravelFrame}
+                                />
+                            {/key}
+                        {/if}
                         <VisionSeenOverlay />
                     {/snippet}
                     {#snippet toolbar()}

@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
+    import MagnifierGlass from '$lib/components/MagnifierGlass.svelte'
     import { cardPreview, type CardPreview } from '$lib/model/cardPreview.svelte.js'
 
     // Rule 4 — a card offered in a panel is chosen by a tap; its corner magnifier enlarges it.
@@ -21,10 +22,7 @@
         cardPreview.toggle(owner, () => preview)
     }}
 >
-    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.6">
-        <circle cx="10" cy="10" r="6.5"></circle>
-        <path d="M15 15l6 6" stroke-linecap="round"></path>
-    </svg>
+    <MagnifierGlass />
 </button>
 
 <style>

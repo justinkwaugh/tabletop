@@ -16,6 +16,7 @@
     import SearchMenu from '$lib/components/SearchMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
     import TravelMenu from '$lib/components/TravelMenu.svelte'
+    import TravelWays from '$lib/components/TravelWays.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
     import CitizenshipPanel from '$lib/components/CitizenshipPanel.svelte'
     import ConsentPanel from '$lib/components/ConsentPanel.svelte'
@@ -27,9 +28,11 @@
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import {
         MINOR_TARGETED_ACTIONS,
         MODIFIABLE_ACTIONS,
+        TRAVEL_ON_THE_MAP_PROMPT,
         actionPrompt
     } from '$lib/model/actionCatalogue.js'
 
@@ -49,6 +52,13 @@
                   adviserChosen: gameSession.adviserCardId !== undefined
               })
     )
+
+    // On a phone Travel picks on the lit map: the panel keeps one line, or the picked site's ways.
+    const layout = new PhoneLayout()
+    let travelOnMap = $derived(
+        chosen === ActionType.Travel && layout.phone && gameSession.travelRows.length > 0
+    )
+    let travelWaysOpen = $derived(travelOnMap ? gameSession.travelWaysOpen : undefined)
 
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
@@ -104,9 +114,19 @@
                 <CitizenshipPanel />
             </div>
         {:else if chosen}
-            <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
-                <span class="text-sm"><TokenText text={prompt ?? ''} /></span>
-            </div>
+            {#if travelWaysOpen}
+                <div class="mb-2">
+                    <TravelWays row={travelWaysOpen} />
+                </div>
+            {:else}
+                <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
+                    <span class="text-sm"
+                        ><TokenText
+                            text={(travelOnMap ? TRAVEL_ON_THE_MAP_PROMPT : prompt) ?? ''}
+                        /></span
+                    >
+                </div>
+            {/if}
 
             {#if MODIFIABLE_ACTIONS.has(chosen)}
                 <ModifierPicker action={chosen} />
@@ -141,7 +161,7 @@
                 </div>
             {/if}
 
-            {#if chosen === ActionType.Travel && gameSession.travelRows.length > 0}
+            {#if chosen === ActionType.Travel && gameSession.travelRows.length > 0 && !travelOnMap}
                 <div class="mb-2">
                     <TravelMenu />
                 </div>

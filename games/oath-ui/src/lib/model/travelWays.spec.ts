@@ -147,3 +147,52 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules', () => {
         expect(action.siteId).toBeUndefined()
     })
 })
+
+describe('Travel picked on the map, as a phone does (Choose a Travel destination)', () => {
+    it('a lit site with one way to pay travels at once', async () => {
+        const { session, sent } = travelling({ supply: 3 }, { c1: [], c2: [] })
+        await session.pickTravelSite('c2')
+        const action = sent.mock.calls[0][0]
+        assert(isTravel(action), 'a Travel is sent')
+        expect(action.siteId).toBe('c2')
+    })
+
+    it('a lit site with two ways opens its ways and sends nothing; the map stays lit, the site marked picked', async () => {
+        const { session, sent } = travelling({ supply: 3 }, { c1: [], c2: [WAY_STATION] })
+        const lit = session.selectableSites
+        await session.pickTravelSite('c2')
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.travelWaysOpen?.slotId).toBe('c2')
+        expect(session.travelWaysOpen?.ways.map((w) => w.discountTolls)).toEqual([[], [WAY_STATION]])
+        expect(session.selectableSites).toEqual(lit)
+        const picked = session.siteOffers.filter((offer) => offer.intent === 'travel' && offer.picked)
+        expect(picked.map((offer) => offer.slotId)).toEqual(['c2'])
+        expect(session.travelRows.map((row) => row.slotId)).toEqual(lit)
+
+        const [, wayStation] = session.travelWaysOpen?.ways ?? []
+        await session.travelTo('c2', wayStation)
+        const action = sent.mock.calls[0][0]
+        assert(isTravel(action), 'a Travel is sent')
+        expect(action.tolls).toEqual([WAY_STATION])
+    })
+
+    it('Undo closes the ways and leaves Travel chosen; a newly shown state closes them', async () => {
+        const { session } = travelling({ supply: 3 }, { c1: [], c2: [WAY_STATION] })
+        await session.pickTravelSite('c2')
+        await session.undo()
+        expect(session.travelWaysOpen).toBeUndefined()
+        expect(session.selection.action).toBe(ActionType.Travel)
+
+        await session.pickTravelSite('c2')
+        session.beforeNewState()
+        expect(session.travelWaysOpen).toBeUndefined()
+    })
+
+    it('a site the engine does not accept is neither sent nor opened', async () => {
+        const { session, sent } = travelling({ supply: 0 }, { c1: [], c2: [] })
+        expect(session.selectableSites).not.toContain('h2')
+        await session.pickTravelSite('h2')
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.travelWaysOpen).toBeUndefined()
+    })
+})

@@ -19,7 +19,15 @@ import {
 export type BoardPick = { sites: string[]; label: string }
 export type SiteOffer =
     | { slotId: string; intent: 'start'; label: string }
-    | { slotId: string; intent: 'travel'; cost: number | undefined; toll: string }
+    | {
+          slotId: string
+          intent: 'travel'
+          cost: number | undefined
+          toll: string
+          ways: TravelWay[]
+          /** Its ways to pay are open in the panel, as a phone's map pick opens them. */
+          picked: boolean
+      }
     | { slotId: string; intent: 'target'; targeted: boolean }
     | { slotId: string; intent: 'moveWarbands' }
 

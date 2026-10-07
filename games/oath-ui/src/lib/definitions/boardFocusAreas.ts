@@ -72,6 +72,20 @@ export function siteFocusRect(slotId: string): BoundingBox {
     )
 }
 
+const ALL_SITES = union(Object.values(SITE_SLOT_RECTS))
+
+/** Travel on a phone held upright: a region's sites, from the top site row to the bottom one, so
+ *  every region is framed at one zoom (the Cradle has two sites, the others three). */
+export function travelFrameRect(region: Region): BoundingBox {
+    const column = union(mapSlotsFor(region).flatMap((slotId) => present(slotId, SITE_SLOT_RECTS)))
+    return padded({ x: column.x, y: ALL_SITES.y, width: column.width, height: ALL_SITES.height })
+}
+
+/** Travel on a phone held sideways: every site at once. */
+export function allSitesFrameRect(): BoundingBox {
+    return padded(ALL_SITES)
+}
+
 export function focusRect(view: Exclude<FocusView, 'full'>): BoundingBox {
     return view === 'banks' ? banksFocusRect() : regionFocusRect(view)
 }

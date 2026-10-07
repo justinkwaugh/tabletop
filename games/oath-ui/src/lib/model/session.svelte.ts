@@ -860,7 +860,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             return ontoSite && siteId ? [siteId] : []
         }
         if (this.selection.action !== ActionType.Travel) return []
-        if (this.selection.value('site') !== undefined) return []
+        // A destination whose ways are open stays lit with the rest: a tap on another moves the pick.
         return HydratedTravel.legalDestinations(this.gameState, playerId, this.modifiers.declared)
     }
 
@@ -879,7 +879,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 }))
             case ActionType.MoveWarbands:
                 return sites.map((slotId) => ({ slotId, intent: 'moveWarbands' }))
-            case ActionType.Travel:
+            case ActionType.Travel: {
+                const open = this.selection.value('site')
                 return sites.map((slotId) => {
                     const ways = this.travelWaysTo(slotId)
                     return {
@@ -892,9 +893,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                             { kind: 'travel', toSiteId: slotId },
                             (id) => this.getPlayerName(id),
                             ways
-                        )
+                        ),
+                        ways,
+                        picked: slotId === open
                     }
                 })
+            }
             default:
                 return []
         }
@@ -1204,12 +1208,31 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    // R-5.6, R-7.1.4 — every destination with its ways to pay, unless one is already staged.
+    // R-5.6, R-7.1.4 — every destination with its ways to pay.
     get travelRows(): TravelRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return []
-        if (this.selection.value('site') !== undefined || this.shroudedWoodChooser) return []
+        if (this.shroudedWoodChooser) return []
         return travelRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /** R-11.12 — the destination a map pick opened, with its ways to pay, while it is still offered. */
+    get travelWaysOpen(): TravelRow | undefined {
+        const siteId = this.selection.value('site')
+        if (siteId === undefined) return undefined
+        return this.travelRows.find((row) => row.slotId === siteId)
+    }
+
+    /**
+     * A lit site tapped on the map, as a phone picks Travel: with one way to pay it travels at
+     * once; with more, its ways open in the panel, a manual pick that Back and Undo unwind.
+     */
+    async pickTravelSite(siteId: string): Promise<void> {
+        if (!this.selectableSites.includes(siteId)) return
+        const ways = this.travelWaysTo(siteId)
+        const [only] = ways
+        if (ways.length === 1 && only) await this.travelTo(siteId, only)
+        else if (ways.length > 1) this.selection.set('site', siteId)
     }
 
     async travelTo(siteId: string, way: TravelTerms): Promise<void> {

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import type * as TableFixture from '../src/lib/testing/tableFixture.js'
 
 type Fixture = typeof TableFixture
@@ -1008,6 +1008,239 @@ test('scenario 4: Travel lists every affordable destination under its region, a 
     await expect(cradle).toHaveCount(0)
 })
 
+const destinations = (page: Page, region: string) =>
+    page.getByRole('list', { name: `Destinations in the ${region}` })
+
+type Box = { x: number; y: number; width: number; height: number }
+
+const boxesOf = (locator: Locator): Promise<Box[]> =>
+    locator.evaluateAll((elements) =>
+        elements.map((element) => {
+            const box = element.getBoundingClientRect()
+            return { x: box.x, y: box.y, width: box.width, height: box.height }
+        })
+    )
+
+async function boxOf(locator: Locator): Promise<Box> {
+    const [box] = await boxesOf(locator)
+    if (!box) throw Error('Nothing to measure')
+    return box
+}
+
+const inside = (inner: Box, outer: Box) =>
+    inner.x >= outer.x - 0.5 &&
+    inner.y >= outer.y - 0.5 &&
+    inner.x + inner.width <= outer.x + outer.width + 0.5 &&
+    inner.y + inner.height <= outer.y + outer.height + 0.5
+
+const siteAt = (page: Page, slotId: string) => page.locator(`.site[data-slot="${slotId}"]`)
+const siteCard = (page: Page, slotId: string) => siteAt(page, slotId).locator('.board-card')
+const siteMagnifier = (page: Page, slotId: string) =>
+    siteAt(page, slotId).getByRole('button', { name: /^Enlarge / })
+const boardView = (page: Page) => page.locator('.scaling-surface')
+const regionChips = (page: Page) => page.getByRole('group', { name: 'Frame the map on a region' })
+const regionChip = (page: Page, region: string) =>
+    regionChips(page).getByRole('button', { name: new RegExp(`^${region}:`) })
+const travelPrompt = (page: Page) => grid(page).getByText('Tap a lit site to travel there.')
+
+const litSlots = (page: Page) =>
+    page
+        .locator('.site')
+        .filter({ has: page.locator('.board-card.offered') })
+        .evaluateAll((sites) => sites.map((site) => site.getAttribute('data-slot') ?? '').sort())
+
+async function onScreen(page: Page, locator: Locator): Promise<boolean> {
+    return inside(await boxOf(locator), await boxOf(boardView(page)))
+}
+
+async function chooseTravelOnThePhone(page: Page) {
+    await tile(page, 'Travel').last().tap()
+    await expect(travelPrompt(page)).toBeVisible()
+}
+
+/** Choose a Travel destination: on a phone the lit map is the menu. */
+test.describe('scenario 4 on a phone held upright', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+    test('the panel is one line and only the legal destinations are lit, each with its cost wholly on its card', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await chooseTravelOnThePhone(page)
+        await expect(destinations(page, 'Cradle')).toHaveCount(0)
+        await expect(stepBacks(page)).toHaveCount(0)
+
+        const legal = await call(page, 'legalTravelDestinations')
+        expect(legal.length).toBeGreaterThan(1)
+        expect(await litSlots(page)).toEqual([...legal].sort())
+        for (const slotId of legal) {
+            const chip = await boxOf(siteAt(page, slotId).locator('.travel-cost'))
+            expect(inside(chip, await boxOf(siteCard(page, slotId)))).toBe(true)
+        }
+    })
+
+    test('Travel opens framed on the pawn’s region; a region chip reframes the map and chooses nothing', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await chooseTravelOnThePhone(page)
+        const legal = await call(page, 'legalTravelDestinations')
+        const count = (region: string) =>
+            legal.filter((slotId) => slotId.startsWith(`slot.${region.toLowerCase()}.`)).length
+        for (const region of ['Cradle', 'Provinces', 'Hinterland']) {
+            await expect(regionChip(page, region)).toHaveAccessibleName(`${region}: ${count(region)} to travel to`)
+        }
+        await expect(regionChip(page, 'Cradle')).toHaveAttribute('aria-pressed', 'true')
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.cradle.1'))).toBe(true)
+        expect(await onScreen(page, siteCard(page, 'slot.provinces.1'))).toBe(false)
+        const chipRow = await boxOf(regionChips(page))
+        const card = await boxOf(siteCard(page, 'slot.cradle.1'))
+        expect(chipRow.y + chipRow.height).toBeLessThan(card.y)
+
+        await regionChip(page, 'Provinces').tap()
+        await expect(regionChip(page, 'Provinces')).toHaveAttribute('aria-pressed', 'true')
+        await expect(regionChip(page, 'Cradle')).toHaveAttribute('aria-pressed', 'false')
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.provinces.1'))).toBe(true)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.siteOf.me).toBe('slot.cradle.0')
+        expect(facts.staged).toBe('travel')
+        await expect(travelPrompt(page)).toBeVisible()
+    })
+
+    test('a tap on a lit site with one way to pay travels there', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await chooseTravelOnThePhone(page)
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.cradle.1'))).toBe(true)
+        await siteCard(page, 'slot.cradle.1').tap()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        await expect(boardOffers(page)).toHaveCount(0)
+    })
+
+    test('a lit site’s corner magnifier, 28 px on screen, opens its card and travels nowhere', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await chooseTravelOnThePhone(page)
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.cradle.1'))).toBe(true)
+        const magnifier = siteMagnifier(page, 'slot.cradle.1')
+        const face = await boxOf(magnifier.locator('.site-magnifier__face'))
+        expect(face.width).toBeCloseTo(28, 0)
+        expect(face.height).toBeCloseTo(28, 0)
+        const card = await boxOf(siteCard(page, 'slot.cradle.1'))
+        expect(face.x).toBeLessThan(card.x)
+        expect(face.y).toBeGreaterThan(card.y)
+        expect(face.y).toBeLessThan(card.y + 6)
+
+        await magnifier.tap()
+        await expect(preview(page)).toBeVisible()
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+        await page.touchscreen.tap(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+        await expect(travelPrompt(page)).toBeVisible()
+    })
+
+    test('a tap on a site with two ways to pay opens the ways above the map and travels nowhere; a way’s button travels', async ({ page }) => {
+        await openTable(page, 'leavingBuriedGiant')
+        await chooseTravelOnThePhone(page)
+        const legal = await call(page, 'legalTravelDestinations')
+        const chip = siteAt(page, 'slot.cradle.1').locator('.travel-cost')
+        await expect(chip).toHaveText('1 or 0+')
+        await expect(chip.getByRole('img', { name: 'secret' })).toBeVisible()
+        const hinterlandChip = siteAt(page, 'slot.hinterland.0').locator('.travel-cost')
+        await expect(hinterlandChip).toHaveText('0+')
+        await expect(hinterlandChip.getByRole('img', { name: 'secret' })).toBeVisible()
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.cradle.1'))).toBe(true)
+        await siteCard(page, 'slot.cradle.1').tap()
+
+        const supply = grid(page).getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
+        const flip = grid(page).getByRole('button', {
+            name: /^Travel to .+: spend no Supply, flip a secret facedown$/
+        })
+        await expect(supply).toHaveText('1 Supply')
+        await expect(flip).toBeVisible()
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+        expect(await litSlots(page)).toEqual([...legal].sort())
+        const [one, other] = [await boxOf(supply), await boxOf(flip)]
+        expect(other.y).toBeCloseTo(one.y, 0)
+        expect(other.x).toBeGreaterThan(one.x + one.width - 1)
+        expect(other.width).toBeCloseTo(one.width, 0)
+
+        await undoButton(page).tap()
+        await expect(supply).toHaveCount(0)
+        await expect(travelPrompt(page)).toBeVisible()
+        expect(await litSlots(page)).toEqual([...legal].sort())
+
+        await siteCard(page, 'slot.cradle.1').tap()
+        await flip.tap()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+    })
+})
+
+test.describe('scenario 4 on a phone held sideways', () => {
+    test.use({ viewport: { width: 812, height: 375 }, hasTouch: true })
+
+    test('every lit site is framed and no region chip shows; two ways open beside the site on one row', async ({ page }) => {
+        await openTable(page, 'leavingBuriedGiant')
+        await chooseTravelOnThePhone(page)
+        await expect(regionChips(page)).toHaveCount(0)
+        const legal = await call(page, 'legalTravelDestinations')
+        for (const slotId of legal) {
+            await expect.poll(() => onScreen(page, siteCard(page, slotId))).toBe(true)
+        }
+
+        await siteCard(page, 'slot.provinces.1').tap()
+        const ways = grid(page).getByRole('button', { name: /^Travel to / })
+        await expect(ways).toHaveCount(2)
+        const [one, other] = await boxesOf(ways)
+        expect(other.y).toBeCloseTo(one.y, 0)
+        const picture = await boxOf(grid(page).locator('img').first())
+        expect(picture.x + picture.width).toBeLessThan(one.x)
+        expect(Math.abs(picture.y + picture.height / 2 - (one.y + one.height / 2))).toBeLessThan(picture.height / 2)
+    })
+})
+
+test('scenario 4: on a desktop the regions stand side by side as columns in the board’s order, each region’s destinations stacked, costs in gold', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    await expect(regionChips(page)).toHaveCount(0)
+    const [cradle, provinces, hinterland] = [
+        await boxOf(destinations(page, 'Cradle')),
+        await boxOf(destinations(page, 'Provinces')),
+        await boxOf(destinations(page, 'Hinterland'))
+    ]
+    expect(provinces.y).toBeCloseTo(cradle.y, 0)
+    expect(hinterland.y).toBeCloseTo(cradle.y, 0)
+    expect(provinces.x).toBeGreaterThan(cradle.x + cradle.width - 1)
+    expect(hinterland.x).toBeGreaterThan(provinces.x + provinces.width - 1)
+
+    const [top, middle, bottom] = await boxesOf(destinations(page, 'Provinces').getByRole('listitem'))
+    expect(middle.x).toBeCloseTo(top.x, 0)
+    expect(bottom.x).toBeCloseTo(top.x, 0)
+    expect(middle.y).toBeGreaterThan(top.y + top.height - 1)
+    expect(bottom.y).toBeGreaterThan(middle.y + middle.height - 1)
+
+    const go = destinations(page, 'Cradle').getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
+    // Rule G: the cost is in the accent, amber-300.
+    await expect(go.getByText('1 Supply')).toHaveCSS('color', 'oklch(0.879 0.169 91.605)')
+    const [art] = await boxesOf(destinations(page, 'Cradle').locator('img'))
+    expect(art.width / art.height).toBeCloseTo(1313 / 1016, 1)
+})
+
+test('scenario 4: on a desktop a destination with two ways to pay keeps its tile, with a button per way under the name, each as wide as the wider label', async ({ page }) => {
+    await openTable(page, 'leavingBuriedGiant')
+    await tile(page, 'Travel').click()
+    const item = destinations(page, 'Provinces').getByRole('listitem').first()
+    const ways = item.getByRole('button')
+    await expect(ways).toHaveCount(2)
+    await expect(ways.first()).toHaveAccessibleName(/^Travel to .+: spend 2 Supply$/)
+    const flip = ways.last()
+    await expect(flip).toHaveAccessibleName(/^Travel to .+: spend no Supply, flip a secret facedown$/)
+    const [supply, flipped] = await boxesOf(ways)
+    expect(flipped.x).toBeCloseTo(supply.x, 0)
+    expect(flipped.y).toBeGreaterThan(supply.y + supply.height - 1)
+    expect(flipped.width).toBeCloseTo(supply.width, 0)
+    const text = await boxOf(item.locator('.tile__text'))
+    expect(flipped.x + flipped.width).toBeLessThanOrEqual(text.x + text.width + 0.5)
+
+    await flip.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.provinces.0')
+})
+
 test('scenario 49: Search lists each source it can draw from, a button draws', async ({ page }) => {
     await openTable(page, 'actPhase')
     await tile(page, 'Search').click()
@@ -1868,9 +2101,10 @@ async function stepColumnHeight(page: Page, heights: number[]) {
     }
 }
 
-async function chooseTravel(page: Page) {
-    await tile(page, 'Travel').last().click()
-    await expect(page.getByRole('list', { name: 'Destinations in the Cradle' }).last()).toBeVisible()
+/** A taller step than the grid on a phone: the powers list (Travel picks on the map there). */
+async function choosePowers(page: Page) {
+    await usePower(page).last().click()
+    await expect(page.getByText('Choose a power to use.').last()).toBeVisible()
     await waitFrames(page, 8)
 }
 
@@ -1897,26 +2131,28 @@ test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on
 
     test('a step with different content refits without an unscaled frame', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 620 })
-        await openTable(page, 'actPhase')
-        await expect(tile(page, 'Travel')).toBeVisible()
+        await openTable(page, 'cardsOpenTravel')
+        await expect(usePower(page)).toBeVisible()
+        await panelImagesLoaded(page)
         await recordPanel(page)
-        await chooseTravel(page)
+        await choosePowers(page)
+        await panelImagesLoaded(page)
         const record = await panelRecord(page)
         expectFittedOnEveryFrame(record)
-        expect(record.frames[0].scale - record.frames[record.frames.length - 1].scale).toBeGreaterThan(0.3)
+        expect(record.frames[0].scale - record.frames[record.frames.length - 1].scale).toBeGreaterThan(0.03)
     })
 
     test('in full screen, the window’s height changing and a new step never draw the panel unscaled', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 580 })
-        await openTable(page, 'actPhase')
-        await expect(tile(page, 'Travel')).toBeVisible()
+        await openTable(page, 'cardsOpenTravel')
+        await expect(usePower(page)).toBeVisible()
         await recordPanel(page)
         await page.getByRole('button', { name: 'Enter full screen' }).click()
         await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
         expect(await page.locator('.fit__inner').last().evaluate((inner) => inner.closest('.fullscreen-panel') !== null)).toBe(true)
         await panelImagesLoaded(page)
         await stepColumnHeight(page, [560, 540, 520, 540, 560, 580])
-        await chooseTravel(page)
+        await choosePowers(page)
         const record = await panelRecord(page)
         expectFittedOnEveryFrame(record)
         expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(3)
