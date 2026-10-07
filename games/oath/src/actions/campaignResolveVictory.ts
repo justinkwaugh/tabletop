@@ -26,7 +26,7 @@ import { addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import { seizeBanner } from '../util/seize.js'
 import { commitHiddenOutputs, takeRelicFromVault, type SiteFlip } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
-import { moveRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
+import { releaseRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
 import { countOf, describeWarbands } from '../util/warbands.js'
 import { WarbandOwner } from '../model/warbandCounts.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
@@ -210,7 +210,8 @@ export class HydratedCampaignResolveVictory
 
         for (const target of campaign.targets) {
             if (target.kind === CampaignTargetKind.Relic && defender) {
-                moveRelic(state, defender.playerId, attacker.playerId, target.cardId)
+                releaseRelic(state, defender.playerId, target.cardId)
+                takeRelic(state, attacker.playerId, target.cardId)
                 relicsTaken.push(target.cardId)
             }
             if (target.kind === CampaignTargetKind.Banner) {

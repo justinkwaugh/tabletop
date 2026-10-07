@@ -14,7 +14,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Rusting Ray:** "you hold the Darkest Secret" is read as its user alone, not the user's side (R-10.28-H1).
 - **Book Burning:** leaves facedown secrets; its Q&A burns them face up or down.
 - **Sticky Fire:** takes effect over Billowing Fog (R-9.2).
-- **The Grand Scepter:** one received in an exchange is locked for the turn; its Q&A lets it be used.
 - **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Gambling Hall:** the favor bank is chosen before the roll.
 - **Witch's Bargain:** deals with one player per use; the Q&A allows several.

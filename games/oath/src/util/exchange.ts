@@ -16,7 +16,7 @@ import {
     countsTowardAdviserLimit,
     effectiveAdviserLimit
 } from './continuous.js'
-import { moveRelic } from './relics.js'
+import { giveRelic } from './relics.js'
 import type { CitizenshipTransfer } from '../model/citizenship.js'
 import { countOf } from './warbands.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
@@ -203,7 +203,7 @@ function applyTransfer(
     const secrets = transfer.secrets ?? 0
     from.secrets -= secrets
     to.secrets += secrets
-    for (const cardId of transfer.relicCardIds ?? []) moveRelic(state, fromId, toId, cardId)
+    for (const cardId of transfer.relicCardIds ?? []) giveRelic(state, fromId, toId, cardId)
     for (const site of transfer.sites ?? []) {
         // R-10.8 — "old ruler moves warbands to board": all of theirs there.
         const onSite = warbandsAt(state, site.siteId)

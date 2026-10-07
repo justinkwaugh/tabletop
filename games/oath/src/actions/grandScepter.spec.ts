@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { PlayerStatus } from '../model/oathEnums.js'
-import { testPlayer, testState } from '../testing/fixture.js'
+import { openTurn, testPlayer, testState } from '../testing/fixture.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { cardPower, PowerTiming } from '../data/cardPowers.js'
 import { HydratedLetPeek, LetPeekSubjectKind } from '../actions/letPeek.js'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { HydratedOfferCitizenship } from '../actions/offerCitizenship.js'
+import { canUseGrandScepter } from '../util/imperial.js'
+import { PowerQuestionKind } from '../model/question.js'
+import { PowerChoiceKind } from '../util/powerChoice.js'
+import { CampaignTargetKind } from '../model/campaign.js'
+import { actionPowerUse, siteTarget } from '../testing/choices.js'
+import { rulerTable } from '../testing/tables.js'
+import { ATTACKER, DEFENDER, answerQuestion, campaign, finishCampaign } from '../testing/steps.js'
+import { ongoingCampaign } from '../testing/required.js'
 import '../powers/index.js'
 
 describe("the Grand Scepter's continuous lockout is dead while its three permissions are live", () => {
@@ -113,5 +121,40 @@ describe('Scepter double delivery: the same act is reachable through two doors w
             1
         )
         expect(holderHasAccess).toMatch(/not implemented yet/)
+    })
+})
+
+describe('The Grand Scepter given in an exchange is not taken (its Q&A: "Take and give are unique keywords")', () => {
+    const TINKERS_FAIR = 'denizen.hearth.tinkers-fair'
+
+    it("received through Tinker's Fair on its new holder's turn, it can be used at once", () => {
+        const s = rulerTable([TINKERS_FAIR], [], { other: { relicIds: [GRAND_SCEPTER_ID] } })
+        actionPowerUse('ruler', TINKERS_FAIR, [
+            { kind: PowerChoiceKind.Exchange, withPlayerId: 'other', terms: { fromProposer: { favor: 1 }, fromCounterparty: { relicCardIds: [GRAND_SCEPTER_ID] } } }
+        ]).apply(s)
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(s.getPlayerState('ruler').relicIds).toEqual([GRAND_SCEPTER_ID])
+        expect(s.grandScepterTakenOnTurnStart).toBeUndefined()
+        expect(canUseGrandScepter(s, 'ruler')).toBe(true)
+    })
+
+    it('taken from a defeated defender, it is still locked for the turn', () => {
+        for (let seed = 1; seed < 200; seed++) {
+            const s = testState(
+                [
+                    testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', warbandsOnBoard: { [ATTACKER]: 10 } }),
+                    testPlayer({ playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', relicIds: [GRAND_SCEPTER_ID] })
+                ],
+                { warbandsBySite: { c1: { [DEFENDER]: 1 } }, prng: { seed, invocations: 0 } }
+            )
+            openTurn(s, ATTACKER)
+            campaign({ targets: [siteTarget('c1'), { kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }], attackDice: 10 }).apply(s)
+            if (ongoingCampaign(s).swords <= ongoingCampaign(s).defense) continue
+            finishCampaign(s)
+            expect(s.getPlayerState(ATTACKER).relicIds).toEqual([GRAND_SCEPTER_ID])
+            expect(canUseGrandScepter(s, ATTACKER)).toBe(false)
+            return
+        }
+        throw new Error('no seed gave the attacker the victory')
     })
 })

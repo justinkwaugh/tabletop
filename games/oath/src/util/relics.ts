@@ -24,7 +24,7 @@ export function takeNotes(notes: readonly string[]): string {
     return notes.length > 0 ? ` (${notes.join('; ')})` : ''
 }
 
-/** A take from another player; a relic given in an exchange is `moveRelic`. */
+/** A take from another player; a relic given in an exchange is `giveRelic`. */
 export function takeRelicsFrom(
     state: HydratedOathGameState,
     fromId: string,
@@ -40,14 +40,15 @@ export function releaseRelic(state: HydratedOathGameState, playerId: string, car
     player.relicIds = player.relicIds.filter((id) => id !== cardId)
 }
 
-export function moveRelic(
+/** R-10.8, R-10.11 — the Grand Scepter's Q&A: "Take and give are unique keywords", so a given Scepter is usable at once. */
+export function giveRelic(
     state: HydratedOathGameState,
     fromId: string,
     toId: string,
     cardId: string
 ): void {
     releaseRelic(state, fromId, cardId)
-    takeRelic(state, toId, cardId)
+    state.getPlayerState(toId).relicIds.push(cardId)
 }
 
 /** R-2.8.2 — the slot leaves the site with its relic. */
