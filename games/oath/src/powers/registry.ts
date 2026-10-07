@@ -22,6 +22,8 @@ export interface ModifierParticulars {
     cardId?: string
     /** `TradeOption`'s value. */
     tradeOption?: string
+    /** Master of Disguise — the player whose advisers a Trade acts with. */
+    advisersOf?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string

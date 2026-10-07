@@ -1,6 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import { regionOfPawn } from './pawn.js'
 import { gainFavorFromBank } from './favor.js'
+import { cannotGainFavorFromTrade } from './continuous.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PlayerStatus, Region } from '../model/oathEnums.js'
@@ -91,6 +93,12 @@ function gainOneFavor(ctx: EffectContext): string | undefined {
     const cardId = ctx.particulars?.cardId
     const suit = cardId ? suitOf(cardId) : undefined
     if (!suit) return undefined
+    if (
+        isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2) &&
+        cannotGainFavorFromTrade(ctx.state, ctx.playerId, ctx.particulars?.advisersOf)
+    ) {
+        return 'Careless: you cannot gain favor from Trade (Vow of Poverty)'
+    }
     const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
     return gained > 0 ? 'Careless: gained 1 favor' : 'Careless: the bank had no favor to give'
 }

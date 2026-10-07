@@ -123,7 +123,11 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             this.tolls
         )
         const { cost, active } = plan
-        const particulars = { cardId: this.cardId, tradeOption: this.option }
+        const particulars = {
+            cardId: this.cardId,
+            tradeOption: this.option,
+            advisersOf: disguisedAs(ActionType.Trade, this.modifiers)
+        }
 
         const suit = suitOf(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)

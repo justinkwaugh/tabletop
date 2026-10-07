@@ -9,6 +9,8 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Battle-plan costs:** in a game created before revision 3 (R-X.4) each plan's cost is checked alone against the untouched holding, so a side can declare plans it cannot pay in full: the payment throws, or Gleaming Armor's added secret leaves its payer below zero.
 - **Vow of Renewal:** in a game created before revision 5 (R-X.4) its holder takes the two favor a Seize burns off the People's Favor; R-10.4-H1 burns them to the shared bank.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
+- **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets; the Vow's Q&A withholds it.
+- **Vow of Poverty with Secret Signal:** on a Trade for secrets under Careless, the Vow's holder still gains Secret Signal's one more favor; the Vow ("You cannot gain favor from Trade") withholds it, as it withholds Careless's from revision 5.
 - **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
 - **Giant Python:** counts the Oathkeeper's dice and ignores a Chancellor's ally holding Python; its Q&As say otherwise.
 - **Rusting Ray:** "you hold the Darkest Secret" is read as its user alone, not the user's side (R-10.28-H1).
