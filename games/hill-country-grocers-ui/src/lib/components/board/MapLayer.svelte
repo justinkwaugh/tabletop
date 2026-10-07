@@ -18,11 +18,13 @@
 
     const gameSession = getGameSession()
 
-    const DEVELOPMENT_SIZE = 22
-    const DEVELOPMENT_STEP = 24
+    const DEVELOPMENT_SIZE = 20
+    const DEVELOPMENT_WIDTH = DEVELOPMENT_SIZE * 0.7
+    const DEVELOPMENT_GAP = 6
+    const DOT_RADIUS = 9
+    const DOT_GAP = 8
+    const CITY_ROW_Y = -34
     const STORE_SIZE = 24
-    // Moves a dot and its lone development slot to the hex's centre line.
-    const SINGLE_SLOT_SHIFT = 24
 
     const chosenKeys = $derived(new Set(gameSession.chosenHexes.map(hexKey)))
     const targetKeys = $derived(new Set(gameSession.hexTargets.map(hexKey)))
@@ -60,7 +62,7 @@
             return {
                 ...place,
                 center,
-                rowX: center.x + (capacity === 1 ? SINGLE_SLOT_SHIFT : 0),
+                ...cityRow(center.x, capacity),
                 markers: gameSession.gameState.markersIn(place.id),
                 capacity,
                 target: gameSession.cityTargets.includes(place.id),
@@ -75,6 +77,23 @@
             return 4
         }
         return count >= 3 ? 8 : 30
+    }
+
+    // A city's dot and development slots form one row, centred in the hex.
+    function cityRow(centerX: number, capacity: number) {
+        const rowWidth =
+            DOT_RADIUS * 2 +
+            DOT_GAP +
+            capacity * DEVELOPMENT_WIDTH +
+            (capacity - 1) * DEVELOPMENT_GAP
+        const rowLeft = centerX - rowWidth / 2
+        const firstSlot = rowLeft + DOT_RADIUS * 2 + DOT_GAP + DEVELOPMENT_WIDTH / 2
+        return {
+            rowLeft,
+            rowWidth,
+            dotX: rowLeft + DOT_RADIUS,
+            slotX: (slot: number) => firstSlot + slot * (DEVELOPMENT_WIDTH + DEVELOPMENT_GAP)
+        }
     }
 
     function storeX(index: number, count: number, centerX: number): number {
@@ -98,16 +117,16 @@
             class:major={place.tier === CityTier.Black}>{place.name}</text
         >
         <circle
-            cx={place.rowX - 35}
-            cy={place.center.y - 36}
-            r="10"
+            cx={place.dotX}
+            cy={place.center.y + CITY_ROW_Y}
+            r={DOT_RADIUS}
             fill={TIER_FILL[place.tier]}
             class="dot"
         />
         {#each Array.from({ length: place.capacity }, (_, index) => index) as slot (slot)}
             <Development
-                x={place.rowX - 14 + slot * DEVELOPMENT_STEP}
-                y={place.center.y - 37}
+                x={place.slotX(slot)}
+                y={place.center.y + CITY_ROW_Y}
                 size={DEVELOPMENT_SIZE}
                 built={slot < place.markers}
             />
@@ -156,9 +175,9 @@
             onkeydown={(event) => onKey(event, () => gameSession.clickCity(place.id))}
         >
             <rect
-                x={place.rowX - 51}
-                y={place.center.y - 54}
-                width={place.capacity * DEVELOPMENT_STEP + 46}
+                x={place.rowLeft - 7}
+                y={place.center.y + CITY_ROW_Y - 16}
+                width={place.rowWidth + 14}
                 height="32"
                 rx="10"
                 class="ring"

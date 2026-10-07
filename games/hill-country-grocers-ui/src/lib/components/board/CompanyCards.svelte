@@ -15,9 +15,13 @@
     const gameSession = getGameSession()
 
     const CONTENT_X = 16
-    const LOGO_WIDTH = 120
-    const LOGO_HEIGHT = 76
+    const LOGO_WIDTH = 100
+    const LOGO_HEIGHT = 64
     const SUPPLY_COLUMNS = 10
+    const SHARE_STEP = 44
+    const TIP_WIDTH = 372
+
+    let tipCompanyId = $state<CompanyId>()
 
     const choosableForBuild = $derived(
         gameSession.buildCompanyOptions.length > 1 ? gameSession.buildCompanyOptions : []
@@ -36,6 +40,7 @@
                 y: COMPANY_CARD_Y + index * (COMPANY_CARD_HEIGHT + COMPANY_CARD_GAP),
                 shares,
                 value: gameSession.gameState.value(company.id),
+                breakdown: valueLines(company.id),
                 perShare: gameSession.gameState.perShare(company.id),
                 supply: gameSession.gameState.supplyRemaining(company.id),
                 active: buildChoice || auctionChoice,
@@ -47,6 +52,25 @@
             }
         })
     )
+
+    function count(amount: number, singular: string, plural: string = `${singular}s`): string {
+        return `${amount} ${amount === 1 ? singular : plural}`
+    }
+
+    function valueLines(companyId: CompanyId): string[] {
+        const parts = gameSession.gameState.valueBreakdown(companyId)
+        const held = gameSession.gameState.company(companyId).owners.length
+        const developments = `${count(parts.developments, 'development')} × $${parts.developmentValue}`
+        const value =
+            parts.cityValue > 0
+                ? `Value: ${count(parts.cities, 'city', 'cities')} × $${parts.cityValue} + ${developments} = $${parts.total}`
+                : `Value: ${developments} = $${parts.total}`
+        const perShare =
+            held === 0
+                ? 'Per share: no shares held by players yet'
+                : `Per share: $${parts.total} ÷ ${count(held, 'share')} held = $${gameSession.gameState.perShare(companyId)} (rounded up)`
+        return [value, perShare]
+    }
 
     function activate(companyId: CompanyId, build: boolean) {
         if (build) {
@@ -65,7 +89,7 @@
 
     function supplyPosition(index: number) {
         return {
-            x: CONTENT_X + 112 + (index % SUPPLY_COLUMNS) * 19.5,
+            x: CONTENT_X + 120 + (index % SUPPLY_COLUMNS) * 17.5,
             y: 126 + Math.floor(index / SUPPLY_COLUMNS) * 19
         }
     }
@@ -84,7 +108,7 @@
     <image
         href={card.style.logo}
         x={COMPANY_CARD_WIDTH - 14 - LOGO_WIDTH}
-        y="52"
+        y="56"
         width={LOGO_WIDTH}
         height={LOGO_HEIGHT}
         preserveAspectRatio="xMidYMid meet"
@@ -95,19 +119,31 @@
     <text x={COMPANY_CARD_WIDTH - 14} y="43" class="treasury" fill={card.style.fill}
         >${card.state.treasury}</text
     >
-    <text x={CONTENT_X} y="58" class="stat"
-        >Value <tspan class="figure">${card.value}</tspan></text
+    <g
+        class="value"
+        role="button"
+        tabindex="0"
+        aria-label="Value ${card.value}. {card.breakdown.join(' ')}"
+        onmouseenter={() => (tipCompanyId = card.company.id)}
+        onmouseleave={() => (tipCompanyId = undefined)}
+        onfocus={() => (tipCompanyId = card.company.id)}
+        onblur={() => (tipCompanyId = undefined)}
     >
-    <text x={CONTENT_X + 116} y="58" class="stat"
+        <rect x={CONTENT_X - 4} y="40" width="96" height="26" class="value-hit" />
+        <text x={CONTENT_X} y="58" class="stat"
+            >Value <tspan class="figure">${card.value}</tspan> <tspan class="info">ⓘ</tspan></text
+        >
+    </g>
+    <text x={CONTENT_X + 108} y="58" class="stat"
         >Per share <tspan class="figure">${card.perShare}</tspan></text
     >
     {#each Array.from({ length: card.shares }, (_, index) => index) as share (share)}
         {@const owner = card.state.owners[share]}
-        <g transform="translate({CONTENT_X + share * 50} 70)">
+        <g transform="translate({CONTENT_X + share * SHARE_STEP} 70)">
             {#if owner}
                 <rect
-                    width="44"
-                    height="32"
+                    width="40"
+                    height="30"
                     rx="3"
                     class="certificate"
                     fill={gameSession.colors.getPlayerUiColor(owner)}
@@ -115,22 +151,22 @@
                 <rect
                     x="3"
                     y="3"
-                    width="38"
-                    height="26"
+                    width="34"
+                    height="24"
                     rx="2"
                     class="certificate-border"
                     stroke={gameSession.colors.getPlayerTextColorValue(owner)}
                 />
                 <text
-                    x="22"
-                    y="22.5"
+                    x="20"
+                    y="21"
                     class="certificate-initial"
                     fill={gameSession.colors.getPlayerTextColorValue(owner)}
                     >{gameSession.getPlayerName(owner).charAt(0).toUpperCase()}</text
                 >
             {:else}
-                <rect width="44" height="32" rx="3" class="share" stroke={card.style.fill} />
-                <text x="22" y="21" class="share-label">share</text>
+                <rect width="40" height="30" rx="3" class="share" stroke={card.style.fill} />
+                <text x="20" y="19" class="share-label">share</text>
             {/if}
         </g>
     {/each}
@@ -146,7 +182,7 @@
         {/if}
     {/each}
     {#if card.supply === 0}
-        <text x={CONTENT_X + 104} y="131" class="empty">none left</text>
+        <text x={CONTENT_X + 112} y="131" class="empty">none left</text>
     {/if}
 {/snippet}
 
@@ -168,6 +204,17 @@
     {:else}
         <g transform="translate({COMPANY_CARD_X} {card.y})" class="card">
             {@render cardContent(card)}
+        </g>
+    {/if}
+{/each}
+
+{#each cards as card (card.company.id)}
+    {#if tipCompanyId === card.company.id}
+        <g transform="translate({COMPANY_CARD_X + 8} {card.y + 70})" class="tip" aria-hidden="true">
+            <rect width={TIP_WIDTH} height="54" rx="7" class="tip-box" />
+            {#each card.breakdown as line, index (line)}
+                <text x="12" y={22 + index * 20} class="tip-line">{line}</text>
+            {/each}
         </g>
     {/if}
 {/each}
@@ -233,6 +280,41 @@
         fill: #6b4a28;
     }
 
+    .value {
+        cursor: help;
+        outline: none;
+    }
+
+    .value-hit {
+        fill: transparent;
+    }
+
+    .value:focus-visible .value-hit {
+        stroke: #c8961a;
+        stroke-width: 2;
+        rx: 4;
+    }
+
+    .info {
+        font-size: 12px;
+        fill: #8a6a45;
+    }
+
+    .tip {
+        pointer-events: none;
+    }
+
+    .tip-box {
+        fill: #2b1a10;
+        opacity: 0.94;
+    }
+
+    .tip-line {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 13.5px;
+        fill: #fdf3dc;
+    }
+
     .figure {
         font-size: 18px;
         font-weight: 700;
@@ -241,7 +323,7 @@
 
     .ability {
         font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 15px;
+        font-size: 13px;
         font-style: italic;
         fill: #5a3a28;
     }

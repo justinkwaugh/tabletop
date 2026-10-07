@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { CompanyId, MachineState } from '@tabletop/hill-country-grocers'
+    import { ActionSpace, CompanyId, MachineState } from '@tabletop/hill-country-grocers'
+    import { ACTION_RULES } from '$lib/utils/actionRules.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AuctionPanel from './AuctionPanel.svelte'
     import BidStepper from './BidStepper.svelte'
@@ -43,7 +44,7 @@
                     gameSession.buildCompany
                 ).treasury}):
                 {#if gameSession.chosenHexes.length === 0}
-                    choose a highlighted hex for up to {gameSession.maxCubes} stores. For each store, the company pays $2 to the bank and $1 to each grocer already there.
+                    choose a highlighted hex for up to {gameSession.maxCubes} stores.
                 {:else if gameSession.hexTargets.length > 0}
                     {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
                     now.
@@ -61,6 +62,7 @@
                 </div>
             {/if}
         {/if}
+        <p class="rules">{ACTION_RULES[ActionSpace.BuildNetwork]}</p>
     {:else if machineState === MachineState.DevelopingTowns}
         {#if gameSession.developCity}
             <p class="prompt">
@@ -95,6 +97,7 @@
                 >
             </div>
         {/if}
+        <p class="rules">{ACTION_RULES[ActionSpace.DevelopTowns]}</p>
     {:else if machineState === MachineState.StartingAuction}
         {#if gameSession.auctionCompany}
             <p class="prompt">
@@ -112,6 +115,7 @@
         {:else}
             <p class="prompt">Select the company share for auction: pick its card.</p>
         {/if}
+        <p class="rules">{ACTION_RULES[ActionSpace.AuctionShare]}</p>
     {:else}
         <WaitingView />
     {/if}
@@ -131,6 +135,15 @@
     .prompt {
         margin: 0;
         font-size: 16px;
+        text-align: center;
+    }
+
+    .rules {
+        margin: 0;
+        max-width: 60rem;
+        font-size: 13.5px;
+        font-style: italic;
+        color: #7a4a2e;
         text-align: center;
     }
 

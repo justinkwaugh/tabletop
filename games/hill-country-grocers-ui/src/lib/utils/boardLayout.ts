@@ -10,7 +10,7 @@ import { ACTION_SPACES, type ActionSpace } from '@tabletop/hill-country-grocers'
 
 export const ACTION_BOARD_Y = 12
 export const ACTION_BOX_WIDTH = 304
-export const ACTION_BOX_HEIGHT = 210
+export const ACTION_BOX_HEIGHT = 80
 
 export const HEX_RADIUS = 74
 const HEX_DIMENSIONS = circleDimensionsToElliptical({ radius: HEX_RADIUS }, HexOrientation.Flat)
@@ -68,17 +68,11 @@ export const ROUND_SLOT_HEIGHT = 44
 
 export const COMPANY_CARD_X = 980
 export const COMPANY_CARD_Y = 12
-export const COMPANY_CARD_WIDTH = 478
+export const COMPANY_CARD_WIDTH = 400
 export const COMPANY_CARD_HEIGHT = 182
 export const COMPANY_CARD_GAP = 8
 
 export const BOARD_WIDTH = COMPANY_CARD_X + COMPANY_CARD_WIDTH + 12
-export const DIVIDEND_RULES_RECT = {
-    x: 12,
-    y: MAP_RECT.y + MAP_RECT.height + 14,
-    width: MAP_RECT.width,
-    height: 82
-}
 
 const END_GAME_TOP = COMPANY_CARD_Y + 5 * (COMPANY_CARD_HEIGHT + COMPANY_CARD_GAP)
 
@@ -89,4 +83,5 @@ export const END_GAME_RECT = {
     height: 182
 }
 
-export const BOARD_HEIGHT = DIVIDEND_RULES_RECT.y + DIVIDEND_RULES_RECT.height + 12
+export const BOARD_HEIGHT =
+    Math.max(MAP_RECT.y + MAP_RECT.height, END_GAME_RECT.y + END_GAME_RECT.height) + 12

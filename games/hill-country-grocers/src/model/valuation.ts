@@ -16,16 +16,45 @@ export function markersPlaced(state: DevelopmentState): number {
     return Object.values(state.developments).reduce((sum, count) => sum + count, 0)
 }
 
-export function companyValue(state: NetworkState & DevelopmentState, companyId: CompanyId): number {
+export type ValueBreakdown = {
+    cities: number
+    cityValue: number
+    developments: number
+    developmentValue: number
+    total: number
+}
+
+// Grocers count the cities they serve and the developments there; the developer counts every
+// development on the map.
+export function companyValueBreakdown(
+    state: NetworkState & DevelopmentState,
+    companyId: CompanyId
+): ValueBreakdown {
     if (!isGrocer(companyId)) {
-        return markersPlaced(state) * DEVELOPER_MARKER_VALUE
+        const developments = markersPlaced(state)
+        return {
+            cities: 0,
+            cityValue: 0,
+            developments,
+            developmentValue: DEVELOPER_MARKER_VALUE,
+            total: developments * DEVELOPER_MARKER_VALUE
+        }
     }
-    const markerValue =
+    const developmentValue =
         companyId === CompanyId.CompleteComestibles ? COMESTIBLES_MARKER_VALUE : MARKER_VALUE
-    return connectedCityIds(state, companyId).reduce(
-        (sum, cityId) => sum + CITY_VALUE + markersIn(state, cityId) * markerValue,
-        0
-    )
+    const cityIds = connectedCityIds(state, companyId)
+    const developments = cityIds.reduce((sum, cityId) => sum + markersIn(state, cityId), 0)
+    return {
+        cities: cityIds.length,
+        cityValue: CITY_VALUE,
+        developments,
+        developmentValue,
+        total: cityIds.length * CITY_VALUE + developments * developmentValue
+    }
+}
+
+export function companyValue(state: NetworkState & DevelopmentState, companyId: CompanyId): number {
+    return companyValueBreakdown(state, companyId).total
 }
 
 export function valuePerShare(value: number, sharesHeld: number): number {

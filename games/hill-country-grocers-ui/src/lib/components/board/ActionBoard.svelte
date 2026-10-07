@@ -12,26 +12,6 @@
 
     const gameSession = getGameSession()
 
-    const RULES: Record<ActionSpace, string[]> = {
-        [ActionSpace.BuildNetwork]: [
-            'Place 1–2 of a grocer’s stores',
-            'next to its existing stores',
-            'Each store: $2 to the bank and',
-            '$1 to each grocer already there',
-            'Max 2 stores per hex,',
-            'black cities unlimited'
-        ],
-        [ActionSpace.DevelopTowns]: [
-            'A development in two cities,',
-            'or one and $1 from the bank'
-        ],
-        [ActionSpace.AuctionShare]: [
-            'Auction any company’s share',
-            'Open at any price, even $0',
-            'Winning bid goes to the company'
-        ]
-    }
-
     const boxes = $derived(
         ACTION_SPACES.map((space) => ({
             space,
@@ -56,13 +36,10 @@
         class="band"
     />
     <text x={ACTION_BOX_WIDTH / 2} y="23" class="title">{SPACE_NAMES[entry.space]}</text>
-    {#each RULES[entry.space] as line, index (line)}
-        <text x={ACTION_BOX_WIDTH / 2} y={56 + index * 19} class="rule">{line}</text>
-    {/each}
     {#each entry.pawns as player, index (player.playerId)}
         <PlayerToken
             x={ACTION_BOX_WIDTH / 2 + (index - (entry.pawns.length - 1) / 2) * 38}
-            y={186}
+            y={57}
             color={gameSession.colors.getPlayerUiColor(player.playerId)}
             textColor={gameSession.colors.getPlayerTextColorValue(player.playerId)}
             initial={gameSession.getPlayerName(player.playerId).charAt(0).toUpperCase()}
@@ -125,10 +102,4 @@
         text-anchor: middle;
     }
 
-    .rule {
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 14px;
-        fill: #5a2e1e;
-        text-anchor: middle;
-    }
 </style>

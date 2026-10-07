@@ -312,6 +312,13 @@ describe('valuation', () => {
         expect(state.value(CompanyId.AlamoCity)).toBe(2 + 3 * 2)
         expect(state.value(CompanyId.CompleteComestibles)).toBe(1 + 3)
         expect(state.value(CompanyId.Balcones)).toBe(4)
+        expect(state.valueBreakdown(CompanyId.AlamoCity)).toEqual({
+            cities: 2,
+            cityValue: 1,
+            developments: 3,
+            developmentValue: 2,
+            total: 8
+        })
     })
 
     it('divides value by the shares players hold, rounding up', () => {

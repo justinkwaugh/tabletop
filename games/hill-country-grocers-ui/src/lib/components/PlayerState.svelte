@@ -27,15 +27,13 @@
     const dividend = $derived(gameSession.gameState.projectedDividend(playerId))
 </script>
 
-<div class="receipt" class:acting style:--player={color} style:--player-text={textColor}>
+<div class="slip" class:acting style:--player={color} style:--player-text={textColor}>
+    {#if acting}<span class="to-act">To act</span>{/if}
+    <div class="receipt">
     <div class="banner">
         <span class="name">{gameSession.getPlayerName(playerId)}</span>
+        <span class="cash" title="Personal money">${playerState.cash}</span>
     </div>
-    <div class="row cash" title="Personal money">
-        <span>Cash on hand</span>
-        <span>${playerState.cash}</span>
-    </div>
-    <div class="rule"></div>
     {#if holdings.length > 0}
         <div class="items">
             <span class="head">Qty</span>
@@ -60,9 +58,38 @@
         <span>Next dividend</span>
         <span>${dividend}</span>
     </div>
+    </div>
 </div>
 
 <style>
+    .slip {
+        position: relative;
+        border-radius: 6px;
+    }
+
+    .slip.acting {
+        padding: 4px;
+        background: #7a1d22;
+        box-shadow: 0 3px 10px rgba(122, 29, 34, 0.45);
+    }
+
+    .to-act {
+        position: absolute;
+        top: -8px;
+        right: 12px;
+        z-index: 1;
+        border-radius: 999px;
+        padding: 1px 9px;
+        background: #fdf3dc;
+        color: #7a1d22;
+        box-shadow: 0 0 0 2px #7a1d22;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
     .receipt {
         --edge: 3.5px;
         position: relative;
@@ -81,14 +108,13 @@
         mask-composite: intersect;
     }
 
-    .receipt.acting {
-        background:
-            linear-gradient(180deg, rgba(0, 0, 0, 0.03), transparent 30%),
-            #fff8d8;
-    }
 
 
     .banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         margin: 5px -4px 6px;
         border-radius: 2px;
         padding: 3px 8px;
@@ -110,6 +136,13 @@
         text-transform: uppercase;
     }
 
+    .cash {
+        flex: none;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 19px;
+        font-weight: 700;
+    }
+
     .row {
         display: flex;
         justify-content: space-between;
@@ -117,10 +150,6 @@
         text-transform: uppercase;
     }
 
-    .row.cash {
-        font-size: 17px;
-        font-weight: 700;
-    }
 
     .row.total {
         font-weight: 700;

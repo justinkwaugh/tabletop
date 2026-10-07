@@ -10,111 +10,77 @@
         $props()
 
     const half = $derived(size / 2)
-    const depth = $derived(size * 0.16)
-    const awningTop = $derived(-half + size * 0.24)
+    const corner = $derived(size * 0.12)
+    const awningTop = $derived(-half + size * 0.26)
     const awningBottom = $derived(-half + size * 0.44)
-    const stripes = $derived(
-        Array.from({ length: 5 }, (_, index) => ({
+    const scallops = $derived(
+        Array.from({ length: 4 }, (_, index) => ({
             index,
-            x: -half + (index * size) / 5,
-            width: size / 5
+            x: -half + ((index + 0.5) * size) / 4
         }))
     )
 </script>
 
-<g transform="translate({x - depth / 2} {y + depth / 2})" class:ghost>
-    <polygon
-        points="{-half},{-half} {-half + depth},{-half - depth} {half + depth},{-half - depth} {half},{-half}"
-        {fill}
-        class="top"
+<g transform="translate({x} {y})" class:ghost>
+    <rect x={-half} y={-half} width={size} height={size} rx={corner} {fill} class="body" />
+    <rect
+        x={-half + size * 0.12}
+        y={-half + size * 0.06}
+        width={size * 0.76}
+        height={size * 0.14}
+        rx={size * 0.05}
+        fill={tint}
     />
-    <polygon
-        points="{half},{-half} {half + depth},{-half - depth} {half + depth},{half - depth} {half},{half}"
-        {fill}
-        class="side"
-    />
-    <rect x={-half} y={-half} width={size} height={size} {fill} class="front" />
-    <rect x={-half} y={-half} width={size} height={size * 0.24} fill={tint} class="sign" />
-    {#each stripes as stripe (stripe.index)}
+    <rect x={-half} y={awningTop} width={size} height={awningBottom - awningTop} fill={tint} />
+    {#each scallops as scallop (scallop.index)}
         <rect
-            x={stripe.x}
+            x={scallop.x - size / 16}
             y={awningTop}
-            width={stripe.width}
+            width={size / 8}
             height={awningBottom - awningTop}
-            fill={stripe.index % 2 === 0 ? tint : fill}
+            {fill}
+            opacity="0.85"
         />
-        <circle
-            cx={stripe.x + stripe.width / 2}
-            cy={awningBottom}
-            r={stripe.width / 2}
-            fill={stripe.index % 2 === 0 ? tint : fill}
-        />
+        <circle cx={scallop.x} cy={awningBottom} r={size / 8} fill={tint} />
     {/each}
     <rect
-        x={-half + size * 0.1}
-        y={half - size * 0.36}
-        width={size * 0.22}
-        height={size * 0.2}
+        x={-half + size * 0.12}
+        y={half - size * 0.38}
+        width={size * 0.4}
+        height={size * 0.26}
+        rx={size * 0.04}
         class="window"
     />
-    <rect
-        x={half - size * 0.32}
-        y={half - size * 0.36}
-        width={size * 0.22}
-        height={size * 0.2}
-        class="window"
-    />
-    <rect
-        x={-size * 0.11}
-        y={half - size * 0.4}
-        width={size * 0.22}
-        height={size * 0.4}
+    <path
+        d="M {half - size * 0.36} {half} V {half - size * 0.3} a {size * 0.12} {size *
+            0.12} 0 0 1 {size * 0.24} 0 V {half} Z"
         class="door"
     />
-    <rect x={-half} y={-half} width={size} height={size} class="outline" />
 </g>
 
 <style>
-    polygon,
-    .outline {
-        stroke: #1d140b;
-        stroke-width: 1.2;
-        stroke-linejoin: round;
-    }
-
-    .outline {
-        fill: none;
-    }
-
-    .top {
-        filter: brightness(1.3);
-    }
-
-    .side {
-        filter: brightness(0.7);
-    }
-
-    .sign {
-        stroke: #1d140b;
-        stroke-width: 0.8;
+    .body {
+        stroke: rgba(29, 20, 11, 0.55);
+        stroke-width: 0.9;
+        filter: drop-shadow(0.8px 1.4px 0.9px rgba(30, 20, 10, 0.4));
     }
 
     .window {
-        fill: #d9eef5;
-        stroke: #1d140b;
-        stroke-width: 0.7;
+        fill: #e6f3f7;
+        stroke: rgba(29, 20, 11, 0.35);
+        stroke-width: 0.6;
     }
 
     .door {
-        fill: #3a2a1e;
+        fill: #4a3528;
     }
 
     .ghost {
-        opacity: 0.7;
+        opacity: 0.6;
     }
 
-    .ghost polygon,
-    .ghost .outline {
+    .ghost .body {
         stroke-dasharray: 3 2;
+        stroke-width: 1.4;
     }
 </style>

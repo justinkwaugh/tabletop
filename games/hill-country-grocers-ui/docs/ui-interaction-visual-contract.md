@@ -8,11 +8,10 @@
 - **Place the bonus store.** After a Streamside Sisters share sells, the buyer sees rings on the hexes Streamside can take. One click commits; "Place no store" skips the bonus.
 - **Develop a city.** Cities that can take a development get a ring around their dot and development slots, and clicking one commits. When Balcones Builders cannot pay every grocer there, the city's ring stays lit and the action panel lists the grocers to choose as payees.
 - **Pick a share to auction.** Every company with an unsold share is highlighted. The picked card keeps a solid gold border while the action panel shows the opening-bid stepper.
-- **Change the map view.** Three buttons in the map's top-left corner zoom in on the map, return to the whole board and toggle full screen, by pointer or with Enter/Space. They are available to every viewer at all times, including in History View, and never change game state.
 
 ## Coexistence and precedence
 
-Only one of the game intents can be live at a time, because each belongs to exactly one machine state. During any auction, the company being bid on keeps the selected border. Changing the map view coexists with every game intent: zooming or entering full screen keeps any staged selection and its rings.
+Only one of these intents can be live at a time, because each belongs to exactly one machine state. During any auction, the company being bid on keeps the selected border. The shared scaling wrapper's zoom and full-screen controls sit in its bottom-left corner and change only the view, so staged selections and their rings survive them.
 
 ## Shared visual state
 
@@ -20,8 +19,6 @@ The session owns the staged selections: build company and store hexes, develop c
 
 - **Lifetime:** all staged selections clear in `beforeNewState`, so they never outlive the game state they were made in. Undo pops the most recent manual stage first, and an automatic company choice is never popped.
 - **Validity:** a stored company or city applies only while it is still among the current options and the owning machine state is active. History View shows no targets, because `canAct` is false there.
-
-The map view belongs to the shared scaling wrapper. The table drives it through the wrapper's `focusRect`, `fitToContent` and `toggleExpanded`; the board only raises the button presses.
 
 ## Render ownership
 
@@ -33,4 +30,3 @@ The terrain layer (paper, contour lines, tiles, decorations and the game logo) d
 - With Alamo City Supplies, place three stores: the third click commits the build with no confirm button.
 - With Balcones Builders holding $1, develop San Antonio: the city ring stays lit, the panel lists Alamo City and Verbena, and choosing one commits.
 - During Starting Auction, click a company card and step back with Undo: the card returns to its highlighted, unselected look.
-- Press the zoom-in button: the map fills the view; the zoom-out button restores the whole board; the full-screen button opens and closes full screen, with the buttons still on the map inside it.
