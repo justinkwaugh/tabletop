@@ -37,3 +37,42 @@ test('a large screen draws the table half again as large and a phone at its layo
         expect(box!.width).toBeLessThanOrEqual(1600)
     }).toPass()
 })
+
+test.describe('opening a game on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('never draws the table larger than its layout size, even as it first appears', async ({
+        page
+    }) => {
+        // Record the widest any board layer is ever drawn, from the moment the page loads
+        await page.addInitScript(() => {
+            const record = window as unknown as { widestBoardLayer: number }
+            record.widestBoardLayer = 0
+            const measure = () => {
+                for (const layer of document.querySelectorAll(
+                    '[aria-label="MarraCash market"] > svg'
+                )) {
+                    record.widestBoardLayer = Math.max(
+                        record.widestBoardLayer,
+                        Number(layer.getAttribute('width'))
+                    )
+                }
+            }
+            new MutationObserver(measure).observe(document, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ['width']
+            })
+        })
+        await createGame(page)
+        await expect(board(page).locator('> svg')).toHaveCount(3)
+        for (const layer of await board(page).locator('> svg').all()) {
+            await expect(layer).toHaveAttribute('width', LayoutWidth)
+        }
+        const widest = await page.evaluate(
+            () => (window as unknown as { widestBoardLayer: number }).widestBoardLayer
+        )
+        expect(widest).toBe(Number(LayoutWidth))
+    })
+})
