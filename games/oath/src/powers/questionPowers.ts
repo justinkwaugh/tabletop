@@ -13,14 +13,19 @@ import {
 import { registerEffect, registerPersistent, type EffectDefinition, chosen } from './registry.js'
 import { otherPlayersAtYourSite, pawnSiteId } from './vocabulary.js'
 import { reasonPersistentForbidsRelicTake } from '../util/persistent.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 // "When played, each player, following turn order, may burn any number of [favor] to gain an equal number of [secret]."
 const REVELATION = 'denizen.arcane.revelation'
 registerEffect(REVELATION, powerIndexOf(REVELATION, PowerTiming.WhenPlayed), {
     choices: [],
     resolve: (ctx) => {
+        // Its Q&A — the round starts with the Chancellor.
+        const first = isAtLeastOathRevision(ctx.state, OathRevision.CardFixes1)
+            ? ctx.state.chancellorId()
+            : ctx.playerId
         const notes: string[] = []
-        for (const playerId of turnOrderFrom(ctx.state, ctx.playerId)) {
+        for (const playerId of turnOrderFrom(ctx.state, first)) {
             const note = askQuestion(ctx.state, ctx.playerId, {
                 kind: PowerQuestionKind.BurnFavorForSecrets,
                 cardId: REVELATION,

@@ -18,7 +18,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Cursed Cauldron:** counts only the defeated side's kills, Hospital-saved warbands included; its Q&A also counts Bear Traps and skull kills.
 - **The Grand Scepter:** one received in an exchange is locked for the turn; its Q&A lets it be used.
 - **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
-- **Revelation:** asks from the player who played it; the Q&A starts from the Chancellor.
 - **Gambling Hall:** the favor bank is chosen before the roll.
 - **Witch's Bargain:** deals with one player per use; the Q&A allows several.
 - **Land Warden:** the second card played gets no When Played choices, no Deep Woods or Wastes relic, and cannot use a space freed by Crop Rotation or the Great Slum, nor be played to another site by New Growth or the People's Favor. In a game created before revision 3 (R-X.4) it takes none of the Search's modifiers, so Book of Records' holder gains favor for it, and Wild Cry and Welcoming Party look at the kept card only. A When Played power that draws a hidden card (Family Heirloom, Pilgrimage, the citizenship relic takes) is not resolved for it, and the action records that in `secondWhenPlayed`; the table offers only the second plays the engine accepts.

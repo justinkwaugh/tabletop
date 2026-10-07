@@ -1,4 +1,4 @@
-import { OathTestEngine } from '../testing/engine.js'
+import { OathTestEngine, RunMode } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { describe, expect, it } from 'vitest'
 import { OathGameStateValidator } from '../model/gameState.js'
@@ -45,6 +45,32 @@ describe('Revelation — a round of burns in turn order', () => {
         playDrawnCard(s, REVELATION, SearchPlay.Adviser)
         expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['ruler', 'other', 'away'])
         expect(head(s)?.kind).toBe(PowerQuestionKind.BurnFavorForSecrets)
+    })
+
+    it('starts from the Chancellor, as its Q&A rules, whoever played it', () => {
+        const s = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: OathRevision.CardFixes1 })
+        playDrawnCard(s, REVELATION, SearchPlay.Adviser)
+        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['away', 'ruler', 'other'])
+    })
+
+    it('R-X.4 — in a game created before revision 4 it starts from the player of the card', () => {
+        const s = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: OathRevision.PlanCostsAndSearchPlays })
+        playDrawnCard(s, REVELATION, SearchPlay.Adviser)
+        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['ruler', 'other', 'away'])
+    })
+
+    it('R-X.4 — each revision’s Revelation play replays unchanged', () => {
+        const engine = new OathTestEngine(OathRuntime)
+        for (const [revision, first] of [[OathRevision.PlanCostsAndSearchPlays, 'ruler'], [OathRevision.CardFixes1, 'away']] as const) {
+            const start = rulerTable([], [], { ruler: { handIds: [REVELATION, FILLER] }, away: { status: PlayerStatus.Chancellor } }, { machineState: MachineState.Searching, oathRevision: revision }).dehydrate()
+            const game = testGame(['ruler', 'other', 'away'])
+            const recorded = engine.runNext(buildAction(SearchResolve, { playerId: 'ruler', keptCardId: REVELATION, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }), structuredClone(start), game)
+            expect(recorded.updatedState.pendingQuestions?.queue[0]?.askedPlayerId).toBe(first)
+
+            let replayed = structuredClone(start)
+            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded.updatedState)
+        }
     })
 
     it('a player with no favor is not asked — there is nothing to decide', () => {
