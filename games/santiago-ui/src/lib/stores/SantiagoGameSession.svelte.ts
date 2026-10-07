@@ -27,6 +27,7 @@ import {
 } from '@tabletop/santiago'
 import { type GameAction } from '@tabletop/common'
 import { TileDealAnimator } from '$lib/animators/tileDealAnimator.svelte.js'
+import { BirdDirector } from '$lib/birds/birdDirector.js'
 
 export class SantiagoGameSession extends GameSession<
     SantiagoProjectedState,
@@ -42,6 +43,7 @@ export class SantiagoGameSession extends GameSession<
 
     // Shared by the table (pile and tile slots) and the action bar (bidding preview) during a reveal.
     readonly tileDeal = new TileDealAnimator(this)
+    readonly birds = new BirdDirector(this)
 
     chosenAction: string | undefined = $state(undefined)
     bidValue: number = $state(0)

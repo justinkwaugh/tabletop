@@ -16,13 +16,17 @@ Each round opens in TileReveal. The tile strip beside the board shows only the d
 
 The Game Session's tile deal animator owns the motion when tiles appear; the table and the action bar both consume it. On a RevealTiles action it first previews the bidding content in the action bar as a pre-reactivity override, tweening the bar's wrapper from its previous height to the new one so the board and tile strip slide down together, then fades that content in. It renders the `to` state's tiles in their slots as a hidden override, holds the persistent draw pile at the first slot, then on the shared action timeline deposits a tile there and slides the pile down one slot at a time; each tile appears beneath the resting pile and flips from the pile's back design to its face as the pile moves on. The pile finishes at its home below the tiles. It renders above the tiles while it travels. Without an action, as in state-only history navigation, the tiles fade in face-up within the fallback budget and the pile does not move. Tiles disappearing, as when navigating backward past the reveal, unmount reactively with no motion. Both overrides last exactly one action and clear in afterAnimations; the pile's count updates when the reactive state publishes. The action bar's wrapper is always rendered, empty when there is nothing to show, so its height can be measured.
 
+## Ambient motion
+
+From time to time a small flock of birds flies in from either side of the board, settles on one planted field that has not dried out, sometimes spreading over a neighbouring living field as well, pecks and idles where it stands, now and then sends a single bird on a short flight to a neighbouring living field, and leaves together once one bird departs. The Game Session's bird director owns this as local presentation outside AnimationContext: it runs its own frame loop only while a flock is present, writes each bird's SVG transform directly, and uses reactive state only for the flock's presence. Visits begin only after 30 to 90 seconds of idle time in a visible tab, never while viewing history or when the OS prefers reduced motion. Any change that disqualifies a field a bird occupies, or entering history, startles the flock away at once; hiding the tab removes it without motion. Birds paint in a pointer-events-none SVG above the board, clipped to the board surface so they emerge from and vanish at its edge rather than over the surrounding padding or the tile strip, and never gate interaction. In development the console's `santiagoSession.birds.summon()` starts a visit immediately.
+
 ## Coexistence and precedence
 
 EndOfGame disclosure takes precedence over private-money presentation. History uses the displayed state's phase, so navigating back before the end restores private presentation. Perspective changes replace the permitted state; values learned through Host View must not remain in a subsequent Player or Spectator representation.
 
 ## Shared visual state
 
-These behaviors derive from displayed Game State, persisted configuration, and the Game Session's perspective. They add no transient selection. The Game Session owns Exploration availability; the shared exploration control consumes that value.
+These behaviors derive from displayed Game State, persisted configuration, and the Game Session's perspective. They add no transient selection. The bird layer's only transient state is the set of bird ids for the current flock: it is written when a flock spawns, cleared when the flock has left, is startled away, the tab hides, or the layer unmounts, and is never written per frame. The Game Session owns Exploration availability; the shared exploration control consumes that value.
 
 ## Render ownership
 
@@ -31,6 +35,8 @@ The players panel owns balance presentation. The table owns the tile-supply coun
 Paper texture paints behind content within an isolated stacking context. It may texture a panel background, but must not darken player names or other foreground content. The history panel owns its custom dots and suppresses Flowbite’s default markers only within that panel.
 
 ## Verification scenarios
+
+- With a planted field on the board, summon a flock from the console: birds enter from the board's edge without popping in, settle inside the field, peck in place, occasionally hop fields one at a time, and leave as a group. Summon again and step into history: the flock startles away, as it does when the field dries out. Hide the tab mid-visit and return: the flock is gone and a new idle timer runs. With reduced motion on, summoning returns false. Manual browser verification; the simulation and scheduling are covered by unit tests.
 
 - Start a private-money protected Game and select the acting player: exactly their balance is delivered, three opponent badges show question marks in a four-player Game, the public tile count remains visible, and a submitted bid reduces the owner's money. Automated browser test, at desktop and narrow viewport sizes.
 - Switch to Host View and then Spectator: canonical bag and balances are available only in Host View; Spectator restores an empty bag representation and four question marks. Exploration stays disabled. Automated browser test.
