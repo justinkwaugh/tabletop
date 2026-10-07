@@ -47,6 +47,16 @@ export function latestTurnStep(actions: readonly GameAction[]): readonly GameAct
     return start === -1 ? [] : actions.slice(start)
 }
 
+// History View stops on player actions, so the state it shows was produced by every action since
+// the previous player action: that step's system consequences, then the player action shown.
+export function viewedHistoryStep(actions: readonly GameAction[]): readonly GameAction[] {
+    const shown = actions.findLastIndex((action) => action.source === ActionSource.User)
+    const previous = actions.findLastIndex(
+        (action, index) => index < shown && action.source === ActionSource.User
+    )
+    return actions.slice(previous + 1)
+}
+
 export function auctionPayments(result: AuctionResult): Payment[] {
     const winnerId = result.winnerId
     const payments: Payment[] = []
