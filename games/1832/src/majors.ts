@@ -1,4 +1,4 @@
-// The ten railroads with their homes and token counts (§16.3).
+// The ten public companies (§16.3).
 export const EighteenThirtyTwoMajors = {
     ACL: { id: 'ACL', name: 'Atlantic Coast Line Railroad' },
     AWP: { id: 'AWP', name: 'Atlanta & West Point Railroad' },

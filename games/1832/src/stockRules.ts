@@ -4,11 +4,12 @@ import {
     ipoMarketTrading,
     marketZoneHoldingLimits,
     playersAfterPresident,
-    type StockRules
+    type StockRules,
+    type StockState
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { saleDescent } from './stockMarket.js'
-import { certificateLimitColumn } from './companies.js'
+import { EighteenThirtyTwoMajors } from './majors.js'
 
 const Trading = ipoMarketTrading({
     ipoPoolId: 'initial-offering',
@@ -40,6 +41,16 @@ const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
     5: [13, 11, 9, 8, 6],
     6: [11, 9, 8, 6, 5],
     7: [9, 7, 6, 5, 4]
+}
+
+const MajorIds: readonly string[] = Object.keys(EighteenThirtyTwoMajors)
+
+/** The Table 2 column: companies still active or available, from ten down to six or fewer. */
+export function certificateLimitColumn(state: Pick<StockState, 'companies'>): number {
+    const remaining = state.companies.filter(
+        (company) => MajorIds.includes(company.id) && !company.closed
+    ).length
+    return Math.min(4, MajorIds.length - remaining)
 }
 
 export const EighteenThirtyTwoStockRules: StockRules = {

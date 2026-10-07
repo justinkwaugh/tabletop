@@ -64,15 +64,15 @@ Each slice ends with a code review whose findings are fixed before the next begi
    sale with P7's CoG par and the all-pass income round; stock turns, certificate
    limits, flotation at six shares with capital at the end of the stock round;
    ordinary construction, stations, routes, half dividends, trains and forced
-   purchases; bankruptcy and bank endings. A complete shared-table UI.
+   purchases; bankruptcy and bank endings; the market's soft ledge. A complete shared-table
+   UI.
 2. **Map specials and private powers.** Medium cities, Atlanta's three cities and
    its special tiles, the #611/#193 restrictions and Tampa's brown limit, free home
    terrain, Miami's first run, the WVCF rights and P5, the Key West, Port and Cotton
    tokens, London Investment's share and its closure, CoG's P7 closure, and the
    private-token removals at phases 6 and 8.
-3. **Market completion and price protection.** The soft ledge, black-area closure
-   and its certificate-limit effect, and price protection after stock turns and
-   forced sales.
+3. **Market completion and price protection.** Black-area closure and its
+   certificate-limit effect, and price protection after stock turns and forced sales.
 4. **Redemption and reissue.**
 5. **Mergers.** Merger rounds after phase 4 and 5 stock rounds and the special
    phase 6 round; System formation, presidency, vice-presidents, price, tokens,
@@ -131,6 +131,8 @@ does.
   the Atlanta & West Point the southwest one. Charleston and Jacksonville carry a brown Y
   label and Savannah a brown S label, so only #611 and #193 can upgrade them. Tampa's brown
   ban is a construction restriction.
+- **Stations.** Charter token costs; the family gains `charterStationCost`, which 1830 now uses
+  too, for prices taken from a per-company cost schedule.
 - **Tiles.** The §23 manifest. The family catalog gains the standard town tiles #141, #142,
   #145, #146 and #147 (defined as in the research configuration, and used by 25 researched
   titles including 1850, 1870, 1822 and 18TN); 1832 adds Atlanta's #190 and #191 and its
@@ -140,7 +142,9 @@ does.
   follow §5.8: up at the top row is right-and-down, $400 holds, a left move at the edge
   follows the down arrow, and a right move blocked by the soft ledge goes up. A sale falls a
   space per share but stops on the soft ledge when exactly one space remains, as 1870's
-  research implementation does.
+  research implementation does. The shared market scene draws a title's ledge along the
+  bordering sides of its spaces, with a legend entry, and shows the up and down arrows wherever
+  a right or left move is diverted.
 - **Trains, phases and revenue.** Table 1, with the rulebook's $630 6-train. Offboard and
   coal-field values use the first value until phase 5, the second until phase 8, then the
   last (the research data's gray stage, which no phase reached, is fixed here).
@@ -162,8 +166,9 @@ does.
   `CapitalizeCompany` system action at the start of the operating set, using the family's
   system-action-first wrapper. That wrapper moves from 1817 into `@tabletop/18xx`, unchanged,
   since two titles now need it.
-- **Operating.** Two yellow lays or one upgrade; usefulness is new track, a connected city or
-  the home hex; a company's own home terrain is free. Stations cost from the charters. Full,
+- **Operating.** Two yellow lays or one upgrade; usefulness is new track, a city or town of the
+  new tile on the company's route (the family's usefulness test gains a connected-town flag for
+  this), or the home hex; a company's own home terrain is free. Stations cost from the charters. Full,
   half and withheld dividends: a half dividend rounds the per-share payment up (§9.1.2) and
   does not move the price; initial-offering shares pay the company and open-market shares
   pay nobody. Train limits, scrapping and discards to the open market follow Table 1 and

@@ -1,5 +1,12 @@
 import { assertExists } from '@tabletop/common'
-import { getCompany, homeStationId, nextOperatingCompany, type StationRules } from '@tabletop/18xx'
+import {
+    charterStationCost,
+    charterStationCounts,
+    getCompany,
+    homeStationId,
+    nextOperatingCompany,
+    type StationRules
+} from '@tabletop/18xx'
 import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 
@@ -16,26 +23,13 @@ export const EighteenThirtyTwoStationCosts: Readonly<Record<string, readonly num
     SAL: [0, 40, 100],
     SOU: [0, 40, 100]
 }
-export const EighteenThirtyTwoStationCounts: Readonly<Record<string, number>> = Object.fromEntries(
-    Object.entries(EighteenThirtyTwoStationCosts).map(([companyId, costs]) => [
-        companyId,
-        costs.length
-    ])
-)
+export const EighteenThirtyTwoStationCounts = charterStationCounts(EighteenThirtyTwoStationCosts)
 
 export const EighteenThirtyTwoStationRules: StationRules = {
     map: EighteenThirtyTwoMap,
     tileSet: EighteenThirtyTwoTileSet,
-    placementCost(state, stationId) {
-        const station = state.stations.find((station) => station.id === stationId)
-        assertExists(station, 'A station placement requires a known station')
-        const used = state.stations.filter(
-            (entry) => entry.companyId === station.companyId && entry.status !== 'available'
-        ).length
-        const cost = EighteenThirtyTwoStationCosts[station.companyId]?.[used]
-        assertExists(cost, 'Every 1832 station has a cost')
-        return cost
-    },
+    placementCost: (state, stationId) =>
+        charterStationCost(state, stationId, EighteenThirtyTwoStationCosts),
     placementLimit: () => 1,
     // A company places its free home token as its first operating turn begins (§7.1).
     pendingHomes(state) {
@@ -43,11 +37,11 @@ export const EighteenThirtyTwoStationRules: StationRules = {
         if (!companyId) return []
         const company = getCompany(state, companyId)
         const station = state.stations.find((station) => station.id === homeStationId(companyId))
+        if (!company.floated || company.closed || station?.status !== 'available') return []
         const reservation = state.stationReservations.find(
             (reservation) => reservation.companyId === companyId
         )
-        if (!company.floated || company.closed || station?.status !== 'available' || !reservation)
-            return []
+        assertExists(reservation, 'An unplaced home station keeps its reservation')
         return [
             {
                 stationId: station.id,

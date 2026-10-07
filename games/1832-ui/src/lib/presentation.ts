@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoSoftLedge } from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
@@ -31,5 +32,11 @@ export const EighteenThirtyTwoPresentation: TitlePresentation = {
                 'As green, and a player may buy every open-market share of one company in a turn.'
         },
         { color: 'black', name: 'Closed', description: 'A company entering it closes.' }
-    ]
+    ],
+    marketLedge: {
+        name: 'Soft ledge',
+        description:
+            'A sale with one space left to fall stops on the ledge; a rightward move meeting it goes up.',
+        edges: EighteenThirtyTwoSoftLedge
+    }
 }

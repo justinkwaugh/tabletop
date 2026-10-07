@@ -18,7 +18,8 @@ export const EighteenThirtyTwoStockRoundRules: StockRoundRules = {
             state,
             companyId,
             (certificate) =>
-                certificate.owner.kind === 'player' || certificate.owner.kind === 'company'
+                certificate.owner.kind === 'player' ||
+                (certificate.owner.kind === 'company' && certificate.owner.companyId === companyId)
         )
 }
 

@@ -17,7 +17,6 @@
     }: { gameSession: GameSession<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    // No private grants its owning company an operating power yet.
     const privateOperationDescription = (_privateId: string): string | undefined => undefined
 </script>
 

@@ -101,8 +101,6 @@ const terrain = (cost: number, kind: 'mountain' | 'water') => ({
 const blank = track('white', [])
 const largeCity = city('white', [], 0, 1)
 const singleTown = town('white', [[]], 0)
-// Offboard and gray values change with phase: the first value until phase 5, the second
-// until phase 8, then the last (§4.2, Table 1).
 const staged = (first: number, second: number, last?: number) =>
     revenue([
         ['yellow', first],
@@ -123,7 +121,6 @@ export const EighteenThirtyTwoMap = new RailwayMap({
         ...locations('W14', city('gray', [2, 3, 4], staged(20, 30, 50), 1)),
         ...locations('V13', track('gray', [[4, 5]])),
         ...locations('Z29', track('gray', [[2, 0]])),
-        // Georgia Railroad and the Atlanta & West Point each reserve one of Atlanta's cities.
         ...locations(
             'S22',
             cities(

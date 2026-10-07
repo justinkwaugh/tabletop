@@ -52,6 +52,16 @@ export type MarketZone = {
     banner?: MarketZoneBanner
 }
 
+/**
+ * A line across the market that stops or diverts movement, such as a soft ledge, drawn along the
+ * named side of each space it borders.
+ */
+export type MarketLedge = {
+    name: string
+    description: string
+    edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
+}
+
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
 export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
@@ -108,6 +118,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
+    marketLedge?: MarketLedge
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

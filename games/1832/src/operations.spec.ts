@@ -53,6 +53,20 @@ describe('track construction', () => {
         ).toHaveProperty('reason')
     })
 
+    it('accepts an upgrade whose town or city is on the company’s route without new track', () => {
+        const change = {
+            home: false,
+            connected: true,
+            newTrack: false,
+            increasedCityRevenue: false,
+            connectedCity: false,
+            connectedTown: false
+        }
+        expect(EighteenThirtyTwoTrackRules.useful(change)).toBe(false)
+        expect(EighteenThirtyTwoTrackRules.useful({ ...change, connectedTown: true })).toBe(true)
+        expect(EighteenThirtyTwoTrackRules.useful({ ...change, connectedCity: true })).toBe(true)
+    })
+
     it('waives terrain only for a company’s own home hex', () => {
         const { state } = exampleGame(EighteenThirtyTwoScenarios, 'construction', 3)
         const cost = (companyId: string) =>

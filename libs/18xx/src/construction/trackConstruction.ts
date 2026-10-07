@@ -85,7 +85,8 @@ export interface TrackRules {
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
-     * adding connected track, or raising a connected city's revenue.
+     * adding connected track, raising a connected city's revenue, or putting a city or town on
+     * the company's network.
      */
     useful(change: {
         home: boolean
@@ -93,6 +94,7 @@ export interface TrackRules {
         newTrack: boolean
         increasedCityRevenue: boolean
         connectedCity: boolean
+        connectedTown: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
@@ -139,7 +141,8 @@ export class TrackConstruction {
                     connected: false,
                     newTrack: false,
                     increasedCityRevenue: false,
-                    connectedCity: false
+                    connectedCity: false,
+                    connectedTown: false
                 }))
         )
     }
@@ -324,6 +327,9 @@ export class TrackConstruction {
                 increasedCityRevenue,
                 connectedCity: after.nodes.some(
                     (node) => node.kind === 'city' && network.nodes.has(node.id)
+                ),
+                connectedTown: after.nodes.some(
+                    (node) => node.kind === 'town' && network.nodes.has(node.id)
                 )
             })
         )

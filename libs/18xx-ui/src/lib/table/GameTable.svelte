@@ -804,6 +804,7 @@
                     market={session.gameState.stockMarket}
                     companies={session.gameState.companies}
                     zones={session.presentation.marketZones}
+                    ledge={session.presentation.marketLedge}
                 />
                 {#if boardInformation && corner}<div
                         class="market-corner"
@@ -1237,11 +1238,13 @@
                                             market={session.gameState.stockMarket}
                                             companies={session.gameState.companies}
                                             zones={session.presentation.marketZones}
+                                            ledge={session.presentation.marketLedge}
                                         />
                                     </ScalingWrapper>
                                 </div>
-                                {#if session.presentation.marketZones?.length}<MarketLegend
-                                        zones={session.presentation.marketZones}
+                                {#if session.presentation.marketZones?.length || session.presentation.marketLedge}<MarketLegend
+                                        zones={session.presentation.marketZones ?? []}
+                                        ledge={session.presentation.marketLedge}
                                     />{/if}
                             </div>{:else if id === 'Spreadsheet'}<div
                                 class="workspace-view data-area"

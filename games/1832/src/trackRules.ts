@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { sameStopCounts, type TileFace, type TrackRules } from '@tabletop/18xx'
 import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
@@ -25,8 +26,9 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
     },
     preservesStops: (before, after) =>
         sameStopCounts(before, after) || atlantaJoinsCities(before, after),
-    // New track must be usable by the company, or a connected city or town upgraded (§6.1–6.2).
-    useful: ({ home, newTrack, connectedCity }) => home || newTrack || connectedCity,
+    // New track must be usable, or the new tile's city or town on the company's route (§6.1–6.2).
+    useful: ({ home, newTrack, connectedCity, connectedTown }) =>
+        home || newTrack || connectedCity || connectedTown,
     homeLocations: (companyId) => EighteenThirtyTwoMap.reservedLocationIds(companyId),
     // A company lays its first tile in its own home hex without the terrain cost (§6.5.1).
     terrainCost: (_state, request, cost) =>
@@ -37,7 +39,8 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
         const definition = EighteenThirtyTwoTileSet.definitions.find(
             (tile) => tile.id === request.definitionId
         )
-        if (request.locationId === Tampa && definition?.face.color === 'brown')
+        assertExists(definition, 'A track request names a tile of the set')
+        if (request.locationId === Tampa && definition.face.color === 'brown')
             return 'Tampa has no brown upgrade'
         return undefined
     }

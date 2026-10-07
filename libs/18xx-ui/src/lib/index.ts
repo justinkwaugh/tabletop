@@ -60,6 +60,7 @@ export type {
 export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
 export type {
     CompanyColumn,
+    MarketLedge,
     MarketZone,
     MarketZoneBanner,
     PrivateTokenPresentation,

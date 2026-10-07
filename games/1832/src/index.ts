@@ -8,7 +8,6 @@ export { EighteenThirtyTwoInfo } from './definition/info.js'
 export { Definition, EighteenThirtyTwoTitleRules } from './definition/gameDefinition.js'
 
 export * from './capitalization.js'
-export * from './companies.js'
 export * from './companyRules.js'
 export * from './earningsRules.js'
 export * from './endingRules.js'

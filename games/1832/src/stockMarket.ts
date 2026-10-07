@@ -29,11 +29,25 @@ const Zones: Readonly<Record<string, string>> = {
     c: 'black'
 }
 
+const inLowerArea = (cell: string | undefined) => !!cell?.endsWith('i')
+
 export const EighteenThirtyTwoLowerAreaSpaceIds: ReadonlySet<string> = new Set(
     Market.flatMap((row, rowIndex) =>
-        row.flatMap((cell, column) => (cell.endsWith('i') ? [`${rowIndex}:${column}`] : []))
+        row.flatMap((cell, column) => (inLowerArea(cell) ? [`${rowIndex}:${column}`] : []))
     )
 )
+
+/** The sides of upper-area spaces that border the lower area: the soft ledge's course. */
+export const EighteenThirtyTwoSoftLedge: readonly { spaceId: string; side: 'bottom' | 'right' }[] =
+    Market.flatMap((row, rowIndex) =>
+        row.flatMap((cell, column) => {
+            if (inLowerArea(cell)) return []
+            return [
+                ...(inLowerArea(Market[rowIndex + 1]?.[column]) ? (['bottom'] as const) : []),
+                ...(inLowerArea(row[column + 1]) ? (['right'] as const) : [])
+            ].map((side) => ({ spaceId: `${rowIndex}:${column}`, side }))
+        })
+    )
 
 export function isLowerArea(space: StockMarketSpace): boolean {
     return EighteenThirtyTwoLowerAreaSpaceIds.has(space.id)

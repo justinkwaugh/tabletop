@@ -6,6 +6,7 @@ import {
     stockMarketSpace
 } from '@tabletop/18xx'
 import {
+    EighteenThirtyTwoSoftLedge,
     createEighteenThirtyTwoStockMarket,
     isClosingSpace,
     isLowerArea,
@@ -33,13 +34,10 @@ describe('the 1832 stock market', () => {
     })
 
     it('stops a one-space fall onto the soft ledge, but lets two shares cross it', () => {
-        // $275 sits on the ledge above the lower area's $250.
         expect(saleDescent(market, at(1, 16), 1)).toBe(0)
         expect(saleDescent(market, at(1, 16), 2)).toBe(2)
-        // From $300 two rows up, three shares reach the ledge then cross it.
         expect(saleDescent(market, at(0, 17), 2)).toBe(1)
         expect(saleDescent(market, at(0, 17), 3)).toBe(3)
-        // In the lower area every share falls one space until the lower ledge.
         expect(saleDescent(market, at(2, 16), 1)).toBe(1)
         expect(saleDescent(market, at(3, 16), 4)).toBe(0)
     })
@@ -63,5 +61,13 @@ describe('the 1832 stock market', () => {
         placeStockMarker(prepared, 'ACL', at(4, 0))
         expect(dividendMarketMove(prepared, 'ACL', false).toMarketSpaceId).toBe(at(5, 0))
         expect(dividendMarketMove(prepared, 'ACL', true).toMarketSpaceId).toBe(at(4, 1))
+    })
+})
+
+describe('the soft ledge', () => {
+    it('runs below the upper area and beside it where the lower area steps up', () => {
+        expect(EighteenThirtyTwoSoftLedge).toContainEqual({ spaceId: '1:16', side: 'bottom' })
+        expect(EighteenThirtyTwoSoftLedge).toContainEqual({ spaceId: '2:15', side: 'right' })
+        expect(EighteenThirtyTwoSoftLedge.some((edge) => edge.spaceId === '2:16')).toBe(false)
     })
 })

@@ -6,7 +6,7 @@
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { MarketZone } from '../session/titlePresentation.js'
+    import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
         marketTokenLayout,
@@ -24,6 +24,7 @@
         appearances,
         animation,
         zones = [],
+        ledge,
         cell = DefaultMarketCell,
         renderScale = 1
     }: {
@@ -32,6 +33,7 @@
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
         zones?: readonly MarketZone[]
+        ledge?: MarketLedge
         cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
@@ -248,13 +250,17 @@
                 }}
             >
                 <strong>{space.price}</strong>
-                {#if !space.moves.right && space.moves.up}<svg
+                {#each ledge?.edges.filter((edge) => edge.spaceId === space.id) ?? [] as edge (edge.side)}<span
+                        class="ledge {edge.side}"
+                        aria-hidden="true"
+                    ></span>{/each}
+                {#if space.moves.up && (!space.moves.right || space.moves.right === space.moves.up)}<svg
                         class="edge-arrow right"
                         viewBox="0 0 10 32"
                         role="img"
                         aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
                     >{/if}
-                {#if !space.moves.left && space.moves.down}<svg
+                {#if space.moves.down && (!space.moves.left || space.moves.left === space.moves.down)}<svg
                         class="edge-arrow left"
                         viewBox="0 0 10 32"
                         role="img"
@@ -408,6 +414,23 @@
         outline: calc(2px * var(--render-scale)) solid
             light-dark(#796047, var(--rail-focus, #b8cddd));
         outline-offset: calc(-2px * var(--render-scale));
+    }
+    .ledge {
+        position: absolute;
+        z-index: 1;
+        background: light-dark(#2f6fc0, #6aa8f0);
+    }
+    .ledge.bottom {
+        left: calc(-1px * var(--render-scale));
+        right: calc(-1px * var(--render-scale));
+        bottom: calc(-2.5px * var(--render-scale));
+        height: calc(4px * var(--render-scale));
+    }
+    .ledge.right {
+        top: calc(-1px * var(--render-scale));
+        bottom: calc(-1px * var(--render-scale));
+        right: calc(-2.5px * var(--render-scale));
+        width: calc(4px * var(--render-scale));
     }
     strong {
         color: var(--price-ink);

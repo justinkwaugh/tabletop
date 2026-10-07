@@ -12,33 +12,38 @@ import {
     completeOpeningAuction
 } from './scenarios/index.js'
 
-const StartingCash = { 2: 1050, 3: 700, 4: 525, 5: 420, 6: 350 } as const
-const CertificateLimits = { 2: 28, 3: 20, 4: 16, 5: 13, 6: 11 } as const
+const StartingCash = { 2: 1050, 3: 700, 4: 525, 5: 420, 6: 350, 7: 300 } as const
+const CertificateLimits = { 2: 28, 3: 20, 4: 16, 5: 13, 6: 11, 7: 9 } as const
 
 describe('the opening', () => {
-    it.each([2, 3, 4, 5, 6] as const)('deals $2100 among %i players', (count) => {
-        const { state } = exampleGame(EighteenThirtyTwoScenarios, 'opening', count)
-        expect(EighteenThirtyTwoScenarios.runtime.canonicalStateValidator?.Check(state)).toBe(true)
-        expect(state.companies.filter((company) => company.kind === 'major')).toHaveLength(10)
-        expect(
-            state.companies.filter((company) => company.kind === 'private').map((c) => c.id)
-        ).toEqual(['P1', 'P2', 'P3', 'P4', 'P5', 'P7'])
-        expect(
-            state.cash.reduce(
-                (total, account) =>
-                    total + (typeof account.amount === 'number' ? account.amount : 0),
-                0
+    it.each([2, 3, 4, 5, 6, 7] as const)(
+        'splits the starting capital among %i players',
+        (count) => {
+            const { state } = exampleGame(EighteenThirtyTwoScenarios, 'opening', count)
+            expect(EighteenThirtyTwoScenarios.runtime.canonicalStateValidator?.Check(state)).toBe(
+                true
             )
-        ).toBe(12000)
-        for (const player of state.players)
-            expect(cashOwnedBy(state, { kind: 'player', playerId: player.playerId })).toBe(
-                StartingCash[count]
+            expect(state.companies.filter((company) => company.kind === 'major')).toHaveLength(10)
+            expect(
+                state.companies.filter((company) => company.kind === 'private').map((c) => c.id)
+            ).toEqual(['P1', 'P2', 'P3', 'P4', 'P5', 'P7'])
+            expect(
+                state.cash.reduce(
+                    (total, account) =>
+                        total + (typeof account.amount === 'number' ? account.amount : 0),
+                    0
+                )
+            ).toBe(12000)
+            for (const player of state.players)
+                expect(cashOwnedBy(state, { kind: 'player', playerId: player.playerId })).toBe(
+                    StartingCash[count]
+                )
+            expect(EighteenThirtyTwoStockRules.certificateLimit(state, { kind: 'bank' })).toBe(
+                CertificateLimits[count]
             )
-        expect(EighteenThirtyTwoStockRules.certificateLimit(state, { kind: 'bank' })).toBe(
-            CertificateLimits[count]
-        )
-        expect(state.machineState).toBe('WaterfallAuction')
-    })
+            expect(state.machineState).toBe('WaterfallAuction')
+        }
+    )
 
     it('gives P7’s buyer the CoG presidency and its par', () => {
         const play = playExample(EighteenThirtyTwoScenarios, 'opening', 3)
@@ -56,6 +61,18 @@ describe('the opening', () => {
         for (let pass = 0; pass < 3; pass++) play.act('PassAuction')
         const auction = new ReserveBidAuction(play.state, EighteenThirtyTwoAuctionRules)
         expect(auction.price('P1')).toBe(15)
+    })
+
+    it('gives P1 free to the next player once four rounds of passes reduce it to $0', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'opening', 3)
+        const auction = () => new ReserveBidAuction(play.state, EighteenThirtyTwoAuctionRules)
+        for (let round = 0; round < 3; round++)
+            for (let pass = 0; pass < 3; pass++) play.act('PassAuction')
+        expect(auction().price('P1')).toBe(5)
+        const taker = play.state.activePlayerIds[0]
+        for (let pass = 0; pass < 3; pass++) play.act('PassAuction')
+        expect(auction().auction.awards).toEqual([{ lotId: 'P1', playerId: taker, price: 0 }])
+        expect(cashOwnedBy(play.state, { kind: 'player', playerId: taker })).toBe(700)
     })
 
     it('forbids sales in the first stock round', () => {
