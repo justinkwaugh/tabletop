@@ -19,6 +19,12 @@
     style="left: 10px; top: 10px; pointer-events: none; overflow: visible"
     {@attach () => director.attach((ids) => { birdIds = ids })}
 >
+    <defs>
+        <clipPath id="bird-layer-clip">
+            <rect width={W} height={H} rx="14" />
+        </clipPath>
+    </defs>
+    <g clip-path="url(#bird-layer-clip)">
     {#each birdIds as id (id)}
         <g
             class="bird"
@@ -34,6 +40,7 @@
             <path class="ground" d={GROUND} />
         </g>
     {/each}
+    </g>
 </svg>
 
 <style>
