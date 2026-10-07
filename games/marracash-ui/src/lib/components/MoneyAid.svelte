@@ -16,7 +16,7 @@
 </script>
 
 {#snippet bonusTable(heading: string, rows: AidAmountRow[])}
-    <table class="aid-table">
+    <table class="aid-table full-width">
         <thead><tr><th>{heading}</th><th></th></tr></thead>
         <tbody>
             {#each rows as row (row.label)}

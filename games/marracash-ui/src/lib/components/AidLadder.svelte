@@ -11,15 +11,15 @@
 </script>
 
 <div
-    class="grid rounded-md bg-black/30 px-1 py-1.5 text-center"
+    class="grid rounded-md bg-[#6b4f30]/10 px-1 py-1.5 text-center"
     style:grid-template-columns="repeat({rungs.length}, 1fr)"
 >
     {#each rungs as rung (rung.label)}
-        <div class="text-[10.5px] whitespace-nowrap opacity-70">
+        <div class="mb-1 text-[10.5px] whitespace-nowrap text-[#6b5640]">
             {rung.label}{#if label}{' '}{@render label()}{/if}
         </div>
     {/each}
     {#each rungs as rung (rung.label)}
-        <div class="text-[15px] leading-tight {valueClass}">{rung.value}</div>
+        <div class={valueClass}>{rung.value}</div>
     {/each}
 </div>

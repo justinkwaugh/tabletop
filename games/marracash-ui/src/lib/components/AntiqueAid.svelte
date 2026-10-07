@@ -4,9 +4,9 @@
     import AidCard from '$lib/components/AidCard.svelte'
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
     import AntiqueItem from '$lib/components/AntiqueItem.svelte'
+    import PawnIcon from '$lib/components/PawnIcon.svelte'
     import { PanelPalette } from '$lib/utils/playerPanel.js'
-    import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
-    import { AntiqueItemNames, sortedAntiques } from '$lib/utils/antiqueItems.js'
+    import { AntiqueItemNames } from '$lib/utils/antiqueItems.js'
     import {
         antiquePayoutRows,
         antiqueValueRanges,
@@ -16,16 +16,10 @@
     const gameSession = getGameSession()
     const ValueRanges = antiqueValueRanges()
     const ItemSize = 22
+    const FanStepDegrees = 6
+    const FanDropPerStep = 2
+    const FanMiddle = (ExampleAntiqueHand.length - 1) / 2
 
-    let myId = $derived(gameSession.myPlayer?.id)
-    let myHand = $derived(
-        myId === undefined ? [] : gameSession.gameState.getPlayerState(myId).antiques
-    )
-    let hand = $derived(
-        myId !== undefined && myHand.length > 0
-            ? antiqueProgress(sortedAntiques(myHand), gameSession.gameState.customersByColor(myId))
-            : ExampleAntiqueHand.map((card) => ({ card, covered: false }))
-    )
     let payoutRows = $derived(antiquePayoutRows(gameSession.gameState.players.length))
 
     function itemName(color: MarketColor): string {
@@ -36,10 +30,24 @@
 
 <AidCard title="Antiques">
     <p>Each card needs a customer of its color in your shops.</p>
-    <div class="mt-2 flex justify-center gap-1.5">
-        {#each hand as entry, index (index)}
-            <AntiqueCard card={entry.card} covered={entry.covered} />
-        {/each}
+    <div class="mt-1 mb-1 flex items-center justify-center gap-4">
+        <div class="fan">
+            {#each ExampleAntiqueHand as card, index (index)}
+                <div
+                    class="fan-card"
+                    style:transform="rotate({(index - FanMiddle) * FanStepDegrees}deg) translateY({Math.abs(
+                        index - FanMiddle
+                    ) * FanDropPerStep}px)"
+                >
+                    <AntiqueCard {card} covered />
+                </div>
+            {/each}
+        </div>
+        <div class="flex items-end gap-px" aria-label="One customer for each card">
+            {#each ExampleAntiqueHand as card, index (index)}
+                <PawnIcon color={card.color} height={24} />
+            {/each}
+        </div>
     </div>
     <h3 class="aid-heading">Upon completion</h3>
     <p class="aid-lead">Gain cash equal to your best cards:</p>
@@ -54,9 +62,9 @@
         </tbody>
     </table>
     <h3 class="aid-heading">Card values</h3>
-    <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
+    <div class="grid grid-cols-2 gap-x-4">
         {#each ValueRanges as range (range.color)}
-            <div class="flex items-center gap-2">
+            <div class="flex h-[24px] items-center gap-2">
                 <svg
                     width={ItemSize}
                     height={ItemSize}
@@ -64,7 +72,7 @@
                     role="img"
                     aria-label={itemName(range.color)}
                 >
-                    <AntiqueItem color={range.color} cutout={PanelPalette.glaze} />
+                    <AntiqueItem color={range.color} cutout={PanelPalette.scrollInset} />
                 </svg>
                 <!-- El Messiri sets numerals high in the line, above the bottom-heavy items -->
                 <span class="aid-figure relative top-[2px]">{range.lowest}–{range.highest}</span>
@@ -72,3 +80,19 @@
         {/each}
     </div>
 </AidCard>
+
+<style>
+    .fan {
+        display: flex;
+        padding: 2px 4px 0 8px;
+    }
+
+    .fan-card {
+        transform-origin: 50% 100%;
+        filter: drop-shadow(1px 1px 1.5px rgb(0 0 0 / 0.3));
+    }
+
+    .fan-card + .fan-card {
+        margin-left: -18px;
+    }
+</style>

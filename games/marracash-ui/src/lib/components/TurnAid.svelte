@@ -21,7 +21,7 @@
             {/each}
         </tbody>
     </table>
-    <p class="aid-lead mt-1">Move not allowed after Auction</p>
+    <p class="aid-lead mt-1 mb-0">Move not allowed after Auction</p>
     <h3 class="aid-heading">Move</h3>
     <p>Visitors walk to the next fountain; each enters the first matching shop it passes.</p>
     <h3 class="aid-heading">Auction</h3>

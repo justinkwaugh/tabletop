@@ -27,7 +27,7 @@
 <svelte:window onkeydown={closeOnEscape} />
 
 <div
-    class="absolute inset-0 z-40 flex overflow-auto p-3"
+    class="absolute inset-0 z-40 flex overflow-auto bg-[#0d1128]/45 p-3 pt-5"
     role="presentation"
     onclick={() => gameSession.closePlayerAid()}
 >
