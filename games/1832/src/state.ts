@@ -16,7 +16,7 @@ import {
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import type * as Type from 'typebox'
-import { EighteenThirtyTwoTitleFields, hasTitleState } from './titleState.js'
+import { EighteenThirtyTwoTitleFields } from './titleState.js'
 
 export const EighteenThirtyTwoState = composeEighteenXXState(
     {
@@ -39,7 +39,7 @@ export const EighteenThirtyTwoStateDefinition = defineEighteenXXState(EighteenTh
 ])
 
 function isEighteenThirtyTwoState(state: object): state is HydratedEighteenThirtyTwoState {
-    return hasTitleState(state) && 'usedPrivatePowerIds' in state
+    return 'coalRights' in state && 'revenueTokens' in state && 'usedPrivatePowerIds' in state
 }
 
 /** A family hook's state, which is always this title's. */

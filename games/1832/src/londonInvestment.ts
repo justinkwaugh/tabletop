@@ -5,6 +5,7 @@ import {
     HydratableAction,
     PlayerAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedAction
 } from '@tabletop/common'
@@ -21,22 +22,30 @@ import {
     type PrivateRules,
     type StockState
 } from '@tabletop/18xx'
-import { requireEighteenThirtyTwoState, type HydratedEighteenThirtyTwoState } from './state.js'
+import {
+    requireEighteenThirtyTwoState,
+    type EighteenThirtyTwoState,
+    type HydratedEighteenThirtyTwoState
+} from './state.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
-import type { TitleStepAction } from './titleActions.js'
-import { inGame, requireTitleState, type EighteenThirtyTwoTitleState } from './titleState.js'
+import { EighteenThirtyTwoMajors } from './majors.js'
+import { titleStepAction } from './titleActions.js'
+import { inGame, type EighteenThirtyTwoTitleState } from './titleState.js'
 
 export const LondonPrivateId = 'P4'
+const CentralOfGeorgia = EighteenThirtyTwoMajors.CG.id
 
 /** Records the stock round in which a company's president's certificate was bought. */
 export const recordCompanyStart: NonNullable<CompanyRules['onStart']> = (state, details) => {
-    requireTitleState(state).companyStarts[details.companyId] = state.stockRound.number
+    requireEighteenThirtyTwoState(state).companyStarts[details.companyId] = state.stockRound.number
 }
 
 function startedThisRound(state: StockState & EighteenThirtyTwoTitleState, companyId: string) {
     return (
         state.companyStarts[companyId] === state.stockRound.number ||
-        (companyId === 'CG' && state.stockRound.number === 1 && getCompany(state, 'CG').started)
+        (companyId === CentralOfGeorgia &&
+            state.stockRound.number === 1 &&
+            getCompany(state, CentralOfGeorgia).started)
     )
 }
 
@@ -49,15 +58,13 @@ function londonUsed(state: { usedPrivatePowerIds: readonly string[] }) {
  * share of a company whose president's certificate was bought this stock round, the CoG's
  * included in the first (§16.2 P4).
  */
-export function londonShareChoices(
-    state: HydratedEighteenThirtyTwoState,
-    playerId: string
-): string[] {
+export function londonShareChoices(state: EighteenThirtyTwoState, playerId: string): string[] {
     if (!inGame(state, LondonPrivateId)) return []
     const owner = privateOwner(state, LondonPrivateId)
     if (
         state.machineState !== 'StockRound' ||
         state.stockRound.completed ||
+        !state.activePlayerIds.includes(playerId) ||
         state.stockRound.turn.bought ||
         londonUsed(state) ||
         owner?.kind !== 'player' ||
@@ -79,7 +86,7 @@ export function londonShareChoices(
 }
 
 function evaluateLondonShare(
-    state: HydratedEighteenThirtyTwoState,
+    state: EighteenThirtyTwoState,
     playerId: string,
     certificateId: string
 ) {
@@ -152,19 +159,32 @@ export class HydratedTakeLondonShare
     }
 }
 
-export const TakeLondonShareStep: TitleStepAction = {
-    type: 'TakeLondonShare',
-    available: (state, playerId) => londonShareChoices(state, playerId).length > 0,
-    isValid: (action: HydratedAction, state) =>
-        action instanceof HydratedTakeLondonShare && action.isValid(state)
+export const TakeLondonShareStep = titleStepAction(
+    'TakeLondonShare',
+    (action: HydratedAction) => action instanceof HydratedTakeLondonShare,
+    (state, playerId) => londonShareChoices(state, playerId).length > 0
+)
+
+/** One share choice for each company the London Investment Company may buy into. */
+export function londonShareCompanies(
+    state: EighteenThirtyTwoState,
+    playerId: string
+): { companyId: string; certificateId: string }[] {
+    const choices = new Map<string, string>()
+    for (const certificateId of londonShareChoices(state, playerId)) {
+        const certificate = state.certificates.find((item) => item.id === certificateId)
+        assertExists(certificate, 'A London share choice names a certificate')
+        if (!choices.has(certificate.companyId)) choices.set(certificate.companyId, certificateId)
+    }
+    return [...choices].map(([companyId, certificateId]) => ({ companyId, certificateId }))
 }
 
 /** London Investment closes once the company whose share it bought pays a dividend (§16.2 P4). */
 export const closesLondonAfterDividend: PrivateRules['operationEffects'] = (state, companyId) => {
     const title = requireEighteenThirtyTwoState(state)
-    return title.londonCompanyId === companyId &&
-        !getCompany(title, LondonPrivateId).closed &&
-        (title.earningsDistribution?.dividendPerShare ?? 0) > 0
+    if (title.londonCompanyId !== companyId || getCompany(title, LondonPrivateId).closed) return []
+    assertExists(title.earningsDistribution, 'Private effects follow a distribution')
+    return title.earningsDistribution.dividendPerShare > 0
         ? [{ kind: 'close', privateCompanyId: LondonPrivateId }]
         : []
 }

@@ -550,6 +550,38 @@
         },
         "type": "array"
       },
+      "coalPurchase": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "turn": {
+            "additionalProperties": false,
+            "properties": {
+              "round": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "set": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "round",
+              "set"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "companyId",
+          "turn"
+        ],
+        "type": "object"
+      },
       "coalRights": {
         "items": {
           "minLength": 1,

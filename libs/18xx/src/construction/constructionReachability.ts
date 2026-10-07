@@ -16,7 +16,8 @@ export class ConstructionReachability {
     constructor(
         private readonly mapState: RailwayMapState,
         private readonly stations: StationState,
-        private readonly companyId: string
+        private readonly companyId: string,
+        private readonly closedStop: (locationId: string, nodeId: string) => boolean = () => false
     ) {
         for (const { id } of mapState.map.definition.locations) {
             const tile = mapState.tile(id)
@@ -79,7 +80,11 @@ export class ConstructionReachability {
             if (endpoint.kind === 'node') {
                 nodes.add(endpoint.nodeId)
                 const node = face.nodes.find((node) => node.id === endpoint.nodeId)!
-                if (cityIsBlocked(stations, this.companyId, locationId, node)) continue
+                if (
+                    cityIsBlocked(stations, this.companyId, locationId, node) ||
+                    this.closedStop(locationId, node.id)
+                )
+                    continue
             }
             for (const path of face.paths) {
                 if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
@@ -144,7 +149,11 @@ export class ConstructionReachability {
             const face = this.faces.get(locationId)!
             if (endpoint.kind === 'node') {
                 const node = face.nodes.find((node) => node.id === endpoint.nodeId)!
-                if (cityIsBlocked(this.stations, this.companyId, locationId, node)) continue
+                if (
+                    cityIsBlocked(this.stations, this.companyId, locationId, node) ||
+                    this.closedStop(locationId, node.id)
+                )
+                    continue
             }
             if (exiting && endpoint.kind === 'edge') {
                 const neighbor = this.cross(locationId, endpoint.edge)

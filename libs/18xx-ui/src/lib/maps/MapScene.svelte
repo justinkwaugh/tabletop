@@ -1,4 +1,6 @@
 <script lang="ts">
+    // A medium city's ring stands clear of its town dot by the track's half-width.
+    const TownRingGap = 3.4
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -313,19 +315,14 @@
                         {/if}
                     {/each}
                 {/each}
-                {#if entry.location.markers?.some((marker) => {
-                    const art = entry.markerArt[marker.id]
-                    return !!art && 'townRing' in art
-                })}
+                {#if entry.townRing}
                     {#each entry.drawing.nodes.filter((node) => node.node.kind === 'town') as node (node.node.id)}
                         <circle
+                            class="town-ring"
                             data-map-town-ring={entry.location.id}
                             cx={node.center.x}
                             cy={node.center.y}
-                            r={node.dotRadius + 3.4}
-                            fill="none"
-                            stroke="#202c31"
-                            stroke-width="1.6"
+                            r={node.dotRadius + TownRingGap}
                         ></circle>
                     {/each}
                 {/if}
@@ -885,5 +882,10 @@
     .hit-node:focus-visible {
         stroke: #d52f83;
         stroke-width: 2;
+    }
+    .town-ring {
+        fill: none;
+        stroke: #202c31;
+        stroke-width: 1.6;
     }
 </style>

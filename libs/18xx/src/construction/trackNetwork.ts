@@ -10,7 +10,8 @@ export class TrackNetwork extends ConnectedTrack {
         state: StationState,
         companyId: string,
         replacement?: { locationId: string; face: TileFace },
-        origin?: RevenueCenter
+        origin?: RevenueCenter,
+        closedStop: (locationId: string, nodeId: string) => boolean = () => false
     ) {
         const origins = state.stations.flatMap((station) =>
             station.status === 'placed' &&
@@ -24,7 +25,8 @@ export class TrackNetwork extends ConnectedTrack {
         super(
             mapState,
             origins,
-            (locationId, node) => cityIsBlocked(state, companyId, locationId, node),
+            (locationId, node) =>
+                cityIsBlocked(state, companyId, locationId, node) || closedStop(locationId, node.id),
             replacement
         )
     }

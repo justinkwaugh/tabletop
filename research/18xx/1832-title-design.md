@@ -235,11 +235,15 @@ in the token step occur in 1846 (C&WI) and 1830 (D&H) as private powers.
 - **WVCF.** Rights are a list of companies. A company buying P5 takes one; others, once P5 is
   company-owned or closed, buy one in their track step for $80 ($40 to P5's owning company while
   it is open), using a yellow lay, when their track reaches the coal fields. Only holders may
-  visit O26. **Ruling:** P5 blocks no hex; "no company may connect to the coal fields" is
-  enforced through the rights alone.
+  visit or pass through O26: routes, the runs that reach new track (§6.1) and those that
+  reach cities for stations all stop there, through `stopAllowed` hooks on the route, track and
+  station rules. The purchase is recorded as the turn's WVCF purchase, which the allowance counts
+  as a yellow lay without showing a tile laid. **Ruling:** P5 blocks no hex; "no company may
+  connect to the coal fields" is enforced through the rights alone.
 - **Port, Cotton, Key West.** Tokens record kind, company, location and city node. P3's Port goes
   on any anchored revenue location (towns and Miami included, as the anchors are printed there)
-  and P2's Cotton in any non-coastal city on the current map, with Atlanta's city chosen; a
+  and P2's Cotton in any non-coastal city on the current map, with Atlanta's city chosen by
+  clicking it on the board (the shared location choice now passes the clicked city); a
   Cotton token follows its city through Atlanta's upgrades. Each is placed once in the owning
   company's token step and stays after its private closes. Port and Cotton stop counting at
   phase 6, Key West at phase 8. Key West, from phase 3, is the FEC's token placement for that

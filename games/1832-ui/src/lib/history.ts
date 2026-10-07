@@ -12,12 +12,18 @@ const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as
 export const describe1832Action: TitleActionDescription = (action, companyName) => {
     if (isCapitalizeCompany(action))
         return {
-            text: `${companyName(action.companyId)} received $${action.metadata?.payment.amount ?? 0} capital`,
+            text: `${companyName(action.companyId)} received its capital`,
+            ...(action.metadata ? { value: `$${action.metadata.payment.amount}` } : {}),
             omitActor: true
         }
     if (isBuyCoalRights(action))
         return {
-            text: `${companyName(action.companyId)} bought a West Virginia Coal Fields token for $80`
+            text: `${companyName(action.companyId)} bought a West Virginia Coal Fields token`,
+            ...(action.metadata
+                ? {
+                      value: `$${action.metadata.payments.reduce((sum, payment) => sum + payment.amount, 0)}`
+                  }
+                : {})
         }
     if (isPlaceRevenueToken(action))
         return {
@@ -25,7 +31,9 @@ export const describe1832Action: TitleActionDescription = (action, companyName) 
         }
     if (isTakeLondonShare(action))
         return {
-            text: `took a free ${companyName(action.metadata?.companyId ?? '')} share with the London Investment Company`
+            text: action.metadata
+                ? `took a free ${companyName(action.metadata.companyId)} share with the London Investment Company`
+                : 'took a free share with the London Investment Company'
         }
     if (isRecordMiamiRun(action))
         return {

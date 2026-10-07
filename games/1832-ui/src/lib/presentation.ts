@@ -1,4 +1,5 @@
 import {
+    CoalTokens,
     EighteenThirtyTwoSoftLedge,
     miamiFirstRun,
     type EighteenThirtyTwoState
@@ -7,8 +8,6 @@ import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
-
-const CoalTokens = 5
 
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
     money: moneyFormat('$'),

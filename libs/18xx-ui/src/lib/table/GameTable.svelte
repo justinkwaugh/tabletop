@@ -779,7 +779,10 @@
         onselect={interactive && !consentPreview
             ? (selection) =>
                   locationChoice?.locationIds.includes(selection.locationId)
-                      ? locationChoice.choose(selection.locationId)
+                      ? locationChoice.choose(
+                            selection.locationId,
+                            'nodeId' in selection ? selection.nodeId : undefined
+                        )
                       : session.map.select(selection, false)
             : undefined}
     />

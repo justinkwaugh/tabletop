@@ -1,3 +1,4 @@
+import type { RevenueCenter } from '../routes/route.js'
 import * as Type from 'typebox'
 import { cashOwnedBy, controllingOwner, type Owner } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
@@ -90,6 +91,8 @@ export interface TrackRules {
      * cities.
      */
     upgradesWithinColor?(state: ConstructionState, locationId: string, after: TileFace): boolean
+    /** Whether the company's network may continue through a revenue center, as its routes may. */
+    stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
     /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
     mostExits?(before: TileFace): boolean
@@ -385,7 +388,9 @@ export class TrackConstruction {
         return (this.reachability ??= new ConstructionReachability(
             this.mapState,
             this.state,
-            companyId
+            companyId,
+            (locationId, nodeId) =>
+                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false
         ))
     }
     private availablePieces(definitionId: string): ReturnType<TileSet['availablePieces']> {

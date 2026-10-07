@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { placeStockMarker } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
+    EighteenThirtyTwoMajors,
     EighteenThirtyTwoPrivates,
     EighteenThirtyTwoRouteRules,
     EighteenThirtyTwoStationRules,
+    migrateRevenueTokens,
+    ranToMiamiFirst,
     revenueTokenChoices,
     stopBonuses
 } from './index.js'
@@ -113,4 +117,97 @@ describe('Miami and Key West', () => {
         expect(stopBonuses(withToken('3'), 'CG', miami)).toEqual([])
         expect(stopBonuses(withToken('8'), 'FEC', miami)).toEqual([])
     })
+})
+
+function keyWestPlay(phaseId: string) {
+    return playExample(EighteenThirtyTwoScenarios, 'stations', 3, (state) => {
+        state.phaseId = phaseId
+        const central = state.companies.find((company) => company.id === 'CG')!
+        state.companies.push({
+            ...central,
+            ...EighteenThirtyTwoMajors.FEC
+        })
+        state.cash.push({ owner: { kind: 'company', companyId: 'FEC' }, amount: 300 })
+        placeStockMarker(state.stockMarket, 'FEC', '1:6')
+        state.stations.push(
+            {
+                id: 'FEC:home',
+                companyId: 'FEC',
+                status: 'placed',
+                position: { locationId: 'W26', nodeId: 'city', slot: 0 }
+            },
+            { id: 'FEC:station:1', companyId: 'FEC', status: 'available' }
+        )
+        state.operatingSet!.companyOrder = ['FEC', ...state.operatingSet!.companyOrder]
+        state.trackStep = { companyId: 'FEC', lays: [], completed: true }
+        state.stationStep = { companyId: 'FEC', placedStationIds: [], completed: false }
+    })
+}
+
+describe('the Key West token', () => {
+    it('is the FEC’s token placement for the turn, from phase 3', () => {
+        expect(revenueTokenChoices(keyWestPlay('2').state, 'blair')).toEqual([])
+        const play = keyWestPlay('3')
+        expect(revenueTokenChoices(play.state, 'blair')).toEqual([
+            { kind: 'key-west', companyId: 'FEC', locationId: 'AA28', nodeId: 'offboard' }
+        ])
+        play.act('PlaceRevenueToken', {
+            companyId: 'FEC',
+            kind: 'key-west',
+            locationId: 'AA28',
+            nodeId: 'offboard'
+        })
+        expect(EighteenThirtyTwoStationRules.placementLimit(play.state, 'FEC')).toBe(0)
+        expect(play.state.machineState).not.toBe('PlacingStation')
+    })
+})
+
+describe('Miami’s first run', () => {
+    it('is recorded after a run reaches Miami before phase 5', () => {
+        const { state } = playExample(EighteenThirtyTwoScenarios, 'routes', 3)
+        const ran = (locationId: string) => ({
+            ...state,
+            routeStep: {
+                companyId: 'CG',
+                result: {
+                    companyId: 'CG',
+                    revenue: 20,
+                    routes: [
+                        {
+                            trainId: 'train',
+                            start: { locationId: 'W26', nodeId: 'city' },
+                            paths: [{ locationId: 'W26', pathId: 'edge-5' }],
+                            visits: [
+                                { locationId: 'W26', nodeId: 'city' },
+                                { locationId, nodeId: 'offboard' }
+                            ],
+                            payments: [],
+                            distance: 2,
+                            revenue: 20
+                        }
+                    ]
+                }
+            }
+        })
+        expect(ranToMiamiFirst(ran('AA28'))).toBe(true)
+        expect(ranToMiamiFirst(ran('O14'))).toBe(false)
+        expect(ranToMiamiFirst({ ...ran('AA28'), miamiRun: true })).toBe(false)
+        expect(ranToMiamiFirst({ ...ran('AA28'), phaseId: '5' })).toBe(false)
+    })
+})
+
+it('moves a Cotton token with its city through an upgrade', () => {
+    const state = {
+        revenueTokens: [
+            {
+                kind: 'cotton' as const,
+                companyId: 'CG',
+                locationId: 'S22',
+                nodeId: 'city-1',
+                placed: { set: 1, round: 1 }
+            }
+        ]
+    }
+    migrateRevenueTokens(state, 'S22', { 'city-0': 'city-2', 'city-1': 'city-0' })
+    expect(state.revenueTokens[0].nodeId).toBe('city-0')
 })

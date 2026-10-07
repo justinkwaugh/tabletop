@@ -11,6 +11,7 @@ import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { keyWestPlacedThisTurn, revenueTokenChoices } from './revenueTokens.js'
 import { requireEighteenThirtyTwoState } from './state.js'
+import { coalFieldsOpen } from './coalAccess.js'
 
 // Token costs from each charter, the free home token first (§7.4, §16.3).
 export const EighteenThirtyTwoStationCosts: Readonly<Record<string, readonly number[]>> = {
@@ -32,6 +33,7 @@ export const EighteenThirtyTwoStationRules: StationRules = {
     tileSet: EighteenThirtyTwoTileSet,
     placementCost: (state, stationId) =>
         charterStationCost(state, stationId, EighteenThirtyTwoStationCosts),
+    stopAllowed: coalFieldsOpen,
     placementLimit: (state, companyId) => (keyWestPlacedThisTurn(state, companyId) ? 0 : 1),
     holdsStationStep: (state, companyId) => {
         const title = requireEighteenThirtyTwoState(state)

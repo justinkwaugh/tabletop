@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { applyStationPlacement, cashOwnedBy } from '@tabletop/18xx'
+import { TrackConstruction, applyStationPlacement, cashOwnedBy } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoRouteRules,
     EighteenThirtyTwoTileSet,
+    EighteenThirtyTwoTrackRules,
     EighteenThirtyTwoTransferRules,
     canBuyCoalRights
 } from './index.js'
@@ -47,9 +48,8 @@ describe('West Virginia Coal Fields', () => {
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'CG' })).toBe(
             Number(central) - 80
         )
-        expect(play.state.trackStep?.lays).toEqual([
-            { locationId: 'O26', color: 'yellow', cost: 80 }
-        ])
+        expect(play.state.trackStep?.lays).toEqual([])
+        expect(play.state.coalPurchase).toEqual({ companyId: 'CG', turn: { set: 1, round: 1 } })
     })
 
     it('stays closed to every company while a player owns the private', () => {
@@ -74,8 +74,53 @@ describe('West Virginia Coal Fields', () => {
             asset: { kind: 'private', privateCompanyId: 'P5' },
             seller: { kind: 'player', playerId: 'casey' },
             sellerPlayerId: 'casey',
+            buyerPlayerId: 'blair',
             price: 80
         })
         expect(state.coalRights).toEqual(['CG'])
+    })
+})
+
+describe('WVCF tokens and construction', () => {
+    it('use one of the turn’s two yellow lays', () => {
+        const play = coalFieldsPlay('ACL')
+        play.act('BuyCoalRights', { companyId: 'CG' })
+        const allowance = (color: string, upgrade: boolean) =>
+            EighteenThirtyTwoTrackRules.allowance(play.state, color, upgrade)
+        expect(allowance('yellow', false)).toEqual({ cost: 0 })
+        expect(allowance('green', true)).toHaveProperty('reason')
+        const laid = {
+            ...play.state,
+            trackStep: {
+                companyId: 'CG',
+                lays: [{ locationId: 'P21', color: 'yellow', cost: 0 }],
+                completed: false
+            }
+        }
+        expect(EighteenThirtyTwoTrackRules.allowance(laid, 'yellow', false)).toHaveProperty(
+            'reason'
+        )
+    })
+
+    it('cannot follow an upgrade', () => {
+        const play = coalFieldsPlay('ACL')
+        const upgraded = {
+            ...play.state,
+            trackStep: {
+                companyId: 'CG',
+                lays: [{ locationId: 'P23', color: 'green', cost: 0 }],
+                completed: false
+            }
+        }
+        expect(canBuyCoalRights(upgraded, 'blair')).toBe(false)
+    })
+
+    it('let only holders reach track beyond the coal fields', () => {
+        const play = coalFieldsPlay('ACL')
+        const beyond = () =>
+            new TrackConstruction(play.state, EighteenThirtyTwoTrackRules).choices('O28')
+        expect(beyond()).toEqual([])
+        play.act('BuyCoalRights', { companyId: 'CG' })
+        expect(beyond().length).toBeGreaterThan(0)
     })
 })

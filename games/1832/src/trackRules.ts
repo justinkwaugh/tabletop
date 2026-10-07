@@ -1,17 +1,19 @@
 import { assertExists } from '@tabletop/common'
 import {
-    RailwayMapState,
     sameStopCounts,
     type ConstructionState,
     type MapStateData,
     type TileFace,
     type TrackRules
 } from '@tabletop/18xx'
+import { requireEighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoMap, MediumCityLocationIds } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
+import { coalFieldsOpen } from './coalAccess.js'
+import { currentTileFace } from './tileState.js'
+import { sameOperatingTurn } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { migrateRevenueTokens } from './revenueTokens.js'
-import { requireTitleState } from './titleState.js'
 
 const Tampa = 'Z25'
 
@@ -23,21 +25,13 @@ function atlantaJoinsCities(before: TileFace, after: TileFace): boolean {
 const stopCount = (face: TileFace, kind: 'city' | 'town') =>
     face.nodes.filter((node) => node.kind === kind).length
 
-function currentFace(state: MapStateData, locationId: string): TileFace {
-    return new RailwayMapState(
-        EighteenThirtyTwoMap,
-        EighteenThirtyTwoTileSet,
-        state.tileInventory
-    ).tile(locationId).face
-}
-
 /**
  * From phase 3 a medium city's yellow town tile may become a yellow city tile, the upgrade of
  * that turn (§4.2.1, §6.4.2).
  */
 function promotesMediumCity(state: ConstructionState, locationId: string, after: TileFace) {
     if (!MediumCityLocationIds.includes(locationId)) return false
-    const before = currentFace(state, locationId)
+    const before = currentTileFace(state, locationId)
     return (
         EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3') &&
         before.color === 'yellow' &&
@@ -49,19 +43,31 @@ function promotesMediumCity(state: ConstructionState, locationId: string, after:
     )
 }
 
-// A lay replaced an existing tile when it is not yellow, or it promoted a medium city.
 function laidUpgrade(state: ConstructionState, lay: { locationId: string; color: string }) {
     return (
         lay.color !== 'yellow' ||
         (MediumCityLocationIds.includes(lay.locationId) &&
-            stopCount(currentFace(state, lay.locationId), 'city') > 0)
+            stopCount(currentTileFace(state, lay.locationId), 'city') > 0)
     )
+}
+
+/** This turn's lays, each as whether it was an upgrade; a WVCF token counts as a yellow (§6.5.2). */
+function laysThisTurn(state: ConstructionState): boolean[] {
+    const title = requireEighteenThirtyTwoState(state)
+    const companyId = state.trackStep?.companyId
+    const coal = title.coalPurchase
+    return [
+        ...(state.trackStep?.lays ?? []).map((lay) => laidUpgrade(state, lay)),
+        ...(coal && coal.companyId === companyId && sameOperatingTurn(coal.turn, title.operatingSet)
+            ? [false]
+            : [])
+    ]
 }
 
 /** Medium cities not yet promoted: untiled, or still with their yellow town tile (§6.4.2). */
 export function unpromotedMediumCities(state: MapStateData): string[] {
     return MediumCityLocationIds.filter((locationId) => {
-        const face = currentFace(state, locationId)
+        const face = currentTileFace(state, locationId)
         return face.color === 'white' || (face.color === 'yellow' && !stopCount(face, 'city'))
     })
 }
@@ -73,14 +79,13 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
     availableColors: (state) => EighteenThirtyTwoPhases.phase(state.phaseId).tileColors,
     // A company lays two yellow tiles or upgrades one tile (§6).
     allowance(state, color, upgrade) {
-        const lays = state.trackStep?.lays ?? []
+        const lays = laysThisTurn(state)
         if (!lays.length) return { cost: 0 }
-        const newYellow = color === 'yellow' && !upgrade
-        if (newYellow && lays.length === 1 && !lays.some((lay) => laidUpgrade(state, lay)))
-            return { cost: 0 }
+        if (color === 'yellow' && !upgrade && lays.length === 1 && !lays[0]) return { cost: 0 }
         return { reason: 'A company lays two yellow tiles or upgrades one tile.' }
     },
     upgradesWithinColor: promotesMediumCity,
+    stopAllowed: coalFieldsOpen,
     preservesStops: (before, after) =>
         sameStopCounts(before, after) || atlantaJoinsCities(before, after),
     // New track must be usable, or the new tile's city or town on the company's route (§6.1–6.2).
@@ -93,7 +98,11 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
             ? 0
             : cost,
     afterLay(state, details) {
-        migrateRevenueTokens(requireTitleState(state), details.locationId, details.nodeMapping)
+        migrateRevenueTokens(
+            requireEighteenThirtyTwoState(state),
+            details.locationId,
+            details.nodeMapping
+        )
         return { payments: [], closedPrivateIds: [] }
     },
     restriction(_state, request) {

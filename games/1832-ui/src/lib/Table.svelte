@@ -12,7 +12,6 @@
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
-    import { PrivateOperatingPowers } from './privatePowers.js'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
@@ -24,12 +23,8 @@
         assert(gameSession instanceof EighteenThirtyTwoSession, '1832 requires its title session')
         return gameSession
     })
-    const tokenKinds: Readonly<Record<string, string>> = { P2: 'cotton', P3: 'port' }
-    // A token private's power lasts until its token is placed.
-    const privateOperationDescription = (id: string) =>
-        session.gameState.revenueTokens.some((token) => token.kind === tokenKinds[id])
-            ? undefined
-            : PrivateOperatingPowers[id]
+    const privateOperationDescription = (privateCompanyId: string) =>
+        session.privateOperationDescription(privateCompanyId)
 </script>
 
 <GameTable {session} {privateOperationDescription} historyDescription={describe1832Action}>

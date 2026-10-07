@@ -2,9 +2,11 @@ import {
     BuyCoalRights,
     EighteenThirtyTwoTitleRules,
     PlaceRevenueToken,
+    RevenueTokenPrivateIds,
     TakeLondonShare,
-    londonShareChoices,
+    londonShareCompanies,
     revenueTokenChoices,
+    revenueTokenUnplaced,
     type EighteenThirtyTwoState,
     type HydratedEighteenThirtyTwoState,
     type RevenueTokenChoice
@@ -18,6 +20,7 @@ import {
 import { mapState1832 } from './mapState.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
+import { PrivateOperatingPowers } from './privatePowers.js'
 
 const BaseSession: ReturnType<
     typeof createEighteenXXSessionClass<
@@ -30,36 +33,12 @@ const BaseSession: ReturnType<
     EighteenThirtyTwoPresentation
 )
 
-type TokenPrivate = { kind: 'port' | 'cotton'; privateCompanyId: string; name: string }
-const TokenPrivates: readonly TokenPrivate[] = [
-    { kind: 'port', privateCompanyId: 'P3', name: 'Port' },
-    { kind: 'cotton', privateCompanyId: 'P2', name: 'Cotton' }
-]
+const TokenPrivates = [
+    { kind: 'port', name: 'Port' },
+    { kind: 'cotton', name: 'Cotton' }
+] as const
 
 export class EighteenThirtyTwoSession extends BaseSession {
-    // A chosen hex with several cities for a Port or Cotton token, awaiting its city; a new state
-    // clears it.
-    pendingTokenLocation = $derived.by(
-        (): Pick<RevenueTokenChoice, 'kind' | 'locationId'> | undefined => {
-            void this.gameState.actionCount
-            void this.gameState.machineState
-            return undefined
-        }
-    )
-    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
-        super(options)
-        this.localSelections.register({
-            hasManual: () => !!this.pendingTokenLocation,
-            undo: () => {
-                if (!this.pendingTokenLocation) return false
-                this.pendingTokenLocation = undefined
-                return true
-            },
-            clear: () => {
-                this.pendingTokenLocation = undefined
-            }
-        })
-    }
     readonly canChooseAction = $derived(
         this.isPlayable &&
             this.isMyTurn &&
@@ -75,51 +54,53 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly keyWestChoice = $derived(
         this.revenueTokenChoices.find((choice) => choice.kind === 'key-west')
     )
-    readonly tokenCityChoices = $derived.by(() => {
-        const pending = this.pendingTokenLocation
-        return pending
-            ? this.revenueTokenChoices.filter(
-                  (choice) =>
-                      choice.kind === pending.kind && choice.locationId === pending.locationId
-              )
-            : []
-    })
     readonly canBuyCoalRights = $derived(
         this.canChooseAction && this.validActionTypes.includes('BuyCoalRights')
     )
-    readonly londonChoices = $derived(
-        this.myPlayer && !this.isViewingHistory
-            ? londonShareChoices(this.gameState, this.myPlayer.id)
+    readonly londonCompanies = $derived(
+        this.myPlayer && this.canChooseAction
+            ? londonShareCompanies(this.gameState, this.myPlayer.id)
             : []
     )
+    /** What a private lets its owning company do, while that power remains to be used. */
+    privateOperationDescription(privateCompanyId: string): string | undefined {
+        return revenueTokenUnplaced(this.gameState, privateCompanyId)
+            ? PrivateOperatingPowers[privateCompanyId]
+            : undefined
+    }
     protected override get titlePrivatePowers(): readonly TitlePrivatePower[] {
         const playerId = this.myPlayer?.id
         if (!playerId) return []
-        return TokenPrivates.flatMap(({ kind, privateCompanyId, name }): TitlePrivatePower[] => {
+        return TokenPrivates.flatMap(({ kind, name }): TitlePrivatePower[] => {
             const choices = this.revenueTokenChoices.filter((choice) => choice.kind === kind)
             if (!choices.length) return []
             return [
                 {
                     kind: 'location',
-                    privateCompanyId,
+                    privateCompanyId: RevenueTokenPrivateIds[kind],
                     playerId,
                     label: `${name} token`,
                     prompt: `Choose a ${kind === 'port' ? 'coastal' : 'non-coastal'} city for the ${name} token`,
                     locationIds: [...new Set(choices.map((choice) => choice.locationId))],
-                    choose: (locationId) => this.chooseTokenLocation(kind, locationId)
+                    choose: (locationId, nodeId) => this.chooseTokenCity(kind, locationId, nodeId)
                 }
             ]
         })
     }
-    private async chooseTokenLocation(kind: 'port' | 'cotton', locationId: string) {
+    // In a hex with several cities, such as Atlanta, the city clicked is the choice.
+    private async chooseTokenCity(
+        kind: 'port' | 'cotton',
+        locationId: string,
+        nodeId: string | undefined
+    ) {
         const cities = this.revenueTokenChoices.filter(
             (choice) => choice.kind === kind && choice.locationId === locationId
         )
-        if (cities.length === 1) await this.placeRevenueToken(cities[0])
-        else this.pendingTokenLocation = { kind, locationId }
+        const choice =
+            cities.length === 1 ? cities[0] : cities.find((city) => city.nodeId === nodeId)
+        if (choice) await this.placeRevenueToken(choice)
     }
     async placeRevenueToken(choice: RevenueTokenChoice): Promise<void> {
-        this.pendingTokenLocation = undefined
         await this.applyAction(this.createPlayerAction(PlaceRevenueToken, choice))
     }
     async buyCoalRights(): Promise<void> {

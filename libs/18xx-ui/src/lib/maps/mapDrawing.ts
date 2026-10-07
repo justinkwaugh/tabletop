@@ -116,6 +116,8 @@ export type MapDrawnLocation = {
     /** True for a presentation placement that hides the hex entirely. */
     hidden: boolean
     markerArt: Readonly<Record<string, MapMarkerArt>>
+    /** Whether the hex's towns are ringed, as a medium city is printed. */
+    townRing: boolean
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -440,6 +442,10 @@ export function createMapDrawing(
             hidden: !!relocation?.hidden,
             drawing,
             markerArt,
+            townRing: markers.some((marker) => {
+                const art = markerArt[marker.id]
+                return !!art && 'townRing' in art
+            }),
             borders,
             outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
                 segment

@@ -499,7 +499,7 @@ export class EighteenXXSession<
         if (power.kind === 'location')
             return {
                 locationIds: power.locationIds,
-                choose: (locationId) => void power.choose(locationId)
+                choose: (locationId, nodeId) => void power.choose(locationId, nodeId)
             }
         // A confirm power's previewed stations can be chosen on the map as well.
         if (power.kind === 'confirm' && power.reservations?.length)
@@ -697,7 +697,8 @@ export function requireEighteenXXSession(
 
 export type MapLocationChoice = {
     locationIds: readonly string[]
-    choose(locationId: string): void
+    /** Chooses a hex, with the city or town clicked within it when there was one. */
+    choose(locationId: string, nodeId?: string): void
 }
 
 export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &

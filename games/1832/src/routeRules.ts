@@ -1,5 +1,5 @@
 import type { RouteRules } from '@tabletop/18xx'
-import { coalFieldsAccess } from './coalFields.js'
+import { coalFieldsOpen } from './coalAccess.js'
 import { revenueTokenRoutes } from './revenueTokens.js'
 import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
@@ -11,6 +11,6 @@ export const EighteenThirtyTwoRouteRules: RouteRules = {
     depot: EighteenThirtyTwoTrainDepot,
     revenueStage: (state) => revenueStages(state.phaseId),
     requiresCity: () => false,
-    ...coalFieldsAccess,
+    stopAllowed: coalFieldsOpen,
     ...revenueTokenRoutes
 }

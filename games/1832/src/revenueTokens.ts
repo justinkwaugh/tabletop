@@ -10,7 +10,6 @@ import {
     type HydratedAction
 } from '@tabletop/common'
 import {
-    RailwayMapState,
     SystemActionFirstHandler,
     controllingOwner,
     nextOperatingCompany,
@@ -23,13 +22,17 @@ import {
     type TrainRunningState
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoMap, PortLocationIds } from './map.js'
-import type { EighteenThirtyTwoStateHandler, HydratedEighteenThirtyTwoState } from './state.js'
-import { EighteenThirtyTwoTileSet } from './tiles.js'
-import type { TitleStepAction } from './titleActions.js'
+import {
+    requireEighteenThirtyTwoState,
+    type EighteenThirtyTwoState,
+    type EighteenThirtyTwoStateHandler,
+    type HydratedEighteenThirtyTwoState
+} from './state.js'
+import { titleStepAction } from './titleActions.js'
+import { currentTileFace } from './tileState.js'
 import {
     RevenueTokenKind,
     inGame,
-    requireTitleState,
     type EighteenThirtyTwoTitleState,
     type RevenueToken
 } from './titleState.js'
@@ -37,7 +40,19 @@ import { EighteenThirtyTwoPhases } from './trains.js'
 
 export const MiamiLocationId = 'AA28'
 export const KeyWestCompanyId = 'FEC'
-const TokenPrivates = { port: 'P3', cotton: 'P2' } as const
+/** The private whose token each kind is (§16.2 P2–P3). */
+export const RevenueTokenPrivateIds = { port: 'P3', cotton: 'P2' } as const
+
+/** Whether a private's token power is still unused. */
+export function revenueTokenUnplaced(
+    state: EighteenThirtyTwoTitleState,
+    privateCompanyId: string
+): boolean {
+    return !state.revenueTokens.some(
+        (token) =>
+            token.kind !== 'key-west' && RevenueTokenPrivateIds[token.kind] === privateCompanyId
+    )
+}
 
 /** Port and Cotton tokens leave at phase 6, the Key West token at phase 8 (§4.2.5, §4.2.6). */
 export function activeRevenueTokens(
@@ -53,9 +68,7 @@ export function activeRevenueTokens(
 type StopBonus = { amount: number; label: string }
 
 function revenueNodes(state: MapStateData, locationId: string, kinds: readonly string[]) {
-    return new RailwayMapState(EighteenThirtyTwoMap, EighteenThirtyTwoTileSet, state.tileInventory)
-        .tile(locationId)
-        .face.nodes.filter((node) => kinds.includes(node.kind))
+    return currentTileFace(state, locationId).nodes.filter((node) => kinds.includes(node.kind))
 }
 
 /**
@@ -87,16 +100,17 @@ export function miamiFirstRun(state: EighteenThirtyTwoTitleState & { phaseId: st
 export const revenueTokenRoutes: Pick<RouteRules, 'stopBonus' | 'stopBonusLabel' | 'stopRevenue'> =
     {
         stopRevenue: (state, _companyId, center, printed) =>
-            center.locationId === MiamiLocationId && miamiFirstRun(requireTitleState(state))
+            center.locationId === MiamiLocationId &&
+            miamiFirstRun(requireEighteenThirtyTwoState(state))
                 ? 0
                 : printed,
         stopBonus: (state, _train, companyId, center) =>
-            stopBonuses(requireTitleState(state), companyId, center).reduce(
+            stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).reduce(
                 (sum, bonus) => sum + bonus.amount,
                 0
             ),
         stopBonusLabel: (state, _train, companyId, center) => {
-            const labels = stopBonuses(requireTitleState(state), companyId, center).map(
+            const labels = stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).map(
                 (bonus) => bonus.label
             )
             return labels.length ? labels.join(' + ') : undefined
@@ -118,7 +132,7 @@ function inOperatingSet<State extends object>(
 export function keyWestPlacedThisTurn(state: StationPlacementState, companyId: string): boolean {
     if (companyId !== KeyWestCompanyId || !inOperatingSet(state)) return false
     const turn = currentTurn(state.operatingSet)
-    return requireTitleState(state).revenueTokens.some(
+    return requireEighteenThirtyTwoState(state).revenueTokens.some(
         (token) =>
             token.kind === 'key-west' &&
             token.placed.set === turn.set &&
@@ -136,7 +150,7 @@ export type RevenueTokenChoice = Pick<RevenueToken, 'kind' | 'locationId' | 'nod
  * phase 3 the FEC's Key West token in Miami instead of a station (§7.5, §16.2 P2–P3).
  */
 export function revenueTokenChoices(
-    state: HydratedEighteenThirtyTwoState,
+    state: EighteenThirtyTwoState,
     playerId: string
 ): RevenueTokenChoice[] {
     const step = state.stationStep
@@ -153,7 +167,7 @@ export function revenueTokenChoices(
         state.revenueTokens.some((token) => token.kind === kind)
     const choices: RevenueTokenChoice[] = []
     for (const kind of ['port', 'cotton'] as const) {
-        const privateId = TokenPrivates[kind]
+        const privateId = RevenueTokenPrivateIds[kind]
         if (
             placed(kind) ||
             !inGame(state, privateId) ||
@@ -171,8 +185,10 @@ export function revenueTokenChoices(
                 choices.push({ kind, companyId, locationId: location.id, nodeId: node.id })
         }
     }
+    const [miami] = revenueNodes(state, MiamiLocationId, ['offboard'])
     if (
         companyId === KeyWestCompanyId &&
+        miami &&
         !placed('key-west') &&
         step.placedStationIds.length === 0 &&
         EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3') &&
@@ -182,7 +198,7 @@ export function revenueTokenChoices(
             kind: 'key-west',
             companyId,
             locationId: MiamiLocationId,
-            nodeId: 'offboard'
+            nodeId: miami.id
         })
     return choices
 }
@@ -244,16 +260,15 @@ export class HydratedPlaceRevenueToken
     }
 }
 
-export const PlaceRevenueTokenStep: TitleStepAction = {
-    type: 'PlaceRevenueToken',
-    available: (state, playerId) => revenueTokenChoices(state, playerId).length > 0,
-    isValid: (action: HydratedAction, state) =>
-        action instanceof HydratedPlaceRevenueToken && action.isValid(state)
-}
+export const PlaceRevenueTokenStep = titleStepAction(
+    'PlaceRevenueToken',
+    (action: HydratedAction) => action instanceof HydratedPlaceRevenueToken,
+    (state, playerId) => revenueTokenChoices(state, playerId).length > 0
+)
 
 /** A Cotton token follows its city when Atlanta's tile is upgraded (§16.2 P2). */
 export function migrateRevenueTokens(
-    state: EighteenThirtyTwoTitleState,
+    state: Pick<EighteenThirtyTwoTitleState, 'revenueTokens'>,
     locationId: string,
     nodeMapping: Readonly<Record<string, string>>
 ): void {
@@ -279,7 +294,7 @@ export function isRecordMiamiRun(action: GameAction): action is RecordMiamiRun {
 }
 
 /** Whether the run just made was the game's first to Miami before phase 5. */
-export function ranToMiamiFirst(state: HydratedEighteenThirtyTwoState): boolean {
+export function ranToMiamiFirst(state: EighteenThirtyTwoState): boolean {
     return (
         miamiFirstRun(state) &&
         !!state.routeStep?.result?.routes.some((route) =>
