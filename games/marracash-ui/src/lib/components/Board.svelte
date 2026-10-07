@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { GatePillars, PillarShadowOffset } from '$lib/utils/cityWall.js'
+    import { PillarShadowOffset, Towers } from '$lib/utils/cityWall.js'
     import { onDestroy } from 'svelte'
     import { BoardColumns, BoardRows, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
-    import AwningDefs from '$lib/components/AwningDefs.svelte'
-    import CobbleDefs from '$lib/components/CobbleDefs.svelte'
+    import StallDefs from '$lib/components/StallDefs.svelte'
+    import GroundDefs from '$lib/components/GroundDefs.svelte'
     import PawnDefs from '$lib/components/PawnDefs.svelte'
     import FountainDefs from '$lib/components/FountainDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
@@ -18,6 +18,7 @@
     import { FountainPawnSize } from '$lib/utils/fountainPawns.js'
     import CityWall from '$lib/components/CityWall.svelte'
     import CityGates from '$lib/components/CityGates.svelte'
+    import StreetWear from '$lib/components/StreetWear.svelte'
     import EarningsPopupLayer from '$lib/components/EarningsPopupLayer.svelte'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
@@ -32,7 +33,7 @@
         TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
-    import { CobblePatternId } from '$lib/utils/cobbles.js'
+    import { PackedEarthPatternId } from '$lib/utils/ground.js'
 
     const gameSession = getGameSession()
 
@@ -172,8 +173,8 @@
             <filter id={CastShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
             </filter>
-            <AwningDefs />
-            <CobbleDefs />
+            <StallDefs />
+            <GroundDefs />
             <PawnDefs />
             <FountainDefs />
         </defs>
@@ -191,10 +192,11 @@
                 y={WallThickness}
                 width={BoardColumns * CellSize}
                 height={BoardRows * CellSize}
-                fill="url(#{CobblePatternId})"
+                fill="url(#{PackedEarthPatternId})"
             ></rect>
+            <StreetWear />
 
-            <CityGates />
+            <CityGates groundFill="url(#{PackedEarthPatternId})" />
 
             {#each Palms as palm (`${palm.row},${palm.col}`)}
                 <PalmTree coords={palm} />
@@ -218,7 +220,7 @@
                 <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
                 <g opacity="0.25">
                     <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
-                    {#each GatePillars as pillar (`${pillar.x},${pillar.y}`)}
+                    {#each Towers as pillar (`${pillar.x},${pillar.y}`)}
                         {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
                             <rect
                                 x={pillar.x + offset.x}

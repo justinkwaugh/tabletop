@@ -35,7 +35,7 @@
         if (gameSession.activeTool === BuildTool.Sell) {
             return gameSession.sellTargets.map((target) => ({
                 key: spaceKey(target.coords),
-                center: hexCenter(target.coords),
+                center: hexCenter(target.tile),
                 label: 'Sell this market',
                 price: `+${target.amount}`,
                 choose: () => gameSession.sellMarket(target.coords)

@@ -58,4 +58,33 @@ describe('piece changes', () => {
             [false, true]
         ])
     })
+
+    it('sinks the market a merge takes out of the game, not the one sharing its tile', () => {
+        const changes = pieceChanges(
+            board({
+                markets: [
+                    { playerId: 'p1', sold: true },
+                    { playerId: 'p2', sold: false }
+                ]
+            }),
+            board({ markets: [{ playerId: 'p2', sold: false }] })
+        )
+        expect(changes.leavingMarkets.map((view) => view.playerId)).toEqual(['p1'])
+        expect(changes.changedMarkets.map(({ from, to }) => [from.playerId, to.playerId])).toEqual([
+            ['p2', 'p2']
+        ])
+    })
+
+    it('slides a merged city’s market to its founding tile', () => {
+        const from = board()
+        from.cities.push({ id: 'C2', playerId: 'p0', spaces: [row(1)] })
+        from.markets = [{ playerId: 'p1', coords: row(1), sold: false }]
+        const to = board()
+        to.cities[0].spaces.push(row(2), row(1))
+        to.markets = [{ playerId: 'p1', coords: row(1), sold: false }]
+        const changes = pieceChanges(from, to)
+        expect(changes.leavingMarkets).toEqual([])
+        expect(changes.changedMarkets).toHaveLength(1)
+        expect(changes.changedMarkets[0].from.point).not.toEqual(changes.changedMarkets[0].to.point)
+    })
 })

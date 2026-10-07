@@ -6,10 +6,6 @@ export type AwningColors = {
     base: string
     outline: string
     band: string
-    pinstripe: string
-    highlight: string
-    glow: string
-    rim: string
 }
 
 export type MarketPalette = { fill: string; stroke: string; tint: string; awning: AwningColors }
@@ -17,10 +13,10 @@ export type MarketPalette = { fill: string; stroke: string; tint: string; awning
 type MarketInks = { fill: string; stroke: string; tint: string }
 
 const White = '#ffffff'
-type AwningStyle = { band: number; highlight: number; shade: number }
+type AwningStyle = { band: number; shade: number }
 
-const StandardAwning: AwningStyle = { band: 0.45, highlight: 0.6, shade: -0.1 }
-const DeepRedAwning: AwningStyle = { ...StandardAwning, band: 0.2, highlight: 0.35 }
+const StandardAwning: AwningStyle = { band: 0.45, shade: -0.1 }
+const DeepRedAwning: AwningStyle = { ...StandardAwning, band: 0.2 }
 
 function marketPalette(inks: MarketInks, style: AwningStyle = StandardAwning): MarketPalette {
     const base = shiftLightness(inks.fill, style.shade)
@@ -30,11 +26,7 @@ function marketPalette(inks: MarketInks, style: AwningStyle = StandardAwning): M
         awning: {
             base,
             outline,
-            band: mixColors(base, White, style.band),
-            pinstripe: mixColors(base, outline, 0.6),
-            highlight: mixColors(base, White, style.highlight),
-            glow: mixColors(base, White, 0.35),
-            rim: mixColors(base, outline, 0.55)
+            band: mixColors(base, White, style.band)
         }
     }
 }

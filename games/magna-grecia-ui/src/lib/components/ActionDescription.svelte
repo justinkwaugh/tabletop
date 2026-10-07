@@ -42,6 +42,11 @@
         {#if action.metadata?.mergedCityIds.length}
             <span>, joining cities</span>
         {/if}
+        {#each action.metadata?.removedMarkets ?? [] as market (`${market.coords.q},${market.coords.r}:${market.playerId}`)}
+            <span>—</span>
+            <PlayerName playerId={market.playerId} possessive={true} />
+            <span>{market.sold ? 'sold market' : 'market'} leaves the game</span>
+        {/each}
     {:else if isResupply(action)}
         <span>resupplied {resupplyText(action.roads, action.cities)}</span>
     {:else if isBuildMarket(action)}
