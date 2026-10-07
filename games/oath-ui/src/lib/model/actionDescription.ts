@@ -371,9 +371,7 @@ function describeActionCited(
         return (
             `exiled ${nameOf(action.citizenPlayerId)}` +
             ((meta?.favorGiven ?? 0) > 0 ? `, giving them ${meta?.favorGiven} favor` : '') +
-            ((meta?.unreplacedCount ?? 0) > 0
-                ? `, with ${meta?.unreplacedCount} warbands left Imperial`
-                : '')
+            unreplacedClause(meta?.unreplacedCount ?? 0, meta?.unreplacedReturned === true)
         )
     }
     if (isSelfExile(action)) {
@@ -383,9 +381,7 @@ function describeActionCited(
             ((meta?.favorGiven ?? 0) > 0
                 ? `, giving ${meta?.favorGiven} favor to the Grand Scepter’s holder`
                 : '') +
-            ((meta?.unreplacedCount ?? 0) > 0
-                ? `, with ${meta?.unreplacedCount} warbands left Imperial`
-                : '')
+            unreplacedClause(meta?.unreplacedCount ?? 0, meta?.unreplacedReturned === true)
         )
     }
     if (isResolveWake(action)) {
@@ -488,6 +484,14 @@ function namedBanks(text: string): string {
         (named, suit) => named.replaceAll(`the ${suit} bank`, `the ${suitName(suit)} bank`),
         text
     )
+}
+
+/** R-9.3, R-6.7-H1 — an exile's own warbands ran short: the rest stayed Imperial, or went back. */
+function unreplacedClause(count: number, returned: boolean): string {
+    if (count <= 0) return ''
+    return returned
+        ? `, returning ${plural(count, 'Imperial warband')} to the Chancellor’s bank`
+        : `, with ${count} warbands left Imperial`
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {

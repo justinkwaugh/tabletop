@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     AnswerQuestion,
+    ExileCitizen,
     HydratedAnswerQuestion,
+    HydratedExileCitizen,
     MachineState,
     PowerQuestionKind,
     type OathPlayerState,
@@ -12,6 +14,7 @@ import {
     HydratedPlayFacedownAdviser,
     HydratedSearch,
     HydratedSearchResolve,
+    HydratedSelfExile,
     HydratedUseActionPower,
     IMPERIAL_WARBANDS,
     Muster,
@@ -24,6 +27,7 @@ import {
     SearchPlay,
     SearchResolve,
     SearchSource,
+    SelfExile,
     UseActionPower,
     ownWarbandOwner,
     powerIndexOf
@@ -765,6 +769,38 @@ describe('the history tab describes every action', () => {
                     nameOf
                 )
             ).toContain('with 3 warbands left Imperial')
+        })
+
+        it('R-6.7-H1 — says where an exile’s leftover Imperial warbands went', () => {
+            const exile = (metadata: Record<string, unknown>) =>
+                describeAction(action({ type: ActionType.SelfExile, playerId: 'p1', metadata: { favorGiven: 0, unreplacedCount: 2, endsActPhase: true, ...metadata } }), nameOf)
+            expect(exile({})).toBe('went into exile, with 2 warbands left Imperial')
+            expect(exile({ unreplacedReturned: true })).toBe('went into exile, returning 2 Imperial warbands to the Chancellor’s bank')
+            expect(exile({ unreplacedCount: 1, unreplacedReturned: true })).toBe('went into exile, returning 1 Imperial warband to the Chancellor’s bank')
+        })
+
+        it('R-6.7-H1 — an exile’s row keeps today’s words before revision 5 and names the Chancellor’s bank from it', () => {
+            // p1 holds the Grand Scepter; p2's board holds 16 Imperial warbands against 14 of their own.
+            const row = (oathRevision: OathRevision, exile: 'self' | 'exiled') => {
+                const state = testState(
+                    [
+                        testPlayer({ playerId: 'p1', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c2', favor: 10, relicIds: ['relic.grand-scepter'], warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } }),
+                        testPlayer({ playerId: 'p2', color: Color.Red, status: PlayerStatus.Citizen, siteId: 'c1', favor: 20, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 16 }, warbandsInPersonalBank: { p2: 14 } })
+                    ],
+                    { oathRevision, chancellorPlayerId: 'p1' }
+                )
+                const applied =
+                    exile === 'self'
+                        ? new HydratedSelfExile(buildAction(SelfExile, { playerId: 'p2' }))
+                        : new HydratedExileCitizen(buildAction(ExileCitizen, { playerId: 'p1', citizenPlayerId: 'p2' }))
+                applied.apply(state)
+                return describeAction(applied.dehydrate(), nameOf)
+            }
+
+            expect(row(OathRevision.CardFixes1, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, with 2 warbands left Imperial')
+            expect(row(OathRevision.EngineFixes2, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, returning 2 Imperial warbands to the Chancellor’s bank')
+            expect(row(OathRevision.CardFixes1, 'exiled')).toBe('exiled Bob, giving them 5 favor, with 2 warbands left Imperial')
+            expect(row(OathRevision.EngineFixes2, 'exiled')).toBe('exiled Bob, giving them 5 favor, returning 2 Imperial warbands to the Chancellor’s bank')
         })
 
         it('R-6.1 — names the card in place, with no dangling "it"', () => {
