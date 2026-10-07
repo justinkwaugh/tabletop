@@ -39,6 +39,7 @@
         hexDiameter = 100,
         artwork,
         extents,
+        terrainDiscounts = {},
         onselect
     }: {
         scene: MapDrawing
@@ -57,6 +58,8 @@
         hexDiameter?: number
         artwork?: BoardArtwork
         extents?: readonly BoundingBox[]
+        /** Taken off printed terrain and border costs of each terrain kind. */
+        terrainDiscounts?: Readonly<Record<string, number>>
         onselect?: (selection: MapSelection) => void
     } = $props()
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
@@ -82,7 +85,19 @@
     function borderColor(kind: string): string {
         return kind === 'water' ? '#226db5' : kind === 'mountain' ? '#875e36' : '#b02235'
     }
-    const borderCosts = $derived(mapBorderCosts(scene))
+    const borderCosts = $derived(
+        mapBorderCosts(scene).map((cost) => ({
+            ...cost,
+            amount: Math.max(0, cost.amount - (terrainDiscounts[cost.kind] ?? 0))
+        }))
+    )
+    // A hex of several terrain kinds takes its largest discount once.
+    function terrainCost(terrain: { cost: number; kinds: readonly string[] }) {
+        return Math.max(
+            0,
+            terrain.cost - Math.max(0, ...terrain.kinds.map((kind) => terrainDiscounts[kind] ?? 0))
+        )
+    }
 
     function select(event: MouseEvent | KeyboardEvent, target: MapSelection) {
         if (!onselect) return
@@ -91,6 +106,26 @@
         event.preventDefault()
         if (maskUnavailableLocations && !legalLocationIds.includes(target.locationId)) return
         onselect?.(target)
+    }
+    // A placed marker's badge straddles the hex's top corner.
+    const PlacedBadge = { width: 30, height: 16, icon: 12, drop: 3 }
+    function placedMarkers(entry: (typeof entries)[number]) {
+        return (entry.location.markers ?? []).flatMap((marker) => {
+            const art = entry.markerArt[marker.id]
+            return art && 'placed' in art ? [{ id: marker.id, ...art.placed }] : []
+        })
+    }
+    function topCorner(polygon: string) {
+        const points = polygon.split(' ').map((point) => {
+            const [x, y] = point.split(',').map(Number)
+            return { x, y }
+        })
+        const top = Math.min(...points.map((point) => point.y))
+        const highest = points.filter((point) => point.y - top < 0.5)
+        return {
+            x: highest.reduce((sum, point) => sum + point.x, 0) / highest.length,
+            y: top
+        }
     }
 </script>
 
@@ -290,7 +325,7 @@
                         {#if !entry.placed && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
                             {@const iconWidth = terrain.kinds.length * 19}
-                            {@const cost = `${scene.terrainCostPrefix}${terrain.cost}`}
+                            {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
                             {@const labelWidth = cost.length * 6.5}
                             <g
                                 data-map-terrain
@@ -528,6 +563,29 @@
             {/each}
         </g>
     {/if}
+    <!-- Markers placed during play outline their hex beneath the borders. -->
+    <g data-map-layer="placed-marker-outlines" pointer-events="none" aria-hidden="true">
+        {#each entries as entry (entry.location.id)}
+            {@const placed = placedMarkers(entry)}
+            {#if placed.length}
+                <g
+                    data-map-placed-markers={entry.location.id}
+                    transform={`translate(${entry.center.x} ${entry.center.y})`}
+                >
+                    {#each placed as marker, index (marker.id)}
+                        <polygon
+                            points={entry.drawing.polygon}
+                            transform={`scale(${0.955 - index * 0.06})`}
+                            fill="none"
+                            stroke={marker.color}
+                            stroke-width={2.4 / (0.955 - index * 0.06)}
+                            stroke-linejoin="round"
+                        ></polygon>
+                    {/each}
+                </g>
+            {/if}
+        {/each}
+    </g>
     {#if !artwork}
         <g data-map-layer="borders" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
@@ -543,33 +601,6 @@
                             stroke-width="3"
                         ></line>
                     {/each}
-                </g>
-            {/each}
-            {#each borderCosts as cost (cost.key)}
-                {@const text = `${scene.terrainCostPrefix}${cost.amount}`}
-                {@const width = Math.max(12, text.length * 4.6 + 4)}
-                <g
-                    data-map-border-cost={cost.key}
-                    transform={`translate(${cost.x} ${cost.y})`}
-                    stroke="none"
-                >
-                    <rect
-                        x={-width / 2}
-                        y="-6"
-                        {width}
-                        height="12"
-                        rx="1.5"
-                        fill={borderColor(cost.kind)}
-                        stroke={appearance.paper}
-                        stroke-width="0.8"
-                    ></rect>
-                    <text
-                        text-anchor="middle"
-                        dominant-baseline="central"
-                        font-size="7.5"
-                        font-weight="800"
-                        fill={appearance.paper}>{text}</text
-                    >
                 </g>
             {/each}
         </g>
@@ -612,7 +643,7 @@
             {/each}
             {#each entries.filter((entry) => entry.nameShown && !entry.nameArc) as entry (entry.location.id)}
                 {@const lines = entry.nameRows}
-                <!-- A name the title places itself matches the curved names in their styles. -->
+                <!-- A city name the title places itself matches the curved names in their styles. -->
                 {@const curved = entry.namePlaced && appearance.cityNameArcs}
                 <g
                     class="map-annotations"
@@ -631,6 +662,97 @@
                                 x="0"
                                 y={entry.nameBaseline.y + index * 6}>{line}</tspan
                             >{/each}</text
+                    >
+                </g>
+            {/each}
+        </g>
+    {/if}
+    <!-- Their badges cover names but stay beneath border costs. -->
+    <g data-map-layer="placed-marker-badges" pointer-events="none" aria-hidden="true">
+        {#each entries as entry (entry.location.id)}
+            {@const placed = placedMarkers(entry)}
+            {#if placed.length}
+                {@const corner = topCorner(entry.drawing.polygon)}
+                <g
+                    data-map-placed-badges={entry.location.id}
+                    transform={`translate(${entry.center.x} ${entry.center.y})`}
+                >
+                    {#each placed as marker, index (marker.id)}
+                        <g
+                            data-map-placed-marker={marker.id}
+                            transform={`translate(${corner.x + (index - (placed.length - 1) / 2) * PlacedBadge.width} ${corner.y + PlacedBadge.drop})`}
+                        >
+                            <rect
+                                x={-PlacedBadge.width / 2 + 0.5}
+                                y={-PlacedBadge.height / 2}
+                                width={PlacedBadge.width - 1}
+                                height={PlacedBadge.height}
+                                rx={PlacedBadge.height / 2}
+                                fill={marker.color}
+                                stroke={appearance.ink}
+                                stroke-width="0.7"
+                            ></rect>
+                            {#if stationAppearances[marker.companyId]}
+                                <CompanyToken
+                                    appearance={stationAppearances[marker.companyId]}
+                                    size={PlacedBadge.icon}
+                                    x={-PlacedBadge.icon - 1}
+                                    y={-PlacedBadge.icon / 2}
+                                />
+                            {/if}
+                            {#if 'tileSymbol' in marker.icon}
+                                <g
+                                    transform={`translate(${PlacedBadge.icon / 2 + 1} 0) scale(${PlacedBadge.icon / 2 / PortSymbol.radius})`}
+                                >
+                                    <TileSymbol
+                                        symbol={marker.icon.tileSymbol}
+                                        ink={appearance.ink}
+                                        paper={marker.icon.tileSymbol === 'port'
+                                            ? (appearance.colors.blue ?? appearance.paper)
+                                            : appearance.paper}
+                                    />
+                                </g>
+                            {:else}
+                                <image
+                                    href={marker.icon.imageUrl}
+                                    x="1"
+                                    y={-PlacedBadge.icon / 2}
+                                    width={PlacedBadge.icon}
+                                    height={PlacedBadge.icon}
+                                ></image>
+                            {/if}
+                        </g>
+                    {/each}
+                </g>
+            {/if}
+        {/each}
+    </g>
+    {#if !artwork}
+        <g data-map-layer="border-costs" pointer-events="none" aria-hidden="true">
+            {#each borderCosts as cost (cost.key)}
+                {@const text = `${scene.terrainCostPrefix}${cost.amount}`}
+                {@const width = Math.max(12, text.length * 4.6 + 4)}
+                <g
+                    data-map-border-cost={cost.key}
+                    transform={`translate(${cost.x} ${cost.y})`}
+                    stroke="none"
+                >
+                    <rect
+                        x={-width / 2}
+                        y="-6"
+                        {width}
+                        height="12"
+                        rx="1.5"
+                        fill={borderColor(cost.kind)}
+                        stroke={appearance.paper}
+                        stroke-width="0.8"
+                    ></rect>
+                    <text
+                        text-anchor="middle"
+                        dominant-baseline="central"
+                        font-size="7.5"
+                        font-weight="800"
+                        fill={appearance.paper}>{text}</text
                     >
                 </g>
             {/each}

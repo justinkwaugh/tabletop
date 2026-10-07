@@ -101,6 +101,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
+    /**
+     * What an operating company takes off printed terrain and border costs, by terrain kind, such
+     * as a private's mountain discount; the map shows the costs it would pay.
+     */
+    terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     /**

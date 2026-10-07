@@ -4,6 +4,8 @@ import {
     TrainDepot1846,
     inReceivership,
     MarketZoneColors1846,
+    ownsTunnelBlasting,
+    TunnelBlastingDiscount,
     type EighteenFortySixProjectedState
 } from '@tabletop/1846'
 import { createPhaseChart, moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
@@ -44,6 +46,9 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         BIG4: { companyId: 'BIG4' }
     },
     minorsAsPrivates: true,
+    terrainDiscounts: (state, companyId) => ({
+        mountain: ownsTunnelBlasting(state, companyId) ? TunnelBlastingDiscount : 0
+    }),
     marketCell: { width: 36, height: 96 },
     marketZones: [
         {

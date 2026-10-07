@@ -13,7 +13,12 @@ import { EighteenFortySixMap, LandGrantLocations, PrivateTrackBlocks } from './m
 import { EighteenFortySixTileSet } from './tiles.js'
 import { Phases1846 } from './trains.js'
 
-function ownsTunnelBlasting(state: ConstructionState, companyId: string): boolean {
+/** What the Tunnel Blasting Company takes off its owning corporation's mountain costs. */
+export const TunnelBlastingDiscount = 20
+export function ownsTunnelBlasting(
+    state: Pick<ConstructionState, 'companies' | 'certificates'>,
+    companyId: string
+): boolean {
     if (!state.companies.some((company) => company.id === 'TBC' && !company.closed)) return false
     const owner = privateOwner(state, 'TBC')
     return owner?.kind === 'company' && owner.companyId === companyId
@@ -63,7 +68,7 @@ export const TrackRules1846: TrackRules = {
         const chargedCost =
             ownsTunnelBlasting(state, request.companyId) &&
             borders.some((border) => border.kind === 'mountain')
-                ? Math.max(0, cost - 20)
+                ? Math.max(0, cost - TunnelBlastingDiscount)
                 : cost
         return rotateTileFace(tile.face, tile.rotation).paths.some((path) =>
             path.endpoints.some((end) => end.kind === 'edge' && end.edge === opposite)
@@ -101,7 +106,7 @@ export const TrackRules1846: TrackRules = {
             !previous.placement &&
             ownsTunnelBlasting(state, request.companyId) &&
             EighteenFortySixMap.location(request.locationId).terrain?.kinds.includes('mountain')
-                ? Math.min(20, terrain)
+                ? Math.min(TunnelBlastingDiscount, terrain)
                 : 0
         return cost + Math.max(0, 20 - terrain) - mountainDiscount
     }

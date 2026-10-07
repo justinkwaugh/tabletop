@@ -81,8 +81,8 @@ export const EastWestBonuses: Readonly<Record<string, { side: 'east' | 'west'; a
         C5: { side: 'west', amount: 50 },
         I1: { side: 'west', amount: 20 }
     }
-// Buffalo and Pittsburgh each span two hexes; their E and bonus are printed once, in the other hex.
-const SecondAreaHexes = ['C21', 'F22']
+// Buffalo and Pittsburgh each span two hexes; their E and bonus are printed once, in the top hex.
+const SecondAreaHexes = ['D22', 'G21']
 for (const [id, bonus] of Object.entries(EastWestBonuses))
     if (!SecondAreaHexes.includes(id))
         markers[id] = [

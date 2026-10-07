@@ -53,6 +53,8 @@
     type AxisMetrics = {
         range: PanRange
         overpanRange: PanRange
+        /** How far gestures may pan where overpan is only for focusing. */
+        gestureRange: PanRange
     }
 
     type ViewMetrics = {
@@ -74,6 +76,7 @@
         maxScale = 1,
         insetTop = 0,
         overpan = 'none',
+        gestureOverpanReach = 0,
         coverBelowScale,
         onManualViewChange
     }: {
@@ -86,6 +89,11 @@
         /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
         insetTop?: number
         overpan?: 'none' | 'focus' | 'x' | 'y' | 'both'
+        /**
+         * With focus overpan, how far into the view gestures may bring the content's edge, as a
+         * fraction of the view; focusing still brings edges to the centre.
+         */
+        gestureOverpanReach?: number
         /** Rest at a cover fit instead when a contain fit would draw the content smaller than this scale. */
         coverBelowScale?: number
         expandable?: boolean
@@ -287,15 +295,18 @@
             : { min: defaultTranslateY, max: defaultTranslateY }
         const overpanFraction = getOverpanFraction(clampedScale)
 
+        const gestureFraction = overpan === 'focus' ? overpanFraction : 0
         return {
             scale: clampedScale,
             x: {
                 range: rangeX,
-                overpanRange: getOverpanRange(rangeX, scaledWidth, wrapperWidth / 2, overpanFraction)
+                overpanRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, 0.5, overpanFraction),
+                gestureRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, gestureOverpanReach, gestureFraction)
             },
             y: {
                 range: rangeY,
-                overpanRange: getOverpanRange(rangeY, scaledHeight, viewportCenterY(), overpanFraction)
+                overpanRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), 0.5, overpanFraction),
+                gestureRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), gestureOverpanReach, gestureFraction)
             }
         }
     }
@@ -304,10 +315,14 @@
         return overpan === 'none' ? 0 : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
     }
 
-    function getOverpanRange(range: PanRange, scaledSize: number, viewportCenter: number, fraction: number): PanRange {
+    // Overpan lets the content's edges come a reach of the view in from its own edges.
+    function getOverpanRange(range: PanRange, scaledSize: number, viewportStart: number, viewportSize: number,
+        reach: number, fraction: number): PanRange {
+        const near = viewportStart + reach * viewportSize
+        const far = viewportStart + (1 - reach) * viewportSize
         return {
-            min: range.min - fraction * Math.max(0, range.min - (viewportCenter - scaledSize)),
-            max: range.max + fraction * Math.max(0, viewportCenter - range.max)
+            min: range.min - fraction * Math.max(0, range.min - (far - scaledSize)),
+            max: range.max + fraction * Math.max(0, near - range.max)
         }
     }
 
@@ -322,8 +337,8 @@
         }
 
         return {
-            min: Math.max(target.overpanRange.min, target.range.min - Math.max(0, current.range.min - currentTranslate)),
-            max: Math.min(target.overpanRange.max, target.range.max + Math.max(0, currentTranslate - current.range.max))
+            min: Math.max(target.overpanRange.min, target.gestureRange.min - Math.max(0, current.gestureRange.min - currentTranslate)),
+            max: Math.min(target.overpanRange.max, target.gestureRange.max + Math.max(0, currentTranslate - current.gestureRange.max))
         }
     }
 
