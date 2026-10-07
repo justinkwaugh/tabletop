@@ -4,7 +4,7 @@
     import PawnCountChip from '$lib/components/PawnCountChip.svelte'
     import SignFace from '$lib/components/SignFace.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { signEdgeColor } from '$lib/utils/playerColors.js'
+    import { signEdgeColor, signFrameColor } from '$lib/utils/playerColors.js'
     import { CastShadowFilterId } from '$lib/utils/boardGeometry.js'
     import {
         playerStandeeOutline,
@@ -34,6 +34,7 @@
     let ownerName = $derived(gameSession.getPlayerName(ownerId))
     let fill = $derived(gameSession.colors.getPlayerBgColorValue(ownerId))
     let edge = $derived(signEdgeColor(gameSession.colors.getPlayerColor(ownerId)))
+    let frame = $derived(signFrameColor(gameSession.colors.getPlayerColor(ownerId)))
     let ink = $derived(gameSession.colors.getPlayerTextColorValue(ownerId))
     let layout = $derived(shopSignLayout(center, vertical, customers))
     let outline = $derived(playerStandeeOutline(gameSession.gameState.players, ownerId))
@@ -47,7 +48,7 @@
         opacity="0.35"
         filter="url(#{CastShadowFilterId})"
     ></path>
-    <SignFace {outline} {fill} {edge}>
+    <SignFace {outline} {fill} {edge} {frame}>
         <text x="0" y="-27" class="sign-initial marracash-initial" fill={ink}
             >{signInitial(ownerName)}</text
         >

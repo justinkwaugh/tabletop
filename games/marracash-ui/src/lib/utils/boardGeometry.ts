@@ -120,6 +120,8 @@ const VisitorGap = 17
 // Pawns are drawn standing, so each row is placed by where its feet fall: the top row stands just
 // clear of the wall, the bottom row far enough in that the runner under its feet fits the table.
 const QueueLane = 26
+// The top row stands a little higher, so its runner keeps clear of the wall's battlements.
+const QueueTopLane = 21
 const QueueBottomLane = TableHeight - 40
 const RunnerEndPadding = 12
 const LabelGap = 10
@@ -163,15 +165,15 @@ const SideExtent = PawnHeight * QueuePawnScale
 const FullQueueIntervals = startingQueueLength(EntranceFountainIds.length) - 1
 const RowSlotsBeforeBottom =
     (QueueFrontX - QueueLane) / (RowExtent + VisitorGap) +
-    (QueueBottomLane - QueueLane) / (SideExtent + VisitorGap)
+    (QueueBottomLane - QueueTopLane) / (SideExtent + VisitorGap)
 const QueueBackX = Math.min(
     TableWidth - BackReserve,
     QueueLane + (FullQueueIntervals - RowSlotsBeforeBottom) * (RowExtent + VisitorGap)
 )
 
 const QueuePath: Point[] = [
-    { x: QueueFrontX, y: QueueLane },
-    { x: QueueLane, y: QueueLane },
+    { x: QueueFrontX, y: QueueTopLane },
+    { x: QueueLane, y: QueueTopLane },
     { x: QueueLane, y: QueueBottomLane },
     { x: QueueBackX, y: QueueBottomLane }
 ]
