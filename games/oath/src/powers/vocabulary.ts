@@ -94,6 +94,17 @@ export function burnSecretsFromPlayer(
     return burned
 }
 
+/** Book Burning — "all of the secrets on their board except their last", face up or down (its Q&A). */
+export function burnSecretsDownToOne(state: HydratedOathGameState, playerId: string): number {
+    const player = state.getPlayerState(playerId)
+    const keptFaceup = Math.min(1, player.secrets)
+    const keptFacedown = Math.min(1 - keptFaceup, player.secretsFacedown)
+    const burned = player.secrets - keptFaceup + player.secretsFacedown - keptFacedown
+    player.secrets = keptFaceup
+    player.secretsFacedown = keptFacedown
+    return burned
+}
+
 /** R-9.3 — unlimited. */
 export function placeSecretsOnDarkestSecret(state: HydratedOathGameState, count: number): number {
     state.banners[Banner.DarkestSecret].value += count
