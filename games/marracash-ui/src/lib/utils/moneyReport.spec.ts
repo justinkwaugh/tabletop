@@ -6,6 +6,7 @@ import {
     auctionPayments,
     latestTurnStep,
     moneyReports,
+    viewedHistoryStep,
     movedVisitorColors,
     movedVisitors,
     movePayments
@@ -107,6 +108,18 @@ describe('MarraCash money report', () => {
         ]
         expect(latestTurnStep(actions)).toEqual(actions.slice(1))
         expect(latestTurnStep([])).toEqual([])
+    })
+
+    it('describes a viewed history step with the system actions that led up to it', () => {
+        const actions = [
+            action(ActionType.PlaceBid, ActionSource.User),
+            action(ActionType.ResolveAuction, ActionSource.System),
+            action(ActionType.EndTurn, ActionSource.System),
+            action(ActionType.MoveVisitors, ActionSource.User)
+        ]
+        expect(viewedHistoryStep(actions)).toEqual(actions.slice(1))
+        expect(viewedHistoryStep(actions.slice(0, 1))).toEqual(actions.slice(0, 1))
+        expect(viewedHistoryStep([])).toEqual([])
     })
 
     it('reports an antique set when the turn that completed it ends', () => {

@@ -6,19 +6,29 @@ import type { AnimationContext, GameStateChangeListener } from '@tabletop/fronte
 import {
     getFountain,
     getShop,
+    isBringVisitors,
     isMoveVisitors,
     routeFrom,
     shopsNextTo,
     type FountainId,
     type HydratedMarracashGameState,
     type MarketColor,
+    type BringVisitors,
     type MoveResult,
     type Route,
     type ShopId
 } from '@tabletop/marracash'
 import type { MarracashGameSession } from '$lib/model/session.svelte.js'
-import { cellCenter, distance, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
-import { fountainPawnPositions } from '$lib/utils/fountainPawns.js'
+import {
+    cellCenter,
+    distance,
+    gateRect,
+    shopRect,
+    ShopTileInset,
+    WallSide,
+    wallSideOf
+} from '$lib/utils/boardGeometry.js'
+import { fountainPawnPositions, MaxPawnsShown } from '$lib/utils/fountainPawns.js'
 import { shopBranch } from '$lib/utils/routePreview.js'
 import { EarningsPopups } from '$lib/animators/earningsPopups.svelte.js'
 
@@ -31,10 +41,24 @@ const MaxWalkSeconds = 3
 // Undo and state-only history must settle within the shared 200ms fallback budget.
 export const DirectSeconds = 0.2
 const InShopScale = 0.3
+// New visitors appear this far outside the gate and fade in as they pass through it.
+const BeyondGate = 18
+// They set off as the visitors taken from the queue fade, at a stroll, well spaced, after any
+// visitors already there have stepped aside to make room.
+const EntranceLeadIn = 0.1
+const EntranceWalkPixelsPerSecond = 120
+const EntranceSpacing = 40
+const MakeRoomSeconds = 0.35
+const Outward: Record<WallSide, Point> = {
+    [WallSide.Top]: { x: 0, y: -1 },
+    [WallSide.Bottom]: { x: 0, y: 1 },
+    [WallSide.Left]: { x: -1, y: 0 },
+    [WallSide.Right]: { x: 1, y: 0 }
+}
 
 export type VisitorWalker = { id: string; color: MarketColor }
 
-type WalkPlan = { walker: VisitorWalker; points: Point[]; shopId?: ShopId }
+type WalkPlan = { walker: VisitorWalker; originIndex: number; points: Point[]; shopId?: ShopId }
 
 type Place = { point: Point; color: MarketColor; inShop: boolean }
 
@@ -87,30 +111,40 @@ export class VisitorMoveAnimator {
             await tick()
             this.earnings.scheduleStill(animationContext.actionTimeline, DirectSeconds)
             animationContext.afterAnimations(() => this.earnings.clear())
+        } else if (isBringVisitors(action) && action.metadata && !prefersReducedMotion.current) {
+            await this.animateEntrance(action, action.metadata.visitors, from, to, animationContext)
         } else if (isMoveVisitors(action) && action.metadata) {
             const route = routeFrom(action.fountainId, action.direction)
             assertExists(route, `No route leaves fountain ${action.fountainId} ${action.direction}`)
             this.earnings.prepare(action.id, action.metadata, action.playerId)
-            await this.animateWalk(action.id, route, action.metadata, from, animationContext)
+            await this.animateWalk(action.id, route, action.metadata, from, to, animationContext)
         }
     }
 
+    // When the destination's crowd stays small enough to stand in its places, any visitors already
+    // there first step to their places in the larger crowd, and each arrival walks straight to its
+    // own place, the farthest filled first; the fountain shows its crowd again once all have
+    // arrived, in the same places. A larger crowd shows only a tally, so arrivals join its centre.
     private async animateWalk(
         actionId: string,
         route: Route,
         result: MoveResult,
         from: HydratedMarracashGameState,
+        to: HydratedMarracashGameState,
         animationContext: AnimationContext
     ) {
-        const plans = this.walkPlans(actionId, route, result, from)
-        await this.mountWalkers(
-            plans.map((plan) => plan.walker),
-            animationContext
-        )
+        const present = from.getFountainState(route.to).visitors
+        const crowd = to.getFountainState(route.to).visitors
+        const settles = crowd.length <= MaxPawnsShown
+        const plans = this.walkPlans(actionId, route, result, from, settles ? crowd : undefined)
+        const stayers = settles
+            ? present.map((color, index) => ({ id: `${actionId}-stay-${index}`, color }))
+            : []
+        await this.mountWalkers([...plans.map((plan) => plan.walker), ...stayers], animationContext)
 
         const timeline = animationContext.actionTimeline
         const origin = from.getFountainState(route.from).visitors
-        const arrived = [...from.getFountainState(route.to).visitors]
+        const arrived = [...present]
         const customers = new Map(
             result.entries.map((entry) => [entry.shopId, from.getShopState(entry.shopId).customers])
         )
@@ -122,27 +156,82 @@ export class VisitorMoveAnimator {
             WalkPixelsPerSecond,
             Math.max(...lineLengths) / (MaxWalkSeconds - LeadInSeconds - ShopEntrySeconds)
         )
+
+        let leadIn = LeadInSeconds
+        if (stayers.length > 0) {
+            const center = cellCenter(getFountain(route.to).coords)
+            const before = fountainPawnPositions(present.length, center)
+            const after = fountainPawnPositions(crowd.length, center)
+            timeline.call(() => this.showFountain(route.to, []), undefined, 0)
+            stayers.forEach((stayer, index) => {
+                const element = this.walkerElement(stayer)
+                this.place(element, before[index], 1)
+                timeline.set(element, { opacity: 1 }, 0)
+                timeline.to(
+                    element,
+                    { x: after[index].x, y: after[index].y, duration: MakeRoomSeconds },
+                    0
+                )
+            })
+            // No arrival reaches the crowd before it has made room.
+            const reachesCrowd = plans
+                .map((plan, order) =>
+                    plan.shopId === undefined
+                        ? departures[order] / speed +
+                          this.pathLength({ ...plan, points: plan.points.slice(0, -1) }) / speed
+                        : Infinity
+                )
+                .reduce((earliest, at) => Math.min(earliest, at), Infinity)
+            leadIn = Math.max(LeadInSeconds, MakeRoomSeconds - reachesCrowd)
+        }
+
+        // A crowd small enough to stand in its places keeps them as its visitors leave one by one;
+        // a larger one shows a tally, which counts down as each leaves.
+        const originStands = origin.length <= MaxPawnsShown
+        if (originStands) timeline.call(() => this.showFountain(route.from, []), undefined, 0)
+        const left = new Set<number>()
+        let lastArrival = 0
         plans.forEach((plan, order) => {
             const element = this.walkerElement(plan.walker)
-            const start = LeadInSeconds + departures[order] / speed
+            const start = leadIn + departures[order] / speed
 
             this.place(element, plan.points[0], 1)
-            timeline.set(element, { opacity: 1 }, start)
-            timeline.call(
-                () => this.showFountain(route.from, origin.slice(0, origin.length - order - 1)),
-                undefined,
-                start
-            )
+            if (originStands) {
+                timeline.set(element, { opacity: 1 }, 0)
+            } else {
+                timeline.set(element, { opacity: 1 }, start)
+                timeline.call(
+                    () => {
+                        left.add(plan.originIndex)
+                        this.showFountain(
+                            route.from,
+                            origin.filter((_, index) => !left.has(index))
+                        )
+                    },
+                    undefined,
+                    start
+                )
+            }
 
             let at = start
             for (let leg = 1; leg < plan.points.length; leg++) {
                 const duration = distance(plan.points[leg - 1], plan.points[leg]) / speed
                 const { x, y } = plan.points[leg]
-                timeline.to(element, { x, y, duration, ease: 'none' }, at)
+                const intoPlace =
+                    settles && plan.shopId === undefined && leg === plan.points.length - 1
+                timeline.to(
+                    element,
+                    { x, y, duration, ease: intoPlace ? 'power1.out' : 'none' },
+                    at
+                )
                 at += duration
             }
 
             const shopId = plan.shopId
+            if (shopId === undefined && settles) {
+                lastArrival = Math.max(lastArrival, at)
+                return
+            }
             if (shopId === undefined) {
                 timeline.call(
                     () => {
@@ -171,18 +260,110 @@ export class VisitorMoveAnimator {
             )
             lastEntries.set(shopId, Math.max(lastEntries.get(shopId) ?? 0, at + ShopEntrySeconds))
         })
+        if (settles && (stayers.length > 0 || lastArrival > 0)) {
+            const destinationWalkers = [
+                ...plans.filter((plan) => plan.shopId === undefined).map((plan) => plan.walker),
+                ...stayers
+            ]
+            const settled = Math.max(lastArrival, stayers.length > 0 ? MakeRoomSeconds : 0)
+            timeline.call(() => this.showFountain(route.to, [...crowd]), undefined, settled)
+            timeline.set(
+                destinationWalkers.map((walker) => this.walkerElement(walker)),
+                { opacity: 0 },
+                settled
+            )
+        }
         for (const [shopId, enteredAt] of lastEntries) {
             this.earnings.schedule(shopId, timeline, enteredAt)
         }
         animationContext.afterAnimations(() => this.earnings.clear())
     }
 
-    // Pawns leave from the back, so the crowd left behind is the front of the visitor list.
+    // Any visitors already at the entrance first step to their places in the larger crowd; then the
+    // new ones come in through the gate, fading in as they pass through it, and walk to their own
+    // places, the farthest filled first. Nobody moves once placed: the fountain shows its
+    // crowd again only when everyone has arrived, in the same places.
+    private async animateEntrance(
+        action: BringVisitors,
+        newcomers: readonly MarketColor[],
+        from: HydratedMarracashGameState,
+        to: HydratedMarracashGameState,
+        animationContext: AnimationContext
+    ) {
+        const coords = getFountain(action.entranceId).coords
+        const center = cellCenter(coords)
+        const present = from.getFountainState(action.entranceId).visitors
+        const crowd = [...present, ...newcomers]
+        if (crowd.length > MaxPawnsShown) {
+            await this.animateDirect(from, to, animationContext)
+            return
+        }
+        const before = fountainPawnPositions(present.length, center)
+        const after = fountainPawnPositions(crowd.length, center)
+        const gate = gateRect(coords)
+        const outward = Outward[wallSideOf(coords)]
+        const gateCenter = { x: gate.x + gate.width / 2, y: gate.y + gate.height / 2 }
+        const half = (Math.abs(outward.x) * gate.width + Math.abs(outward.y) * gate.height) / 2
+        const outside = {
+            x: gateCenter.x + outward.x * (half + BeyondGate),
+            y: gateCenter.y + outward.y * (half + BeyondGate)
+        }
+        const inside = { x: gateCenter.x - outward.x * half, y: gateCenter.y - outward.y * half }
+        const walkers = crowd.map((color, order) => ({ id: `${action.id}-in-${order}`, color }))
+        // Newcomers file in to the farthest spots first, so later ones never pass through them.
+        const fileOrder = crowd
+            .map((_, order) => order)
+            .slice(present.length)
+            .toSorted((a, b) => distance(inside, after[b]) - distance(inside, after[a]))
+        await this.mountWalkers(walkers, animationContext)
+
+        const timeline = animationContext.actionTimeline
+        timeline.call(() => this.showFountain(action.entranceId, []), undefined, 0)
+        const makeRoom = present.length > 0 ? MakeRoomSeconds : 0
+        const throughGate = distance(outside, inside) / EntranceWalkPixelsPerSecond
+        let lastArrival = makeRoom
+        walkers.forEach((walker, order) => {
+            const element = this.walkerElement(walker)
+            const spot = after[order]
+            if (order < present.length) {
+                this.place(element, before[order], 1)
+                timeline.set(element, { opacity: 1 }, 0)
+                timeline.to(element, { x: spot.x, y: spot.y, duration: MakeRoomSeconds }, 0)
+                return
+            }
+            const filed = fileOrder.indexOf(order)
+            const start =
+                EntranceLeadIn + makeRoom + (filed * EntranceSpacing) / EntranceWalkPixelsPerSecond
+            const toSpot = distance(inside, spot) / EntranceWalkPixelsPerSecond
+            this.place(element, outside, 1)
+            timeline.to(
+                element,
+                { x: inside.x, y: inside.y, opacity: 1, duration: throughGate, ease: 'none' },
+                start
+            )
+            timeline.to(
+                element,
+                { x: spot.x, y: spot.y, duration: toSpot, ease: 'power1.out' },
+                start + throughGate
+            )
+            lastArrival = Math.max(lastArrival, start + throughGate + toSpot)
+        })
+        timeline.call(() => this.showFountain(action.entranceId, crowd), undefined, lastArrival)
+        timeline.set(
+            walkers.map((walker) => this.walkerElement(walker)),
+            { opacity: 0 },
+            lastArrival
+        )
+    }
+
+    // Given the destination's final crowd, each arrival heads for the farthest free place of its
+    // colour in it, so the crowd shown at the end puts every pawn where it stopped.
     private walkPlans(
         actionId: string,
         route: Route,
         result: MoveResult,
-        from: HydratedMarracashGameState
+        from: HydratedMarracashGameState,
+        crowd?: readonly MarketColor[]
     ): WalkPlan[] {
         const origin = from.getFountainState(route.from).visitors
         const originCenter = cellCenter(getFountain(route.from).coords)
@@ -191,24 +372,50 @@ export class VisitorMoveAnimator {
         const shopByColor = new Map(
             result.entries.map((entry) => [getShop(entry.shopId).color, entry.shopId])
         )
+        const finalSpots = crowd ? fountainPawnPositions(crowd.length, destinationCenter) : []
+        const freeSpots = new Set(
+            Array.from({ length: crowd?.length ?? 0 }, (_, index) => index).slice(destinationCount)
+        )
+        const walkway = route.path.slice(0, -1).map(cellCenter)
+        const entry = walkway.at(-1) ?? destinationCenter
+        const placeFor = (color: MarketColor): Point => {
+            const spot = [...freeSpots]
+                .filter((index) => crowd?.[index] === color)
+                .reduce<number | undefined>(
+                    (farthest, index) =>
+                        farthest === undefined ||
+                        distance(entry, finalSpots[index]) > distance(entry, finalSpots[farthest])
+                            ? index
+                            : farthest,
+                    undefined
+                )
+            assertExists(spot, `No place of colour ${color} left at fountain ${route.to}`)
+            freeSpots.delete(spot)
+            return finalSpots[spot]
+        }
 
-        return origin.toReversed().map((color, order) => {
-            const remaining = origin.length - order
-            const start = fountainPawnPositions(remaining, originCenter)[remaining - 1]
+        // The visitors nearest the way out leave first, each from where it stands.
+        const originSpots = fountainPawnPositions(origin.length, originCenter)
+        const exit = walkway[0] ?? destinationCenter
+        const leavingOrder = origin
+            .map((_, index) => index)
+            .toSorted((a, b) => distance(originSpots[a], exit) - distance(originSpots[b], exit))
+        return leavingOrder.map((originIndex, order) => {
+            const color = origin[originIndex]
+            const start = originSpots[originIndex]
             const walker = { id: `${actionId}-${order}`, color }
             const shopId = shopByColor.get(color)
             if (shopId !== undefined) {
                 const step = route.path.findIndex((coords) => shopsNextTo(coords).includes(shopId))
                 const [, doorway] = shopBranch(route, shopId)
-                const walkway = route.path.slice(0, step + 1).map(cellCenter)
-                return { walker, shopId, points: [start, ...walkway, doorway] }
+                const toShop = route.path.slice(0, step + 1).map(cellCenter)
+                return { walker, originIndex, shopId, points: [start, ...toShop, doorway] }
             }
             destinationCount += 1
-            const spot = fountainPawnPositions(destinationCount, destinationCenter)[
-                destinationCount - 1
-            ]
-            const walkway = route.path.slice(0, -1).map(cellCenter)
-            return { walker, points: [start, ...walkway, spot] }
+            const spot = crowd
+                ? placeFor(color)
+                : fountainPawnPositions(destinationCount, destinationCenter)[destinationCount - 1]
+            return { walker, originIndex, points: [start, ...walkway, spot] }
         })
     }
 

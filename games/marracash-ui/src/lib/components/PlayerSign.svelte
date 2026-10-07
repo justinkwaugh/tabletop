@@ -2,6 +2,7 @@
     import SignFace from '$lib/components/SignFace.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ElMessiriCapHeight, PanelPalette } from '$lib/utils/playerPanel.js'
+    import { signFrameColor } from '$lib/utils/playerColors.js'
     import {
         playerStandeeOutline,
         SignFaceCenterY,
@@ -23,6 +24,7 @@
         fill={gameSession.colors.getPlayerBgColorValue(playerId)}
         edge={PanelPalette.brass}
         edgeWidth={1.75}
+        frame={signFrameColor(gameSession.colors.getPlayerColor(playerId))}
         ornaments={[SignTopOrnament]}
     >
         <text

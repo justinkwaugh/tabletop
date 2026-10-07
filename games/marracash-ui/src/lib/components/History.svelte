@@ -1,106 +1,111 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte'
-    import { hoverOrTap } from '$lib/utils/hoverOrTap.js'
-    import { Timeline, TimelineItem } from 'flowbite-svelte'
+    import { onDestroy, tick } from 'svelte'
     import { fade } from 'svelte/transition'
-    import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { createTimeAgo } from '@tabletop/frontend-components'
-    import PlayerTag from '$lib/components/PlayerTag.svelte'
-    import ActionDescription from './ActionDescription.svelte'
-    import { isEndTurn } from '@tabletop/marracash'
+    import HistoryTurnCard from '$lib/components/HistoryTurnCard.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { historyEntries, type HistoryEntry, type HistoryTurn } from '$lib/utils/historyTurns.js'
+    import { PanelPalette } from '$lib/utils/playerPanel.js'
 
     const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
     onDestroy(() => gameSession.highlightHistory(undefined))
 
-    let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
-            .filter((action) => !isEndTurn(action))
-            .toReversed()
-            .toSorted(
-                (a, b) =>
-                    (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())
-            )
-        return reversed
-    })
+    let liveEntries = $derived(
+        historyEntries(
+            gameSession.actions,
+            gameSession.gameState.turnManager.turnOrder,
+            gameSession.gameState.finalRound,
+            gameSession.gameState.auction
+        )
+    )
+
+    // A replay steps the shown actions back and forward again, so the list holds still meanwhile.
+    // A hotseat viewer follows the active seat, so who reads as "you" holds still too.
+    let replay = $state.raw<
+        { turnId: string; entries: HistoryEntry[]; viewerId: string | undefined } | undefined
+    >(undefined)
+    let entries = $derived(replay?.entries ?? liveEntries)
+    let viewerId = $derived(replay ? replay.viewerId : gameSession.myPlayer?.id)
+    let scroller: HTMLDivElement | undefined = $state()
+
+    async function replayTurn(turn: HistoryTurn) {
+        if (replay) return
+        const scrollTop = scroller?.scrollTop ?? 0
+        replay = { turnId: turn.id, entries: liveEntries, viewerId: gameSession.myPlayer?.id }
+        try {
+            await gameSession.history.replayRange(turn.firstIndex, turn.lastIndex)
+        } finally {
+            replay = undefined
+            await tick()
+            scroller?.scrollTo({ top: scrollTop })
+        }
+    }
+
+    // A turn is dated by its latest action.
+    function when(turn: HistoryTurn): string {
+        const at = turn.actions.findLast((action) => action.createdAt)?.createdAt
+        return at ? timeAgo.format(at) : ''
+    }
 </script>
 
 <div
-    class="rounded-lg border border-[#d9c7a3] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-[#f4ead6] text-[#3d2f1f]"
+    class="history-panel h-full min-h-[300px] w-full overflow-hidden rounded-lg"
+    style:--night={PanelPalette.night}
+    style:--trim={PanelPalette.trim}
 >
-    <div class="history overflow-auto h-full w-full">
-        <Timeline class="ms-2 border-[#d9c7a3] dark:border-[#d9c7a3]">
-            {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+    <div class="h-full w-full overflow-auto px-2 pb-2.5" bind:this={scroller}>
+        {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+            <div class="divider marracash-merchant">Game over</div>
+        {/if}
+        {#each entries as entry (entry.id)}
+            {#if entry.kind === 'round'}
                 <div
-                    class="absolute w-3 h-3 bg-[#8a6a46] rounded-full mt-1.5 -start-1.5 border border-[#8a6a46] dark:border-[#8a6a46] dark:bg-[#8a6a46]"
-                ></div>
-                <TimelineItem
-                    timeClass="text-[#7a6650] dark:text-[#7a6650]"
-                    title=""
-                    class="timeline-item text-left mb-5"
-                    date={timeAgo.format(gameSession.game.finishedAt)}
-                >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#7a6650]">
-                        The game has ended.
-                    </p>
-                </TimelineItem>
-            {/if}
-            {#each reversedActions as action, i (action.id)}
-                <div
-                    role="button"
-                    tabindex="0"
-                    aria-pressed={gameSession.highlightedHistoryActionId === action.id}
+                    class="divider marracash-merchant"
                     in:fade={{ duration: 200, easing: quartIn }}
-                    out:fade={{ duration: 50 }}
-                    animate:flip={{ duration: 100 }}
-                    use:hoverOrTap={{
-                        hover: (active) =>
-                            gameSession.highlightHistory(active ? action : undefined),
-                        tap: () => gameSession.toggleHistoryHighlight(action)
-                    }}
                 >
-                    <div
-                        class="absolute w-3 h-3 bg-[#8a6a46] rounded-full mt-1.5 -start-1.5 border border-[#8a6a46] dark:border-[#8a6a46] dark:bg-[#8a6a46]"
-                    ></div>
-                    <TimelineItem
-                        timeClass="text-[#7a6650] dark:text-[#7a6650]"
-                        title=""
-                        class="timeline-item text-left mb-5"
-                        date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
-                    >
-                        <p class="mt-1 text-left text-sm text-base font-normal text-[#3d2f1f]">
-                            {#if action.playerId}
-                                <PlayerTag playerId={action.playerId} />
-                            {/if}
-                            <ActionDescription {action} />
-                        </p>
-                    </TimelineItem>
+                    {entry.final ? 'Final round' : `Round ${entry.round}`}
                 </div>
-            {/each}
-            <div
-                class="absolute w-3 h-3 bg-[#8a6a46] rounded-full mt-1.5 -start-1.5 border border-[#8a6a46] dark:border-[#8a6a46] dark:bg-[#8a6a46]"
-            ></div>
-            <TimelineItem
-                timeClass="text-[#7a6650] dark:text-[#7a6650]"
-                title=""
-                class="timeline-item text-left mb-5"
-                date={timeAgo.format(gameSession.game.createdAt)}
-            >
-                <p class="mt-1 text-left text-sm text-base font-normal text-[#3d2f1f]">
-                    The game was started
-                </p>
-            </TimelineItem>
-        </Timeline>
+            {:else}
+                <div class="mb-2" in:fade={{ duration: 200, easing: quartIn }}>
+                    <HistoryTurnCard
+                        turn={entry}
+                        when={when(entry)}
+                        {viewerId}
+                        replaying={replay?.turnId === entry.id}
+                        onReplay={() => replayTurn(entry)}
+                    />
+                </div>
+            {/if}
+        {/each}
     </div>
 </div>
 
-<!-- Flowbite's TimelineItem draws its own dot and connector, which cannot take this table's tan;
-     each entry draws its own dot instead. -->
 <style>
-    .history :global(.timeline-item > div) {
-        display: none;
+    .history-panel {
+        background: var(--night);
+        box-shadow: inset 0 0 0 1px var(--trim);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 14px 0;
+        font-size: 11px;
+        line-height: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--trim);
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #2e3666;
     }
 </style>

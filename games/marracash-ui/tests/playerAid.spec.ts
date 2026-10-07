@@ -28,6 +28,9 @@ test('the ? button lays the turn, money and antique cards over the board', async
         await expect(aid(page).getByRole('region', { name: card })).toBeVisible()
     }
     await expect(aid(page)).toContainText('Move not allowed after Auction')
+    await expect(aid(page)).toContainText(
+        'Game ends upon completing the round in which the queue empties.'
+    )
     await expect(aid(page)).toContainText('over 500')
     await expect(aid(page)).toContainText('+ best 5 cards')
 
@@ -123,6 +126,7 @@ test('the aid takes keyboard focus, keeps the board out of reach and hands focus
 }) => {
     await createGame(page)
     await aidButton(page).focus()
+    await expect(aidButton(page)).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(aid(page)).toBeFocused()
     await expect(page.locator('g[aria-label^="Auction shop"]').first()).not.toBeFocused()

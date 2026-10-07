@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
-import { actionPanel, auctionFirstShop, createGame, finishBidding } from './helpers'
+import {
+    actionPanel,
+    auctionFirstShop,
+    createGame,
+    finishBidding,
+    playOpeningRound
+} from './helpers'
 
 async function enterProtectedMode(page: Page) {
     await page.getByRole('button', { name: 'Options' }).click()
@@ -58,7 +64,9 @@ test('exploring is offered under Concealed Cash only in Host View', async ({ pag
     expect(errors).toEqual([])
 })
 
-test('protected views keep a sealed bid secret from everyone but its bidder', async ({ page }) => {
+test('the history in every protected view shows that a bid is in but never its amount', async ({
+    page
+}) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await createGame(page)
@@ -67,23 +75,46 @@ test('protected views keep a sealed bid secret from everyone but its bidder', as
     await expect(actionPanel(page).getByText(/Sealed bid for/)).toBeVisible()
     await enterProtectedMode(page)
 
-    await viewHistoryAs(page, 'Spectator')
-    await expect(page.getByText('placed a sealed bid')).toHaveCount(1)
-    await expect(page.getByText(/bid \d+\s*د\.م\./)).toHaveCount(0)
-
     const viewer = page.getByLabel('Protected view', { exact: true })
-    const players = (await viewer.locator('option').allTextContents()).filter(
-        (label) => label !== 'Spectator' && label !== 'Host View'
-    )
-    let viewersWhoSeeTheAmount = 0
-    for (const player of players) {
-        await viewHistoryAs(page, player)
-        await expect(page.getByText(/placed a sealed bid|bid \d+\s*د\.م\./)).toHaveCount(1)
-        viewersWhoSeeTheAmount += await page.getByText(/bid \d+\s*د\.م\./).count()
+    for (const view of await viewer.locator('option').allTextContents()) {
+        await viewHistoryAs(page, view)
+        const history = page.getByRole('tabpanel')
+        await expect(history).toContainText('1 of 4 bids')
+        await expect(history).not.toContainText('100')
     }
-    expect(viewersWhoSeeTheAmount).toBe(1)
-
-    await viewHistoryAs(page, 'Host View')
-    await expect(page.getByText('placed a sealed bid')).toHaveCount(1)
     expect(errors).toEqual([])
+})
+
+test('the waiting line agrees with "You" when the viewer is the one acting', async ({ page }) => {
+    await createGame(page)
+    await auctionFirstShop(page)
+    await page.getByRole('button', { name: 'Place bid' }).click()
+    await expect(actionPanel(page).getByText(/Sealed bid for/)).toBeVisible()
+    await enterProtectedMode(page)
+    await viewAs(page, 'Developer')
+    await expect(actionPanel(page)).toContainText(/you are auctioning the/i)
+    await viewAs(page, 'Spectator')
+    await expect(actionPanel(page)).toContainText('Developer is auctioning the')
+})
+
+test('name tags are set in El Messiri even in Baskerville lines', async ({ page }) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    const mover = await page.locator('.turn h1').innerText()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await enterProtectedMode(page)
+    const viewer = page.getByLabel('Protected view', { exact: true })
+    const other = (await viewer.locator('option').allTextContents()).find(
+        (view) => !['Host View', 'Spectator', mover].includes(view)
+    )!
+    await viewAs(page, other)
+    const lastPlay = actionPanel(page).locator('p', { hasText: 'moved' })
+    await expect(lastPlay).toBeVisible()
+    await expect(lastPlay).toHaveCSS('font-family', /Baskerville/)
+    const tags = actionPanel(page).locator('span.rounded.inline-block')
+    await expect(tags.first()).toBeVisible()
+    for (const tag of await tags.all()) {
+        await expect(tag).toHaveCSS('font-family', /^"MarraCash El Messiri"/)
+    }
 })

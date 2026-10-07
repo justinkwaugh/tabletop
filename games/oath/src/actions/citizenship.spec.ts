@@ -479,6 +479,49 @@ describe('when the Empire runs short of Imperial warbands (R-6.6.2 clar., R-9.3,
         })
     })
 
+    it('with no Imperial warbands at all, accepts with nothing chosen and removes every warband (R-6.6.2, R-9.3)', () => {
+        const { state, vault } = table()
+        state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS] = 0
+        offer(state)
+        expect(
+            HydratedResolveCitizenshipOffer.reasonCannotResolve(state, 'ex', {
+                granted: true,
+                replacementChoice: []
+            })
+        ).toBeUndefined()
+
+        const action = answer(state, vault, { replacementChoice: [] })
+
+        const ex = state.getPlayerState('ex')
+        expect(ex.status).toBe(PlayerStatus.Citizen)
+        expect(ex.warbandsOnBoard['ex'] ?? 0).toBe(0)
+        expect(ex.warbandsOnBoard[IMPERIAL_WARBANDS] ?? 0).toBe(0)
+        expect(state.warbandsBySite['c1']?.['ex'] ?? 0).toBe(0)
+        expect(action.metadata?.outcome?.replacedCount).toBe(0)
+        expect(action.metadata?.outcome?.unreplacedCount).toBe(5)
+    })
+
+    it('with no Imperial warbands at all, accepts an answer that names no choice (R-6.6.2, R-9.3)', () => {
+        const { state, vault } = table()
+        state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS] = 0
+        expectWarbandTotalConserved(state, () => {
+            serverOffer(state, vault)
+        })
+        expect(state.getPlayerState('ex').status).toBe(PlayerStatus.Citizen)
+    })
+
+    it('with no Imperial warbands at all, refuses a choice that names warbands to replace (R-9.3)', () => {
+        const { state, vault } = table()
+        state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS] = 0
+        expect(() =>
+            serverOffer(state, vault, {}, {
+                replacementChoice: [
+                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
+                ]
+            })
+        ).toThrow(/must choose exactly 0 warbands to replace, not 1/)
+    })
+
     it('refuses a choice when the Empire has Imperial warbands enough', () => {
         const { state, vault } = table()
         expect(() =>

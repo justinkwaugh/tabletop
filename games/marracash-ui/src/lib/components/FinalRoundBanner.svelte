@@ -13,6 +13,9 @@
     {#if isLastTurn}
         This is the last turn of the game.
     {:else}
-        The game ends after <PlayerTag playerId={finalTurnPlayerId} />'s turn.
+        The game ends after
+        {#if finalTurnPlayerId === gameSession.myPlayer?.id}your{:else}<PlayerTag
+                playerId={finalTurnPlayerId}
+            />'s{/if} turn.
     {/if}
 </p>

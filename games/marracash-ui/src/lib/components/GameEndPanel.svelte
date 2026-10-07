@@ -29,7 +29,11 @@
                 {playerId}
             />
         {/each}
-        {winners.length > 1 ? 'share the win' : 'wins'}.
+        {winners.length > 1
+            ? 'share the win'
+            : winners[0] === gameSession.myPlayer?.id
+              ? 'win'
+              : 'wins'}.
     </p>
     <ol class="grid grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1 text-sm">
         {#each standings as standing (standing.playerId)}

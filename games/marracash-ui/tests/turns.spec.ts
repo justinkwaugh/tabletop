@@ -52,12 +52,12 @@ test('clicking a shop starts its auction at once, and the auctioneer can undo it
     await expect(auctionableShops(page)).toHaveCount(25)
 
     await auctionFirstShop(page)
-    const stillToBid = actionPanel(page).getByText(/^Still to bid:/)
-    const everyone = await stillToBid.innerText()
+    const bidCount = actionPanel(page).getByText(/of 4 bids$/)
+    await expect(bidCount).toHaveText('0 of 4 bids')
     await page.getByRole('button', { name: 'Place bid' }).click()
-    await expect(stillToBid).not.toHaveText(everyone)
+    await expect(bidCount).toHaveText('1 of 4 bids')
     await undo.click()
-    await expect(stillToBid).toHaveText(everyone, { ignoreCase: true })
+    await expect(bidCount).toHaveText('0 of 4 bids')
 })
 
 test('choosing a fountain dims the board around its destinations, previews a route and Undo restores the turn', async ({
@@ -177,17 +177,20 @@ test('Concealed Cash hides other players’ cash', async ({ page }) => {
     await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(1)
 })
 
-test('the history keeps other players’ bids sealed until the auction resolves', async ({
+test('the history shows who has bid while an auction is open and every bid once it resolves', async ({
     page
 }) => {
     await createGame(page)
-    await auctionFirstShop(page)
-    await finishBidding(page)
     await page.getByText('History', { exact: true }).click()
-    await expect(page.getByText('placed a sealed bid')).toHaveCount(3)
-    const history = page.getByRole('tabpanel')
-    await expect(history.getByText(/bought the .* shop for 100\./)).toBeVisible()
-    await expect(history.getByRole('table', { name: 'Bids' }).getByRole('row')).toHaveCount(4)
+    await auctionFirstShop(page)
+    const card = page.locator('.turn-card').first()
+    await expect(card).toContainText('0 of 4 bids')
+    await page.getByRole('button', { name: 'Place bid' }).click()
+    await expect(card).toContainText('1 of 4 bids')
+    await expect(card).not.toContainText('100')
+    await finishBidding(page)
+    await expect(card).toContainText(/Won the .* shop for 100/)
+    await expect(card.locator('.bid')).toHaveCount(4)
 })
 
 test('the header names the turn and holds the only Undo, with no Back anywhere', async ({
@@ -234,4 +237,38 @@ test('the last refill of a turn can be undone after the next turn has started', 
     await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(actionPanel(page)).toContainText('Bring new visitors to the empty entrance.')
     await expect(page.getByText('52 waiting')).toBeVisible()
+})
+
+test('the queue keeps its front at the top as visitors leave either end', async ({ page }) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
+    await expect(actionPanel(page)).toContainText('Bring new visitors')
+
+    const visitors = page.locator('g[aria-label="Visitor queue"] > g[transform]')
+    const line = () =>
+        visitors.evaluateAll((elements) =>
+            elements.map((element) => ({
+                at: element.getAttribute('transform'),
+                shown: getComputedStyle(element).opacity !== '0'
+            }))
+        )
+    const before = await line()
+
+    await page.getByRole('button', { name: 'Front of queue' }).click()
+    await page.getByRole('button', { name: '4', exact: true }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect(visitors).toHaveCount(before.length - 4)
+    await expect.poll(line).toEqual(before.slice(0, before.length - 4))
+
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect.poll(line).toEqual(before)
+
+    await page.getByRole('button', { name: 'Back of queue' }).click()
+    await page.getByRole('button', { name: '3', exact: true }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect.poll(line).toEqual(before.slice(0, before.length - 3))
 })

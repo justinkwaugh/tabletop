@@ -12,6 +12,7 @@
         fill,
         edge,
         edgeWidth = 1.5,
+        frame = SignCream,
         ornaments = [SignTopOrnament, SignBottomOrnament],
         children
     }: {
@@ -19,6 +20,7 @@
         fill: string
         edge: string
         edgeWidth?: number
+        frame?: string
         ornaments?: readonly string[]
         children: Snippet
     } = $props()
@@ -29,12 +31,12 @@
     d={outline}
     transform={SignFrame.transform}
     fill="none"
-    stroke={SignCream}
+    stroke={frame}
     stroke-width={SignFrame.strokeWidth}
     stroke-linejoin="round"
     opacity="0.9"
 ></path>
 {#each ornaments as ornament (ornament)}
-    <path d={ornament} fill={SignCream} opacity="0.9"></path>
+    <path d={ornament} fill={frame} opacity="0.9"></path>
 {/each}
 {@render children()}

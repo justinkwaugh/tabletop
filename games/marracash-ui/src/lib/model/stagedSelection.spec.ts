@@ -63,7 +63,6 @@ describe('MarraCash staged selection', () => {
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
 
-
     it('has no manual choice to undo before the player picks anything', () => {
         expect(hasManualMarracashSelection({})).toBe(false)
         expect(popMarracashSelection({})).toEqual({})
@@ -77,5 +76,4 @@ describe('MarraCash staged selection', () => {
         expect(selection.fountain).toBeUndefined()
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
-
 })

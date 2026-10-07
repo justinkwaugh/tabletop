@@ -9,7 +9,6 @@ import {
     reasonCannotDeclareTargets,
     targetsNeedFlip,
     usableBattlePlans,
-    warbandsOnBoardOf,
     type BattlePlanUse,
     type CampaignDefender,
     type CampaignParties,
@@ -314,10 +313,10 @@ export class CampaignDraft implements PanelDraft {
         return this.hasTarget({ kind: CampaignTargetKind.Site, siteId })
     }
 
-    // R-5.5.2 — one attack die per warband on your board.
+    // R-5.5.2 — one attack die per warband in the force.
     get maxDice(): number {
         const playerId = this.playerId
-        return playerId ? warbandsOnBoardOf(this.session.gameState, playerId) : 0
+        return playerId ? HydratedCampaign.maxAttackDice(this.session.gameState, playerId) : 0
     }
 
     get attackDice(): number | undefined {
