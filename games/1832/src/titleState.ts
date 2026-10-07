@@ -4,6 +4,7 @@ const Id = Type.String({ minLength: 1 })
 
 export const ProtectingPriceState = 'ProtectingPrice'
 export const ConsentingRedemptionState = 'ConsentingRedemption'
+export const MergingState = 'Merging'
 
 export const RevenueTokenKind = Type.Union([
     Type.Literal('port'),
@@ -76,6 +77,60 @@ export type RedemptionRequest = Type.Static<typeof RedemptionRequest>
 
 const StockRoundNumber = Type.Integer({ minimum: 1 })
 
+export const MergerKind = Type.Union([Type.Literal('system'), Type.Literal('takeover')])
+export type MergerKind = Type.Static<typeof MergerKind>
+
+/**
+ * A merger a player proposes between a company they preside and a partner. The proposer is the
+ * initiator unless they yield to the partner's president, whose company then buys in a takeover.
+ */
+export const MergerProposal = Type.Object(
+    {
+        proposerPlayerId: Id,
+        companyId: Id,
+        partnerId: Id,
+        kind: MergerKind,
+        yielded: Type.Boolean()
+    },
+    { additionalProperties: false }
+)
+export type MergerProposal = Type.Static<typeof MergerProposal>
+
+/** A takeover whose buyer's president is raising the price by selling shares (§11.7). */
+export const TakeoverFunding = Type.Object(
+    { buyerId: Id, targetId: Id, playerId: Id },
+    { additionalProperties: false }
+)
+export type TakeoverFunding = Type.Static<typeof TakeoverFunding>
+
+/** A merger phase: players in priority order propose mergers until each has passed (§11.1). */
+export const MergerPhase = Type.Object(
+    {
+        final: Type.Boolean(),
+        playerIds: Type.Array(Id),
+        index: Type.Integer({ minimum: 0 }),
+        proposal: Type.Optional(MergerProposal),
+        funding: Type.Optional(TakeoverFunding),
+        /** A buyer left over its train limit, whose president discards trains (§11.7.1). */
+        discardCompanyId: Type.Optional(Id),
+        refused: Type.Array(
+            Type.Object({ companyId: Id, partnerId: Id }, { additionalProperties: false })
+        )
+    },
+    { additionalProperties: false }
+)
+export type MergerPhase = Type.Static<typeof MergerPhase>
+
+export const MergerRecord = Type.Object(
+    {
+        kind: MergerKind,
+        companyIds: Type.Array(Id, { minItems: 2, maxItems: 2 }),
+        survivorId: Id
+    },
+    { additionalProperties: false }
+)
+export type MergerRecord = Type.Static<typeof MergerRecord>
+
 export const EighteenThirtyTwoTitleFields = {
     priceProtection: Type.Optional(PriceProtection),
     /** Each company's redemptions in its latest stock round with one (§5.10.1). */
@@ -108,6 +163,14 @@ export const EighteenThirtyTwoTitleFields = {
             { additionalProperties: false }
         )
     ),
+    mergerPhase: Type.Optional(MergerPhase),
+    mergers: Type.Array(MergerRecord),
+    /** The stock round whose merger phase has been held. */
+    mergedAfterStockRound: Type.Optional(StockRoundNumber),
+    /** Set once the last merger phase, after the first 6-train, has been held (§11.5). */
+    mergersEnded: Type.Optional(Type.Literal(true)),
+    /** Each System formed, with its two component companies (§11.6). */
+    systems: Type.Record(Id, Type.Array(Id, { minItems: 2, maxItems: 2 })),
     /** Companies holding a West Virginia Coal Fields token. */
     coalRights: Type.Array(Id, { uniqueItems: true }),
     /** The latest WVCF token bought, which uses one of that turn's yellow lays. */

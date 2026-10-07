@@ -14,6 +14,7 @@ import { currentTileFace } from './tileState.js'
 import { sameOperatingTurn } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { migrateRevenueTokens } from './revenueTokens.js'
+import { isSystem } from './systems.js'
 
 const Tampa = 'Z25'
 
@@ -77,12 +78,22 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
     tileSet: EighteenThirtyTwoTileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown'],
     availableColors: (state) => EighteenThirtyTwoPhases.phase(state.phaseId).tileColors,
-    // A company lays two yellow tiles or upgrades one tile (§6).
+    // A company lays two yellow tiles or upgrades one tile (§6); a System lays three yellow
+    // tiles, or one yellow tile and one upgrade (§11.6.8).
     allowance(state, color, upgrade) {
-        const lays = laysThisTurn(state)
-        if (!lays.length) return { cost: 0 }
-        if (color === 'yellow' && !upgrade && lays.length === 1 && !lays[0]) return { cost: 0 }
-        return { reason: 'A company lays two yellow tiles or upgrades one tile.' }
+        const lays = [...laysThisTurn(state), color !== 'yellow' || !!upgrade]
+        const upgrades = lays.filter((lay) => lay).length
+        const yellows = lays.length - upgrades
+        const companyId = state.trackStep?.companyId
+        if (companyId && isSystem(requireEighteenThirtyTwoState(state), companyId))
+            return (upgrades === 0 && yellows <= 3) || (upgrades === 1 && yellows <= 1)
+                ? { cost: 0 }
+                : {
+                      reason: 'A System lays three yellow tiles, or one yellow tile and one upgrade.'
+                  }
+        return (upgrades === 0 && yellows <= 2) || (upgrades === 1 && yellows === 0)
+            ? { cost: 0 }
+            : { reason: 'A company lays two yellow tiles or upgrades one tile.' }
     },
     upgradesWithinColor: promotesMediumCity,
     stopAllowed: coalFieldsOpen,
@@ -105,7 +116,10 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
         )
         return { payments: [], closedPrivateIds: [] }
     },
-    restriction(_state, request) {
+    restriction(state, request) {
+        // A System's upgrade is of a different tile from its yellow lay (§11.6.8).
+        if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
+            return 'A tile laid this turn cannot be replaced'
         const definition = EighteenThirtyTwoTileSet.definitions.find(
             (tile) => tile.id === request.definitionId
         )

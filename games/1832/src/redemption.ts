@@ -33,9 +33,9 @@ import {
 import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { ReissueParPrices } from './stockMarket.js'
+import { isSystem } from './systems.js'
 import { ConsentingRedemptionState, RedemptionRequest } from './titleState.js'
 
-const RedemptionsPerStockRound = 1
 const MaximumCompanyPercent = 40
 const MinimumOutsidePercent = 60
 
@@ -107,9 +107,10 @@ export function redemptionChoices(
     return state.companies.flatMap((company) => {
         if (!actingForCompany(state, playerId, company.id)) return []
         const redeemed = state.redemptions?.[company.id]
+        // A System may redeem two shares a stock round, one a turn (§11.6.9).
         if (
             redeemed?.stockRound === state.stockRound.number &&
-            redeemed.count >= RedemptionsPerStockRound
+            redeemed.count >= (isSystem(state, company.id) ? 2 : 1)
         )
             return []
         const shareCount = shareCountOf(state, company.id)

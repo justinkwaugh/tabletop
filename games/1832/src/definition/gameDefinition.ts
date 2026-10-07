@@ -69,6 +69,34 @@ import {
 } from '../priceProtection.js'
 import type { EighteenThirtyTwoStateHandler } from '../state.js'
 import {
+    AnswerMerger,
+    CompleteMergerPhase,
+    CompleteTakeover,
+    DiscardMergedTrain,
+    HydratedAnswerMerger,
+    HydratedCompleteMergerPhase,
+    HydratedCompleteTakeover,
+    HydratedDiscardMergedTrain,
+    HydratedPassMerger,
+    HydratedProposeMerger,
+    HydratedSellTakeoverShares,
+    HydratedStartMergerPhase,
+    MergingHandler,
+    PassMerger,
+    ProposeMerger,
+    SellTakeoverShares,
+    StartMergerPhase,
+    isAnswerMerger,
+    isCompleteMergerPhase,
+    isCompleteTakeover,
+    isDiscardMergedTrain,
+    isPassMerger,
+    isProposeMerger,
+    isSellTakeoverShares,
+    isStartMergerPhase,
+    startsMergerPhase
+} from '../mergers.js'
+import {
     AnswerRedemption,
     ConsentingRedemptionHandler,
     HydratedAnswerRedemption,
@@ -115,8 +143,8 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
             closesAndProtects(
                 companyShareActions(new TitleActionsHandler(family, [TakeLondonShareStep]))
             ),
-        StartingOperatingSet: capitalizesFloatedCompanies,
-        OperatingSet: closesAndProtects,
+        StartingOperatingSet: (family) => capitalizesFloatedCompanies(startsMergerPhase(family)),
+        OperatingSet: (family) => closesAndProtects(startsMergerPhase(family)),
         FundingTrain: closesCompanies,
         BuyingTrains: closesAndProtects,
         LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),
@@ -125,11 +153,40 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     },
     titleStateHandlers: {
         ProtectingPrice: closesCompanies(new ProtectingPriceHandler()),
-        ConsentingRedemption: new ConsentingRedemptionHandler()
+        ConsentingRedemption: new ConsentingRedemptionHandler(),
+        Merging: closesAndProtects(new MergingHandler())
     },
     titleActions: [
         defineAction(CloseCompany, isCloseCompany, (action) => new HydratedCloseCompany(action)),
         defineAction(RedeemShare, isRedeemShare, (action) => new HydratedRedeemShare(action)),
+        defineAction(
+            StartMergerPhase,
+            isStartMergerPhase,
+            (action) => new HydratedStartMergerPhase(action)
+        ),
+        defineAction(ProposeMerger, isProposeMerger, (action) => new HydratedProposeMerger(action)),
+        defineAction(AnswerMerger, isAnswerMerger, (action) => new HydratedAnswerMerger(action)),
+        defineAction(PassMerger, isPassMerger, (action) => new HydratedPassMerger(action)),
+        defineAction(
+            SellTakeoverShares,
+            isSellTakeoverShares,
+            (action) => new HydratedSellTakeoverShares(action)
+        ),
+        defineAction(
+            CompleteTakeover,
+            isCompleteTakeover,
+            (action) => new HydratedCompleteTakeover(action)
+        ),
+        defineAction(
+            DiscardMergedTrain,
+            isDiscardMergedTrain,
+            (action) => new HydratedDiscardMergedTrain(action)
+        ),
+        defineAction(
+            CompleteMergerPhase,
+            isCompleteMergerPhase,
+            (action) => new HydratedCompleteMergerPhase(action)
+        ),
         defineAction(
             AnswerRedemption,
             isAnswerRedemption,

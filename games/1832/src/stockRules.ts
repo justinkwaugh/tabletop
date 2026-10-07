@@ -1,11 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
+    getCompany,
     ipoMarketTrading,
     marketZoneHoldingLimits,
     playersAfterPresident,
-    type StockRules,
-    type StockState
+    type StockRules
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { isClosingSpace, saleDescent } from './stockMarket.js'
@@ -19,6 +19,7 @@ import {
 } from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
+import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 
 const Trading = ipoMarketTrading({
     ipoPoolId: 'initial-offering',
@@ -74,19 +75,28 @@ const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
 const MajorIds: readonly string[] = Object.keys(EighteenThirtyTwoMajors)
 
 /**
- * The Table 2 column: companies still active or available, from ten down to six or fewer. A
+ * The Table 2 column: of the ten railroads, those still active or available, from ten down to
+ * six or fewer. A System's two shells both count; a company bought in a takeover does not. A
  * company in the black area counts as closed, as a seller must assume no president protects it
- * (§5.3.5).
+ * (§5.3.5, §11.6, §11.7).
  */
 export function certificateLimitColumn(
-    state: Pick<StockState, 'companies' | 'stockMarket'>
+    state: Pick<EighteenThirtyTwoState, 'companies' | 'stockMarket' | 'systems'>
 ): number {
-    const remaining = state.companies.filter(
-        (company) =>
-            MajorIds.includes(company.id) &&
+    const open = (companyId: string) => {
+        const company = getCompany(state, companyId)
+        return (
             !company.closed &&
-            !(company.started && isClosingSpace(companyMarketSpace(state.stockMarket, company.id)))
-    ).length
+            !(company.started && isClosingSpace(companyMarketSpace(state.stockMarket, companyId)))
+        )
+    }
+    const systemOf = (companyId: string) =>
+        Object.keys(state.systems).find((systemId) => state.systems[systemId].includes(companyId))
+    const remaining = state.companies.filter((company) => {
+        if (!MajorIds.includes(company.id)) return false
+        const systemId = systemOf(company.id)
+        return systemId ? open(systemId) : open(company.id)
+    }).length
     return Math.min(4, MajorIds.length - remaining)
 }
 
@@ -97,7 +107,10 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     purchaseTerms: EighteenThirtyTwoShareTrading.purchaseTerms,
     saleTerms: EighteenThirtyTwoShareTrading.stockSaleTerms,
     certificateLimit(state) {
-        const limit = CertificateLimits[state.players.length]?.[certificateLimitColumn(state)]
+        const limit =
+            CertificateLimits[state.players.length]?.[
+                certificateLimitColumn(requireEighteenThirtyTwoState(state))
+            ]
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },

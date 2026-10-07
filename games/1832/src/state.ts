@@ -20,6 +20,7 @@ import type * as Type from 'typebox'
 import {
     ConsentingRedemptionState,
     EighteenThirtyTwoTitleFields,
+    MergingState,
     ProtectingPriceState
 } from './titleState.js'
 
@@ -37,7 +38,8 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...RailwayMachineStates,
         ...WaterfallAuctionMachineStates,
         ProtectingPriceState,
-        ConsentingRedemptionState
+        ConsentingRedemptionState,
+        MergingState
     ]
 )
 export type EighteenThirtyTwoState = Type.Static<typeof EighteenThirtyTwoState>

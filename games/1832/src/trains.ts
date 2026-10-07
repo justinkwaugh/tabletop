@@ -1,3 +1,5 @@
+import { requireEighteenThirtyTwoState } from './state.js'
+import { shellsOf } from './systems.js'
 import { PhaseTable, TrainDepot, requiresStationRoute, type TrainRules } from '@tabletop/18xx'
 import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
@@ -64,7 +66,10 @@ export const EighteenThirtyTwoTrainRules: TrainRules = {
     },
     phaseAfterPurchase: (state, definitionId) =>
         EighteenThirtyTwoPhases.phaseAfterPurchase(state.phaseId, definitionId),
-    trainLimit: (state) => EighteenThirtyTwoPhases.phase(state.phaseId).trainLimit,
+    // A System has both its shells' train spaces (§11.6.7).
+    trainLimit: (state, companyId) =>
+        EighteenThirtyTwoPhases.phase(state.phaseId).trainLimit *
+        shellsOf(requireEighteenThirtyTwoState(state), companyId).length,
     purchaseLimit: () => 'unlimited',
     // The Central Railroad & Canal closes when the Central of Georgia buys its first train.
     privatesClosedByPurchase: (state, companyId) =>

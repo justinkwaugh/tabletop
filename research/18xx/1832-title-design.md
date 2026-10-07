@@ -397,3 +397,58 @@ no prepared position with an offering sold out; tests cover the flow.
 `redemption.spec.ts` covers market-first redemption, consent and refusal, the president's own
 share, the 40%/60% limits, the per-round limit, the reissue par, reissue proceeds and locking,
 and the sold-out offering condition.
+
+## Slice 5 design: mergers, Systems and takeovers
+
+### Survey
+
+Of the implemented titles, 1817 merges and converts companies in its merger round; 1832 forms
+twenty-share Systems or lets one company buy another. The family
+library already moves assets (`transferCompanyAssets`) and stations (`moveCompanyStations`,
+returning a duplicate in one city to the charter). Slice 5 adds a per-holder dividend hook to
+`EarningsRules` (`holderDividend`) for twenty-share rounding; the merger phase and System rules
+stay in 1832.
+
+### Decisions
+
+- **Systems are new companies** (user direction). AMTK, BNSF, IC, CSX and NS are Systems A–E,
+  added to the game when formed, with twenty shares: a four-share president's certificate and,
+  for each component certificate still in play, a System certificate of the same size owned or
+  pooled as it was. A component president's certificate held by someone else becomes a
+  two-share vice-president's certificate, sold whole. The System president surrenders four
+  shares of the components, their president's certificates included.
+- **Formation.** The initiator, or the first player clockwise from them with four shares of the
+  two components, becomes president; another player holding more then takes over as usual. The
+  price is the average of the two, rounded to a market value with a tie upward, placed in the
+  leftmost component's row and moved down-right along its diagonal to the soft or hard ledge;
+  its par is that price, at most $275. The System takes both components' cash, trains,
+  privates, WVCF rights (one returned if both had one), revenue tokens and stations (a second
+  in one city returns to its charter); its unplaced stations cost $100. The components close
+  as shells of the System.
+- **System operations.** A System's train limit is twice the phase's; it must own one train. It
+  lays three yellow tiles, or one yellow and one upgrade of a different tile. Each holder
+  receives their shares' twentieths of the dividend, rounded up; a half dividend pays half of
+  that, rounded up. It redeems two shares a stock round, one a turn. It counts as two companies
+  for certificate limits.
+- **Takeovers.** The initiator's company buys every share of the other held by players or the
+  market at the market price, and unsold shares at par; its own redeemed shares are assets. The
+  buyer pays from its treasury, then its president's cash, then sales of their other shares;
+  without enough, the takeover is not allowed. The buyer keeps its identity and takes the
+  other's assets as for Systems; unplaced stations of the bought company are discarded, and
+  excess trains go to the open market by the president's choice. The certificate limit column
+  moves one per shell bought.
+- **Merger phases.** After each stock round in phases 4 and 5, players in priority order may
+  propose mergers between a company they preside and another company that has operated and
+  that one of them can reach (a legal run of unlimited length to the other's station, or a
+  shared city). The other president agrees or refuses; the proposer may yield initiator status.
+  A company joins at most one merger of each type; a System inherits its components' takeover.
+  After the first 6-train is bought, a last phase follows that company's turn, for players
+  presiding over both companies; a merged company that had operated that round does not operate
+  again.
+
+### Rulings
+
+- Each player proposes in turn until they pass; a refused pairing cannot be proposed again in
+  that phase.
+- The System chosen is the first unused of A–E.
+- The optional forced purchase of a System's second train (§11.6.7) is not offered.

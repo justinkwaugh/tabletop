@@ -183,10 +183,11 @@ export function protectionDecision(
     return undefined
 }
 
+// A seller finishes when their stock turn passes on, or their train or takeover is paid for.
 function sellerFinished(state: HydratedEighteenThirtyTwoState, sellerPlayerId: string): boolean {
     return state.machineState === 'StockRound'
         ? state.turnManager.currentTurn()?.playerId !== sellerPlayerId
-        : !state.trainFunding
+        : !state.trainFunding && !state.mergerPhase?.funding
 }
 
 const StartFields = Type.Object({
