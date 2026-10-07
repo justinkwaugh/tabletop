@@ -7,7 +7,7 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
-import { collectDefendingForce, type DiceDelta } from '../util/campaign.js'
+import { collectAttackingForce, collectDefendingForce, type DiceDelta } from '../util/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
 import { isImperialPlayer } from '../util/rule.js'
@@ -68,16 +68,23 @@ function planUser(ctx: BattlePlanContext): string {
     return ctx.playerId
 }
 
+/** R-10.9, R-X.4 — the whole force, the sites it reaches included; before revision 5 the board alone. */
+function attackingForce(ctx: BattlePlanContext): number {
+    const parties = ctx.campaign.parties
+    return isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
+        ? forceTotal(collectAttackingForce(ctx.state, parties))
+        : warbandsOnBoardOf(ctx.state, parties.attackerPlayerId)
+}
+function defendingForce(ctx: BattlePlanContext): number {
+    return forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
+}
+
 /** R-10.9 — "your force". */
 function myForce(ctx: BattlePlanContext): number {
-    return side(ctx) === BattlePlanSide.Attacker
-        ? warbandsOnBoardOf(ctx.state, planUser(ctx))
-        : forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
+    return side(ctx) === BattlePlanSide.Attacker ? attackingForce(ctx) : defendingForce(ctx)
 }
 function enemyForce(ctx: BattlePlanContext): number {
-    return side(ctx) === BattlePlanSide.Attacker
-        ? forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
-        : warbandsOnBoardOf(ctx.state, ctx.campaign.parties.attackerPlayerId)
+    return side(ctx) === BattlePlanSide.Attacker ? defendingForce(ctx) : attackingForce(ctx)
 }
 
 /** Fire Talkers' entry widens "you hold" to any Imperial player when you are one (R-10.28-H1). */
@@ -239,11 +246,7 @@ registerBattlePlan(
     {
         // Its Q&A — judged when used, before any skull kills.
         hooks: {
-            rollRules: (ctx) => ({
-                zealots:
-                    forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties)) >
-                    warbandsOnBoardOf(ctx.state, planUser(ctx))
-            })
+            rollRules: (ctx) => ({ zealots: defendingForce(ctx) > attackingForce(ctx) })
         }
     }
 )

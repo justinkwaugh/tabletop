@@ -1,6 +1,6 @@
 import { bannerHolder } from './oathkeeper.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { attackingSiteOf, targetedSiteIds } from './campaignSite.js'
+import { attackingSiteOf, forceSitesOf, targetedSiteIds } from './campaignSite.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { reasonSitesForbidTargets, targetsNeedFlip } from './siteTravel.js'
 import { relicDefenseDice } from '../data/cardRegistry.js'
@@ -28,7 +28,8 @@ import {
     rulingWarbandOwners,
     type ImperialScope
 } from './rule.js'
-import { boardWarbandGroups, warbandGroupsAtSites } from './force.js'
+import { boardOwnersOwnFirst, boardWarbandGroups, warbandGroupsAtSites } from './force.js'
+import { countOf } from './warbands.js'
 import { pawnSiteId } from './pawn.js'
 import { siteLockedFor } from './locked.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
@@ -43,6 +44,10 @@ export interface CampaignParties {
     /** R-5.5.1.a */
     nonImperialPlayerIds: readonly string[]
     targets: readonly CampaignTarget[]
+    /** R-5.5.1's "your site": the pawn's, or the one Wild Allies or Captains names. */
+    attackerSiteId: string
+    /** Wild Allies, Captains, Vow of Union — sites whose warbands of the attacker's join their force. */
+    forceSiteIds: readonly string[]
 }
 
 export function scopeOf(parties: CampaignParties): ImperialScope {
@@ -83,7 +88,9 @@ export function declaredParties(
         defenderPlayerId,
         allyPlayerIds: [],
         nonImperialPlayerIds: suspendedImperialsFor(state, attackerPlayerId, defenderPlayerId),
-        targets
+        targets,
+        attackerSiteId: attackingSiteOf(state, attackerPlayerId),
+        forceSiteIds: forceSitesOf(state, attackerPlayerId)
     }
     return { ...base, allyPlayerIds: compulsoryAllies(state, base) }
 }
@@ -268,10 +275,9 @@ export function collectDefendingForce(
         rulingWarbandOwners(state, defenderId, scopeOf(parties))
     )
 
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
     const inTheBattle = (playerId: string) => {
         const siteId = pawnSiteId(state, playerId)
-        return siteId === attackerSiteId || sites.includes(siteId)
+        return siteId === parties.attackerSiteId || sites.includes(siteId)
     }
 
     const boards = [defenderId, ...parties.allyPlayerIds.filter((id) => id !== defenderId)]
@@ -280,6 +286,30 @@ export function collectDefendingForce(
     }
 
     return force
+}
+
+/** R-5.5.2, R-10.9 — the sites the force reaches, then the board with the attacker's own warbands first. */
+export function collectAttackingForce(
+    state: HydratedOathGameState,
+    parties: Pick<CampaignParties, 'attackerPlayerId' | 'forceSiteIds'>
+): WarbandGroup[] {
+    const attackerId = parties.attackerPlayerId
+    const board = state.getPlayerState(attackerId).warbandsOnBoard
+    const onBoard = boardOwnersOwnFirst(state, attackerId)
+        .map((owner): WarbandGroup => ({
+            at: { kind: 'board', playerId: attackerId },
+            owner,
+            count: countOf(board, owner)
+        }))
+        .filter((group) => group.count > 0)
+    return [
+        ...warbandGroupsAtSites(
+            state,
+            parties.forceSiteIds,
+            rulingWarbandOwners(state, attackerId)
+        ),
+        ...onBoard
+    ]
 }
 
 // R-2.8.3, R-10.3, R-5.5.6, R-7.6.5 — bandits are counted apart from warbands and never killed.

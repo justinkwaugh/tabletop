@@ -19,6 +19,7 @@ import { askQuestion } from './questions.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { offerReroll } from './reroll.js'
 import { collectDefendingBandits, collectDefendingForce, type CampaignParties } from './campaign.js'
+import { attackingSiteOf } from './campaignSite.js'
 import {
     addWarbandsToSite,
     forceTotal,
@@ -38,13 +39,15 @@ import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
 
-export function partiesOf(campaign: CampaignState): CampaignParties {
+export function partiesOf(state: HydratedOathGameState, campaign: CampaignState): CampaignParties {
     return {
         attackerPlayerId: campaign.attackerPlayerId,
         defenderPlayerId: campaign.defenderPlayerId,
         allyPlayerIds: campaign.allyPlayerIds,
         nonImperialPlayerIds: campaign.nonImperialPlayerIds,
-        targets: campaign.targets
+        targets: campaign.targets,
+        attackerSiteId: attackingSiteOf(state, campaign.attackerPlayerId),
+        forceSiteIds: campaign.forceSiteIds
     }
 }
 
@@ -53,7 +56,7 @@ export function rollCampaign(
     campaign: CampaignState,
     skullLossOrder?: readonly LossSource[]
 ): WarbandGroup[] {
-    const parties = partiesOf(campaign)
+    const parties = partiesOf(state, campaign)
 
     // R-5.5.4 — the doubling faces multiply the shields only, never the warbands.
     const rules = campaign.rollRules
@@ -311,7 +314,7 @@ export function banditPlanContext(
         power: plan.power,
         choices: [],
         campaign: {
-            parties: partiesOf(campaign),
+            parties: partiesOf(state, campaign),
             side: BattlePlanSide.Defender,
             pools: { attackPool: campaign.attackPool, defensePool: campaign.defensePool }
         }
@@ -330,7 +333,7 @@ export function usedPlanContext(
         power: plan.power,
         choices: [],
         campaign: {
-            parties: partiesOf(campaign),
+            parties: partiesOf(state, campaign),
             side: sideOf(campaign, playerId),
             pools: { attackPool: campaign.attackPool, defensePool: campaign.defensePool }
         }

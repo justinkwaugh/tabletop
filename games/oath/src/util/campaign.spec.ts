@@ -86,6 +86,8 @@ function parties(targets: CampaignTarget[], overrides: Partial<CampaignParties> 
         allyPlayerIds: [],
         nonImperialPlayerIds: [],
         targets,
+        attackerSiteId: 'c1',
+        forceSiteIds: [],
         ...overrides
     }
 }

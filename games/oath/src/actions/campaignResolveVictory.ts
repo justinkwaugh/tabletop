@@ -342,7 +342,7 @@ export class HydratedCampaignResolveVictory
         campaign: CampaignState,
         placements: readonly CampaignPlacement[]
     ): string | undefined {
-        const sites = targetedSiteIds(partiesOf(campaign))
+        const sites = targetedSiteIds(partiesOf(state, campaign))
         const board = state.getPlayerState(campaign.attackerPlayerId).warbandsOnBoard
 
         const wanted = new Map<WarbandOwner, number>()

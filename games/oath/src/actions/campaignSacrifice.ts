@@ -14,8 +14,8 @@ import {
 } from '../util/campaignRoll.js'
 import { concludeCampaign } from '../util/campaignEnd.js'
 import { MachineState } from '../definition/states.js'
-import { isImperialPlayer, rulingWarbandOwners } from '../util/rule.js'
-import { scopeOf } from '../util/campaign.js'
+import { isImperialPlayer } from '../util/rule.js'
+import { collectAttackingForce, scopeOf } from '../util/campaign.js'
 import {
     BANDITS_PLAN_USER,
     ignoresKillAll,
@@ -31,14 +31,11 @@ import {
     takeFromGroups,
     moveForceToBoards,
     selectionExceedsForce,
-    boardOwnersOwnFirst,
     defeatChoiceMatters,
-    soleOwner,
-    warbandGroupsAtSites
+    soleOwner
 } from '../util/force.js'
 import { BRUTAL, hasTrait } from '../util/reliquaryTraits.js'
 import { reasonPersistentForbidsSacrifice } from '../util/persistent.js'
-import { countOf } from '../util/warbands.js'
 import { WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
@@ -220,7 +217,7 @@ export class HydratedCampaignSacrifice
         }
         const defenderId = campaign.defenderPlayerId
         assertExists(defenderId, 'A defending force with warbands to choose from has a defender')
-        return isImperialPlayer(state, defenderId, scopeOf(partiesOf(campaign)))
+        return isImperialPlayer(state, defenderId, scopeOf(partiesOf(state, campaign)))
             ? state.chancellorId()
             : defenderId
     }
@@ -546,28 +543,13 @@ export class HydratedCampaignSacrifice
         campaign: CampaignState,
         alreadySacrificed = 0
     ): WarbandGroup[] {
-        const attacker = state.getPlayerState(campaign.attackerPlayerId)
-        // Wild Allies, Captains, Vow of Union
-        const groups = warbandGroupsAtSites(
-            state,
-            campaign.forceSiteIds,
-            rulingWarbandOwners(state, campaign.attackerPlayerId)
-        )
         let toRemove = alreadySacrificed
-        for (const owner of boardOwnersOwnFirst(state, campaign.attackerPlayerId)) {
-            let count = countOf(attacker.warbandsOnBoard, owner)
-            const taken = Math.min(count, toRemove)
-            count -= taken
+        return collectAttackingForce(state, campaign).flatMap((group) => {
+            if (group.at.kind !== 'board') return [group]
+            const taken = Math.min(group.count, toRemove)
             toRemove -= taken
-            if (count > 0) {
-                groups.push({
-                    at: { kind: 'board', playerId: campaign.attackerPlayerId },
-                    owner,
-                    count
-                })
-            }
-        }
-        return groups
+            return group.count > taken ? [{ ...group, count: group.count - taken }] : []
+        })
     }
 
     private static subtractSelection(

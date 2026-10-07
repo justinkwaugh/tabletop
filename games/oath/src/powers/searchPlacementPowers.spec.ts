@@ -102,7 +102,7 @@ describe('Ancient Bloodline — locked, for enemies, at the sites you rule', () 
         expect(homelandRelicSlot(s, 'foe', WOLVES, 'c2')).toBeUndefined()
         s.getPlayerState('me').siteId = 'c2'
         expect(homelandRelicSlot(s, 'me', WOLVES, 'c2')).toBe('c2-r1')
-        const parties: CampaignParties = { attackerPlayerId: 'foe', defenderPlayerId: 'me', allyPlayerIds: [], nonImperialPlayerIds: [], targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }, { kind: CampaignTargetKind.SiteRelic, slotId: 'c2-r1' }] }
+        const parties: CampaignParties = { attackerPlayerId: 'foe', defenderPlayerId: 'me', allyPlayerIds: [], nonImperialPlayerIds: [], targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }, { kind: CampaignTargetKind.SiteRelic, slotId: 'c2-r1' }], attackerSiteId: 'c2', forceSiteIds: [] }
         expect(reasonCannotDeclareTargets(s, parties)).toMatch(/Ancient Bloodline/)
     })
 })

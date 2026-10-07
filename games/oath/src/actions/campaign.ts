@@ -23,6 +23,7 @@ import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
 import { turnOrderFrom } from '../util/questions.js'
 import {
     applyDiceDelta,
+    collectAttackingForce,
     collectDefensePool,
     declaredParties,
     reasonCannotChooseDefender,
@@ -33,10 +34,10 @@ import {
     type CampaignParties
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
-import { isImperialPlayer, rulingWarbandOwners, warbandsAt } from '../util/rule.js'
+import { isImperialPlayer } from '../util/rule.js'
 import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
-import { reasonPersistentForbidsCampaign, persistentForceSites } from '../util/persistent.js'
-import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
+import { reasonPersistentForbidsCampaign } from '../util/persistent.js'
+import { forceTotal } from '../util/force.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import {
     applyBattlePlans,
@@ -48,19 +49,17 @@ import {
     plansTargetSiteRelics
 } from '../util/battlePlans.js'
 import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.js'
-import { attackingSiteOf, sitesWithTargets, targetedSiteIds } from '../util/campaignSite.js'
+import {
+    attackingSiteOf,
+    forceSitesOf,
+    sitesWithTargets,
+    targetedSiteIds
+} from '../util/campaignSite.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { flipSecretFacedown, reasonSitesForbidTargets } from '../util/siteTravel.js'
 import { secretPayment } from '../util/actionPayment.js'
-import { countOf } from '../util/warbands.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { campaignAsIfSiteNow } from '../util/freeActions.js'
-
-export function forceSitesOf(state: HydratedOathGameState, playerId: string): string[] {
-    const asIfSiteId = campaignAsIfSiteNow(state, playerId)
-    const sites = new Set<string>(asIfSiteId ? [asIfSiteId] : [])
-    for (const siteId of persistentForceSites(state, playerId)) sites.add(siteId)
-    return [...sites]
-}
 
 /** R-5.5.3, R-7.5.1 — the attacker's plans against the sides as they stand; Relic Hunter must be among them to target a facedown relic. */
 export function reasonAttackerPlansInvalid(
@@ -241,8 +240,22 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
                 declaration.attackerPlayerId,
                 declaration.defenderPlayerId
             ),
-            targets: declaration.targets
+            targets: declaration.targets,
+            attackerSiteId: HydratedCampaign.declaredSiteOf(state, declaration),
+            forceSiteIds: declaration.forceSiteIds
         }
+    }
+
+    /** R-X.4 — before revision 5 the attacker's plans were judged from the pawn's site, not the one Wild Allies or Captains named. */
+    private static declaredSiteOf(
+        state: HydratedOathGameState,
+        declaration: CampaignDeclaration
+    ): string {
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) {
+            return pawnSiteId(state, declaration.attackerPlayerId)
+        }
+        assertExists(declaration.attackerSiteId, 'a Campaign records the site it acts from')
+        return declaration.attackerSiteId
     }
 
     /** R-5.5.3 to R-5.5.5 */
@@ -487,15 +500,12 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
 
     /** R-5.5.2 — one attack die per warband in the force: the board and the sites it reaches. */
     static maxAttackDice(state: HydratedOathGameState, playerId: string): number {
-        return warbandsOnBoardOf(state, playerId) + HydratedCampaign.siteForceOf(state, playerId)
-    }
-
-    private static siteForceOf(state: HydratedOathGameState, playerId: string): number {
-        const owners = rulingWarbandOwners(state, playerId)
-        return forceSitesOf(state, playerId).reduce((total, siteId) => {
-            const onSite = warbandsAt(state, siteId)
-            return total + owners.reduce((n, owner) => n + countOf(onSite, owner), 0)
-        }, 0)
+        return forceTotal(
+            collectAttackingForce(state, {
+                attackerPlayerId: playerId,
+                forceSiteIds: forceSitesOf(state, playerId)
+            })
+        )
     }
 
     /** R-5.5.2.a, R-10.2-H1 — clockwise from the attacker. */
