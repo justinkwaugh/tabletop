@@ -107,7 +107,7 @@ export function gateRect(coords: OffsetCoordinates): Rect {
     }
 }
 
-export const QueueMargin = 48
+export const QueueMargin = 60
 export const TableWidth = BoardWidth + 2 * QueueMargin
 export const TableHeight = BoardHeight + 2 * QueueMargin
 
