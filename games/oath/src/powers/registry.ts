@@ -86,6 +86,8 @@ export interface ModifierHooks {
     condition?: (ctx: EffectContext) => string | undefined
     /** R-5.1.1 to R-5.6.1 */
     supplyCost?: (base: number, ctx: EffectContext) => number
+    /** R-7.6.2 — beats every `supplyCost`, whichever is declared first. */
+    spendsNoSupply?: (ctx: EffectContext) => boolean
     /** R-5.2.2 — before the personal-bank cap. */
     musterWarbands?: (base: number, ctx: EffectContext) => number
     /** R-5.3.2 — before the bank cap. */

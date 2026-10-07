@@ -42,16 +42,10 @@ const TRAIT_HOOKS: Record<string, { action: ActionType; hooks: ModifierHooks }> 
     [DECADENT]: {
         action: ActionType.Travel,
         hooks: {
-            supplyCost: (base, ctx) => {
-                const { state, playerId } = ctx
-                const destination = ctx.particulars?.destinationSiteId
-                assertExists(destination, 'a Travel always names a destination')
-                const from = regionOfPawn(state, playerId)
-                const to = state.regionOf(destination)
-                if (to === Region.Cradle && from !== Region.Cradle) return 0
-                if (to === Region.Hinterland) return base + 1
-                return base
-            }
+            spendsNoSupply: (ctx) =>
+                travelRegion(ctx) === Region.Cradle &&
+                regionOfPawn(ctx.state, ctx.playerId) !== Region.Cradle,
+            supplyCost: (base, ctx) => (travelRegion(ctx) === Region.Hinterland ? base + 1 : base)
         }
     },
     [CARELESS]: {
@@ -85,6 +79,12 @@ const TRAIT_HOOKS: Record<string, { action: ActionType; hooks: ModifierHooks }> 
         action: ActionType.Campaign,
         hooks: {}
     }
+}
+
+function travelRegion(ctx: EffectContext): Region {
+    const destination = ctx.particulars?.destinationSiteId
+    assertExists(destination, 'a Travel always names a destination')
+    return ctx.state.regionOf(destination)
 }
 
 function gainOneFavor(ctx: EffectContext): string | undefined {

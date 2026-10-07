@@ -21,6 +21,7 @@ import { PowerChoice, PowerChoiceKind, reasonChoicesInvalid } from './powerChoic
 import { PowerUse } from '../model/powerUse.js'
 import { effectFor, type EffectContext, type ModifierHooks } from '../powers/registry.js'
 import { traitModifiers } from './reliquaryTraits.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import type { DiscardTarget } from './discard.js'
 
 // R-7.4.1, R-7.4.2, R-X.1 — one use per action; a costed modifier pays at declaration.
@@ -273,6 +274,51 @@ export function payModifierCosts(
     for (const m of active) {
         if (!m.mandatory) payPowerCost(state, playerId, m.power)
     }
+}
+
+/** R-7.6.2 — "spend no Supply" ignores the cost and any increase to it, whatever the order declared. */
+export function foldSupplyCost(
+    base: number,
+    state: HydratedOathGameState,
+    playerId: string,
+    active: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']> = {},
+    siteSpendsNoSupply = false
+): number {
+    const spendsNone = (m: ActiveModifier) =>
+        m.hooks.spendsNoSupply?.({ ...modifierContext(state, playerId, m), particulars }) === true
+    if (!isAtLeastOathRevision(state, OathRevision.CardFixes1)) {
+        return foldInDeclarationOrder(
+            'supplyCost',
+            siteSpendsNoSupply ? 0 : base,
+            state,
+            playerId,
+            active,
+            particulars,
+            (m) => (spendsNone(m) ? 0 : undefined)
+        )
+    }
+    if (siteSpendsNoSupply || active.some(spendsNone)) return 0
+    return foldNumber('supplyCost', base, state, playerId, active, particulars)
+}
+
+/** R-X.4 — before revision 4 a value one modifier set stood at its place in the declaration order. */
+function foldInDeclarationOrder(
+    seam: 'supplyCost' | 'drawCount',
+    base: number,
+    state: HydratedOathGameState,
+    playerId: string,
+    active: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']>,
+    setBy: (m: ActiveModifier) => number | undefined
+): number {
+    let value = base
+    for (const m of active) {
+        value = setBy(m) ?? value
+        const hook = m.hooks[seam]
+        if (hook) value = hook(value, { ...modifierContext(state, playerId, m), particulars })
+    }
+    return Math.max(0, value)
 }
 
 export function foldNumber(

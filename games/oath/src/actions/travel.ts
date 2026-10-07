@@ -20,7 +20,7 @@ import {
 import { ActionType } from '../definition/actions.js'
 import { baseTravelCost } from '../util/travelCost.js'
 import {
-    foldNumber,
+    foldSupplyCost,
     modifierSummary,
     ModifierUse,
     ModifierUses,
@@ -301,11 +301,16 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         if (barred) return { reason: barred, cost: base, active: [], siteNotes: [] }
         // R-11.3, R-11.6, R-11.7, R-11.12 — the sites' own prices.
         const siteTerms = sitesIgnored
-            ? { cost: base, notes: [] }
+            ? { cost: base, spendsNoSupply: false, notes: [] }
             : siteTravelTerms(state, here, siteId, base, flipSecret)
-        let cost = foldNumber('supplyCost', siteTerms.cost, state, playerId, resolved.active, {
-            destinationSiteId: siteId
-        })
+        let cost = foldSupplyCost(
+            siteTerms.cost,
+            state,
+            playerId,
+            resolved.active,
+            { destinationSiteId: siteId },
+            siteTerms.spendsNoSupply
+        )
         // R-7.1.4 — Toll Roads' demand, Way Station's offer (`util/tolls.ts`).
         const unpaid = reasonTollsUnpaid(
             state,

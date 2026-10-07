@@ -73,7 +73,7 @@ registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', Powe
                 suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
             return matches ? undefined : `${ctx.particulars?.cardId} matches none of your advisers`
         },
-        supplyCost: () => 0
+        spendsNoSupply: () => true
     }
 })
 

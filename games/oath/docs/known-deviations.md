@@ -38,7 +38,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Wrestlers:** the engine picks the sacrificed warband, and an ally's board is never offered.
 - **Martial Culture:** "may become a Citizen" is decided before the roll.
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
-- **Decadent:** its +1 is added after "spend no Supply", so Tents, A Fast Steed, Special Envoy, Portal and a Buried Giant flip still cost 1 (R-7.6.2).
 - **Great Crusade:** counts only its user's own cards, not the side's (R-10.28-H1).
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Warning Signals:** warbands moved from the board all go to one site per use.
