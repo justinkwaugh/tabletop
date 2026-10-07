@@ -31,6 +31,7 @@ import {
 import { boardWarbandGroups, warbandGroupsAtSites } from './force.js'
 import { pawnSiteId } from './pawn.js'
 import { siteLockedFor } from './locked.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.1, R-5.5.2 */
 export interface CampaignParties {
@@ -70,6 +71,33 @@ export function suspendedImperialsFor(
     return []
 }
 
+/** R-5.5.1.a, R-5.5.2.a — the sides as declared, before any Citizen joins. */
+export function declaredParties(
+    state: HydratedOathGameState,
+    attackerPlayerId: string,
+    defenderPlayerId: string | undefined,
+    targets: readonly CampaignTarget[]
+): CampaignParties {
+    const base: CampaignParties = {
+        attackerPlayerId,
+        defenderPlayerId,
+        allyPlayerIds: [],
+        nonImperialPlayerIds: suspendedImperialsFor(state, attackerPlayerId, defenderPlayerId),
+        targets
+    }
+    return { ...base, allyPlayerIds: compulsoryAllies(state, base) }
+}
+
+/** R-5.5.2.a — "the Chancellor joins as an Ally" when an Imperial player defends. */
+function compulsoryAllies(state: HydratedOathGameState, parties: CampaignParties): string[] {
+    const defenderId = parties.defenderPlayerId
+    if (!defenderId || !isImperialPlayer(state, defenderId, scopeOf(parties))) return []
+    const chancellorId = state.chancellorId()
+    return chancellorId !== defenderId && chancellorId !== parties.attackerPlayerId
+        ? [chancellorId]
+        : []
+}
+
 /** R-5.5.1, R-5.5.2 — a defender with no declarable targets is no defender. */
 export function reasonNoCampaignAgainst(
     state: HydratedOathGameState,
@@ -79,13 +107,7 @@ export function reasonNoCampaignAgainst(
     const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId)
     if (reason) return reason
 
-    const parties: CampaignParties = {
-        attackerPlayerId: attackerId,
-        defenderPlayerId,
-        allyPlayerIds: [],
-        nonImperialPlayerIds: suspendedImperialsFor(state, attackerId, defenderPlayerId),
-        targets: []
-    }
+    const parties = declaredParties(state, attackerId, defenderPlayerId, [])
     const candidates = targetableBy(state, parties)
     const declarable = (targets: CampaignTarget[]) => {
         const declared = { ...parties, targets }
@@ -169,8 +191,13 @@ export function reasonCannotChooseDefender(
     return undefined
 }
 
-/** R-5.5.2, R-2.8.3 — a site's printed shield is a reminder, not a number. */
+/** R-5.5.2 */
 export function collectDefensePool(state: HydratedOathGameState, parties: CampaignParties): number {
+    return targetDefenseDice(state, parties) + titleDefenseDice(state, parties)
+}
+
+/** R-5.5.2, R-2.8.3 — a site's printed shield is a reminder, not a number. */
+export function targetDefenseDice(state: HydratedOathGameState, parties: CampaignParties): number {
     let dice = 0
 
     for (const target of parties.targets) {
@@ -207,7 +234,7 @@ export function collectDefensePool(state: HydratedOathGameState, parties: Campai
         }
     }
 
-    return dice + titleDefenseDice(state, parties)
+    return dice
 }
 
 /** R-2.11.c, R-2.11.d — the Chancellor's title covers a defending Citizen unless R-5.5.1.a suspends them. */
@@ -335,8 +362,12 @@ export function reasonCannotDeclareTargets(
         return `the defender rules ${attackerSiteId}, so you must target your site`
     }
 
-    // R-7.1.4 — Giant Python: the targets must add an even total of defense dice.
-    return reasonPersistentForbidsTargets(state, parties, collectDefensePool(state, parties))
+    // R-7.1.4 — Giant Python: the targets must add an even total of defense dice; its Q&A
+    // counts only the dice the targets add, not the Oathkeeper's.
+    const targetDice = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+        ? targetDefenseDice(state, parties)
+        : collectDefensePool(state, parties)
+    return reasonPersistentForbidsTargets(state, parties, targetDice)
 }
 
 function reasonCannotTarget(

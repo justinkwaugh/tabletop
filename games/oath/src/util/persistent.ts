@@ -176,9 +176,9 @@ export function reasonPersistentForbidsBattlePlan(
 export function reasonPersistentForbidsTargets(
     state: HydratedOathGameState,
     parties: CampaignParties,
-    defensePool: number
+    targetDice: number
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, defensePool))
+    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, targetDice))
 }
 
 /** Gleaming Armor, Insect Swarm */

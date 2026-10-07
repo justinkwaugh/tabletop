@@ -24,6 +24,7 @@ import { turnOrderFrom } from '../util/questions.js'
 import {
     applyDiceDelta,
     collectDefensePool,
+    declaredParties,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
     reasonNoCampaignAgainst,
@@ -368,15 +369,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
     ): CampaignParties {
         const defenderPlayerId =
             choice.defender.kind === 'player' ? choice.defender.playerId : undefined
-        const nonImperialPlayerIds = suspendedImperialsFor(state, playerId, defenderPlayerId)
-        const base: CampaignParties = {
-            attackerPlayerId: playerId,
-            defenderPlayerId,
-            allyPlayerIds: [],
-            nonImperialPlayerIds,
-            targets: choice.targets
-        }
-        return { ...base, allyPlayerIds: HydratedCampaign.compulsoryAllies(state, base) }
+        return declaredParties(state, playerId, defenderPlayerId, choice.targets)
     }
 
     static reasonCannotCampaign(
@@ -503,19 +496,6 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             const onSite = warbandsAt(state, siteId)
             return total + owners.reduce((n, owner) => n + countOf(onSite, owner), 0)
         }, 0)
-    }
-
-    /** R-5.5.2.a — "the Chancellor joins as an Ally" when an Imperial player defends. */
-    private static compulsoryAllies(
-        state: HydratedOathGameState,
-        parties: CampaignParties
-    ): string[] {
-        const defenderId = parties.defenderPlayerId
-        if (!defenderId || !isImperialPlayer(state, defenderId, scopeOf(parties))) return []
-        const chancellorId = state.chancellorId()
-        return chancellorId !== defenderId && chancellorId !== parties.attackerPlayerId
-            ? [chancellorId]
-            : []
     }
 
     /** R-5.5.2.a, R-10.2-H1 — clockwise from the attacker. */
