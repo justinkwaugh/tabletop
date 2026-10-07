@@ -85,7 +85,10 @@
             : '.'}
     {/each}
 {:else if isCompleteAntiqueSet(action) && action.metadata}
-    {@render actor(action.collectorId)}completed their {shortOrdinal(action.metadata.rank)} antique set.
+    {@render actor(action.collectorId)}completed {action.collectorId === gameSession.myPlayer?.id
+        ? 'your'
+        : 'their'}
+    {shortOrdinal(action.metadata.rank)} antique set.
 {:else if isBringVisitors(action)}
     {@render actor(action.playerId)}brought
     {#if action.metadata}

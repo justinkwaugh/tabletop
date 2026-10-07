@@ -78,3 +78,15 @@ test('the history in every protected view shows that a bid is in but never its a
     }
     expect(errors).toEqual([])
 })
+
+test('the waiting line agrees with "You" when the viewer is the one acting', async ({ page }) => {
+    await createGame(page)
+    await auctionFirstShop(page)
+    await page.getByRole('button', { name: 'Place bid' }).click()
+    await expect(actionPanel(page).getByText(/Sealed bid for/)).toBeVisible()
+    await enterProtectedMode(page)
+    await viewAs(page, 'Developer')
+    await expect(actionPanel(page)).toContainText(/you are auctioning the/i)
+    await viewAs(page, 'Spectator')
+    await expect(actionPanel(page)).toContainText('Developer is auctioning the')
+})
