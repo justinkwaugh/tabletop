@@ -20,7 +20,7 @@ import { banditRuledCardIds, ruledFaceupCardIds, siteHolding } from '../util/acc
 import { registerBattlePlan, type BattlePlanContext } from './registry.js'
 import { PowerChoiceKind, optional } from '../util/powerChoice.js'
 import {
-    burnSecretsDownToOne,
+    burnSecretsDownTo,
     burnSecretsFromPlayer,
     denizensOnMap,
     gainFavorFromBank,
@@ -281,7 +281,7 @@ registerBattlePlan(
                 if (!victorious || !pawnTargeted(ctx) || !defenderId) return undefined
                 const them = ctx.state.getPlayerState(defenderId)
                 const burned = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
-                    ? burnSecretsDownToOne(ctx.state, defenderId)
+                    ? burnSecretsDownTo(ctx.state, defenderId, 1)
                     : burnSecretsFromPlayer(
                           ctx.state,
                           defenderId,

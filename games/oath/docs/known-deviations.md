@@ -12,6 +12,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets; the Vow's Q&A withholds it.
 - **Vow of Poverty with Secret Signal:** on a Trade for secrets under Careless, the Vow's holder still gains Secret Signal's one more favor; the Vow ("You cannot gain favor from Trade") withholds it, as it withholds Careless's from revision 5.
 - **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
+- **Ancient Binding:** in a game created before revision 5 (R-X.4) it burns faceup secrets only, so every facedown secret stays; Book Burning's Q&A gives the same words the meaning "face up or down".
 - **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Gambling Hall:** the favor bank is chosen before the roll.
 - **Witch's Bargain:** deals with one player per use; the Q&A allows several.
