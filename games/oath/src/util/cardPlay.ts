@@ -35,6 +35,7 @@ import {
 } from './persistent.js'
 import { categoryAt, homelandPayout } from './sitePowers.js'
 import { takeRelicsFrom } from './relics.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-5.1.4.IV — two faceup advisers whose suits each match one of the target's. */
 export function conspiracyMatchIsValid(
@@ -240,10 +241,21 @@ export function playCard(
         }
     }
 
+    const faceupPlay = isFaceupPlay(play, options.faceUp)
+    // R-7.1.4 — "After another player plays a … card" (Saddle Makers). Faceup only: a facedown card has no suit.
+    // A Vision revealed, or the Conspiracy played, is a faceup play too (Book Binders).
+    const playedFaceup =
+        faceupPlay || play === SearchPlay.RevealedVision || play === SearchPlay.Conspiracy
+    const cardPlayedTriggers = () =>
+        playedFaceup ? afterCardPlayedPersistent(state, playerId, cardId) : []
+    // Saddle Makers' Q&A — it pays once the card is played, before its When Played power.
+    const triggeredFirst = isAtLeastOathRevision(state, OathRevision.CardFixes1)
+        ? cardPlayedTriggers()
+        : undefined
+
     let whenPlayed: string | undefined
     let endsActPhase = false
     let outcome: PowerOutcome = {}
-    const faceupPlay = isFaceupPlay(play, options.faceUp)
     if (faceupPlay) {
         const power = powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
         const effect = power ? effectFor(power) : undefined
@@ -266,11 +278,7 @@ export function playCard(
         }
     }
 
-    // R-7.1.4 — "After another player plays a … card" (Saddle Makers). Faceup only: a facedown card has no suit.
-    // A Vision revealed, or the Conspiracy played, is a faceup play too (Book Binders).
-    const playedFaceup =
-        faceupPlay || play === SearchPlay.RevealedVision || play === SearchPlay.Conspiracy
-    const triggered = playedFaceup ? afterCardPlayedPersistent(state, playerId, cardId) : []
+    const triggered = triggeredFirst ?? cardPlayedTriggers()
     return {
         favorGained,
         secretsGained,

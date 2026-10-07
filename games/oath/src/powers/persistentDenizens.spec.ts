@@ -29,6 +29,10 @@ import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { INN, FILLER } from '../testing/cards.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
+import { OathRevision } from '../util/revision.js'
+import { MachineState } from '../definition/states.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
 
 const FOREST = 'denizen.beast.forest-council'
 const GOSSIP = 'denizen.discord.gossip'
@@ -52,6 +56,7 @@ const VINES = 'denizen.beast.grasping-vines'
 const LAKE = 'denizen.discord.boiling-lake'
 const CULT = 'denizen.discord.chaos-cult'
 const SADDLE = 'denizen.hearth.saddle-makers'
+const TAX = 'denizen.order.royal-tax'
 const MARRIAGE = 'denizen.hearth.marriage'
 const RITE = 'denizen.arcane.initiation-rite'
 const DISSENT = 'denizen.discord.dissent'
@@ -364,5 +369,49 @@ describe('travel and triggers', () => {
         expect(areEnemies(s, 'ruler', 'away')).toBe(true)
         expect(areEnemies(s, 'away', 'other')).toBe(true)
         expect(areEnemies(s, 'away', 'away')).toBe(false)
+    })
+})
+
+describe('Saddle Makers pays before the played card’s When Played (its Q&A)', () => {
+    const atRevision = OathRevision.CardFixes1
+    const before = OathRevision.PlanCostsAndSearchPlays
+
+    /** `other` is on turn at p1, which they rule; Saddle Makers' holder stands there with one favor. */
+    function taxed(oathRevision: number, state: Record<string, unknown> = {}) {
+        return onTurn(board({}, { ruler: [SADDLE] }, { ruler: { siteId: 'p1', favor: 1 }, other: { siteId: 'p1' }, away: { status: PlayerStatus.Chancellor } }, { oathRevision, ...state }), 'other')
+    }
+
+    it('the holder gains 2 favor first, so Royal Tax then takes 2 of their 3', () => {
+        const s = taxed(atRevision)
+        const a = play(s, 'other', TAX, SearchPlay.Adviser, true)
+        expect(a.metadata?.triggered).toEqual(['Saddle Makers: ruler gained 2 favor from the order bank'])
+        expect(a.metadata?.whenPlayed).toBe("taxed 2 favor from players at other's ruled sites in the region")
+        expect(s.getPlayerState('ruler').favor).toBe(1)
+        expect(s.getPlayerState('other').favor).toBe(6)
+    })
+
+    it('R-X.4 — in a game created before revision 4 it paid after: Royal Tax took the one favor, then Saddle Makers gave 2', () => {
+        const s = taxed(before)
+        const a = play(s, 'other', TAX, SearchPlay.Adviser, true)
+        expect(a.metadata?.triggered).toEqual(['Saddle Makers: ruler gained 2 favor from the order bank'])
+        expect(a.metadata?.whenPlayed).toBe("taxed 1 favor from players at other's ruled sites in the region")
+        expect(s.getPlayerState('ruler').favor).toBe(2)
+        expect(s.getPlayerState('other').favor).toBe(5)
+    })
+
+    it('R-X.4 — each revision’s Royal Tax play replays unchanged', () => {
+        for (const [revision, favor] of [[before, 2], [atRevision, 1]]) {
+            const s = taxed(revision, { machineState: MachineState.Searching })
+            s.getPlayerState('other').handIds = [TAX, FILLER]
+            const start = s.dehydrate()
+            start.activePlayerIds = ['other']
+            const game = testGame(['ruler', 'other', 'away'])
+            const recorded = engine.runNext(buildAction(SearchResolve, { playerId: 'other', keptCardId: TAX, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }), structuredClone(start), game)
+            expect(recorded.updatedState.players.find((p) => p.playerId === 'ruler')?.favor).toBe(favor)
+
+            let replayed = structuredClone(start)
+            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded.updatedState)
+        }
     })
 })

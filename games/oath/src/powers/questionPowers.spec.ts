@@ -24,6 +24,7 @@ import { testGame } from '../testing/game.js'
 import { rulerTable } from '../testing/tables.js'
 import { playDrawnCard, answerQuestion } from '../testing/steps.js'
 import { TENTS, FILLER } from '../testing/cards.js'
+import { OathRevision } from '../util/revision.js'
 
 const REVELATION = 'denizen.arcane.revelation'
 const BLACKMAIL = 'denizen.discord.blackmail'
@@ -137,13 +138,16 @@ describe('Herald and Book Binders — a bank pick for a player who is not acting
     })
 
     it('Book Binders asks after another player plays a Vision faceup, for two favor from one bank', () => {
-        const s = rulerTable([], [], { other: { advisers: [{ cardId: BOOK_BINDERS, faceUp: true }] } })
-        const a = playDrawnCard(s, 'vision.conquest', SearchPlay.RevealedVision)
-        expect(a.metadata?.triggered?.[0]).toMatch(/Book Binders: other gains 2 favor/)
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PickFavorBank, askedPlayerId: 'other', amount: 2 })
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Arcane })).not.toThrow()
-        expect(s.getPlayerState('other').favor).toBe(4)
-        expect(s.favorBank[Suit.Arcane]).toBe(1)
+        // A Vision runs no When Played power, so revision 4's earlier trigger changes nothing for it.
+        for (const oathRevision of [undefined, OathRevision.CardFixes1]) {
+            const s = rulerTable([], [], { other: { advisers: [{ cardId: BOOK_BINDERS, faceUp: true }] } }, { oathRevision })
+            const a = playDrawnCard(s, 'vision.conquest', SearchPlay.RevealedVision)
+            expect(a.metadata?.triggered?.[0]).toMatch(/Book Binders: other gains 2 favor/)
+            expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PickFavorBank, askedPlayerId: 'other', amount: 2 })
+            expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Arcane })).not.toThrow()
+            expect(s.getPlayerState('other').favor).toBe(4)
+            expect(s.favorBank[Suit.Arcane]).toBe(1)
+        }
     })
 })
 
