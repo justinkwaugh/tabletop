@@ -111,8 +111,8 @@ export function gateRect(coords: OffsetCoordinates): Rect {
 export const QueueMargin = 66
 export const TableWidth = BoardWidth + 2 * QueueMargin
 export const TableHeight = BoardHeight + 2 * QueueMargin
-// The table is laid out in these units and drawn this much larger at its natural size; the
-// scaling wrapper shrinks it from there to fit smaller screens.
+// The table is laid out in these units and, on a large screen, drawn this much larger at its
+// natural size (`tableDisplayScale`); the scaling wrapper shrinks it from there to fit.
 export const TableDisplayScale = 1.5
 
 // The towers either side of a gate are this wide, standing just beyond its opening.
