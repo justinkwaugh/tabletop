@@ -14,15 +14,17 @@
 
     const RULES: Record<ActionSpace, string[]> = {
         [ActionSpace.BuildNetwork]: [
-            'Place 1–2 cubes next to',
-            'a company’s existing cubes',
-            '$2 each + $1 to grocers there',
-            '2 per hex, big cities unlimited'
+            'Place 1–2 of a grocer’s stores',
+            'next to its existing stores',
+            'Each store: $2 to the bank and',
+            '$1 to each grocer already there',
+            'Max 2 stores per hex,',
+            'black cities unlimited'
         ],
         [ActionSpace.DevelopTowns]: [
-            'A marker in two cities, or',
-            'one marker and $1 from the bank',
-            'White 1 · brown 2 · black 3'
+            'A development in two cities,',
+            'or one and $1 from the bank',
+            'Limit: white 1, brown 2, black 3'
         ],
         [ActionSpace.AuctionShare]: [
             'Auction any company’s share',
@@ -61,7 +63,7 @@
     {#each entry.pawns as player, index (player.playerId)}
         <PlayerToken
             x={ACTION_BOX_WIDTH / 2 + (index - (entry.pawns.length - 1) / 2) * 38}
-            y={148}
+            y={186}
             color={gameSession.colors.getPlayerUiColor(player.playerId)}
             textColor={gameSession.colors.getPlayerTextColorValue(player.playerId)}
             initial={gameSession.getPlayerName(player.playerId).charAt(0).toUpperCase()}

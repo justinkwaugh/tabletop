@@ -19,7 +19,7 @@ export type CompanyDefinition = {
     shortName: string
     color: Color
     kind: CompanyKind
-    // Cubes for a grocer, Development Markers for the developer.
+    // Cubes for a grocer, developments for the developer.
     supply: number
     ability: string
 }
@@ -32,7 +32,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Red,
         kind: CompanyKind.Grocer,
         supply: 12,
-        ability: 'May place a third cube when building'
+        ability: 'May place a third store when building'
     },
     {
         id: CompanyId.Verbena,
@@ -41,7 +41,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Green,
         kind: CompanyKind.Grocer,
         supply: 10,
-        ability: 'One cube per build pays no fees to other grocers'
+        ability: 'One store per build pays no fees to other grocers'
     },
     {
         id: CompanyId.Streamside,
@@ -50,7 +50,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Blue,
         kind: CompanyKind.Grocer,
         supply: 11,
-        ability: 'Winning a share lets the buyer place a cube'
+        ability: 'Winning a share lets the buyer place a store'
     },
     {
         id: CompanyId.CompleteComestibles,
@@ -59,7 +59,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Orange,
         kind: CompanyKind.Grocer,
         supply: 8,
-        ability: 'Development Markers are worth $3 to it'
+        ability: 'Each development in its cities adds $3 to its value, not $2'
     },
     {
         id: CompanyId.Balcones,
@@ -68,7 +68,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Gray,
         kind: CompanyKind.Developer,
         supply: 20,
-        ability: 'Pays $1 to each grocer in a city it develops'
+        ability: 'Pays $1 to each grocer in a city when it is developed'
     }
 ]
 

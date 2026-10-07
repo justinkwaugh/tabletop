@@ -56,7 +56,7 @@ async function playInitialAuctions(page: Page) {
         const state = await machineState(page)
         if (state === 'PlacingBonusCube') {
             await page
-                .getByRole('button', { name: /^Place a cube in / })
+                .getByRole('button', { name: /^Place a store in / })
                 .first()
                 .click()
         } else if ((await page.getByRole('button', { name: 'Pass', exact: true }).count()) === 0) {
@@ -115,10 +115,10 @@ test('plays the initial auctions and builds a network on the map', async ({ page
     await screenshot(page, '03-building')
     const cubes = await page.evaluate(() => window.hcgSession.gameState.cubes.length)
     await page
-        .getByRole('button', { name: /^Place a cube in / })
+        .getByRole('button', { name: /^Place a store in / })
         .first()
         .click()
-    const buildNow = page.getByRole('button', { name: /^Build 1 cube/ })
+    const buildNow = page.getByRole('button', { name: /^Build 1 store/ })
     if ((await buildNow.count()) > 0) {
         await screenshot(page, '04-first-cube-staged')
         await buildNow.click()

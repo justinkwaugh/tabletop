@@ -6,7 +6,7 @@
 - **Choose a building company.** When the acting player could build for more than one grocer, those company cards get a dashed gold border and become clickable. With exactly one option it is chosen automatically and no card is highlighted.
 - **Stage cubes.** Hexes that can legally and affordably take the next cube get a pulsing gold ring. Clicking one adds a dashed ghost cube in the building company's colour and refreshes the ring set for the next cube. Reaching the company's cube limit, or leaving no further legal hex, commits the build. Otherwise the action panel offers "Build N cubes · $X".
 - **Place the bonus cube.** After a Streamside Sisters share sells, the buyer sees rings on the hexes Streamside can take. One click commits; "Place no cube" skips the bonus.
-- **Develop a city.** Cities that can take a marker get a ring around their dot and marker slots, and clicking one commits. When Balcones Builders cannot pay every grocer there, the city's ring stays lit and the action panel lists the grocers to choose as payees.
+- **Develop a city.** Cities that can take a development get a ring around their dot and development slots, and clicking one commits. When Balcones Builders cannot pay every grocer there, the city's ring stays lit and the action panel lists the grocers to choose as payees.
 - **Pick a share to auction.** Every company with an unsold share is highlighted. The picked card keeps a solid gold border while the action panel shows the opening-bid stepper.
 
 ## Coexistence and precedence
@@ -22,7 +22,7 @@ The session owns the staged selections: build company and cube hexes, develop ci
 
 ## Render ownership
 
-Hex and city rings are drawn last in the map layer so they sit above the cubes and markers and receive the clicks. Ghost cubes render in the hex's cube row, after the cubes already placed there.
+The terrain layer (background, tiles, decorations, rivers, compass and title) draws beneath everything on the map and takes no clicks. Hex and city rings are drawn last in the map layer so they sit above the cubes and developments and receive the clicks. Ghost cubes render in the hex's cube row, after the cubes already placed there.
 
 ## Verification scenarios
 

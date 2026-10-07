@@ -2,7 +2,11 @@
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardLayout.js'
     import ActionBoard from './board/ActionBoard.svelte'
     import CompanyCards from './board/CompanyCards.svelte'
+    import DividendRules from './board/DividendRules.svelte'
+    import EndGameTracker from './board/EndGameTracker.svelte'
     import MapLayer from './board/MapLayer.svelte'
+    import MapLegend from './board/MapLegend.svelte'
+    import TerrainLayer from './board/TerrainLayer.svelte'
     import RoundTracker from './board/RoundTracker.svelte'
 </script>
 
@@ -14,10 +18,14 @@
     role="img"
     aria-label="Map of the Texas Hill Country"
 >
+    <TerrainLayer />
     <MapLayer />
+    <MapLegend />
     <ActionBoard />
     <RoundTracker />
     <CompanyCards />
+    <EndGameTracker />
+    <DividendRules />
 </svg>
 
 <style>

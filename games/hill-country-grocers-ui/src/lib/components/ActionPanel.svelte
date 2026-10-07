@@ -22,41 +22,41 @@
     {:else if !gameSession.canAct}
         <WaitingView />
     {:else if machineState === MachineState.ChoosingAction}
-        <p class="prompt">Choose an action below the map. You cannot repeat your last action.</p>
+        <p class="prompt">Choose an action above the map. You cannot repeat your last action.</p>
     {:else if machineState === MachineState.PlacingBonusCube}
         <p class="prompt">
-            You bought a <CompanyBadge companyId={CompanyId.Streamside} /> share: place one of its cubes
+            You bought a <CompanyBadge companyId={CompanyId.Streamside} /> share: place one of its stores
             on a highlighted hex, paying its costs from the treasury (${state.company(CompanyId.Streamside)
                 .treasury}).
         </p>
         <div class="row">
             <button type="button" class="secondary" onclick={() => gameSession.skipBonusCube()}
-                >Place no cube</button
+                >Place no store</button
             >
         </div>
     {:else if machineState === MachineState.BuildingNetwork}
         {#if !gameSession.buildCompany}
-            <p class="prompt">Choose which of your companies builds: pick its card beside the map.</p>
+            <p class="prompt">Choose which of your grocers builds: pick its card beside the map.</p>
         {:else}
             <p class="prompt">
                 Build for <CompanyBadge companyId={gameSession.buildCompany} /> (treasury ${state.company(
                     gameSession.buildCompany
                 ).treasury}):
                 {#if gameSession.chosenHexes.length === 0}
-                    choose a highlighted hex for up to {gameSession.maxCubes} cubes. Each costs $2 plus $1 to
-                    each grocer already there.
+                    choose a highlighted hex for up to {gameSession.maxCubes} stores. Each store pays $2 to the
+                    bank and $1 to each grocer already there.
                 {:else if gameSession.hexTargets.length > 0}
-                    {remainingCubes === 1 ? 'one more cube' : `${remainingCubes} more cubes`} possible, or build
+                    {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
                     now.
                 {:else}
-                    no further cube can be placed.
+                    no further store can be placed.
                 {/if}
             </p>
             {#if gameSession.chosenCost}
                 <div class="row">
                     <button type="button" class="primary" onclick={() => gameSession.confirmBuild()}
                         >Build {gameSession.chosenHexes.length}
-                        {gameSession.chosenHexes.length === 1 ? 'cube' : 'cubes'} · ${gameSession.chosenCost
+                        {gameSession.chosenHexes.length === 1 ? 'store' : 'stores'} · ${gameSession.chosenCost
                             .total}</button
                     >
                 </div>
@@ -79,13 +79,13 @@
             </div>
         {:else if state.turnDevelopments.length === 0}
             <p class="prompt">
-                Place a Development Marker in a highlighted city. Grocers there get $1 each from Balcones
+                Place a development in a highlighted city. Grocers there get $1 each from Balcones
                 Builders.
             </p>
         {:else}
             <p class="prompt">
                 {#if gameSession.cityTargets.length > 0}
-                    Place a second marker in another city, or take $1 from the bank instead.
+                    Place a second development in another city, or take $1 from the bank instead.
                 {:else}
                     No other city can be developed: take $1 from the bank.
                 {/if}

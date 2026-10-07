@@ -9,8 +9,8 @@
         COMPANY_CARD_Y
     } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
-    import Cube from '../icons/Cube.svelte'
-    import House from '../icons/House.svelte'
+    import Store from '../icons/Store.svelte'
+    import Development from '../icons/Development.svelte'
 
     const gameSession = getGameSession()
 
@@ -64,8 +64,8 @@
 
     function supplyPosition(index: number) {
         return {
-            x: LOGO_WIDTH + 96 + (index % SUPPLY_COLUMNS) * 18,
-            y: 126 + Math.floor(index / SUPPLY_COLUMNS) * 18
+            x: LOGO_WIDTH + 132 + (index % SUPPLY_COLUMNS) * 19.5,
+            y: 126 + Math.floor(index / SUPPLY_COLUMNS) * 19
         }
     }
 </script>
@@ -80,7 +80,6 @@
         fill={card.style.light}
         stroke={card.style.fill}
     />
-    <rect x="10" y="10" width={LOGO_WIDTH} height={LOGO_HEIGHT} rx="6" class="logo-frame" />
     <image
         href={card.style.logo}
         x="14"
@@ -118,19 +117,19 @@
             {/if}
         </g>
     {/each}
-    <text x={LOGO_WIDTH + 24} y="131" class="stat"
-        >{card.company.kind === CompanyKind.Grocer ? 'Cubes' : 'Markers'}</text
+    <text x={LOGO_WIDTH + 24} y="131" class="supply-label"
+        >{card.company.kind === CompanyKind.Grocer ? 'Stores' : 'Developments'}</text
     >
     {#each Array.from({ length: card.supply }, (_, index) => index) as item (item)}
         {@const at = supplyPosition(item)}
         {#if card.company.kind === CompanyKind.Grocer}
-            <Cube x={at.x} y={at.y} size={14} fill={card.style.fill} />
+            <Store x={at.x} y={at.y} size={14} fill={card.style.fill} tint={card.style.tint} />
         {:else}
-            <House x={at.x} y={at.y} size={16} />
+            <Development x={at.x} y={at.y} size={16} />
         {/if}
     {/each}
     {#if card.supply === 0}
-        <text x={LOGO_WIDTH + 90} y="131" class="empty">none left</text>
+        <text x={LOGO_WIDTH + 142} y="131" class="empty">none left</text>
     {/if}
 {/snippet}
 
@@ -182,10 +181,6 @@
         fill: #fff3c4;
     }
 
-    .logo-frame {
-        fill: #ffffff;
-        stroke: rgba(0, 0, 0, 0.15);
-    }
 
     .name {
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -204,6 +199,12 @@
     .stat {
         font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 15px;
+        fill: #6b4a28;
+    }
+
+    .supply-label {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 13px;
         fill: #6b4a28;
     }
 

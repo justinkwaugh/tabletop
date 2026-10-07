@@ -31,6 +31,14 @@ export function hexName(coords: AxialCoordinates): string {
     return cityAt(coords)?.name ?? 'the countryside'
 }
 
+function placesDescription(hexes: readonly AxialCoordinates[]): string {
+    const cities = hexes.flatMap((coords) => cityAt(coords)?.name ?? [])
+    const countryside = hexes.length - cities.length
+    const open =
+        countryside === 0 ? [] : [`${countryside} countryside hex${countryside === 1 ? '' : 'es'}`]
+    return [...cities, ...open].join(' and ')
+}
+
 export function saleDescription(sale: ShareSale): Description {
     return [
         { playerId: sale.buyerId },
@@ -52,24 +60,24 @@ export function describeAction(action: GameAction): Description {
         return [`chose ${SPACE_NAMES[action.space]}${idle}`]
     }
     if (isBuildNetwork(action)) {
-        const places = action.hexes.map(hexName).join(', ')
+        const places = placesDescription(action.hexes)
         const metadata = action.metadata
-        const cubes = action.hexes.length === 1 ? 'a cube' : `${action.hexes.length} cubes`
+        const stores = action.hexes.length === 1 ? 'a store' : `${action.hexes.length} stores`
         if (!metadata) {
-            return ['placed ', cubes, ' for ', { companyId: action.companyId }, ` in ${places}`]
+            return ['placed ', stores, ' for ', { companyId: action.companyId }, ` in ${places}`]
         }
         const fees = metadata.fees
             .map((fee) => `$${fee.amount} to ${companyDefinition(fee.companyId).shortName}`)
             .join(', ')
         const waived = metadata.waived > 0 ? `, $${metadata.waived} in fees waived` : ''
         return [
-            `placed ${cubes} for `,
+            `placed ${stores} for `,
             { companyId: action.companyId },
             ` in ${places} · $${metadata.bank} to the bank${fees ? `, ${fees}` : ''}${waived}`
         ]
     }
     if (isSkipBonusCube(action)) {
-        return ['placed no bonus cube']
+        return ['placed no bonus store']
     }
     if (isDevelop(action)) {
         const paid = action.metadata?.paidCompanyIds ?? []
@@ -80,7 +88,7 @@ export function describeAction(action: GameAction): Description {
         return [`developed ${city(action.cityId).name}${payments}`]
     }
     if (isTakeDevelopmentCash(action)) {
-        return ['took $1 instead of a second marker']
+        return ['took $1 instead of a second development']
     }
     if (isOpenAuction(action)) {
         return [

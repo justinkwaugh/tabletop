@@ -44,11 +44,6 @@
         {/if}
     </g>
 {/each}
-<text
-    x={ROUND_TRACK_X + ACTIONS_PER_ROUND * ROUND_SLOT_WIDTH - 6}
-    y={ROUND_TRACK_Y + 94}
-    class="note">Dividends are paid when the 11th space fills</text
->
 
 <style>
     .label {
@@ -83,11 +78,4 @@
         text-anchor: end;
     }
 
-    .note {
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 14px;
-        font-style: italic;
-        fill: #7a4a2e;
-        text-anchor: end;
-    }
 </style>

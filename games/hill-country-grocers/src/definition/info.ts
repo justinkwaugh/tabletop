@@ -7,7 +7,7 @@ export const HcgInfo: GameInfo = {
         name: 'Hill Country Grocers',
         designer: 'Jake Stanley',
         description:
-            'Invest in grocery chains expanding across the Texas Hill Country. Bid for shares, build the distribution networks of the chains you own and develop the towns they serve; the richest investor when the shelves run bare wins.',
+            'Invest in grocery chains expanding across the Texas Hill Country. Bid for shares, build the distribution networks of the chains you own and develop the cities they serve; the richest investor when the shelves run bare wins.',
         year: '2025',
         minPlayers: 3,
         maxPlayers: 5,

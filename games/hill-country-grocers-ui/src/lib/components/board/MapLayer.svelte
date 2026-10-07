@@ -5,28 +5,22 @@
         HILL_COUNTRY_MAP,
         cityAt,
         developmentCapacity,
-        hasCubeLimit,
         hexKey,
         type CompanyId
     } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { HEX_RADIUS, MAP_RECT, hexCenter, hexPoints } from '$lib/utils/boardLayout.js'
+    import { HEX_RADIUS, hexCenter, hexPoints } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { TIER_FILL } from '$lib/utils/mapStyle.js'
     import { hexName } from '$lib/utils/describeAction.js'
-    import Cube from '../icons/Cube.svelte'
-    import House from '../icons/House.svelte'
+    import Store from '../icons/Store.svelte'
+    import Development from '../icons/Development.svelte'
 
     const gameSession = getGameSession()
 
-    const TIER_FILL: Record<CityTier, string> = {
-        [CityTier.White]: '#ffffff',
-        [CityTier.Brown]: '#6b4636',
-        [CityTier.Black]: '#1a1512'
-    }
-
-    const HOUSE_SIZE = 22
-    const HOUSE_STEP = 24
-    const CUBE_SIZE = 30
+    const DEVELOPMENT_SIZE = 22
+    const DEVELOPMENT_STEP = 24
+    const STORE_SIZE = 30
 
     const chosenKeys = $derived(new Set(gameSession.chosenHexes.map(hexKey)))
     const targetKeys = $derived(new Set(gameSession.hexTargets.map(hexKey)))
@@ -38,7 +32,7 @@
             const found = cityAt(place.coords)
             const companies = gameSession.gameState.companiesIn(place.coords)
             const pending = chosenKeys.has(key)
-            const cubes: { companyId: CompanyId; ghost: boolean }[] = [
+            const stores: { companyId: CompanyId; ghost: boolean }[] = [
                 ...companies.map((companyId) => ({ companyId, ghost: false })),
                 ...(pending && gameSession.buildCompany
                     ? [{ companyId: gameSession.buildCompany, ghost: true }]
@@ -49,8 +43,8 @@
                 coords: place.coords,
                 center,
                 city: found,
-                cubes,
-                cubeY: found ? center.y + 37 : center.y + 4,
+                stores,
+                storeY: found ? center.y + 37 : center.y + 4,
                 target: targetKeys.has(key),
                 pending
             }
@@ -71,9 +65,9 @@
         })
     )
 
-    // Starting cities can hold every grocer, so crowded hexes overlap their cubes to fit.
-    function cubeX(index: number, count: number, centerX: number): number {
-        const spacing = count > 2 ? CUBE_SIZE * 0.78 : CUBE_SIZE + 4
+    // Starting cities can hold every grocer, so crowded hexes overlap their stores to fit.
+    function storeX(index: number, count: number, centerX: number): number {
+        const spacing = count > 2 ? STORE_SIZE * 0.78 : STORE_SIZE + 4
         return centerX + (index - (count - 1) / 2) * spacing
     }
 
@@ -84,53 +78,6 @@
         }
     }
 </script>
-
-<defs>
-    <linearGradient id="hcg-land" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#d9c38a" />
-        <stop offset="0.55" stop-color="#e3c27a" />
-        <stop offset="1" stop-color="#c9a65e" />
-    </linearGradient>
-    <clipPath id="hcg-map-clip">
-        <rect x={MAP_RECT.x} y={MAP_RECT.y} width={MAP_RECT.width} height={MAP_RECT.height} rx="14" />
-    </clipPath>
-</defs>
-
-<g clip-path="url(#hcg-map-clip)">
-    <rect x={MAP_RECT.x} y={MAP_RECT.y} width={MAP_RECT.width} height={MAP_RECT.height} fill="url(#hcg-land)" />
-    <g transform="translate(0 {MAP_RECT.y})">
-    <path
-        d="M0 210 C180 150 320 250 520 190 S860 120 980 170 L980 0 L0 0 Z"
-        fill="#b7b07a"
-        opacity="0.45"
-    />
-    <path d="M0 420 C200 360 380 470 600 400 S880 340 980 380" class="furrow" />
-    <path d="M0 520 C220 470 420 560 640 500 S900 450 980 490" class="furrow" />
-    <path d="M0 620 C240 580 460 650 700 600 S920 560 980 590" class="furrow" />
-    </g>
-</g>
-<rect
-    x={MAP_RECT.x}
-    y={MAP_RECT.y}
-    width={MAP_RECT.width}
-    height={MAP_RECT.height}
-    rx="14"
-    class="map-frame"
-/>
-
-{#each hexes as place (place.key)}
-    <polygon points={hexPoints(place.center)} class="hex" class:city={place.city} />
-{/each}
-
-{#each cities as place (place.id)}
-    {#each place.startOf as companyId, index (companyId)}
-        <polygon
-            points={hexPoints(place.center, HEX_RADIUS - 6 - index * 6)}
-            class="start-ring"
-            stroke={COMPANY_STYLE[companyId].fill}
-        />
-    {/each}
-{/each}
 
 {#each cities as place (place.id)}
     <g class="city">
@@ -148,10 +95,10 @@
             class="dot"
         />
         {#each Array.from({ length: place.capacity }, (_, index) => index) as slot (slot)}
-            <House
-                x={place.center.x - 14 + slot * HOUSE_STEP}
+            <Development
+                x={place.center.x - 14 + slot * DEVELOPMENT_STEP}
                 y={place.center.y - 29}
-                size={HOUSE_SIZE}
+                size={DEVELOPMENT_SIZE}
                 built={slot < place.markers}
             />
         {/each}
@@ -159,18 +106,16 @@
 {/each}
 
 {#each hexes as place (place.key)}
-    {#each place.cubes as cube, index (`${cube.companyId}-${cube.ghost}`)}
-        <Cube
-            x={cubeX(index, place.cubes.length, place.center.x)}
-            y={place.cubeY}
-            size={CUBE_SIZE}
-            fill={COMPANY_STYLE[cube.companyId].fill}
-            ghost={cube.ghost}
+    {#each place.stores as store, index (`${store.companyId}-${store.ghost}`)}
+        <Store
+            x={storeX(index, place.stores.length, place.center.x)}
+            y={place.storeY}
+            size={STORE_SIZE}
+            fill={COMPANY_STYLE[store.companyId].fill}
+            tint={COMPANY_STYLE[store.companyId].tint}
+            ghost={store.ghost}
         />
     {/each}
-    {#if hasCubeLimit(place.coords) && place.cubes.length === 0 && !place.city}
-        <circle cx={place.center.x} cy={place.center.y} r="2.5" class="pip" />
-    {/if}
 {/each}
 
 {#each hexes as place (place.key)}
@@ -179,7 +124,7 @@
             class="target"
             role="button"
             tabindex="0"
-            aria-label="Place a cube in {place.city ? place.city.name : `hex ${place.coords.q},${place.coords.r}`}"
+            aria-label="Place a store in {place.city ? place.city.name : `hex ${place.coords.q},${place.coords.r}`}"
             onclick={() => gameSession.clickHex(place.coords)}
             onkeydown={(event) => onKey(event, () => gameSession.clickHex(place.coords))}
         >
@@ -203,7 +148,7 @@
             <rect
                 x={place.center.x - 56}
                 y={place.center.y - 46}
-                width={place.capacity * HOUSE_STEP + 46}
+                width={place.capacity * DEVELOPMENT_STEP + 46}
                 height="32"
                 rx="10"
                 class="ring"
@@ -213,35 +158,10 @@
 {/each}
 
 <style>
-    .furrow {
-        fill: none;
-        stroke: #b48d4c;
-        stroke-width: 2;
-        opacity: 0.35;
-    }
 
-    .map-frame {
-        fill: none;
-        stroke: #7a1d22;
-        stroke-width: 5;
-    }
 
-    .hex {
-        fill: rgba(253, 248, 236, 0.72);
-        stroke: #2b1a10;
-        stroke-width: 4;
-        stroke-linejoin: round;
-    }
 
-    .hex.city {
-        fill: rgba(255, 252, 244, 0.9);
-    }
 
-    .start-ring {
-        fill: none;
-        stroke-width: 5;
-        stroke-linejoin: round;
-    }
 
     .name {
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -265,10 +185,6 @@
     }
 
 
-    .pip {
-        fill: #8a6a45;
-        opacity: 0.4;
-    }
 
     .target {
         cursor: pointer;

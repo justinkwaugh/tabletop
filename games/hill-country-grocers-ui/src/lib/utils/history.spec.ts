@@ -26,7 +26,7 @@ function sold(companyId: CompanyId) {
 }
 
 describe('history entries', () => {
-    it('groups each initial auction with its bonus cube', () => {
+    it('groups each initial auction with its bonus store', () => {
         const entries = historyEntries([
             action(ActionType.PlaceBid, { amount: 2 }),
             action(ActionType.PassBid, sold(CompanyId.Streamside)),

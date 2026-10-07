@@ -69,7 +69,7 @@ export class HydratedBuildNetwork
         } else {
             assert(
                 state.buildableCompanies(this.playerId).includes(this.companyId),
-                'You cannot build for this company'
+                'You cannot build for this grocer'
             )
         }
         assert(state.isLegalBuild(this.companyId, this.hexes), 'Those cubes cannot be placed')
