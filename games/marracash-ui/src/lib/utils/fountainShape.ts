@@ -6,9 +6,11 @@ export const EntranceRadii = { rim: 39, water: 33, trim: 43, ring: 47 }
 export const FountainRippleRadii = [10, 17, 24]
 
 export const FountainWaterFilterId = 'marracash-fountain-water'
-export const FountainRimFilterId = 'marracash-fountain-rim'
-export const FountainTrimFilterId = 'marracash-fountain-trim'
+export const FountainGlintsPatternId = 'marracash-fountain-glints'
+export const FountainGlintsTileSize = 240
+export const FountainRimShadeId = 'marracash-fountain-rim-shade'
 export const FountainWaterShadeId = 'marracash-fountain-water-shade'
+export const FountainShadowOffset = { x: 1.5, y: 2.5 }
 
 const StarInnerRatio = Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8)
 

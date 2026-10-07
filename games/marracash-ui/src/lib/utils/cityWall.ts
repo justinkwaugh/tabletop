@@ -8,7 +8,6 @@ import {
 } from '$lib/utils/boardGeometry.js'
 
 export const WallMortar = '#8c4b2e'
-export const WallStoneFilterId = 'marracash-wall-stone'
 export const RammedEarthPatternId = 'marracash-rammed-earth'
 export const PillarSize = 36
 export const PillarShadowOffset = { x: 3, y: 4 }
@@ -223,3 +222,46 @@ export function towerMerlons(tower: Rect): Rect[] {
         height: TowerMerlon
     }))
 }
+
+export type BattlementPaths = {
+    penumbra: string
+    shadow: string
+    body: string
+    light: string
+    shade: string
+}
+
+const BattlementShadowOffset = { x: 2, y: 2.5 }
+const BattlementPenumbraOffset = { x: 3.2, y: 4 }
+
+function rectPath(rect: Rect, offset = { x: 0, y: 0 }): string {
+    const x = rect.x + offset.x
+    const y = rect.y + offset.y
+    return `M ${x} ${y} h ${rect.width} v ${rect.height} h ${-rect.width} Z`
+}
+
+// Raised earth lit from the top-left, drawn as plain shapes rather than a lighting filter so the
+// board repaints cheaply: a cast shadow, the block, a lit top and left edge and a shaded bottom
+// and right edge. Each list of blocks becomes four paths however many blocks there are.
+export function battlementPaths(blocks: readonly Rect[]): BattlementPaths {
+    return {
+        penumbra: blocks.map((block) => rectPath(block, BattlementPenumbraOffset)).join(' '),
+        shadow: blocks.map((block) => rectPath(block, BattlementShadowOffset)).join(' '),
+        body: blocks.map((block) => rectPath(block)).join(' '),
+        light: blocks
+            .map(
+                (block) =>
+                    `M ${block.x} ${block.y + block.height} V ${block.y} H ${block.x + block.width}`
+            )
+            .join(' '),
+        shade: blocks
+            .map(
+                (block) =>
+                    `M ${block.x + block.width} ${block.y} V ${block.y + block.height} H ${block.x}`
+            )
+            .join(' ')
+    }
+}
+
+export const WallBattlements: BattlementPaths = battlementPaths([...WallParapets, ...WallMerlons])
+export const TowerBattlements: BattlementPaths = battlementPaths(Towers.flatMap(towerMerlons))

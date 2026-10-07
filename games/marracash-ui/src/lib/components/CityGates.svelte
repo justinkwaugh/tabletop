@@ -5,10 +5,10 @@
         PillarShadowOffset,
         RammedEarthPatternId,
         Towers,
-        towerMerlons,
-        WallMortar,
-        WallStoneFilterId
+        TowerBattlements,
+        WallMortar
     } from '$lib/utils/cityWall.js'
+    import Battlements from '$lib/components/Battlements.svelte'
 
     let { groundFill }: { groundFill: string } = $props()
 
@@ -47,10 +47,5 @@
         stroke={WallMortar}
         stroke-width="1"
     ></rect>
-    <g filter="url(#{WallStoneFilterId})" fill="url(#{RammedEarthPatternId}-raised)">
-        {#each towerMerlons(tower) as merlon (`${merlon.x},${merlon.y}`)}
-            <rect x={merlon.x} y={merlon.y} width={merlon.width} height={merlon.height} rx="1"
-            ></rect>
-        {/each}
-    </g>
 {/each}
+<Battlements paths={TowerBattlements} />

@@ -14,11 +14,11 @@
     import {
         eightPointedStar,
         EntranceRadii,
+        FountainGlintsPatternId,
         FountainRadii,
-        FountainRimFilterId,
+        FountainRimShadeId,
         FountainRippleRadii,
-        FountainTrimFilterId,
-        FountainWaterFilterId,
+        FountainShadowOffset,
         FountainWaterShadeId,
         octagon
     } from '$lib/utils/fountainShape.js'
@@ -123,29 +123,29 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
+    {@const outer = outline(center, definition.entrance ? radii.trim : radii.rim)}
+    <path
+        d={outer}
+        transform="translate({FountainShadowOffset.x} {FountainShadowOffset.y})"
+        fill="#3a2a14"
+        opacity="0.3"
+    ></path>
     {#if definition.entrance}
-        <path
-            d={outline(center, radii.trim)}
-            fill="#c99a2e"
-            stroke="#8a6a1c"
-            stroke-width="1"
-            filter="url(#{FountainTrimFilterId})"
-        ></path>
+        <path d={outer} fill="#c99a2e" stroke="#8a6a1c" stroke-width="1"></path>
     {/if}
     <path
         d={outline(center, radii.rim)}
-        fill="#e6c3b8"
+        fill="url(#{FountainRimShadeId})"
         stroke="#a8817a"
         stroke-width="1.2"
-        filter="url(#{FountainRimFilterId})"
     ></path>
     <path
         d={outline(center, radii.water)}
         fill="url(#{FountainWaterShadeId})"
         stroke="#8f6c66"
         stroke-width="1"
-        filter="url(#{FountainWaterFilterId})"
     ></path>
+    <path d={outline(center, radii.water)} fill="url(#{FountainGlintsPatternId})"></path>
     {#each FountainRippleRadii as radius (radius)}
         <circle
             cx={center.x}

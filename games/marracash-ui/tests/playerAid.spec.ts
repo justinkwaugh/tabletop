@@ -63,7 +63,7 @@ test('an auction dims the board but keeps fountains and shop signs above the ove
             )
         return {
             overlayIndex,
-            firstFountain: indexOf('path[filter*="fountain-water"]'),
+            firstFountain: indexOf('path[fill*="fountain-glints"]'),
             firstSign: indexOf('g.pointer-events-none[aria-hidden="true"]')
         }
     })
