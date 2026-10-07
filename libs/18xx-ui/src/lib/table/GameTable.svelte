@@ -275,6 +275,9 @@
     const boardAvailable = untrack(() => !!session.mapView.boardAreas)
     const boardMode = $derived(boardAvailable && !paneLayout.current)
     const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
+    // Below the pane layout, drags may bring the map's edge 30% into the view; focusing a hex
+    // still brings it to the centre.
+    const MapGestureOverpanReach = 0.3
     let orderChipsShown = $state(false)
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
@@ -590,6 +593,12 @@
     const operatingCompanyId = $derived(
         operating && !gameState.result ? nextOperatingCompany(gameState) : undefined
     )
+    // The current operating company's terrain costs, while play is live.
+    const terrainDiscounts = $derived(
+        operatingCompanyId && !session.isViewingHistory
+            ? session.presentation.terrainDiscounts?.(gameState, operatingCompanyId)
+            : undefined
+    )
     const companyOrder = $derived(
         (operating && gameState.operatingSet
             ? gameState.operatingSet.companyOrder
@@ -766,6 +775,7 @@
         appearance={tileAppearance}
         hexDiameter={140}
         {extents}
+        {terrainDiscounts}
         onselect={interactive && !consentPreview
             ? (selection) =>
                   locationChoice?.locationIds.includes(selection.locationId)
@@ -1149,6 +1159,7 @@
                                     bind:this={mapWrapper}
                                     maxScale={2}
                                     overpan={mapOverpan}
+                                    gestureOverpanReach={MapGestureOverpanReach}
                                     onManualViewChange={() => {
                                         restoreRouteView = undefined
                                         boardFocus = undefined
@@ -1177,6 +1188,7 @@
                                     bind:this={boardWrapper}
                                     insetTop={44}
                                     overpan={mapOverpan}
+                                    gestureOverpanReach={MapGestureOverpanReach}
                                     justify="center"
                                     controls="bottom-left"
                                     expandable={true}

@@ -8,11 +8,13 @@ import GTLogo from './images/logos/GT.svg'
 import ICLogo from './images/logos/IC.svg'
 import MSLogo from './images/logos/MS.svg'
 import Big4Logo from './images/logos/B4.svg'
+import BoomtownToken from './images/tokens/boomtown.svg'
 import {
     createMapDrawing,
     towardTileEdge,
     StandardTileLayouts,
     type TileLayout,
+    type MapMarkerArt,
     type MapViewDefinition
 } from '@tabletop/18xx-ui'
 const ChicagoLayout: TileLayout = {
@@ -70,8 +72,9 @@ const mapLayouts: Readonly<Record<string, TileLayout>> = {
     },
     // Detroit's Z sits a little east of where it would fall.
     C15: { labelPosition: { x: 18, y: -27.8 } },
-    C21: { hideRevenue: true },
-    F22: { hideRevenue: true }
+    // Buffalo and Pittsburgh print their revenues once, in the top of their two hexes.
+    D22: { hideRevenue: true },
+    G21: { hideRevenue: true }
 }
 const mapBounds = createMapDrawing(EighteenFortySixMap, undefined, { layouts: mapLayouts }).bounds
 // The depot fills the map's empty northwest corner, 12 map units clear of the C5 and E5 hexes,
@@ -87,6 +90,23 @@ export const BoardAreas = {
     },
     depot
 }
+// A revenue marker placed during play outlines its hex in the private's colour and badges the
+// hex's top corner with the owning company and the private's icon.
+const RevenueMarkerLooks: Readonly<
+    Record<string, { color: string; icon: { tileSymbol: 'port' | 'horns' } | { imageUrl: string } }>
+> = {
+    SC: { color: '#2f7fd0', icon: { tileSymbol: 'port' } },
+    MPC: { color: '#ffffff', icon: { tileSymbol: 'horns' } },
+    BT: { color: '#e3a72f', icon: { imageUrl: BoomtownToken } }
+}
+const placedRevenueMarkers: Readonly<Record<string, MapMarkerArt>> = Object.fromEntries(
+    [...Corporations.map((company) => company.id), 'MS', 'BIG4'].flatMap((companyId) =>
+        Object.entries(RevenueMarkerLooks).map(([privateId, look]) => [
+            `${companyId}:${privateId}`,
+            { placed: { ...look, companyId } }
+        ])
+    )
+)
 export const MapView1846: MapViewDefinition = {
     map: EighteenFortySixMap,
     tileSet: EighteenFortySixTileSet,
@@ -125,11 +145,19 @@ export const MapView1846: MapViewDefinition = {
     namesBelow: ['I15'],
     // Chicago's Chi already names it.
     hideLocationNames: ['D6'],
+    // Buffalo's and Pittsburgh's names print across the top of their top hex, a row up from the
+    // hex named for them; Pittsburgh's and Binghamton's sit a little lower to clear the corner.
+    namePositions: {
+        D22: { x: -43.3, y: -110 },
+        G21: { x: 43.3, y: -108 },
+        E23: { x: 0, y: -33 }
+    },
     // Ports take northeast corners, and Holland's pair sits above its spike. Meat packing takes
-    // St. Louis's southeast corner and the middle of Chicago.
+    // St. Louis's southeast corner and Chicago's northwest side, as far in from it as Chicago's
+    // revenue is from the west side and a little past its middle, away from the revenue.
     symbolPositions: {
         I1: { ports: NortheastCorner, 'meat-packing': SoutheastCorner },
-        D6: { 'meat-packing': { x: 0, y: 0 } },
+        D6: { 'meat-packing': { x: -11.9, y: -28.7 } },
         C5: NortheastCorner,
         D14: NortheastCorner,
         // Wheeling's second port continues up the line of its northeast edge.
@@ -140,6 +168,7 @@ export const MapView1846: MapViewDefinition = {
         IC: { centeredLabel: true },
         'east-west': { revenueBadge: true, arrows: true },
         ports: { revenueSymbol: 'port' },
-        'meat-packing': { revenueSymbol: 'horns' }
+        'meat-packing': { revenueSymbol: 'horns' },
+        ...placedRevenueMarkers
     }
 }

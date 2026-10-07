@@ -211,9 +211,15 @@ for (const transition of ['modal mount', 'fullscreen'] as const) {
     })
 }
 
-for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['x', { x: 200, y: 0 }], ['both', { x: 200, y: 150 }]] as const) {
-    test(`dragging a slightly zoomed map with ${overpan} overpan brings edges at most to the centre`, async ({ page }) => {
-        await mountWrapper(page, { overpan })
+for (const [overpan, gestureOverpanReach, expected] of [
+    ['none', undefined, { x: 0, y: 0 }],
+    ['x', undefined, { x: 200, y: 0 }],
+    ['both', undefined, { x: 200, y: 150 }],
+    ['focus', undefined, { x: 0, y: 0 }],
+    ['focus', 0.3, { x: 120, y: 90 }]
+] as const) {
+    test(`dragging a slightly zoomed map with ${overpan} overpan${gestureOverpanReach ? ` reaching ${gestureOverpanReach}` : ''} brings edges at most to its reach`, async ({ page }) => {
+        await mountWrapper(page, { overpan, gestureOverpanReach })
         const board = page.getByTestId('board')
         await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
         const drag = async () => {

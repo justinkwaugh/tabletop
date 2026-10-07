@@ -80,6 +80,17 @@ export type MapMarkerArt =
     | { revenueBadge: true; arrows?: true }
     /** The marker's symbol, once per count, at revenue size beneath the hex's revenue. */
     | { revenueSymbol: TileSymbolName }
+    /**
+     * A marker placed during play: the hex is outlined in the colour, with a badge on its top
+     * corner showing the owning company's token and the marker's icon.
+     */
+    | {
+          placed: {
+              color: string
+              companyId: string
+              icon: { tileSymbol: TileSymbolName } | { imageUrl: string }
+          }
+      }
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
@@ -120,7 +131,10 @@ export type MapDrawnLocation = {
     nameBaseline: Point
     /** The name's lines where it prints straight. */
     nameRows: readonly string[]
-    /** True where the title places the name itself rather than across the top. */
+    /**
+     * True where the title places a city or town's name itself rather than across the top. An
+     * offboard's name is never curved, so it keeps the plain style wherever it is placed.
+     */
     namePlaced: boolean
     /**
      * The circle a lone city's name follows, where the style curves names: centred over the top,
@@ -432,7 +446,9 @@ export function createMapDrawing(
             nameShown,
             nameBaseline,
             nameRows,
-            namePlaced: !!namePositions[location.id],
+            namePlaced:
+                !!namePositions[location.id] &&
+                !face.nodes.some((node) => node.kind === 'offboard'),
             nameArc,
             terrainY: terrainRow,
             revenueAnnotations: [
