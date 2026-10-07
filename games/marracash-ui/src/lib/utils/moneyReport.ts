@@ -92,10 +92,6 @@ export function pulledInCustomers(result: AuctionResult): { count: number; incom
     )
 }
 
-export function signedAmount(amount: number): string {
-    return amount < 0 ? `−${-amount}` : `+${amount}`
-}
-
 const ColorOrder = Object.values(MarketColor)
 
 export function movedVisitorColors(result: MoveResult): MarketColor[] {

@@ -58,7 +58,9 @@ test('exploring is offered under Concealed Cash only in Host View', async ({ pag
     expect(errors).toEqual([])
 })
 
-test('protected views keep a sealed bid secret from everyone but its bidder', async ({ page }) => {
+test('the history in every protected view shows that a bid is in but never its amount', async ({
+    page
+}) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await createGame(page)
@@ -67,23 +69,12 @@ test('protected views keep a sealed bid secret from everyone but its bidder', as
     await expect(actionPanel(page).getByText(/Sealed bid for/)).toBeVisible()
     await enterProtectedMode(page)
 
-    await viewHistoryAs(page, 'Spectator')
-    await expect(page.getByText('placed a sealed bid')).toHaveCount(1)
-    await expect(page.getByText(/bid \d+\s*د\.م\./)).toHaveCount(0)
-
     const viewer = page.getByLabel('Protected view', { exact: true })
-    const players = (await viewer.locator('option').allTextContents()).filter(
-        (label) => label !== 'Spectator' && label !== 'Host View'
-    )
-    let viewersWhoSeeTheAmount = 0
-    for (const player of players) {
-        await viewHistoryAs(page, player)
-        await expect(page.getByText(/placed a sealed bid|bid \d+\s*د\.م\./)).toHaveCount(1)
-        viewersWhoSeeTheAmount += await page.getByText(/bid \d+\s*د\.م\./).count()
+    for (const view of await viewer.locator('option').allTextContents()) {
+        await viewHistoryAs(page, view)
+        const history = page.getByRole('tabpanel')
+        await expect(history).toContainText('1 of 4 bids')
+        await expect(history).not.toContainText('100')
     }
-    expect(viewersWhoSeeTheAmount).toBe(1)
-
-    await viewHistoryAs(page, 'Host View')
-    await expect(page.getByText('placed a sealed bid')).toHaveCount(1)
     expect(errors).toEqual([])
 })

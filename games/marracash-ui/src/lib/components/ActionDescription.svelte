@@ -14,18 +14,14 @@
         type ShopId
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import AuctionBids from '$lib/components/AuctionBids.svelte'
-    import HistoryPayments from '$lib/components/HistoryPayments.svelte'
     import PawnGroup from '$lib/components/PawnGroup.svelte'
     import { ordinal } from '$lib/utils/ordinal.js'
-    import { actionMoneyReport, movedVisitorColors, movedVisitors } from '$lib/utils/moneyReport.js'
+    import { movedVisitorColors, movedVisitors } from '$lib/utils/moneyReport.js'
 
     const MaxPawnsInSentence = 8
 
-    let { action, detail = true }: { action: GameAction; detail?: boolean } = $props()
+    let { action }: { action: GameAction } = $props()
     const gameSession = getGameSession()
-
-    let payments = $derived(detail ? (actionMoneyReport(action)?.payments ?? []) : [])
 </script>
 
 {#snippet shop(shopId: ShopId, article: 'a' | 'the')}
@@ -49,9 +45,6 @@
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}
     <PlayerTag playerId={result.winnerId} /> bought {@render shop(result.shopId, 'the')} for {result.price}.
-    {#if detail}
-        <span class="mt-1 block"><AuctionBids {result} /></span>
-    {/if}
 {:else if isMoveVisitors(action)}
     {@const colors = action.metadata ? movedVisitorColors(action.metadata) : []}
     moved
@@ -71,7 +64,4 @@
         {action.count} visitor{action.count === 1 ? '' : 's'}
     {/if}
     from the {action.end === QueueEnd.Front ? 'front' : 'back'} of the queue to an entrance.
-{/if}
-{#if payments.length > 0}
-    <HistoryPayments {payments} />
 {/if}

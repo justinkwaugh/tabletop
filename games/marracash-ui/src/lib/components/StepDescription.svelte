@@ -13,7 +13,6 @@
     <span
         >{#if action.playerId}<PlayerTag playerId={action.playerId} />{' '}{/if}<ActionDescription
             {action}
-            detail={false}
         /></span
     >{' '}
 {/each}
