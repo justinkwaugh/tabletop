@@ -529,7 +529,7 @@ test.describe('answering an offer of Citizenship', () => {
         await openTable(page, 'citizenshipShort')
         await expect(grid(page).getByText('You receive', { exact: true })).toBeVisible()
         await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
-        const given = grid(page).getByRole('img', { name: '1 secrets', exact: true })
+        const given = grid(page).getByRole('img', { name: '1 secret', exact: true })
         await expect(given).toBeVisible()
         const [count, accent] = await given.evaluate((element) => {
             const probe = document.createElement('span')

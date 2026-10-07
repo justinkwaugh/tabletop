@@ -18,11 +18,17 @@
     let gameState = $derived(getGameSession().gameState)
 
     const TOKEN_WIDTH = 26
+    // Named as TokenText names a count: 'favor' at any count, 'secret' for one, 'secrets' otherwise.
     let tokens = $derived(
         [
-            { count: transfer?.favor ?? 0, noun: 'favor', image: favorToken() },
-            { count: transfer?.secrets ?? 0, noun: 'secrets', image: secretToken() }
-        ].filter((token) => token.count > 0)
+            { kind: 'favor', count: transfer?.favor ?? 0, image: favorToken() },
+            { kind: 'secret', count: transfer?.secrets ?? 0, image: secretToken() }
+        ]
+            .filter((token) => token.count > 0)
+            .map((token) => ({
+                ...token,
+                noun: token.kind === 'favor' ? 'favor' : token.count === 1 ? 'secret' : 'secrets'
+            }))
     )
 </script>
 
@@ -57,7 +63,7 @@
         />
     </span>
 {/each}
-{#each tokens as token (token.noun)}
+{#each tokens as token (token.kind)}
     <span
         role="img"
         aria-label="{token.count} {token.noun}"
