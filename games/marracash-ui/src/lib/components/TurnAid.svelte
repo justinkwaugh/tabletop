@@ -26,4 +26,6 @@
     <p>Visitors walk to the next fountain; each enters the first matching shop it passes.</p>
     <h3 class="aid-heading">Auction</h3>
     <p>Sealed bids, minimum {MinimumAuctionBid}. Ties go to the auctioneer, then clockwise.</p>
+    <h3 class="aid-heading">End of Game</h3>
+    <p>Game ends upon completing the round in which the queue empties.</p>
 </AidCard>

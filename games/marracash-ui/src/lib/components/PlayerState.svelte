@@ -161,7 +161,7 @@
             inset 0 0 0 4px var(--tile-deep),
             inset 0 0 0 5px color-mix(in srgb, var(--trim) 50%, transparent),
             0 0 0 2px #fff,
-            0 0 14px 3px var(--player);
+            0 0 9px 3px var(--player);
     }
 
     .panel {
