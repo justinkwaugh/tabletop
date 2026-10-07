@@ -3,6 +3,7 @@
     import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
     import { Color } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import BirdLayer from '$lib/birds/BirdLayer.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { boardUrl, desertUrl, palmtreeUrl } from '$lib/utils/imageUrls.js'
     import {
@@ -715,4 +716,5 @@
             {/each}
         {/if}
     </svg>
+    <BirdLayer />
 </div>
