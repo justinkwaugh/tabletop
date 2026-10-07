@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
-import { actionPanel, auctionFirstShop, createGame, finishBidding } from './helpers'
+import {
+    actionPanel,
+    auctionFirstShop,
+    createGame,
+    finishBidding,
+    playOpeningRound
+} from './helpers'
 
 async function enterProtectedMode(page: Page) {
     await page.getByRole('button', { name: 'Options' }).click()
@@ -89,4 +95,26 @@ test('the waiting line agrees with "You" when the viewer is the one acting', asy
     await expect(actionPanel(page)).toContainText(/you are auctioning the/i)
     await viewAs(page, 'Spectator')
     await expect(actionPanel(page)).toContainText('Developer is auctioning the')
+})
+
+test('name tags are set in El Messiri even in Baskerville lines', async ({ page }) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    const mover = await page.locator('.turn h1').innerText()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await enterProtectedMode(page)
+    const viewer = page.getByLabel('Protected view', { exact: true })
+    const other = (await viewer.locator('option').allTextContents()).find(
+        (view) => !['Host View', 'Spectator', mover].includes(view)
+    )!
+    await viewAs(page, other)
+    const lastPlay = actionPanel(page).locator('p', { hasText: 'moved' })
+    await expect(lastPlay).toBeVisible()
+    await expect(lastPlay).toHaveCSS('font-family', /Baskerville/)
+    const tags = actionPanel(page).locator('span.rounded.inline-block')
+    await expect(tags.first()).toBeVisible()
+    for (const tag of await tags.all()) {
+        await expect(tag).toHaveCSS('font-family', /^"MarraCash El Messiri"/)
+    }
 })
