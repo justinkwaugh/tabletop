@@ -131,9 +131,39 @@
                         </select>
                     </label>
                 {/if}
-                {#if showPowers && session.decisions.privateTileOptions.length}
+                {#if showPowers && (session.decisions.privateTileOptions.length || session.privateActions.titlePowers.length)}
+                    {@const titlePower = session.privateActions.titlePower}
                     <div class="private-track">
-                        {#if session.privateActions.trackPowerSelection}
+                        {#if titlePower}
+                            <header class="private-track-prompt">
+                                <span>{titlePower.prompt}</span>
+                                {#if titlePower.kind === 'confirm'}
+                                    {@const power = titlePower}
+                                    <button
+                                        class="action-button inline-action"
+                                        disabled={!session.decisions.canResolve}
+                                        onclick={() => power.run()}>{power.confirmLabel}</button
+                                    >
+                                {/if}
+                                {#if session.privateActions.offeredPower}
+                                    {#if titlePower.kind !== 'confirm'}<span>or</span>{/if}
+                                    <button
+                                        class="action-button inline-action"
+                                        disabled={!session.decisions.canResolve}
+                                        onclick={() => session.privateActions.close()}>later</button
+                                    >
+                                {/if}
+                                {#if titlePower.kind === 'track' && titlePower.finish}
+                                    {@const finish = titlePower.finish}
+                                    <span>or</span>
+                                    <button
+                                        class="action-button inline-action"
+                                        disabled={!session.decisions.canResolve}
+                                        onclick={() => finish.run()}>{finish.label}</button
+                                    >
+                                {/if}
+                            </header>
+                        {:else if session.privateActions.trackPowerSelection}
                             {@const power = session.privateActions.trackPowerSelection.value}
                             <header class="private-track-prompt">
                                 <span
@@ -154,10 +184,17 @@
                                 {/if}
                             </header>
                         {:else if session.privateActions.selection === 'powers'}
-                            {#each session.privateActions.trackPowers as power, index (index)}
+                            {#each session.privateActions.sharedTrackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
                                     >{getCompany(gameState, power.privateCompanyId).name}</button
+                                >
+                            {/each}
+                            {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}`)}
+                                <button
+                                    disabled={!session.decisions.canResolve}
+                                    onclick={() => session.privateActions.chooseTitlePower(power)}
+                                    >{power.label}</button
                                 >
                             {/each}
                         {/if}

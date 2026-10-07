@@ -29,6 +29,7 @@ export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 
 export * from './session/eighteenXXSession.svelte.js'
+export type { PrivateTrackPower, TitlePrivatePower } from './session/privateActionsModule.svelte.js'
 export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
 

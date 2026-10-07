@@ -1,4 +1,4 @@
-import type { MapViewDefinition, StationAppearance } from './stationPresentation.js'
+import type { MapViewDefinition, StationAppearance, SymbolPosition } from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -330,7 +330,7 @@ export function createMapDrawing(
                           tileLayout,
                           drawingStyle
                       ).paths,
-                      [symbolPositions[location.id] ?? []].flat()
+                      symbolPoints(symbolPositions[location.id])
                   )
                 : undefined
         // Points along the name's outer edge, which annotations keep clear of.
@@ -630,12 +630,22 @@ function nameBox(rows: readonly string[], baseline: Point): Obstacle {
 }
 
 // Symbols sit in a row in the clear space nearest the revenue, wholly inside the hex.
+type LocationSymbolPositions = SymbolPosition | Readonly<Record<string, SymbolPosition>>
+function isSymbolPosition(position: LocationSymbolPositions): position is SymbolPosition {
+    return 'x' in position || Array.isArray(position)
+}
+function symbolPoints(position: LocationSymbolPositions | undefined): readonly Point[] {
+    if (!position) return []
+    if (!isSymbolPosition(position)) return Object.values(position).flatMap(symbolPoints)
+    return 'x' in position ? [position] : position
+}
+
 function revenueSymbols(
     drawing: TileDrawing,
     markers: NonNullable<MapLocation['markers']>,
     markerArt: Readonly<Record<string, MapMarkerArt>>,
     vertices: readonly Point[],
-    fixed: Point | readonly Point[] | undefined,
+    positions: LocationSymbolPositions | undefined,
     printed: readonly Obstacle[]
 ): RevenueAnnotation[] {
     const shown = drawing.nodes.find(
@@ -686,6 +696,8 @@ function revenueSymbols(
     for (const marker of markers) {
         const art = markerArt[marker.id]
         if (!art || !('revenueSymbol' in art)) continue
+        // Positions are for every symbol in the location, or by marker.
+        const fixed = positions && !isSymbolPosition(positions) ? positions[marker.id] : positions
         const count = marker.count ?? 1
         const step = RevenueRadius * 2 + 1
         const row = (x: number, y: number) =>

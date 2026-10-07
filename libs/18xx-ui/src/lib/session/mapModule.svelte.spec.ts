@@ -62,7 +62,7 @@ function table(
     const track = new TrackModule(
         session,
         () => view,
-        { selection: undefined, trackPowerSelection: undefined },
+        { selection: undefined, trackPowerSelection: undefined, titlePower: undefined },
         { selectPrivateTile: () => {}, confirm: async () => {} },
         () => {
             map.clearInspection()
@@ -213,7 +213,7 @@ describe('MapModule', () => {
         const track = new TrackModule(
             session,
             () => view,
-            { selection: undefined, trackPowerSelection: undefined },
+            { selection: undefined, trackPowerSelection: undefined, titlePower: undefined },
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )
@@ -283,7 +283,7 @@ describe('MapModule', () => {
         const track = new TrackModule(
             session,
             () => view,
-            { selection: undefined, trackPowerSelection: undefined },
+            { selection: undefined, trackPowerSelection: undefined, titlePower: undefined },
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )

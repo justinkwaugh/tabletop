@@ -3,9 +3,7 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import {
         type EighteenFortySixProjectedState,
-        type HydratedEighteenFortySixState,
-        steamboatCompanies,
-        PortSymbols
+        type HydratedEighteenFortySixState
     } from '@tabletop/1846'
     import {
         GameTable,
@@ -21,8 +19,8 @@
     import { CompanyDescriptions } from './companyDescriptions.js'
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
-    import ConstructionPowers from './ConstructionPowers.svelte'
-    import RevenuePowers from './RevenuePowers.svelte'
+    import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
+    import SteamboatAssignment from './SteamboatAssignment.svelte'
     import EmergencyTrains from './EmergencyTrains.svelte'
     import CorporateFinance from './CorporateFinance.svelte'
     import { describe1846Action } from './history.js'
@@ -87,7 +85,6 @@
         (state.machineState === 'LayingTrack' || state.machineState === 'RunningTrains') &&
             (operatingModes.length > 1 || session.constructionMode === 'finance') &&
             !state.pendingRevenueMarker &&
-            !session.privateDraft &&
             !state.purchaseOffer &&
             !session.decisions.selection &&
             !session.privateActions.selection
@@ -122,35 +119,10 @@
                             <OpeningCompanies {session} />
                         {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
                             <Draft {session} />
-                        {:else if state.pendingRevenueMarker || session.privateDraft}
-                            <RevenuePowers {session} />
-                            <ConstructionPowers {session} />
+                        {:else if state.pendingRevenueMarker}
+                            <RevenueMarkerPrompt {session} />
                         {:else if state.machineState === 'AssigningSteamboat'}
-                            <section aria-label="Steamboat assignment">
-                                <h2>Assign the Steamboat</h2>
-                                <p>Choose a railroad and a port for this operating round.</p>
-                                <div class="choices">
-                                    {#each steamboatCompanies(state) as companyId (companyId)}
-                                        {#each Object.entries(PortSymbols) as [locationId, ports] (locationId)}
-                                            <button
-                                                disabled={!session.canChooseAction}
-                                                onclick={() =>
-                                                    session.assignSteamboat({
-                                                        companyId,
-                                                        locationId
-                                                    })}
-                                            >
-                                                {companyId} · {locationId} · +${20 * ports}
-                                            </button>
-                                        {/each}
-                                    {/each}
-                                </div>
-                                <button
-                                    disabled={!session.canChooseAction}
-                                    onclick={() => session.assignSteamboat()}
-                                    >Leave unassigned</button
-                                >
-                            </section>
+                            <SteamboatAssignment {session} />
                         {:else if state.machineState === 'RunningReceiver'}
                             <AutomaticRoutes
                                 {session}
@@ -203,9 +175,6 @@
                             {#if state.machineState === 'BuyingTrains'}<EmergencyTrains
                                     {session}
                                 />{/if}
-                            {#if !state.result && state.machineState !== 'StockRound'}
-                                <ConstructionPowers {session} /><RevenuePowers {session} />
-                            {/if}
                         {/if}
                     </div>{/key}
             </div>

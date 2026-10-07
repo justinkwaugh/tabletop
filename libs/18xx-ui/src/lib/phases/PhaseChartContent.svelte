@@ -75,7 +75,8 @@
                                             <TrainBadge
                                                 name={train.id}
                                                 color={trainColors[train.id]}
-                                            />{#if train.rustNote}<span>*</span>{/if}
+                                            />{#if train.rustNote}<span class="rust-mark">*</span
+                                                >{/if}
                                         {:else}<span class="muted">—</span>{/each}
                                     </span></td
                                 >
@@ -142,7 +143,9 @@
                                         >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
                                                 name={trainId}
                                                 color={trainColors[trainId]}
-                                            />{/each}{#if train.rustNote}<span>*</span>{/if}</span
+                                            />{/each}{#if train.rustNote}<span class="rust-mark"
+                                                >*</span
+                                            >{/if}</span
                                     >{:else}<span class="muted">Permanent</span>{/if}</td
                             >
                         </tr>
@@ -154,7 +157,8 @@
     <div class="notes">
         {#each [...new Set(chart.trains.flatMap( (train) => (train.rustNote ? [train.rustNote] : []) ))] as note (note)}<p
             >
-                * {note}
+                <span class="rust-mark">*</span>
+                {note}
             </p>{/each}
         {#if !depotOnly}{#each chart.notes as note, index (index)}<p>{note}</p>{/each}{/if}
     </div>
@@ -260,6 +264,11 @@
         display: flex;
         gap: 3px;
         align-items: center;
+    }
+    /* An asterisk sits at cap height; drop it to the middle of the badges beside it. */
+    .rust-mark {
+        position: relative;
+        top: 0.22em;
     }
     .tile-color {
         width: 14px;

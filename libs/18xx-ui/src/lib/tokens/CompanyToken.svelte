@@ -45,6 +45,8 @@
                     appearance={appearance.tiles.appearance}
                 /></svg
             >{/each}
+    {:else if appearance.solid}
+        <circle cx="20" cy="20" r="20" fill={appearance.color}></circle>
     {:else if appearance.imageUrl}
         <image href={appearance.imageUrl} width="40" height="40"></image>
     {:else}

@@ -139,6 +139,28 @@ export function departurePaymentsDetail(
     )
 }
 
+// A run's bonuses, totalled by what earned them; unnamed bonuses keep their hex.
+function runBonusesDetail(
+    routes: readonly {
+        bonuses?: readonly { locationId: string; amount: number; label?: string }[]
+    }[],
+    money: MoneyFormat
+): string | undefined {
+    const totals = new Map<string, { amount: number; label?: string; locationId: string }>()
+    for (const bonus of routes.flatMap((route) => route.bonuses ?? [])) {
+        const key = bonus.label ?? `@${bonus.locationId}`
+        const total = totals.get(key)
+        totals.set(key, { ...bonus, amount: (total?.amount ?? 0) + bonus.amount })
+    }
+    return totals.size
+        ? [...totals.values()]
+              .map(({ label, amount, locationId }) =>
+                  label ? `${label} +${money(amount)}` : `+${money(amount)} at ${locationId}`
+              )
+              .join(' · ')
+        : undefined
+}
+
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
@@ -260,7 +282,8 @@ function describeShared(
                 assertExists(train, 'Recorded train run requires its train')
                 return train.definitionId
             }),
-            value: action.metadata.revenue ? money(action.metadata.revenue) : undefined
+            value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
+            detail: runBonusesDetail(action.metadata.routes, money)
         }
     }
     if (isDistributeEarnings(action)) {

@@ -27,6 +27,8 @@ export type { RouteRevenueStop } from './routeScoring.js'
 export interface RouteRules {
     canOperate?(state: TrainRunningState, playerId: string, companyId: string): boolean
     longestRouteBonusPerStop?(state: TrainRunningState, companyId: string): number
+    /** Names the longest route's per-stop bonus in recorded runs. */
+    longestRouteBonusLabel?: string
     canRunTrain?(state: TrainRunningState, train: Train): boolean
     revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
 
@@ -39,6 +41,8 @@ export interface RouteRules {
     oneStopPerHex?: true
     /** What a route earns for each hex it passes through or stops in, once per route. */
     hexBonus?(state: TrainRunningState, locationId: string): number
+    /** Names a hex's bonus in recorded runs. */
+    hexBonusLabel?(state: TrainRunningState, locationId: string): string | undefined
     /** What the train earns beyond the stop's value for stopping at a revenue center. */
     stopBonus?(
         state: TrainRunningState,
@@ -46,6 +50,13 @@ export interface RouteRules {
         companyId: string,
         center: RevenueCenter
     ): number
+    /** Names a stop's bonus in recorded runs. */
+    stopBonusLabel?(
+        state: TrainRunningState,
+        train: TrainDefinition,
+        companyId: string,
+        center: RevenueCenter
+    ): string | undefined
 }
 export type RouteEvaluationResult =
     { result: RouteResult; reason?: never } | { result?: never; reason: string }
@@ -155,19 +166,23 @@ export class RouteEvaluation {
             )
                 return { reason: 'The route must include a station of this company.' }
         }
-        const visits = trace.visits.map((visit): RouteRevenueStop => ({
-            locationId: visit.locationId,
-            nodeId: visit.nodeId,
-            amount: this.revenue(visit, definition),
-            bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
-            companyStation: this.state.stations.some(
-                (station) =>
-                    station.status === 'placed' &&
-                    station.companyId === companyId &&
-                    station.position.locationId === visit.locationId &&
-                    station.position.nodeId === visit.nodeId
-            )
-        }))
+        const visits = trace.visits.map((visit): RouteRevenueStop => {
+            const bonusLabel = this.rules.stopBonusLabel?.(this.state, definition, companyId, visit)
+            return {
+                locationId: visit.locationId,
+                nodeId: visit.nodeId,
+                amount: this.revenue(visit, definition),
+                bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
+                ...(bonusLabel ? { bonusLabel } : {}),
+                companyStation: this.state.stations.some(
+                    (station) =>
+                        station.status === 'placed' &&
+                        station.companyId === companyId &&
+                        station.position.locationId === visit.locationId &&
+                        station.position.nodeId === visit.nodeId
+                )
+            }
+        })
         const policy = this.rules.revenuePolicy?.(definition) ?? {}
         const paying = payingRouteStops(visits, policy)
         const payments = paying.map(({ locationId, nodeId, amount }) => ({
@@ -221,7 +236,10 @@ export class RouteEvaluation {
                 bonusPerStop > 0 && route === longest
                     ? route.visits.map((visit) => ({
                           locationId: visit.locationId,
-                          amount: bonusPerStop
+                          amount: bonusPerStop,
+                          ...(this.rules.longestRouteBonusLabel
+                              ? { label: this.rules.longestRouteBonusLabel }
+                              : {})
                       }))
                     : []
             return bonuses.length
@@ -246,11 +264,19 @@ export class RouteEvaluation {
             ...route.paths.map((path) => path.locationId)
         ])
         return [
-            ...paying.map((stop) => ({ locationId: stop.locationId, amount: stop.bonus })),
-            ...[...hexes].map((locationId) => ({
-                locationId,
-                amount: this.rules.hexBonus?.(this.state, locationId) ?? 0
-            }))
+            ...paying.map((stop) => ({
+                locationId: stop.locationId,
+                amount: stop.bonus,
+                ...(stop.bonusLabel ? { label: stop.bonusLabel } : {})
+            })),
+            ...[...hexes].map((locationId) => {
+                const label = this.rules.hexBonusLabel?.(this.state, locationId)
+                return {
+                    locationId,
+                    amount: this.rules.hexBonus?.(this.state, locationId) ?? 0,
+                    ...(label ? { label } : {})
+                }
+            })
         ].filter((bonus) => bonus.amount > 0)
     }
     private repeatedStopGroup(trace: RouteTrace): string | undefined {

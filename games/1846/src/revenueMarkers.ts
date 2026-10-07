@@ -16,7 +16,7 @@ import {
     privateOwningCompany,
     type CompanyDecisionState
 } from '@tabletop/18xx'
-import { PortSymbols } from './map.js'
+import { MeatPackingLocations, PortSymbols } from './map.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
 export const RevenuePrivateId = Type.Union([
@@ -49,7 +49,7 @@ export const RevenueMarkerFields = {
 export type RevenueMarkerState = Type.Static<Type.TObject<typeof RevenueMarkerFields>>
 export const RevenueMarkerLocations: Readonly<Record<RevenuePrivateId, readonly string[]>> = {
     SC: Object.keys(PortSymbols),
-    MPC: ['I1', 'D6'],
+    MPC: MeatPackingLocations,
     BT: ['H12']
 }
 export function isRevenuePrivate(id: string): id is RevenuePrivateId {

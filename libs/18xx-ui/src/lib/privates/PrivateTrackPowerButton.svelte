@@ -1,18 +1,32 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import type { PrivateTrackPower } from '../session/privateActionsModule.svelte.js'
+    import type {
+        PrivateTrackPower,
+        TitlePrivatePower
+    } from '../session/privateActionsModule.svelte.js'
 
     let {
         session,
         power,
         label = 'Use'
-    }: { session: EighteenXXSessionView; power: PrivateTrackPower; label?: string } = $props()
-    const selected = $derived(
-        session.privateActions.trackPowerSelection?.value.privateCompanyId ===
-            power.privateCompanyId &&
-            session.privateActions.trackPowerSelection?.value.playerId === power.playerId
-    )
+    }: {
+        session: EighteenXXSessionView
+        power: PrivateTrackPower | TitlePrivatePower
+        label?: string
+    } = $props()
+    const selected = $derived.by(() => {
+        const chosen =
+            session.privateActions.titlePower ?? session.privateActions.trackPowerSelection?.value
+        return (
+            chosen?.privateCompanyId === power.privateCompanyId &&
+            chosen.playerId === power.playerId
+        )
+    })
+    function start() {
+        if ('kind' in power) session.privateActions.startTitlePower(power)
+        else session.privateActions.startTrackPower(power)
+    }
 </script>
 
 <button
@@ -21,7 +35,7 @@
     aria-label={`Use ${getCompany(session.gameState, power.privateCompanyId).name}`}
     aria-pressed={selected}
     disabled={session.busy}
-    onclick={() => session.privateActions.startTrackPower(power)}>{label}</button
+    onclick={start}>{label}</button
 >
 
 <style>

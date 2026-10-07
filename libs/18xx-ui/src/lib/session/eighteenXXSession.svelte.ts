@@ -54,7 +54,11 @@ import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
-import { PrivateActionsModule } from './privateActionsModule.svelte.js'
+import {
+    PrivateActionsModule,
+    type PrivateTrackPower,
+    type TitlePrivatePower
+} from './privateActionsModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
@@ -231,7 +235,9 @@ export class EighteenXXSession<
             undo: (): boolean => this.track.stages.undo(),
             clear: () => this.track.stages.clear()
         },
-        this.privates
+        this.privates,
+        () => this.titlePrivatePowers,
+        () => this.offeredPrivatePower
     )
     readonly track: TrackModule = new TrackModule(
         this.moduleSession,
@@ -367,7 +373,11 @@ export class EighteenXXSession<
     })
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
-        const definition = this.mapViewDefinition
+        const base = this.mapViewDefinition
+        const overrides = this.stationAppearanceOverrides
+        const definition = overrides
+            ? { ...base, stations: { ...base.stations, ...overrides } }
+            : base
         const styled = { ...definition, drawingStyle: tileDrawingStyle(this.tileAppearance) }
         if (!this.publishedArtwork) return styled
         if (
@@ -378,7 +388,7 @@ export class EighteenXXSession<
             return styled
         return {
             ...styled,
-            stations: { ...definition.stations, ...definition.publishedStations },
+            stations: { ...definition.stations, ...definition.publishedStations, ...overrides },
             layouts: { ...definition.layouts, ...definition.publishedLayouts },
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
@@ -465,6 +475,41 @@ export class EighteenXXSession<
     }
     protected get sharedActionsBlocked(): boolean {
         return false
+    }
+    /** Private powers whose rules the title applies itself, offered under Use privates. */
+    protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
+        return []
+    }
+    /**
+     * Station looks that depend on the game, such as removed companies' blocked homes. Keep the
+     * result's identity stable between states, since the whole map view follows it.
+     */
+    protected get stationAppearanceOverrides():
+        Readonly<Record<string, StationAppearance>> | undefined {
+        return undefined
+    }
+    /** A power to open without being asked, such as one the operating company just bought. */
+    protected get offeredPrivatePower(): PrivateTrackPower | undefined {
+        return undefined
+    }
+    /** Hexes a title currently offers on the map and what choosing one does, such as a private's port. */
+    get mapLocationChoice(): MapLocationChoice | undefined {
+        const power = this.privateActions.titlePower
+        if (!power || !this.decisions.canResolve) return undefined
+        if (power.kind === 'location')
+            return {
+                locationIds: power.locationIds,
+                choose: (locationId) => void power.choose(locationId)
+            }
+        // A confirm power's previewed stations can be chosen on the map as well.
+        if (power.kind === 'confirm' && power.reservations?.length)
+            return {
+                locationIds: [
+                    ...new Set(power.reservations.map((reservation) => reservation.locationId))
+                ],
+                choose: () => void power.run()
+            }
+        return undefined
     }
     protected get mapDisplayState(): ConstructorParameters<typeof MapModule>[0]['state'] {
         return this.projectMapState(this.gameState)
@@ -648,6 +693,11 @@ export function requireEighteenXXSession(
 ): EighteenXXSessionView {
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
+}
+
+export type MapLocationChoice = {
+    locationIds: readonly string[]
+    choose(locationId: string): void
 }
 
 export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &

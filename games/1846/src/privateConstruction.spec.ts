@@ -4,6 +4,7 @@ import {
     TrackConstruction,
     ConnectedTrack,
     RailwayMapState,
+    privateTrackConstruction,
     finiteCashOwnedBy,
     type TrackRequest,
     type TrackLayDetails
@@ -235,8 +236,23 @@ describe('1846 private construction', () => {
         place(table, first.locationId, first.definitionId, first.rotation)
         table.state.phaseId = 'II'
         const builder = construction(table, 'LM')
-        const upgrades = builder.choices([]).filter((lay) => lay.locationId === first.locationId)
-        const others = builder.choices([]).filter((lay) => lay.locationId !== first.locationId)
+        // Every legal tile lay, before the power filters out lays that cannot complete it.
+        const raw = privateTrackConstruction(
+            table.hydrated,
+            {
+                companyId: 'NYC',
+                locationIds: ['H12', 'G13'],
+                definitionIds: EighteenFortySixTileSet.definitions
+                    .filter((tile) => ['yellow', 'green'].includes(tile.face.color))
+                    .map((tile) => tile.id),
+                payer: { kind: 'company', companyId: 'NYC' },
+                connected: false,
+                terrainDiscount: 20
+            },
+            TrackRules1846
+        )
+        const upgrades = raw.choices(first.locationId)
+        const others = raw.choices(first.locationId === 'H12' ? 'G13' : 'H12')
         const pointless = upgrades
             .flatMap((upgrade) => others.map((other) => [request(upgrade), request(other)]))
             .find((lays) => {
@@ -256,6 +272,11 @@ describe('1846 private construction', () => {
             })
         assertExists(pointless)
         expect(builder.evaluate(pointless).reason).toContain('Each Little Miami tile')
+        expect(
+            builder
+                .choices([pointless[0]])
+                .some((lay) => JSON.stringify(request(lay)) === JSON.stringify(pointless[1]))
+        ).toBe(false)
     })
     it('Little Miami creates a connection with new track on both tiles and cannot be reused once connected', () => {
         const table = major()
@@ -268,6 +289,18 @@ describe('1846 private construction', () => {
         table.state.usedPrivatePowerIds = []
         table.state.phaseId = 'II'
         expect(construction(table, 'LM').choices([])).toEqual([])
+    })
+    it('Little Miami offers only first tiles that a legal plan can complete', () => {
+        const table = major()
+        acquire(table, 'LM')
+        const builder = construction(table, 'LM')
+        const firsts = builder.choices([])
+        expect(firsts.length).toBeGreaterThan(0)
+        for (const first of firsts)
+            expect(
+                builder.evaluate([request(first)]).lays !== undefined ||
+                    builder.choices([request(first)]).length > 0
+            ).toBe(true)
     })
     it('Little Miami can use a single tile to complete a connection to existing track', () => {
         const table = major()

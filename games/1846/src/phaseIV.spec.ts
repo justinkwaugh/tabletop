@@ -352,8 +352,8 @@ describe('1846 Phase IV trains and lifecycle', () => {
         expect(paying).toContain(stops[2])
         expect(paying).not.toContain(stops[3])
         expect(routeConnectionBonuses(paying, policy)).toEqual([
-            { locationId: 'C17', amount: 30 },
-            { locationId: 'C5', amount: 50 }
+            { locationId: 'C17', amount: 30, label: 'East–West' },
+            { locationId: 'C5', amount: 50, label: 'East–West' }
         ])
     })
 })

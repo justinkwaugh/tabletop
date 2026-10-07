@@ -6,6 +6,8 @@ import { EighteenFortySixMap } from '../map.js'
 import { EighteenFortySixTileSet } from '../tiles.js'
 import { ActionSource } from '@tabletop/common'
 import { earningsChoices1846 } from '../earnings.js'
+import { PrivateConstruction } from '../privateConstruction.js'
+import { revenueMarkerChoices } from '../revenueMarkers.js'
 import { stockChoices } from '../stock.js'
 import { HydratedEighteenFortySixState, CanonicalValidator } from '../state.js'
 
@@ -88,4 +90,36 @@ it('route scenarios can proceed through payout after running trains', () => {
         }
     })
     expect(earningsChoices1846(new HydratedEighteenFortySixState(updatedState))).toHaveLength(3)
+})
+
+describe('1846 private power scenarios', () => {
+    for (const count of [2, 3, 4, 5]) {
+        it(`gives the operating railroad usable private powers with ${count} players`, () => {
+            const position = (name: 'private-tiles' | 'private-upgrade' | 'private-marker') => {
+                const { state } = exampleGame(Scenarios1846, name, count, 1889)
+                return { hydrated: new HydratedEighteenFortySixState(state), state }
+            }
+            const tiles = position('private-tiles')
+            const president = tiles.state.activePlayerIds[0]
+            for (const id of ['MC', 'O&I'] as const)
+                expect(
+                    new PrivateConstruction(tiles.hydrated, president, id).choices([]).length
+                ).toBeGreaterThan(0)
+            const upgrade = position('private-upgrade')
+            expect(
+                new PrivateConstruction(
+                    upgrade.hydrated,
+                    upgrade.state.activePlayerIds[0],
+                    'LSL'
+                ).choices([]).length
+            ).toBeGreaterThan(0)
+            const marker = position('private-marker')
+            expect(marker.state.pendingRevenueMarker).toMatchObject({ privateCompanyId: 'MPC' })
+            expect(
+                revenueMarkerChoices(marker.hydrated, marker.state.activePlayerIds[0]).map(
+                    (choice) => choice.locationId
+                )
+            ).toEqual(['I1', 'D6'])
+        })
+    }
 })
