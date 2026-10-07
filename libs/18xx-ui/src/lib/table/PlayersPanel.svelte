@@ -64,7 +64,12 @@
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
             certs: session.playerCertificates(playerId),
-            ...ownerPortfolio(session.gameState, { kind: 'player', playerId }, valuationRules)
+            ...ownerPortfolio(
+                session.gameState,
+                { kind: 'player', playerId },
+                valuationRules,
+                !!session.presentation.minorsAsPrivates
+            )
         })),
         ...portfolioCompanyIds.map((companyId) => {
             const controller = controllingOwner(session.gameState, companyId)
@@ -454,7 +459,9 @@
                                         />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
                                                 class="private-power"
                                                 ><PrivateExchangeButton {session} {option} /></span
-                                            >{/each}{#each session.privateActions.trackPowers.filter((power) => power.playerId === player.playerId && power.privateCompanyId === entry.company.id) as power (power.privateCompanyId)}<span
+                                            >{/each}{#each session.privateActions
+                                            .powersFor(entry.company.id)
+                                            .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
                                                 class="private-power"
                                                 ><PrivateTrackPowerButton {session} {power} /></span
                                             >{/each}</th

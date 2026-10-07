@@ -39,8 +39,11 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         LM: { tiles: StraightTilePair },
         'C&WI': { companyId: 'C&WI' },
         TBC: { terrain: 'mountain' },
-        BT: { imageUrl: BoomtownToken }
+        BT: { imageUrl: BoomtownToken },
+        MS: { companyId: 'MS' },
+        BIG4: { companyId: 'BIG4' }
     },
+    minorsAsPrivates: true,
     marketCell: { width: 36, height: 96 },
     marketZones: [
         {

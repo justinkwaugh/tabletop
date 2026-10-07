@@ -4,6 +4,8 @@
         $props()
     const canBuy = $derived(session.decisions.companyPurchasesAvailable)
     const canUse = $derived(session.privateActions.powersAvailable)
+    const buying = $derived(!!session.privateActions.purchaseSource)
+    const usingPowers = $derived(session.privateActions.selection === 'powers')
     let menu = $state<HTMLDivElement>()
     let compact = $state<HTMLButtonElement>()
     $effect(() => {
@@ -17,9 +19,11 @@
     let expanded = $state(false)
     let position = $state({ top: 0, left: 0 })
 
+    // Each button toggles: pressing the open one returns to where the player was.
     function choose(powers: boolean) {
         menu?.hidePopover()
-        if (powers) session.privateActions.choosePowers()
+        if (powers ? usingPowers : buying) session.privateActions.close()
+        else if (powers) session.privateActions.choosePowers()
         else
             session.privateActions.choosePurchaseSource(
                 session.decisions.companyPurchases.some(
@@ -35,12 +39,12 @@
 
 {#snippet choices()}
     {#if canBuy}<button
-            aria-pressed={!!session.privateActions.purchaseSource}
+            aria-pressed={buying}
             disabled={!session.decisions.canResolve}
             onclick={() => choose(false)}>{purchaseLabel}</button
         >{/if}
     {#if canUse}<button
-            aria-pressed={session.privateActions.selection === 'powers'}
+            aria-pressed={usingPowers}
             disabled={!session.decisions.canResolve}
             onclick={() => choose(true)}>Use privates</button
         >{/if}

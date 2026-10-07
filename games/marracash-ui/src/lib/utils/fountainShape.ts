@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import type { Rect } from '$lib/utils/boardGeometry.js'
 
 export const FountainTurn = 22.5
 export const FountainRadii = { rim: 38, water: 32, trim: 42, ring: 44 }
@@ -37,4 +38,15 @@ export function eightPointedStar(center: Point, radius: number): string {
             radius: index % 2 === 0 ? radius : radius * StarInnerRatio
         }))
     )
+}
+
+export function fountainOutline(center: Point, entrance: boolean): string {
+    return entrance
+        ? eightPointedStar(center, EntranceRadii.trim)
+        : octagon(center, FountainRadii.rim)
+}
+
+export function fountainBounds(center: Point, entrance: boolean): Rect {
+    const radius = entrance ? EntranceRadii.trim : FountainRadii.rim
+    return { x: center.x - radius, y: center.y - radius, width: 2 * radius, height: 2 * radius }
 }

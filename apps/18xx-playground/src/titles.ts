@@ -135,7 +135,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
     {
         key: '1846',
         name: '1846',
-        scenarioVersion: 31,
+        scenarioVersion: 32,
         rules: SessionRules1846,
         scenarios: Scenarios1846,
         host: scenarioHost(FortySixUi, Scenarios1846),
@@ -145,7 +145,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileLayouts: TileLayouts1846,
         mapExample: { locationId: 'G7', definitionId: '18xx:5', rotation: 0, label: 'IC' },
         tileSets: { '1846': EighteenFortySixTileSet },
-        positions: [],
+        positions: ['private-tiles', 'private-upgrade', 'private-marker'],
         supportedPositions: ScenarioPositions1846,
         finishedGame: () => import('./demo/fixtures/1846-finished.json'),
         playerCounts: [2, 3, 4, 5]

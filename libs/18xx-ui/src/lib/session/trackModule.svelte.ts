@@ -32,7 +32,7 @@ type TrackMap = {
     map: Pick<MapViewDefinition['map'], 'definition'>
     tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
 }
-type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelection'>
+type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelection' | 'titlePower'>
 type Decisions = Pick<CompanyDecisionsModule, 'selectPrivateTile' | 'confirm'>
 
 export class TrackModule {
@@ -57,7 +57,12 @@ export class TrackModule {
     selection = $derived.by((): TrackSelection =>
         this.session.selectionsVisible && this.laying ? this.stages.state : {}
     )
+    private titlePower = $derived.by(() => {
+        const power = this.privateActions.titlePower
+        return power?.kind === 'track' ? power : undefined
+    })
     construction = $derived.by(() => {
+        if (this.titlePower) return this.titlePower.construction
         const { state, rules } = this.session
         const power = this.privateActions.trackPowerSelection?.value
         if (!power) return new TrackConstruction(state, rules.trackRules)
@@ -234,6 +239,12 @@ export class TrackModule {
     }
 
     private async commit(preview: TrackLayDetails) {
+        if (this.titlePower) {
+            // A title may stage the lay locally for a later combined action.
+            await this.titlePower.commit(preview)
+            this.stages.clear()
+            return
+        }
         const power = this.privateActions.trackPowerSelection?.value
         if (power) {
             this.decisions.selectPrivateTile({ ...power, details: preview })

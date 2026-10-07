@@ -13,9 +13,13 @@ export type TokenTiles = {
 export type StationAppearance = {
     label: string
     color: string
+    /** A plain disc of the colour, such as the blocked home of a company not in the game. */
+    solid?: true
     imageUrl?: string
     tiles?: TokenTiles
 }
+/** A symbol row's centre, or each symbol's own centre. */
+export type SymbolPosition = Point | readonly Point[]
 export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {
@@ -43,7 +47,9 @@ export type MapViewDefinition = {
      * Where a location's revenue-sized symbols go, by location id, in place of clear space: the
      * centre of their row, or each symbol's own centre.
      */
-    symbolPositions?: Readonly<Record<string, Point | readonly Point[]>>
+    symbolPositions?: Readonly<
+        Record<string, SymbolPosition | Readonly<Record<string, SymbolPosition>>>
+    >
     /** Locations whose curved city name runs under the city, reading along its foot. */
     namesBelow?: readonly string[]
     /** Height of a location's terrain cost row, by location id, where it is not placed below the stops. */

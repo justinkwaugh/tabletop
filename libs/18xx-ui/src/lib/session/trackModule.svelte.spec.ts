@@ -14,7 +14,11 @@ import { testSession } from './moduleTestSession.js'
 const noPrivateTrack = { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
 
 type PrivateActions = ConstructorParameters<typeof TrackModule>[2]
-const noPrivateAction: PrivateActions = { selection: undefined, trackPowerSelection: undefined }
+const noPrivateAction: PrivateActions = {
+    selection: undefined,
+    trackPowerSelection: undefined,
+    titlePower: undefined
+}
 
 function laying(
     tileSet = minimalTrackTileSet,
@@ -163,7 +167,8 @@ describe('TrackModule', () => {
             {},
             {
                 selection: 'mine',
-                trackPowerSelection: undefined
+                trackPowerSelection: undefined,
+                titlePower: undefined
             }
         )
         expect(module.showChoices).toBe(false)

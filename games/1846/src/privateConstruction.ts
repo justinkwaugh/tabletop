@@ -100,10 +100,15 @@ export class PrivateConstruction {
         return Locations[this.privateId]
             .filter((id) => !requests.some((lay) => lay.locationId === id))
             .flatMap((id) => construction.choices(id))
-            .filter(
-                (choice) =>
-                    this.evaluate([...requests, choice], requests.length > 0).state !== undefined
-            )
+            .filter((choice) => {
+                const plan = [...requests, choice]
+                if (requests.length) return this.evaluate(plan).state !== undefined
+                // A first lay must either complete the power or leave a second lay that does.
+                return (
+                    this.evaluate(plan, false).state !== undefined &&
+                    (this.evaluate(plan).state !== undefined || this.choices(plan).length > 0)
+                )
+            })
     }
     evaluate(requests: readonly TrackRequest[], complete = true): ConstructionPlan {
         const companyId = privatePowerCompany(this.state, this.playerId, this.privateId)

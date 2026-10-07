@@ -4,6 +4,7 @@
     import BidPanel from '$lib/components/BidPanel.svelte'
     import RefillPanel from '$lib/components/RefillPanel.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
+    import HistoryStepPanel from '$lib/components/HistoryStepPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import Outcomes from '$lib/components/Outcomes.svelte'
     import FinalRoundBanner from '$lib/components/FinalRoundBanner.svelte'
@@ -34,7 +35,9 @@
         {#if gameSession.finalTurnPlayerId}
             <FinalRoundBanner finalTurnPlayerId={gameSession.finalTurnPlayerId} />
         {/if}
-        {#if gameSession.gameState.result}
+        {#if gameSession.isViewingHistory}
+            <HistoryStepPanel />
+        {:else if gameSession.gameState.result}
             <GameEndPanel {lead} />
         {:else if gameSession.canBid}
             <BidPanel {lead} />

@@ -2,12 +2,15 @@ import type { RouteBonus, RoutePayment } from './route.js'
 
 export interface RouteRevenueStop extends RoutePayment {
     bonus: number
+    /** What earned the stop's bonus, where the title names it. */
+    bonusLabel?: string
     companyStation: boolean
 }
 
 export type PaidConnectionBonus = {
     from: Readonly<Record<string, number>>
     to: Readonly<Record<string, number>>
+    label?: string
 }
 
 export type RouteRevenuePolicy = {
@@ -20,12 +23,12 @@ export function routeConnectionBonuses(
     stops: readonly RouteRevenueStop[],
     policy: RouteRevenuePolicy
 ): RouteBonus[] {
-    return (policy.connectionBonuses ?? []).flatMap(({ from, to }) => {
+    return (policy.connectionBonuses ?? []).flatMap(({ from, to, label }) => {
         const best = (values: Readonly<Record<string, number>>) =>
             stops.reduce<RouteBonus | undefined>((selected, stop) => {
                 const amount = values[stop.locationId]
                 return amount !== undefined && (!selected || amount > selected.amount)
-                    ? { locationId: stop.locationId, amount }
+                    ? { locationId: stop.locationId, amount, ...(label ? { label } : {}) }
                     : selected
             }, undefined)
         const origin = best(from)

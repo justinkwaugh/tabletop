@@ -18,6 +18,7 @@
         FountainRadii,
         FountainRimShadeId,
         FountainRippleRadii,
+        fountainOutline,
         FountainShadowOffset,
         FountainWaterShadeId,
         octagon
@@ -40,6 +41,7 @@
         label = `Fountain ${fountain.fountainId}`,
         onselect,
         onpreview,
+        halo = true,
         layer = 'whole'
     }: {
         fountain: FountainState
@@ -50,6 +52,7 @@
         label?: string
         onselect: () => void
         onpreview?: (previewing: boolean) => void
+        halo?: boolean
         layer?: 'whole' | 'basin' | 'visitors'
     } = $props()
 
@@ -100,12 +103,12 @@
 </script>
 
 {#snippet basin()}
-    {#if destination}
+    {#if halo && destination}
         <path
             class="destination-pulse"
             style:--pulse-seconds="{PulseSeconds}s"
             style:--pulse-delay="{PulsePeakSeconds - PulseSeconds / 2}s"
-            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            d={fountainOutline(center, definition.entrance)}
             fill="none"
             stroke="#ffffff"
             stroke-width="12"
@@ -113,9 +116,9 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
-    {#if highlighted && !selected}
+    {#if halo && highlighted && !selected}
         <path
-            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            d={fountainOutline(center, definition.entrance)}
             fill="none"
             stroke="#ffffff"
             stroke-width="8"
@@ -123,7 +126,7 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
-    {@const outer = outline(center, definition.entrance ? radii.trim : radii.rim)}
+    {@const outer = fountainOutline(center, definition.entrance)}
     <path
         d={outer}
         transform="translate({FountainShadowOffset.x} {FountainShadowOffset.y})"
@@ -218,20 +221,24 @@
     {/if}
 {/snippet}
 
+<!-- One element whether or not the fountain can be chosen, so becoming choosable only changes
+ its attributes and never repaints the basin. -->
 {#if layer === 'visitors'}
     <g class="pointer-events-none" aria-hidden="true">{@render visitors()}</g>
-{:else if selectable}
+{:else}
+    <!-- tabindex is set only when the role is button; the checker cannot follow the condition -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
-        role="button"
-        tabindex="0"
-        aria-label={label}
-        class="cursor-pointer"
-        onpointerenter={() => onpreview?.(true)}
-        onpointerleave={() => onpreview?.(false)}
-        onfocus={() => onpreview?.(true)}
-        onblur={() => onpreview?.(false)}
-        onclick={() => onselect()}
-        onkeydown={(event) => event.key === 'Enter' && onselect()}
+        role={selectable ? 'button' : undefined}
+        tabindex={selectable ? 0 : undefined}
+        aria-label={selectable ? label : undefined}
+        class:cursor-pointer={selectable}
+        onpointerenter={selectable ? () => onpreview?.(true) : undefined}
+        onpointerleave={selectable ? () => onpreview?.(false) : undefined}
+        onfocus={selectable ? () => onpreview?.(true) : undefined}
+        onblur={selectable ? () => onpreview?.(false) : undefined}
+        onclick={selectable ? () => onselect() : undefined}
+        onkeydown={selectable ? (event) => event.key === 'Enter' && onselect() : undefined}
     >
         <rect
             x={center.x - CellSize / 2}
@@ -239,11 +246,10 @@
             width={CellSize}
             height={CellSize}
             fill="transparent"
+            pointer-events={selectable ? undefined : 'none'}
         ></rect>
         {@render body()}
     </g>
-{:else}
-    <g>{@render body()}</g>
 {/if}
 
 <style>

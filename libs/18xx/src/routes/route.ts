@@ -25,7 +25,12 @@ export const RoutePayment = Type.Object(
 )
 export type RoutePayment = Type.Static<typeof RoutePayment>
 export const RouteBonus = Type.Object(
-    { locationId: Id, amount: Type.Integer({ minimum: 1 }) },
+    {
+        locationId: Id,
+        amount: Type.Integer({ minimum: 1 }),
+        /** What earned the bonus, such as a private company, where the title names it. */
+        label: Type.Optional(Type.String({ minLength: 1 }))
+    },
     { additionalProperties: false }
 )
 export type RouteBonus = Type.Static<typeof RouteBonus>

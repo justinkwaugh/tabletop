@@ -394,7 +394,7 @@ describe('1846 Mail Contract run scoring', () => {
         expect(result.routes[1].revenue).toBe(80)
         expect(result.revenue).toBe(340)
         expect(result.routes[0].bonuses?.filter((b) => b.locationId === 'D14')).toEqual([
-            { locationId: 'D14', amount: 10 }
+            { locationId: 'D14', amount: 10, label: 'Mail Contract' }
         ])
         expect(evaluation.evaluate('NYC', routes.toReversed()).result?.revenue).toBe(340)
         expect(evaluation.evaluate('NYC', [routes[1]]).result?.revenue).toBe(100)

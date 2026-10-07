@@ -1,7 +1,7 @@
 <script lang="ts">
     import { PillarShadowOffset, Towers } from '$lib/utils/cityWall.js'
     import { onDestroy } from 'svelte'
-    import { BoardColumns, BoardRows, Palms } from '@tabletop/marracash'
+    import { BoardColumns, BoardRows, getFountain, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
     import StallDefs from '$lib/components/StallDefs.svelte'
@@ -20,11 +20,17 @@
     import CityGates from '$lib/components/CityGates.svelte'
     import StreetWear from '$lib/components/StreetWear.svelte'
     import EarningsPopupLayer from '$lib/components/EarningsPopupLayer.svelte'
+    import HaloRing from '$lib/components/HaloRing.svelte'
+    import { stallOutline } from '$lib/utils/stalls.js'
+    import { fountainBounds, fountainOutline } from '$lib/utils/fountainShape.js'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
         BoardHeight,
         BoardWidth,
         CellSize,
+        cellCenter,
+        shopRect,
+        ShopTileInset,
         QueueMargin,
         CandidateHaloFilterId,
         CastShadowFilterId,
@@ -51,7 +57,6 @@
             ? gameSession.refillEntranceIds
             : [gameSession.selectedFountainId, ...gameSession.destinationFountainIds]
     )
-    let queueLifted = $derived(gameSession.refillEntranceIds.length > 0)
     let liftedFountains = $derived(
         gameSession.visibleFountains.filter((fountain) =>
             liftedFountainIds.includes(fountain.fountainId)
@@ -91,6 +96,20 @@
             (shop) => shop !== spotlightShop && !enteredShops.includes(shop)
         )
     )
+    let choosableShops = $derived(
+        dimmed
+            ? []
+            : gameSession.visibleShops.filter((shop) =>
+                  gameSession.auctionableShopIds.includes(shop.shopId)
+              )
+    )
+    let choosableFountains = $derived(
+        dimmed
+            ? []
+            : gameSession.visibleFountains.filter((fountain) =>
+                  gameSession.movableFountainIds.includes(fountain.fountainId)
+              )
+    )
 
     function previewDestination(destinationId: FountainId, previewing: boolean) {
         hoveredRoute = previewing
@@ -121,7 +140,7 @@
     }
 </script>
 
-{#snippet fountainSpot(fountain: FountainState, layer: 'whole' | 'basin' = 'whole')}
+{#snippet fountainSpot(fountain: FountainState)}
     {@const isSource = gameSession.selectedFountainId === fountain.fountainId}
     {@const isDestination = gameSession.destinationFountainIds.includes(fountain.fountainId)}
     {@const selectable =
@@ -140,11 +159,16 @@
         onpreview={isDestination
             ? (previewing) => previewDestination(fountain.fountainId, previewing)
             : undefined}
-        {layer}
     />
 {/snippet}
 
-<div class="relative" style:width="{TableWidth}px" style:height="{TableHeight}px">
+<div
+    class="relative"
+    role="img"
+    aria-label="MarraCash market"
+    style:width="{TableWidth}px"
+    style:height="{TableHeight}px"
+>
     <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
         <defs>
             <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
@@ -178,14 +202,7 @@
             <PawnDefs />
             <FountainDefs />
         </defs>
-        {#if !queueLifted}
-            <VisitorQueue />
-        {/if}
-        <g
-            role="img"
-            aria-label="MarraCash market"
-            transform="translate({QueueMargin} {QueueMargin})"
-        >
+        <g transform="translate({QueueMargin} {QueueMargin})">
             <CityWall />
             <rect
                 x={WallThickness}
@@ -202,23 +219,87 @@
                 <PalmTree coords={palm} />
             {/each}
 
-            {#each groundShops as shop (shop.shopId)}
-                <ShopTile
-                    {shop}
-                    selectable={gameSession.auctionableShopIds.includes(shop.shopId)}
-                    layer={dimmed ? 'awning' : 'whole'}
-                />
+            {#each gameSession.visibleShops as shop (shop.shopId)}
+                <ShopTile {shop} layer="awning" />
             {/each}
 
-            {#if !fountainsAboveDimming}
-                {#each groundFountains as fountain (fountain.fountainId)}
-                    {@render fountainSpot(fountain, dimmed ? 'basin' : 'whole')}
-                {/each}
-            {/if}
+            {#each gameSession.visibleFountains as fountain (fountain.fountainId)}
+                <FountainSpot
+                    {fountain}
+                    selectable={false}
+                    highlighted={false}
+                    selected={false}
+                    halo={false}
+                    onselect={() => {}}
+                    layer="basin"
+                />
+            {/each}
+        </g>
+    </svg>
+    <!-- Everything that changes with play (signs, visitors, halos, the overlay and the pieces
+     raised above it, the queue) lives on its own composited layer above a board that never
+     changes, so dimming, choosing or a new state repaints only this layer. -->
+    <svg
+        class="raised-layer pointer-events-none absolute top-0 left-0"
+        width={TableWidth}
+        height={TableHeight}
+        viewBox="0 0 {TableWidth} {TableHeight}"
+    >
+        <g transform="translate({QueueMargin} {QueueMargin})">
+            <!-- The board beneath holds no controls, so becoming choosable never repaints it -->
+            {#each choosableShops as shop (shop.shopId)}
+                {@const rect = shopRect(shop.shopId, ShopTileInset)}
+                {@const outline = stallOutline(shop.shopId, rect.width, rect.height)}
+                <g
+                    role="button"
+                    tabindex="0"
+                    aria-label="Auction shop {shop.shopId}"
+                    class="cursor-pointer"
+                    pointer-events="auto"
+                    transform="translate({rect.x} {rect.y})"
+                    onclick={() => gameSession.startAuction(shop.shopId)}
+                    onkeydown={(event) =>
+                        event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
+                >
+                    <HaloRing
+                        id="marracash-shop-halo-{shop.shopId}"
+                        {outline}
+                        bounds={{ x: 0, y: 0, width: rect.width, height: rect.height }}
+                    />
+                    <path d={outline} fill="transparent"></path>
+                </g>
+            {/each}
+            {#each choosableFountains as fountain (fountain.fountainId)}
+                {@const definition = getFountain(fountain.fountainId)}
+                {@const center = cellCenter(definition.coords)}
+                <g
+                    role="button"
+                    tabindex="0"
+                    aria-label="Fountain {fountain.fountainId}"
+                    class="cursor-pointer"
+                    pointer-events="auto"
+                    onclick={() => chooseFountain(fountain.fountainId)}
+                    onkeydown={(event) =>
+                        event.key === 'Enter' && chooseFountain(fountain.fountainId)}
+                >
+                    <HaloRing
+                        id="marracash-fountain-halo-{fountain.fountainId}"
+                        outline={fountainOutline(center, definition.entrance)}
+                        bounds={fountainBounds(center, definition.entrance)}
+                    />
+                    <rect
+                        x={center.x - CellSize / 2}
+                        y={center.y - CellSize / 2}
+                        width={CellSize}
+                        height={CellSize}
+                        fill="transparent"
+                    ></rect>
+                </g>
+            {/each}
 
             {#if dimmed}
                 <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
-                <g opacity="0.25">
+                <g opacity="0.25" pointer-events="auto">
                     <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
                     {#each Towers as pillar (`${pillar.x},${pillar.y}`)}
                         {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
@@ -233,35 +314,38 @@
                         {/each}
                     {/each}
                 </g>
-                {#each groundShops as shop (shop.shopId)}
-                    <ShopTile {shop} selectable={false} layer="sign" />
-                {/each}
-                {#each groundFountains as fountain (fountain.fountainId)}
-                    {#if fountainsAboveDimming}
-                        {@render fountainSpot(fountain)}
-                    {:else}
-                        <FountainSpot
-                            {fountain}
-                            selectable={false}
-                            selected={false}
-                            onselect={() => {}}
-                            layer="visitors"
-                        />
-                    {/if}
-                {/each}
             {/if}
 
-            {#if spotlightShop}
-                <ShopTile shop={spotlightShop} selectable={false} spotlit />
-            {/if}
-
-            {#each enteredShops as shop (shop.shopId)}
-                <ShopTile {shop} selectable={false} />
+            {#each groundShops as shop (shop.shopId)}
+                <ShopTile {shop} layer="sign" />
+            {/each}
+            {#each groundFountains as fountain (fountain.fountainId)}
+                {#if fountainsAboveDimming}
+                    <g pointer-events="auto">{@render fountainSpot(fountain)}</g>
+                {:else}
+                    <FountainSpot
+                        {fountain}
+                        selectable={false}
+                        selected={false}
+                        onselect={() => {}}
+                        layer="visitors"
+                    />
+                {/if}
             {/each}
 
-            {#each liftedFountains as fountain (fountain.fountainId)}
-                {@render fountainSpot(fountain)}
-            {/each}
+            <g pointer-events="auto">
+                {#if spotlightShop}
+                    <ShopTile shop={spotlightShop} spotlit />
+                {/if}
+
+                {#each enteredShops as shop (shop.shopId)}
+                    <ShopTile {shop} />
+                {/each}
+
+                {#each liftedFountains as fountain (fountain.fountainId)}
+                    {@render fountainSpot(fountain)}
+                {/each}
+            </g>
 
             {#if previewRoute}
                 <!-- Remount per route so its dashes start in step with the destination's pulse. -->
@@ -274,9 +358,7 @@
                 <HistoryHighlight highlight={gameSession.historyHighlight} />
             {/if}
         </g>
-        {#if queueLifted}
-            <VisitorQueue />
-        {/if}
+        <g pointer-events="auto"><VisitorQueue /></g>
     </svg>
     <!-- Walking pawns get their own composited layer, so moving them never repaints the
      filter-heavy board beneath. -->
@@ -299,6 +381,7 @@
 </div>
 
 <style>
+    .raised-layer,
     .walker-layer {
         will-change: transform;
     }

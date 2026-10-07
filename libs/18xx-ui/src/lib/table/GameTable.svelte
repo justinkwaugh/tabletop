@@ -355,18 +355,29 @@
               : session.stations.privateStationLocationIds
     )
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
+    const locationChoice = $derived(session.mapLocationChoice)
+    const powerReservations = $derived.by(() => {
+        const power = session.privateActions.titlePower
+        return power?.kind === 'confirm' ? (power.reservations ?? []) : []
+    })
     const maskPlacementLocations = $derived(
-        !consentPreview && (choosingCity || session.track.showChoices || session.stations.canPlace)
+        !consentPreview &&
+            (!!locationChoice ||
+                choosingCity ||
+                session.track.showChoices ||
+                session.stations.canPlace)
     )
     const placementLocationIds = $derived(
-        choosingCity
-            ? offeredCityLocationIds
-            : !session.privateActions.trackPowerSelection && session.stations.canPlace
-              ? session.stations.locationIds
-              : session.track.locationIds
+        locationChoice
+            ? locationChoice.locationIds
+            : choosingCity
+              ? offeredCityLocationIds
+              : !session.privateActions.trackPowerSelection && session.stations.canPlace
+                ? session.stations.locationIds
+                : session.track.locationIds
     )
     const highlightedPlacementLocationIds = $derived(
-        session.track.showChoices
+        !locationChoice && session.track.showChoices
             ? [...new Set([...session.track.reachableLocationIds, ...placementLocationIds])]
             : placementLocationIds
     )
@@ -568,15 +579,6 @@
     }
 
     const gameState = $derived(session.gameState)
-    const startedCompanies = $derived(
-        spreadsheetCompanies(
-            gameState,
-            session.actions,
-            session.gameState.actionCount,
-            spreadsheetCompanyOrder,
-            includedCompanyIds
-        )
-    )
     const headerState = $derived(tableHeaderState(session))
     const headerPlayerId = $derived(
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
@@ -593,6 +595,19 @@
             ? gameState.operatingSet.companyOrder
             : operatingRules.companyOrder(gameState)
         ).map((id) => getCompany(gameState, id))
+    )
+    // Company cards and the spreadsheet follow the operating order unless the title sets its own.
+    const displayedCompanyOrder = $derived(
+        spreadsheetCompanyOrder ?? companyOrder.map((company) => company.id)
+    )
+    const startedCompanies = $derived(
+        spreadsheetCompanies(
+            gameState,
+            session.actions,
+            session.gameState.actionCount,
+            displayedCompanyOrder,
+            includedCompanyIds
+        )
     )
     setGameSession(untrack(() => session))
     const layoutPreference = new DebouncedLayout(
@@ -731,8 +746,11 @@
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
-        reservations={session.track.displayedPreview?.stationReservations ??
-            session.stations.displayState.stationReservations}
+        reservations={[
+            ...(session.track.displayedPreview?.stationReservations ??
+                session.stations.displayState.stationReservations),
+            ...powerReservations
+        ]}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled
@@ -749,7 +767,10 @@
         hexDiameter={140}
         {extents}
         onselect={interactive && !consentPreview
-            ? (selection) => session.map.select(selection, false)
+            ? (selection) =>
+                  locationChoice?.locationIds.includes(selection.locationId)
+                      ? locationChoice.choose(selection.locationId)
+                      : session.map.select(selection, false)
             : undefined}
     />
 {/snippet}
@@ -1024,7 +1045,6 @@
                                                 {session}
                                                 {company}
                                                 {poolName}
-                                                {privateOperationDescription}
                                             />
                                         {/snippet}
                                     </CompanyOrder>{/if}
@@ -1218,7 +1238,7 @@
                                     pricePresentation={companyPricePresentation}
                                     fillWidth={paneLayout.current}
                                     {includedPortfolioCompanyIds}
-                                    companyOrder={spreadsheetCompanyOrder}
+                                    companyOrder={displayedCompanyOrder}
                                     onPreviewMap={previewHistoryMap}
                                     {trainColors}
                                     {valuationRules}
@@ -1244,7 +1264,6 @@
                                             {session}
                                             {trainColors}
                                             {poolName}
-                                            {privateOperationDescription}
                                             onPreviewMap={previewHistoryMap}
                                         />
                                     {:else}<p class="widget-empty">

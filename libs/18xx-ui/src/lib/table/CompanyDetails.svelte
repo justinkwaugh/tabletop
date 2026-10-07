@@ -25,6 +25,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
+    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
     let {
@@ -38,7 +39,6 @@
         purchaseSources,
         canPurchase,
         trainColors,
-        privateOperationDescription,
         poolName = (pool) => pool.name
     }: {
         pricePresentation?: CompanyPricePresentation
@@ -51,10 +51,6 @@
         trainColors: Readonly<Record<string, string>>
         displayName?: string
         company: Company
-        privateOperationDescription: (
-            privateCompanyId: string,
-            companyId: string
-        ) => string | undefined
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const money = $derived(session.presentation.money)
@@ -343,7 +339,6 @@
 {/snippet}
 
 {#snippet privateCard(item: (typeof session.privates.companies)[number], purchasePrice?: string)}
-    {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">
             <div class="private-name">
@@ -355,20 +350,25 @@
                     name={item.name}
                     description={item.description}
                     income={item.closed ? undefined : item.privateRevenue}
-                />
+                />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
+                        class="private-power"><PrivateTrackPowerButton {session} {power} /></span
+                    >{/each}
             </div>
             <span
                 >{purchasePrice ??
                     (item.closed ? 'Closed' : `${money(item.privateRevenue ?? 0)} / OR`)}</span
             >
         </div>
-        {#if !vertical && !item.closed && description}<p>{description}</p>{/if}
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
     </article>
 {/snippet}
 
 <style>
+    .private-power {
+        margin-left: 6px;
+        white-space: nowrap;
+    }
     .company-detail.unavailable {
         background: var(--rail-surface, #f1f1ef);
         border-color: var(--rail-border, #d0d0cd);
@@ -713,7 +713,7 @@
         cursor: pointer;
     }
     .private + .private {
-        margin-top: 10px;
+        margin-top: 4px;
     }
     .private-heading {
         display: flex;
@@ -722,18 +722,16 @@
         font-size: 12px;
     }
     .private-name {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px 0;
         font-weight: 400;
     }
-    .private-heading span {
+    .private-heading > span {
         white-space: nowrap;
         color: var(--rail-muted, #887664);
         font-size: 11px;
-    }
-    .private p {
-        margin: 1px 0 0;
-        font-size: 12px;
-        line-height: 1.5;
-        color: var(--rail-text, #796958);
     }
     .status {
         font-size: 10px;

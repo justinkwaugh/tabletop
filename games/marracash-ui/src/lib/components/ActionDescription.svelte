@@ -22,10 +22,10 @@
 
     const MaxPawnsInSentence = 8
 
-    let { action }: { action: GameAction } = $props()
+    let { action, detail = true }: { action: GameAction; detail?: boolean } = $props()
     const gameSession = getGameSession()
 
-    let payments = $derived(actionMoneyReport(action)?.payments ?? [])
+    let payments = $derived(detail ? (actionMoneyReport(action)?.payments ?? []) : [])
 </script>
 
 {#snippet shop(shopId: ShopId, article: 'a' | 'the')}
@@ -49,7 +49,9 @@
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}
     <PlayerTag playerId={result.winnerId} /> bought {@render shop(result.shopId, 'the')} for {result.price}.
-    <span class="mt-1 block"><AuctionBids {result} /></span>
+    {#if detail}
+        <span class="mt-1 block"><AuctionBids {result} /></span>
+    {/if}
 {:else if isMoveVisitors(action)}
     {@const colors = action.metadata ? movedVisitorColors(action.metadata) : []}
     moved

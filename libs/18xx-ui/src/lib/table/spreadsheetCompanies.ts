@@ -24,14 +24,17 @@ export function spreadsheetCompanies(
         .slice(0, actionCount)
         .filter(isStartCompany)
         .map((action) => action.companyId)
-    const baseOrder = companyOrder ?? [
+    // A given order comes first. Companies it leaves out follow in the order they started, then
+    // the included companies that never started.
+    const startOrder = [
         ...eligibleCompanies
             .filter((company) => !starts.includes(company.id))
             .map((company) => company.id),
         ...starts
     ]
     const order = [
-        ...baseOrder.filter((id) => !includedCompanyIds.includes(id)),
+        ...(companyOrder ?? []),
+        ...startOrder.filter((id) => !includedCompanyIds.includes(id)),
         ...includedCompanyIds
     ]
     return eligibleCompanies.toSorted((a, b) => order.indexOf(a.id) - order.indexOf(b.id))

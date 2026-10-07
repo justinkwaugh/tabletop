@@ -7,18 +7,84 @@ import {
     type GameDefinition,
     type UninitializedGameState
 } from '@tabletop/common'
-import { TrackConstruction, nextOperatingCompany } from '@tabletop/18xx'
+import {
+    TrackConstruction,
+    nextOperatingCompany,
+    privateTrackConstruction,
+    type Owner
+} from '@tabletop/18xx'
 import { ScenarioConfigurator, type ScenarioPosition } from '@tabletop/18xx/scenarios'
 import { Initializer } from '../setup.js'
 import { Definition, Runtime } from '../definition/gameDefinition.js'
 import { HydratedEighteenFortySixState, type EighteenFortySixProjectedState } from '../state.js'
 import { choicesFor, hiddenDistribution } from '../distribution.js'
 import { openingPurchaseChoices } from '../publicDistribution.js'
-import { isBlank } from '../catalog.js'
+import { draftCompany, isBlank } from '../catalog.js'
 import { stockChoices } from '../stock.js'
 import { trainBuyingChoices1846 } from '../trains.js'
 import { EighteenFortySixTileSet } from '../tiles.js'
 import { TrackRules1846 } from '../track.js'
+
+type ScenarioState = ReturnType<HydratedEighteenFortySixState['dehydrate']>
+
+// Positions where the operating railroad has just bought these privates from its president.
+const PositionPrivates: Partial<Record<ScenarioPosition, readonly string[]>> = {
+    'private-tiles': ['MC', 'O&I'],
+    'private-upgrade': ['LSL'],
+    'private-marker': ['MPC']
+}
+/** Gives a private to a player, restoring it first when setup removed it from this game. */
+function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
+    if (!state.companies.some((company) => company.id === privateId)) {
+        const company = draftCompany(privateId)
+        state.companies.push({
+            id: company.id,
+            name: company.name,
+            kind: 'private',
+            privateRevenue: company.revenue
+        })
+        state.certificates.push({
+            id: `${company.id}:charter`,
+            companyId: company.id,
+            certificateLimitCount: 1,
+            retired: false,
+            owner: { kind: 'bank' },
+            kind: 'private'
+        })
+        state.removedPrivateIds = state.removedPrivateIds.filter((id) => id !== privateId)
+    }
+    const certificate = state.certificates.find(
+        (certificate) => certificate.companyId === privateId && !certificate.retired
+    )
+    assertExists(certificate, `Scenario needs ${privateId}`)
+    if (!certificate.retired) certificate.owner = owner
+}
+/** Lays a yellow tile in each city, so an upgrade has something to replace. */
+function cityTiles(state: ScenarioState, companyId: string, locationIds: string[]) {
+    const construction = privateTrackConstruction(
+        new HydratedEighteenFortySixState(state),
+        {
+            companyId,
+            locationIds,
+            definitionIds: EighteenFortySixTileSet.definitions
+                .filter((tile) => tile.face.color === 'yellow')
+                .map((tile) => tile.id),
+            payer: { kind: 'company', companyId },
+            connected: false,
+            free: true
+        },
+        TrackRules1846
+    )
+    return locationIds.reduce((inventory, locationId) => {
+        const lay = construction.choices(locationId)[0]
+        assertExists(lay, `Scenario needs a yellow tile in ${locationId}`)
+        return EighteenFortySixTileSet.replace(inventory, {
+            locationId,
+            placement: lay.placement,
+            returnPrevious: true
+        })
+    }, state.tileInventory)
+}
 
 export const ScenarioPositions1846: readonly ScenarioPosition[] = [
     'opening',
@@ -30,6 +96,9 @@ export const ScenarioPositions1846: readonly ScenarioPosition[] = [
     'routes',
     'trains',
     'powers',
+    'private-tiles',
+    'private-upgrade',
+    'private-marker',
     'transfers',
     'ending'
 ]
@@ -131,7 +200,16 @@ class ScenarioInitializer1846 extends Initializer {
                         assertExists(lay, 'Station scenario needs connected track')
                         act('LayTile', { ...request, expectedCost: lay.cost })
                     }
-                    if (['routes', 'trains', 'powers', 'transfers', 'ending'].includes(position)) {
+                    if (
+                        [
+                            'routes',
+                            'trains',
+                            'powers',
+                            'transfers',
+                            'ending',
+                            ...Object.keys(PositionPrivates)
+                        ].includes(position)
+                    ) {
                         const treasury = state.cash.find(
                             (balance) =>
                                 balance.owner.kind === 'company' &&
@@ -161,7 +239,11 @@ class ScenarioInitializer1846 extends Initializer {
                             delete state.earningsDistribution
                             delete state.trainPurchaseStep
                         }
-                        if (position === 'powers' || position === 'transfers') {
+                        if (
+                            position === 'powers' ||
+                            position === 'transfers' ||
+                            position in PositionPrivates
+                        ) {
                             state.phaseId = 'II'
                             state.machineState = 'LayingTrack'
                             state.trackStep = {
@@ -177,6 +259,21 @@ class ScenarioInitializer1846 extends Initializer {
                             delete state.earningsDistribution
                             delete state.trainPurchaseStep
                             delete state.routeStep
+                        }
+                        if (position === 'private-upgrade')
+                            state.tileInventory = cityTiles(state, start.companyId, ['D14', 'E17'])
+                        for (const privateId of PositionPrivates[position] ?? []) {
+                            const seller = {
+                                kind: 'player' as const,
+                                playerId: state.activePlayerIds[0]
+                            }
+                            dealPrivate(state, privateId, seller)
+                            act('OfferPurchase', {
+                                companyId: start.companyId,
+                                seller,
+                                asset: { kind: 'private', privateCompanyId: privateId },
+                                price: draftCompany(privateId).price
+                            })
                         }
                         if (position === 'ending') {
                             assertExists(state.operatingSet)

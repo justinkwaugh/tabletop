@@ -82,6 +82,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
+    /** Lists minor companies a player owns among their privates, as 1846 sells them in its draft. */
+    minorsAsPrivates?: true
     operatingSteps?: readonly {
         label: string
         states: readonly string[]

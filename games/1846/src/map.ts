@@ -65,6 +65,7 @@ for (const [id, hexes] of Object.entries(PrivateTrackBlocks))
         markers[hex] = [
             { id, label: id, description: `${id} reserves this hex while player-owned.` }
         ]
+export const MeatPackingLocations = ['I1', 'D6']
 export const PortSymbols: Readonly<Record<string, number>> = { B8: 2, C5: 1, D14: 1, G19: 2, I1: 1 }
 export const EastWestBonuses: Readonly<Record<string, { side: 'east' | 'west'; amount: number }>> =
     {
@@ -100,6 +101,15 @@ for (const [id, ports] of Object.entries(PortSymbols))
             label: `Port ×${ports}`,
             description: `${ports} port symbols for Steamboat Company.`,
             count: ports
+        }
+    ]
+for (const id of MeatPackingLocations)
+    markers[id] = [
+        ...(markers[id] ?? []),
+        {
+            id: 'meat-packing',
+            label: 'Meat packing',
+            description: 'Meat Packing Company may place its +$30 marker here.'
         }
     ]
 const locations = createLetterNumberLocationFactory({

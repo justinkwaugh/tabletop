@@ -420,7 +420,9 @@
                                     <TileSymbol
                                         symbol={annotation.symbol}
                                         ink={appearance.ink}
-                                        paper={appearance.colors.blue ?? appearance.paper}
+                                        paper={annotation.symbol === 'port'
+                                            ? (appearance.colors.blue ?? appearance.paper)
+                                            : appearance.paper}
                                     />
                                     <circle
                                         r={PortSymbol.radius}

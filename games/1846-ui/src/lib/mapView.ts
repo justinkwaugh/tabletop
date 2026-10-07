@@ -38,6 +38,7 @@ export const TileLayouts1846: Readonly<Record<string, TileLayout>> = {
 const SouthCorner = { x: 18, y: 31.2 }
 // Map symbol positions are on the drawn hex, so a pointy tile's northeast corner is direct.
 const NortheastCorner = { x: 28.6, y: -16.5 }
+const SoutheastCorner = { x: 28.6, y: 16.5 }
 const mapLayouts: Readonly<Record<string, TileLayout>> = {
     ...TileLayouts1846,
     // Every offboard but Louisville stacks its revenues, with any bonus badge, beside the middle
@@ -124,9 +125,11 @@ export const MapView1846: MapViewDefinition = {
     namesBelow: ['I15'],
     // Chicago's Chi already names it.
     hideLocationNames: ['D6'],
-    // Ports take northeast corners, and Holland's pair sits above its spike.
+    // Ports take northeast corners, and Holland's pair sits above its spike. Meat packing takes
+    // St. Louis's southeast corner and the middle of Chicago.
     symbolPositions: {
-        I1: NortheastCorner,
+        I1: { ports: NortheastCorner, 'meat-packing': SoutheastCorner },
+        D6: { 'meat-packing': { x: 0, y: 0 } },
         C5: NortheastCorner,
         D14: NortheastCorner,
         // Wheeling's second port continues up the line of its northeast edge.
@@ -136,6 +139,7 @@ export const MapView1846: MapViewDefinition = {
     markerArt: {
         IC: { centeredLabel: true },
         'east-west': { revenueBadge: true, arrows: true },
-        ports: { revenueSymbol: 'port' }
+        ports: { revenueSymbol: 'port' },
+        'meat-packing': { revenueSymbol: 'horns' }
     }
 }

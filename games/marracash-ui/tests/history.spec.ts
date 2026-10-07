@@ -67,6 +67,13 @@ async function walkerMilliseconds(page: Page): Promise<number> {
 const movedReport = /moved \d+ visitors/
 const latestEntry = (page: Page) => page.locator('.history [role=button]').first()
 
+// History refuses to play while a step is still settling; its icons light up once it is ready.
+async function playWhenReady(page: Page) {
+    const play = page.getByRole('button', { name: 'play history' })
+    await expect(play.locator('svg.history-control-on')).toHaveCount(1)
+    await play.click()
+}
+
 test('stepping back and forward over a move glides pawns and hides staged choices', async ({
     page
 }) => {
@@ -86,7 +93,7 @@ test('stepping back and forward over a move glides pawns and hides staged choice
     await expect(auctionableShops(page)).toHaveCount(0)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
     await expect(latestEntry(page)).not.toContainText('moved')
-    await expect(actionPanel(page)).toContainText('All bids are in.')
+    await expect(actionPanel(page)).toContainText('placed a sealed bid.')
     await expect(board(page).locator('path[filter*="candidate-halo"]')).toHaveCount(1)
 
     await watchWalkers(page)
@@ -105,10 +112,10 @@ test('playing the history replays a move as a walk', async ({ page }) => {
     await moveIntoOwnedShops(page)
     await openHistory(page)
     await stepBackwards(page).click()
-    await expect(actionPanel(page)).toContainText('All bids are in.')
+    await expect(actionPanel(page)).toContainText('placed a sealed bid.')
 
     await watchWalkers(page)
-    await page.getByRole('button', { name: 'play history' }).click()
+    await playWhenReady(page)
     expect(await walkerMilliseconds(page)).toBeGreaterThan(500)
     await expect(latestEntry(page)).toContainText('moved')
 })
@@ -128,8 +135,8 @@ test('history controls pressed during a walk let it finish on the moved state', 
     await expect(latestEntry(page)).toContainText('moved')
 
     await stepBackwards(page).click()
-    await expect(actionPanel(page)).toContainText('All bids are in.')
-    await page.getByRole('button', { name: 'play history' }).click()
+    await expect(actionPanel(page)).toContainText('placed a sealed bid.')
+    await playWhenReady(page)
     await expect(walkers(page)).not.toHaveCount(0)
     await stepBackwards(page).click()
     await goToCurrent(page).click()
