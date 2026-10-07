@@ -7,7 +7,9 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer
 } from '../model/question.js'
-import { rulesSite, rulingWarbandOwners, warbandsAt } from './rule.js'
+import { rulesSite, rulingWarbandOwners, actsAsIfBanditsAreWarbands, warbandsAt } from './rule.js'
+import { reasonCannotMoveCardTo } from './locked.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from './force.js'
 import {
     advisersTowardLimit,
@@ -112,8 +114,20 @@ export function reasonTransferInvalid(
     for (const site of transfer.sites ?? []) {
         if (!rulesSite(state, fromId, site.siteId))
             return `${fromId} promised ${site.siteId} without ruling it`
-        if (!Number.isInteger(site.warbands) || site.warbands < 1)
-            return `${toId} must move at least one warband to ${site.siteId}`
+        // Deed Writer's Q&A: a Citizen and the Chancellor cannot exchange sites, "since you both rule them already".
+        if (
+            isAtLeastOathRevision(state, OathRevision.EngineFixes2) &&
+            rulesSite(state, toId, site.siteId)
+        ) {
+            return `${toId} already rules ${site.siteId}`
+        }
+        // Deed Writer's Q&A: "not zero unless they have the Bandit Crown" (R-7.6.5).
+        const fewest = actsAsIfBanditsAreWarbands(state, toId) ? 0 : 1
+        if (!Number.isInteger(site.warbands) || site.warbands < fewest) {
+            return fewest === 0
+                ? 'a promised amount cannot be negative'
+                : `${toId} must move at least one warband to ${site.siteId}`
+        }
         const owner = boardWarbandOwnerOf(state, toId)
         if (!owner || countOf(to.warbandsOnBoard, owner) < site.warbands) {
             return `${toId}'s board has fewer than ${site.warbands} warbands to move to ${site.siteId}`
@@ -123,7 +137,14 @@ export function reasonTransferInvalid(
     const rows = transfer.adviserRows ?? []
     if (new Set(rows).size !== rows.length) return `${fromId} promised the same adviser twice`
     for (const row of rows) {
-        if (from.advisers[row] === undefined) return `${fromId} has no adviser in row ${row + 1}`
+        const adviser = from.advisers[row]
+        if (adviser === undefined) return `${fromId} has no adviser in row ${row + 1}`
+        // R-7.2 — a facedown adviser shows no restriction banner, so only a faceup one is locked (R-7.2.2).
+        if (adviser.faceUp && isAtLeastOathRevision(state, OathRevision.EngineFixes2)) {
+            assertExists(adviser.cardId, 'A faceup adviser row names its card')
+            const unmovable = reasonCannotMoveCardTo(state, fromId, adviser.cardId, 'advisers')
+            if (unmovable) return unmovable
+        }
     }
     if (rows.length > 0) {
         // R-7.2.1 — the receiver's adviser limit, counted as Search counts it.

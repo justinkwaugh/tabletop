@@ -82,7 +82,11 @@ export function areEnemies(
     return !(isImperialPlayer(state, a, scope) && isImperialPlayer(state, b, scope))
 }
 
-function actsAsIfBanditsAreWarbands(state: HydratedOathGameState, playerId: string): boolean {
+/** R-7.6.5 — the Bandit Crown: "you treat bandits as your warbands". */
+export function actsAsIfBanditsAreWarbands(
+    state: HydratedOathGameState,
+    playerId: string
+): boolean {
     const player = state.getPlayerState(playerId)
     if (player.relicIds.length === 0) return false
     return relicPersistentsHeldBy(state, player).some(({ hooks }) => hooks.banditsAreHolderWarbands)

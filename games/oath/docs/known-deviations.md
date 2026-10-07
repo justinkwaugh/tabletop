@@ -21,8 +21,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Land Warden:** the second card played gets no When Played choices, no Deep Woods or Wastes relic, and cannot use a space freed by Crop Rotation or the Great Slum, nor be played to another site by New Growth or the People's Favor. In a game created before revision 3 (R-X.4) it takes none of the Search's modifiers, so Book of Records' holder gains favor for it, and Wild Cry and Welcoming Party look at the kept card only. A When Played power that draws a hidden card (Family Heirloom, Pilgrimage, the citizenship relic takes) is not resolved for it, and the action records that in `secondWhenPlayed`; the table offers only the second plays the engine accepts.
 - **Marriage:** counts as two Hearth advisers only in a Trade, not for the Conspiracy's match or Military Parade.
 - **Salad Days:** accepts an empty favor bank (R-7.1.3).
-- **Deed Writer:** lets a Citizen and the Chancellor exchange sites, and refuses a Bandit Crown holder with no warbands; its two Q&As say otherwise.
-- **The Gathering:** asks from the acting player, not the Chancellor (its Q&A), and its exchange can move locked advisers (R-7.2.2).
 - **The Tribunal:** its exchange binds what changes hands at once, not promises of later actions (R-7.6.3-H1).
 - **Vow of Kinship:** Nomad-bank favor is always put into the People's Favor Wake, and Plague Engines and Dissent force it too; its Q&A makes it optional.
 - **Forced Labor:** not charged for Oracle's draw, and in a game created before revision 3 (R-X.4) not for an R-6.1 play either; both Q&As charge it.
