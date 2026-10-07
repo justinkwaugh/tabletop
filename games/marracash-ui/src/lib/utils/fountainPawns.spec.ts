@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fountainPawnPositions, FountainRowStagger } from './fountainPawns.js'
+import { FountainPawnSpacing, fountainPawnPositions, MaxPawnsShown } from './fountainPawns.js'
 
 const center = { x: 100, y: 100 }
 
@@ -11,24 +11,39 @@ function rowsOf(count: number): number[][] {
     return [...rows.entries()].sort(([a], [b]) => a - b).map(([, xs]) => xs)
 }
 
+const counts = Array.from({ length: MaxPawnsShown }, (_, index) => index + 1)
+
 describe('fountain pawn layout', () => {
+    it.each(counts)('never stands one of %i pawns directly behind another', (count) => {
+        const rows = rowsOf(count)
+        for (let row = 1; row < rows.length; row++) {
+            for (const front of rows[row]) {
+                for (const back of rows[row - 1]) {
+                    expect(Math.abs(front - back)).toBeGreaterThanOrEqual(
+                        FountainPawnSpacing.x / 2 - 0.001
+                    )
+                }
+            }
+        }
+    })
+
+    it.each(counts)('centres a cluster of %i pawns on the fountain', (count) => {
+        const xs = rowsOf(count).flat()
+        expect((Math.min(...xs) + Math.max(...xs)) / 2).toBeCloseTo(center.x)
+    })
+
     it.each([4, 6, 9])('staggers full rows left, right, left for %i pawns', (count) => {
         const rows = rowsOf(count)
         for (let row = 1; row < rows.length; row++) {
             expect(rows[row][0] - rows[row - 1][0]).toBeCloseTo(
-                row % 2 === 1 ? FountainRowStagger : -FountainRowStagger
+                ((row % 2 === 1 ? 1 : -1) * FountainPawnSpacing.x) / 2
             )
         }
     })
 
-    it.each([2, 3, 5, 7, 8])('leaves %i pawns unstaggered', (count) => {
-        const rows = rowsOf(count)
-        const centers = rows.map((xs) => (Math.min(...xs) + Math.max(...xs)) / 2)
-        for (const rowCenter of centers) expect(rowCenter).toBeCloseTo(center.x)
-    })
-
-    it('staggers full rows by the same offset a short row has', () => {
-        const [fullRow, shortRow] = rowsOf(5)
-        expect(shortRow[0] - fullRow[0]).toBeCloseTo(FountainRowStagger)
+    it.each([2, 3, 5])('keeps the plain layout for %i pawns', (count) => {
+        for (const xs of rowsOf(count)) {
+            expect((Math.min(...xs) + Math.max(...xs)) / 2).toBeCloseTo(center.x)
+        }
     })
 })
