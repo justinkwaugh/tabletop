@@ -2,14 +2,16 @@
     import {
         PawnBaseY,
         PawnBodyShadeId,
+        PawnBrimShadowId,
+        PawnBrimY,
         PawnClipId,
         PawnFootShadeId,
         PawnGroundShadowId,
-        PawnHeadCenterY,
-        PawnHeadShadeId,
-        PawnNeckShadeId,
-        PawnNeckY,
-        PawnOutline
+        PawnHatShadeId,
+        PawnOutline,
+        PawnTopY,
+        PawnWaistShadeId,
+        PawnWaistY
     } from '$lib/utils/pawnShape.js'
 </script>
 
@@ -23,28 +25,39 @@
     <stop offset="1" stop-color="#000000" stop-opacity="0.38"></stop>
 </linearGradient>
 <radialGradient
-    id={PawnHeadShadeId}
+    id={PawnHatShadeId}
     gradientUnits="userSpaceOnUse"
-    cx="-1.8"
-    cy={PawnHeadCenterY - 2.2}
-    r="6.7"
-    fx="-2"
-    fy={PawnHeadCenterY - 2.4}
+    cx="-2"
+    cy={PawnTopY + 3.6}
+    r="7"
+    fx="-2.2"
+    fy={PawnTopY + 3.2}
 >
-    <stop offset="0" stop-color="#ffffff" stop-opacity="0.62"></stop>
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop>
     <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.08"></stop>
-    <stop offset="1" stop-color="#000000" stop-opacity="0.32"></stop>
+    <stop offset="1" stop-color="#000000" stop-opacity="0.2"></stop>
 </radialGradient>
 <linearGradient
-    id={PawnNeckShadeId}
+    id={PawnBrimShadowId}
     gradientUnits="userSpaceOnUse"
     x1="0"
-    y1={PawnNeckY - 1.6}
+    y1={PawnBrimY}
     x2="0"
-    y2={PawnNeckY + 2.2}
+    y2={PawnBrimY + 2.6}
+>
+    <stop offset="0" stop-color="#000000" stop-opacity="0.38"></stop>
+    <stop offset="1" stop-color="#000000" stop-opacity="0"></stop>
+</linearGradient>
+<linearGradient
+    id={PawnWaistShadeId}
+    gradientUnits="userSpaceOnUse"
+    x1="0"
+    y1={PawnWaistY - 1.2}
+    x2="0"
+    y2={PawnWaistY + 1.6}
 >
     <stop offset="0" stop-color="#000000" stop-opacity="0"></stop>
-    <stop offset="0.45" stop-color="#000000" stop-opacity="0.24"></stop>
+    <stop offset="0.45" stop-color="#000000" stop-opacity="0.2"></stop>
     <stop offset="1" stop-color="#000000" stop-opacity="0"></stop>
 </linearGradient>
 <linearGradient
