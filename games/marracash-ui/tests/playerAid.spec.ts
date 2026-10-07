@@ -123,6 +123,7 @@ test('the aid takes keyboard focus, keeps the board out of reach and hands focus
 }) => {
     await createGame(page)
     await aidButton(page).focus()
+    await expect(aidButton(page)).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(aid(page)).toBeFocused()
     await expect(page.locator('g[aria-label^="Auction shop"]').first()).not.toBeFocused()
