@@ -35,11 +35,12 @@
                 type="button"
                 aria-pressed={chosen === option}
                 aria-label={name(option)}
+                disabled={gameSession.busy}
                 class="min-w-9 px-2.5 py-0.5 text-sm {index > 0
                     ? 'border-l border-[#8a6a46]'
                     : ''} {chosen === option
                     ? 'bg-[#8a6a46] font-semibold text-white'
-                    : 'hover:bg-[#8a6a46]/15'}"
+                    : 'hover:bg-[#8a6a46]/15'} disabled:opacity-50"
                 onclick={() => choose(option)}>{text(option)}</button
             >
         {/each}
