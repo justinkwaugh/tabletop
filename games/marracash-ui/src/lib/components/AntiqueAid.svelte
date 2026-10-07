@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { antiqueColorCounts, MarketColor } from '@tabletop/marracash'
+    import type { MarketColor } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AidCard from '$lib/components/AidCard.svelte'
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
-    import PawnIcon from '$lib/components/PawnIcon.svelte'
+    import AntiqueItem from '$lib/components/AntiqueItem.svelte'
+    import { PanelPalette } from '$lib/utils/playerPanel.js'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
     import { AntiqueItemNames, sortedAntiques } from '$lib/utils/antiqueItems.js'
     import {
@@ -14,6 +15,7 @@
 
     const gameSession = getGameSession()
     const ValueRanges = antiqueValueRanges()
+    const ItemSize = 22
 
     let myId = $derived(gameSession.myPlayer?.id)
     let myHand = $derived(
@@ -24,12 +26,6 @@
             ? antiqueProgress(sortedAntiques(myHand), gameSession.gameState.customersByColor(myId))
             : ExampleAntiqueHand.map((card) => ({ card, covered: false }))
     )
-    let needs = $derived.by(() => {
-        const counts = antiqueColorCounts(hand.map((entry) => entry.card))
-        return Object.values(MarketColor)
-            .filter((color) => counts[color] > 0)
-            .map((color) => ({ color, count: counts[color] }))
-    })
     let payoutRows = $derived(antiquePayoutRows(gameSession.gameState.players.length))
 
     function itemName(color: MarketColor): string {
@@ -39,47 +35,40 @@
 </script>
 
 <AidCard title="Antiques">
-    <p>Match every card with a customer of its color in your shops.</p>
-    <div class="my-1 flex justify-center gap-1">
+    <p>Each card needs a customer of its color in your shops.</p>
+    <div class="mt-2 flex justify-center gap-1.5">
         {#each hand as entry, index (index)}
-            <AntiqueCard card={entry.card} covered={entry.covered} surface="parchment" />
+            <AntiqueCard card={entry.card} covered={entry.covered} />
         {/each}
     </div>
-    <p class="text-center text-xs text-[#5a4630] italic">
-        needs
-        {#each needs as need (need.color)}
-            <span class="ml-1 font-bold whitespace-nowrap not-italic"
-                ><PawnIcon color={need.color} height={15} />{need.count}</span
-            >
-        {/each}
-    </p>
-    <h3 class="aid-heading">Upon completion:</h3>
-    <p class="aid-lead">Collect the total value of your best cards:</p>
+    <h3 class="aid-heading">Upon completion</h3>
+    <p class="aid-lead">Gain cash equal to your best cards:</p>
     <table class="aid-table">
         <tbody>
             {#each payoutRows as row (row.place)}
                 <tr>
-                    <td>{row.place} to complete</td>
+                    <td>{row.place}</td>
                     <td class="aid-gain text-right">+ best {row.paidCards} cards</td>
                 </tr>
             {/each}
         </tbody>
     </table>
     <h3 class="aid-heading">Card values</h3>
-    <table class="aid-table">
-        <tbody>
-            {#each ValueRanges as range (range.color)}
-                <tr>
-                    <td>
-                        <span
-                            class="mr-1 inline-block h-[11px] w-[11px] rounded-[3px] border border-black/35 align-[-1px]"
-                            style:background-color={gameSession.marketPalettes[range.color].fill}
-                        ></span>
-                        {itemName(range.color)}
-                    </td>
-                    <td class="marracash-display text-right">{range.lowest}–{range.highest}</td>
-                </tr>
-            {/each}
-        </tbody>
-    </table>
+    <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {#each ValueRanges as range (range.color)}
+            <div class="flex items-center gap-2">
+                <svg
+                    width={ItemSize}
+                    height={ItemSize}
+                    viewBox="0 0 40 40"
+                    role="img"
+                    aria-label={itemName(range.color)}
+                >
+                    <AntiqueItem color={range.color} cutout={PanelPalette.glaze} />
+                </svg>
+                <!-- El Messiri sets numerals high in the line, above the bottom-heavy items -->
+                <span class="aid-figure relative top-[2px]">{range.lowest}–{range.highest}</span>
+            </div>
+        {/each}
+    </div>
 </AidCard>

@@ -25,6 +25,8 @@ export async function createGame(page: Page, { concealedCash = false, antiqueCar
     }
     await page.getByRole('button', { name: 'Create Game' }).click()
     await expect(board(page)).toBeVisible()
+    // The new-game dialog stays modal while it closes, leaving the table inert and unfocusable
+    await page.waitForFunction(() => document.querySelector('dialog:modal') === null)
 }
 
 export function board(page: Page): Locator {
