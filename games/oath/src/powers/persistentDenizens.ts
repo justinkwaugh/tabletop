@@ -178,13 +178,13 @@ registerPersistent(
             ctx.ownerIds.includes(actorId)
                 ? 'Vow of Silence: you cannot give anyone secrets'
                 : undefined,
-        afterBannerRecovered: (ctx, actorId, banner, paid) => {
+        afterBannerRecovered: (ctx, actorId, banner, placed) => {
             if (banner !== Banner.DarkestSecret) return undefined
             const notes: string[] = []
             for (const owner of ctx.ownerIds) {
                 if (owner === actorId) continue
                 notes.push(
-                    `Vow of Silence: ${owner} gained ${gainSecrets(ctx.state, owner, paid)} secrets`
+                    `Vow of Silence: ${owner} gained ${gainSecrets(ctx.state, owner, placed)} secrets`
                 )
             }
             return notes.length > 0 ? notes.join('; ') : undefined

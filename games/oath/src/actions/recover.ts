@@ -28,6 +28,7 @@ import {
 import { takeRelicFromVault } from '../util/hiddenInputs.js'
 import { takeRelic, clearSiteRelicSlot } from '../util/relics.js'
 import { pawnSiteId } from '../powers/vocabulary.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import {
     favorPayment,
     modifierPayment,
@@ -194,8 +195,9 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
 
         player.secrets -= paid
         bannerState.value = stacked
-        // R-7.1.4 — Vow of Silence: its holders gain what was placed.
-        const triggered = afterBannerRecoveredPersistent(state, this.playerId, banner, paid)
+        // R-7.1.4 — Vow of Silence: its holders gain what was placed, Magician's Code's two included.
+        const placed = isAtLeastOathRevision(state, OathRevision.CardFixes1) ? stacked : paid
+        const triggered = afterBannerRecoveredPersistent(state, this.playerId, banner, placed)
 
         const takenByRecoverer = HydratedRecover.recoveringFromSelf(this.playerId, previousHolderId)
             ? previousValue // R-5.4.4 — from yourself, you keep them all

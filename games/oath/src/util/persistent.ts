@@ -276,7 +276,7 @@ export function afterBannerRecoveredPersistent(
     state: HydratedOathGameState,
     actorId: string,
     banner: Banner,
-    paid: number
+    placed: number
 ): string[] {
-    return runPersistent(state, (h, ctx) => h.afterBannerRecovered?.(ctx, actorId, banner, paid))
+    return runPersistent(state, (h, ctx) => h.afterBannerRecovered?.(ctx, actorId, banner, placed))
 }

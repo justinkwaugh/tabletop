@@ -275,7 +275,7 @@ export interface PersistentHooks {
         ctx: PersistentContext,
         actorId: string,
         banner: Banner,
-        paid: number
+        placed: number
     ) => string | undefined
     /** Jinx */
     offersReroll?: (ctx: PersistentContext, rollerId: string) => boolean

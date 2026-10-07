@@ -7,7 +7,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 ## Card powers
 
 - **Battle-plan costs:** in a game created before revision 3 (R-X.4) each plan's cost is checked alone against the untouched holding, so a side can declare plans it cannot pay in full: the payment throws, or Gleaming Armor's added secret leaves its payer below zero.
-- **Vow of Silence:** its holder gains the secrets paid for the Darkest Secret, not the number placed, so Magician's Code's two are missed.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
 - **Secret Signal:** refused under Careless when trading for secrets; its Q&A allows it.
 - **Mushrooms with Augury:** the draw depends on the order the two are declared; the Q&A says two are drawn.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { HydratedRecover, RecoverTargetKind } from '../actions/recover.js'
+import { HydratedRecover, Recover, RecoverTargetKind, isRecover } from '../actions/recover.js'
 import { HydratedCampaign } from '../actions/campaign.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { Banner, Suit } from '../model/oathEnums.js'
@@ -8,6 +8,9 @@ import { PowerQuestionKind } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import { testPlayer, testState, openTurn, withChancellor } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
+import { modifierUse } from '../testing/choices.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
 import { INN } from '../testing/cards.js'
 import { reasonCannotPlayConspiracy } from '../util/cardPlay.js'
 import { askQuestion } from '../util/questions.js'
@@ -19,6 +22,7 @@ const RENEWAL = 'denizen.discord.vow-of-renewal'
 const TOME = 'denizen.order.tome-guardians'
 const TONGUE = 'denizen.nomad.lost-tongue'
 const CIRCLET = 'relic.circlet-of-command'
+const MAGICIANS_CODE = 'denizen.arcane.magicians-code'
 const PYTHON = 'denizen.beast.giant-python'
 const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 const WOLVES = 'denizen.beast.wolves'
@@ -106,6 +110,28 @@ describe('Tome Guardians, Lost Tongue and Circlet of Command forbid every take, 
                 expect(take(circlet, Banner.DarkestSecret)).toMatch(/Circlet of Command/)
                 expect(take(circlet, Banner.PeoplesFavor)).toMatch(/Circlet of Command/)
             }
+        })
+    }
+})
+
+describe("Vow of Silence counts the secrets placed, Magician's Code's two included", () => {
+    /** `holder` keeps the vow; `taker` recovers the unheld Darkest Secret, paying one and stacking three. */
+    const silent = (oathRevision: number) =>
+        table(oathRevision, [MAGICIANS_CODE], [SILENCE], {}, { banners: { [Banner.PeoplesFavor]: { value: 1, mobSide: false }, [Banner.DarkestSecret]: { value: 1 } } })
+    const recoverWithCode = () => buildAction(Recover, { playerId: 'taker', target: { kind: RecoverTargetKind.Banner, banner: Banner.DarkestSecret }, amountPaid: 1, modifiers: [modifierUse(MAGICIANS_CODE)] })
+
+    for (const [oathRevision, gained] of [[beforeRevision, 1], [atRevision, 3]]) {
+        it(`R-X.4 — revision ${oathRevision}: the holder gains ${gained}, and the Recover replays unchanged`, () => {
+            const before = silent(oathRevision).dehydrate()
+            const game = testGame(['taker', 'holder', 'chancellor'])
+            const recorded = engine.runNext(recoverWithCode(), structuredClone(before), game)
+            expect(recorded.updatedState.banners[Banner.DarkestSecret]).toMatchObject({ holderPlayerId: 'taker', value: 3 })
+            expect(recorded.updatedState.players.find((p) => p.playerId === 'holder')?.secrets).toBe(3 + gained)
+            expect(recorded.processedActions.find(isRecover)?.metadata?.modifierNotes).toEqual([`Vow of Silence: holder gained ${gained} secrets`])
+
+            let replayed = structuredClone(before)
+            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded.updatedState)
         })
     }
 })
