@@ -28,7 +28,7 @@
         waitingStatus(gameSession.gameState, (playerId) => gameSession.visibleMoney(playerId))
     )
     let lastPlay = $derived(
-        latestTurnStep(gameSession.actions).filter(
+        latestTurnStep(gameSession.shownActions).filter(
             (action) =>
                 action.source === ActionSource.User &&
                 (isMoveVisitors(action) || isBringVisitors(action))

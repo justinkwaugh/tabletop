@@ -235,3 +235,37 @@ test('the last refill of a turn can be undone after the next turn has started', 
     await expect(actionPanel(page)).toContainText('Bring new visitors to the empty entrance.')
     await expect(page.getByText('52 waiting')).toBeVisible()
 })
+
+test('the queue keeps its front at the top as visitors leave either end', async ({ page }) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
+    await expect(actionPanel(page)).toContainText('Bring new visitors')
+
+    const visitors = page.locator('g[aria-label="Visitor queue"] > g[transform]')
+    const line = () =>
+        visitors.evaluateAll((elements) =>
+            elements.map((element) => ({
+                at: element.getAttribute('transform'),
+                shown: getComputedStyle(element).opacity !== '0'
+            }))
+        )
+    const before = await line()
+
+    await page.getByRole('button', { name: 'Front of queue' }).click()
+    await page.getByRole('button', { name: '4', exact: true }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect(visitors).toHaveCount(before.length - 4)
+    await expect.poll(line).toEqual(before.slice(0, before.length - 4))
+
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect.poll(line).toEqual(before)
+
+    await page.getByRole('button', { name: 'Back of queue' }).click()
+    await page.getByRole('button', { name: '3', exact: true }).click()
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect.poll(line).toEqual(before.slice(0, before.length - 3))
+})

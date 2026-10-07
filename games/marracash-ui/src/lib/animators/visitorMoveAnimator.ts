@@ -6,19 +6,29 @@ import type { AnimationContext, GameStateChangeListener } from '@tabletop/fronte
 import {
     getFountain,
     getShop,
+    isBringVisitors,
     isMoveVisitors,
     routeFrom,
     shopsNextTo,
     type FountainId,
     type HydratedMarracashGameState,
     type MarketColor,
+    type BringVisitors,
     type MoveResult,
     type Route,
     type ShopId
 } from '@tabletop/marracash'
 import type { MarracashGameSession } from '$lib/model/session.svelte.js'
-import { cellCenter, distance, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
-import { fountainPawnPositions } from '$lib/utils/fountainPawns.js'
+import {
+    cellCenter,
+    distance,
+    gateRect,
+    shopRect,
+    ShopTileInset,
+    WallSide,
+    wallSideOf
+} from '$lib/utils/boardGeometry.js'
+import { fountainPawnPositions, MaxPawnsShown } from '$lib/utils/fountainPawns.js'
 import { shopBranch } from '$lib/utils/routePreview.js'
 import { EarningsPopups } from '$lib/animators/earningsPopups.svelte.js'
 
@@ -31,6 +41,20 @@ const MaxWalkSeconds = 3
 // Undo and state-only history must settle within the shared 200ms fallback budget.
 export const DirectSeconds = 0.2
 const InShopScale = 0.3
+// New visitors appear this far outside the gate and fade in as they pass through it.
+const BeyondGate = 18
+// They set off as the visitors taken from the queue fade, at a stroll, well spaced, after any
+// visitors already there have stepped aside to make room.
+const EntranceLeadIn = 0.1
+const EntranceWalkPixelsPerSecond = 120
+const EntranceSpacing = 40
+const MakeRoomSeconds = 0.35
+const Outward: Record<WallSide, Point> = {
+    [WallSide.Top]: { x: 0, y: -1 },
+    [WallSide.Bottom]: { x: 0, y: 1 },
+    [WallSide.Left]: { x: -1, y: 0 },
+    [WallSide.Right]: { x: 1, y: 0 }
+}
 
 export type VisitorWalker = { id: string; color: MarketColor }
 
@@ -87,6 +111,8 @@ export class VisitorMoveAnimator {
             await tick()
             this.earnings.scheduleStill(animationContext.actionTimeline, DirectSeconds)
             animationContext.afterAnimations(() => this.earnings.clear())
+        } else if (isBringVisitors(action) && action.metadata && !prefersReducedMotion.current) {
+            await this.animateEntrance(action, action.metadata.visitors, from, to, animationContext)
         } else if (isMoveVisitors(action) && action.metadata) {
             const route = routeFrom(action.fountainId, action.direction)
             assertExists(route, `No route leaves fountain ${action.fountainId} ${action.direction}`)
@@ -175,6 +201,83 @@ export class VisitorMoveAnimator {
             this.earnings.schedule(shopId, timeline, enteredAt)
         }
         animationContext.afterAnimations(() => this.earnings.clear())
+    }
+
+    // Any visitors already at the entrance first step to their places in the larger crowd; then the
+    // new ones come in through the gate, fading in as they pass through it, and walk to their own
+    // places, the farthest filled first. Nobody moves once placed: the fountain shows its
+    // crowd again only when everyone has arrived, in the same places.
+    private async animateEntrance(
+        action: BringVisitors,
+        newcomers: readonly MarketColor[],
+        from: HydratedMarracashGameState,
+        to: HydratedMarracashGameState,
+        animationContext: AnimationContext
+    ) {
+        const coords = getFountain(action.entranceId).coords
+        const center = cellCenter(coords)
+        const present = from.getFountainState(action.entranceId).visitors
+        const crowd = [...present, ...newcomers]
+        if (crowd.length > MaxPawnsShown) {
+            await this.animateDirect(from, to, animationContext)
+            return
+        }
+        const before = fountainPawnPositions(present.length, center)
+        const after = fountainPawnPositions(crowd.length, center)
+        const gate = gateRect(coords)
+        const outward = Outward[wallSideOf(coords)]
+        const gateCenter = { x: gate.x + gate.width / 2, y: gate.y + gate.height / 2 }
+        const half = (Math.abs(outward.x) * gate.width + Math.abs(outward.y) * gate.height) / 2
+        const outside = {
+            x: gateCenter.x + outward.x * (half + BeyondGate),
+            y: gateCenter.y + outward.y * (half + BeyondGate)
+        }
+        const inside = { x: gateCenter.x - outward.x * half, y: gateCenter.y - outward.y * half }
+        const walkers = crowd.map((color, order) => ({ id: `${action.id}-in-${order}`, color }))
+        // Newcomers file in to the farthest spots first, so later ones never pass through them.
+        const fileOrder = crowd
+            .map((_, order) => order)
+            .slice(present.length)
+            .toSorted((a, b) => distance(inside, after[b]) - distance(inside, after[a]))
+        await this.mountWalkers(walkers, animationContext)
+
+        const timeline = animationContext.actionTimeline
+        timeline.call(() => this.showFountain(action.entranceId, []), undefined, 0)
+        const makeRoom = present.length > 0 ? MakeRoomSeconds : 0
+        const throughGate = distance(outside, inside) / EntranceWalkPixelsPerSecond
+        let lastArrival = makeRoom
+        walkers.forEach((walker, order) => {
+            const element = this.walkerElement(walker)
+            const spot = after[order]
+            if (order < present.length) {
+                this.place(element, before[order], 1)
+                timeline.set(element, { opacity: 1 }, 0)
+                timeline.to(element, { x: spot.x, y: spot.y, duration: MakeRoomSeconds }, 0)
+                return
+            }
+            const filed = fileOrder.indexOf(order)
+            const start =
+                EntranceLeadIn + makeRoom + (filed * EntranceSpacing) / EntranceWalkPixelsPerSecond
+            const toSpot = distance(inside, spot) / EntranceWalkPixelsPerSecond
+            this.place(element, outside, 1)
+            timeline.to(
+                element,
+                { x: inside.x, y: inside.y, opacity: 1, duration: throughGate, ease: 'none' },
+                start
+            )
+            timeline.to(
+                element,
+                { x: spot.x, y: spot.y, duration: toSpot, ease: 'power1.out' },
+                start + throughGate
+            )
+            lastArrival = Math.max(lastArrival, start + throughGate + toSpot)
+        })
+        timeline.call(() => this.showFountain(action.entranceId, crowd), undefined, lastArrival)
+        timeline.set(
+            walkers.map((walker) => this.walkerElement(walker)),
+            { opacity: 0 },
+            lastArrival
+        )
     }
 
     // Pawns leave from the back, so the crowd left behind is the front of the visitor list.

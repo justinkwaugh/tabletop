@@ -82,6 +82,13 @@
         overflow: hidden;
     }
 
+    /* iOS Safari zooms on rapid taps (double-tap to zoom); pinch zoom still works. */
+    button,
+    a,
+    [role='button'] {
+        touch-action: manipulation;
+    }
+
     .dark input.auth-input:autofill {
         /* Browser autofill colors override background-color. */
         box-shadow:

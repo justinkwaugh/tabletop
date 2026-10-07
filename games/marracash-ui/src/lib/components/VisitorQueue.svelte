@@ -1,16 +1,26 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte'
     import { QueueEnd } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Pawn from '$lib/components/Pawn.svelte'
-    import { QueueCountLabel, queueLayout, QueuePawnSize } from '$lib/utils/boardGeometry.js'
+    import { queueLayout, QueuePawnSize, queueRunnerLabels } from '$lib/utils/boardGeometry.js'
+    import QueueRunner from '$lib/components/QueueRunner.svelte'
     import { queuePawnChoices, type QueuePawnChoice } from '$lib/utils/queueChoices.js'
+    import { frontTaken } from '$lib/utils/queueShift.js'
+    import { placeQueueVisitor, QueueAnimator } from '$lib/animators/queueAnimator.js'
 
     const PawnHitArea = { width: QueuePawnSize * 0.8, height: QueuePawnSize * 1.5 }
 
     const gameSession = getGameSession()
 
+    const queueAnimator = new QueueAnimator(gameSession)
+    queueAnimator.register()
+    onDestroy(() => queueAnimator.unregister())
+
     let queue = $derived(gameSession.gameState.queue)
-    let layout = $derived(queueLayout(queue.length))
+    let firstVisitorId = $derived(frontTaken(gameSession.shownActions))
+    let labels = $derived(queueRunnerLabels(queue.length))
+    let layout = $derived(queueLayout(queue.length, labels[1]))
     let choices: QueuePawnChoice[] = $derived(
         gameSession.canChooseRefill ? queuePawnChoices(queue.length) : []
     )
@@ -32,63 +42,45 @@
 </script>
 
 <g role="group" aria-label="Visitor queue">
-    {#each queue as color, index (index)}
-        {@const position = layout.visitors[index]}
+    {#if queue.length > 0}
+        <QueueRunner runner={layout.runner} {labels} animator={queueAnimator} />
+    {/if}
+    {#each queue as color, index (firstVisitorId + index)}
         {@const pawn = choices[index]}
-        {#if pawn !== undefined && pawn.kind !== 'none'}
-            <g
-                role="button"
-                tabindex="0"
-                aria-label={pawnLabel(pawn, index)}
-                class="cursor-pointer"
-                onclick={() => choosePawn(index)}
-                onkeydown={(event) => event.key === 'Enter' && choosePawn(index)}
-            >
+        {@const choosable = pawn !== undefined && pawn.kind !== 'none'}
+        <!-- tabindex is set only when the role is button; the checker cannot follow the condition -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <g
+            use:placeQueueVisitor={{
+                animator: queueAnimator,
+                visitorId: firstVisitorId + index,
+                at: layout.visitors[index]
+            }}
+            role={choosable ? 'button' : undefined}
+            tabindex={choosable ? 0 : undefined}
+            aria-label={choosable ? pawnLabel(pawn, index) : undefined}
+            class:cursor-pointer={choosable}
+            onclick={choosable ? () => choosePawn(index) : undefined}
+            onkeydown={choosable
+                ? (event) => event.key === 'Enter' && choosePawn(index)
+                : undefined}
+        >
+            {#if choosable}
                 <rect
-                    x={position.x - PawnHitArea.width / 2}
-                    y={position.y - PawnHitArea.height / 2}
+                    x={-PawnHitArea.width / 2}
+                    y={-PawnHitArea.height / 2}
                     width={PawnHitArea.width}
                     height={PawnHitArea.height}
                     fill="transparent"
                 ></rect>
-                <Pawn
-                    {color}
-                    x={position.x}
-                    y={position.y}
-                    size={QueuePawnSize}
-                    highlighted={gameSession.incomingQueueIndices.has(index)}
-                />
-            </g>
-        {:else}
+            {/if}
             <Pawn
                 {color}
-                x={position.x}
-                y={position.y}
+                x={0}
+                y={0}
                 size={QueuePawnSize}
                 highlighted={gameSession.incomingQueueIndices.has(index)}
             />
-        {/if}
+        </g>
     {/each}
-    {#if queue.length > 0}
-        <text class="queue-label" x={layout.front.x} y={layout.front.y}>Front</text>
-        <text class="queue-label" x={layout.back.x} y={layout.back.y}>Back</text>
-    {/if}
-    <text class="queue-label queue-count" x={QueueCountLabel.x} y={QueueCountLabel.y}
-        >{queue.length} waiting</text
-    >
 </g>
-
-<style>
-    .queue-label {
-        fill: #e8d7b5;
-        font-size: 15px;
-        font-weight: 600;
-        text-anchor: middle;
-        dominant-baseline: central;
-    }
-
-    .queue-count {
-        font-size: 17px;
-        text-anchor: end;
-    }
-</style>

@@ -85,6 +85,14 @@ export class MarracashGameSession extends GameSession<
             : historyHighlightFor(this.highlightedHistoryAction)
     )
     customerHighlight: CustomerHighlight | undefined = $state(undefined)
+
+    // The actions behind the state on screen: `actions` follows a transition as it starts, while
+    // the board changes only once its animations finish, so anything shown with the board reads
+    // this copy, taken as each state is published (the context's own list grows in place).
+    private publishedActions: readonly GameAction[] | undefined = $state.raw(undefined)
+    get shownActions(): readonly GameAction[] {
+        return this.publishedActions ?? this.actions
+    }
     playerAidOpen = $state(false)
     private bidDraft: BidDraft | undefined = $state(undefined)
     readonly draftBid: number | undefined = $derived.by(() => {
@@ -210,6 +218,7 @@ export class MarracashGameSession extends GameSession<
     }
 
     override beforeNewState() {
+        this.publishedActions = [...this.actions]
         this.resetAction()
         this.highlightedHistoryAction = undefined
         this.fountainVisitorOverrides = {}

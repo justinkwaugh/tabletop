@@ -6,7 +6,7 @@ import { PawnHeight, PawnUnitSize, PawnWidth } from './pawnShape.js'
 describe('queueLayout', () => {
     test('leaves the same gap between pawns along rows and down the side', () => {
         const scale = QueuePawnSize / PawnUnitSize
-        const { visitors } = queueLayout(startingQueueLength(EntranceFountainIds.length))
+        const { visitors } = queueLayout(startingQueueLength(EntranceFountainIds.length), 'Back')
         const gaps = visitors.slice(1).flatMap((visitor, index) => {
             const previous = visitors[index]
             if (visitor.x === previous.x)

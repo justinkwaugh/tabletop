@@ -5,7 +5,7 @@
 
     const gameSession = getGameSession()
 
-    let step = $derived(viewedHistoryStep(gameSession.actions))
+    let step = $derived(viewedHistoryStep(gameSession.shownActions))
 </script>
 
 <p class="marracash-prompt">

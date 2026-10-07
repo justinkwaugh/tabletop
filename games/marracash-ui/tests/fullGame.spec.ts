@@ -11,14 +11,15 @@ async function pick(page: Page, locator: Locator, step: number) {
     await locator.nth(step % count).click()
 }
 
-// A late-game crowd walking single file can take several seconds
-const MoveAnimationTimeout = 20_000
+// Animations are short under reduced motion; each has its own focused test
+const MoveAnimationTimeout = 5_000
 
 // Takes one step of whatever the action panel offers, rotating choices so play varies
 async function takeStep(page: Page, step: number) {
     const panel = actionPanel(page)
     const place = page.getByRole('button', { name: 'Place bid' })
-    const front = page.getByRole('button', { name: 'Front of queue' })
+    // A panel left over from the previous state keeps its buttons disabled while the board animates
+    const front = page.getByRole('button', { name: 'Front of queue', disabled: false })
     const pass = page.getByRole('button', { name: 'Pass' })
     const gameOver = page.getByText('The game is over.')
     // Choices are withheld while the session is busy, such as while a move animates
@@ -50,8 +51,10 @@ async function takeStep(page: Page, step: number) {
     }
 }
 
+test.use({ reducedMotion: 'reduce' })
+
 test('a hotseat game plays through to the end', async ({ page }) => {
-    test.setTimeout(300_000)
+    test.setTimeout(150_000)
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await createGame(page)
