@@ -66,7 +66,7 @@
     "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
     "RespondToPurchaseOffer": "b324a45d36316c79cd4c76e672f7900bf0bdab503916d96ec016da210bdd7509",
     "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
-    "RunTrains": "400af6a98bc8ebac73a1b5b917b8210edd476f6517ed68e0684049e9f517b4fc",
+    "RunTrains": "b84264c109ac6df6e72f1c392573625f8a0fa09c8cbca48d4e7ded249a9f98b4",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellConvertedShares": "d9870ef0b4c7d56cd485e5eb2d40d65d917d769d8940be1f19163b86a230a11d",
@@ -2978,6 +2978,10 @@
                           "amount": {
                             "minimum": 1,
                             "type": "integer"
+                          },
+                          "label": {
+                            "minLength": 1,
+                            "type": "string"
                           },
                           "locationId": {
                             "minLength": 1,
