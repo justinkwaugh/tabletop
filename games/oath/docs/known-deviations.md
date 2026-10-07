@@ -12,7 +12,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets; the Vow's Q&A withholds it.
 - **Vow of Poverty with Secret Signal:** on a Trade for secrets under Careless, the Vow's holder still gains Secret Signal's one more favor; the Vow ("You cannot gain favor from Trade") withholds it, as it withholds Careless's from revision 5.
 - **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
-- **Rusting Ray:** "you hold the Darkest Secret" is read as its user alone, not the user's side (R-10.28-H1).
 - **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Gambling Hall:** the favor bank is chosen before the roll.
 - **Witch's Bargain:** deals with one player per use; the Q&A allows several.
@@ -27,7 +26,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Wrestlers:** the engine picks the sacrificed warband, and an ally's board is never offered.
 - **Martial Culture:** "may become a Citizen" is decided before the roll.
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
-- **Great Crusade:** counts only its user's own cards, not the side's (R-10.28-H1).
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Warning Signals:** warbands moved from the board all go to one site per use.
 - **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse).
