@@ -30,9 +30,11 @@ import { rulesSite, rulingWarbandOwners, warbandsAt } from './rule.js'
 import { isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { BANDITS_PLAN_USER, plansUsedBy, sideOf, type ActiveBattlePlan } from './battlePlans.js'
-import type { PlayerPlanContext } from '../powers/registry.js'
+import type { BattlePlanContext, PlayerPlanContext } from '../powers/registry.js'
+import { BattlePlanSide } from '../data/cardPowers.js'
 import { countOf } from './warbands.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
 
@@ -229,7 +231,7 @@ export function killFromAttackingForce(
                 : warbandsAt(state, at.siteId)
         const dying = Math.min(countOf(here, owner), remaining)
         if (dying > 0) {
-            killOrRedirect(state, campaign, at, owner, dying)
+            killOrRedirect(state, campaign, BattlePlanSide.Attacker, at, owner, dying)
             killed.push({ at, owner, count: dying })
             remaining -= dying
         }
@@ -237,10 +239,11 @@ export function killFromAttackingForce(
     return killed
 }
 
-/** R-10.13, unless Hospital places them on its site. */
+/** R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. */
 export function killOrRedirect(
     state: HydratedOathGameState,
     campaign: CampaignState,
+    side: BattlePlanSide,
     at: WarbandLocation,
     owner: WarbandOwner,
     count: number
@@ -259,6 +262,48 @@ export function killOrRedirect(
     }
     removeWarbandsFrom(state, at, owner, count)
     killWarbands(state, owner, count)
+    countKilled(state, campaign, side, count)
+}
+
+/** Cursed Cauldron, R-10.22 — warbands of `side`'s force killed are enemy warbands killed for the other side. */
+export function countKilled(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    side: BattlePlanSide,
+    count: number
+): void {
+    if (count <= 0 || !isAtLeastOathRevision(state, OathRevision.CardFixes1)) return
+    const tally = campaign.enemyWarbandsKilled ?? { attacker: 0, defender: 0 }
+    campaign.enemyWarbandsKilled =
+        side === BattlePlanSide.Attacker
+            ? { ...tally, defender: tally.defender + count }
+            : { ...tally, attacker: tally.attacker + count }
+}
+
+/** Cursed Cauldron — "enemy warbands killed in this campaign", for the side `side`. */
+export function enemyWarbandsKilledFor(campaign: CampaignState, side: BattlePlanSide): number {
+    const tally = campaign.enemyWarbandsKilled
+    if (!tally) return 0
+    return side === BattlePlanSide.Attacker ? tally.attacker : tally.defender
+}
+
+/** R-5.5.3-H1 — the bandits' compelled plans have no user, and the bandits always defend. */
+export function banditPlanContext(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    plan: ActiveBattlePlan
+): BattlePlanContext {
+    return {
+        state,
+        playerId: undefined,
+        power: plan.power,
+        choices: [],
+        campaign: {
+            parties: partiesOf(campaign),
+            side: BattlePlanSide.Defender,
+            pools: { attackPool: campaign.attackPool, defensePool: campaign.defensePool }
+        }
+    }
 }
 
 export function usedPlanContext(

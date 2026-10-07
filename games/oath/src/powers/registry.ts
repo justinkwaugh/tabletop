@@ -59,7 +59,7 @@ export interface BattlePlanContext extends Omit<EffectContext, 'playerId'> {
     campaign: CampaignContext
 }
 
-/** A declared plan, or one at the outcome step, which the bandits' plans never reach. */
+/** A declared plan, or a player's at the outcome step; the bandits' reach it through `onBanditOutcome` alone. */
 export interface PlayerPlanContext extends EffectContext {
     campaign: CampaignContext
 }
@@ -156,6 +156,8 @@ export interface BattlePlanHooks {
     defeatKills?: 'none' | 'all'
     /** Runs once the sacrifice decides the battle. */
     onOutcome?: (ctx: PlayerPlanContext, victorious: boolean) => string | OutcomeResult | undefined
+    /** R-10.3-H1 — the same for the bandits' compelled plan, on the plans whose outcome is ruled for them. */
+    onBanditOutcome?: (ctx: BattlePlanContext, victorious: boolean) => string | undefined
     /** Specialist */
     locksEnemyPlans?: boolean
     /** Code of Honor, R-10.28-H1 — binds the user's whole side. */

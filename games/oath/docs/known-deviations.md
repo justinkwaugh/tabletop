@@ -14,7 +14,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Rusting Ray:** "you hold the Darkest Secret" is read as its user alone, not the user's side (R-10.28-H1).
 - **Book Burning:** leaves facedown secrets; its Q&A burns them face up or down.
 - **Sticky Fire:** takes effect over Billowing Fog (R-9.2).
-- **Cursed Cauldron:** counts only the defeated side's kills, Hospital-saved warbands included; its Q&A also counts Bear Traps and skull kills.
 - **The Grand Scepter:** one received in an exchange is locked for the turn; its Q&A lets it be used.
 - **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Gambling Hall:** the favor bank is chosen before the roll.
@@ -29,7 +28,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Forced Labor:** not charged for Oracle's draw, and in a game created before revision 3 (R-X.4) not for an R-6.1 play either; both Q&As charge it.
 - **R-6.1:** in a game created before revision 2 (R-X.4), a facedown adviser's play takes no Search modifier, so Book of Records' holder gains favor on a site play and New Growth, Crop Rotation, Wild Cry, Bracken and Cracked Horn cannot be used on it. From revision 2 the engine applies them, but the table offers no way to declare an optional one on that play; Book of Records, being mandatory, applies by itself.
 - **Wild Mounts:** never applied for the bandits (R-5.5.3-H1 and its Q&A).
-- **Military Parade, Battle Honors:** do nothing when the bandits win; the cards burn them.
 - **Relic Hunter:** cannot put on the bottom a relic the defender held; only relics taken from sites.
 - **Encirclement:** counts only the attacker's board, not the whole force.
 - **Wrestlers:** the engine picks the sacrificed warband, and an ally's board is never offered.
