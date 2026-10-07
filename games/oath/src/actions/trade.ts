@@ -36,6 +36,7 @@ import {
     payModifierCosts,
     resolveModifiers,
     disguisedAs,
+    runAfter,
     runBefore,
     type ActiveModifier,
     type ActionPlan
@@ -158,6 +159,10 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         const favorGained = forFavor ? gainFavorFromBank(state, this.playerId, suit, wanted) : 0
         const secretsGained = forFavor ? 0 : wanted
         player.secrets += secretsGained
+
+        // R-7.4
+        const after = runAfter(state, this.playerId, active, particulars)
+        notes.push(...after.notes)
 
         this.metadata = {
             supplySpent: cost,

@@ -18,9 +18,9 @@ import { BRUTAL, CARELESS, DECADENT, GREEDY, hasTrait, uncoveredTraits } from '.
 import '../powers/index.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
+import { modifierUse } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
-import { modifierUse } from '../testing/choices.js'
 import { RunMode, engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { OathRevision } from './revision.js'
@@ -223,6 +223,44 @@ describe('Careless — Trade (R-6.6.2.a)', () => {
         const action = trade(s, TradeOption.ForSecrets)
         expect(s.getPlayerState('ruler').favor).toBe(1)
         expect(action.metadata?.modifierNotes).toEqual(['Careless: the bank had no favor to give'])
+    })
+
+    const SIGNAL = 'denizen.arcane.secret-signal'
+    function signalled(s: ReturnType<typeof board>, option: TradeOption) {
+        const action = new HydratedTrade(
+            buildAction(Trade, { playerId: 'ruler', cardId: INN, option, modifiers: [modifierUse(SIGNAL)] })
+        )
+        action.apply(s)
+        return action
+    }
+
+    it("Secret Signal's Q&A: the one favor Careless gives a Trade for secrets becomes two", () => {
+        const s = board([CARELESS], {}, {}, [INN], [RETURN, SIGNAL])
+        const hearth = s.favorBank[Suit.Hearth]
+        const action = signalled(s, TradeOption.ForSecrets)
+        expect(s.getPlayerState('ruler').favor).toBe(3)
+        expect(s.favorBank[Suit.Hearth]).toBe(hearth - 2)
+        expect(action.metadata?.secretsGained).toBe(0)
+        expect(action.metadata?.favorGained).toBe(0)
+        expect(action.metadata?.modifierNotes).toEqual(['Careless: gained 1 favor', 'Secret Signal: gained 1 more favor'])
+    })
+
+    it('with one favor left in the bank, Careless takes it and Secret Signal finds none (R-9.3)', () => {
+        const s = board([CARELESS], { favorBank: { ...board([]).favorBank, [Suit.Hearth]: 1 } }, {}, [INN], [RETURN, SIGNAL])
+        const action = signalled(s, TradeOption.ForSecrets)
+        expect(s.getPlayerState('ruler').favor).toBe(2)
+        expect(action.metadata?.modifierNotes).toEqual(['Careless: gained 1 favor', 'Secret Signal: the bank had no favor to give'])
+    })
+
+    it('without Careless a Trade for secrets gains no favor, so Secret Signal is still refused', () => {
+        const s = board([], {}, {}, [INN], [RETURN, SIGNAL])
+        expect(HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForSecrets, [modifierUse(SIGNAL)])).toBe(`${SIGNAL}: you are not trading for favor`)
+    })
+
+    it('a Trade for favor under Careless is unchanged', () => {
+        const action = signalled(board([CARELESS], {}, {}, [INN], [SIGNAL]), TradeOption.ForFavor)
+        expect(action.metadata?.favorGained).toBe(3)
+        expect(action.metadata?.modifierNotes).toBeUndefined()
     })
 })
 
