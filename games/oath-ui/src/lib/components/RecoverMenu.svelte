@@ -62,7 +62,7 @@
                     disabled={busy}
                     onclick={() => gameSession.chooseRelicSlot(row.slotId)}
                 >
-                    <span class="flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="flex items-center gap-1.5 whitespace-nowrap text-oath-accent">
                         {#if row.cost.kind === 'placeFavorInBank'}
                             <MenuCount count={row.cost.amount} image={favorToken()} />
                             to
@@ -112,7 +112,7 @@
                     onclick={() => gameSession.pickBanner(bid.banner)}
                 >
                     <span class="flex items-center gap-1.5 whitespace-nowrap">
-                        <MenuCount count={least} image={tokenOf(bid.banner)} />
+                        <MenuCount count={least} image={tokenOf(bid.banner)} cost />
                         {#if more}<span class="text-sm font-normal">or more</span>{/if}
                     </span>
                 </MenuChoice>

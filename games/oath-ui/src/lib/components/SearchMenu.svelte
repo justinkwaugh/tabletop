@@ -53,10 +53,10 @@
                 disabled={busy}
                 onclick={() => gameSession.searchFrom(row)}
             >
-                <span class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="flex items-center gap-1.5 whitespace-nowrap text-oath-accent">
                     {row.cost} Supply
                     {#if row.favorTo.length > 0}
-                        <span class="text-oath-text-muted">+</span>
+                        <span>+</span>
                         <MenuCount count={row.favorTo.length} image={favorToken()} />
                     {/if}
                 </span>

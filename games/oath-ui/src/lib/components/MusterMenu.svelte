@@ -35,7 +35,11 @@
                 onclick={() => gameSession.chooseCard(row.cardId)}
             >
                 <span class="flex items-center gap-1.5">
-                    <MenuCount count={1} image={row.paysSecret ? secretToken() : favorToken()} />
+                    <MenuCount
+                        count={1}
+                        image={row.paysSecret ? secretToken() : favorToken()}
+                        cost
+                    />
                     <span class="text-oath-text-muted">→</span>
                     {#if owner}
                         <MenuCount

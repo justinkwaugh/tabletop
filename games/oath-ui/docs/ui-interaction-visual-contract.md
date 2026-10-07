@@ -129,7 +129,7 @@ Every colour an Oath component names is one of these tokens, declared once in `s
 | `text` | stone-100 | body text |
 | `text-muted` | stone-400 | captions, labels, inactive tabs, disabled text |
 | `heading` | amber-200 at 80 % | the small uppercase headings, the history controls |
-| `accent` | amber-300 | the pick ring, the picked border, the holder's ring |
+| `accent` | amber-300 | the pick ring, the picked border, the holder's ring, and a cost in the action grid and in the action panel's Search, Muster, Trade, Recover, Campaign and Use a power menus |
 | `accent-soft` | amber-950 at 60 % | the picked item's and the active tab's background |
 | `control`, `control-hover` | stone-700, stone-600 | buttons that are not the primary action |
 | `primary`, `primary-hover`, `primary-text` | amber-700, amber-600, stone-50 | the one primary button per panel, and Undo |
@@ -138,10 +138,10 @@ Every colour an Oath component names is one of these tokens, declared once in `s
 | `goal-oath`, `goal-vision`, `goal-successor` | amber-500, stone-100, the goal tile's purple | the goal symbols: the Oath's, a Vision's, the Successor's |
 | `vision-rust`, `vision-gold`, `vision-teal`, `vision-cream` | the Vision back's rust, gold, teal and cream | the Vision seen notice, in the Vision back's colours: its ground, frame, edge and lettering |
 
-- Amber means "yours to act on": a pick, the staged action, the primary button, Undo. Nothing decorative is amber beyond the frame.
+- Amber means "yours to act on": a pick, the staged action, the primary button, Undo, and what a choice costs you. Nothing decorative is amber beyond the frame.
 - The Vision colours are the Vision back's art, used by the Vision seen notice alone; they carry no meaning elsewhere.
 - Rose means "costs or threatens": a Campaign target, a loss, a refusal's reason, and the buttons that kill warbands or burn favor.
-- Text on a surface is `text` or `text-muted`, never black; dark text appears only on an amber chip.
+- Text on a surface is `text` or `text-muted`, or `accent` for a cost, never black; dark text appears only on an amber chip.
 - The phone layout uses the same tokens; nothing is re-coloured for width.
 
 ## Viewport

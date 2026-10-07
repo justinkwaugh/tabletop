@@ -171,8 +171,7 @@
                     class="h-9 w-9 {t.ok ? '' : 'grayscale'}"
                 />
                 <span class="text-[11px] font-semibold leading-none">{entry.label}</span>
-                <span class="text-[10px] leading-none text-oath-text-muted">{costLabel(entry)}</span
-                >
+                <span class="text-[10px] leading-none text-oath-accent">{costLabel(entry)}</span>
             </button>
         {/each}
     </div>
@@ -204,7 +203,7 @@
         {/if}
     {:else if hoveredEntry}
         <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
-        <span class="text-oath-text-muted">{hoveredEntry.cost}</span>
+        <span class="text-oath-accent">{hoveredEntry.cost}</span>
         <span class="text-oath-text-muted">— <TokenText text={hoveredEntry.summary} /></span>
     {/if}
 </div>

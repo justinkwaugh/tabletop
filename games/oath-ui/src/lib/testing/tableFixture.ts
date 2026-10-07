@@ -76,6 +76,7 @@ export type TableName =
     | 'goalsRailDevotion'
     | 'trade'
     | 'peek'
+    | 'relics'
     | 'advisers'
     | 'moves'
     | 'campaign'
@@ -753,6 +754,34 @@ function peekTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-5.4.1: the seat at the Ancient City, whose relic costs 3 favor placed in the Order bank, with the favor to pay. */
+function relicsTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const relic = `${home}.relic.0`
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
+            relicsBySite: { [home]: [{ slotId: relic }] },
+            vault: testVaultWithRelics({ [relic]: 'relic.cup-of-plenty' })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-7.4: the seat stands with the Observatory, the Cradle's pile empty and the others not. */
 function observatoryTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -875,6 +904,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
     peek: peekTable,
+    relics: relicsTable,
     advisers: advisersTable,
     moves: movesTable,
     campaign: campaignTable,

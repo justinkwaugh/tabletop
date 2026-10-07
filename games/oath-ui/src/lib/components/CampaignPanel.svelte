@@ -124,7 +124,7 @@
 <div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         Campaign
-        <span class="ml-2 normal-case tracking-normal text-oath-text-muted">
+        <span class="ml-2 normal-case tracking-normal text-oath-accent">
             {draft.supplyCost === 0 ? 'no Supply' : `${draft.supplyCost} Supply`}
         </span>
     </h3>

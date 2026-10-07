@@ -78,7 +78,7 @@
                         >
                     </div>
                     <p class="text-xs">
-                        <TokenText text={print.cost} />
+                        <span class="text-oath-accent"><TokenText text={print.cost} /></span>
                         {#if card.consequence}
                             <span class="font-semibold text-oath-danger"
                                 >· {card.consequence}</span
