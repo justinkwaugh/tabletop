@@ -21,6 +21,8 @@
         "@tabletop/1817": "workspace:*",
         "@tabletop/1817-ui": "workspace:*",
         "@tabletop/1830": "workspace:*",
+        "@tabletop/1832": "workspace:*",
+        "@tabletop/1832-ui": "workspace:*",
         "@tabletop/1830-ui": "workspace:*",
         "@tabletop/1846": "workspace:*",
         "@tabletop/1846-ui": "workspace:*",

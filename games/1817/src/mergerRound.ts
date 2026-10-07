@@ -44,7 +44,8 @@ import {
     ShareSaleDetails,
     applyShareSale,
     evaluateShareDisposal,
-    sharesOwned
+    sharesOwned,
+    SystemActionFirstHandler
 } from '@tabletop/18xx'
 import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -66,7 +67,6 @@ import {
     trimStations
 } from './mergerRules.js'
 import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
-import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 type State = HydratedGameState & EighteenSeventeenState
 type Context = MachineContext<HydratedEighteenSeventeenState>

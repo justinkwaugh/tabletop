@@ -1,0 +1,35 @@
+import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
+import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
+import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
+
+export const EighteenThirtyTwoPresentation: TitlePresentation = {
+    money: moneyFormat('$'),
+    phaseChart: EighteenThirtyTwoPhaseChart,
+    trainColors: EighteenThirtyTwoTrainColors,
+    phaseColors: EighteenThirtyTwoTrainColors,
+    marketPoolId: 'open-market',
+    companyNames: EighteenThirtyTwoCompanyNames,
+    privatePurchaseHeading: 'Available privates',
+    privateTokens: { P7: { companyId: 'CG' } },
+    marketZones: [
+        { color: 'pink', name: 'Par', description: 'A price a company may start at.' },
+        {
+            color: 'yellow',
+            name: 'Yellow',
+            description: 'Shares do not count toward the certificate limit.'
+        },
+        {
+            color: 'green',
+            name: 'Green',
+            description: 'Shares do not count toward the limit and may exceed 60%.'
+        },
+        {
+            color: 'brown',
+            name: 'Brown',
+            description:
+                'As green, and a player may buy every open-market share of one company in a turn.'
+        },
+        { color: 'black', name: 'Closed', description: 'A company entering it closes.' }
+    ]
+}

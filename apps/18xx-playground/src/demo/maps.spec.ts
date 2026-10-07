@@ -10,6 +10,8 @@ import { createEighteenThirtyStockMarket } from '@tabletop/1830'
 import { EighteenThirtyMapView } from '@tabletop/1830-ui'
 import { createEighteenSeventeenStockMarket } from '@tabletop/1817'
 import { EighteenSeventeenMapView } from '@tabletop/1817-ui'
+import { createEighteenThirtyTwoStockMarket } from '@tabletop/1832'
+import { EighteenThirtyTwoMapView } from '@tabletop/1832-ui/playground'
 import {
     MarketCellHeight,
     MarketCellWidth,
@@ -153,6 +155,11 @@ describe.each([
         name: '1817',
         view: EighteenSeventeenMapView,
         createMarket: createEighteenSeventeenStockMarket
+    },
+    {
+        name: '1832',
+        view: EighteenThirtyTwoMapView,
+        createMarket: createEighteenThirtyTwoStockMarket
     }
 ])('$name board', ({ view, createMarket, cell, zones }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
