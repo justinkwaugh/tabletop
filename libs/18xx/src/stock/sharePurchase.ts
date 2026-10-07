@@ -118,8 +118,8 @@ export function evaluateShareTransfer(
     )
         return { reason: 'The purchase exceeds the ownership limit.' }
     assert(
-        Number.isSafeInteger(terms.price) && terms.price > 0,
-        'Purchase price must be a positive integer'
+        Number.isSafeInteger(terms.price) && terms.price >= 0,
+        'Purchase price must be a whole amount, zero for a free share'
     )
     assertExists(cashOwnedBy(state, terms.recipient), 'Purchase recipient requires cash')
     let remaining = terms.price

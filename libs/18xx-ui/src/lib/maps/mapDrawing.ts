@@ -73,6 +73,8 @@ export type MapMarkerArt =
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
+    /** A ring around the hex's towns, as a medium city is printed. */
+    | { townRing: true }
     /**
      * The marker's label as a badge beneath the hex's revenue, such as a route bonus; arrows
      * point the badge both ways, as for an east–west bonus.

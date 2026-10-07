@@ -3,6 +3,7 @@ import {
     sharesStillToFloat,
     type CompanyRules
 } from '@tabletop/18xx'
+import { recordCompanyStart } from './londonInvestment.js'
 
 const IpoPoolId = 'initial-offering'
 const FloatPercent = 60
@@ -24,5 +25,6 @@ export const EighteenThirtyTwoCompanyRules: CompanyRules = {
         ) === 0
             ? []
             : undefined,
+    onStart: recordCompanyStart,
     parAfterAward: true
 }

@@ -14,7 +14,9 @@ import {
     type EighteenXXStateHandler,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
+import { assert } from '@tabletop/common'
 import type * as Type from 'typebox'
+import { EighteenThirtyTwoTitleFields, hasTitleState } from './titleState.js'
 
 export const EighteenThirtyTwoState = composeEighteenXXState(
     {
@@ -22,7 +24,8 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...PrivatePowerFields,
         ...PendingParFields,
         ...StockTurnPurchaseFields,
-        ...AuctionFields
+        ...AuctionFields,
+        ...EighteenThirtyTwoTitleFields
     },
     [...RailwayMachineStates, ...WaterfallAuctionMachineStates]
 )
@@ -34,3 +37,13 @@ export const EighteenThirtyTwoStateDefinition = defineEighteenXXState(EighteenTh
     validateWaterfallAuction,
     validatePendingPar
 ])
+
+function isEighteenThirtyTwoState(state: object): state is HydratedEighteenThirtyTwoState {
+    return hasTitleState(state) && 'usedPrivatePowerIds' in state
+}
+
+/** A family hook's state, which is always this title's. */
+export function requireEighteenThirtyTwoState(state: object): HydratedEighteenThirtyTwoState {
+    assert(isEighteenThirtyTwoState(state), 'Family hooks receive the 1832 state')
+    return state
+}

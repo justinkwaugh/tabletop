@@ -63,27 +63,17 @@ const Homes: Readonly<Record<string, string | CityReservation>> = {
 }
 
 // Anchors mark the coastal locations eligible for the Atlantic Shipping port (§16.2 P3).
-const PortLocationIds = 'O36 R33 T29 U28 V15 W14 W16 W22 W26 Z25 AA28'.split(' ')
+export const PortLocationIds: readonly string[] =
+    'O36 R33 T29 U28 V15 W14 W16 W22 W26 Z25 AA28'.split(' ')
 const Port = {
     id: 'port',
     label: '⚓',
     description: 'Coastal: the Atlantic Shipping port may be placed here.'
 }
 // Medium cities take a yellow town tile, then a green town or a yellow city (§6.4.2).
-const MediumCityLocationIds = 'Q20 S26 T21 T23 U18 Y26'.split(' ')
-const MediumCity = {
-    id: 'medium-city',
-    label: 'M',
-    description: 'Medium city: its yellow town may become a green town or a yellow city.'
-}
+export const MediumCityLocationIds: readonly string[] = 'Q20 S26 T21 T23 U18 Y26'.split(' ')
 const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = Object.fromEntries(
-    [...new Set([...PortLocationIds, ...MediumCityLocationIds])].map((id) => [
-        id,
-        [
-            ...(PortLocationIds.includes(id) ? [Port] : []),
-            ...(MediumCityLocationIds.includes(id) ? [MediumCity] : [])
-        ]
-    ])
+    PortLocationIds.map((id) => [id, [Port]])
 )
 
 const locations = createLetterNumberLocationFactory({

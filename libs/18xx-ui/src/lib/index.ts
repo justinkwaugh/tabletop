@@ -113,3 +113,4 @@ export { actionForHistoryStep } from './table/actionForHistoryStep.js'
 
 export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
 export { default as StationBuilding } from './maps/StationBuilding.svelte'
+export type { HistoricalMapState } from './maps/historicalMap.js'

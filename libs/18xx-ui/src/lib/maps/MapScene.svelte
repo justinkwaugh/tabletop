@@ -313,6 +313,22 @@
                         {/if}
                     {/each}
                 {/each}
+                {#if entry.location.markers?.some((marker) => {
+                    const art = entry.markerArt[marker.id]
+                    return !!art && 'townRing' in art
+                })}
+                    {#each entry.drawing.nodes.filter((node) => node.node.kind === 'town') as node (node.node.id)}
+                        <circle
+                            data-map-town-ring={entry.location.id}
+                            cx={node.center.x}
+                            cy={node.center.y}
+                            r={node.dotRadius + 3.4}
+                            fill="none"
+                            stroke="#202c31"
+                            stroke-width="1.6"
+                        ></circle>
+                    {/each}
+                {/if}
                 {#if !artwork || entry.placed}
                     <g
                         class="map-annotations"

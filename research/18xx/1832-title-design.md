@@ -196,3 +196,68 @@ certificate limits, P7's par, P1's reduction, the no-sale first round and capita
 the round; `operations.spec.ts` the construction allowance, home terrain, the special city
 tiles, half dividends, entitlements, private purchase prices and P7's closure. The
 playground's board test fits the market and depot clear of every hex.
+
+## Slice 2 design: map specials and private powers
+
+### Survey
+
+Same-colour upgrades: the research maps mark medium cities ("boomtowns") only in 1832 and
+1868 Wyoming, whose boomtowns likewise turn a town into a city before the next colour.
+Access rights to a stop: the assignment catalog records private access grants (1830, 1846,
+1822 and others), permits (1862, 1880), regional rights (1841, 1866, 18OE) and marker access
+(1862, 18ESP, 18 Royal Gorge); 1832's WVCF token is a per-company right to one stop. Stops whose
+value depends on game history (Miami's first run) and route bonuses owned by a company (Port,
+Cotton, Key West, 1846's revenue markers) fall under route-revenue modifiers. Extra placements
+in the token step occur in 1846 (C&WI) and 1830 (D&H) as private powers.
+
+### Shared changes
+
+- **Track.** `TrackRules.upgradesWithinColor` admits a same-colour replacement the title
+  allows, which it then judges itself; the upgrade mapping lets a town become a city only for
+  such a replacement. `allowance` learns whether the lay replaces a tile, so a medium city's
+  promotion counts as the turn's upgrade. Titles that ignore the flag are unchanged.
+- **Routes.** `RouteRules.stopAllowed` excludes a stop for a company, enforced by the evaluator
+  and by the autorouter's existing per-stop `allowed` flag; `stopRevenue` sets a stop's own
+  value, shared by both through `stopValue`, since bonuses cannot be negative.
+- **Steps.** `StationRules.holdsStationStep` keeps the token step open while a title placement
+  remains; `EighteenXXTitleRules.additionalConstructionActions` does the same for the track
+  step's automatic completion.
+- **Purchases.** A share may be acquired for $0, for the London Investment Company's free share,
+  through the shared acquisition checks (ownership and certificate limits, presidency, no
+  repurchase after a sale).
+- **Presentation.** A `townRing` marker art rings a hex's towns, as medium cities are printed.
+
+### Decisions
+
+- **Medium cities** are the six ringed hexes. From phase 3 a yellow town tile there may become
+  #5, #6 or #57 (whichever keeps its track), the turn's one upgrade; or a green town as for any
+  town. The ring is drawn until the tile is upgraded.
+- **WVCF.** Rights are a list of companies. A company buying P5 takes one; others, once P5 is
+  company-owned or closed, buy one in their track step for $80 ($40 to P5's owning company while
+  it is open), using a yellow lay, when their track reaches the coal fields. Only holders may
+  visit O26. **Ruling:** P5 blocks no hex; "no company may connect to the coal fields" is
+  enforced through the rights alone.
+- **Port, Cotton, Key West.** Tokens record kind, company, location and city node. P3's Port goes
+  on any anchored revenue location (towns and Miami included, as the anchors are printed there)
+  and P2's Cotton in any non-coastal city on the current map, with Atlanta's city chosen; a
+  Cotton token follows its city through Atlanta's upgrades. Each is placed once in the owning
+  company's token step and stays after its private closes. Port and Cotton stop counting at
+  phase 6, Key West at phase 8. Key West, from phase 3, is the FEC's token placement for that
+  turn.
+- **Miami.** Before phase 5 Miami is worth $0 until a run reaches it; a system action records
+  that run. **Ruling:** every train of the company making that first run counts it at $0.
+- **London Investment.** As the turn's purchase, P4's owner takes a free initial-offering share
+  of a company whose president's certificate was bought in this stock round (CoG's in the first).
+  P4 stays open, cannot then change hands, and closes after that company's first paid dividend.
+
+### Limits after slice 2
+
+Mergers' WVCF and token consequences wait for slice 5. Prepared positions do not include placed
+tokens; tests cover them.
+
+### Acceptance examples
+
+`mediumCities.spec.ts`, `coalFields.spec.ts`, `revenueTokens.spec.ts` and
+`londonInvestment.spec.ts` cover the promotion and its allowance, the ring's lifetime, buying
+and enforcing WVCF rights, token choices and values, Miami's first run, Key West and London
+Investment's share and closure.

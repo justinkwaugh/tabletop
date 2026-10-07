@@ -1,10 +1,16 @@
-import { EighteenThirtyTwoSoftLedge } from '@tabletop/1832'
+import {
+    EighteenThirtyTwoSoftLedge,
+    miamiFirstRun,
+    type EighteenThirtyTwoState
+} from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
 
-export const EighteenThirtyTwoPresentation: TitlePresentation = {
+const CoalTokens = 5
+
+export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
     money: moneyFormat('$'),
     phaseChart: EighteenThirtyTwoPhaseChart,
     trainColors: EighteenThirtyTwoTrainColors,
@@ -13,6 +19,12 @@ export const EighteenThirtyTwoPresentation: TitlePresentation = {
     companyNames: EighteenThirtyTwoCompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTokens: { P7: { companyId: 'CG' } },
+    gameFacts: (state) => [
+        { label: 'WVCF tokens left', value: String(CoalTokens - state.coalRights.length) },
+        ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0 on its first run' }] : [])
+    ],
+    companyFacts: (state, companyId) =>
+        state.coalRights.includes(companyId) ? [{ label: 'Coal fields', value: 'WVCF token' }] : [],
     marketZones: [
         { color: 'pink', name: 'Par', description: 'A price a company may start at.' },
         {

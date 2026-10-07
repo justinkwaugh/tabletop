@@ -56,6 +56,8 @@ export interface StationRules {
     ): number
     allowsDisconnected?(state: StationPlacementState, request: StationRequest): boolean
     placementLimit(state: StationPlacementState, companyId: string): number
+    /** Whether a title placement, such as a private's token, keeps the station step open. */
+    holdsStationStep?(state: StationPlacementState, companyId: string): boolean
     pendingHomes(state: OperatingStationState): HomeStation[]
     /** Titles whose presidents choose a home city return the next operating company's choice. */
     homeChoice?(state: OperatingStationState): HomeStationChoice | undefined

@@ -27,6 +27,29 @@ import { EighteenThirtyTwoTrainFundingRules } from '../trainFundingRules.js'
 import { EighteenThirtyTwoPhases, EighteenThirtyTwoTrainRules } from '../trains.js'
 import { EighteenThirtyTwoTransferRules } from '../transferRules.js'
 import { EighteenThirtyTwoInfo } from './info.js'
+import {
+    BuyCoalRights,
+    BuyCoalRightsStep,
+    HydratedBuyCoalRights,
+    isBuyCoalRights
+} from '../coalFields.js'
+import {
+    HydratedTakeLondonShare,
+    TakeLondonShare,
+    TakeLondonShareStep,
+    isTakeLondonShare
+} from '../londonInvestment.js'
+import {
+    HydratedPlaceRevenueToken,
+    HydratedRecordMiamiRun,
+    PlaceRevenueToken,
+    PlaceRevenueTokenStep,
+    RecordMiamiRun,
+    isPlaceRevenueToken,
+    isRecordMiamiRun,
+    recordsMiamiRun
+} from '../revenueTokens.js'
+import { TitleActionsHandler } from '../titleActions.js'
 
 export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     typeof EighteenThirtyTwoState,
@@ -50,12 +73,35 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     phases: EighteenThirtyTwoPhases,
     phaseRules: EighteenThirtyTwoPhaseRules,
     trainRules: EighteenThirtyTwoTrainRules,
-    decisionHandlers: { StartingOperatingSet: capitalizesFloatedCompanies },
+    additionalConstructionActions: ['BuyCoalRights'],
+    decisionHandlers: {
+        StockRound: (family) => new TitleActionsHandler(family, [TakeLondonShareStep]),
+        StartingOperatingSet: capitalizesFloatedCompanies,
+        LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),
+        PlacingStation: (family) => new TitleActionsHandler(family, [PlaceRevenueTokenStep]),
+        DistributingEarnings: recordsMiamiRun
+    },
     titleActions: [
         defineAction(
             CapitalizeCompany,
             isCapitalizeCompany,
             (action) => new HydratedCapitalizeCompany(action)
+        ),
+        defineAction(BuyCoalRights, isBuyCoalRights, (action) => new HydratedBuyCoalRights(action)),
+        defineAction(
+            PlaceRevenueToken,
+            isPlaceRevenueToken,
+            (action) => new HydratedPlaceRevenueToken(action)
+        ),
+        defineAction(
+            RecordMiamiRun,
+            isRecordMiamiRun,
+            (action) => new HydratedRecordMiamiRun(action)
+        ),
+        defineAction(
+            TakeLondonShare,
+            isTakeLondonShare,
+            (action) => new HydratedTakeLondonShare(action)
         )
     ]
 }

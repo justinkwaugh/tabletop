@@ -22,6 +22,11 @@ import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { EighteenThirtyTwoTrainDepot } from './trains.js'
 
 export const EighteenThirtyTwoBank = 12000
+export const EighteenThirtyTwoInitialTitleState = {
+    coalRights: [],
+    revenueTokens: [],
+    companyStarts: {}
+}
 // $2100 divided among the players (§3.3, Table 2).
 export const EighteenThirtyTwoStartingCash: Readonly<Record<number, number>> = {
     2: 1050,
@@ -121,6 +126,7 @@ export function createEighteenThirtyTwoOpening({
     }
     return {
         position,
+        titleState: EighteenThirtyTwoInitialTitleState,
         begin: beginWaterfallAuction(EighteenThirtyTwoAuctionRules, startingPositions)
     }
 }

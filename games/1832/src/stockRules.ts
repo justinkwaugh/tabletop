@@ -10,6 +10,7 @@ import {
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { saleDescent } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
+import { londonTradable } from './londonInvestment.js'
 
 const Trading = ipoMarketTrading({
     ipoPoolId: 'initial-offering',
@@ -73,13 +74,16 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',
     // Players trade privates at any agreed price of at least $1 (§16.1).
-    privateSales: { priceRange: () => ({ minimum: 1 }) },
+    privateSales: {
+        priceRange: (state, privateCompanyId) =>
+            londonTradable(state, privateCompanyId) ? { minimum: 1 } : undefined
+    },
     // A player may buy every open-market share of one brown-area company in a turn; initial
     // offering shares are still bought one at a time (§5.1.1).
     multipleBuys: {
         allowsAnother: (state, certificate, earlier) =>
-            companyMarketSpace(state.stockMarket, certificate.companyId).color === 'brown' &&
             certificate.poolId === 'open-market' &&
-            earlier.every((purchase) => purchase.poolId === 'open-market')
+            earlier.every((purchase) => purchase.poolId === 'open-market') &&
+            companyMarketSpace(state.stockMarket, certificate.companyId).color === 'brown'
     }
 }

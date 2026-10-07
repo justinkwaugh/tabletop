@@ -1,6 +1,7 @@
 import type { GameDefinition } from '@tabletop/common'
 import { withScenarios } from '@tabletop/18xx/scenarios'
 import { Definition, EighteenThirtyTwoTitleRules } from '../definition/gameDefinition.js'
+import { EighteenThirtyTwoInitialTitleState } from '../openingAuction.js'
 import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from '../state.js'
 import { createEighteenThirtyTwoCompanyExample } from './companyExamples.js'
 import { prepareEighteenThirtyTwoEnding } from './endingExample.js'
@@ -19,5 +20,6 @@ export const EighteenThirtyTwoScenarios: GameDefinition<
 > = withScenarios(Definition, EighteenThirtyTwoTitleRules, {
     createMarket: createEighteenThirtyTwoScenarioMarket,
     createFinances: createEighteenThirtyTwoCompanyExample,
-    prepareEnding: prepareEighteenThirtyTwoEnding
+    prepareEnding: prepareEighteenThirtyTwoEnding,
+    titleState: EighteenThirtyTwoInitialTitleState
 })

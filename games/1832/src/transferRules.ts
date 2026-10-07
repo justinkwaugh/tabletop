@@ -1,8 +1,8 @@
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
+import { CoalFieldsPrivateId, grantCoalRightsToBuyer } from './coalFields.js'
+import { requireTitleState } from './titleState.js'
 import { EighteenThirtyTwoPrivateCatalog } from './privates.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
-
-const CoalFields = 'P5'
 
 export const EighteenThirtyTwoTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
@@ -21,9 +21,12 @@ export const EighteenThirtyTwoTransferRules: TransferRules = {
         const range = EighteenThirtyTwoPrivateCatalog.priceRange(privateCompanyId)
         if (!range) return undefined
         if (EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3')) return range
-        return privateCompanyId === CoalFields
+        return privateCompanyId === CoalFieldsPrivateId
             ? { ...range, maximum: EighteenThirtyTwoPrivateCatalog.faceValue(privateCompanyId) }
             : undefined
     },
-    afterPurchase: () => {}
+    afterPurchase(state, offer) {
+        if (offer.asset.kind === 'private' && offer.asset.privateCompanyId === CoalFieldsPrivateId)
+            grantCoalRightsToBuyer(requireTitleState(state), offer.companyId)
+    }
 }

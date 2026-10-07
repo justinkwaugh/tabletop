@@ -75,7 +75,7 @@ it('values offboards and the coal fields first, second and last by phase', () =>
     expect(['2', '5', '8'].map((phase) => value('N19', phase))).toEqual([30, 50, 50])
 })
 
-it('marks the anchored coastal locations and the medium cities', () => {
+it('marks the anchored coastal locations', () => {
     const marked = (id: string) =>
         EighteenThirtyTwoMap.definition.locations
             .filter((location) => location.markers?.some((marker) => marker.id === id))
@@ -84,5 +84,4 @@ it('marks the anchored coastal locations and the medium cities', () => {
     expect(marked('port')).toEqual(
         ['AA28', 'O36', 'R33', 'T29', 'U28', 'V15', 'W14', 'W16', 'W22', 'W26', 'Z25'].sort()
     )
-    expect(marked('medium-city')).toEqual(['Q20', 'S26', 'T21', 'T23', 'U18', 'Y26'])
 })

@@ -279,7 +279,8 @@ export function createEighteenXXRuntime<
                     'LayingTrack',
                     new LayingTrackHandler(options.trackRules, after('LayingTrack'))
                 )
-            )
+            ),
+            options.additionalConstructionActions
         ),
         PlacingStation: operatingStep(
             decides(
