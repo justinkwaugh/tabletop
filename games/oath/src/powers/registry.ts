@@ -1,6 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { Banner, Region, Suit } from '../model/oathEnums.js'
 import type { PersistentContext } from '../util/persistent.js'
+import type { BannerTake } from '../util/seize.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
 import {
     type BattlePlanSide,
@@ -204,11 +205,12 @@ export interface PersistentHooks {
         actorId: string,
         cardId: string
     ) => string | undefined
-    /** Recover and Campaign targets; `holderId` is absent when nobody holds it. */
+    /** A Recover, a Campaign target or the Conspiracy's take; `holderId` is absent when nobody holds it. */
     forbidsBannerTake?: (
         ctx: PersistentContext,
         actorId: string,
         banner: Banner,
+        how: BannerTake,
         holderId?: string
     ) => string | undefined
     /** Any target or take of another player's relic: a Campaign, Blackmail, Relic Thief, the Conspiracy. */

@@ -343,7 +343,7 @@ registerBattlePlan(STICKY_FIRE, powerIndexOf(STICKY_FIRE, PowerTiming.BattlePlan
 // "Players cannot target or take your banners or your other relics. In campaigns, banishing your pawn and favor adds one more [defenseDie]." Persistent.
 const CIRCLET = 'relic.circlet-of-command'
 registerPersistent(CIRCLET, powerIndexOf(CIRCLET, PowerTiming.Persistent), {
-    forbidsBannerTake: (ctx, actorId, banner, holderId) =>
+    forbidsBannerTake: (ctx, actorId, banner, _how, holderId) =>
         holderId !== undefined && ctx.ownerIds.includes(holderId) && actorId !== holderId
             ? `Circlet of Command: ${holderId}'s ${banner === Banner.PeoplesFavor ? "People's Favor" : 'Darkest Secret'} cannot be targeted or taken`
             : undefined,

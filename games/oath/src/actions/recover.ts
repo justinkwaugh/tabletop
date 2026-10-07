@@ -285,6 +285,7 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
             state,
             playerId,
             banner,
+            'recover',
             bannerState.holderPlayerId
         )
         if (guarded) return guarded

@@ -115,7 +115,7 @@ export function reasonCannotTakeByConspiracy(
     if (bannerHolder(state, take.banner) !== targetPlayerId) {
         return `that player does not hold the ${take.banner}`
     }
-    return reasonPersistentForbidsBannerTake(state, playerId, take.banner, targetPlayerId)
+    return reasonPersistentForbidsBannerTake(state, playerId, take.banner, 'seize', targetPlayerId)
 }
 
 /** R-5.1.4 */
