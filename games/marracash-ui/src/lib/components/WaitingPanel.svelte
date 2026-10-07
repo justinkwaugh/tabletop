@@ -26,6 +26,11 @@
     let { lead }: { lead?: Snippet } = $props()
     const gameSession = getGameSession()
 
+    // A player's tag reads "You" when it is the viewer, so the verb after it agrees.
+    function isVerb(playerId: string): string {
+        return playerId === gameSession.myPlayer?.id ? 'are' : 'is'
+    }
+
     let status = $derived(
         waitingStatus(gameSession.gameState, (playerId) => gameSession.visibleMoney(playerId))
     )
@@ -42,8 +47,9 @@
     {@render lead?.()}
     {#if status.kind === 'bidding'}
         {@const color = getShop(status.shopId).color}
-        {#if status.auctioneerId}<PlayerTag playerId={status.auctioneerId} />{' '}{/if}is auctioning
-        the
+        {#if status.auctioneerId}<PlayerTag playerId={status.auctioneerId} />{' '}{isVerb(
+                status.auctioneerId
+            )}{:else}is{/if} auctioning the
         <span
             class="swatch"
             style:background={gameSession.marketPalettes[color].fill}
@@ -51,9 +57,11 @@
         ></span>
         {color} shop.
     {:else if status.kind === 'refill'}
-        <PlayerTag playerId={status.playerId} /> is bringing new visitors to an emptied entrance.
+        <PlayerTag playerId={status.playerId} />
+        {isVerb(status.playerId)} bringing new visitors to an emptied entrance.
     {:else if status.kind === 'turn' && status.options.length > 0}
-        <PlayerTag playerId={status.playerId} /> is choosing {choiceWords(status)}.
+        <PlayerTag playerId={status.playerId} />
+        {isVerb(status.playerId)} choosing {choiceWords(status)}.
     {:else}
         Waiting for
         {#each status.kind === 'players' ? status.playerIds : [status.playerId] as playerId (playerId)}
