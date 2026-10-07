@@ -14,7 +14,7 @@ import { Suit } from '../model/oathEnums.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { reasonCannotPlaceOn } from '../util/powerCost.js'
 import { cannotGainFavorFromTrade } from '../util/continuous.js'
-import { persistentMatchingAdvisers, reasonPersistentForbidsTrade } from '../util/persistent.js'
+import { advisersOfSuit, reasonPersistentForbidsTrade } from '../util/persistent.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import { pawnSiteId } from '../util/pawn.js'
@@ -189,7 +189,6 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             active
                 .map((m) => m.hooks.matchingAdvisersOf?.(ctx(m)))
                 .find((id) => id !== undefined) ?? playerId
-        const player = state.getPlayerState(sourceId)
         // Acting Troupe — an adviser read as another suit.
         const overrides = new Map(
             active
@@ -197,12 +196,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
                 .filter((o): o is { cardId: string; suit: Suit } => !!o)
                 .map((o) => [o.cardId, o.suit])
         )
-        const suitIn = (id: string) => overrides.get(id) ?? suitOf(id)
-        // Marriage counts as two hearth advisers (R-7.1.4).
-        return (
-            player.faceupAdviserIds().filter((cardId) => suitIn(cardId) === suit).length +
-            persistentMatchingAdvisers(state, sourceId, suit)
-        )
+        return advisersOfSuit(state, sourceId, suit, (id) => overrides.get(id) ?? suitOf(id))
     }
 
     /** R-5.3.2 — favor or secrets the trade asks for, before the favor bank's limit (R-9.3). */

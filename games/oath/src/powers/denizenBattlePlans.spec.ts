@@ -1,8 +1,15 @@
 import { PowerChoiceKind } from '../util/powerChoice.js'
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
+import { Color, type GameAction } from '@tabletop/common'
 import { HydratedCampaignDefend } from '../actions/campaignDefend.js'
-import { HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
+import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
+import { Campaign } from '../actions/campaign.js'
+import { CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import { MachineState } from '../definition/states.js'
+import type { OathProjectedState } from '../model/gameState.js'
+import { OathRevision } from '../util/revision.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -11,7 +18,7 @@ import { forceTotal } from '../util/force.js'
 import { PowerQuestionKind } from '../model/question.js'
 import '../powers/index.js'
 import { ongoingCampaign, required } from '../testing/required.js'
-import { joinDefence } from '../testing/actions.js'
+import { buildAction, joinDefence } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { ATTACKER, DEFENDER, campaign, defend, finishCampaign, finishCampaignSteps } from '../testing/steps.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
@@ -356,5 +363,74 @@ describe('the outcome', () => {
         const site1 = battleWhere(true, build, (s) => campaign({ plans: [battlePlanUse('denizen.discord.slander')], targets: [siteTarget('c1')], attackDice: 5 }).apply(s))
         finishCampaign(site1)
         expect(site1.getPlayerState(DEFENDER).favor).toBeGreaterThan(0)
+    })
+})
+
+describe('Military Parade — Marriage counts as two hearth advisers (R-5.1.4.IV, revision 5)', () => {
+    const PARADE = 'denizen.order.military-parade'
+    const MARRIAGE = 'denizen.hearth.marriage'
+    const WOLVES = 'denizen.beast.wolves'
+    const paradeTable = (oathRevision: OathRevision, seed: number) =>
+        table({ oathRevision }, { attacker: [PARADE], defender: [MARRIAGE, WOLVES] }, {}, seed)
+    const paradeWon = (oathRevision: OathRevision) =>
+        battleWhere(true, (seed) => paradeTable(oathRevision, seed), (s) => campaign({ plans: [battlePlanUse(PARADE)], attackDice: 5 }).apply(s))
+
+    it('its Q&A, "one favor per adviser of that suit": two from the hearth bank for Marriage', () => {
+        const won = paradeWon(OathRevision.EngineFixes2)
+        const hearth = won.favorBank[Suit.Hearth]
+        const beast = won.favorBank[Suit.Beast]
+        const { victory } = finishCampaignSteps(won)
+        expect(won.favorBank[Suit.Hearth]).toBe(hearth - 2)
+        expect(won.favorBank[Suit.Beast]).toBe(beast - 1)
+        expect(victory?.metadata?.triggered).toContain("Military Parade: gained 3 favor from the banks matching your enemy's advisers")
+    })
+
+    it('R-X.4 — in a game created before revision 5 Marriage pays one', () => {
+        const won = paradeWon(OathRevision.CardFixes1)
+        const hearth = won.favorBank[Suit.Hearth]
+        finishCampaignSteps(won)
+        expect(won.favorBank[Suit.Hearth]).toBe(hearth - 1)
+    })
+
+    it('R-X.4 — each revision’s Parade replays unchanged', () => {
+        const CHANCELLOR = 'chancellor'
+        const game = testGame([ATTACKER, DEFENDER, CHANCELLOR])
+        const declare = buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'player', playerId: DEFENDER }, targets: [siteTarget('c1')], attackDice: 5, plans: [battlePlanUse(PARADE)] })
+        const onTurn = (oathRevision: OathRevision, seed: number): OathProjectedState => {
+            const state = paradeTable(oathRevision, seed).dehydrate()
+            state.players.push(testPlayer({ playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h3' }))
+            state.chancellorPlayerId = CHANCELLOR
+            state.turnManager = { series: [{ type: 'turn', playerId: ATTACKER, start: 0 }], turnOrder: [ATTACKER, DEFENDER, CHANCELLOR], turnCounts: { [ATTACKER]: 1, [DEFENDER]: 0, [CHANCELLOR]: 0 } }
+            state.activePlayerIds = [ATTACKER]
+            return state
+        }
+        const winningSeed = (oathRevision: OathRevision) => {
+            for (let seed = 1; seed < 200; seed++) {
+                const declared = engine.runNext(declare, onTurn(oathRevision, seed), game).updatedState.campaign
+                if (declared && declared.swords > declared.defense) return seed
+            }
+            throw new Error('no seed gave the attacker the victory')
+        }
+
+        for (const [revision, hearthPaid] of [[OathRevision.CardFixes1, 1], [OathRevision.EngineFixes2, 2]] as const) {
+            const start = onTurn(revision, winningSeed(revision))
+            let state: OathProjectedState = structuredClone(start)
+            const recorded: GameAction[] = []
+            for (const action of [
+                declare,
+                buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0 }),
+                buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false })
+            ]) {
+                const result = engine.runNext(action, state, game)
+                recorded.push(...result.processedActions)
+                state = result.updatedState
+            }
+            expect(state.machineState).toBe(MachineState.ActPhase)
+            expect(start.favorBank[Suit.Hearth] - state.favorBank[Suit.Hearth]).toBe(hearthPaid)
+
+            let replayed = structuredClone(start)
+            for (const action of recorded) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(state)
+        }
     })
 })

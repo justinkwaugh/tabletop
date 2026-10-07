@@ -26,6 +26,8 @@ import {
     hasFaceupAdviserOfSuit
 } from './vocabulary.js'
 import { defendingPlayerIds } from '../util/battlePlans.js'
+import { persistentMatchingAdvisers } from '../util/persistent.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const side = (ctx: BattlePlanContext): BattlePlanSide => ctx.campaign.side
 
@@ -489,6 +491,12 @@ function militaryParade(ctx: BattlePlanContext, victorious: boolean): string | u
         for (const cardId of ctx.state.getPlayerState(id).faceupAdviserIds()) {
             const suit = suitOf(cardId)
             if (suit) gained += gainFavorFromBankFor(ctx, suit, 1)
+        }
+        // Its Q&A pays one favor per adviser of a suit, and Marriage counts as two (R-X.4: from revision 5).
+        if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)) continue
+        for (const suit of Object.values(Suit)) {
+            const counted = persistentMatchingAdvisers(ctx.state, id, suit)
+            if (counted > 0) gained += gainFavorFromBankFor(ctx, suit, counted)
         }
     }
     return ctx.playerId === undefined
