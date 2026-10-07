@@ -166,6 +166,19 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.declarable).toBe(false)
     })
 
+    it('R-5.5.2 — the pool runs to the warbands in the force, those at a site it reaches included', () => {
+        const state = board()
+        state.warbandsBySite = { ...state.warbandsBySite, c2: { [ME]: 2, [FOE]: 2 } }
+        state.players[0].campaignAsIf = { siteId: 'c2', atAction: state.actionCount }
+        const session = openSessionOn(tableOf(state))
+        session.chooseAction(ActionType.Campaign)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.maxDice).toBe(6)
+        draft.setAttackDice(6)
+        expect(draft.attackDice).toBe(6)
+    })
+
     it('R-5.5.2 — an empty pool may be chosen, even when one die was taken for the player', () => {
         const draft = campaigning(3).campaign
         draft.chooseDefender(FOE_DEFENDS)
