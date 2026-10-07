@@ -16,11 +16,10 @@ import {
     copyStockState,
     finiteCashOwnedBy,
     getCompany,
-    grantOwnershipLimitExemption,
+    reorderPendingOperatingCompanies,
     restoreStockMarker,
     sameOwner,
     settleCashPayments,
-    sharesOwned,
     stockCertificateCount,
     type ShareSaleDetails,
     type StockState
@@ -31,33 +30,40 @@ import {
     type EighteenThirtyTwoStateHandler,
     type HydratedEighteenThirtyTwoState
 } from './state.js'
+import { refreshOwnershipExcess } from './ownershipExcess.js'
+import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
-import type { ProtectableSale } from './titleState.js'
+import { ProtectingPriceState, type ProtectableSale } from './titleState.js'
 
-export const ProtectingPriceState = 'ProtectingPrice'
-const OwnershipPercent = 60
+type SaleRecord = NonNullable<EighteenThirtyTwoState['priceProtection']>
+type StackSnapshot = SaleRecord['stacks'][number]
 
 /**
- * Records a player's sales for their presidents to protect once the seller finishes, and ends
- * any excess holding the seller kept by protecting that company (§5.9.3, §5.9.8). The state is
- * reassigned rather than changed in place, as train funding previews sales on a shallow copy.
+ * Records a player's sales for their presidents to protect once the seller finishes, with each
+ * space's stack as it stood before the seller's first sale from it (§5.9.3).
  */
 export function recordProtectableSale(state: object, details: ShareSaleDetails): void {
     const title = requireEighteenThirtyTwoState(state)
     const seller = details.seller
     if (seller.kind !== 'player') return
-    const soldIds = details.sales.map((sale) => sale.companyId)
-    title.ownershipLimitExemptions = title.ownershipLimitExemptions?.filter(
-        (exemption) => !sameOwner(exemption.owner, seller) || !soldIds.includes(exemption.companyId)
-    )
     const record = title.priceProtection
     assert(
         !record || (record.sellerPlayerId === seller.playerId && !record.resume),
         'Sales await protection only while their seller is selling'
     )
     let sales = record?.sales ?? []
+    let stacks = record?.stacks ?? []
     for (const sale of details.sales) {
-        assertExists(sale.fromStackIndex, 'A market sale records its place in the stack')
+        const fromStackIndex = sale.fromStackIndex
+        assertExists(fromStackIndex, 'A market sale records its place in the stack')
+        if (!stacks.some((stack) => stack.spaceId === sale.fromMarketSpaceId)) {
+            const remaining =
+                title.stockMarket.stacks.find((stack) => stack.spaceId === sale.fromMarketSpaceId)
+                    ?.companyIds ?? []
+            const companyIds = remaining.filter((companyId) => companyId !== sale.companyId)
+            companyIds.splice(fromStackIndex, 0, sale.companyId)
+            stacks = [...stacks, { spaceId: sale.fromMarketSpaceId, companyIds }]
+        }
         const group = sales.find((entry) => entry.companyId === sale.companyId)
         sales = group
             ? sales.map((entry) =>
@@ -78,11 +84,11 @@ export function recordProtectableSale(state: object, details: ShareSaleDetails):
                       proceeds: sale.proceeds,
                       certificateIds: sale.certificateIds,
                       fromMarketSpaceId: sale.fromMarketSpaceId,
-                      fromStackIndex: sale.fromStackIndex
+                      fromStackIndex
                   }
               ]
     }
-    title.priceProtection = { sellerPlayerId: seller.playerId, sales, protectorIds: [] }
+    title.priceProtection = { sellerPlayerId: seller.playerId, sales, stacks, protectorIds: [] }
 }
 
 /** The player president, other than the seller, who may buy back a sale of their company. */
@@ -99,7 +105,24 @@ export function protectingPresident(
         : undefined
 }
 
-function applyProtection(state: StockState, sale: ProtectableSale, playerId: string): CashPayment {
+// The marker returns among the companies still in its space as they stood before the seller's
+// sales, so protecting two companies from one space keeps their order.
+function restoredStackIndex(state: StockState, sale: ProtectableSale, stacks: StackSnapshot[]) {
+    const before = stacks.find((stack) => stack.spaceId === sale.fromMarketSpaceId)?.companyIds
+    assertExists(before, 'A protected sale records its stack')
+    const above = before.slice(0, before.indexOf(sale.companyId))
+    const present =
+        state.stockMarket.stacks.find((stack) => stack.spaceId === sale.fromMarketSpaceId)
+            ?.companyIds ?? []
+    return present.filter((companyId) => above.includes(companyId)).length
+}
+
+function applyProtection(
+    state: StockState,
+    sale: ProtectableSale,
+    playerId: string,
+    stacks: StackSnapshot[]
+): CashPayment {
     const payment: CashPayment = {
         from: { kind: 'player', playerId },
         to: { kind: 'bank' },
@@ -122,7 +145,7 @@ function applyProtection(state: StockState, sale: ProtectableSale, playerId: str
         state.stockMarket,
         sale.companyId,
         sale.fromMarketSpaceId,
-        sale.fromStackIndex
+        restoredStackIndex(state, sale, stacks)
     )
     return payment
 }
@@ -136,11 +159,17 @@ function canProtect(state: EighteenThirtyTwoState, sale: ProtectableSale, player
     const owner = { kind: 'player' as const, playerId }
     const before = stockCertificateCount(state, owner, EighteenThirtyTwoStockRules)
     const projected = copyStockState(state)
-    applyProtection(projected, sale, playerId)
+    applyProtection(projected, sale, playerId, state.priceProtection?.stacks ?? [])
     const after = stockCertificateCount(projected, owner, EighteenThirtyTwoStockRules)
     return (
         after <= before || after <= EighteenThirtyTwoStockRules.certificateLimit(projected, owner)
     )
+}
+
+/** Whether a president other than the seller may still protect this sale. */
+export function protectable(state: EighteenThirtyTwoState, sale: ProtectableSale): boolean {
+    const playerId = protectingPresident(state, sale)
+    return !!playerId && canProtect(state, sale, playerId)
 }
 
 /** The next sale, in the order sold, whose president may protect it, and that president. */
@@ -289,17 +318,16 @@ export class HydratedProtectShares
         assert(this.isValid(state), 'Only the deciding president may protect this sale')
         const sale = protectionDecision(state)?.sale
         assertExists(sale, 'A valid protection has its sale')
-        const payment = applyProtection(state, sale, this.playerId)
+        const record = state.priceProtection
+        assertExists(record, 'A protection decision requires sales awaiting it')
+        const payment = applyProtection(state, sale, this.playerId, record.stacks)
         const owner = { kind: 'player' as const, playerId: this.playerId }
-        const company = getCompany(state, this.companyId)
-        assertExists(company.shareCount, 'A protected company has shares')
-        const exemptOwnershipLimit =
-            sharesOwned(state, this.companyId, owner) * 100 > OwnershipPercent * company.shareCount
-        if (exemptOwnershipLimit) {
-            state.ownershipLimitExemptions ??= []
-            grantOwnershipLimitExemption(state, this.companyId, owner)
-        }
-        const record = decided(state, this.companyId)
+        refreshOwnershipExcess(state, this.companyId, owner)
+        const exemptOwnershipLimit = state.ownershipLimitExemptions.some(
+            (exemption) =>
+                exemption.companyId === this.companyId && sameOwner(exemption.owner, owner)
+        )
+        decided(state, this.companyId)
         record.protectorIds.push(this.playerId)
         this.metadata = {
             sellerPlayerId: record.sellerPlayerId,
@@ -396,10 +424,22 @@ export class HydratedCompletePriceProtection
             nextPlayerId = state.turnManager.nextPlayer(lastProtector)
             const turn = state.turnManager.currentTurn()
             assertExists(turn, 'The stock round has a turn under way')
-            turn.playerId = nextPlayerId
+            // Players between the seller and the protector miss their turn.
+            if (turn.playerId !== nextPlayerId) {
+                state.turnManager.endTurn(state.actionCount)
+                state.turnManager.startTurn(nextPlayerId, state.actionCount + 1)
+            }
             state.activePlayerIds = [nextPlayerId]
             state.stockRound.passedPlayerIds = []
-        } else state.activePlayerIds = activePlayerIds
+        } else {
+            state.activePlayerIds = activePlayerIds
+            // A restored price restores the company's place in the operating order (§4.1.3).
+            if (record.protectorIds.length)
+                reorderPendingOperatingCompanies(
+                    state,
+                    EighteenThirtyTwoOperatingRules.companyOrder(state)
+                )
+        }
         delete state.priceProtection
         this.metadata = { machineState, ...(nextPlayerId ? { nextPlayerId } : {}) }
     }

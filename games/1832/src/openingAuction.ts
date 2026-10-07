@@ -23,6 +23,7 @@ import { EighteenThirtyTwoTrainDepot } from './trains.js'
 
 export const EighteenThirtyTwoBank = 12000
 export const EighteenThirtyTwoInitialTitleState = {
+    ownershipLimitExemptions: [],
     coalRights: [],
     revenueTokens: [],
     companyStarts: {}

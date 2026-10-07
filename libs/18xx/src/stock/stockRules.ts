@@ -48,7 +48,10 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
-    /** What follows any sale into the market, such as the market closing its own shorts. */
+    /**
+     * What follows any sale into the market, such as the market closing its own shorts. Sale
+     * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
+     */
     afterSale?(state: StockState, details: ShareSaleDetails): void
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterPurchase?(state: StockState, details: SharePurchaseDetails): void

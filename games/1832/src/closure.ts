@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { ActionSource, GameAction, HydratableAction, assert } from '@tabletop/common'
+import { ActionSource, GameAction, HydratableAction, assert, assertExists } from '@tabletop/common'
 import {
     BetweenCompaniesState,
     CashPayment,
@@ -9,6 +9,7 @@ import {
     companyMarketSpace,
     endOperatingTurn,
     finiteCashOwnedBy,
+    getCompany,
     isOperatingStep,
     nextOperatingCompany,
     settleCashPayments,
@@ -19,7 +20,7 @@ import type {
     EighteenThirtyTwoStateHandler,
     HydratedEighteenThirtyTwoState
 } from './state.js'
-import { protectingPresident } from './priceProtection.js'
+import { protectable } from './priceProtection.js'
 import { isClosingSpace } from './stockMarket.js'
 
 /**
@@ -34,7 +35,7 @@ export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | 
             !company.closed &&
             isClosingSpace(companyMarketSpace(state.stockMarket, company.id)) &&
             !state.priceProtection?.sales.some(
-                (sale) => sale.companyId === company.id && protectingPresident(state, sale)
+                (sale) => sale.companyId === company.id && protectable(state, sale)
             )
     )?.id
 }
@@ -86,9 +87,7 @@ export class HydratedCloseCompany
             'Only a company in the black area closes'
         )
         const funding = state.trainFunding?.purchase.companyId === this.companyId
-        const president = state.companies.find(
-            (company) => company.id === this.companyId
-        )?.president
+        const president = getCompany(state, this.companyId).president
         const ownTurn =
             (isOperatingStep(state.machineState) || state.machineState === 'FundingTrain') &&
             nextOperatingCompany(state) === this.companyId
@@ -99,9 +98,10 @@ export class HydratedCloseCompany
         )
         let forfeit: CashPayment | undefined
         if (funding) {
+            assertExists(president, 'A company funding a train has a president')
             delete state.trainFunding
-            const amount = president ? finiteCashOwnedBy(state, president) : 0
-            if (president && amount) {
+            const amount = finiteCashOwnedBy(state, president)
+            if (amount) {
                 forfeit = { from: president, to: { kind: 'bank' }, amount }
                 settleCashPayments(state, [forfeit])
             }

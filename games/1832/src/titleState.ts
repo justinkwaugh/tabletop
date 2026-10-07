@@ -1,7 +1,9 @@
 import * as Type from 'typebox'
-import { OwnershipLimitExemption } from '@tabletop/18xx'
 
 const Id = Type.String({ minLength: 1 })
+
+export const ProtectingPriceState = 'ProtectingPrice'
+export const ConsentingRedemptionState = 'ConsentingRedemption'
 
 export const RevenueTokenKind = Type.Union([
     Type.Literal('port'),
@@ -46,6 +48,13 @@ export const PriceProtection = Type.Object(
     {
         sellerPlayerId: Id,
         sales: Type.Array(ProtectableSale),
+        /** Each space sold from, its stack as it stood before the seller's first sale from it. */
+        stacks: Type.Array(
+            Type.Object(
+                { spaceId: Id, companyIds: Type.Array(Id) },
+                { additionalProperties: false }
+            )
+        ),
         protectorIds: Type.Array(Id),
         resume: Type.Optional(
             Type.Object(
@@ -69,8 +78,6 @@ const StockRoundNumber = Type.Integer({ minimum: 1 })
 
 export const EighteenThirtyTwoTitleFields = {
     priceProtection: Type.Optional(PriceProtection),
-    /** Presidents keeping more than 60% after protecting, until they next sell (§5.9.8). */
-    ownershipLimitExemptions: Type.Optional(Type.Array(OwnershipLimitExemption)),
     /** Each company's redemptions in its latest stock round with one (§5.10.1). */
     redemptions: Type.Optional(
         Type.Record(

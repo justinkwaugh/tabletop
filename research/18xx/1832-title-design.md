@@ -304,9 +304,50 @@ Investment's share and closure.
   between miss their turn and the protector is the last to act for priority. Otherwise play
   returns as it was.
 
+### Survey
+
+Price protection appears in 1832, 1850 and 1870 (research catalog; upstream `g_1870`, `g_1850`
+price-protection steps). All three queue a seller's sales and let each company's president buy
+them back at the sale price, restoring the price. They differ in who may protect (1870's original
+rules bar a president who sold that company this round; 1832 allows it, §5.9.10), in the
+certificate-room test, and in where play resumes. Black-area closure is shared with other
+titles' closing zones (1817's liquidation, 1846's closure). The shared parts are in the family
+library: sale details with the pre-sale stack place, `restoreStockMarker`, `closeShareCompany`
+and the hooks. **Limit:** the decision flow (`ProtectingPrice`) stays in 1832 until a second
+title needs it; it is written against those shared pieces so it can move with title hooks for
+eligibility and resumption.
+
+### Rulings
+
+- A holding above 60% is never by itself a breach: purchases stop at 60% outside green and
+  brown, a holding above it (from protection or green/brown purchases) is kept, recorded as an
+  ownership exemption, and the next sale of that company outside green and brown must bring it
+  to 60% in one block (§5.4.1, §5.9.8). Forced train sales sell down the same way (§5.5).
+- A company in the black area counts as closed for certificate limits and its certificates
+  count for nothing, from the sale that put it there (§5.3.5).
+- A company whose sale no president can protect closes at once, during the decisions included.
+- Operating-round protections restore the company's place in the operating order; play then
+  returns to the train step, which ends the turn as the treasury is empty (§5.9.6).
+- The protector pays what the seller actually received; split forced sales therefore cost the
+  sum of their falling prices.
+- The certificate limit applies to protections in operating rounds too, and a president already
+  over it may protect shares that do not raise their count.
+- Privates owned by a closing company close with it, and its Port, Cotton and Key West tokens
+  leave the map ("all tokens of that company", §5.1.1).
+- A company a forced sale sends into the black, whose president may protect it, closes only
+  after the train is bought and the decisions are made.
+- A seller kept over the certificate limit by a yellow-area sale that protection undoes sells
+  down on their next stock turn.
+
+### Release
+
+The sale metadata's optional `fromStackIndex` changes every 18xx title's sale action schemas.
+Stored games still load; a cached older UI artifact would reject the new metadata, so each title
+republishes its logic and UI artifacts together when it next adopts the shared library.
+
 ### Limits after slice 3
 
-Redemption (slice 4) will move prices without sales and will use the same closure check.
+Redemption (slice 4) moves no prices and needs no closure check.
 
 ### Acceptance examples
 

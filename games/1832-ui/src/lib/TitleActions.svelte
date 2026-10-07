@@ -4,40 +4,32 @@
     const companyName = (companyId: string) =>
         session.presentation.companyNames?.[companyId]?.initials ?? companyId
     const money = (amount: number) => session.presentation.money(amount)
-    const protection = $derived(session.priceProtection)
-    const restoredPrice = $derived(
-        protection &&
-            session.gameState.stockMarket.spaces.find(
-                (space) => space.id === protection.sale.fromMarketSpaceId
-            )?.price
-    )
+    const shares = (count: number) => (count === 1 ? 'share' : 'shares')
 </script>
 
-{#if protection}
+{#if session.protectionPrompt}
+    {@const prompt = session.protectionPrompt}
     <header class="title-prompt">
         {#if session.canDecideProtection}
             <span
-                >{session.getPlayerName(session.gameState.priceProtection?.sellerPlayerId)} sold
-                {protection.sale.shares}
-                {companyName(protection.sale.companyId)}
-                {protection.sale.shares === 1 ? 'share' : 'shares'} for {money(
-                    protection.sale.proceeds
-                )}. Buy {protection.sale.shares === 1 ? 'it' : 'them'} to protect the price, returning
-                it to {money(restoredPrice ?? 0)}?</span
+                >{session.getPlayerName(prompt.sellerPlayerId)} sold {prompt.shares}
+                {companyName(prompt.companyId)}
+                {shares(prompt.shares)} for {money(prompt.proceeds)}. Buy {prompt.shares === 1
+                    ? 'it'
+                    : 'them'} to protect the price, returning it to {money(prompt.restoredPrice)}?</span
             >
             <button
                 class="action-button inline-action"
-                onclick={() => session.protectShares(protection.sale.companyId)}>protect</button
+                onclick={() => session.protectShares(prompt.companyId)}>protect</button
             >
             <button
                 class="action-button inline-action"
-                onclick={() => session.declineProtection(protection.sale.companyId)}
-                >decline</button
+                onclick={() => session.declineProtection(prompt.companyId)}>decline</button
             >
         {:else}
             <span
-                >{session.getPlayerName(protection.playerId)} may protect the {companyName(
-                    protection.sale.companyId
+                >{session.getPlayerName(prompt.presidentPlayerId)} may protect the {companyName(
+                    prompt.companyId
                 )} price</span
             >
         {/if}

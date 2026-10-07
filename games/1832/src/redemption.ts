@@ -30,11 +30,11 @@ import {
     type EighteenThirtyTwoStateHandler,
     type HydratedEighteenThirtyTwoState
 } from './state.js'
+import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { ReissueParPrices } from './stockMarket.js'
-import { RedemptionRequest } from './titleState.js'
+import { ConsentingRedemptionState, RedemptionRequest } from './titleState.js'
 
-export const ConsentingRedemptionState = 'ConsentingRedemption'
 const RedemptionsPerStockRound = 1
 const MaximumCompanyPercent = 40
 const MinimumOutsidePercent = 60
@@ -202,6 +202,7 @@ function applyRedemption(
     assert(certificate && !certificate.retired, 'A redeemed share is in play')
     certificate.owner = companyOwner(choice.companyId)
     delete certificate.poolId
+    refreshOwnershipExcess(state, choice.companyId, choice.holder)
     const redeemed = state.redemptions?.[choice.companyId]
     state.redemptions = {
         ...state.redemptions,

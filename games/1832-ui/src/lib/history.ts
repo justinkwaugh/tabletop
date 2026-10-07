@@ -58,6 +58,11 @@ export const describe1832Action: TitleActionDescription = (action, companyName) 
         }
     if (isDeclineProtection(action))
         return { text: `declined to protect the ${companyName(action.companyId)} price` }
+    if (isCompletePriceProtection(action) && action.metadata?.nextPlayerId)
+        return {
+            text: 'Play resumed to the left of the last protecting president',
+            omitActor: true
+        }
     if (isStartPriceProtection(action) || isCompletePriceProtection(action))
         return { text: 'Price protection', omitActor: true, routine: true }
     if (isRecordMiamiRun(action))

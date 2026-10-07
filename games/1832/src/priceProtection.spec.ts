@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import {
     EmergencyTrainFunding,
     cashOwnedBy,
@@ -23,17 +24,26 @@ const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 function sell(play: Play, companyId: string, shares: number) {
     const playerId = play.state.activePlayerIds[0]
     const request = { playerId, seller: player(playerId), sales: [{ companyId, shares }] }
-    const { details } = evaluateShareSale(play.state, request, EighteenThirtyTwoStockRules)
-    expect(details).toBeDefined()
-    play.act('SellShares', { ...request, expectedProceeds: details!.proceeds })
-    return details!.proceeds
+    const { details, reason } = evaluateShareSale(play.state, request, EighteenThirtyTwoStockRules)
+    assertExists(details, reason)
+    play.act('SellShares', { ...request, expectedProceeds: details.proceeds })
+    return details.proceeds
+}
+
+function saleReason(play: Play, playerId: string, companyId: string, shares: number) {
+    return evaluateShareSale(
+        play.state,
+        { playerId, seller: player(playerId), sales: [{ companyId, shares }] },
+        EighteenThirtyTwoStockRules
+    ).reason
 }
 
 function setPlayerCash(state: EighteenThirtyTwoState, playerId: string, amount: number) {
     const cash = state.cash.find(
         (entry) => entry.owner.kind === 'player' && entry.owner.playerId === playerId
     )
-    cash!.amount = amount
+    assertExists(cash, 'The player has cash')
+    cash.amount = amount
 }
 
 function giveOfferingShares(
@@ -53,6 +63,60 @@ function giveOfferingShares(
         certificate.owner = player(playerId)
         delete certificate.poolId
         count--
+    }
+}
+
+function funding(play: Play) {
+    return new EmergencyTrainFunding(
+        play.state,
+        EighteenThirtyTwoTrainFundingRules,
+        EighteenThirtyTwoStockRules,
+        EighteenThirtyTwoTrainRules
+    )
+}
+
+function fundCheapestTrain(play: Play) {
+    const purchase = funding(play).purchases()[0]
+    play.act('FundTrain', {
+        companyId: purchase.companyId,
+        trainId: purchase.trainId,
+        definitionId: purchase.definitionId,
+        expectedPrice: purchase.price
+    })
+}
+
+function sellToFund(play: Play, companyId: string, shares: number) {
+    const price = companyMarketSpace(play.state.stockMarket, companyId).price
+    play.act('SellFundingShares', {
+        seller: player('blair'),
+        companyId,
+        shares,
+        expectedProceeds: price * shares
+    })
+}
+
+function completeFunding(play: Play) {
+    for (let step = 0; play.state.trainFunding && step < 10; step++) {
+        const choice = funding(play).next()
+        if (choice.kind === 'contribute')
+            play.act('ContributeTrainFunds', { owner: choice.owner, amount: choice.amount })
+        else if (choice.kind === 'buy')
+            play.act('BuyTrain', {
+                companyId: choice.purchase.companyId,
+                trainId: choice.purchase.trainId,
+                definitionId: choice.purchase.definitionId,
+                expectedPrice: choice.purchase.price
+            })
+        else if (choice.kind === 'sell') {
+            const sale = choice.sales.at(-1)
+            assertExists(sale, 'A funding sale choice has a sale')
+            play.act('SellFundingShares', {
+                seller: choice.owner,
+                companyId: sale.sales[0].companyId,
+                shares: sale.sales[0].shares,
+                expectedProceeds: sale.proceeds
+            })
+        } else throw Error(`Unexpected funding choice ${choice.kind}`)
     }
 }
 
@@ -110,7 +174,7 @@ describe('share price protection', () => {
         expect(play.state.activePlayerIds).toEqual(['blair'])
     })
 
-    it('lets a protecting president exceed 60% until they next sell', () => {
+    it('lets a protecting president exceed 60% until they next sell, then sell down', () => {
         const play = trading((state) => giveOfferingShares(state, 'CG', 'blair', 2))
         sell(play, 'CG', 3)
         play.act('FinishStockTurn')
@@ -122,11 +186,64 @@ describe('share price protection', () => {
         play.act('FinishStockTurn', {}, 'casey')
         play.act('FinishStockTurn', {}, 'alex')
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        sell(play, 'CG', 1)
+        // Out of the green and brown areas, a sale must bring them down to 60% (§5.9.8).
+        expect(saleReason(play, 'blair', 'CG', 1)).toBe('Sell down to 60% of this company.')
+        sell(play, 'CG', 2)
+        expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(6)
         expect(play.state.ownershipLimitExemptions).toEqual([])
-        // Out of the green and brown areas, they must now sell down to 60% (§5.9.8).
-        expect(play.valid('blair')).toContain('SellShares')
-        expect(() => play.act('FinishStockTurn')).toThrow()
+    })
+
+    it('keeps an excess bought in the green area after the price leaves it', () => {
+        const play = trading((state) => {
+            giveOfferingShares(state, 'CG', 'blair', 3)
+            placeStockMarker(state.stockMarket, 'CG', '3:0')
+            const offered = state.certificates.find(
+                (certificate) =>
+                    !certificate.retired &&
+                    certificate.companyId === 'CG' &&
+                    certificate.poolId === 'initial-offering'
+            )
+            assertExists(offered, 'CG has an offering share left')
+            if (!offered.retired) offered.poolId = 'open-market'
+        })
+        play.act('FinishStockTurn')
+        const certificateId = play.state.certificates.find(
+            (certificate) =>
+                !certificate.retired &&
+                certificate.poolId === 'open-market' &&
+                certificate.companyId === 'CG'
+        )?.id
+        assertExists(certificateId, 'A CG share is in the market')
+        play.act('BuyShares', { buyer: player('blair'), certificateId, expectedPrice: 50 }, 'blair')
+        expect(play.state.ownershipLimitExemptions).toEqual([
+            { owner: player('blair'), companyId: 'CG', maximumShares: 7 }
+        ])
+        placeStockMarker(play.state.stockMarket, 'CG', '1:6')
+        expect(play.valid('blair')).toContain('FinishStockTurn')
+    })
+
+    it('restores two companies sold from one space in their order', () => {
+        const play = trading((state) => {
+            placeStockMarker(state.stockMarket, 'CG', '1:6')
+            giveOfferingShares(state, 'CG', 'casey', 1)
+        })
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '1:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+        play.act('FinishStockTurn')
+        play.act('FinishStockTurn')
+        sell(play, 'ACL', 1)
+        sell(play, 'CG', 1)
+        play.act('ProtectShares', { companyId: 'ACL' }, 'alex')
+        play.act('ProtectShares', { companyId: 'CG' }, 'blair')
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '1:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+    })
+
+    it('refuses sales from the black area', () => {
+        const play = trading((state) => placeStockMarker(state.stockMarket, 'CG', '9:0'))
+        expect(saleReason(play, 'alex', 'CG', 1)).toBe('This company is closing.')
     })
 
     it('decides sales in the order sold, resuming left of the last protector', () => {
@@ -162,47 +279,9 @@ describe('share price protection', () => {
         const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) =>
             setPlayerCash(state, 'alex', 300)
         )
-        const funding = () =>
-            new EmergencyTrainFunding(
-                play.state,
-                EighteenThirtyTwoTrainFundingRules,
-                EighteenThirtyTwoStockRules,
-                EighteenThirtyTwoTrainRules
-            )
-        const purchase = funding().purchases()[0]
-        play.act('FundTrain', {
-            companyId: purchase.companyId,
-            trainId: purchase.trainId,
-            definitionId: purchase.definitionId,
-            expectedPrice: purchase.price
-        })
-        play.act('SellFundingShares', {
-            seller: player('blair'),
-            companyId: 'ACL',
-            shares: 1,
-            expectedProceeds: companyMarketSpace(play.state.stockMarket, 'ACL').price
-        })
-        for (let step = 0; play.state.trainFunding && step < 10; step++) {
-            const choice = funding().next()
-            if (choice.kind === 'contribute')
-                play.act('ContributeTrainFunds', { owner: choice.owner, amount: choice.amount })
-            else if (choice.kind === 'buy')
-                play.act('BuyTrain', {
-                    companyId: choice.purchase.companyId,
-                    trainId: choice.purchase.trainId,
-                    definitionId: choice.purchase.definitionId,
-                    expectedPrice: choice.purchase.price
-                })
-            else if (choice.kind === 'sell') {
-                const sale = choice.sales.at(-1)!
-                play.act('SellFundingShares', {
-                    seller: choice.owner,
-                    companyId: sale.sales[0].companyId,
-                    shares: sale.sales[0].shares,
-                    expectedProceeds: sale.proceeds
-                })
-            } else throw Error(`Unexpected funding choice ${choice.kind}`)
-        }
+        fundCheapestTrain(play)
+        sellToFund(play, 'ACL', 1)
+        completeFunding(play)
         expect(play.state.machineState).toBe('ProtectingPrice')
         expect(play.state.activePlayerIds).toEqual(['alex'])
         const aclSpace = play.state.priceProtection?.sales[0].fromMarketSpaceId
@@ -212,6 +291,25 @@ describe('share price protection', () => {
         expect(play.state.priceProtection).toBeUndefined()
         expect(play.state.operatingSet?.completedCompanyIds).toContain('CG')
         expect(play.state.machineState).toBe('LayingTrack')
+    })
+
+    it('merges a seller’s forced sales of one company, from its first price', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) =>
+            giveOfferingShares(state, 'ACL', 'blair', 1)
+        )
+        fundCheapestTrain(play)
+        const from = companyMarketSpace(play.state.stockMarket, 'ACL')
+        sellToFund(play, 'ACL', 1)
+        const second = companyMarketSpace(play.state.stockMarket, 'ACL').price
+        sellToFund(play, 'ACL', 1)
+        expect(play.state.priceProtection?.sales).toEqual([
+            expect.objectContaining({
+                companyId: 'ACL',
+                shares: 2,
+                proceeds: from.price + second,
+                fromMarketSpaceId: from.id
+            })
+        ])
     })
 })
 
@@ -252,32 +350,68 @@ describe('black-area closure', () => {
         expect(companyMarketSpace(protectedPlay.state.stockMarket, 'CG').id).toBe('8:1')
     })
 
+    it('closes a declined company before the next president decides', () => {
+        const play = trading((state) => {
+            placeStockMarker(state.stockMarket, 'ACL', '8:1')
+            giveOfferingShares(state, 'CG', 'casey', 1)
+        })
+        play.act('FinishStockTurn')
+        play.act('FinishStockTurn')
+        sell(play, 'ACL', 1)
+        sell(play, 'CG', 1)
+        play.act('DeclineProtection', { companyId: 'ACL' }, 'alex')
+        expect(getCompany(play.state, 'ACL').closed).toBe(true)
+        expect(play.state.machineState).toBe('ProtectingPrice')
+        expect(play.state.activePlayerIds).toEqual(['blair'])
+    })
+
+    it('sends its trains to the market and takes its rights and tokens out of play', () => {
+        const play = trading((state) => {
+            placeStockMarker(state.stockMarket, 'CG', '8:1')
+            state.coalRights = ['CG']
+            state.revenueTokens = [
+                {
+                    kind: 'port',
+                    companyId: 'CG',
+                    locationId: 'U28',
+                    nodeId: 'city-0',
+                    placed: { set: 1, round: 1 }
+                }
+            ]
+            state.trainInventory.trains = state.trainInventory.trains.map((train, index) =>
+                index === 0
+                    ? {
+                          id: train.id,
+                          definitionId: train.definitionId,
+                          status: 'owned',
+                          owner: { kind: 'company', companyId: 'CG' }
+                      }
+                    : train
+            )
+        })
+        const trainId = play.state.trainInventory.trains[0].id
+        sell(play, 'CG', 1)
+        play.act('FinishStockTurn')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        expect(getCompany(play.state, 'CG').closed).toBe(true)
+        expect(play.state.trainInventory.trains.find((train) => train.id === trainId)?.status).toBe(
+            'market'
+        )
+        expect(play.state.coalRights).toEqual([])
+        expect(play.state.revenueTokens).toEqual([])
+    })
+
     it('forfeits the president’s cash when funding sales close their own company', () => {
         const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) =>
             placeStockMarker(state.stockMarket, 'CG', '8:1')
         )
-        const purchase = new EmergencyTrainFunding(
-            play.state,
-            EighteenThirtyTwoTrainFundingRules,
-            EighteenThirtyTwoStockRules,
-            EighteenThirtyTwoTrainRules
-        ).purchases()[0]
-        play.act('FundTrain', {
-            companyId: purchase.companyId,
-            trainId: purchase.trainId,
-            definitionId: purchase.definitionId,
-            expectedPrice: purchase.price
-        })
-        play.act('SellFundingShares', {
-            seller: player('blair'),
-            companyId: 'CG',
-            shares: 1,
-            expectedProceeds: 10
-        })
+        fundCheapestTrain(play)
+        sellToFund(play, 'CG', 1)
         expect(getCompany(play.state, 'CG').closed).toBe(true)
         expect(cashOwnedBy(play.state, player('blair'))).toBe(0)
         expect(play.state.trainFunding).toBeUndefined()
         expect(play.state.operatingSet?.completedCompanyIds).toContain('CG')
-        expect(play.state.machineState).not.toBe('FundingTrain')
+        // CG's turn ends at once and the next company begins its turn.
+        expect(play.state.machineState).toBe('LayingTrack')
     })
 })

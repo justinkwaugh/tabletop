@@ -16,6 +16,7 @@ import {
     type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
+import { stockMarketSpace } from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -66,12 +67,24 @@ export class EighteenThirtyTwoSession extends BaseSession {
             ? londonShareCompanies(this.gameState, this.myPlayer.id)
             : []
     )
-    /** The sale whose president is deciding whether to protect its price, and that president. */
-    readonly priceProtection = $derived(
-        this.gameState.machineState === ProtectingPriceState
-            ? protectionDecision(this.gameState)
-            : undefined
-    )
+    /** The sale whose president is deciding whether to protect its price, and its terms. */
+    readonly protectionPrompt = $derived.by(() => {
+        const record = this.gameState.priceProtection
+        const decision =
+            this.gameState.machineState === ProtectingPriceState
+                ? protectionDecision(this.gameState)
+                : undefined
+        if (!record || !decision) return undefined
+        return {
+            ...decision.sale,
+            sellerPlayerId: record.sellerPlayerId,
+            presidentPlayerId: decision.playerId,
+            restoredPrice: stockMarketSpace(
+                this.gameState.stockMarket,
+                decision.sale.fromMarketSpaceId
+            ).price
+        }
+    })
     readonly canDecideProtection = $derived(
         this.canChooseAction && this.validActionTypes.includes('ProtectShares')
     )

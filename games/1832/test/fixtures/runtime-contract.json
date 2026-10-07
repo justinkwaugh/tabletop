@@ -2281,12 +2281,37 @@
           "sellerPlayerId": {
             "minLength": 1,
             "type": "string"
+          },
+          "stacks": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyIds": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "spaceId": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyIds",
+                "spaceId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
         "required": [
           "protectorIds",
           "sales",
-          "sellerPlayerId"
+          "sellerPlayerId",
+          "stacks"
         ],
         "type": "object"
       },
@@ -4236,6 +4261,7 @@
       "gameId",
       "id",
       "machineState",
+      "ownershipLimitExemptions",
       "phaseEvents",
       "phaseId",
       "players",

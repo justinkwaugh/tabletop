@@ -6,6 +6,8 @@ import {
     moveCompanyMarker,
     moveMarketSpace,
     removeStockMarker,
+    restoreStockMarker,
+    stockMarkerStackIndex,
     stockMarketOrder,
     validateStockMarket
 } from './stockMarket.js'
@@ -55,4 +57,21 @@ it('moves a company’s marker and records the move unless it stays put', () => 
         toMarketSpaceId: '0:0'
     })
     expect(moveCompanyMarker(market, 'A', 'left', 1)).toBeUndefined()
+})
+
+it('returns a marker to its earlier place in a stack', () => {
+    const market = createRectangularStockMarket([[60, 70]], () => 'white')
+    for (const id of ['first', 'second', 'third']) placeStockMarker(market, id, '0:0')
+    expect(stockMarkerStackIndex(market, 'second')).toBe(1)
+    placeStockMarker(market, 'second', '0:1')
+    restoreStockMarker(market, 'second', '0:0', 1)
+    expect(market.stacks.find((stack) => stack.spaceId === '0:0')?.companyIds).toEqual([
+        'first',
+        'second',
+        'third'
+    ])
+    expect(market.stacks.map((stack) => stack.spaceId)).toEqual(['0:0'])
+    placeStockMarker(market, 'third', '0:1')
+    restoreStockMarker(market, 'third', '0:0', 5)
+    expect(market.stacks[0].companyIds).toEqual(['first', 'second', 'third'])
 })

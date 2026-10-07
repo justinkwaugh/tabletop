@@ -11,6 +11,12 @@ import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { isClosingSpace, saleDescent } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
+import {
+    OwnershipPercent,
+    refreshBuyerExcess,
+    refreshSellerExcess,
+    requiredSellDown
+} from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 
@@ -31,6 +37,13 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
     }
 }
 
+function withSellDown(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
+    return (state, companyId, shares, seller) =>
+        shares < requiredSellDown(state, companyId, seller)
+            ? 'Sell down to 60% of this company.'
+            : saleTerms(state, companyId, shares, seller)
+}
+
 // A reissued share's price goes to its company (§5.11).
 const purchaseTerms: StockRules['purchaseTerms'] = (state, certificate, buyer) => {
     const terms = Trading.purchaseTerms(state, certificate, buyer)
@@ -44,7 +57,7 @@ const purchaseTerms: StockRules['purchaseTerms'] = (state, certificate, buyer) =
 
 export const EighteenThirtyTwoShareTrading = {
     purchaseTerms,
-    stockSaleTerms: withSoftLedge(Trading.stockSaleTerms),
+    stockSaleTerms: withSellDown(withSoftLedge(Trading.stockSaleTerms)),
     emergencySaleTerms: withSoftLedge(Trading.emergencySaleTerms)
 }
 
@@ -60,10 +73,19 @@ const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
 
 const MajorIds: readonly string[] = Object.keys(EighteenThirtyTwoMajors)
 
-/** The Table 2 column: companies still active or available, from ten down to six or fewer. */
-export function certificateLimitColumn(state: Pick<StockState, 'companies'>): number {
+/**
+ * The Table 2 column: companies still active or available, from ten down to six or fewer. A
+ * company in the black area counts as closed, as a seller must assume no president protects it
+ * (§5.3.5).
+ */
+export function certificateLimitColumn(
+    state: Pick<StockState, 'companies' | 'stockMarket'>
+): number {
     const remaining = state.companies.filter(
-        (company) => MajorIds.includes(company.id) && !company.closed
+        (company) =>
+            MajorIds.includes(company.id) &&
+            !company.closed &&
+            !(company.started && isClosingSpace(companyMarketSpace(state.stockMarket, company.id)))
     ).length
     return Math.min(4, MajorIds.length - remaining)
 }
@@ -79,13 +101,20 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },
+    // A closing company's certificates are about to leave play (§5.3.5).
     ...marketZoneHoldingLimits({
-        certificateFreeColors: ['yellow', 'green', 'brown'],
+        certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
         ownershipFreeColors: ['green', 'brown'],
-        ownershipPercent: 60
+        ownershipPercent: OwnershipPercent
     }),
-    afterSale: recordProtectableSale,
-    afterPurchase: lockReissueProceeds,
+    afterSale(state, details) {
+        recordProtectableSale(state, details)
+        refreshSellerExcess(state, details)
+    },
+    afterPurchase(state, details) {
+        lockReissueProceeds(state, details)
+        refreshBuyerExcess(state, details)
+    },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',

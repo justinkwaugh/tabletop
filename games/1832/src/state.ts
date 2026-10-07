@@ -2,6 +2,7 @@ import {
     AuctionFields,
     composeEighteenXXState,
     defineEighteenXXState,
+    OwnershipExemptionFields,
     PendingParFields,
     PrivatePowerFields,
     RailwayFields,
@@ -16,7 +17,11 @@ import {
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import type * as Type from 'typebox'
-import { EighteenThirtyTwoTitleFields } from './titleState.js'
+import {
+    ConsentingRedemptionState,
+    EighteenThirtyTwoTitleFields,
+    ProtectingPriceState
+} from './titleState.js'
 
 export const EighteenThirtyTwoState = composeEighteenXXState(
     {
@@ -25,13 +30,14 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...PendingParFields,
         ...StockTurnPurchaseFields,
         ...AuctionFields,
+        ...OwnershipExemptionFields,
         ...EighteenThirtyTwoTitleFields
     },
     [
         ...RailwayMachineStates,
         ...WaterfallAuctionMachineStates,
-        'ProtectingPrice',
-        'ConsentingRedemption'
+        ProtectingPriceState,
+        ConsentingRedemptionState
     ]
 )
 export type EighteenThirtyTwoState = Type.Static<typeof EighteenThirtyTwoState>

@@ -109,7 +109,7 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
 }
 
 /** A company's place in its space's stack, counting from the top. */
-export function stackIndex(market: StockMarket, companyId: string): number {
+export function stockMarkerStackIndex(market: StockMarket, companyId: string): number {
     const stack = market.stacks.find((stack) => stack.companyIds.includes(companyId))
     assertExists(stack, `Company has no stock market marker: ${companyId}`)
     return stack.companyIds.indexOf(companyId)

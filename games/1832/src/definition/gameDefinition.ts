@@ -124,7 +124,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         DistributingEarnings: recordsMiamiRun
     },
     titleStateHandlers: {
-        ProtectingPrice: new ProtectingPriceHandler(),
+        ProtectingPrice: closesCompanies(new ProtectingPriceHandler()),
         ConsentingRedemption: new ConsentingRedemptionHandler()
     },
     titleActions: [
