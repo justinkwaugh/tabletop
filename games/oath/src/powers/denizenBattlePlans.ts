@@ -11,7 +11,7 @@ import { collectAttackingForce, collectDefendingForce, type DiceDelta } from '..
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
 import { isImperialPlayer } from '../util/rule.js'
-import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
+import { banditRuledCardIds, ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { registerBattlePlan, type BattlePlanContext } from './registry.js'
 import { PowerChoiceKind, optional } from '../util/powerChoice.js'
 import {
@@ -22,7 +22,6 @@ import {
     gainWarbandsToBoard,
     killWarbandGroup,
     killWarbandsOnBoard,
-    ruledCardsOfSuit,
     siteHasCardOfSuit,
     hasFaceupAdviserOfSuit
 } from './vocabulary.js'
@@ -85,6 +84,13 @@ function myForce(ctx: BattlePlanContext): number {
 }
 function enemyForce(ctx: BattlePlanContext): number {
     return side(ctx) === BattlePlanSide.Attacker ? defendingForce(ctx) : attackingForce(ctx)
+}
+
+/** R-5.5.3-H1 — the bandits' compelled plans count the cards at the sites they rule. */
+function cardsRuledByUser(ctx: BattlePlanContext): string[] {
+    return ctx.playerId === undefined
+        ? banditRuledCardIds(ctx.state)
+        : ruledFaceupCardIds(ctx.state, ctx.playerId)
 }
 
 /** Fire Talkers' entry widens "you hold" to any Imperial player when you are one (R-10.28-H1). */
@@ -400,7 +406,8 @@ registerBattlePlan(
     powerIndexOf('denizen.nomad.great-crusade', PowerTiming.BattlePlan),
     {
         hooks: {
-            dice: (ctx) => pm(ctx, ruledCardsOfSuit(ctx.state, planUser(ctx), Suit.Nomad).length),
+            dice: (ctx) =>
+                pm(ctx, cardsRuledByUser(ctx).filter((id) => suitOf(id) === Suit.Nomad).length),
             discardAtEnd: true
         }
     }

@@ -14,9 +14,8 @@ import {
     type PowerCost,
     powerKey
 } from '../data/cardPowers.js'
-import { denizensOnMap } from './access.js'
+import { banditRuledCardIds, denizensOnMap } from './access.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
-import { banditsRuleSite } from './rule.js'
 import {
     addCosts,
     favorNeeded,
@@ -243,15 +242,12 @@ function reasonCannotPayPlansInOrder(
 /** R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones. */
 export function banditBattlePlans(state: HydratedOathGameState): ActiveBattlePlan[] {
     const found: ActiveBattlePlan[] = []
-    for (const siteId of state.allSiteIds()) {
-        if (!banditsRuleSite(state, siteId)) continue
-        for (const cardId of state.denizensAt(siteId)) {
-            for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
-                if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
-                const hooks = effectFor(power)?.battlePlan
-                if (!hooks) continue
-                found.push({ power, hooks, choices: [], compelled: true })
-            }
+    for (const cardId of banditRuledCardIds(state)) {
+        for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
+            if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
+            const hooks = effectFor(power)?.battlePlan
+            if (!hooks) continue
+            found.push({ power, hooks, choices: [], compelled: true })
         }
     }
     // Code of Honor — "you cannot use other battle plans" binds the bandits' own too.
