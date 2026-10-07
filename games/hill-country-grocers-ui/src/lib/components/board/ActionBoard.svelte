@@ -23,8 +23,7 @@
         ],
         [ActionSpace.DevelopTowns]: [
             'A development in two cities,',
-            'or one and $1 from the bank',
-            'Limit: white 1, brown 2, black 3'
+            'or one and $1 from the bank'
         ],
         [ActionSpace.AuctionShare]: [
             'Auction any company’s share',

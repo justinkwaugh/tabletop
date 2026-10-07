@@ -6,7 +6,15 @@
     import EndGameTracker from './board/EndGameTracker.svelte'
     import MapLayer from './board/MapLayer.svelte'
     import MapLegend from './board/MapLegend.svelte'
+    import MapControls from './board/MapControls.svelte'
     import TerrainLayer from './board/TerrainLayer.svelte'
+
+    let {
+        onZoomToMap,
+        onShowBoard,
+        onToggleFullScreen
+    }: { onZoomToMap: () => void; onShowBoard: () => void; onToggleFullScreen: () => void } =
+        $props()
     import RoundTracker from './board/RoundTracker.svelte'
 </script>
 
@@ -21,6 +29,7 @@
     <TerrainLayer />
     <MapLayer />
     <MapLegend />
+    <MapControls {onZoomToMap} {onShowBoard} {onToggleFullScreen} />
     <ActionBoard />
     <RoundTracker />
     <CompanyCards />

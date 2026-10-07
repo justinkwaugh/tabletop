@@ -43,8 +43,7 @@
                     gameSession.buildCompany
                 ).treasury}):
                 {#if gameSession.chosenHexes.length === 0}
-                    choose a highlighted hex for up to {gameSession.maxCubes} stores. Each store pays $2 to the
-                    bank and $1 to each grocer already there.
+                    choose a highlighted hex for up to {gameSession.maxCubes} stores. For each store, the company pays $2 to the bank and $1 to each grocer already there.
                 {:else if gameSession.hexTargets.length > 0}
                     {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
                     now.
@@ -111,7 +110,7 @@
                 />
             </div>
         {:else}
-            <p class="prompt">Choose the company whose share goes up for auction: pick its card.</p>
+            <p class="prompt">Select the company share for auction: pick its card.</p>
         {/if}
     {:else}
         <WaitingView />

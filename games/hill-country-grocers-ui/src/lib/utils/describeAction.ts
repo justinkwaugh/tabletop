@@ -22,8 +22,8 @@ export type DescriptionSegment = string | { playerId: string } | { companyId: Co
 export type Description = DescriptionSegment[]
 
 export const SPACE_NAMES: Record<ActionSpace, string> = {
-    [ActionSpace.BuildNetwork]: 'Build Transport Network',
-    [ActionSpace.DevelopTowns]: 'Develop Town Infrastructure',
+    [ActionSpace.BuildNetwork]: 'Build Stores',
+    [ActionSpace.DevelopTowns]: 'Develop Cities',
     [ActionSpace.AuctionShare]: 'Auction Share'
 }
 

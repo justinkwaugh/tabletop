@@ -87,9 +87,9 @@ test('plays the initial auctions and builds a network on the map', async ({ page
     await screenshot(page, '02-first-turn')
 
     // A player who won no share cannot build, so develop until a shareholder's turn comes up.
-    const build = page.getByRole('button', { name: 'Choose Build Transport Network' })
+    const build = page.getByRole('button', { name: 'Choose Build Stores' })
     for (let turn = 0; turn < 5 && (await build.count()) === 0; turn++) {
-        await page.getByRole('button', { name: 'Choose Develop Town Infrastructure' }).click()
+        await page.getByRole('button', { name: 'Choose Develop Cities' }).click()
         await page
             .getByRole('button', { name: /^Develop / })
             .first()
@@ -132,7 +132,7 @@ test('plays the initial auctions and builds a network on the map', async ({ page
 test('develops towns and auctions a share', async ({ page }) => {
     await createGame(page)
     await playInitialAuctions(page)
-    await page.getByRole('button', { name: 'Choose Develop Town Infrastructure' }).click()
+    await page.getByRole('button', { name: 'Choose Develop Cities' }).click()
     await expect.poll(() => machineState(page)).toBe('DevelopingTowns')
     await screenshot(page, '06-developing')
     await page.getByRole('button', { name: 'Develop San Antonio' }).click()

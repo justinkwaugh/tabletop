@@ -3,7 +3,7 @@ import acsLogo from '$lib/images/logo_ACS.png'
 import verLogo from '$lib/images/logo_V.png'
 import ssLogo from '$lib/images/logo_SS.png'
 import ccLogo from '$lib/images/logo_CC.png'
-import bbLogo from '$lib/images/logo_BB.png'
+import bbLogo from '$lib/images/logo_BB.jpg'
 
 export type CompanyStyle = { fill: string; tint: string; text: string; light: string; logo: string }
 

@@ -20,7 +20,9 @@
 
     const DEVELOPMENT_SIZE = 22
     const DEVELOPMENT_STEP = 24
-    const STORE_SIZE = 30
+    const STORE_SIZE = 24
+    // Moves a dot and its lone development slot to the hex's centre line.
+    const SINGLE_SLOT_SHIFT = 24
 
     const chosenKeys = $derived(new Set(gameSession.chosenHexes.map(hexKey)))
     const targetKeys = $derived(new Set(gameSession.hexTargets.map(hexKey)))
@@ -44,7 +46,7 @@
                 center,
                 city: found,
                 stores,
-                storeY: found ? center.y + 37 : center.y + 4,
+                storeY: center.y + storeRowOffset(found !== undefined, stores.length),
                 target: targetKeys.has(key),
                 pending
             }
@@ -54,21 +56,29 @@
     const cities = $derived(
         CITIES.map((place) => {
             const center = hexCenter(place.coords)
+            const capacity = developmentCapacity(place.id)
             return {
                 ...place,
                 center,
+                rowX: center.x + (capacity === 1 ? SINGLE_SLOT_SHIFT : 0),
                 markers: gameSession.gameState.markersIn(place.id),
-                capacity: developmentCapacity(place.id),
+                capacity,
                 target: gameSession.cityTargets.includes(place.id),
                 chosen: gameSession.developCity === place.id
             }
         })
     )
 
-    // Starting cities can hold every grocer, so crowded hexes overlap their stores to fit.
+    // A city's name stays clear unless three or more stores need the hex's wider middle.
+    function storeRowOffset(isCity: boolean, count: number): number {
+        if (!isCity) {
+            return 4
+        }
+        return count >= 3 ? 8 : 30
+    }
+
     function storeX(index: number, count: number, centerX: number): number {
-        const spacing = count > 2 ? STORE_SIZE * 0.78 : STORE_SIZE + 4
-        return centerX + (index - (count - 1) / 2) * spacing
+        return centerX + (index - (count - 1) / 2) * (STORE_SIZE + 4)
     }
 
     function onKey(event: KeyboardEvent, action: () => void) {
@@ -83,21 +93,21 @@
     <g class="city">
         <text
             x={place.center.x}
-            y={place.center.y + 6}
+            y={place.center.y - 7}
             class="name"
             class:major={place.tier === CityTier.Black}>{place.name}</text
         >
         <circle
-            cx={place.center.x - 40}
-            cy={place.center.y - 28}
+            cx={place.rowX - 35}
+            cy={place.center.y - 36}
             r="10"
             fill={TIER_FILL[place.tier]}
             class="dot"
         />
         {#each Array.from({ length: place.capacity }, (_, index) => index) as slot (slot)}
             <Development
-                x={place.center.x - 14 + slot * DEVELOPMENT_STEP}
-                y={place.center.y - 29}
+                x={place.rowX - 14 + slot * DEVELOPMENT_STEP}
+                y={place.center.y - 37}
                 size={DEVELOPMENT_SIZE}
                 built={slot < place.markers}
             />
@@ -146,8 +156,8 @@
             onkeydown={(event) => onKey(event, () => gameSession.clickCity(place.id))}
         >
             <rect
-                x={place.center.x - 56}
-                y={place.center.y - 46}
+                x={place.rowX - 51}
+                y={place.center.y - 54}
                 width={place.capacity * DEVELOPMENT_STEP + 46}
                 height="32"
                 rx="10"

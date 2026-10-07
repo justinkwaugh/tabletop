@@ -10,7 +10,7 @@
     const WAITING_FOR: Partial<Record<MachineState, string>> = {
         [MachineState.PlacingBonusCube]: 'may place a Streamside Sisters store',
         [MachineState.ChoosingAction]: 'is choosing an action',
-        [MachineState.BuildingNetwork]: 'is building a transport network',
+        [MachineState.BuildingNetwork]: 'is building stores',
         [MachineState.DevelopingTowns]: 'is developing cities',
         [MachineState.StartingAuction]: 'is choosing a share to auction'
     }

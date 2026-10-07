@@ -1,8 +1,20 @@
 <script lang="ts">
     import { HILL_COUNTRY_MAP, cityAt } from '@tabletop/hill-country-grocers'
     import hcgLogo from '$lib/images/hcg_logo.png'
-    import { MAP_RECT, hexCenter, hexPoints } from '$lib/utils/boardLayout.js'
-    import { MEADOW_TINTS, TOWN_GROUND, coordsSeed } from '$lib/utils/mapStyle.js'
+    import {
+        MAP_RECT,
+        SHEET_RECT,
+        hexCenter,
+        SHEET_CORNER,
+        hexPoints
+    } from '$lib/utils/boardLayout.js'
+    import {
+        MEADOW_TINTS,
+        TOWN_GROUND,
+        contourPath,
+        coordsSeed,
+        type ContourHill
+    } from '$lib/utils/mapStyle.js'
 
     type Decoration = 'oaks' | 'bluebonnets' | 'limestone' | 'cactus' | 'none'
 
@@ -28,29 +40,47 @@
     })
 
 
-    const HILLS = [
-        { x: 120, y: 120, rx: 150, ry: 70 },
-        { x: 560, y: 70, rx: 220, ry: 60 },
-        { x: 860, y: 600, rx: 170, ry: 90 },
-        { x: 300, y: 560, rx: 200, ry: 80 },
-        { x: 700, y: 360, rx: 160, ry: 70 }
+    const HILLS: ContourHill[] = [
+        { x: 110, y: 120, rx: 170, ry: 95, seed: 0.4 },
+        { x: 520, y: 60, rx: 240, ry: 85, seed: 1.7 },
+        { x: 880, y: 250, rx: 150, ry: 120, seed: 2.9 },
+        { x: 330, y: 470, rx: 210, ry: 120, seed: 4.2 },
+        { x: 760, y: 560, rx: 190, ry: 110, seed: 5.6 },
+        { x: 560, y: 760, rx: 260, ry: 90, seed: 0.9 }
+    ]
+    const CONTOUR_RINGS = [1, 0.82, 0.64, 0.46, 0.28]
+
+    const GRID_STEP = 118
+    const meridians = Array.from(
+        { length: Math.floor(MAP_RECT.width / GRID_STEP) },
+        (_, index) => MAP_RECT.x + (index + 1) * GRID_STEP
+    )
+    const parallels = Array.from(
+        { length: Math.floor(MAP_RECT.height / GRID_STEP) },
+        (_, index) => MAP_RECT.y + (index + 1) * GRID_STEP
+    )
+
+    const COUNTY_LINES = [
+        'M 0 300 L 160 310 L 250 250 L 420 262 L 470 180 L 640 170 L 700 0',
+        'M 380 778 L 400 640 L 560 600 L 600 470 L 780 430 L 950 470',
+        'M 0 560 L 120 600 L 210 700 L 260 778'
     ]
 
-    const compass = { x: MAP_RECT.x + 62, y: MAP_RECT.y + 78 }
     // The bottom of the map is left clear of hexes so the game's logo covers none of them.
-    const logo = { x: MAP_RECT.x + 8, y: MAP_RECT.y + MAP_RECT.height - 151, width: 225, height: 143 }
+    const logo = { x: MAP_RECT.x + 8, y: MAP_RECT.y + MAP_RECT.height - 142, width: 210, height: 134 }
 </script>
 
 <defs>
-    <linearGradient id="hcg-hills" x1="0" y1="0" x2="0.3" y2="1">
-        <stop offset="0" stop-color="#8e9a59" />
-        <stop offset="0.5" stop-color="#7b8a4b" />
-        <stop offset="1" stop-color="#66763f" />
-    </linearGradient>
-    <radialGradient id="hcg-sunlight" cx="0.3" cy="0.2" r="0.9">
-        <stop offset="0" stop-color="#fff4c8" stop-opacity="0.35" />
-        <stop offset="0.6" stop-color="#fff4c8" stop-opacity="0" />
+    <radialGradient id="hcg-paper-age" cx="0.5" cy="0.45" r="0.75">
+        <stop offset="0.55" stop-color="#8a6a32" stop-opacity="0" />
+        <stop offset="1" stop-color="#8a6a32" stop-opacity="0.32" />
     </radialGradient>
+    <filter id="hcg-paper-grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" />
+        <feColorMatrix
+            values="0 0 0 0 0.45  0 0 0 0 0.33  0 0 0 0 0.16  0 0 0 0.16 0"
+        />
+    </filter>
     <radialGradient id="hcg-tile-shade">
         <stop offset="0" stop-color="#fffbe8" stop-opacity="0.22" />
         <stop offset="0.7" stop-color="#fffbe8" stop-opacity="0" />
@@ -60,20 +90,48 @@
         <feDropShadow dx="1.5" dy="2.5" stdDeviation="1.8" flood-color="#2a2410" flood-opacity="0.45" />
     </filter>
     <clipPath id="hcg-map-clip">
-        <rect x={MAP_RECT.x} y={MAP_RECT.y} width={MAP_RECT.width} height={MAP_RECT.height} rx="14" />
+        <rect
+            x={SHEET_RECT.x}
+            y={SHEET_RECT.y}
+            width={SHEET_RECT.width}
+            height={SHEET_RECT.height}
+            rx={SHEET_CORNER}
+        />
     </clipPath>
 </defs>
 
 <g clip-path="url(#hcg-map-clip)" aria-hidden="true">
-    <rect x={MAP_RECT.x} y={MAP_RECT.y} width={MAP_RECT.width} height={MAP_RECT.height} fill="url(#hcg-hills)" />
+    <rect x={SHEET_RECT.x} y={SHEET_RECT.y} width={SHEET_RECT.width} height={SHEET_RECT.height} class="paper" />
+    <rect
+        x={SHEET_RECT.x}
+        y={SHEET_RECT.y}
+        width={SHEET_RECT.width}
+        height={SHEET_RECT.height}
+        filter="url(#hcg-paper-grain)"
+    />
+    {#each meridians as x (x)}
+        <line x1={x} y1={SHEET_RECT.y} x2={x} y2={MAP_RECT.y + MAP_RECT.height} class="graticule" />
+    {/each}
+    {#each parallels as y (y)}
+        <line x1={MAP_RECT.x} y1={y} x2={MAP_RECT.x + MAP_RECT.width} y2={y} class="graticule" />
+    {/each}
     <g transform="translate({MAP_RECT.x} {MAP_RECT.y})">
-        {#each HILLS as hill, index (index)}
-            {#each [1, 0.72, 0.44] as ring (ring)}
-                <ellipse cx={hill.x} cy={hill.y} rx={hill.rx * ring} ry={hill.ry * ring} class="contour" />
+        {#each HILLS as hill (hill.seed)}
+            {#each CONTOUR_RINGS as ring, index (ring)}
+                <path d={contourPath(hill, ring)} class="contour" class:index={index === 0} />
             {/each}
         {/each}
+        {#each COUNTY_LINES as line (line)}
+            <path d={line} class="county" />
+        {/each}
     </g>
-    <rect x={MAP_RECT.x} y={MAP_RECT.y} width={MAP_RECT.width} height={MAP_RECT.height} fill="url(#hcg-sunlight)" />
+    <rect
+        x={SHEET_RECT.x}
+        y={SHEET_RECT.y}
+        width={SHEET_RECT.width}
+        height={SHEET_RECT.height}
+        fill="url(#hcg-paper-age)"
+    />
 
     {#each tiles as tile (tile.key)}
         <g transform="translate({tile.center.x} {tile.center.y})" filter="url(#hcg-tile-shadow)">
@@ -125,15 +183,6 @@
 
 </g>
 
-<g transform="translate({compass.x} {compass.y})" aria-hidden="true" class="compass">
-    <circle r="34" class="compass-ring" />
-    <circle r="27" class="compass-inner" />
-    <polygon points="0,-30 6,-6 0,0 -6,-6" class="needle-dark" />
-    <polygon points="0,30 6,6 0,0 -6,6" class="needle-light" />
-    <polygon points="-30,0 -6,-6 0,0 -6,6" class="needle-light" />
-    <polygon points="30,0 6,-6 0,0 6,6" class="needle-dark" />
-    <text y="-38" class="compass-n">N</text>
-</g>
 
 <image
     href={hcgLogo}
@@ -146,20 +195,43 @@
 />
 
 <rect
-    x={MAP_RECT.x}
-    y={MAP_RECT.y}
-    width={MAP_RECT.width}
-    height={MAP_RECT.height}
-    rx="14"
+    x={SHEET_RECT.x}
+    y={SHEET_RECT.y}
+    width={SHEET_RECT.width}
+    height={SHEET_RECT.height}
+    rx={SHEET_CORNER}
     class="map-frame"
 />
 
 <style>
+    .paper {
+        fill: #eadcb6;
+    }
+
+    .graticule {
+        stroke: #a98b58;
+        stroke-width: 0.8;
+        opacity: 0.35;
+    }
+
     .contour {
         fill: none;
-        stroke: #b5bd7c;
+        stroke: #9c7a46;
+        stroke-width: 1.1;
+        opacity: 0.45;
+    }
+
+    .contour.index {
+        stroke-width: 1.8;
+        opacity: 0.55;
+    }
+
+    .county {
+        fill: none;
+        stroke: #8e3b2a;
         stroke-width: 1.6;
-        opacity: 0.35;
+        stroke-dasharray: 10 4 2 4;
+        opacity: 0.45;
     }
 
     .tile-edge {
@@ -225,39 +297,10 @@
 
 
 
-    .compass-ring {
-        fill: #f3ead0;
-        stroke: #7a1d22;
-        stroke-width: 2.5;
-    }
 
-    .compass-inner {
-        fill: none;
-        stroke: #b59a68;
-        stroke-width: 1;
-        stroke-dasharray: 2 3;
-    }
 
-    .needle-dark {
-        fill: #7a1d22;
-    }
 
-    .needle-light {
-        fill: #d9c79a;
-        stroke: #7a1d22;
-        stroke-width: 0.8;
-    }
 
-    .compass-n {
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 14px;
-        font-weight: 700;
-        fill: #f6efd8;
-        text-anchor: middle;
-        paint-order: stroke;
-        stroke: #7a1d22;
-        stroke-width: 3px;
-    }
 
 
 

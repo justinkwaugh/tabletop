@@ -15,11 +15,8 @@
         rx="10"
         class="panel"
     />
-    <text x="14" y="22" class="title"
-        >Dividends · paid when the 11th space fills, and once more at game end</text
-    >
     {#each LINES as line, index (line)}
-        <text x="14" y={42 + index * 17} class="line">{line}</text>
+        <text x="16" y={28 + index * 23} class="line">{line}</text>
     {/each}
 </g>
 
@@ -30,16 +27,10 @@
         stroke-width: 2;
     }
 
-    .title {
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 15px;
-        font-weight: 700;
-        fill: #7a1d22;
-    }
 
     .line {
         font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 13.5px;
+        font-size: 16px;
         fill: #2b1a10;
     }
 </style>

@@ -12,24 +12,24 @@
 
 <g transform="translate({END_GAME_RECT.x} {END_GAME_RECT.y})">
     <rect width={END_GAME_RECT.width} height={END_GAME_RECT.height} rx="10" class="panel" />
-    <text x="14" y="24" class="title">Game end</text>
-    <text x={END_GAME_RECT.width - 14} y="24" class="rule"
-        >Either condition ends the game · final dividend</text
-    >
+    <text x="14" y="24" class="title">Game ends immediately when:</text>
     {#each conditions as condition, index (condition.label)}
-        {@const y = 56 + index * 40}
+        {@const y = 54 + index * 56}
+        {#if index > 0}
+            <text x="14" y={y - 20} class="or">or</text>
+        {/if}
         <text x="14" y={y} class="label">{condition.label}</text>
         {#each Array.from({ length: condition.needed }, (_, pip) => pip) as pip (pip)}
             {@const reachedId = condition.reached[pip]}
             <circle
-                cx={286 + pip * 22}
-                cy={y - 5}
-                r="8"
+                cx={290 + pip * 30}
+                cy={y + 3}
+                r="12"
                 class="pip"
                 fill={reachedId ? COMPANY_STYLE[reachedId].fill : 'none'}
             />
         {/each}
-        <text x="336" y={y} class="detail"
+        <text x="352" y={y + 8} class="detail"
             >{condition.reached.length}/{condition.needed}</text
         >
         {#if condition.reached.length > 0}
@@ -43,6 +43,7 @@
             >
         {/if}
     {/each}
+    <text x="14" y={54 + conditions.length * 56} class="label">Then Final Dividend</text>
 </g>
 
 <style>
@@ -59,12 +60,11 @@
         fill: #7a1d22;
     }
 
-    .rule {
+    .or {
         font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 13px;
+        font-size: 14px;
         font-style: italic;
-        fill: #7a4a2e;
-        text-anchor: end;
+        fill: #7a1d22;
     }
 
     .label {

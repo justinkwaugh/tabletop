@@ -14,8 +14,9 @@
 
     const gameSession = getGameSession()
 
-    const LOGO_WIDTH = 150
-    const LOGO_HEIGHT = 100
+    const CONTENT_X = 16
+    const LOGO_WIDTH = 120
+    const LOGO_HEIGHT = 76
     const SUPPLY_COLUMNS = 10
 
     const choosableForBuild = $derived(
@@ -64,7 +65,7 @@
 
     function supplyPosition(index: number) {
         return {
-            x: LOGO_WIDTH + 132 + (index % SUPPLY_COLUMNS) * 19.5,
+            x: CONTENT_X + 112 + (index % SUPPLY_COLUMNS) * 19.5,
             y: 126 + Math.floor(index / SUPPLY_COLUMNS) * 19
         }
     }
@@ -82,42 +83,58 @@
     />
     <image
         href={card.style.logo}
-        x="14"
-        y="14"
-        width={LOGO_WIDTH - 8}
-        height={LOGO_HEIGHT - 8}
+        x={COMPANY_CARD_WIDTH - 14 - LOGO_WIDTH}
+        y="52"
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
         preserveAspectRatio="xMidYMid meet"
     />
-    <text x="14" y="168" class="ability">{card.company.ability}</text>
-    <text x={LOGO_WIDTH + 24} y="32" class="name">{card.company.name}</text>
-    <text x={COMPANY_CARD_WIDTH - 14} y="32" class="treasury" fill={card.style.fill}
+    <text x={CONTENT_X} y="168" class="ability">{card.company.ability}</text>
+    <text x={CONTENT_X} y="32" class="name">{card.company.name}</text>
+    <text x={COMPANY_CARD_WIDTH - 14} y="19" class="treasury-label">Treasury</text>
+    <text x={COMPANY_CARD_WIDTH - 14} y="43" class="treasury" fill={card.style.fill}
         >${card.state.treasury}</text
     >
-    <text x={LOGO_WIDTH + 24} y="58" class="stat"
+    <text x={CONTENT_X} y="58" class="stat"
         >Value <tspan class="figure">${card.value}</tspan></text
     >
-    <text x={LOGO_WIDTH + 150} y="58" class="stat"
+    <text x={CONTENT_X + 116} y="58" class="stat"
         >Per share <tspan class="figure">${card.perShare}</tspan></text
     >
     {#each Array.from({ length: card.shares }, (_, index) => index) as share (share)}
         {@const owner = card.state.owners[share]}
-        <g transform="translate({LOGO_WIDTH + 24 + share * 50} 70)">
-            <rect width="44" height="32" rx="3" class="share" class:sold={owner} stroke={card.style.fill} />
+        <g transform="translate({CONTENT_X + share * 50} 70)">
             {#if owner}
-                <circle
-                    cx="22"
-                    cy="16"
-                    r="9"
+                <rect
+                    width="44"
+                    height="32"
+                    rx="3"
+                    class="certificate"
                     fill={gameSession.colors.getPlayerUiColor(owner)}
-                    stroke="#1d140b"
-                    stroke-width="1.2"
                 />
+                <rect
+                    x="3"
+                    y="3"
+                    width="38"
+                    height="26"
+                    rx="2"
+                    class="certificate-border"
+                    stroke={gameSession.colors.getPlayerTextColorValue(owner)}
+                />
+                <text
+                    x="22"
+                    y="22.5"
+                    class="certificate-initial"
+                    fill={gameSession.colors.getPlayerTextColorValue(owner)}
+                    >{gameSession.getPlayerName(owner).charAt(0).toUpperCase()}</text
+                >
             {:else}
+                <rect width="44" height="32" rx="3" class="share" stroke={card.style.fill} />
                 <text x="22" y="21" class="share-label">share</text>
             {/if}
         </g>
     {/each}
-    <text x={LOGO_WIDTH + 24} y="131" class="supply-label"
+    <text x={CONTENT_X} y="131" class="supply-label"
         >{card.company.kind === CompanyKind.Grocer ? 'Stores' : 'Developments'}</text
     >
     {#each Array.from({ length: card.supply }, (_, index) => index) as item (item)}
@@ -129,7 +146,7 @@
         {/if}
     {/each}
     {#if card.supply === 0}
-        <text x={LOGO_WIDTH + 142} y="131" class="empty">none left</text>
+        <text x={CONTENT_X + 104} y="131" class="empty">none left</text>
     {/if}
 {/snippet}
 
@@ -189,9 +206,17 @@
         fill: #2b1a10;
     }
 
+    .treasury-label {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 14px;
+        font-style: italic;
+        fill: #6b4a28;
+        text-anchor: end;
+    }
+
     .treasury {
         font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 700;
         text-anchor: end;
     }
@@ -227,9 +252,22 @@
         stroke-dasharray: 3 2;
     }
 
-    .share.sold {
-        fill: #ffffff;
-        stroke-dasharray: none;
+    .certificate {
+        stroke: #1d140b;
+        stroke-width: 1.4;
+    }
+
+    .certificate-border {
+        fill: none;
+        stroke-width: 1;
+        opacity: 0.55;
+    }
+
+    .certificate-initial {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 17px;
+        font-weight: 700;
+        text-anchor: middle;
     }
 
     .share-label {

@@ -2,31 +2,35 @@
 
 ## Visual intents
 
-- **Choose an action.** On the acting player's Choosing Action turn, the action spaces they may take are highlighted and clickable, by pointer or with Enter/Space. Their pawn sits in the space they last used, which stays plain.
+- **Choose an action.** On the acting player's Choosing Action turn, the action spaces they may take are highlighted and clickable, by pointer or with Enter/Space. Each player's initialled square sits in the space they last used, which stays plain.
 - **Choose a building company.** When the acting player could build for more than one grocer, those company cards get a dashed gold border and become clickable. With exactly one option it is chosen automatically and no card is highlighted.
-- **Stage cubes.** Hexes that can legally and affordably take the next cube get a pulsing gold ring. Clicking one adds a dashed ghost cube in the building company's colour and refreshes the ring set for the next cube. Reaching the company's cube limit, or leaving no further legal hex, commits the build. Otherwise the action panel offers "Build N cubes · $X".
-- **Place the bonus cube.** After a Streamside Sisters share sells, the buyer sees rings on the hexes Streamside can take. One click commits; "Place no cube" skips the bonus.
+- **Stage stores.** Hexes that can legally and affordably take the next store get a pulsing gold ring. Clicking one adds a dashed ghost store in the building company's colours and refreshes the ring set for the next store. Reaching the company's store limit, or leaving no further legal hex, commits the build. Otherwise the action panel offers "Build N stores · $X".
+- **Place the bonus store.** After a Streamside Sisters share sells, the buyer sees rings on the hexes Streamside can take. One click commits; "Place no store" skips the bonus.
 - **Develop a city.** Cities that can take a development get a ring around their dot and development slots, and clicking one commits. When Balcones Builders cannot pay every grocer there, the city's ring stays lit and the action panel lists the grocers to choose as payees.
 - **Pick a share to auction.** Every company with an unsold share is highlighted. The picked card keeps a solid gold border while the action panel shows the opening-bid stepper.
+- **Change the map view.** Three buttons in the map's top-left corner zoom in on the map, return to the whole board and toggle full screen, by pointer or with Enter/Space. They are available to every viewer at all times, including in History View, and never change game state.
 
 ## Coexistence and precedence
 
-Only one of these intents can be live at a time, because each belongs to exactly one machine state. During any auction, the company being bid on keeps the selected border.
+Only one of the game intents can be live at a time, because each belongs to exactly one machine state. During any auction, the company being bid on keeps the selected border. Changing the map view coexists with every game intent: zooming or entering full screen keeps any staged selection and its rings.
 
 ## Shared visual state
 
-The session owns the staged selections: build company and cube hexes, develop city and payees, and the auction company. The map, the company cards and the action panel only read them.
+The session owns the staged selections: build company and store hexes, develop city and payees, and the auction company. The map, the company cards and the action panel only read them.
 
 - **Lifetime:** all staged selections clear in `beforeNewState`, so they never outlive the game state they were made in. Undo pops the most recent manual stage first, and an automatic company choice is never popped.
 - **Validity:** a stored company or city applies only while it is still among the current options and the owning machine state is active. History View shows no targets, because `canAct` is false there.
 
+The map view belongs to the shared scaling wrapper. The table drives it through the wrapper's `focusRect`, `fitToContent` and `toggleExpanded`; the board only raises the button presses.
+
 ## Render ownership
 
-The terrain layer (background, tiles, decorations, rivers, compass and title) draws beneath everything on the map and takes no clicks. Hex and city rings are drawn last in the map layer so they sit above the cubes and developments and receive the clicks. Ghost cubes render in the hex's cube row, after the cubes already placed there.
+The terrain layer (paper, contour lines, tiles, decorations and the game logo) draws beneath everything on the map sheet and takes no clicks. The round header shares that sheet. Hex and city rings are drawn last in the map layer so they sit above the stores and developments and receive the clicks. Ghost stores render in the hex's store row, after the stores already placed there. In a city, the store row sits below the name for one or two stores and moves into the hex's wider middle for three or four.
 
 ## Verification scenarios
 
-- In Building Network with two buildable companies, click the second card and then a ringed hex: a ghost cube appears and Undo removes it. A second Undo clears the company choice.
-- With Alamo City Supplies, place three cubes: the third click commits the build with no confirm button.
+- In Building Network with two buildable companies, click the second card and then a ringed hex: a ghost store appears and Undo removes it. A second Undo clears the company choice.
+- With Alamo City Supplies, place three stores: the third click commits the build with no confirm button.
 - With Balcones Builders holding $1, develop San Antonio: the city ring stays lit, the panel lists Alamo City and Verbena, and choosing one commits.
 - During Starting Auction, click a company card and step back with Undo: the card returns to its highlighted, unselected look.
+- Press the zoom-in button: the map fills the view; the zoom-out button restores the whole board; the full-screen button opens and closes full screen, with the buttons still on the map inside it.

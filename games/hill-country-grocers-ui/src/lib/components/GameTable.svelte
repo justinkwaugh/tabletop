@@ -14,6 +14,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import { MAP_RECT } from '$lib/utils/boardLayout.js'
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
@@ -26,6 +27,9 @@
         $props()
     assert(gameSession instanceof HcgGameSession, 'Hill Country Grocers needs its own session')
     setGameSession(gameSession)
+
+    const MAP_MAX_SCALE = 2
+    let wrapper = $state<ScalingWrapper>()
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -111,8 +115,23 @@
                 {@render turnControls()}
             </div>
             <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
-                <ScalingWrapper justify="center" controls="top-right" insetTop={44} expandable>
-                    <Board />
+                <ScalingWrapper
+                    bind:this={wrapper}
+                    justify="center"
+                    controls="none"
+                    maxScale={MAP_MAX_SCALE}
+                    expandable
+                >
+                    <Board
+                        onZoomToMap={() =>
+                            wrapper?.focusRect(MAP_RECT, {
+                                animate: true,
+                                maxScale: MAP_MAX_SCALE,
+                                padding: 8
+                            })}
+                        onShowBoard={() => wrapper?.fitToContent({ animate: true })}
+                        onToggleFullScreen={() => wrapper?.toggleExpanded()}
+                    />
                     {#snippet toolbar()}
                         <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
                         <div {@attach watchExpansion}>
