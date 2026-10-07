@@ -31,6 +31,7 @@ import {
 } from '@tabletop/magna-grecia'
 import { CityFlowAnimator, type CityFlow } from '$lib/animators/cityFlowAnimator.js'
 import { PiecesAnimator, type PieceArrivals } from '$lib/animators/piecesAnimator.js'
+import { marketTile } from '$lib/utils/boardView.js'
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 import { BuildTool } from './buildTool.js'
 import {
@@ -61,7 +62,7 @@ const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
-export type SellTarget = { coords: AxialCoordinates; amount: number }
+export type SellTarget = { coords: AxialCoordinates; tile: AxialCoordinates; amount: number }
 export type CityTarget = {
     coords: AxialCoordinates
     joinsCityId?: string
@@ -245,6 +246,7 @@ export class MagnaGreciaGameSession extends GameSession<
         const network = board.network()
         return this.gameState.sellableMarkets(playerId).map((market) => ({
             coords: market.coords,
+            tile: marketTile(board, market),
             amount: marketValue(board, network, market)
         }))
     })

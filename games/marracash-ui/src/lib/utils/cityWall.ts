@@ -1,4 +1,3 @@
-import { getPrng, type RandomFunction } from '@tabletop/common'
 import { EntranceFountainIds, getFountain } from '@tabletop/marracash'
 import {
     BoardHeight,
@@ -7,30 +6,24 @@ import {
     WallThickness,
     type Rect
 } from '$lib/utils/boardGeometry.js'
-import { mixColors } from '$lib/utils/colorLightness.js'
 
-export const WallMortar = '#5e4630'
-export const WallStoneFilterId = 'marracash-wall-stone'
+export const WallMortar = '#8c4b2e'
+export const RammedEarthPatternId = 'marracash-rammed-earth'
 export const PillarSize = 36
 export const PillarShadowOffset = { x: 3, y: 4 }
 
-const WallSeed = 23
-const Courses = 2
-const StoneLength = { min: 18, max: 32 }
-const MortarGap = 1.6
-const StoneColor = '#b08d63'
-const StoneShadow = '#4f3a22'
-const ToneSpread = 0.14
+export const WallWalkway = '#c47b58'
+export const MerlonColor = '#dc9a72'
 
-export type WallStone = Rect & { fill: string }
+const MerlonDepth = 11
+const MerlonLength = 15
+const CrenelGap = 6
+const ParapetDepth = 3
+const TowerMerlon = 9
+const BastionSpacing = 240
 
 type Span = { start: number; end: number }
-type WallRun = { horizontal: boolean; across: number; span: Span }
-
-function stoneFill(prng: RandomFunction): string {
-    const tone = prng() * 2 - 1
-    return mixColors(StoneColor, tone > 0 ? '#ffffff' : StoneShadow, Math.abs(tone) * ToneSpread)
-}
+type WallRun = { horizontal: boolean; across: number; outerAtStart: boolean; span: Span }
 
 function subtract(span: Span, gaps: readonly Span[]): Span[] {
     const pieces: Span[] = []
@@ -41,29 +34,6 @@ function subtract(span: Span, gaps: readonly Span[]): Span[] {
     }
     if (start < span.end) pieces.push({ start, end: span.end })
     return pieces
-}
-
-function layCourse(run: WallRun, piece: Span, course: number, prng: RandomFunction): WallStone[] {
-    const depth = WallThickness / Courses
-    const stones: WallStone[] = []
-    let at = piece.start
-    let length = course % 2 === 0 ? StoneLength.min : StoneLength.max * 0.6
-    while (at < piece.end) {
-        const end = Math.min(at + length, piece.end)
-        const across = run.across + course * depth
-        const fill = stoneFill(prng)
-        const along = { start: at + MortarGap / 2, end: end - MortarGap / 2 }
-        const width = along.end - along.start
-        const height = depth - MortarGap
-        stones.push(
-            run.horizontal
-                ? { x: along.start, y: across + MortarGap / 2, width, height, fill }
-                : { x: across + MortarGap / 2, y: along.start, width: height, height: width, fill }
-        )
-        at = end
-        length = StoneLength.min + prng() * (StoneLength.max - StoneLength.min)
-    }
-    return stones
 }
 
 function gatesOn(run: WallRun, gates: readonly Rect[]): Span[] {
@@ -102,7 +72,7 @@ function pillarsBeside(gate: Rect): Rect[] {
 
 export const GatePillars: readonly Rect[] = Gates.flatMap(pillarsBeside)
 
-// Gate floors reach a little into the street so their cobbles meet it without a seam.
+// Gate floors reach a little into the street so their ground meets it without a seam.
 const FloorOverlap = 2
 
 function floorOf(gate: Rect): Rect {
@@ -120,33 +90,178 @@ function floorOf(gate: Rect): Rect {
 
 export const GateFloors: readonly Rect[] = Gates.map(floorOf)
 
-function layWall(): WallStone[] {
-    const prng = getPrng(WallSeed)
-    const runs: WallRun[] = [
-        { horizontal: true, across: 0, span: { start: 0, end: BoardWidth } },
-        {
-            horizontal: true,
-            across: BoardHeight - WallThickness,
-            span: { start: 0, end: BoardWidth }
-        },
-        {
-            horizontal: false,
-            across: 0,
-            span: { start: WallThickness, end: BoardHeight - WallThickness }
-        },
-        {
-            horizontal: false,
-            across: BoardWidth - WallThickness,
-            span: { start: WallThickness, end: BoardHeight - WallThickness }
-        }
-    ]
-    return runs.flatMap((run) =>
-        subtract(run.span, gatesOn(run, Gates)).flatMap((piece) =>
-            Array.from({ length: Courses }, (_, course) =>
-                layCourse(run, piece, course, prng)
-            ).flat()
-        )
-    )
+const Runs: readonly WallRun[] = [
+    { horizontal: true, across: 0, outerAtStart: true, span: { start: 0, end: BoardWidth } },
+    {
+        horizontal: true,
+        across: BoardHeight - WallThickness,
+        outerAtStart: false,
+        span: { start: 0, end: BoardWidth }
+    },
+    {
+        horizontal: false,
+        across: 0,
+        outerAtStart: true,
+        span: { start: WallThickness, end: BoardHeight - WallThickness }
+    },
+    {
+        horizontal: false,
+        across: BoardWidth - WallThickness,
+        outerAtStart: false,
+        span: { start: WallThickness, end: BoardHeight - WallThickness }
+    }
+]
+
+function runRect(run: WallRun, along: Span, fromOuter: number, depth: number): Rect {
+    const across = run.outerAtStart
+        ? run.across + fromOuter
+        : run.across + WallThickness - fromOuter - depth
+    const length = along.end - along.start
+    return run.horizontal
+        ? { x: along.start, y: across, width: length, height: depth }
+        : { x: across, y: along.start, width: depth, height: length }
 }
 
-export const WallStones: readonly WallStone[] = layWall()
+function merlonSpans(piece: Span): Span[] {
+    const length = piece.end - piece.start
+    const count = Math.floor((length + CrenelGap) / (MerlonLength + CrenelGap))
+    const used = count * MerlonLength + (count - 1) * CrenelGap
+    const first = piece.start + (length - used) / 2
+    return Array.from({ length: count }, (_, index) => {
+        const start = first + index * (MerlonLength + CrenelGap)
+        return { start, end: start + MerlonLength }
+    })
+}
+
+function towerAt(center: { x: number; y: number }): Rect {
+    return {
+        x: center.x - PillarSize / 2,
+        y: center.y - PillarSize / 2,
+        width: PillarSize,
+        height: PillarSize
+    }
+}
+
+const CornerTowers: readonly Rect[] = [
+    { x: WallThickness / 2, y: WallThickness / 2 },
+    { x: BoardWidth - WallThickness / 2, y: WallThickness / 2 },
+    { x: WallThickness / 2, y: BoardHeight - WallThickness / 2 },
+    { x: BoardWidth - WallThickness / 2, y: BoardHeight - WallThickness / 2 }
+].map(towerAt)
+
+function towerSpanOn(run: WallRun, tower: Rect): Span | undefined {
+    const [across, length, along, alongLength] = run.horizontal
+        ? [tower.y, tower.height, tower.x, tower.width]
+        : [tower.x, tower.width, tower.y, tower.height]
+    const overlaps = across < run.across + WallThickness && across + length > run.across
+    return overlaps ? { start: along, end: along + alongLength } : undefined
+}
+
+function overlapsAny(span: Span, others: readonly Span[]): boolean {
+    return others.some((other) => span.start < other.end && span.end > other.start)
+}
+
+// The medina's ramparts carry square bastions at regular intervals, not only at gates and corners.
+function bastionsOn(run: WallRun, fixed: readonly Rect[]): Rect[] {
+    const taken = [
+        ...gatesOn(run, Gates),
+        ...fixed.flatMap((tower) => towerSpanOn(run, tower) ?? [])
+    ]
+    const middle = run.across + WallThickness / 2
+    const bastions: Rect[] = []
+    for (
+        let at = WallThickness + BastionSpacing;
+        at < run.span.end - PillarSize;
+        at += BastionSpacing
+    ) {
+        const span = { start: at - PillarSize, end: at + PillarSize }
+        if (overlapsAny(span, taken)) continue
+        bastions.push(towerAt(run.horizontal ? { x: at, y: middle } : { x: middle, y: at }))
+    }
+    return bastions
+}
+
+const FixedTowers: readonly Rect[] = [...GatePillars, ...CornerTowers]
+
+export const Towers: readonly Rect[] = [
+    ...FixedTowers,
+    ...Runs.flatMap((run) => bastionsOn(run, FixedTowers))
+]
+
+function wallPieces(run: WallRun): Span[] {
+    const towerSpans = Towers.flatMap((tower) => towerSpanOn(run, tower) ?? [])
+    return subtract(run.span, [...gatesOn(run, Gates), ...towerSpans])
+}
+
+export const WallMerlons: readonly Rect[] = Runs.flatMap((run) =>
+    wallPieces(run).flatMap((piece) =>
+        merlonSpans(piece).map((span) => runRect(run, span, 0, MerlonDepth))
+    )
+)
+
+export const WallParapets: readonly Rect[] = Runs.flatMap((run) =>
+    wallPieces(run).map((piece) => runRect(run, piece, WallThickness - ParapetDepth, ParapetDepth))
+)
+
+export function towerMerlons(tower: Rect): Rect[] {
+    const far = tower.width - TowerMerlon
+    const mid = far / 2
+    return [
+        [0, 0],
+        [mid, 0],
+        [far, 0],
+        [0, mid],
+        [far, mid],
+        [0, far],
+        [mid, far],
+        [far, far]
+    ].map(([dx, dy]) => ({
+        x: tower.x + dx,
+        y: tower.y + dy,
+        width: TowerMerlon,
+        height: TowerMerlon
+    }))
+}
+
+export type BattlementPaths = {
+    penumbra: string
+    shadow: string
+    body: string
+    light: string
+    shade: string
+}
+
+const BattlementShadowOffset = { x: 2, y: 2.5 }
+const BattlementPenumbraOffset = { x: 3.2, y: 4 }
+
+function rectPath(rect: Rect, offset = { x: 0, y: 0 }): string {
+    const x = rect.x + offset.x
+    const y = rect.y + offset.y
+    return `M ${x} ${y} h ${rect.width} v ${rect.height} h ${-rect.width} Z`
+}
+
+// Raised earth lit from the top-left, drawn as plain shapes rather than a lighting filter so the
+// board repaints cheaply: a cast shadow, the block, a lit top and left edge and a shaded bottom
+// and right edge. Each list of blocks becomes four paths however many blocks there are.
+export function battlementPaths(blocks: readonly Rect[]): BattlementPaths {
+    return {
+        penumbra: blocks.map((block) => rectPath(block, BattlementPenumbraOffset)).join(' '),
+        shadow: blocks.map((block) => rectPath(block, BattlementShadowOffset)).join(' '),
+        body: blocks.map((block) => rectPath(block)).join(' '),
+        light: blocks
+            .map(
+                (block) =>
+                    `M ${block.x} ${block.y + block.height} V ${block.y} H ${block.x + block.width}`
+            )
+            .join(' '),
+        shade: blocks
+            .map(
+                (block) =>
+                    `M ${block.x + block.width} ${block.y} V ${block.y + block.height} H ${block.x}`
+            )
+            .join(' ')
+    }
+}
+
+export const WallBattlements: BattlementPaths = battlementPaths([...WallParapets, ...WallMerlons])
+export const TowerBattlements: BattlementPaths = battlementPaths(Towers.flatMap(towerMerlons))

@@ -44,6 +44,8 @@ const QueueWarningSeconds = 4
 
 export type CustomerHighlight = { playerId: string; color: MarketColor }
 
+type BidDraft = { auctionId: string; playerId: string; amount: number }
+
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
     HydratedMarracashGameState
@@ -83,6 +85,16 @@ export class MarracashGameSession extends GameSession<
             : historyHighlightFor(this.highlightedHistoryAction)
     )
     customerHighlight: CustomerHighlight | undefined = $state(undefined)
+    playerAidOpen = $state(false)
+    private bidDraft: BidDraft | undefined = $state(undefined)
+    readonly draftBid: number | undefined = $derived.by(() => {
+        const draft = this.bidDraft
+        return draft !== undefined &&
+            draft.auctionId === this.gameState.auction?.bidding.id &&
+            draft.playerId === this.myPlayer?.id
+            ? draft.amount
+            : undefined
+    })
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -230,6 +242,21 @@ export class MarracashGameSession extends GameSession<
         const current = this.customerHighlight
         const same = current?.playerId === highlight.playerId && current?.color === highlight.color
         this.customerHighlight = same ? undefined : highlight
+    }
+
+    setDraftBid(amount: number) {
+        const auction = this.gameState.auction
+        assertExists(auction, 'A draft bid needs an open auction')
+        assertExists(this.myPlayer, 'Only a seated player can bid')
+        this.bidDraft = { auctionId: auction.bidding.id, playerId: this.myPlayer.id, amount }
+    }
+
+    togglePlayerAid() {
+        this.playerAidOpen = !this.playerAidOpen
+    }
+
+    closePlayerAid() {
+        this.playerAidOpen = false
     }
 
     resetAction() {

@@ -4,4 +4,4 @@
     let { playerId }: { playerId: string } = $props()
 </script>
 
-<PlayerName {playerId} additionalClasses="ring-1 ring-[#ad9c80]" />
+<PlayerName {playerId} />

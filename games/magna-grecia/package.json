@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/magna-grecia",
-    "version": "0.2.0",
+    "version": "2.0.0",
     "type": "module",
     "exports": {
         "import": "./esm/index.js",

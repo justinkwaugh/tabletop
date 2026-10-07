@@ -11,7 +11,9 @@
         refillNote(gameSession.showQueueTooShort, gameSession.fillableEntranceIds.length > 0)
     )
     let singleCount = $derived(
-        gameSession.visitorCountOptions.length === 1 ? gameSession.visitorCountOptions[0] : undefined
+        gameSession.visitorCountOptions.length === 1
+            ? gameSession.visitorCountOptions[0]
+            : undefined
     )
 </script>
 
@@ -45,7 +47,7 @@
 {/snippet}
 
 <div class="flex flex-col items-center gap-2">
-    <p class="font-semibold">
+    <p class="marracash-prompt">
         {@render lead?.()}
         Bring new visitors to the empty entrance{gameSession.gameState.emptyEntranceIds().length > 1
             ? 's'

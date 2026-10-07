@@ -71,5 +71,6 @@ test('a hotseat game plays through to the end', async ({ page }) => {
 
     await expect(gameOver).toBeVisible()
     await expect(actionPanel(page)).toContainText(/wins|share the win/)
+    await expect(actionPanel(page)).toContainText('End of game')
     expect(errors).toEqual([])
 })

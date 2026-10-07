@@ -25,39 +25,9 @@ import {
 } from '@tabletop/oath'
 import type { GridAction } from './actionCatalogue.js'
 import { unseenPeekSlots } from './relicKnowledge.js'
-import { escapeRegExp } from './names.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
-    gameState: HydratedOathGameState,
-    playerId: string,
-    type: GridAction,
-    nameOf?: (playerId: string) => string
-): string | undefined {
-    return withPlayerNames(gameState, reasonFor(gameState, playerId, type), nameOf)
-}
-
-// Whole ids only: nanoids may begin or end with `-` or `_`, which `\b` does
-// not treat as word characters, so lookarounds are used.
-function withPlayerNames(
-    gameState: HydratedOathGameState,
-    reason: string | undefined,
-    nameOf?: (playerId: string) => string
-): string | undefined {
-    if (!reason || !nameOf) return reason
-    let text = reason
-    for (const seat of gameState.players) {
-        const pattern = new RegExp(
-            `(?<![A-Za-z0-9_-])${escapeRegExp(seat.playerId)}(?![A-Za-z0-9_-])`,
-            'g'
-        )
-        const name = nameOf(seat.playerId)
-        text = text.replace(pattern, () => name)
-    }
-    return text
-}
-
-function reasonFor(
     gameState: HydratedOathGameState,
     playerId: string,
     type: GridAction

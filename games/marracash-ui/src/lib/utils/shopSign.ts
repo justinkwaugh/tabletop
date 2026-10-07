@@ -1,11 +1,11 @@
 import type { Point } from '@tabletop/common'
+import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
 import { pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
 
 export const SignShadowOffset = { x: 2.5, y: 3 }
-export const SignHeight = 58
 export const SignHalfWidth = 22
-const ChipGap = 6
-const ChipBelowOffset = 20
+const ChipGap = 8
+const ChipBelowOffset = 22
 
 // After the original's cardboard standees, whose tops are cut in a few shapes;
 // each seat gets its own so owners differ by more than colour. Every top keeps
@@ -21,6 +21,28 @@ export function standeeOutline(seat: number): string {
     return StandeeTops[seat % StandeeTops.length]
 }
 
+export function playerStandeeOutline(
+    players: readonly HydratedMarracashPlayerState[],
+    playerId: string
+): string {
+    return standeeOutline(players.findIndex((player) => player.playerId === playerId))
+}
+
+export function signInitial(name: string): string {
+    return name.charAt(0).toUpperCase()
+}
+
+export const SignCream = '#f6e7c1'
+const SignFrameScale = 0.84
+const SignFrameCenterY = -28
+export const SignFrame = {
+    transform: `translate(0 ${SignFrameCenterY}) scale(${SignFrameScale}) translate(0 ${-SignFrameCenterY})`,
+    strokeWidth: 1.3 / SignFrameScale
+}
+export const SignTopOrnament = 'M -3.5 -45 L 0 -48.5 L 3.5 -45 L 0 -41.5 Z'
+export const SignBottomOrnament = 'M -3 -13.5 L 0 -16 L 3 -13.5 L 0 -11 Z'
+export const SignFaceCenterY = -28.75
+
 export type ShopSignLayout = { ground: Point; chip: Point }
 
 export function shopSignLayout(
@@ -32,10 +54,11 @@ export function shopSignLayout(
         const ground = { x: center.x, y: center.y + 12 }
         return { ground, chip: { x: center.x, y: ground.y + ChipBelowOffset } }
     }
-    const ground = { x: center.x - 10, y: center.y + SignHeight / 2 }
-    const chipWidth = pawnCountChipWidth(customers)
+    const chipWidth = customers > 0 ? pawnCountChipWidth(customers) : 0
+    const groupWidth = 2 * SignHalfWidth + (chipWidth > 0 ? ChipGap + chipWidth : 0)
+    const left = center.x - groupWidth / 2
     return {
-        ground,
-        chip: { x: ground.x + SignHalfWidth + ChipGap + chipWidth / 2, y: center.y + 8 }
+        ground: { x: left + SignHalfWidth, y: center.y - SignFaceCenterY },
+        chip: { x: left + 2 * SignHalfWidth + ChipGap + chipWidth / 2, y: center.y }
     }
 }

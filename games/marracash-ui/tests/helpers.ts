@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
-export async function createGame(page: Page, { concealedCash = false } = {}) {
+export async function createGame(page: Page, { concealedCash = false, antiqueCards = true } = {}) {
     await page.goto('/')
     // The dev server hydrates slowly, so a click before hydration is ignored
     const gameName = page.getByPlaceholder('choose a name for your game')
@@ -12,8 +12,12 @@ export async function createGame(page: Page, { concealedCash = false } = {}) {
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')
+    const options = page.locator('dialog label:has(input[type=checkbox])')
     if (concealedCash) {
-        await page.locator('dialog label:has(input[type=checkbox])').first().click()
+        await options.first().click()
+    }
+    if (!antiqueCards) {
+        await options.nth(1).click()
     }
     const names = page.locator('input[placeholder="player name"]:not([disabled])')
     for (const [index, name] of ['Amira', 'Bashir', 'Chadia'].entries()) {

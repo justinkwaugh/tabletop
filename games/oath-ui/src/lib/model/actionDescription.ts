@@ -57,13 +57,15 @@ import {
     bannerName,
     campaignTargetText,
     cardName,
-    escapeRegExp,
+    nameSeats,
     plural,
     reliquaryLabel,
     nameIds,
     stripRules,
     suitName,
-    warbandsOf
+    warbandsOf,
+    type NameOf,
+    type Seats
 } from '$lib/model/names.js'
 import {
     actorOnlyOutcome,
@@ -75,13 +77,9 @@ import {
 // Past tense with no leading capital or possessive about the actor: `PlayerName` renders "You" first.
 // R-9.4 — a card is named only where the game showed it, recorded as `playedCardId`.
 
-export type NameOf = (playerId: string) => string
-
 /** How a history line names a player and a site; a site by its printed name once faceup. */
-export type HistoryNames = {
-    player: NameOf
+export type HistoryNames = Seats & {
     site: (slotId: string) => string
-    seats: readonly string[]
 }
 
 function shownCard(cardId: string | undefined): string {
@@ -477,47 +475,12 @@ function namedSummary(
     names: HistoryNames,
     viewerId: string | undefined
 ): string {
-    const text = withoutCardName(summary, cardId)
-    const actorAlone = !names.seats.some(
-        (playerId) => playerId !== actorId && seatPattern(playerId).test(text)
-    )
-    const row = { actorId, actorAlone, viewerId }
-    const named = names.seats.reduce(
-        (sentence, playerId) => nameSeat(sentence, playerId, row, names.player),
-        text
-    )
-    return namedBanks(named)
-}
-
-function seatPattern(playerId: string, flags = ''): RegExp {
-    return new RegExp(`(?<![\\w-])${escapeRegExp(playerId)}(?![\\w-])`, flags)
+    return namedBanks(nameSeats(withoutCardName(summary, cardId), names, viewerId, actorId))
 }
 
 export function withoutCardName(summary: string, cardId: string): string {
     const prefix = `${cardName(cardId)}: `
     return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
-}
-
-function nameSeat(
-    text: string,
-    playerId: string,
-    row: { actorId: string; actorAlone: boolean; viewerId: string | undefined },
-    nameOf: NameOf
-): string {
-    const id = escapeRegExp(playerId)
-    const possessive = new RegExp(`(?<![\\w-])${id}['’]s(?![\\w-])`, 'g')
-    const bare = seatPattern(playerId, 'g')
-    const own = playerId === row.actorId
-    const isViewer = playerId === row.viewerId
-    const whose = isViewer
-        ? own
-            ? 'your own'
-            : 'your'
-        : own && row.actorAlone
-          ? 'their own'
-          : `${nameOf(playerId)}'s`
-    const seat = isViewer ? 'you' : nameOf(playerId)
-    return text.replace(possessive, () => whose).replace(bare, () => seat)
 }
 
 function namedBanks(text: string): string {

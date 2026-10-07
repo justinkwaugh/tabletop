@@ -4,6 +4,7 @@ import { ActionType, Banner, PlayerStatus } from '@tabletop/oath'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { freeActionDueLine, reasonActionUnavailable } from './actionAvailability.js'
 import { ALL_ACTIONS } from './actionCatalogue.js'
+import { humanizeReason } from './names.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const CHANCELLOR = 'chan'
@@ -35,7 +36,12 @@ function board(overrides: Record<string, unknown> = {}) {
     )
 }
 
-const nameOf = (id: string) => ({ [CHANCELLOR]: 'Alice', [EXILE]: 'Bob' })[id] ?? id
+const seats = {
+    seats: [CHANCELLOR, EXILE],
+    player: (id: string) => ({ [CHANCELLOR]: 'Alice', [EXILE]: 'Bob' })[id] ?? id
+}
+const shown = (reason: string | undefined, viewerId: string | undefined) =>
+    humanizeReason(reason, seats, viewerId)
 
 describe('why a dimmed action is dimmed', () => {
     it('never prints a player id', () => {
@@ -45,31 +51,32 @@ describe('why a dimmed action is dimmed', () => {
             new RegExp(`(?<![A-Za-z0-9_-])${id}(?![A-Za-z0-9_-])`).test(reason)
 
         for (const { type } of ALL_ACTIONS) {
-            const reason = reasonActionUnavailable(state, CHANCELLOR, type, nameOf)
-            if (!reason) continue
-            expect(leaks(reason, CHANCELLOR), `${type} leaked ${CHANCELLOR}`).toBe(false)
-            expect(leaks(reason, EXILE), `${type} leaked ${EXILE}`).toBe(false)
+            for (const viewerId of [CHANCELLOR, undefined]) {
+                const reason = shown(reasonActionUnavailable(state, CHANCELLOR, type), viewerId)
+                if (!reason) continue
+                expect(leaks(reason, CHANCELLOR), `${type} leaked ${CHANCELLOR}`).toBe(false)
+                expect(leaks(reason, EXILE), `${type} leaked ${EXILE}`).toBe(false)
+            }
         }
     })
 
-    it('R-6.8 — explains that only a Citizen may self-exile, naming the player', () => {
-        const reason = reasonActionUnavailable(
-            board(),
-            CHANCELLOR,
-            ActionType.SelfExile,
-            nameOf
+    it('R-6.8 — tells the reader that only a Citizen may self-exile, and what they are', () => {
+        const state = board()
+        expect(shown(reasonActionUnavailable(state, EXILE, ActionType.SelfExile), EXILE)).toBe(
+            'only a Citizen can self-exile, and you are an Exile'
         )
-        expect(reason).toContain('only a Citizen can self-exile')
-        expect(reason).toContain('Alice')
+        expect(
+            shown(reasonActionUnavailable(state, CHANCELLOR, ActionType.SelfExile), CHANCELLOR)
+        ).toBe('only a Citizen can self-exile, and you are the Chancellor')
     })
 
     it('R-5.2.1, R-5.3.2 — says when there is no card at your site', () => {
         const state = board()
         expect(
-            reasonActionUnavailable(state, CHANCELLOR, ActionType.Muster, nameOf)
+            reasonActionUnavailable(state, CHANCELLOR, ActionType.Muster)
         ).toContain('no card at your site')
         expect(
-            reasonActionUnavailable(state, CHANCELLOR, ActionType.Trade, nameOf)
+            reasonActionUnavailable(state, CHANCELLOR, ActionType.Trade)
         ).toContain('no card at your site')
     })
 
@@ -77,8 +84,7 @@ describe('why a dimmed action is dimmed', () => {
         const noCitizens = reasonActionUnavailable(
             board(),
             CHANCELLOR,
-            ActionType.ExileCitizen,
-            nameOf
+            ActionType.ExileCitizen
         )
         expect(noCitizens).toContain('no Citizens')
 
@@ -87,8 +93,7 @@ describe('why a dimmed action is dimmed', () => {
         const cannotAfford = reasonActionUnavailable(
             withCitizen,
             CHANCELLOR,
-            ActionType.ExileCitizen,
-            nameOf
+            ActionType.ExileCitizen
         )
         // R-6.7 costs 5 favor and this Chancellor holds 2.
         expect(cannotAfford).toContain('favor')
@@ -99,7 +104,7 @@ describe('why a dimmed action is dimmed', () => {
         const state = board()
         // Travel is available to any placed pawn with Supply.
         expect(
-            reasonActionUnavailable(state, CHANCELLOR, ActionType.Travel, nameOf)
+            reasonActionUnavailable(state, CHANCELLOR, ActionType.Travel)
         ).toBeUndefined()
     })
 })

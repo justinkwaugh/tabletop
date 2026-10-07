@@ -21,7 +21,6 @@
     import {
         campaignTargetText,
         cardName,
-        humanizeReason,
         regionName,
         relicSiteName,
         siteName
@@ -259,7 +258,7 @@
 
         {#if draft.blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(draft.blockedBecause) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(draft.blockedBecause) ?? ''} />
             </p>
         {/if}
 

@@ -8,7 +8,7 @@ import { ActionType } from '../definition/actions.js'
 import { CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 import { grandScepterHolderId, holdsGrandScepter } from '../util/imperial.js'
-import { becomeExile, citizenshipEndsActPhase } from '../util/citizenship.js'
+import { becomeExile, citizenshipEndsActPhase, statusName } from '../util/citizenship.js'
 import { totalWarbands } from '../util/warbands.js'
 
 export type SelfExileMetadata = Type.Static<typeof SelfExileMetadata>
@@ -120,7 +120,7 @@ export class HydratedSelfExile extends HydratableAction<typeof SelfExile> implem
     ): string | undefined {
         const player = state.getPlayerState(playerId)
         if (player.status !== PlayerStatus.Citizen) {
-            return `only a Citizen can self-exile; ${playerId} is a ${player.status}`
+            return `only a Citizen can self-exile, and you are ${statusName(player.status)}`
         }
         // R-7.1.4 Council Seat: "you cannot be exiled, even by yourself".
         const seated = reasonPersistentForbidsExile(state, playerId)

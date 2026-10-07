@@ -2,7 +2,7 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { PowerQuestionKind, discardRegionFor, type PowerQuestion } from '@tabletop/oath'
     import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
-    import { cardName, humanizeReason, regionName } from '$lib/model/names.js'
+    import { cardName, regionName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
@@ -39,7 +39,7 @@
     />
 </div>
 {#if refused}<p class="mb-2 text-[11px] text-oath-danger">
-        <TokenText text={humanizeReason(refused) ?? ''} />
+        <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
     </p>{/if}
 <div class="flex gap-2">
     <button

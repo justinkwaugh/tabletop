@@ -355,35 +355,7 @@ describe('cities', () => {
         expect(state.cityPlacementPlan('p0', INLAND)).toBeUndefined()
     })
 
-    it('merges a player’s cities without lifting or un-selling any market', () => {
-        const state = freshState()
-        state.board.cities = [
-            { id: 'C1', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 5 })] },
-            { id: 'C2', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 7 })] }
-        ]
-        const west = offsetToAxial({ row: 11, col: 5 })
-        const east = offsetToAxial({ row: 11, col: 7 })
-        state.board.markets = [
-            { playerId: 'p0', coords: west, sold: false },
-            { playerId: 'p1', coords: west, sold: false },
-            { playerId: 'p0', coords: east, sold: true },
-            { playerId: 'p1', coords: east, sold: true }
-        ]
-        const marketsBefore = state.board.marketsRemaining('p1')
-        giveTurn(state, 'p0', 'G1')
-        const action = placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
-        expect(action.metadata?.mergedCityIds).toEqual(['C2'])
-        expect(state.board.cities).toHaveLength(1)
-        expect(state.board.marketsAt(cityPlaceId('C1'))).toEqual([
-            { playerId: 'p0', coords: west, sold: false },
-            { playerId: 'p1', coords: west, sold: false },
-            { playerId: 'p0', coords: east, sold: true },
-            { playerId: 'p1', coords: east, sold: true }
-        ])
-        expect(state.board.marketsRemaining('p1')).toBe(marketsBefore)
-    })
-
-    it('lets a player choose which of two markets in a merged city to sell', () => {
+    it('merges a player’s cities, keeping one market per player: unsold, then already in the city', () => {
         const state = freshState()
         const west = offsetToAxial({ row: 11, col: 5 })
         const east = offsetToAxial({ row: 11, col: 7 })
@@ -392,26 +364,50 @@ describe('cities', () => {
             { id: 'C2', playerId: 'p0', spaces: [east] }
         ]
         state.board.markets = [
-            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p0', coords: west, sold: true },
+            { playerId: 'p1', coords: east, sold: false },
+            { playerId: 'p2', coords: east, sold: true },
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p2', coords: west, sold: true },
             { playerId: 'p0', coords: east, sold: false }
         ]
+        const marketsBefore = state.board.marketsRemaining('p1')
         giveTurn(state, 'p0', 'G1')
-        placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
-        expect(state.board.marketsAt(cityPlaceId('C1'))).toHaveLength(2)
-        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west, east])
+        const action = placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
+        expect(action.metadata?.mergedCityIds).toEqual(['C2'])
+        expect(state.board.cities).toHaveLength(1)
+        expect(state.board.marketsAt(cityPlaceId('C1'))).toEqual([
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p2', coords: west, sold: true },
+            { playerId: 'p0', coords: east, sold: false }
+        ])
+        expect(action.metadata?.removedMarkets).toEqual([
+            { playerId: 'p0', coords: west, sold: true },
+            { playerId: 'p1', coords: east, sold: false },
+            { playerId: 'p2', coords: east, sold: true }
+        ])
+        expect(state.board.marketsRemaining('p1')).toBe(marketsBefore)
+    })
+
+    it('takes a player’s second market out of the game when their city claims its village', () => {
+        const state = freshState()
+        const besideVillage = at(INLAND, NE)
+        const cityTile = at(besideVillage, NE)
+        state.board.cities = [{ id: 'C1', playerId: 'p0', spaces: [cityTile] }]
+        state.board.markets = [
+            { playerId: 'p1', coords: INLAND, sold: false },
+            { playerId: 'p1', coords: cityTile, sold: false }
+        ]
+        const marketsBefore = state.board.marketsRemaining('p1')
 
         giveTurn(state, 'p0', 'G1')
-        new HydratedSellMarket({
-            ...base('p0'),
-            type: ActionType.SellMarket,
-            coords: east
-        }).apply(state)
-        expect(state.board.markets).toEqual([
-            { playerId: 'p0', coords: west, sold: false },
-            { playerId: 'p0', coords: east, sold: true }
+        expect(placeCity(state, 'p0', besideVillage).metadata?.claimVillage).toEqual(INLAND)
+        const claim = placeCity(state, 'p0', INLAND)
+        expect(claim.metadata?.removedMarkets).toEqual([
+            { playerId: 'p1', coords: INLAND, sold: false }
         ])
-        giveTurn(state, 'p0', 'G1')
-        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west])
+        expect(state.board.marketOf('p1', cityPlaceId('C1'))?.coords).toEqual(cityTile)
+        expect(state.board.marketsRemaining('p1')).toBe(marketsBefore)
     })
 
     it('moves oracle attention to the city a favoured city merges into', () => {

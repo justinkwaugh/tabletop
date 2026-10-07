@@ -8,7 +8,7 @@
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
-    import { siteName, cardName, humanizeReason } from '$lib/model/names.js'
+    import { siteName, cardName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -148,14 +148,18 @@
                             ? 'border-oath-divider bg-oath-surface opacity-55'
                             : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
                         disabled={busy || !!option.blockedBecause}
-                        title={option.blockedBecause ? humanizeReason(option.blockedBecause) : ''}
+                        title={option.blockedBecause
+                            ? gameSession.humanizeReason(option.blockedBecause)
+                            : ''}
                         onclick={() =>
                             search.choosePlacement({ play: option.play, faceUp: option.faceUp })}
                     >
                         {option.label}
                         {#if option.blockedBecause}
                             <span class="block text-[11px] text-oath-text-muted leading-snug">
-                                <TokenText text={humanizeReason(option.blockedBecause) ?? ''} />
+                                <TokenText
+                                    text={gameSession.humanizeReason(option.blockedBecause) ?? ''}
+                                />
                             </span>
                         {/if}
                     </button>
@@ -199,7 +203,7 @@
         />
         {#if reason}
             <p class="text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
             </p>
         {/if}
         <button
@@ -217,7 +221,7 @@
         />
         {#if reason}
             <p class="text-[11px] text-oath-danger">
-                <TokenText text={humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
             </p>
         {/if}
         <button

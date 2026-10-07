@@ -14,11 +14,12 @@
     import {
         eightPointedStar,
         EntranceRadii,
+        FountainGlintsPatternId,
         FountainRadii,
-        FountainRimFilterId,
+        FountainRimShadeId,
         FountainRippleRadii,
-        FountainTrimFilterId,
-        FountainWaterFilterId,
+        fountainOutline,
+        FountainShadowOffset,
         FountainWaterShadeId,
         octagon
     } from '$lib/utils/fountainShape.js'
@@ -39,7 +40,9 @@
         destination = false,
         label = `Fountain ${fountain.fountainId}`,
         onselect,
-        onpreview
+        onpreview,
+        halo = true,
+        layer = 'whole'
     }: {
         fountain: FountainState
         selectable: boolean
@@ -49,6 +52,8 @@
         label?: string
         onselect: () => void
         onpreview?: (previewing: boolean) => void
+        halo?: boolean
+        layer?: 'whole' | 'basin' | 'visitors'
     } = $props()
 
     let definition = $derived(getFountain(fountain.fountainId))
@@ -56,7 +61,6 @@
     let outline = $derived(definition.entrance ? eightPointedStar : octagon)
     let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
     const gameSession = getGameSession()
-
 
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
@@ -98,13 +102,13 @@
     })
 </script>
 
-{#snippet body()}
-    {#if destination}
+{#snippet basin()}
+    {#if halo && destination}
         <path
             class="destination-pulse"
             style:--pulse-seconds="{PulseSeconds}s"
             style:--pulse-delay="{PulsePeakSeconds - PulseSeconds / 2}s"
-            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            d={fountainOutline(center, definition.entrance)}
             fill="none"
             stroke="#ffffff"
             stroke-width="12"
@@ -112,9 +116,9 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
-    {#if highlighted && !selected}
+    {#if halo && highlighted && !selected}
         <path
-            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            d={fountainOutline(center, definition.entrance)}
             fill="none"
             stroke="#ffffff"
             stroke-width="8"
@@ -122,29 +126,29 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
+    {@const outer = fountainOutline(center, definition.entrance)}
+    <path
+        d={outer}
+        transform="translate({FountainShadowOffset.x} {FountainShadowOffset.y})"
+        fill="#3a2a14"
+        opacity="0.3"
+    ></path>
     {#if definition.entrance}
-        <path
-            d={outline(center, radii.trim)}
-            fill="#c99a2e"
-            stroke="#8a6a1c"
-            stroke-width="1"
-            filter="url(#{FountainTrimFilterId})"
-        ></path>
+        <path d={outer} fill="#c99a2e" stroke="#8a6a1c" stroke-width="1"></path>
     {/if}
     <path
         d={outline(center, radii.rim)}
-        fill="#e6c3b8"
+        fill="url(#{FountainRimShadeId})"
         stroke="#a8817a"
         stroke-width="1.2"
-        filter="url(#{FountainRimFilterId})"
     ></path>
     <path
         d={outline(center, radii.water)}
         fill="url(#{FountainWaterShadeId})"
         stroke="#8f6c66"
         stroke-width="1"
-        filter="url(#{FountainWaterFilterId})"
     ></path>
+    <path d={outline(center, radii.water)} fill="url(#{FountainGlintsPatternId})"></path>
     {#each FountainRippleRadii as radius (radius)}
         <circle
             cx={center.x}
@@ -173,6 +177,9 @@
             stroke-linejoin="round"
         ></path>
     {/if}
+{/snippet}
+
+{#snippet visitors()}
     {#if crowded}
         <rect
             x={tallyPanel.x}
@@ -205,18 +212,33 @@
     {/if}
 {/snippet}
 
-{#if selectable}
+{#snippet body()}
+    {#if layer !== 'visitors'}
+        {@render basin()}
+    {/if}
+    {#if layer !== 'basin'}
+        {@render visitors()}
+    {/if}
+{/snippet}
+
+<!-- One element whether or not the fountain can be chosen, so becoming choosable only changes
+ its attributes and never repaints the basin. -->
+{#if layer === 'visitors'}
+    <g class="pointer-events-none" aria-hidden="true">{@render visitors()}</g>
+{:else}
+    <!-- tabindex is set only when the role is button; the checker cannot follow the condition -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
-        role="button"
-        tabindex="0"
-        aria-label={label}
-        class="cursor-pointer"
-        onpointerenter={() => onpreview?.(true)}
-        onpointerleave={() => onpreview?.(false)}
-        onfocus={() => onpreview?.(true)}
-        onblur={() => onpreview?.(false)}
-        onclick={() => onselect()}
-        onkeydown={(event) => event.key === 'Enter' && onselect()}
+        role={selectable ? 'button' : undefined}
+        tabindex={selectable ? 0 : undefined}
+        aria-label={selectable ? label : undefined}
+        class:cursor-pointer={selectable}
+        onpointerenter={selectable ? () => onpreview?.(true) : undefined}
+        onpointerleave={selectable ? () => onpreview?.(false) : undefined}
+        onfocus={selectable ? () => onpreview?.(true) : undefined}
+        onblur={selectable ? () => onpreview?.(false) : undefined}
+        onclick={selectable ? () => onselect() : undefined}
+        onkeydown={selectable ? (event) => event.key === 'Enter' && onselect() : undefined}
     >
         <rect
             x={center.x - CellSize / 2}
@@ -224,11 +246,10 @@
             width={CellSize}
             height={CellSize}
             fill="transparent"
+            pointer-events={selectable ? undefined : 'none'}
         ></rect>
         {@render body()}
     </g>
-{:else}
-    <g>{@render body()}</g>
 {/if}
 
 <style>

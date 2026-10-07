@@ -3,7 +3,6 @@
     import { type OpportunityTake } from '@tabletop/oath'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { humanizeReason } from '$lib/model/names.js'
 
     // R-4.1.1 to R-4.1.4 — a Wake with nothing to decide is resolved by the engine.
     let gameSession = getGameSession()
@@ -93,7 +92,7 @@
 
     {#if blockedBecause}
         <p class="mb-2 text-[11px] text-oath-danger">
-            <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+            <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
         </p>
     {/if}
 

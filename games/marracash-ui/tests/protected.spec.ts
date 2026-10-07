@@ -25,11 +25,11 @@ test('protected views show only the cash each perspective may see', async ({ pag
     await enterProtectedMode(page)
 
     await viewAs(page, 'Amira')
-    await expect(page.getByText('1200 Dirham')).toHaveCount(1)
+    await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(1)
     await expect(page.getByText('Cash hidden')).toHaveCount(3)
 
     await viewAs(page, 'Spectator')
-    await expect(page.getByText('1200 Dirham')).toHaveCount(0)
+    await expect(page.getByText(/^1200\s*د\.م\.\s*dirham$/)).toHaveCount(0)
     await expect(page.getByText('Cash hidden')).toHaveCount(4)
 
     await viewAs(page, 'Host View')
@@ -69,7 +69,7 @@ test('protected views keep a sealed bid secret from everyone but its bidder', as
 
     await viewHistoryAs(page, 'Spectator')
     await expect(page.getByText('placed a sealed bid')).toHaveCount(1)
-    await expect(page.getByText(/bid \d+ Dirham/)).toHaveCount(0)
+    await expect(page.getByText(/bid \d+\s*د\.م\./)).toHaveCount(0)
 
     const viewer = page.getByLabel('Protected view', { exact: true })
     const players = (await viewer.locator('option').allTextContents()).filter(
@@ -78,8 +78,8 @@ test('protected views keep a sealed bid secret from everyone but its bidder', as
     let viewersWhoSeeTheAmount = 0
     for (const player of players) {
         await viewHistoryAs(page, player)
-        await expect(page.getByText(/placed a sealed bid|bid \d+ Dirham/)).toHaveCount(1)
-        viewersWhoSeeTheAmount += await page.getByText(/bid \d+ Dirham/).count()
+        await expect(page.getByText(/placed a sealed bid|bid \d+\s*د\.م\./)).toHaveCount(1)
+        viewersWhoSeeTheAmount += await page.getByText(/bid \d+\s*د\.م\./).count()
     }
     expect(viewersWhoSeeTheAmount).toBe(1)
 

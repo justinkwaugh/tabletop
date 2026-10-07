@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { cityPlaceId } from '../components/places.js'
+import { Market } from '../components/pieces.js'
 import { OracleChange, type HydratedBoard } from '../model/board.js'
 import { CityPlacementKind, type CityPlacementPlan } from '../model/cityRules.js'
 import type { HydratedMagnaGreciaGameState } from '../model/gameState.js'
@@ -21,6 +22,7 @@ export const PlaceCityMetadata = Type.Object({
     mergedCityIds: Type.Array(Type.String()),
     foundingMarket: Type.Boolean(),
     claimVillage: Type.Optional(AxialCoordinates),
+    removedMarkets: Type.Optional(Type.Array(Market)),
     oracleChanges: Type.Array(OracleChange)
 })
 
@@ -28,6 +30,7 @@ type TileOutcome = {
     cityId: string
     founded: boolean
     mergedCityIds: string[]
+    removedMarkets: Market[]
     claimVillage?: AxialCoordinates
     completesFounding: boolean
     awaitsVillage: boolean
@@ -98,6 +101,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
             mergedCityIds: outcome.mergedCityIds,
             foundingMarket,
             claimVillage: outcome.claimVillage,
+            removedMarkets: outcome.removedMarkets.length > 0 ? outcome.removedMarkets : undefined,
             oracleChanges: state.board.updateOracleAttention(state.board.network())
         }
     }
@@ -109,6 +113,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
                     cityId: board.foundCity(this.playerId, this.coords).id,
                     founded: true,
                     mergedCityIds: [],
+                    removedMarkets: [],
                     claimVillage: plan.claimVillage,
                     completesFounding: !plan.claimVillage && !plan.awaitsVillage,
                     awaitsVillage: !!plan.awaitsVillage
@@ -117,7 +122,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
                 return {
                     cityId: plan.cityIds[0],
                     founded: false,
-                    mergedCityIds: board.extendCity(plan.cityIds[0], this.coords),
+                    ...board.extendCity(plan.cityIds[0], this.coords),
                     claimVillage: plan.claimVillage,
                     completesFounding: false,
                     awaitsVillage: false
@@ -126,7 +131,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
                 return {
                     cityId: plan.cityId,
                     founded: false,
-                    mergedCityIds: board.extendCity(plan.cityId, this.coords),
+                    ...board.extendCity(plan.cityId, this.coords),
                     completesFounding: plan.founding,
                     awaitsVillage: false
                 }

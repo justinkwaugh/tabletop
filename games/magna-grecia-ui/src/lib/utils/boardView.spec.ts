@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PointyHexDirection } from '@tabletop/common'
 import { HydratedBoard, offsetToAxial } from '@tabletop/magna-grecia'
 import { hexCenter } from './boardGeometry.js'
-import { marketViews, oracleViews } from './boardView.js'
+import { marketTile, marketViews, oracleViews } from './boardView.js'
 
 const row = (col: number) => offsetToAxial({ row: 1, col })
 
@@ -46,14 +46,35 @@ describe('board view', () => {
         expect(views.map((view) => view.active)).toEqual([true, false, false])
     })
 
-    it('keeps each market on its own tile when places merge', () => {
+    it('gathers a merged city’s markets on its founding tile', () => {
         const hydrated = board()
         hydrated.cities[0].spaces.push(row(2))
         hydrated.markets.push({ playerId: 'p2', coords: row(2), sold: false })
         const views = marketViews(hydrated, hydrated.network())
-        const onFirstTile = hexCenter(row(3))
-        const onSecondTile = hexCenter(row(2))
-        expect(views[0].point.x - onFirstTile.x).toBe(views[2].point.x - onSecondTile.x)
-        expect(views[2].point.y - onSecondTile.y).toBe(views[0].point.y - onFirstTile.y)
+        const founding = hexCenter(row(3))
+        const offsets = views.map((view) => ({
+            x: view.point.x - founding.x,
+            y: view.point.y - founding.y
+        }))
+        expect(new Set(offsets.map(({ x, y }) => `${x},${y}`)).size).toBe(3)
+        expect(offsets.every(({ x, y }) => Math.abs(x) < 40 && Math.abs(y) < 40)).toBe(true)
+        expect(marketTile(hydrated, hydrated.markets[2])).toEqual(row(3))
+    })
+
+    it('spills markets beyond the slots on to the place’s next tile', () => {
+        const hydrated = board()
+        hydrated.cities[0].spaces.push(row(2))
+        hydrated.markets.push(
+            { playerId: 'p2', coords: row(2), sold: false },
+            { playerId: 'p3', coords: row(2), sold: false },
+            { playerId: 'p0', coords: row(2), sold: true }
+        )
+        expect(hydrated.markets.map((market) => marketTile(hydrated, market))).toEqual([
+            row(3),
+            row(3),
+            row(3),
+            row(3),
+            row(2)
+        ])
     })
 })

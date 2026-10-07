@@ -53,7 +53,9 @@
                 >
                     Give it to {gameSession.getPlayerName(candidateId)}
                     {#if why}
-                        <span class="block text-[11px] text-oath-text-muted">{why}</span>
+                        <span class="block text-[11px] text-oath-text-muted"
+                            >{gameSession.humanizeReason(why)}</span
+                        >
                     {/if}
                 </button>
             {/each}
