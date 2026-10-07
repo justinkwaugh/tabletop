@@ -12,6 +12,7 @@
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
+    import CompanyShareActions from './CompanyShareActions.svelte'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
@@ -27,7 +28,20 @@
         session.privateOperationDescription(privateCompanyId)
 </script>
 
-<GameTable {session} {privateOperationDescription} historyDescription={describe1832Action}>
+<GameTable
+    {session}
+    {privateOperationDescription}
+    historyDescription={describe1832Action((id) => session.getPlayerName(id))}
+    additionalStockActions={session.companyShareActions.length
+        ? [
+              {
+                  label: 'Act for a company',
+                  selected: session.stockPanels.open === 'company',
+                  onSelect: () => session.stockPanels.choose('company')
+              }
+          ]
+        : []}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
@@ -37,6 +51,8 @@
             {:else}
                 <WaterfallAuctionLots {session} />
             {/if}
+        {:else if session.stockPanels.open === 'company'}
+            <CompanyShareActions {session} />
         {:else}
             <TitleActions {session} />
             <OperatingActions

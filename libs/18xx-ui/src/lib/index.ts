@@ -107,6 +107,7 @@ export { MarketTokenSize } from './stock/marketTokenLayout.js'
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
 export { default as RouteBuilding } from './routes/RouteBuilding.svelte'
 export { runForHistoryStep } from './routes/runForHistoryStep.js'
 

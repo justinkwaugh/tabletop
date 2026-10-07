@@ -1,11 +1,17 @@
 import {
+    AnswerRedemption,
     BuyCoalRights,
+    ConsentingRedemptionState,
     DeclineProtection,
     EighteenThirtyTwoTitleRules,
     PlaceRevenueToken,
     ProtectShares,
     ProtectingPriceState,
+    RedeemShare,
+    ReissueShares,
     protectionDecision,
+    redemptionChoices,
+    reissueChoices,
     RevenueTokenPrivateIds,
     TakeLondonShare,
     londonShareCompanies,
@@ -13,11 +19,14 @@ import {
     revenueTokenUnplaced,
     type EighteenThirtyTwoState,
     type HydratedEighteenThirtyTwoState,
+    type RedemptionChoice,
+    type ReissueChoice,
     type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { stockMarketSpace } from '@tabletop/18xx'
+import { companyMarketSpace, getCompany, stockMarketSpace } from '@tabletop/18xx'
 import {
+    TitleStockPanels,
     createEighteenXXSessionClass,
     type HistoricalMapState,
     type TitlePrivatePower
@@ -43,13 +52,79 @@ const TokenPrivates = [
     { kind: 'cotton', name: 'Cotton' }
 ] as const
 
+/** What a president may do for one company in place of their own stock action (§5.3). */
+export type CompanyShareActions = {
+    companyId: string
+    redemptions: RedemptionChoice[]
+    reissue?: ReissueChoice
+}
+
 export class EighteenThirtyTwoSession extends BaseSession {
+    readonly stockPanels = new TitleStockPanels<'company'>(this.stock, [
+        {
+            id: 'company',
+            available: () => this.companyShareActions.length > 0,
+            held: () => !!this.gameState.stockRound.turn.corporateAction
+        }
+    ])
+    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
+        super(options)
+        this.localSelections.register(this.stockPanels, 'first')
+    }
+    override get additionalStockMenuCount() {
+        return this.stockPanels.count
+    }
+    protected override onStockSelectionCancelled() {
+        this.stockPanels.clear()
+    }
+    readonly companyShareActions = $derived.by((): CompanyShareActions[] => {
+        const playerId = this.gameState.activePlayerIds[0]
+        if (
+            !playerId ||
+            !(
+                this.validActionTypes.includes('RedeemShare') ||
+                this.validActionTypes.includes('ReissueShares')
+            )
+        )
+            return []
+        const redemptions = redemptionChoices(this.gameState, playerId)
+        const reissues = reissueChoices(this.gameState, playerId)
+        const companyIds = [
+            ...new Set([...redemptions, ...reissues].map((choice) => choice.companyId))
+        ]
+        return companyIds.map((companyId) => {
+            const reissue = reissues.find((choice) => choice.companyId === companyId)
+            return {
+                companyId,
+                redemptions: redemptions.filter((choice) => choice.companyId === companyId),
+                ...(reissue ? { reissue } : {})
+            }
+        })
+    })
+    /** A redemption awaiting a holder's consent, with its price. */
+    readonly redemptionPrompt = $derived.by(() => {
+        const request = this.gameState.redemptionRequest
+        if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
+        const certificate = this.gameState.certificates.find(
+            (item) => item.id === request.certificateId
+        )
+        assertExists(certificate, 'A redemption request names a share')
+        const shares = certificate.kind === 'share' ? certificate.shares : 1
+        return {
+            ...request,
+            companyName: getCompany(this.gameState, request.companyId).name,
+            price: companyMarketSpace(this.gameState.stockMarket, request.companyId).price * shares
+        }
+    })
     readonly canChooseAction = $derived(
         this.isPlayable &&
             this.isMyTurn &&
             !this.isViewingHistory &&
             !this.busy &&
             !this.updatingVisibleState
+    )
+    readonly canAnswerRedemption = $derived(
+        this.canChooseAction && this.validActionTypes.includes('AnswerRedemption')
     )
     readonly revenueTokenChoices = $derived(
         this.myPlayer && !this.isViewingHistory
@@ -136,6 +211,20 @@ export class EighteenThirtyTwoSession extends BaseSession {
     }
     async takeLondonShare(certificateId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(TakeLondonShare, { certificateId }))
+    }
+    async redeemShare(choice: RedemptionChoice): Promise<void> {
+        await this.applyAction(
+            this.createPlayerAction(RedeemShare, {
+                companyId: choice.companyId,
+                certificateId: choice.certificateId
+            })
+        )
+    }
+    async answerRedemption(accept: boolean): Promise<void> {
+        await this.applyAction(this.createPlayerAction(AnswerRedemption, { accept }))
+    }
+    async reissueShares(companyId: string): Promise<void> {
+        await this.applyAction(this.createPlayerAction(ReissueShares, { companyId }))
     }
     async protectShares(companyId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(ProtectShares, { companyId }))

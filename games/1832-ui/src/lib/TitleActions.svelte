@@ -7,6 +7,31 @@
     const shares = (count: number) => (count === 1 ? 'share' : 'shares')
 </script>
 
+{#if session.redemptionPrompt}
+    {@const request = session.redemptionPrompt}
+    <header class="title-prompt">
+        {#if session.canAnswerRedemption}
+            <span
+                >{session.getPlayerName(request.presidentPlayerId)} asks to redeem one of your {companyName(
+                    request.companyId
+                )} shares for {money(request.price)}.</span
+            >
+            <button
+                class="action-button inline-action"
+                onclick={() => session.answerRedemption(true)}>allow</button
+            >
+            <button
+                class="action-button inline-action"
+                onclick={() => session.answerRedemption(false)}>refuse</button
+            >
+        {:else}
+            <span
+                >{session.getPlayerName(request.holderPlayerId)} may allow {request.companyName} to redeem
+                their share</span
+            >
+        {/if}
+    </header>
+{/if}
 {#if session.protectionPrompt}
     {@const prompt = session.protectionPrompt}
     <header class="title-prompt">

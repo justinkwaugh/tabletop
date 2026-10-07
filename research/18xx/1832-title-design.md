@@ -355,3 +355,45 @@ Redemption (slice 4) moves no prices and needs no closure check.
 own company, cash limits, the 60% exemption and its loss, ordering across presidents,
 protection after a forced sale, immediate and deferred closure, and closure during a company's
 own train funding.
+
+## Slice 4 design: redemption and reissue
+
+### Survey
+
+Companies buy their own shares back in 1817 (from the market, in the stock round, for the
+president's turn), 1846 (issue and redeem in the operating round), and 1870, 1850 and 1832
+(redeem one share a stock round from the market or a player, and later reissue them). The
+shared pieces now cover the stock-round form: `corporateTurnOpen` and
+`CorporateStockActionsHandler` (a president acting for one company in place of their own
+action, taken from 1817), `StockRules.afterPurchase`, and, in the UI, `CompanyActionCard`,
+`StockPanelHeading` and `TitleStockPanels`, which 1817 now uses too. 1832's redemption and reissue
+rules stay in the title.
+
+### Decisions
+
+- **Redemption** (§5.10). The president of a capitalized company, as their turn's only action,
+  redeems one share a stock round at the market price from the company's spendable money: an
+  open-market share while there is one, otherwise a player's ordinary share. The company keeps
+  at most 40%, and players and market at least 60%. Initial-offering shares cannot be redeemed.
+- **Consent** (§5.10.4). Redeeming from another player asks them first; they allow it or refuse.
+  **Ruling:** a refusing holder cannot be asked again that turn, and the president keeps their
+  turn. A president may redeem their own share without asking if no one would then hold more.
+- **Reissue** (§5.11). Once its original offering has sold out, and once a stock round, the
+  president returns all redeemed shares to the initial offering, as the turn's only action. The
+  par becomes the higher of the old par and the top-row par from $68 to $200 nearest 75% of the
+  price, a tie rounding up. Every later initial-offering purchase pays the company.
+- **Locked proceeds.** **Ruling:** money the company receives for reissued shares during a
+  stock round cannot be spent on redemption until that round ends (§5.11, §5.10.10).
+- Redeemed shares pay their company dividends, count as held for the sold-out rise, and do not
+  count toward a player's limits; a redemption moves no price.
+
+### Limits after slice 4
+
+Systems redeem two shares a round, one a turn (§11.6.9); slice 5 adds them. The playground has
+no prepared position with an offering sold out; tests cover the flow.
+
+### Acceptance examples
+
+`redemption.spec.ts` covers market-first redemption, consent and refusal, the president's own
+share, the 40%/60% limits, the per-round limit, the reissue par, reissue proceeds and locking,
+and the sold-out offering condition.
