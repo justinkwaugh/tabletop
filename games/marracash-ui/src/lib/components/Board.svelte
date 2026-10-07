@@ -35,7 +35,6 @@
         CandidateHaloFilterId,
         CastShadowFilterId,
         LineHaloFilterId,
-        TableDisplayScale,
         TableHeight,
         TableWidth,
         WallThickness
@@ -43,8 +42,6 @@
     import { PackedEarthPatternId } from '$lib/utils/ground.js'
 
     const gameSession = getGameSession()
-    const DisplayWidth = TableWidth * TableDisplayScale
-    const DisplayHeight = TableHeight * TableDisplayScale
 
     const visitorMoveAnimator = new VisitorMoveAnimator(gameSession)
     visitorMoveAnimator.register()
@@ -169,10 +166,10 @@
     class="relative"
     role="img"
     aria-label="MarraCash market"
-    style:width="{DisplayWidth}px"
-    style:height="{DisplayHeight}px"
+    style:width="{TableWidth}px"
+    style:height="{TableHeight}px"
 >
-    <svg width={DisplayWidth} height={DisplayHeight} viewBox="0 0 {TableWidth} {TableHeight}">
+    <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
         <defs>
             <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
@@ -244,8 +241,8 @@
      changes, so dimming, choosing or a new state repaints only this layer. -->
     <svg
         class="raised-layer pointer-events-none absolute top-0 left-0"
-        width={DisplayWidth}
-        height={DisplayHeight}
+        width={TableWidth}
+        height={TableHeight}
         viewBox="0 0 {TableWidth} {TableHeight}"
     >
         <g transform="translate({QueueMargin} {QueueMargin})">
@@ -367,8 +364,8 @@
      filter-heavy board beneath. -->
     <svg
         class="walker-layer pointer-events-none absolute top-0 left-0"
-        width={DisplayWidth}
-        height={DisplayHeight}
+        width={TableWidth}
+        height={TableHeight}
         viewBox="0 0 {TableWidth} {TableHeight}"
         aria-hidden="true"
     >
@@ -380,14 +377,7 @@
             {/each}
         </g>
     </svg>
-    <div
-        class="pointer-events-none absolute top-0 left-0 origin-top-left"
-        style:width="{TableWidth}px"
-        style:height="{TableHeight}px"
-        style:transform="scale({TableDisplayScale})"
-    >
-        <EarningsPopupLayer earnings={visitorMoveAnimator.earnings} />
-    </div>
+    <EarningsPopupLayer earnings={visitorMoveAnimator.earnings} />
 </div>
 
 <style>
