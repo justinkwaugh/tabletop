@@ -1,4 +1,4 @@
-import { burnFavor } from './burn.js'
+import { burnFavor, burnFavorByNoPlayer } from './burn.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner } from '../model/oathEnums.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
@@ -42,7 +42,12 @@ export function seizeBanner(
     const bannerState = state.banners[banner]
 
     if (banner === Banner.PeoplesFavor) {
-        burnFavor(state, burned)
+        // R-10.4-H1 — "the People's Favor burns" its own favor; no player burns it.
+        if (isAtLeastOathRevision(state, OathRevision.EngineFixes2)) {
+            burnFavorByNoPlayer(state, burned)
+        } else {
+            burnFavor(state, burned)
+        }
         bannerState.mobSide = true
     }
 
