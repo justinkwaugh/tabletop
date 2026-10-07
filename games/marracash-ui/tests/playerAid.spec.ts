@@ -52,24 +52,23 @@ test('an auction dims the board but keeps fountains and shop signs above the ove
     await createGame(page)
     await playOpeningRound(page)
     await auctionFirstShop(page)
-    const order = await page.evaluate(() => {
-        const market = document.querySelector('g[aria-label="MarraCash market"]')
-        const overlay = market?.querySelector(':scope > g[opacity="0.25"]')
-        const children = [...(market?.children ?? [])]
-        const overlayIndex = overlay ? children.indexOf(overlay) : -1
-        const indexOf = (selector: string) =>
-            children.findIndex(
-                (child) => child.matches(selector) || child.querySelector(selector) !== null
-            )
+    const raised = await page.evaluate(() => {
+        const overlay = document.querySelector('[aria-label="MarraCash market"] g[opacity="0.25"]')
+        const follows = (selector: string) =>
+            [...document.querySelectorAll(`[aria-label="MarraCash market"] ${selector}`)].filter(
+                (element) =>
+                    overlay !== null &&
+                    overlay.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING
+            ).length
         return {
-            overlayIndex,
-            firstFountain: indexOf('path[fill*="fountain-glints"]'),
-            firstSign: indexOf('g.pointer-events-none[aria-hidden="true"]')
+            overlay: overlay !== null,
+            fountainsAbove: follows('path[fill*="fountain-glints"]'),
+            signsAbove: follows('g.pointer-events-none[aria-hidden="true"]')
         }
     })
-    expect(order.overlayIndex).toBeGreaterThan(-1)
-    expect(order.firstFountain).toBeGreaterThan(order.overlayIndex)
-    expect(order.firstSign).toBeGreaterThan(order.overlayIndex)
+    expect(raised.overlay).toBe(true)
+    expect(raised.fountainsAbove).toBeGreaterThan(0)
+    expect(raised.signsAbove).toBeGreaterThan(0)
 })
 
 test.describe('on a phone', () => {

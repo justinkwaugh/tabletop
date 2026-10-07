@@ -9,12 +9,10 @@
 
     let {
         shop,
-        selectable,
         spotlit = false,
         layer = 'whole'
     }: {
         shop: ShopState
-        selectable: boolean
         spotlit?: boolean
         layer?: 'whole' | 'awning' | 'sign'
     } = $props()
@@ -23,7 +21,7 @@
     let rect = $derived(shopRect(shop.shopId, ShopTileInset))
     let shopColor = $derived(getShop(shop.shopId).color)
     let vertical = $derived(rect.height > rect.width)
-    let clipId = $derived(`marracash-stall-${shop.shopId}`)
+    let clipId = $derived(`marracash-stall-${shop.shopId}-${layer}`)
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
     let customersHighlighted = $derived(
@@ -34,7 +32,7 @@
 
 {#snippet awning()}
     <g transform="translate({rect.x} {rect.y})">
-        {#if selectable || spotlit}
+        {#if spotlit}
             <path
                 d={stallOutline(shop.shopId, rect.width, rect.height)}
                 fill="none"
@@ -82,17 +80,6 @@
 
 {#if layer === 'sign'}
     <g class="pointer-events-none" aria-hidden="true">{@render sign()}</g>
-{:else if selectable}
-    <g
-        role="button"
-        tabindex="0"
-        aria-label={`Auction shop ${shop.shopId}`}
-        class="cursor-pointer"
-        onclick={() => gameSession.startAuction(shop.shopId)}
-        onkeydown={(event) => event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
-    >
-        {@render body()}
-    </g>
 {:else}
     <g>{@render body()}</g>
 {/if}
