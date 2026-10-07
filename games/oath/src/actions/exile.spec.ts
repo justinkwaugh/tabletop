@@ -2,14 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { EXILE_CITIZEN_BASE_COST, HydratedExileCitizen, ExileCitizen } from './exileCitizen.js'
 import { HydratedSelfExile, SelfExile } from './selfExile.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
-import { testPlayer, testState } from '../testing/fixture.js'
+import { openTurn, testPlayer, testState } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
-import { expectWarbandsConserved, expectWarbandTotalConserved } from '../testing/census.js'
+import { expectWarbandsConserved, expectWarbandTotalConserved, warbandCensus } from '../testing/census.js'
 import { MAX_SUPPLY, returnSecretsToBoard } from '../util/rest.js'
 import { buildAction } from '../testing/actions.js'
 import '../powers/index.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathRevision } from '../util/revision.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 
 function exileCitizen(playerId: string, citizenPlayerId: string) {
     return new HydratedExileCitizen(
@@ -300,6 +304,125 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(HydratedSelfExile.canDoSelfExile(table({ favor: 0 }), 'cit')).toBe(false)
         expect(HydratedSelfExile.canDoSelfExile(table({ favor: 40 }), 'chan')).toBe(false)
     })
+})
+
+/** R-6.7-H1 — 16 Imperial warbands on the Citizen's board, 14 of their own in their bank (R-9.3). */
+function shortTable(oathRevision: OathRevision | undefined) {
+    const state = table(
+        { favor: 40, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 16 }, warbandsInPersonalBank: { cit: 14 } },
+        { warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } }
+    )
+    state.oathRevision = oathRevision
+    return state
+}
+
+const OLDER_REVISIONS = [
+    undefined,
+    OathRevision.TurnFlow,
+    OathRevision.CostsAndFacedownModifiers,
+    OathRevision.PlanCostsAndSearchPlays,
+    OathRevision.CardFixes1
+]
+
+describe('R-6.7-H1 — an Exile’s leftover purple', () => {
+    const paths = [
+        { name: 'self-exile (R-6.8)', exile: () => selfExile('cit') },
+        { name: 'exiled by the Grand Scepter’s holder (R-6.7)', exile: () => exileCitizen('chan', 'cit') }
+    ]
+
+    for (const { name, exile } of paths) {
+        it(`${name}: from revision 5 the purple left over goes back to the Chancellor’s bank`, () => {
+            const state = shortTable(OathRevision.EngineFixes2)
+            const action = exile()
+            expectWarbandTotalConserved(state, () => {
+                expectWarbandsConserved(state, () => {
+                    action.apply(state)
+                })
+            })
+
+            expect(action.metadata?.replacedCount).toBe(14)
+            expect(action.metadata?.unreplacedCount).toBe(2)
+            expect(action.metadata?.unreplacedReturned).toBe(true)
+            expect(state.getPlayerState('cit').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 0, cit: 14 })
+            expect(state.getPlayerState('cit').warbandsInPersonalBank['cit']).toBe(0)
+            expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(5 + 16)
+            // R-6.6.3 — the map's Imperial warbands are untouched.
+            expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_WARBANDS]: 3 })
+        })
+
+        for (const revision of OLDER_REVISIONS) {
+            it(`${name}: a game created at revision ${revision ?? 'none'} keeps the leftover on the Exile’s board`, () => {
+                const state = shortTable(revision)
+                const action = exile()
+                expectWarbandTotalConserved(state, () => {
+                    expectWarbandsConserved(state, () => {
+                        action.apply(state)
+                    })
+                })
+
+                expect(action.metadata?.replacedCount).toBe(14)
+                expect(action.metadata?.unreplacedCount).toBe(2)
+                expect(action.metadata?.unreplacedReturned).toBeUndefined()
+                expect(state.getPlayerState('cit').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2, cit: 14 })
+                expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(5 + 14)
+            })
+        }
+    }
+
+    it('records nothing returned when the Exile’s own cover the board', () => {
+        const state = table({ favor: 40 })
+        state.oathRevision = OathRevision.EngineFixes2
+        const action = selfExile('cit')
+        action.apply(state)
+
+        expect(action.metadata?.unreplacedCount).toBe(0)
+        expect(action.metadata?.unreplacedReturned).toBeUndefined()
+    })
+})
+
+describe('R-X.4 — an exile with a leftover replays as it was recorded', () => {
+    const game = testGame(['chan', 'cit'])
+
+    function recordAndReplay(oathRevision: OathRevision | undefined, by: 'chan' | 'cit') {
+        const start = shortTable(oathRevision)
+        // R-6.4-H1 — the Scepter's holder already knows the Reliquary, so the run teaches nothing.
+        start.getPlayerState('chan').peekedRelicSlotIds = start.reliquarySlots().map((slot) => slot.slotId)
+        openTurn(start, by)
+        start.activePlayerIds = [by]
+        const before = start.dehydrate()
+        const action =
+            by === 'cit'
+                ? buildAction(SelfExile, { playerId: 'cit' })
+                : buildAction(ExileCitizen, { playerId: 'chan', citizenPlayerId: 'cit' })
+        const recorded = engine.runNext(action, structuredClone(before), game)
+
+        let replayed = structuredClone(before)
+        for (const processed of recorded.processedActions) {
+            replayed = engine.run(structuredClone(processed), replayed, game, RunMode.Single).updatedState
+        }
+        expect(replayed).toEqual(recorded.updatedState)
+        // R-1.8, R-10.13 — every warband is still in a bank or on a board, per owner.
+        expect(warbandCensus(new HydratedOathGameState(recorded.updatedState))).toEqual(
+            warbandCensus(new HydratedOathGameState(before))
+        )
+        return new HydratedOathGameState(recorded.updatedState)
+    }
+
+    for (const by of ['cit', 'chan'] as const) {
+        for (const revision of OLDER_REVISIONS) {
+            it(`${by === 'cit' ? 'a self-exile' : 'an exile'} at revision ${revision ?? 'none'} keeps 2 Imperial warbands on the board`, () => {
+                const after = recordAndReplay(revision, by)
+                expect(after.getPlayerState('cit').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2, cit: 14 })
+                expect(after.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(5 + 14)
+            })
+        }
+
+        it(`${by === 'cit' ? 'a self-exile' : 'an exile'} at revision 5 returns the 2 to the Chancellor’s bank`, () => {
+            const after = recordAndReplay(OathRevision.EngineFixes2, by)
+            expect(after.getPlayerState('cit').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 0, cit: 14 })
+            expect(after.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(5 + 16)
+        })
+    }
 })
 
 /** R-4.3.2's Rest sweeps every card secret to the resting player. */
