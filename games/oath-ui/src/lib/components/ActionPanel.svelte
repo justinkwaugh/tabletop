@@ -116,7 +116,7 @@
         {:else if chosen}
             {#if travelWaysOpen}
                 <div class="mb-2">
-                    <TravelWays row={travelWaysOpen} />
+                    <TravelWays row={travelWaysOpen} upright={layout.upright} />
                 </div>
             {:else}
                 <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">

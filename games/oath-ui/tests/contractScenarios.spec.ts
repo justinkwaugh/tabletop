@@ -1103,6 +1103,54 @@ test.describe('scenario 4 on a phone held upright', () => {
         await expect(travelPrompt(page)).toBeVisible()
     })
 
+    test('when Travel closes, by Back or by travelling, the map returns to the view it had before Travel opened', async ({ page }) => {
+        await openTable(page, 'actPhase')
+        await expect(tile(page, 'Travel').last()).toBeVisible()
+        // The view as the part of the board it shows: its centre in card widths from a site
+        // card, and that card's size. The panel's height after a Travel may differ by a line,
+        // which changes the board's box but not the part of the board it shows.
+        const card = siteCard(page, 'slot.provinces.1')
+        const viewNow = async () => {
+            const [seen, view] = [await boxOf(card), await boxOf(boardView(page))]
+            return {
+                x: (view.x + view.width / 2 - seen.x) / seen.width,
+                y: (view.y + view.height / 2 - seen.y) / seen.width,
+                width: seen.width
+            }
+        }
+        // The table's first fit has settled when two reads a moment apart agree.
+        let before = await viewNow()
+        await expect
+            .poll(async () => {
+                const last = before
+                await page.waitForTimeout(200)
+                before = await viewNow()
+                return before.x === last.x && before.y === last.y && before.width === last.width
+            })
+            .toBe(true)
+        const unmoved = async () => {
+            const now = await viewNow()
+            return (
+                Math.abs(now.x - before.x) < 0.02 &&
+                Math.abs(now.y - before.y) < 0.02 &&
+                Math.abs(now.width / before.width - 1) < 0.03
+            )
+        }
+
+        await chooseTravelOnThePhone(page)
+        await expect.poll(unmoved).toBe(false)
+        await undoButton(page).tap()
+        await expect(travelPrompt(page)).toHaveCount(0)
+        await expect.poll(unmoved).toBe(true)
+
+        await chooseTravelOnThePhone(page)
+        await expect.poll(unmoved).toBe(false)
+        await expect.poll(() => onScreen(page, siteCard(page, 'slot.cradle.1'))).toBe(true)
+        await siteCard(page, 'slot.cradle.1').tap()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        await expect.poll(unmoved).toBe(true)
+    })
+
     test('a tap on a lit site with one way to pay travels there', async ({ page }) => {
         await openTable(page, 'actPhase')
         await chooseTravelOnThePhone(page)
@@ -1155,10 +1203,24 @@ test.describe('scenario 4 on a phone held upright', () => {
         await expect(flip).toBeVisible()
         expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
         expect(await litSlots(page)).toEqual([...legal].sort())
+
+        // Upright: the site's name alone (no region line) above its picture, the picture as
+        // large as fits, the two ways stacked to its right at one width, their right edge the panel's.
+        const ways = grid(page).locator('.ways')
+        await expect(ways.getByText('Cradle', { exact: true })).toHaveCount(0)
+        const name = await boxOf(ways.locator('.ways__name'))
+        const picture = await boxOf(ways.locator('.ways__art'))
+        const row = await boxOf(ways)
         const [one, other] = [await boxOf(supply), await boxOf(flip)]
-        expect(other.y).toBeCloseTo(one.y, 0)
-        expect(other.x).toBeGreaterThan(one.x + one.width - 1)
+        expect(name.y + name.height).toBeLessThanOrEqual(picture.y + 0.5)
+        expect(picture.width / picture.height).toBeCloseTo(1313 / 1016, 1)
+        expect(one.x).toBeGreaterThan(picture.x + picture.width - 1)
+        expect(one.y).toBeCloseTo(picture.y, 0)
+        expect(other.x).toBeCloseTo(one.x, 0)
+        expect(other.y).toBeGreaterThan(one.y + one.height - 1)
         expect(other.width).toBeCloseTo(one.width, 0)
+        expect(one.x + one.width).toBeCloseTo(row.x + row.width, 0)
+        expect(picture.width).toBeGreaterThan(2 * one.width)
 
         await undoButton(page).tap()
         await expect(supply).toHaveCount(0)
@@ -1230,6 +1292,11 @@ test('scenario 4: on a desktop a destination with two ways to pay keeps its tile
     await expect(ways.first()).toHaveAccessibleName(/^Travel to .+: spend 2 Supply$/)
     const flip = ways.last()
     await expect(flip).toHaveAccessibleName(/^Travel to .+: spend no Supply, flip a secret facedown$/)
+    // The map's chip reads both ways on a desktop too.
+    const chip = siteAt(page, 'slot.provinces.0').locator('.travel-cost')
+    await expect(chip).toHaveText('2 or 0+')
+    await expect(chip.getByRole('img', { name: 'secret' })).toBeVisible()
+    await expect(siteAt(page, 'slot.hinterland.0').locator('.travel-cost')).toHaveText('0+')
     const [supply, flipped] = await boxesOf(ways)
     expect(flipped.x).toBeCloseTo(supply.x, 0)
     expect(flipped.y).toBeGreaterThan(supply.y + supply.height - 1)

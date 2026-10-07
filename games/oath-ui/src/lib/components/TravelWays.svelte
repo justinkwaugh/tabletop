@@ -9,8 +9,10 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-11.12, R-7.1.4 — a destination picked on a phone's map with more than one way to pay:
-    // the site, and a button per way, each as wide as the widest label. Undo closes it.
-    let { row }: { row: TravelRow } = $props()
+    // the site, and a button per way, each as wide as the widest label; Undo closes it. Held
+    // sideways the site, its name and region and the ways stand on one row; held upright the name
+    // alone tops the site's picture, drawn as large as fits, with the ways stacked to its right.
+    let { row, upright }: { row: TravelRow; upright: boolean } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
@@ -36,7 +38,7 @@
     </span>
 {/snippet}
 
-<div class="ways">
+<div class="ways" class:ways--upright={upright}>
     <img
         class="ways__art rounded object-cover"
         style:aspect-ratio={CARD_ASPECT[CardKind.Site]}
@@ -45,7 +47,11 @@
     />
     <span class="ways__name flex min-w-0 flex-col">
         <span class="text-[15px] font-bold leading-tight">{destinationName(row)}</span>
-        <span class="text-[13px] leading-tight text-oath-text-muted">{regionName(row.region)}</span>
+        {#if !upright}
+            <span class="text-[13px] leading-tight text-oath-text-muted"
+                >{regionName(row.region)}</span
+            >
+        {/if}
     </span>
     <span class="ways__choices flex flex-col items-start gap-1">
         <span class="ways__buttons">
@@ -71,7 +77,7 @@
 </div>
 
 <style>
-    /* One row: the site, its name, the ways beside them. */
+    /* Held sideways, one row: the site, its name, the ways beside them. */
     .ways {
         display: grid;
         grid-template-areas: 'art name choices';
@@ -99,21 +105,48 @@
         grid-auto-flow: column;
         gap: 6px;
     }
-    .ways__token {
-        flex: none;
-        height: 18px;
-        width: auto;
-        max-width: none;
-    }
-    /* A panel too narrow for the site, its name and the ways side by side (a phone held
-       upright, where they need about 360 px of 303): the ways go under the name, still as wide
-       as their labels. The container is FitBox's unscaled box. */
+    /* Held sideways on a phone whose panel is too narrow for the one row (667 px wide gives
+       323 px, the row needs about 360): the ways go under the name, still as wide as their
+       labels. The container is FitBox's unscaled box. */
     @container (max-width: 26rem) {
-        .ways {
+        .ways:not(.ways--upright) {
             grid-template-areas:
                 'art name'
                 'art choices';
             grid-template-columns: auto 1fr;
         }
+    }
+    /* Held upright: the name on the top line; under it the picture fills the width the ways
+       leave, and the ways stand stacked to its right, level with its top, each as wide as the
+       widest label, their right edge at the panel's. A toll's note wraps under them at
+       their width, so it never narrows the picture. */
+    .ways--upright {
+        grid-template-areas:
+            'name name'
+            'art choices';
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+    }
+    .ways--upright .ways__name {
+        align-self: center;
+    }
+    .ways--upright .ways__art {
+        width: 100%;
+        height: auto;
+    }
+    .ways--upright .ways__choices {
+        align-items: flex-end;
+        width: min-content;
+        justify-self: end;
+    }
+    .ways--upright .ways__buttons {
+        grid-auto-columns: auto;
+        grid-auto-flow: row;
+    }
+    .ways__token {
+        flex: none;
+        height: 18px;
+        width: auto;
+        max-width: none;
     }
 </style>
