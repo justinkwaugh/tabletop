@@ -86,8 +86,6 @@ function withdrawUnableBidders(state: HydratedHcgGameState): string[] {
     return before.filter((playerId) => !after.includes(playerId))
 }
 
-// Awards the share to the last bidder standing, clearing the auction; undefined while bidding
-// continues.
 export function settleShareAuction(state: HydratedHcgGameState): ShareSale | undefined {
     const auction = state.auction
     assertExists(auction, 'No auction in progress')

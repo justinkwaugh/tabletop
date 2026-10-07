@@ -7,7 +7,6 @@
     }: { minimum: number; maximum: number; label: string; onbid: (amount: number) => void } =
         $props()
 
-    // Starts at the smallest legal bid and resets whenever the minimum moves on.
     let amount = $derived(minimum)
 
     function adjust(step: number) {

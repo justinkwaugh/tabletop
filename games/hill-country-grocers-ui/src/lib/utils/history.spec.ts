@@ -30,7 +30,10 @@ describe('history entries', () => {
         const entries = historyEntries([
             action(ActionType.PlaceBid, { amount: 2 }),
             action(ActionType.PassBid, sold(CompanyId.Streamside)),
-            action(ActionType.BuildNetwork, { companyId: CompanyId.Streamside, hexIds: ['5-3'] }),
+            action(ActionType.BuildNetwork, {
+                companyId: CompanyId.Streamside,
+                hexes: [{ q: 5, r: -1 }]
+            }),
             action(ActionType.PlaceBid, { amount: 0 })
         ])
         expect(entries.map((entry) => entry.kind)).toEqual(['initial', 'initial'])

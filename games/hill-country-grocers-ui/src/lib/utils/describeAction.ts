@@ -1,9 +1,9 @@
-import type { GameAction } from '@tabletop/common'
+import type { AxialCoordinates, GameAction } from '@tabletop/common'
 import {
     ActionSpace,
     AuctionKind,
     city,
-    cityInHex,
+    cityAt,
     companyDefinition,
     isBuildNetwork,
     isChooseAction,
@@ -18,7 +18,6 @@ import {
     type ShareSale
 } from '@tabletop/hill-country-grocers'
 
-// A description reads as text with player names and company badges spliced in.
 export type DescriptionSegment = string | { playerId: string } | { companyId: CompanyId }
 export type Description = DescriptionSegment[]
 
@@ -28,8 +27,8 @@ export const SPACE_NAMES: Record<ActionSpace, string> = {
     [ActionSpace.AuctionShare]: 'Auction Share'
 }
 
-export function hexName(hexId: string): string {
-    return cityInHex(hexId)?.name ?? 'the countryside'
+export function hexName(coords: AxialCoordinates): string {
+    return cityAt(coords)?.name ?? 'the countryside'
 }
 
 export function saleDescription(sale: ShareSale): Description {
@@ -49,12 +48,13 @@ export function describeAction(action: GameAction): Description {
         return ['passed']
     }
     if (isChooseAction(action)) {
-        return [`chose ${SPACE_NAMES[action.space]}`]
+        const idle = action.metadata?.nothingToDo ? ' with nothing to do' : ''
+        return [`chose ${SPACE_NAMES[action.space]}${idle}`]
     }
     if (isBuildNetwork(action)) {
-        const places = action.hexIds.map(hexName).join(', ')
+        const places = action.hexes.map(hexName).join(', ')
         const metadata = action.metadata
-        const cubes = action.hexIds.length === 1 ? 'a cube' : `${action.hexIds.length} cubes`
+        const cubes = action.hexes.length === 1 ? 'a cube' : `${action.hexes.length} cubes`
         if (!metadata) {
             return ['placed ', cubes, ' for ', { companyId: action.companyId }, ` in ${places}`]
         }

@@ -9,7 +9,7 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { COMPANIES, GROCER_IDS } from '../components/companies.js'
-import { startingHex } from '../components/map.js'
+import { startingCoords } from '../components/map.js'
 import { HydratedHcgGameState, type HcgGameState } from '../model/gameState.js'
 import { HydratedHcgPlayerState, STARTING_CASH } from '../model/playerState.js'
 import { openInitialAuction } from '../model/shareAuctionRules.js'
@@ -55,7 +55,10 @@ export class HcgGameInitializer
                 owners: []
             })),
             initialAuctionOrder,
-            cubes: GROCER_IDS.map((companyId) => ({ hexId: startingHex(companyId), companyId })),
+            cubes: GROCER_IDS.map((companyId) => ({
+                coords: startingCoords(companyId),
+                companyId
+            })),
             developments: {},
             roundTrack: [],
             dividendsPaid: 0,

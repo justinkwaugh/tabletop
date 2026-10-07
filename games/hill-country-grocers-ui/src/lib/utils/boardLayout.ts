@@ -1,31 +1,36 @@
-import type { Point } from '@tabletop/common'
-import { ACTION_SPACES, hex, type ActionSpace } from '@tabletop/hill-country-grocers'
+import {
+    HexOrientation,
+    calculateHexGeometry,
+    circleDimensionsToElliptical,
+    hexCoordsToCenterPoint,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
+import { ACTION_SPACES, type ActionSpace } from '@tabletop/hill-country-grocers'
 
 export const ACTION_BOARD_Y = 12
 export const ACTION_BOX_WIDTH = 304
 export const ACTION_BOX_HEIGHT = 174
 
 export const HEX_RADIUS = 74
-const HALF_HEIGHT = (HEX_RADIUS * Math.sqrt(3)) / 2
+const HEX_DIMENSIONS = circleDimensionsToElliptical({ radius: HEX_RADIUS }, HexOrientation.Flat)
 const MAP_TOP = ACTION_BOARD_Y + ACTION_BOX_HEIGHT + 14
-const MAP_X = 24
-const MAP_Y = MAP_TOP + 12
+const WEST_COLUMN_CENTER: Point = { x: 24 + HEX_RADIUS, y: MAP_TOP + 12 + HEX_DIMENSIONS.yRadius }
 
 export const MAP_RECT = { x: 12, y: MAP_TOP, width: 950, height: 668 }
 
-export function hexCenter(hexId: string): Point {
-    const { col, row } = hex(hexId)
-    return {
-        x: MAP_X + HEX_RADIUS + col * 1.5 * HEX_RADIUS,
-        y: MAP_Y + HALF_HEIGHT + row * HALF_HEIGHT
-    }
+export function hexCenter(coords: AxialCoordinates): Point {
+    const point = hexCoordsToCenterPoint(coords, HEX_DIMENSIONS, HexOrientation.Flat)
+    return { x: point.x + WEST_COLUMN_CENTER.x, y: point.y + WEST_COLUMN_CENTER.y }
 }
 
 export function hexPoints(center: Point, radius: number = HEX_RADIUS): string {
-    return Array.from({ length: 6 }, (_, index) => {
-        const angle = (Math.PI / 3) * index
-        return `${center.x + radius * Math.cos(angle)},${center.y + radius * Math.sin(angle)}`
-    }).join(' ')
+    return calculateHexGeometry(
+        { orientation: HexOrientation.Flat, dimensions: { radius } },
+        { q: 0, r: 0 }
+    )
+        .vertices.map((vertex) => `${center.x + vertex.x},${center.y + vertex.y}`)
+        .join(' ')
 }
 
 export function actionBoxX(space: ActionSpace): number {

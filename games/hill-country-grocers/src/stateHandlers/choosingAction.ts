@@ -4,6 +4,7 @@ import { MachineState } from '../definition/states.js'
 import { HydratedChooseAction, isChooseAction } from '../actions/chooseAction.js'
 import { ActionSpace } from '../model/actionSpaces.js'
 import type { HydratedHcgGameState } from '../model/gameState.js'
+import { finishTurnAction } from './flow.js'
 
 const NEXT_STATE: Record<ActionSpace, MachineState> = {
     [ActionSpace.BuildNetwork]: MachineState.BuildingNetwork,
@@ -45,8 +46,10 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
 
     onAction(
         action: HydratedChooseAction,
-        _context: MachineContext<HydratedHcgGameState>
+        context: MachineContext<HydratedHcgGameState>
     ): MachineState {
-        return NEXT_STATE[action.space]
+        return action.metadata?.nothingToDo
+            ? finishTurnAction(context.gameState)
+            : NEXT_STATE[action.space]
     }
 }

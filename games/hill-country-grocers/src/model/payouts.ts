@@ -23,7 +23,6 @@ export function companyDividends(state: HydratedHcgGameState): CompanyDividend[]
     }))
 }
 
-// Pays each player the per-share amount for every share they hold, from the bank.
 export function payShareholders(
     state: HydratedHcgGameState,
     dividends: readonly CompanyDividend[]

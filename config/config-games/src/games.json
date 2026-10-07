@@ -54,5 +54,9 @@
   {
     "gameId": "marracash",
     "packageId": "marracash"
+  },
+  {
+    "gameId": "hill-country-grocers",
+    "packageId": "hill-country-grocers"
   }
 ]

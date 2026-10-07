@@ -32,8 +32,6 @@ export type HistoryDividend = {
 
 export type HistoryEntry = HistoryTurn | HistoryAuction | HistoryDividend
 
-// Groups actions oldest first: each chosen action opens a turn holding everything it caused,
-// each initial auction groups with any bonus cube, and every dividend stands alone.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     let open: HistoryTurn | HistoryAuction | undefined

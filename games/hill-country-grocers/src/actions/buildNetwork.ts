@@ -1,6 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assert } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assert
+} from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { CompanyId } from '../components/companies.js'
 import type { HydratedHcgGameState } from '../model/gameState.js'
@@ -27,7 +33,7 @@ export const BuildNetwork = Type.Evaluate(
             playerId: Type.String(),
             metadata: Type.Optional(BuildNetworkMetadata),
             companyId: Type.Enum(CompanyId),
-            hexIds: Type.Array(Type.String(), { minItems: 1, maxItems: 3 })
+            hexes: Type.Array(AxialCoordinates, { minItems: 1, maxItems: 3 })
         })
     ])
 )
@@ -46,7 +52,7 @@ export class HydratedBuildNetwork
     declare playerId: string
     declare metadata?: BuildNetworkMetadata
     declare companyId: CompanyId
-    declare hexIds: string[]
+    declare hexes: AxialCoordinates[]
 
     constructor(data: BuildNetwork) {
         super(data, BuildNetworkValidator)
@@ -57,7 +63,7 @@ export class HydratedBuildNetwork
             assert(
                 state.bonusCube.playerId === this.playerId &&
                     this.companyId === CompanyId.Streamside &&
-                    this.hexIds.length === 1,
+                    this.hexes.length === 1,
                 'The bonus is one Streamside Sisters cube'
             )
         } else {
@@ -66,14 +72,14 @@ export class HydratedBuildNetwork
                 'You cannot build for this company'
             )
         }
-        assert(state.isLegalBuild(this.companyId, this.hexIds), 'Those cubes cannot be placed')
-        const cost = state.buildCost(this.companyId, this.hexIds)
+        assert(state.isLegalBuild(this.companyId, this.hexes), 'Those cubes cannot be placed')
+        const cost = state.buildCost(this.companyId, this.hexes)
         state.company(this.companyId).treasury -= cost.total
         for (const fee of cost.fees) {
             state.company(fee.companyId).treasury += fee.amount
         }
-        for (const hexId of this.hexIds) {
-            state.cubes.push({ hexId, companyId: this.companyId })
+        for (const coords of this.hexes) {
+            state.cubes.push({ coords, companyId: this.companyId })
         }
         this.metadata = { bank: cost.bank, fees: cost.fees, waived: cost.waived }
     }

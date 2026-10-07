@@ -4,14 +4,14 @@ import {
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
+import type { AxialCoordinates } from '@tabletop/common'
 import type { CompanyId } from '@tabletop/hill-country-grocers'
 
-// Building: the company, then each cube's hex in placement order.
 export type BuildSelectionValues = {
     company: CompanyId
-    firstHex: string
-    secondHex: string
-    thirdHex: string
+    firstHex: AxialCoordinates
+    secondHex: AxialCoordinates
+    thirdHex: AxialCoordinates
 }
 
 export type BuildSelection = StagedSelectionState<BuildSelectionValues>
@@ -38,25 +38,24 @@ export function selectBuildCompany(selection: BuildSelection, companyId: Company
     )
 }
 
-export function selectedHexes(selection: BuildSelection): string[] {
+export function selectedHexes(selection: BuildSelection): AxialCoordinates[] {
     return HEX_STAGES.flatMap((stage) => {
         const entry = selection[stage]
         return entry ? [entry.value] : []
     })
 }
 
-export function addBuildHex(selection: BuildSelection, hexId: string): BuildSelection {
+export function addBuildHex(selection: BuildSelection, coords: AxialCoordinates): BuildSelection {
     const stage = HEX_STAGES[selectedHexes(selection).length]
     return setStagedSelectionValue<BuildSelectionValues, typeof stage>(
         selection,
         BuildStageOrder,
         stage,
-        hexId,
+        coords,
         'manual'
     )
 }
 
-// Developing: the city, then each grocer Balcones Builders pays when it cannot pay them all.
 export type DevelopSelectionValues = {
     city: string
     firstPayee: CompanyId
@@ -109,7 +108,6 @@ export function addPayee(selection: DevelopSelection, companyId: CompanyId): Dev
     )
 }
 
-// Starting an auction: the company whose share goes up, before the opening bid.
 export type AuctionSelectionValues = { company: CompanyId }
 
 export type AuctionSelection = StagedSelectionState<AuctionSelectionValues>

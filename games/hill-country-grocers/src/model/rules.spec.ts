@@ -11,7 +11,7 @@ import { Definition } from '../definition/definition.js'
 import { HcgRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
 import { CompanyId } from '../components/companies.js'
-import { neighbours } from '../components/map.js'
+import { HILL_COUNTRY_MAP, hexKey, printedHex } from '../components/map.js'
 import { ActionSpace } from './actionSpaces.js'
 import type { HcgGameState, HydratedHcgGameState } from './gameState.js'
 
@@ -82,9 +82,12 @@ function validActions(state: HcgGameState, playerId: string) {
 describe('the initial auctions', () => {
     it('puts each company’s starting cube on its city', () => {
         const state = hydrate(start())
-        expect(state.companiesIn('5-7')).toEqual([CompanyId.AlamoCity, CompanyId.Verbena])
-        expect(state.companiesIn('4-2')).toEqual([CompanyId.Streamside])
-        expect(state.companiesIn('7-3')).toEqual([CompanyId.CompleteComestibles])
+        expect(state.companiesIn(printedHex(5, 7))).toEqual([
+            CompanyId.AlamoCity,
+            CompanyId.Verbena
+        ])
+        expect(state.companiesIn(printedHex(4, 2))).toEqual([CompanyId.Streamside])
+        expect(state.companiesIn(printedHex(7, 3))).toEqual([CompanyId.CompleteComestibles])
         expect(state.getPlayerState('a').cash).toBe(10)
     })
 
@@ -122,6 +125,39 @@ describe('choosing an action', () => {
         state.getPlayerState(playerId).actionSpace = ActionSpace.AuctionShare
         expect(state.availableSpaces(playerId)).not.toContain(ActionSpace.AuctionShare)
         expect(state.availableSpaces(playerId)).toContain(ActionSpace.DevelopTowns)
+    })
+
+    it('moves the pawn and does nothing when no new action can be carried out', () => {
+        const hydrated = hydrate(afterInitialAuctions())
+        const playerId = hydrated.turnPlayerId()
+        hydrated.getPlayerState(playerId).actionSpace = ActionSpace.AuctionShare
+        hydrated.developments = {
+            austin: 3,
+            'san-antonio': 3,
+            fredericksburg: 3,
+            burnet: 2,
+            junction: 2,
+            rocksprings: 2,
+            uvalde: 2,
+            mason: 1,
+            hondo: 1,
+            leakey: 1
+        }
+        for (const company of hydrated.companies) {
+            company.treasury = 0
+        }
+        expect(hydrated.isGameEndTriggered()).toBe(false)
+        expect(hydrated.availableSpaces(playerId)).toEqual([
+            ActionSpace.BuildNetwork,
+            ActionSpace.DevelopTowns
+        ])
+        const state = run(hydrated.dehydrate(), {
+            type: ActionType.ChooseAction,
+            space: ActionSpace.DevelopTowns
+        })
+        expect(state.machineState).toBe(MachineState.ChoosingAction)
+        expect(state.roundTrack).toEqual([playerId])
+        expect(state.activePlayerIds).not.toEqual([playerId])
     })
 
     it('pays dividends after the eleventh action', () => {
@@ -165,24 +201,28 @@ describe('choosing an action', () => {
 describe('building a transport network', () => {
     it('charges $2 to the bank and $1 to each grocer already in the hex', () => {
         const state = hydrate(afterInitialAuctions())
-        state.cubes.push({ hexId: '4-4', companyId: CompanyId.CompleteComestibles })
-        state.cubes.push({ hexId: '4-4', companyId: CompanyId.Streamside })
-        state.cubes.push({ hexId: '5-5', companyId: CompanyId.Streamside })
-        expect(state.buildCost(CompanyId.AlamoCity, ['5-5', '4-6'])).toEqual({
+        state.cubes.push({ coords: printedHex(4, 4), companyId: CompanyId.CompleteComestibles })
+        state.cubes.push({ coords: printedHex(4, 4), companyId: CompanyId.Streamside })
+        state.cubes.push({ coords: printedHex(5, 5), companyId: CompanyId.Streamside })
+        expect(state.buildCost(CompanyId.AlamoCity, [printedHex(5, 5), printedHex(4, 6)])).toEqual({
             bank: 4,
             fees: [{ companyId: CompanyId.Streamside, amount: 1 }],
             waived: 0,
             total: 5
         })
-        expect(state.nextCubeHexes(CompanyId.AlamoCity, ['5-5'])).not.toContain('4-4')
+        expect(state.nextCubeHexes(CompanyId.AlamoCity, [printedHex(5, 5)])).not.toContainEqual(
+            printedHex(4, 4)
+        )
     })
 
     it('lets Verbena skip the fees on one cube', () => {
         const state = hydrate(afterInitialAuctions())
         state.company(CompanyId.Verbena).treasury = 20
-        state.cubes.push({ hexId: '5-5', companyId: CompanyId.Streamside })
-        state.cubes.push({ hexId: '4-6', companyId: CompanyId.AlamoCity })
-        expect(state.buildCost(CompanyId.Verbena, ['5-5', '4-6'])).toMatchObject({
+        state.cubes.push({ coords: printedHex(5, 5), companyId: CompanyId.Streamside })
+        state.cubes.push({ coords: printedHex(4, 6), companyId: CompanyId.AlamoCity })
+        expect(
+            state.buildCost(CompanyId.Verbena, [printedHex(5, 5), printedHex(4, 6)])
+        ).toMatchObject({
             waived: 1,
             total: 5
         })
@@ -192,21 +232,27 @@ describe('building a transport network', () => {
         const state = hydrate(afterInitialAuctions())
         state.company(CompanyId.AlamoCity).treasury = 20
         state.company(CompanyId.Streamside).treasury = 20
-        expect(state.nextCubeHexes(CompanyId.AlamoCity).toSorted()).toEqual(
-            neighbours('5-7').toSorted()
+        expect(state.nextCubeHexes(CompanyId.AlamoCity).map(hexKey).toSorted()).toEqual(
+            HILL_COUNTRY_MAP.neighbourCoords(printedHex(5, 7)).map(hexKey).toSorted()
         )
         expect(state.maxCubes(CompanyId.AlamoCity)).toBe(3)
         expect(state.maxCubes(CompanyId.Streamside)).toBe(2)
-        expect(state.nextCubeHexes(CompanyId.AlamoCity, ['5-5'])).toContain('5-3')
-        expect(state.nextCubeHexes(CompanyId.AlamoCity, ['5-5'])).not.toContain('5-5')
-        expect(state.nextCubeHexes(CompanyId.Streamside, ['3-3', '2-4'])).toEqual([])
+        expect(state.nextCubeHexes(CompanyId.AlamoCity, [printedHex(5, 5)])).toContainEqual(
+            printedHex(5, 3)
+        )
+        expect(state.nextCubeHexes(CompanyId.AlamoCity, [printedHex(5, 5)])).not.toContainEqual(
+            printedHex(5, 5)
+        )
+        expect(
+            state.nextCubeHexes(CompanyId.Streamside, [printedHex(3, 3), printedHex(2, 4)])
+        ).toEqual([])
     })
 
     it('leaves the starting cities unlimited', () => {
         const state = hydrate(afterInitialAuctions())
         state.company(CompanyId.Streamside).treasury = 20
-        state.cubes.push({ hexId: '4-6', companyId: CompanyId.Streamside })
-        expect(state.nextCubeHexes(CompanyId.Streamside)).toContain('5-7')
+        state.cubes.push({ coords: printedHex(4, 6), companyId: CompanyId.Streamside })
+        expect(state.nextCubeHexes(CompanyId.Streamside)).toContainEqual(printedHex(5, 7))
     })
 })
 
@@ -262,7 +308,7 @@ describe('valuation', () => {
     it('counts $1 per connected city and $2 per marker, $3 for Complete Comestibles', () => {
         const state = hydrate(afterInitialAuctions())
         state.developments = { 'san-antonio': 2, austin: 1, boerne: 1 }
-        state.cubes.push({ hexId: '4-6', companyId: CompanyId.AlamoCity })
+        state.cubes.push({ coords: printedHex(4, 6), companyId: CompanyId.AlamoCity })
         expect(state.value(CompanyId.AlamoCity)).toBe(2 + 3 * 2)
         expect(state.value(CompanyId.CompleteComestibles)).toBe(1 + 3)
         expect(state.value(CompanyId.Balcones)).toBe(4)
@@ -293,10 +339,10 @@ describe('the Streamside Sisters bonus', () => {
         state = run(state, {
             type: ActionType.BuildNetwork,
             companyId: CompanyId.Streamside,
-            hexIds: ['5-3']
+            hexes: [printedHex(5, 3)]
         })
         const after = hydrate(state)
-        expect(after.companiesIn('5-3')).toEqual([CompanyId.Streamside])
+        expect(after.companiesIn(printedHex(5, 3))).toEqual([CompanyId.Streamside])
         expect(after.company(CompanyId.Streamside).treasury).toBe(1)
         expect(after.bonusCube).toBeUndefined()
         expect(after.company(CompanyId.Streamside).owners).toEqual([buyer])

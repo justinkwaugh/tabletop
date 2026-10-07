@@ -2,10 +2,11 @@
     import {
         CITIES,
         CityTier,
-        HEXES,
-        cityInHex,
+        HILL_COUNTRY_MAP,
+        cityAt,
         developmentCapacity,
         hasCubeLimit,
+        hexKey,
         type CompanyId
     } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -27,12 +28,16 @@
     const HOUSE_STEP = 24
     const CUBE_SIZE = 30
 
+    const chosenKeys = $derived(new Set(gameSession.chosenHexes.map(hexKey)))
+    const targetKeys = $derived(new Set(gameSession.hexTargets.map(hexKey)))
+
     const hexes = $derived(
-        HEXES.map((place) => {
-            const center = hexCenter(place.id)
-            const found = cityInHex(place.id)
-            const companies = gameSession.gameState.companiesIn(place.id)
-            const pending = gameSession.chosenHexes.includes(place.id)
+        HILL_COUNTRY_MAP.hexes().map((place) => {
+            const key = hexKey(place.coords)
+            const center = hexCenter(place.coords)
+            const found = cityAt(place.coords)
+            const companies = gameSession.gameState.companiesIn(place.coords)
+            const pending = chosenKeys.has(key)
             const cubes: { companyId: CompanyId; ghost: boolean }[] = [
                 ...companies.map((companyId) => ({ companyId, ghost: false })),
                 ...(pending && gameSession.buildCompany
@@ -40,12 +45,13 @@
                     : [])
             ]
             return {
-                id: place.id,
+                key,
+                coords: place.coords,
                 center,
                 city: found,
                 cubes,
                 cubeY: found ? center.y + 37 : center.y + 4,
-                target: gameSession.hexTargets.includes(place.id),
+                target: targetKeys.has(key),
                 pending
             }
         })
@@ -53,7 +59,7 @@
 
     const cities = $derived(
         CITIES.map((place) => {
-            const center = hexCenter(place.hexId)
+            const center = hexCenter(place.coords)
             return {
                 ...place,
                 center,
@@ -112,7 +118,7 @@
     class="map-frame"
 />
 
-{#each hexes as place (place.id)}
+{#each hexes as place (place.key)}
     <polygon points={hexPoints(place.center)} class="hex" class:city={place.city} />
 {/each}
 
@@ -152,7 +158,7 @@
     </g>
 {/each}
 
-{#each hexes as place (place.id)}
+{#each hexes as place (place.key)}
     {#each place.cubes as cube, index (`${cube.companyId}-${cube.ghost}`)}
         <Cube
             x={cubeX(index, place.cubes.length, place.center.x)}
@@ -162,23 +168,23 @@
             ghost={cube.ghost}
         />
     {/each}
-    {#if hasCubeLimit(place.id) && place.cubes.length === 0 && !place.city}
+    {#if hasCubeLimit(place.coords) && place.cubes.length === 0 && !place.city}
         <circle cx={place.center.x} cy={place.center.y} r="2.5" class="pip" />
     {/if}
 {/each}
 
-{#each hexes as place (place.id)}
+{#each hexes as place (place.key)}
     {#if place.target}
         <g
             class="target"
             role="button"
             tabindex="0"
-            aria-label="Place a cube in {place.city ? place.city.name : `hex ${place.id}`}"
-            onclick={() => gameSession.clickHex(place.id)}
-            onkeydown={(event) => onKey(event, () => gameSession.clickHex(place.id))}
+            aria-label="Place a cube in {place.city ? place.city.name : `hex ${place.coords.q},${place.coords.r}`}"
+            onclick={() => gameSession.clickHex(place.coords)}
+            onkeydown={(event) => onKey(event, () => gameSession.clickHex(place.coords))}
         >
             <polygon points={hexPoints(place.center, HEX_RADIUS - 4)} class="ring" />
-            <title>{hexName(place.id)}</title>
+            <title>{hexName(place.coords)}</title>
         </g>
     {/if}
 {/each}

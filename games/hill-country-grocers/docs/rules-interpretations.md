@@ -13,6 +13,7 @@ Hill Country Grocers follows the v2.0.0 rulebook (last updated 7/26/2026). Where
 
 - **No pawn starts on the action board**, so a player's first action can be any of the three.
 - **An action is offered only when it can be carried out.** Build needs a share in a grocer that can afford and legally place a cube. Develop needs a Development Marker and a city with room. Auction needs an unsold share.
+- **When none of the new spaces can be carried out, the pawn still moves and the action does nothing.** The rule requires moving to a new space every turn. A player can be stranded: pawn on Auction Share, every marker placed, and no grocer they hold able to afford a cube. They pick one of the two other spaces, take no action there, and their tracker pawn still moves on.
 
 ## Building
 

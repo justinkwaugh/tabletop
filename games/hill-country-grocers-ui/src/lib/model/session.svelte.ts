@@ -1,3 +1,4 @@
+import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     BuildNetwork,
@@ -58,8 +59,6 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         }
     }
 
-    // Building
-
     placingBonusCube = $derived(this.actingIn(MachineState.PlacingBonusCube))
 
     buildCompanyOptions: CompanyId[] = $derived.by(() => {
@@ -82,7 +81,9 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         return options.length === 1 ? options[0] : undefined
     })
 
-    chosenHexes: string[] = $derived(this.buildCompany ? selectedHexes(this.buildSelection) : [])
+    chosenHexes: AxialCoordinates[] = $derived(
+        this.buildCompany ? selectedHexes(this.buildSelection) : []
+    )
 
     maxCubes: number = $derived.by(() => {
         if (!this.buildCompany) {
@@ -91,7 +92,7 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         return this.placingBonusCube ? 1 : this.gameState.maxCubes(this.buildCompany)
     })
 
-    hexTargets: string[] = $derived.by(() => {
+    hexTargets: AxialCoordinates[] = $derived.by(() => {
         const companyId = this.buildCompany
         if (!companyId || this.chosenHexes.length >= this.maxCubes) {
             return []
@@ -111,20 +112,20 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         }
     }
 
-    async clickHex(hexId: string) {
+    async clickHex(coords: AxialCoordinates) {
         const companyId = this.buildCompany
-        if (!companyId || !this.hexTargets.includes(hexId)) {
+        if (!companyId || !this.hexTargets.some((target) => sameCoordinates(target, coords))) {
             return
         }
-        const hexIds = [...this.chosenHexes, hexId]
+        const hexes = [...this.chosenHexes, coords]
         if (
-            hexIds.length >= this.maxCubes ||
-            this.gameState.nextCubeHexes(companyId, hexIds).length === 0
+            hexes.length >= this.maxCubes ||
+            this.gameState.nextCubeHexes(companyId, hexes).length === 0
         ) {
-            await this.buildNetwork(companyId, hexIds)
+            await this.buildNetwork(companyId, hexes)
             return
         }
-        this.buildSelection = addBuildHex(this.buildSelection, hexId)
+        this.buildSelection = addBuildHex(this.buildSelection, coords)
     }
 
     async confirmBuild() {
@@ -133,15 +134,13 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         }
     }
 
-    private async buildNetwork(companyId: CompanyId, hexIds: string[]) {
-        await this.applyAction(this.createPlayerAction(BuildNetwork, { companyId, hexIds }))
+    private async buildNetwork(companyId: CompanyId, hexes: AxialCoordinates[]) {
+        await this.applyAction(this.createPlayerAction(BuildNetwork, { companyId, hexes }))
     }
 
     async skipBonusCube() {
         await this.applyAction(this.createPlayerAction(SkipBonusCube, {}))
     }
-
-    // Developing
 
     private developing = $derived(this.actingIn(MachineState.DevelopingTowns))
 
@@ -207,8 +206,6 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
         return city(cityId).name
     }
 
-    // Auctions
-
     private startingAuction = $derived(this.actingIn(MachineState.StartingAuction))
 
     auctionCompanyOptions: CompanyId[] = $derived(
@@ -241,8 +238,6 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
     async passBid() {
         await this.applyAction(this.createPlayerAction(PassBid, {}))
     }
-
-    // Undo
 
     hasManualSelection(): boolean {
         return hasManualSelection(this.buildSelection, this.developSelection, this.auctionSelection)

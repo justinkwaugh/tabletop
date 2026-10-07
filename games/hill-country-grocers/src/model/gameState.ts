@@ -7,6 +7,7 @@ import {
     HydratedTurnManager,
     PrngState,
     assertExists,
+    type AxialCoordinates,
     type RandomState
 } from '@tabletop/common'
 import { PassableBidding } from '@tabletop/18xx'
@@ -45,10 +46,8 @@ export const HcgGameState = Type.Object({
     initialAuctionOrder: Type.Array(Type.Enum(CompanyId)),
     cubes: Type.Array(PlacedCube),
     developments: Type.Record(Type.String(), Type.Number()),
-    // The player behind each action taken this round, in order.
     roundTrack: Type.Array(Type.String()),
     dividendsPaid: Type.Number(),
-    // Cities developed during the current Develop Town Infrastructure action.
     turnDevelopments: Type.Array(Type.String()),
     auction: Type.Optional(ShareAuction),
     bonusCube: Type.Optional(BonusCube)
@@ -120,8 +119,6 @@ export class HydratedHcgGameState
         )
     }
 
-    // Shares
-
     sharesPerCompany(): number {
         return sharesPerCompany(this.players.length)
     }
@@ -151,16 +148,16 @@ export class HydratedHcgGameState
         return this.holdings(playerId).reduce((sum, holding) => sum + holding.shares, 0)
     }
 
-    // Action selection
-
+    // The pawn must move to a new space every turn; when none of them can be carried out it
+    // still moves, and the action does nothing.
     availableSpaces(playerId: string): ActionSpace[] {
         const player = this.getPlayerState(playerId)
-        return ACTION_SPACES.filter(
-            (space) => space !== player.actionSpace && this.canTake(space, playerId)
-        )
+        const newSpaces = ACTION_SPACES.filter((space) => space !== player.actionSpace)
+        const playable = newSpaces.filter((space) => this.canTake(space, playerId))
+        return playable.length > 0 ? playable : newSpaces
     }
 
-    private canTake(space: ActionSpace, playerId: string): boolean {
+    canTake(space: ActionSpace, playerId: string): boolean {
         switch (space) {
             case ActionSpace.BuildNetwork:
                 return this.buildableCompanies(playerId).length > 0
@@ -171,41 +168,41 @@ export class HydratedHcgGameState
         }
     }
 
-    // Network
-
     cubesRemaining(companyId: CompanyId): number {
         return cubesRemaining(this, companyId)
     }
 
-    companiesIn(hexId: string): CompanyId[] {
-        return companiesIn(this, hexId)
+    companiesIn(coords: AxialCoordinates): CompanyId[] {
+        return companiesIn(this, coords)
     }
 
     maxCubes(companyId: CompanyId): number {
         return Math.min(cubesPerBuild(companyId), this.cubesRemaining(companyId))
     }
 
-    buildCost(companyId: CompanyId, hexIds: readonly string[]): BuildCost {
-        return buildCost(this, companyId, hexIds)
+    buildCost(companyId: CompanyId, hexes: readonly AxialCoordinates[]): BuildCost {
+        return buildCost(this, companyId, hexes)
     }
 
-    // The hexes that may take the next cube after those already chosen, within the treasury.
-    nextCubeHexes(companyId: CompanyId, chosen: readonly string[] = []): string[] {
+    nextCubeHexes(
+        companyId: CompanyId,
+        chosen: readonly AxialCoordinates[] = []
+    ): AxialCoordinates[] {
         if (chosen.length >= this.maxCubes(companyId)) {
             return []
         }
         const treasury = this.company(companyId).treasury
         return placeableHexes(this, companyId, chosen).filter(
-            (hexId) => this.buildCost(companyId, [...chosen, hexId]).total <= treasury
+            (coords) => this.buildCost(companyId, [...chosen, coords]).total <= treasury
         )
     }
 
-    isLegalBuild(companyId: CompanyId, hexIds: readonly string[]): boolean {
+    isLegalBuild(companyId: CompanyId, hexes: readonly AxialCoordinates[]): boolean {
         return (
-            hexIds.length > 0 &&
-            hexIds.length <= this.maxCubes(companyId) &&
-            isPlacementSequenceLegal(this, companyId, hexIds) &&
-            this.buildCost(companyId, hexIds).total <= this.company(companyId).treasury
+            hexes.length > 0 &&
+            hexes.length <= this.maxCubes(companyId) &&
+            isPlacementSequenceLegal(this, companyId, hexes) &&
+            this.buildCost(companyId, hexes).total <= this.company(companyId).treasury
         )
     }
 
@@ -214,8 +211,6 @@ export class HydratedHcgGameState
             .map((holding) => holding.companyId)
             .filter((companyId) => isGrocer(companyId) && this.nextCubeHexes(companyId).length > 0)
     }
-
-    // Development
 
     markersIn(cityId: string): number {
         return markersIn(this, cityId)
@@ -237,7 +232,7 @@ export class HydratedHcgGameState
     }
 
     grocersInCity(cityId: string): CompanyId[] {
-        return this.companiesIn(city(cityId).hexId)
+        return this.companiesIn(city(cityId).coords)
     }
 
     // How many grocers Balcones Builders can pay when developing the city; the active player
@@ -254,8 +249,6 @@ export class HydratedHcgGameState
         return due > 0 && due < this.grocersInCity(cityId).length
     }
 
-    // Auctions
-
     bidding(): PassableBidding {
         const auction = this.auction
         assertExists(auction, 'No auction in progress')
@@ -266,8 +259,6 @@ export class HydratedHcgGameState
         const bidding = this.bidding()
         return bidding.hasBid ? bidding.highBid + 1 : 0
     }
-
-    // Valuation and dividends
 
     value(companyId: CompanyId): number {
         return companyValue(this, companyId)
@@ -283,8 +274,6 @@ export class HydratedHcgGameState
             0
         )
     }
-
-    // Game end
 
     supplyRemaining(companyId: CompanyId): number {
         return isGrocer(companyId) ? this.cubesRemaining(companyId) : this.markersRemaining()
