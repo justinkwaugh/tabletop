@@ -1,6 +1,7 @@
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { UrbinoConfigurator } from './configurator.js'
+import { UrbinoPreferenceDefinition } from './preferences.js'
 
 export const UrbinoInfo: GameInfo = {
     id: 'urbino',
@@ -16,5 +17,6 @@ export const UrbinoInfo: GameInfo = {
         version: GAME_VERSION,
         beta: false
     },
-    configurator: new UrbinoConfigurator()
+    configurator: new UrbinoConfigurator(),
+    preferences: UrbinoPreferenceDefinition
 }

@@ -1,7 +1,11 @@
 <script lang="ts">
-    import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { BuildingType } from '@tabletop/urbino'
+    import { BUILDING_POINTS, BuildingStyle, BuildingType } from '@tabletop/urbino'
+    import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { entryContaining, historyEntries } from '$lib/history/historyEntries.js'
+    import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import PieceIcon from './PieceIcon.svelte'
+    import PawnIcon from './PawnIcon.svelte'
 
     const session = getGameSession()
     const gameState = $derived(session.gameState)
@@ -9,150 +13,243 @@
     let concedeConfirming = $state(false)
 
     const buildingTypes = [BuildingType.House, BuildingType.Palace, BuildingType.Tower]
-    const buildingLabel: Record<BuildingType, string> = {
-        [BuildingType.House]: 'House (1pt)',
-        [BuildingType.Palace]: 'Palace (2pt)',
-        [BuildingType.Tower]: 'Tower (3pt)',
-    }
-    function myPlayerState() {
-        return gameState.players.find((p) => p.playerId === session.myPlayer?.id)
+    const buildingName: Record<BuildingType, string> = {
+        [BuildingType.House]: 'House',
+        [BuildingType.Palace]: 'Palace',
+        [BuildingType.Tower]: 'Tower'
     }
 
-    function hasBuildingType(type: BuildingType): boolean {
-        const p = myPlayerState()
-        if (!p) return false
-        if (type === BuildingType.House) return p.houses > 0
-        if (type === BuildingType.Palace) return p.palaces > 0
-        return p.towers > 0
+    const myPlayerState = $derived(gameState.players.find((p) => p.playerId === session.myPlayer?.id))
+    const myColor = $derived(session.colors.getPlayerUiColor(session.myPlayer?.id))
+
+    const entries = $derived(historyEntries(session.actions))
+    const historyEntry = $derived(
+        session.isViewingHistory ? entryContaining(entries, session.currentActionIndex) : undefined
+    )
+    const latestEntry = $derived(entries.at(-1))
+
+    function remaining(type: BuildingType): number {
+        if (!myPlayerState) return 0
+        if (type === BuildingType.House) return myPlayerState.houses
+        if (type === BuildingType.Palace) return myPlayerState.palaces
+        return myPlayerState.towers
     }
 
-    function getStatusMessage(): string {
-        if (!session.isMyTurn) return 'Waiting for opponent...'
+    function unplaceableReason(type: BuildingType, count: number): string {
+        const name = buildingName[type].toLowerCase()
+        return count === 0
+            ? `You have no ${name}s left`
+            : `No square both architects can see allows a ${name} here`
+    }
+
+    const prompt = $derived.by(() => {
         if (session.isPlacingArchitects) {
             return gameState.architectsPlaced === 0
-                ? 'Place the first architect on any empty square'
+                ? 'Place the first architect on any square'
                 : 'Place the second architect on any empty square'
         }
-        if (session.canChooseFirstPlayer) return 'Choose who takes the first turn'
-        if (session.canUndoPlacement) return 'Building placed — select next action or undo'
-        if (session.canPass) return 'No valid placement — you must skip your turn'
+        if (session.canChooseFirstPlayer) return 'Choose who builds first'
         if (session.selectedArchitectIndex !== undefined) {
-            return 'Click a square to move the selected architect there'
+            return `Choose where architect ${session.selectedArchitectIndex + 1} moves`
         }
         if (session.selectedBuildingType) {
-            return `Click a highlighted square to place a ${session.selectedBuildingType}`
+            return `Build the ${buildingName[session.selectedBuildingType].toLowerCase()} where both architects can see`
         }
-        if (session.isTakingTurn) {
-            return 'Select a building type to place, or select an architect to reposition'
+        if (session.canPass) return 'Neither architect can see a square you may build on — you must pass'
+        if (session.canPlaceBuilding && session.canRepositionArchitect) {
+            return 'Choose a building, or first move an architect'
         }
+        if (session.canPlaceBuilding) return 'Choose a building'
+        if (session.canRepositionArchitect) return 'Move an architect to open up a place to build'
         return ''
-    }
+    })
 </script>
 
-<div class="flex flex-col gap-2 border-b border-[#c8bfaf] bg-[#f0ebe2] px-4 py-3">
-    <div class="text-sm text-[#6b5040]">{getStatusMessage()}</div>
-
-    {#if session.canChooseFirstPlayer}
-        <div class="flex flex-wrap gap-2">
-            {#each gameState.players as player (player.playerId)}
-                <button
-                    class="rounded border border-[#6b3a2a] bg-white px-3 py-1.5 text-sm font-medium text-[#2c1810] transition-colors hover:bg-gray-100"
-                    onclick={() => session.chooseFirstPlayer(player.playerId)}
-                >
-                    <PlayerName playerId={player.playerId} />
-                    {player.playerId === session.myPlayer?.id ? 'go' : 'goes'} first
-                </button>
-            {/each}
+<div class="urbino-plank action-area flex min-h-[64px] flex-col justify-center gap-2 border-b-2 border-(--maple-edge) px-4 py-2.5 max-sm:px-3">
+    {#if session.isViewingHistory}
+        <div class="text-[19px] leading-snug font-medium max-sm:text-[17px]">
+            {#if historyEntry}
+                <HistoryEntryLine entry={historyEntry} viewerId={session.myPlayer?.id} />
+            {:else}
+                <span class="text-(--ink-quiet)">The game begins on an empty board.</span>
+            {/if}
         </div>
-    {/if}
-
-    {#if session.isMyTurn && !session.canChooseFirstPlayer}
-        <div class="flex flex-wrap items-center gap-2">
-            {#if session.canPlaceBuilding}
-                {#each buildingTypes as type (type)}
-                    {#if hasBuildingType(type)}
-                        <button
-                            class="flex items-center gap-1.5 rounded border border-[#6b3a2a] px-3 py-1.5 text-sm font-medium transition-colors"
-                            class:bg-[#6b3a2a]={session.selectedBuildingType === type}
-                            class:text-white={session.selectedBuildingType === type}
-                            class:bg-white={session.selectedBuildingType !== type}
-                            class:text-[#2c1810]={session.selectedBuildingType !== type}
-                            onclick={() => session.selectBuildingType(type)}
-                        >
-                            <svg viewBox="0 0 20 20" width="19" height={type === BuildingType.Tower ? 20.9 : 19} preserveAspectRatio={type === BuildingType.Tower ? 'none' : 'xMidYMid meet'} fill={session.selectedBuildingType === type ? '#ffffff' : session.colors.getPlayerUiColor(session.myPlayer?.id)} stroke="#483737" stroke-width="1" stroke-linejoin="round">
-                                {#if type === BuildingType.House}
-                                    <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
-                                    <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
-                                {:else if type === BuildingType.Palace}
-                                    <path d="M 1,11.5 L 19,11.5 L 19,17.5 L 1,17.5 Z" />
-                                    <path d="M 10,2.5 L 19,11.5 L 1,11.5 Z" />
-                                    <path d="M 2.5,7 L 10,2.25 L 10,5.5 L 1,11.5 Z" />
-                                    <path d="M 10,2.25 L 17.5,7 L 19,11.5 L 10,5.5 Z" />
-                                {:else}
-                                    <path d="M 2.3,8.7 L 17.7,8.7 L 17.7,19 L 2.3,19 Z" />
-                                    <path d="M 10,4.1 L 17.2,8.7 L 17.2,10.3 L 2.8,10.3 L 2.8,8.7 Z" />
-                                    <path d="M 3.6,4.9 L 10,1 L 10,3.6 L 2.3,8.7 Z" />
-                                    <path d="M 10,1 L 16.4,4.9 L 17.2,8.7 L 10,3.6 Z" />
-                                {/if}
-                            </svg>
-                            {buildingLabel[type]}
-                        </button>
-                    {/if}
-                {/each}
-            {/if}
-
-            {#if session.canRepositionArchitect}
-                {#each [0, 1] as idx (idx)}
-                    {#if session.architectsWithValidMoves.has(idx)}
-                    <button
-                        class="rounded border border-[#c87941] px-3 py-1.5 text-sm font-medium transition-colors"
-                        class:bg-[#c87941]={session.selectedArchitectIndex === idx}
-                        class:text-white={session.selectedArchitectIndex === idx}
-                        class:bg-white={session.selectedArchitectIndex !== idx}
-                        class:text-[#2c1810]={session.selectedArchitectIndex !== idx}
-                        onclick={() => session.selectArchitect(idx)}
-                    >
-                        ✦ Move Architect {idx + 1}
-                    </button>
-                    {/if}
-                {/each}
-            {/if}
-
-            {#if session.canPass}
-                <button
-                    class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                    onclick={() => session.pass()}
-                >
-                    Skip Turn
-                </button>
-            {/if}
-
-            {#if session.canConcede}
-                <div class="ml-auto flex items-center gap-2">
-                {#if concedeConfirming}
-                    <span class="text-sm text-[#6b5040]">Concede?</span>
-                    <button
-                        class="rounded border border-red-700 bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800"
-                        onclick={() => session.concede()}
-                    >
-                        Yes, concede
-                    </button>
-                    <button
-                        class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                        onclick={() => (concedeConfirming = false)}
-                    >
-                        Cancel
-                    </button>
+    {:else if !session.isMyTurn}
+        <div class="flex flex-col gap-0.5 text-[19px] leading-snug max-sm:text-[17px]">
+            <div class="font-semibold text-(--ink)">
+                Waiting for <PlayerName
+                    playerId={gameState.activePlayerIds[0]}
+                    backgroundOpacity={0}
+                    additionalClasses="!p-0 !text-(--ink) font-bold"
+                />
+                {#if session.isPlacingArchitects}
+                    to place an architect
+                {:else if session.isChoosingFirstPlayer}
+                    to choose who builds first
                 {:else}
-                    <button
-                        class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-500 hover:border-red-400 hover:text-red-700"
-                        onclick={() => (concedeConfirming = true)}
-                    >
-                        Concede
-                    </button>
+                    to build
                 {/if}
+            </div>
+            {#if latestEntry}
+                <div class="text-[17px] font-medium">
+                    <span class="urbino-display mr-1 text-[11px] tracking-[0.14em] text-(--ink-quiet)">LAST</span>
+                    <HistoryEntryLine entry={latestEntry} viewerId={session.myPlayer?.id} />
                 </div>
             {/if}
         </div>
+    {:else}
+        <div class="text-[19px] leading-snug font-semibold text-(--ink) max-sm:text-[17px]">{prompt}</div>
+
+        {#if session.canChooseFirstPlayer}
+            <div class="flex flex-wrap gap-2">
+                {#each gameState.players as player (player.playerId)}
+                    <button class="choice" onclick={() => session.chooseFirstPlayer(player.playerId)}>
+                        <PieceIcon
+                            buildingType={BuildingType.Tower}
+                            color={session.colors.getPlayerUiColor(player.playerId)}
+                            buildingStyle={BuildingStyle.TowerRoofs}
+                            size={20}
+                        />
+                        {player.playerId === session.myPlayer?.id ? 'I build' : `${session.getPlayerName(player.playerId)} builds`}
+                        first
+                    </button>
+                {/each}
+            </div>
+        {/if}
+
+        {#if session.canPlaceBuilding || session.canRepositionArchitect || session.canPass || session.canConcede}
+            <div class="flex flex-wrap items-center gap-2">
+                {#if session.canPlaceBuilding}
+                    {#each buildingTypes as type (type)}
+                        {@const count = remaining(type)}
+                        {@const placeable = session.placeableBuildingTypes.has(type)}
+                        <button
+                            class="choice"
+                            class:selected={session.selectedBuildingType === type}
+                            disabled={!placeable}
+                            title={placeable ? undefined : unplaceableReason(type, count)}
+                            aria-pressed={session.selectedBuildingType === type}
+                            onclick={() => session.selectBuildingType(type)}
+                        >
+                            <PieceIcon buildingType={type} color={myColor} buildingStyle={session.buildingStyle} size={26} />
+                            <span class="flex flex-col items-start leading-none">
+                                <span class="urbino-display text-[13px] tracking-[0.08em]">{buildingName[type]}</span>
+                                <span class="text-[13px] text-(--ink-quiet) max-sm:hidden">
+                                    {#if placeable}
+                                        {BUILDING_POINTS[type]} pt · {count} left
+                                    {:else}
+                                        {count === 0 ? 'none left' : 'no legal square'}
+                                    {/if}
+                                </span>
+                            </span>
+                        </button>
+                    {/each}
+                {/if}
+
+                {#if session.canRepositionArchitect}
+                    {#each [0, 1] as idx (idx)}
+                        {#if session.architectsWithValidMoves.has(idx)}
+                            <button
+                                class="choice"
+                                class:selected={session.selectedArchitectIndex === idx}
+                                aria-pressed={session.selectedArchitectIndex === idx}
+                                onclick={() => session.selectArchitect(idx)}
+                            >
+                                <PawnIcon size={22} />
+                                <span class="urbino-display text-[13px] tracking-[0.08em]"
+                                    ><span class="max-sm:hidden">Move architect&nbsp;</span>{idx + 1}</span
+                                >
+                            </button>
+                        {/if}
+                    {/each}
+                {/if}
+
+                {#if session.canPass}
+                    <button class="choice" onclick={() => session.pass()}>
+                        <span class="urbino-display text-[13px] tracking-[0.08em]">Pass</span>
+                    </button>
+                {/if}
+
+                {#if session.canConcede}
+                    <div class="ml-auto flex items-center gap-2">
+                        {#if concedeConfirming}
+                            <span class="font-medium text-(--ink)">Concede the game?</span>
+                            <button class="quiet danger" onclick={() => session.concede()}>Yes, concede</button>
+                            <button class="quiet" onclick={() => (concedeConfirming = false)}>Cancel</button>
+                        {:else}
+                            <button class="quiet" onclick={() => (concedeConfirming = true)}>Concede</button>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        {/if}
     {/if}
 </div>
+
+<style>
+    .action-area {
+        box-shadow: 0 4px 10px rgb(0 0 0 / 0.25);
+    }
+
+    .choice {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 12px 5px 8px;
+        border-radius: 8px;
+        border: 1.5px solid color-mix(in oklab, var(--maple-edge) 80%, transparent);
+        background: color-mix(in oklab, var(--maple-light) 70%, white);
+        color: var(--ink);
+        box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 1px 2px rgb(60 30 0 / 0.2);
+        transition:
+            background-color 120ms,
+            box-shadow 120ms,
+            transform 120ms;
+    }
+
+    @media (max-width: 639px) {
+        .choice {
+            gap: 5px;
+            padding: 3px 9px 3px 5px;
+        }
+    }
+
+    .choice:hover:not(:disabled) {
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .choice.selected {
+        border-color: var(--gold-deep);
+        background: #fff6dc;
+        box-shadow:
+            0 0 0 2px var(--gold),
+            0 2px 6px rgb(60 30 0 / 0.3);
+    }
+
+    .choice:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .quiet {
+        padding: 3px 10px;
+        border-radius: 6px;
+        color: var(--ink-quiet);
+        font-size: 15px;
+    }
+
+    .quiet:hover {
+        background: rgb(0 0 0 / 0.08);
+        color: var(--ink);
+    }
+
+    .quiet.danger {
+        background: #8f2a1c;
+        color: #fbeedd;
+    }
+
+    .quiet.danger:hover {
+        background: #74200f;
+    }
+</style>

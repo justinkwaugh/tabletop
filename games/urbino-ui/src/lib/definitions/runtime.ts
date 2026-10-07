@@ -13,14 +13,14 @@ import '../../app.css'
 
 const urbinoPlayerColorPalette: PlayerColorPalette = {
     [Color.White]: {
-        fill: '#f5f0e8',
-        text: '#2c1810',
+        fill: '#f3e6cc',
+        text: '#3a2412',
         contrast: '#2c1810'
     },
     [Color.Brown]: {
-        fill: '#6b3a2a',
-        text: '#ffffff',
-        contrast: '#ffffff'
+        fill: '#9a4f27',
+        text: '#fbeedd',
+        contrast: '#fbeedd'
     },
     [Color.Red]: { fill: '#ef2519', text: '#ffffff', contrast: '#ffffff' },
     [Color.Orange]: { fill: '#f97316', text: '#ffffff', contrast: '#ffffff' },
