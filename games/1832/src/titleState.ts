@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { OwnershipLimitExemption } from '@tabletop/18xx'
 
 const Id = Type.String({ minLength: 1 })
 
@@ -23,7 +24,44 @@ export const RevenueToken = Type.Object(
 )
 export type RevenueToken = Type.Static<typeof RevenueToken>
 
+/** One company's shares a player sold, which its president may buy back at the sale price. */
+export const ProtectableSale = Type.Object(
+    {
+        companyId: Id,
+        shares: Type.Integer({ minimum: 1 }),
+        proceeds: Type.Integer({ minimum: 1 }),
+        certificateIds: Type.Array(Id, { minItems: 1 }),
+        fromMarketSpaceId: Id,
+        fromStackIndex: Type.Integer({ minimum: 0 })
+    },
+    { additionalProperties: false }
+)
+export type ProtectableSale = Type.Static<typeof ProtectableSale>
+
+/**
+ * A seller's sales awaiting their presidents' decisions, in the order sold, the presidents who
+ * protected, and the state and players play returns to (§5.9).
+ */
+export const PriceProtection = Type.Object(
+    {
+        sellerPlayerId: Id,
+        sales: Type.Array(ProtectableSale),
+        protectorIds: Type.Array(Id),
+        resume: Type.Optional(
+            Type.Object(
+                { machineState: Id, activePlayerIds: Type.Array(Id) },
+                { additionalProperties: false }
+            )
+        )
+    },
+    { additionalProperties: false }
+)
+export type PriceProtection = Type.Static<typeof PriceProtection>
+
 export const EighteenThirtyTwoTitleFields = {
+    priceProtection: Type.Optional(PriceProtection),
+    /** Presidents keeping more than 60% after protecting, until they next sell (§5.9.8). */
+    ownershipLimitExemptions: Type.Optional(Type.Array(OwnershipLimitExemption)),
     /** Companies holding a West Virginia Coal Fields token. */
     coalRights: Type.Array(Id, { uniqueItems: true }),
     /** The latest WVCF token bought, which uses one of that turn's yellow lays. */

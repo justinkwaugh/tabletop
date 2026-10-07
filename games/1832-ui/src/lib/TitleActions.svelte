@@ -3,7 +3,46 @@
     let { session }: { session: EighteenThirtyTwoSession } = $props()
     const companyName = (companyId: string) =>
         session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const money = (amount: number) => session.presentation.money(amount)
+    const protection = $derived(session.priceProtection)
+    const restoredPrice = $derived(
+        protection &&
+            session.gameState.stockMarket.spaces.find(
+                (space) => space.id === protection.sale.fromMarketSpaceId
+            )?.price
+    )
 </script>
+
+{#if protection}
+    <header class="title-prompt">
+        {#if session.canDecideProtection}
+            <span
+                >{session.getPlayerName(session.gameState.priceProtection?.sellerPlayerId)} sold
+                {protection.sale.shares}
+                {companyName(protection.sale.companyId)}
+                {protection.sale.shares === 1 ? 'share' : 'shares'} for {money(
+                    protection.sale.proceeds
+                )}. Buy {protection.sale.shares === 1 ? 'it' : 'them'} to protect the price, returning
+                it to {money(restoredPrice ?? 0)}?</span
+            >
+            <button
+                class="action-button inline-action"
+                onclick={() => session.protectShares(protection.sale.companyId)}>protect</button
+            >
+            <button
+                class="action-button inline-action"
+                onclick={() => session.declineProtection(protection.sale.companyId)}
+                >decline</button
+            >
+        {:else}
+            <span
+                >{session.getPlayerName(protection.playerId)} may protect the {companyName(
+                    protection.sale.companyId
+                )} price</span
+            >
+        {/if}
+    </header>
+{/if}
 
 {#if session.keyWestChoice && session.canChooseAction}
     <header class="title-prompt">

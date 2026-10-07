@@ -50,6 +50,29 @@ import {
     recordsMiamiRun
 } from '../revenueTokens.js'
 import { TitleActionsHandler } from '../titleActions.js'
+import { CloseCompany, HydratedCloseCompany, closesCompanies, isCloseCompany } from '../closure.js'
+import {
+    CompletePriceProtection,
+    DeclineProtection,
+    HydratedCompletePriceProtection,
+    HydratedDeclineProtection,
+    HydratedProtectShares,
+    HydratedStartPriceProtection,
+    ProtectShares,
+    ProtectingPriceHandler,
+    StartPriceProtection,
+    isCompletePriceProtection,
+    isDeclineProtection,
+    isProtectShares,
+    isStartPriceProtection,
+    startsPriceProtection
+} from '../priceProtection.js'
+import type { EighteenThirtyTwoStateHandler } from '../state.js'
+
+// A company closes as its price enters the black area; once a seller finishes, the presidents
+// of the companies sold may protect their prices (§5.1.1, §5.9).
+const closesAndProtects = (handler: EighteenThirtyTwoStateHandler) =>
+    closesCompanies(startsPriceProtection(handler))
 
 export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     typeof EighteenThirtyTwoState,
@@ -75,13 +98,35 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     trainRules: EighteenThirtyTwoTrainRules,
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
-        StockRound: (family) => new TitleActionsHandler(family, [TakeLondonShareStep]),
+        StockRound: (family) =>
+            closesAndProtects(new TitleActionsHandler(family, [TakeLondonShareStep])),
         StartingOperatingSet: capitalizesFloatedCompanies,
+        OperatingSet: closesAndProtects,
+        FundingTrain: closesCompanies,
+        BuyingTrains: closesAndProtects,
         LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),
         PlacingStation: (family) => new TitleActionsHandler(family, [PlaceRevenueTokenStep]),
         DistributingEarnings: recordsMiamiRun
     },
+    titleStateHandlers: { ProtectingPrice: new ProtectingPriceHandler() },
     titleActions: [
+        defineAction(CloseCompany, isCloseCompany, (action) => new HydratedCloseCompany(action)),
+        defineAction(
+            StartPriceProtection,
+            isStartPriceProtection,
+            (action) => new HydratedStartPriceProtection(action)
+        ),
+        defineAction(ProtectShares, isProtectShares, (action) => new HydratedProtectShares(action)),
+        defineAction(
+            DeclineProtection,
+            isDeclineProtection,
+            (action) => new HydratedDeclineProtection(action)
+        ),
+        defineAction(
+            CompletePriceProtection,
+            isCompletePriceProtection,
+            (action) => new HydratedCompletePriceProtection(action)
+        ),
         defineAction(
             CapitalizeCompany,
             isCapitalizeCompany,

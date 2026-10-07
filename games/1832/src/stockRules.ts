@@ -8,9 +8,10 @@ import {
     type StockState
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { saleDescent } from './stockMarket.js'
+import { isClosingSpace, saleDescent } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
+import { recordProtectableSale } from './priceProtection.js'
 
 const Trading = ipoMarketTrading({
     ipoPoolId: 'initial-offering',
@@ -24,6 +25,7 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
         const terms = saleTerms(state, companyId, shares, seller)
         if (typeof terms === 'string') return terms
         const from = companyMarketSpace(state.stockMarket, companyId)
+        if (isClosingSpace(from)) return 'This company is closing.'
         return { ...terms, movement: saleDescent(state.stockMarket, from.id, shares) }
     }
 }
@@ -70,6 +72,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         ownershipFreeColors: ['green', 'brown'],
         ownershipPercent: 60
     }),
+    afterSale: recordProtectableSale,
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',

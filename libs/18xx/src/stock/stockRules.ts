@@ -15,6 +15,7 @@ import type { ShareCertificate, SharePurchaseTerms } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import { companyMarketSpace } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
+import type { ShareSaleDetails } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 
@@ -48,7 +49,7 @@ export interface StockRules {
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
     /** What follows any sale into the market, such as the market closing its own shorts. */
-    afterSale?(state: StockState): void
+    afterSale?(state: StockState, details: ShareSaleDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**

@@ -265,3 +265,52 @@ tokens; tests cover them.
 `londonInvestment.spec.ts` cover the promotion and its allowance, the ring's lifetime, buying
 and enforcing WVCF rights, token choices and values, Miami's first run, Key West and London
 Investment's share and closure.
+
+## Slice 3 design: closure and price protection
+
+### Shared changes
+
+- `closeShareCompany` (company/companyClosure.ts) closes a share company: treasury to the bank,
+  certificates and owned privates retired, stations and reservations removed, trains to the
+  market or out of play, market marker removed. 1846's railroad closure now uses it.
+- Sales report their details to `StockRules.afterSale` and `TrainFundingRules.afterShareSale`,
+  and record the company's place in its market stack before the sale (`fromStackIndex`, an
+  optional metadata field); `restoreStockMarker` puts a marker back at that place.
+- `SystemActionFirstHandler` may choose its next state from the action's result, and offers
+  players no actions while its system action is due, so the automatic train completion that
+  wraps it waits.
+- Market-zone holding limits ignore closed companies, which have no marker.
+
+### Decisions
+
+- **Closure.** A started company whose price is in the black area closes before the stock
+  round, operating set, train funding or train purchase does anything else, unless a president
+  other than the seller may still protect the sale that put it there. Its trains go to the open
+  market, and its WVCF token and Port, Cotton and Key West tokens leave play. Closing during
+  its own train funding, the president's cash goes to the bank too; closing on its own turn
+  ends that turn. Sales cannot start from a black space.
+- **Recording.** Every player's sales are recorded, merged per company in the order sold, with
+  the price and stack place before the first sale. Selling a company ends any excess the seller
+  kept by protecting it (§5.9.8); the family's sell-down then applies outside green and brown.
+- **Deciding.** Once the seller finishes (the stock turn passes on, or the train is bought), a
+  system action sets play aside for the presidents if any may protect; otherwise it discards
+  the record. In the order sold, each company's player president other than the seller, with
+  the cash and certificate room at the restored price, protects or declines. Protecting pays
+  the sale's proceeds to the bank, takes the sold certificates from the open market and
+  restores the price. **Ruling:** a president already over the certificate limit may still
+  protect shares that do not raise their count.
+- **Resuming.** In a stock round with a protection, play passes to the left of the last
+  protecting president, whose shares were sold last; the open turn is reassigned, so players in
+  between miss their turn and the protector is the last to act for priority. Otherwise play
+  returns as it was.
+
+### Limits after slice 3
+
+Redemption (slice 4) will move prices without sales and will use the same closure check.
+
+### Acceptance examples
+
+`priceProtection.spec.ts` covers stock-round protection and declining, sales of the seller's
+own company, cash limits, the 60% exemption and its loss, ordering across presidents,
+protection after a forced sale, immediate and deferred closure, and closure during a company's
+own train funding.

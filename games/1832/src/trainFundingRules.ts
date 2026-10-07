@@ -1,4 +1,5 @@
 import { presidentTrainFundingRules } from '@tabletop/18xx'
+import { recordProtectableSale } from './priceProtection.js'
 import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
 import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
 
@@ -9,5 +10,7 @@ export const EighteenThirtyTwoTrainFundingRules = presidentTrainFundingRules({
     companyOrder: EighteenThirtyTwoOperatingRules.companyOrder,
     saleTerms: EighteenThirtyTwoShareTrading.emergencySaleTerms,
     stockRules: EighteenThirtyTwoStockRules,
-    protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId
+    protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId,
+    // Presidents may protect shares sold to fund a train too (§5.9, §10.6.2).
+    afterShareSale: recordProtectableSale
 })

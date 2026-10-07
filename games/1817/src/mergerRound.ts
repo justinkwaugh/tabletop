@@ -597,7 +597,7 @@ export class HydratedSellConvertedShares
         const details = this.sale(state)
         assert(this.source === ActionSource.User && details, 'Choose a legal post-conversion sale')
         applyShareSale(state, details)
-        EighteenSeventeenStockRules.afterSale?.(state)
+        EighteenSeventeenStockRules.afterSale?.(state, details)
         requireConversion(state).traderIds.shift()
         this.metadata = details
     }

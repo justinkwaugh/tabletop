@@ -27,7 +27,7 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...AuctionFields,
         ...EighteenThirtyTwoTitleFields
     },
-    [...RailwayMachineStates, ...WaterfallAuctionMachineStates]
+    [...RailwayMachineStates, ...WaterfallAuctionMachineStates, 'ProtectingPrice']
 )
 export type EighteenThirtyTwoState = Type.Static<typeof EighteenThirtyTwoState>
 export type HydratedEighteenThirtyTwoState = HydratedEighteenXXState<typeof EighteenThirtyTwoState>

@@ -7,7 +7,6 @@ stateCompositionTests(
     Definition,
     {
         tranches: [],
-        ownershipLimitExemptions: [],
         interestRate: 0,
         loanStep: {},
         cashCrisis: {},

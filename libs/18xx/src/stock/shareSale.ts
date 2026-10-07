@@ -15,7 +15,7 @@ import {
     applyPresidencyChange,
     certificatesForShares
 } from './presidency.js'
-import { companyMarketSpace, moveMarketSpace, placeStockMarker } from './stockMarket.js'
+import { companyMarketSpace, moveMarketSpace, placeStockMarker, stackIndex } from './stockMarket.js'
 import { copyStockState, type StockState } from './stockState.js'
 import { type StockRules, exceedsStockLimits } from './stockRules.js'
 
@@ -33,6 +33,8 @@ export const ShareSaleSettlement = Type.Object(
         price: Type.Integer({ minimum: 1 }),
         proceeds: Type.Integer({ minimum: 1 }),
         fromMarketSpaceId: Type.String(),
+        /** The company's place in its space's stack before the sale, from the top. */
+        fromStackIndex: Type.Optional(Type.Integer({ minimum: 0 })),
         toMarketSpaceId: Type.String(),
         presidency: Type.Optional(PresidencyChange)
     },
@@ -190,6 +192,7 @@ export function evaluateShareDisposal(
                 reason: 'The president’s certificate cannot be sold without an eligible successor.'
             }
         const from = companyMarketSpace(projected.stockMarket, company.id)
+        const fromStackIndex = stackIndex(projected.stockMarket, company.id)
         const to = moveMarketSpace(projected.stockMarket, from.id, terms.direction, terms.movement)
         const proceeds = terms.price * sale.shares
         const settlement: ShareSaleSettlement = {
@@ -199,6 +202,7 @@ export function evaluateShareDisposal(
             price: terms.price,
             proceeds,
             fromMarketSpaceId: from.id,
+            fromStackIndex,
             toMarketSpaceId: to.id,
             ...(presidency.change ? { presidency: presidency.change } : {})
         }

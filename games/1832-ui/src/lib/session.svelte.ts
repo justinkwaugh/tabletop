@@ -1,7 +1,11 @@
 import {
     BuyCoalRights,
+    DeclineProtection,
     EighteenThirtyTwoTitleRules,
     PlaceRevenueToken,
+    ProtectShares,
+    ProtectingPriceState,
+    protectionDecision,
     RevenueTokenPrivateIds,
     TakeLondonShare,
     londonShareCompanies,
@@ -62,6 +66,15 @@ export class EighteenThirtyTwoSession extends BaseSession {
             ? londonShareCompanies(this.gameState, this.myPlayer.id)
             : []
     )
+    /** The sale whose president is deciding whether to protect its price, and that president. */
+    readonly priceProtection = $derived(
+        this.gameState.machineState === ProtectingPriceState
+            ? protectionDecision(this.gameState)
+            : undefined
+    )
+    readonly canDecideProtection = $derived(
+        this.canChooseAction && this.validActionTypes.includes('ProtectShares')
+    )
     /** What a private lets its owning company do, while that power remains to be used. */
     privateOperationDescription(privateCompanyId: string): string | undefined {
         return revenueTokenUnplaced(this.gameState, privateCompanyId)
@@ -110,6 +123,12 @@ export class EighteenThirtyTwoSession extends BaseSession {
     }
     async takeLondonShare(certificateId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(TakeLondonShare, { certificateId }))
+    }
+    async protectShares(companyId: string): Promise<void> {
+        await this.applyAction(this.createPlayerAction(ProtectShares, { companyId }))
+    }
+    async declineProtection(companyId: string): Promise<void> {
+        await this.applyAction(this.createPlayerAction(DeclineProtection, { companyId }))
     }
     protected override projectMapState(state: HydratedEighteenThirtyTwoState): HistoricalMapState {
         return mapState1832(state)

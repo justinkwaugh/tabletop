@@ -80,6 +80,7 @@ export * from './operating/exportTrains.js'
 export * from './operating/startOperatingTurn.js'
 
 export * from './company/companyMerger.js'
+export * from './company/companyClosure.js'
 export * from './company/companyReset.js'
 export * from './finance/shareholderPayout.js'
 export * from './funding/cashCrisis.js'
