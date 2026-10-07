@@ -18,12 +18,13 @@ import {
     nextOperatingCompany,
     privateOwningCompany,
     settleCashPayments,
-    type FinancialState
+    type FinancialState,
+    stepAction
 } from '@tabletop/18xx'
+import type { TitleStepAction } from './titleActions.js'
 import { CoalFieldsLocationId } from './coalAccess.js'
 import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from './state.js'
 import { eighteenThirtyTwoMapState } from './tileState.js'
-import { titleStepAction } from './titleActions.js'
 import { inGame, type EighteenThirtyTwoTitleState } from './titleState.js'
 import { EighteenThirtyTwoTrackRules } from './trackRules.js'
 
@@ -141,7 +142,7 @@ export class HydratedBuyCoalRights
     }
 }
 
-export const BuyCoalRightsStep = titleStepAction(
+export const BuyCoalRightsStep: TitleStepAction = stepAction(
     'BuyCoalRights',
     (action: HydratedAction) => action instanceof HydratedBuyCoalRights,
     canBuyCoalRights

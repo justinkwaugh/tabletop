@@ -21,6 +21,7 @@ import {
     recordStockAction,
     settleCashPayments,
     sharesOwned,
+    stepAction,
     type SharePurchaseDetails,
     type StockState
 } from '@tabletop/18xx'
@@ -31,8 +32,9 @@ import {
     type HydratedEighteenThirtyTwoState
 } from './state.js'
 import { refreshOwnershipExcess } from './ownershipExcess.js'
+import { EighteenThirtyTwoStockRules } from './stockRules.js'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { ReissueParPrices } from './stockMarket.js'
+import { MaximumReissuePar, ReissueParPrices } from './stockMarket.js'
 import { isSystem } from './systems.js'
 import { ConsentingRedemptionState, RedemptionRequest } from './titleState.js'
 
@@ -63,7 +65,7 @@ function actingForCompany(state: EighteenThirtyTwoState, playerId: string, compa
         !!company.funded &&
         !company.closed &&
         !state.stockRound.turn.corporateAction &&
-        corporateTurnOpen(state, playerId, companyId)
+        corporateTurnOpen(state, playerId, companyId, EighteenThirtyTwoStockRules)
     )
 }
 
@@ -81,11 +83,18 @@ function outsideShares(state: EighteenThirtyTwoState, companyId: string): number
     )
 }
 
-function refusedThisTurn(state: EighteenThirtyTwoState): readonly string[] {
+// The stock turn under way is the turn series' last entry.
+function refusalsThisTurn(state: EighteenThirtyTwoState) {
     const refusals = state.redemptionRefusals
     return refusals && refusals.turnStart === state.turnManager.series.at(-1)?.start
-        ? refusals.playerIds
+        ? refusals.refusals
         : []
+}
+
+function refused(state: EighteenThirtyTwoState, companyId: string, playerId: string) {
+    return refusalsThisTurn(state).some(
+        (refusal) => refusal.companyId === companyId && refusal.playerId === playerId
+    )
 }
 
 export type RedemptionChoice = {
@@ -121,6 +130,7 @@ export function redemptionChoices(
             !certificate.retired &&
             certificate.kind === 'share' &&
             !certificate.president &&
+            certificate.shares === 1 &&
             certificate.companyId === company.id &&
             (certificate.owner.kind === 'player' || certificate.poolId === 'open-market') &&
             (held + certificate.shares) * 100 <= MaximumCompanyPercent * shareCount &&
@@ -145,7 +155,7 @@ export function redemptionChoices(
             if (
                 owner.kind !== 'player' ||
                 choices.has(owner.playerId) ||
-                refusedThisTurn(state).includes(owner.playerId) ||
+                refused(state, company.id, owner.playerId) ||
                 (owner.playerId === playerId &&
                     !keepsPresidency(state, company.id, playerId, certificate.shares))
             )
@@ -269,7 +279,8 @@ export class HydratedRedeemShare
                 companyId: this.companyId,
                 certificateId: this.certificateId,
                 holderPlayerId: holder.playerId,
-                presidentPlayerId: this.playerId
+                presidentPlayerId: this.playerId,
+                price: choice.price
             }
             this.metadata = { holder }
             return
@@ -331,7 +342,10 @@ export class HydratedAnswerRedemption
             assertExists(turnStart, 'A redemption is asked on a stock turn')
             state.redemptionRefusals = {
                 turnStart,
-                playerIds: [...refusedThisTurn(state), request.holderPlayerId]
+                refusals: [
+                    ...refusalsThisTurn(state),
+                    { companyId: request.companyId, playerId: request.holderPlayerId }
+                ]
             }
             this.metadata = { request }
             return
@@ -340,18 +354,16 @@ export class HydratedAnswerRedemption
         assert(
             certificate &&
                 !certificate.retired &&
-                certificate.kind === 'share' &&
                 certificate.owner.kind === 'player' &&
-                certificate.owner.playerId === request.holderPlayerId,
-            'The asked holder still holds the share'
+                certificate.owner.playerId === request.holderPlayerId &&
+                spendableCash(state, request.companyId) >= request.price,
+            'The asked holder still holds the share and the company can still pay'
         )
-        // Nothing but the answer has happened since the president chose this share.
         const choice: RedemptionChoice = {
             companyId: request.companyId,
             certificateId: request.certificateId,
             holder: certificate.owner,
-            price:
-                companyMarketSpace(state.stockMarket, request.companyId).price * certificate.shares
+            price: request.price
         }
         this.metadata = {
             request,
@@ -399,7 +411,7 @@ export function reissueParPrice(state: EighteenThirtyTwoState, companyId: string
     )
     const parPrice = getCompany(state, companyId).parPrice
     assertExists(parPrice, 'A reissuing company has a par price')
-    return Math.max(parPrice, nearest)
+    return Math.min(MaximumReissuePar, Math.max(parPrice, nearest))
 }
 
 /**
@@ -532,23 +544,28 @@ export function lockReissueProceeds(state: StockState, details: SharePurchaseDet
     }
 }
 
+const isHydratedRedeemShare = (action: HydratedAction): action is HydratedRedeemShare =>
+    action instanceof HydratedRedeemShare
+const isHydratedReissueShares = (action: HydratedAction): action is HydratedReissueShares =>
+    action instanceof HydratedReissueShares
+
 /** A president's redemptions and reissues for their company, in place of their own action. */
-export function companyShareActions(
+export function redeemsAndReissues(
     handler: EighteenThirtyTwoStateHandler
 ): EighteenThirtyTwoStateHandler {
     return new CorporateStockActionsHandler(handler, [
         {
-            type: 'RedeemShare',
-            available: (state, playerId) => redemptionChoices(state, playerId).length > 0,
-            isValid: (action, state) =>
-                action instanceof HydratedRedeemShare && action.isValid(state),
+            ...stepAction(
+                'RedeemShare',
+                isHydratedRedeemShare,
+                (state, playerId) => redemptionChoices(state, playerId).length > 0
+            ),
             nextState: (state) => (state.redemptionRequest ? ConsentingRedemptionState : undefined)
         },
-        {
-            type: 'ReissueShares',
-            available: (state, playerId) => reissueChoices(state, playerId).length > 0,
-            isValid: (action, state) =>
-                action instanceof HydratedReissueShares && action.isValid(state)
-        }
+        stepAction(
+            'ReissueShares',
+            isHydratedReissueShares,
+            (state, playerId) => reissueChoices(state, playerId).length > 0
+        )
     ])
 }

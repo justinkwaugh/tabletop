@@ -45,7 +45,7 @@ import {
 } from '@tabletop/1817'
 import { assert } from '@tabletop/common'
 import { PassableBidding } from '@tabletop/18xx'
-import { TitleStockPanels, createEighteenXXSessionClass } from '@tabletop/18xx-ui'
+import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
@@ -64,31 +64,15 @@ const BaseSession: ReturnType<
 export type StockPanel = 'company' | 'short'
 
 export class EighteenSeventeenSession extends BaseSession {
-    readonly stockPanels = new TitleStockPanels<StockPanel>(this.stock, [
+    readonly stockPanels = this.titleStockPanels<StockPanel>([
         {
             id: 'company',
+            label: 'Act for a company',
             available: () => this.corporateActions.length > 0,
             held: () => !!this.gameState.stockRound.turn.corporateAction
         },
-        { id: 'short', available: () => this.shorts.length > 0 }
+        { id: 'short', label: 'Short', available: () => this.shorts.length > 0 }
     ])
-    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
-        super(options)
-        this.localSelections.register(this.stockPanels, 'first')
-    }
-    override get additionalStockMenuCount() {
-        return this.stockPanels.count
-    }
-    /** The open 1817 stock panel; while acting for a company, only its panel remains. */
-    get stockPanel(): StockPanel | undefined {
-        return this.stockPanels.open
-    }
-    chooseStockPanel(panel: StockPanel) {
-        this.stockPanels.choose(panel)
-    }
-    protected override onStockSelectionCancelled() {
-        this.stockPanels.clear()
-    }
     corporateActions = $derived.by(() => {
         const playerId = this.gameState.activePlayerIds[0]
         return playerId &&

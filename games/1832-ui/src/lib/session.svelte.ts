@@ -24,9 +24,8 @@ import {
     type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { companyMarketSpace, getCompany, stockMarketSpace } from '@tabletop/18xx'
+import { getCompany, stockMarketSpace } from '@tabletop/18xx'
 import {
-    TitleStockPanels,
     createEighteenXXSessionClass,
     type HistoricalMapState,
     type TitlePrivatePower
@@ -53,31 +52,21 @@ const TokenPrivates = [
 ] as const
 
 /** What a president may do for one company in place of their own stock action (§5.3). */
-export type CompanyShareActions = {
+export type CompanyShareOptions = {
     companyId: string
     redemptions: RedemptionChoice[]
     reissue?: ReissueChoice
 }
 
 export class EighteenThirtyTwoSession extends BaseSession {
-    readonly stockPanels = new TitleStockPanels<'company'>(this.stock, [
+    readonly stockPanels = this.titleStockPanels<'company'>([
         {
             id: 'company',
-            available: () => this.companyShareActions.length > 0,
-            held: () => !!this.gameState.stockRound.turn.corporateAction
+            label: 'Act for a company',
+            available: () => this.companyShareOptions.length > 0
         }
     ])
-    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
-        super(options)
-        this.localSelections.register(this.stockPanels, 'first')
-    }
-    override get additionalStockMenuCount() {
-        return this.stockPanels.count
-    }
-    protected override onStockSelectionCancelled() {
-        this.stockPanels.clear()
-    }
-    readonly companyShareActions = $derived.by((): CompanyShareActions[] => {
+    readonly companyShareOptions = $derived.by((): CompanyShareOptions[] => {
         const playerId = this.gameState.activePlayerIds[0]
         if (
             !playerId ||
@@ -101,20 +90,11 @@ export class EighteenThirtyTwoSession extends BaseSession {
             }
         })
     })
-    /** A redemption awaiting a holder's consent, with its price. */
+    /** A redemption awaiting a holder's consent. */
     readonly redemptionPrompt = $derived.by(() => {
         const request = this.gameState.redemptionRequest
         if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
-        const certificate = this.gameState.certificates.find(
-            (item) => item.id === request.certificateId
-        )
-        assertExists(certificate, 'A redemption request names a share')
-        const shares = certificate.kind === 'share' ? certificate.shares : 1
-        return {
-            ...request,
-            companyName: getCompany(this.gameState, request.companyId).name,
-            price: companyMarketSpace(this.gameState.stockMarket, request.companyId).price * shares
-        }
+        return { ...request, companyName: getCompany(this.gameState, request.companyId).name }
     })
     readonly canChooseAction = $derived(
         this.isPlayable &&

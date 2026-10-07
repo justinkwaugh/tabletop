@@ -1,17 +1,31 @@
-import { ActionSource, type HydratedAction, type MachineContext } from '@tabletop/common'
+import type * as Type from 'typebox'
+import {
+    ActionSource,
+    type GameState,
+    type HydratedAction,
+    type MachineContext
+} from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
 import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
 import type { EighteenXXStateHandler } from '../game/eighteenXXTitleRules.js'
+import type { StepAction } from '../game/stepAction.js'
+import type { CompanyAuctionFields } from './companyAuction.js'
+import { mustSellShares } from './shareSale.js'
+import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 /**
  * Whether a player may act on their stock turn for a company they preside, in place of acting
- * for themselves: before any action of their own, or after earlier actions for that company.
+ * for themselves: before any action of their own, or after earlier actions for that company,
+ * and not while they must sell down to their limits.
  */
 export function corporateTurnOpen(
-    state: StockState & { machineState: string; companyAuction?: object },
+    state: StockState &
+        Pick<GameState, 'machineState'> &
+        Type.Static<Type.TObject<typeof CompanyAuctionFields>>,
     playerId: string,
-    companyId: string
+    companyId: string,
+    rules: StockRules
 ): boolean {
     const turn = state.stockRound.turn
     return (
@@ -20,15 +34,13 @@ export function corporateTurnOpen(
         !state.companyAuction &&
         state.activePlayerIds.includes(playerId) &&
         controllingOwner(state, companyId)?.playerId === playerId &&
-        (turn.corporateAction ? turn.corporateAction.companyId === companyId : !turn.acted)
+        (turn.corporateAction ? turn.corporateAction.companyId === companyId : !turn.acted) &&
+        !mustSellShares(state, playerId, rules)
     )
 }
 
 /** An action a president takes for their company on their stock turn. */
-export type CorporateStockAction<State> = {
-    type: string
-    available(state: State, playerId: string): boolean
-    isValid(action: HydratedAction, state: State): boolean
+export type CorporateStockAction<State> = StepAction<State> & {
     /** Where play goes after the action, when not back to the stock turn. */
     nextState?(state: State): string | undefined
 }

@@ -19,8 +19,10 @@ import {
     type RevenueCenter,
     type RouteRules,
     type StationPlacementState,
-    type TrainRunningState
+    type TrainRunningState,
+    stepAction
 } from '@tabletop/18xx'
+import type { TitleStepAction } from './titleActions.js'
 import { EighteenThirtyTwoMap, PortLocationIds } from './map.js'
 import {
     requireEighteenThirtyTwoState,
@@ -28,7 +30,6 @@ import {
     type EighteenThirtyTwoStateHandler,
     type HydratedEighteenThirtyTwoState
 } from './state.js'
-import { titleStepAction } from './titleActions.js'
 import { currentTileFace } from './tileState.js'
 import {
     RevenueTokenKind,
@@ -260,7 +261,7 @@ export class HydratedPlaceRevenueToken
     }
 }
 
-export const PlaceRevenueTokenStep = titleStepAction(
+export const PlaceRevenueTokenStep: TitleStepAction = stepAction(
     'PlaceRevenueToken',
     (action: HydratedAction) => action instanceof HydratedPlaceRevenueToken,
     (state, playerId) => revenueTokenChoices(state, playerId).length > 0

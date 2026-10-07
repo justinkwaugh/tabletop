@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import { cashOwnedBy, getCompany, placeStockMarker, type Owner } from '@tabletop/18xx'
-import { playExample } from '@tabletop/18xx/scenarios'
+import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     redemptionChoices,
     reissueChoices,
@@ -10,6 +11,7 @@ import {
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
+type Play = ExamplePlay<EighteenThirtyTwoState>
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const acl = { kind: 'company' as const, companyId: 'ACL' }
 
@@ -41,6 +43,27 @@ const heldBy = (playerId: string) => (certificate: { owner: Owner }) =>
 const inOffering = (certificate: { poolId?: string }) => certificate.poolId === 'initial-offering'
 const inMarket = (certificate: { poolId?: string }) => certificate.poolId === 'open-market'
 
+function choiceFrom(play: Play, holderId: string) {
+    const choice = redemptionChoices(play.state, 'alex').find(
+        (entry) => entry.holder.kind === 'player' && entry.holder.playerId === holderId
+    )
+    assertExists(choice, `Alex may redeem from ${holderId}`)
+    return choice
+}
+
+function buyOffering(play: Play, playerId: string, companyId: string, price: number) {
+    const certificate = play.state.certificates.find(
+        (entry) =>
+            !entry.retired && entry.companyId === companyId && entry.poolId === 'initial-offering'
+    )
+    assertExists(certificate, `${companyId} has an offering share`)
+    play.act(
+        'BuyShares',
+        { buyer: player(playerId), certificateId: certificate.id, expectedPrice: price },
+        playerId
+    )
+}
+
 /** ACL's offering sold out: Alex presides with 3 shares, Blair and Casey hold 3, the market 1. */
 function trading(prepare: (state: EighteenThirtyTwoState) => void = () => {}) {
     return playExample(EighteenThirtyTwoScenarios, 'trading', 3, (state) => {
@@ -68,9 +91,7 @@ describe('share redemption', () => {
 
     it('asks another holder, who may agree', () => {
         const play = trading((state) => moveShares(state, inMarket, player('casey'), 1))
-        const fromBlair = redemptionChoices(play.state, 'alex').find(
-            (choice) => choice.holder.kind === 'player' && choice.holder.playerId === 'blair'
-        )!
+        const fromBlair = choiceFrom(play, 'blair')
         play.act('RedeemShare', { companyId: 'ACL', certificateId: fromBlair.certificateId })
         expect(play.state.machineState).toBe('ConsentingRedemption')
         expect(play.state.activePlayerIds).toEqual(['blair'])
@@ -88,9 +109,7 @@ describe('share redemption', () => {
 
     it('lets a holder refuse, leaving the president their turn', () => {
         const play = trading((state) => moveShares(state, inMarket, player('casey'), 1))
-        const fromBlair = redemptionChoices(play.state, 'alex').find(
-            (choice) => choice.holder.kind === 'player' && choice.holder.playerId === 'blair'
-        )!
+        const fromBlair = choiceFrom(play, 'blair')
         play.act('RedeemShare', { companyId: 'ACL', certificateId: fromBlair.certificateId })
         play.act('AnswerRedemption', { accept: false }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
@@ -112,9 +131,7 @@ describe('share redemption', () => {
             moveShares(state, heldBy('blair'), acl, 1)
             moveShares(state, heldBy('casey'), acl, 1)
         })
-        const own = redemptionChoices(kept.state, 'alex').find(
-            (choice) => choice.holder.kind === 'player' && choice.holder.playerId === 'alex'
-        )!
+        const own = choiceFrom(kept, 'alex')
         kept.act('RedeemShare', { companyId: 'ACL', certificateId: own.certificateId })
         expect(kept.state.machineState).toBe('StockRound')
         expect(cashOwnedBy(kept.state, player('alex'))).toBe(600 + 90)
@@ -139,6 +156,51 @@ describe('share redemption', () => {
         expect(redemptionChoices(play.state, 'alex')).toEqual([])
         play.state.redemptions = { ACL: { stockRound: play.state.stockRound.number - 1, count: 1 } }
         expect(redemptionChoices(play.state, 'alex')).not.toEqual([])
+    })
+})
+
+describe('share redemption limits', () => {
+    it('waits for the company’s capital and for a turn without the president’s own action', () => {
+        const unfunded = trading((state) => {
+            const company = state.companies.find((entry) => entry.id === 'ACL')
+            assertExists(company, 'ACL is in play')
+            company.funded = false
+        })
+        expect(redemptionChoices(unfunded.state, 'alex')).toEqual([])
+        const play = trading()
+        buyOffering(play, 'alex', 'CG', 100)
+        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(play.valid('alex')).not.toContain('RedeemShare')
+    })
+
+    it('is not offered to a president who must first sell down', () => {
+        const play = trading((state) => moveShares(state, inOffering, player('alex'), 4, 'CG'))
+        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        expect(play.valid('alex')).not.toContain('RedeemShare')
+    })
+
+    it('accepts an answer only from the holder asked', () => {
+        const play = trading((state) => moveShares(state, inMarket, player('casey'), 1))
+        play.act('RedeemShare', {
+            companyId: 'ACL',
+            certificateId: choiceFrom(play, 'blair').certificateId
+        })
+        expect(() => play.act('AnswerRedemption', { accept: true }, 'casey')).toThrow()
+    })
+
+    it('may ask a refusing holder again on a later turn', () => {
+        const play = trading((state) => moveShares(state, inMarket, player('casey'), 1))
+        play.act('RedeemShare', {
+            companyId: 'ACL',
+            certificateId: choiceFrom(play, 'blair').certificateId
+        })
+        play.act('AnswerRedemption', { accept: false }, 'blair')
+        buyOffering(play, 'alex', 'CG', 100)
+        play.act('FinishStockTurn', {}, 'alex')
+        play.act('FinishStockTurn', {}, 'blair')
+        play.act('FinishStockTurn', {}, 'casey')
+        expect(play.state.activePlayerIds).toEqual(['alex'])
+        expect(choiceFrom(play, 'blair').companyId).toBe('ACL')
     })
 })
 
@@ -181,6 +243,46 @@ describe('share reissue', () => {
         )
         expect(cashOwnedBy(play.state, acl)).toBe(760)
         expect(spendableCash(play.state, 'ACL')).toBe(600)
+    })
+
+    it('reissues once a stock round', () => {
+        const play = holding()
+        play.act('ReissueShares', { companyId: 'ACL' })
+        expect(play.state.reissues).toEqual({ ACL: play.state.stockRound.number })
+        const again = structuredClone(play.state)
+        moveShares(again, heldBy('casey'), acl, 1)
+        expect(reissueChoices({ ...again, activePlayerIds: ['alex'] }, 'alex')).toEqual([])
+    })
+
+    it('keeps reissue proceeds from paying for a redemption that stock round', () => {
+        const play = holding((state) => {
+            const treasury = state.cash.find(
+                (entry) => entry.owner.kind === 'company' && entry.owner.companyId === 'ACL'
+            )
+            assertExists(treasury, 'ACL has a treasury')
+            treasury.amount = 100
+        })
+        play.act('ReissueShares', { companyId: 'ACL' })
+        buyOffering(play, 'blair', 'ACL', 160)
+        play.act('FinishStockTurn', {}, 'blair')
+        play.act('FinishStockTurn', {}, 'casey')
+        expect(cashOwnedBy(play.state, acl)).toBe(260)
+        expect(spendableCash(play.state, 'ACL')).toBe(100)
+        expect(redemptionChoices(play.state, 'alex')).toEqual([])
+    })
+
+    it('may reissue in the stock round it redeemed', () => {
+        const play = trading()
+        play.act('RedeemShare', {
+            companyId: 'ACL',
+            certificateId: redemptionChoices(play.state, 'alex')[0].certificateId
+        })
+        buyOffering(play, 'blair', 'CG', 100)
+        play.act('FinishStockTurn', {}, 'blair')
+        play.act('FinishStockTurn', {}, 'casey')
+        expect(reissueChoices(play.state, 'alex')).toEqual([
+            expect.objectContaining({ companyId: 'ACL' })
+        ])
     })
 
     it('waits for the original offering to sell out', () => {

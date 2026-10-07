@@ -2,7 +2,7 @@
   "actionSchemaDigests": {
     "AdvancePhase": "eec53dafa6c3bdd98bdad63fb0397a97bf32d5902c4a52a5d14d0979e1a136eb",
     "AnswerMerger": "4b3bed433a06236a8b484461fb8c9dfabfc4dd6ea7af6109aefbd16e12310857",
-    "AnswerRedemption": "9dd8ee1ced79e6e7eeff5059a91e55458e0c4c644321505bab4a98ec65c51f34",
+    "AnswerRedemption": "df0e4766d17c3c52766a9a63c7619c60de9a6f2b76fe331909c03775de1f4ee8",
     "BuyAuctionLot": "155a50b51bc0f77c28377ff93ddb5839ed0bb8f60e8178de847119ab9d4640dc",
     "BuyCoalRights": "fd07d9693434758869735ef55dce27d2bb6f5781d4b622878133c742468487f1",
     "BuyPrivateTrain": "95fdc52339fbd1df0d770ba507be1f3c5bd812ef36ae70481603a4208c86a07c",
@@ -2816,10 +2816,24 @@
       "redemptionRefusals": {
         "additionalProperties": false,
         "properties": {
-          "playerIds": {
+          "refusals": {
             "items": {
-              "minLength": 1,
-              "type": "string"
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "playerId": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "playerId"
+              ],
+              "type": "object"
             },
             "type": "array"
           },
@@ -2829,7 +2843,7 @@
           }
         },
         "required": [
-          "playerIds",
+          "refusals",
           "turnStart"
         ],
         "type": "object"
@@ -2852,13 +2866,18 @@
           "presidentPlayerId": {
             "minLength": 1,
             "type": "string"
+          },
+          "price": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
           "certificateId",
           "companyId",
           "holderPlayerId",
-          "presidentPlayerId"
+          "presidentPlayerId",
+          "price"
         ],
         "type": "object"
       },

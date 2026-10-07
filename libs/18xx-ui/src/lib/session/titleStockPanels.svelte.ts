@@ -1,8 +1,11 @@
 import type { LocalSelection } from './localSelections.js'
+import type { StockMenuOption } from '../stock/stockActionSelection.js'
 import type { StockModule } from './stockModule.svelte.js'
 
 export type TitleStockPanel<Panel extends string> = {
     id: Panel
+    /** The menu entry that opens the panel. */
+    label: string
     /** Whether the panel has anything for the acting player. */
     available(): boolean
     /** Whether the panel stays open whatever was chosen, such as while acting for a company. */
@@ -27,6 +30,16 @@ export class TitleStockPanels<Panel extends string> implements LocalSelection {
     })
     get count(): number {
         return this.panels.filter((panel) => panel.available()).length
+    }
+    /** The stock menu entries for the panels with something to offer. */
+    get menuOptions(): StockMenuOption[] {
+        return this.panels
+            .filter((panel) => panel.available())
+            .map((panel) => ({
+                label: panel.label,
+                selected: this.open === panel.id,
+                onSelect: () => this.choose(panel.id)
+            }))
     }
     choose(panel: Panel): void {
         this.stock.chooseMenu(undefined)

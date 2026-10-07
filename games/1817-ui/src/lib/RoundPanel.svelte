@@ -1,9 +1,8 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import { companyMarketSpace, getCompany } from '@tabletop/18xx'
-    import { CompanyActionCard, type CardAction } from '@tabletop/18xx-ui'
+    import { CompanyActionCard, StockPanelHeading, type CardAction } from '@tabletop/18xx-ui'
     import { companyRoundFacts } from './roundFacts.js'
-    import { StockPanelHeading } from '@tabletop/18xx-ui'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let {
         session,

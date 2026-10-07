@@ -605,12 +605,22 @@ next round would fix ("5% next 10%"), and the loans the bank has left ("Loans 54
 records borrowing and repayments with their price moves, and interest as a company
 row that is routine unless it needed loans or defaulted.
 
-A title's own stock-round corporate actions (1817's loans and buy-backs) are a stock
-action of their own ("Act for a company") beside Buy and Sell while the player may still act
-for a company they preside. It opens a card for each such company, in the share cards'
-style: its token and price, its treasury and loans, and Take a loan and Buy back a share
-(with its price and the shares the market holds) as immediately committed buttons. Once the player has acted for a company, only its card
-remains open, headed "Acting for" the company. Back clears the choice of panel.
+A title's own stock-round panels (1817's corporate actions and shorts, 1832's redemptions and
+reissues) are stock actions of their own beside Buy and Sell, offered while they have
+something for the player. "Act for a company" opens a card for each company the player may act
+for, in the share cards' style: its token and price, its finances, and its actions as
+immediately committed buttons. In 1817 these are Take a loan and Buy back a share (with its
+price and the shares the market holds); once the player has acted for a company, only its card
+remains open, headed "Acting for" the company. In 1832 the card shows the company's cash (and
+what it may spend when reissue proceeds are locked), its redeemed holding and par, with
+Redeem from the market or from each holder who may be asked (with the price) and Reissue (with
+the share count and new par); acting for a company is the turn's only action. Choosing a panel
+is a local selection that Undo clears; it never adds a Back control.
+
+In 1832 a holder asked to allow a redemption sees a prompt naming the president, the company and
+the price, with Allow and Refuse committed at once; other players see who is deciding. A
+president deciding whether to protect a sale sees the seller, the shares and their proceeds and
+the price the protection restores, with Protect and Decline committed at once.
 
 ### Cash crisis and bankruptcy
 

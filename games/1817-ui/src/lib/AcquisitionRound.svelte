@@ -1,9 +1,13 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import { AuctionBidControl, CompanyToken } from '@tabletop/18xx-ui'
+    import {
+        AuctionBidControl,
+        CompanyActionCard,
+        CompanyToken,
+        type CardAction
+    } from '@tabletop/18xx-ui'
     import { EighteenSeventeenLoanRules } from '@tabletop/1817'
     import { takeLoanAction } from './cardActions.js'
-    import { CompanyActionCard, type CardAction } from '@tabletop/18xx-ui'
     import { companyFinanceFacts } from './roundFacts.js'
     import RoundPanel from './RoundPanel.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'

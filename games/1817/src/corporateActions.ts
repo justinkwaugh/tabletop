@@ -24,6 +24,7 @@ import {
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRules } from './stockRules.js'
 
 export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: string): string[] {
     if (inClosingZone(state.stockMarket, companyId)) return []
@@ -45,7 +46,7 @@ export function canTakeCorporateLoan(
     companyId: string
 ): boolean {
     return (
-        corporateTurnOpen(state, playerId, companyId) &&
+        corporateTurnOpen(state, playerId, companyId, EighteenSeventeenStockRules) &&
         !state.stockRound.turn.corporateAction?.boughtBack &&
         canTakeLoan(state, EighteenSeventeenLoanRules, playerId, companyId)
     )
@@ -57,7 +58,7 @@ export function buyBackReason(
     companyId: string,
     certificateIds: readonly string[]
 ): string | undefined {
-    if (!corporateTurnOpen(state, playerId, companyId))
+    if (!corporateTurnOpen(state, playerId, companyId, EighteenSeventeenStockRules))
         return 'Only a president may act for their company, in place of their own action.'
     const available = buyBackCertificateIds(state, companyId)
     if (

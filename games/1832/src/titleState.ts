@@ -70,7 +70,13 @@ export type PriceProtection = Type.Static<typeof PriceProtection>
 
 /** A redemption from another player's holding, awaiting their consent (§5.10.4). */
 export const RedemptionRequest = Type.Object(
-    { companyId: Id, certificateId: Id, holderPlayerId: Id, presidentPlayerId: Id },
+    {
+        companyId: Id,
+        certificateId: Id,
+        holderPlayerId: Id,
+        presidentPlayerId: Id,
+        price: Type.Integer({ minimum: 1 })
+    },
     { additionalProperties: false }
 )
 export type RedemptionRequest = Type.Static<typeof RedemptionRequest>
@@ -144,10 +150,15 @@ export const EighteenThirtyTwoTitleFields = {
         )
     ),
     redemptionRequest: Type.Optional(RedemptionRequest),
-    /** Holders who refused a redemption on the turn beginning at an action (§5.10.4). */
+    /** Holders who refused a company's redemption on the turn beginning at an action (§5.10.4). */
     redemptionRefusals: Type.Optional(
         Type.Object(
-            { turnStart: Type.Integer({ minimum: 0 }), playerIds: Type.Array(Id) },
+            {
+                turnStart: Type.Integer({ minimum: 0 }),
+                refusals: Type.Array(
+                    Type.Object({ companyId: Id, playerId: Id }, { additionalProperties: false })
+                )
+            },
             { additionalProperties: false }
         )
     ),

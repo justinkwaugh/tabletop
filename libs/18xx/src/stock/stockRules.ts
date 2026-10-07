@@ -54,7 +54,7 @@ export interface StockRules {
      */
     afterSale?(state: StockState, details: ShareSaleDetails): void
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
-    afterPurchase?(state: StockState, details: SharePurchaseDetails): void
+    afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**

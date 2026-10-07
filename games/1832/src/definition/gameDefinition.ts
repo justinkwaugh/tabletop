@@ -104,7 +104,7 @@ import {
     HydratedReissueShares,
     RedeemShare,
     ReissueShares,
-    companyShareActions,
+    redeemsAndReissues,
     isAnswerRedemption,
     isRedeemShare,
     isReissueShares
@@ -141,7 +141,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     decisionHandlers: {
         StockRound: (family) =>
             closesAndProtects(
-                companyShareActions(new TitleActionsHandler(family, [TakeLondonShareStep]))
+                redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
             ),
         StartingOperatingSet: (family) => capitalizesFloatedCompanies(startsMergerPhase(family)),
         OperatingSet: (family) => closesAndProtects(startsMergerPhase(family)),

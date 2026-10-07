@@ -124,7 +124,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         recordProtectableSale(state, details)
         refreshSellerExcess(state, details)
     },
-    afterPurchase(state, details) {
+    afterSharePurchase(state, details) {
         lockReissueProceeds(state, details)
         refreshBuyerExcess(state, details)
     },

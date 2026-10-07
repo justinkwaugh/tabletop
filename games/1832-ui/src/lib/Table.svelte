@@ -6,6 +6,7 @@
         CompanyPar,
         GameTable,
         OperatingActions,
+        type TitleActionDescription,
         WaterfallAuctionBidding,
         WaterfallAuctionLots
     } from '@tabletop/18xx-ui'
@@ -24,6 +25,16 @@
         assert(gameSession instanceof EighteenThirtyTwoSession, '1832 requires its title session')
         return gameSession
     })
+    const historyDescription: TitleActionDescription = (action, companyName) =>
+        describe1832Action(
+            action,
+            {
+                companyName,
+                playerName: (id) => session.getPlayerName(id),
+                bankName: session.gameState.bank.name
+            },
+            session.presentation.money
+        )
     const privateOperationDescription = (privateCompanyId: string) =>
         session.privateOperationDescription(privateCompanyId)
 </script>
@@ -31,16 +42,8 @@
 <GameTable
     {session}
     {privateOperationDescription}
-    historyDescription={describe1832Action((id) => session.getPlayerName(id))}
-    additionalStockActions={session.companyShareActions.length
-        ? [
-              {
-                  label: 'Act for a company',
-                  selected: session.stockPanels.open === 'company',
-                  onSelect: () => session.stockPanels.choose('company')
-              }
-          ]
-        : []}
+    {historyDescription}
+    additionalStockActions={session.stockPanels.menuOptions}
 >
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}

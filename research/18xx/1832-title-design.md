@@ -386,6 +386,13 @@ rules stay in the title.
   stock round cannot be spent on redemption until that round ends (§5.11, §5.10.10).
 - Redeemed shares pay their company dividends, count as held for the sold-out rise, and do not
   count toward a player's limits; a redemption moves no price.
+- **Rulings.** A refusal stands for that company and holder for the rest of the turn. Nobody
+  acts for a company while they must sell down to their limits. The par display's bracketed
+  minimum prices are not in the research; the nearest par to 75% of the price, a tie rounding
+  up, stands in for them. A company has one par: reissuing again reprices any earlier reissued
+  shares still unsold. A company may redeem and then reissue in one stock round. The reissue par
+  never exceeds $200, so a System with a higher par reissues at $200; Systems redeem only
+  single 5% shares, not vice-president's certificates (§11.6.9).
 
 ### Limits after slice 4
 

@@ -11,10 +11,11 @@ function panels(options: { company: boolean; short: boolean; acting?: boolean })
     const model = new TitleStockPanels<'company' | 'short'>(stock, [
         {
             id: 'company',
+            label: 'Act for a company',
             available: () => options.company,
             held: () => !!options.acting
         },
-        { id: 'short', available: () => options.short }
+        { id: 'short', label: 'Short', available: () => options.short }
     ])
     return { stock, model }
 }
@@ -43,5 +44,17 @@ describe('title stock panels', () => {
         model.choose('company')
         expect(model.open).toBeUndefined()
         expect(model.count).toBe(0)
+    })
+
+    it('lists the available panels as stock menu entries', () => {
+        const { model } = panels({ company: true, short: false })
+        expect(model.menuOptions.map((option) => [option.label, option.selected])).toEqual([
+            ['Act for a company', false]
+        ])
+        model.menuOptions[0].onSelect()
+        expect(model.open).toBe('company')
+        model.clear()
+        expect(model.open).toBeUndefined()
+        expect(model.hasManual()).toBe(false)
     })
 })

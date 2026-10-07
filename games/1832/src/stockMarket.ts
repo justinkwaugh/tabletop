@@ -75,10 +75,14 @@ export function saleDescent(market: StockMarket, spaceId: string, shares: number
     return spaces
 }
 
-/** The par prices a company may reissue at: the top row's white and grey values (§5.11). */
+// Reissued shares take a par from $68 to $200 (§5.11).
+const MinimumReissuePar = 68
+export const MaximumReissuePar = 200
+
+/** The par prices a company may reissue at, from the top row of the market (§5.11). */
 export const ReissueParPrices: readonly number[] = Market[0]
     .map((cell) => Number.parseInt(cell))
-    .filter((price) => price >= 68 && price <= 200)
+    .filter((price) => price >= MinimumReissuePar && price <= MaximumReissuePar)
 
 export function createEighteenThirtyTwoStockMarket(): StockMarket {
     const market = createRectangularStockMarket(

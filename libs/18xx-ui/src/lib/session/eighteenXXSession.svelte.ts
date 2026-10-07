@@ -50,6 +50,7 @@ import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
+import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
@@ -305,8 +306,19 @@ export class EighteenXXSession<
         () => this.privates.exchangeOffers.length > 0,
         () => this.additionalStockMenuCount
     )
+    #titleStockPanels?: TitleStockPanels<string>
+    /** The title's panels beside Buy and Sell, registered for Undo and the stock menu. */
+    protected titleStockPanels<Panel extends string>(
+        panels: readonly TitleStockPanel<Panel>[]
+    ): TitleStockPanels<Panel> {
+        assert(!this.#titleStockPanels, 'A title declares its stock panels once')
+        const model = new TitleStockPanels(this.stock, panels)
+        this.localSelections.register(model, 'first')
+        this.#titleStockPanels = model
+        return model
+    }
     get additionalStockMenuCount() {
-        return 0
+        return this.#titleStockPanels?.count ?? 0
     }
     readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)
@@ -466,7 +478,9 @@ export class EighteenXXSession<
             finishStations: () => this.stations.finish()
         })
     }
-    protected onStockSelectionCancelled() {}
+    protected onStockSelectionCancelled() {
+        this.#titleStockPanels?.clear()
+    }
     protected get trackBuildingActive(): boolean {
         return true
     }

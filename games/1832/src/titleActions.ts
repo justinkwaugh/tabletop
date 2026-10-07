@@ -1,31 +1,9 @@
 import type { HydratedAction, MachineContext } from '@tabletop/common'
-import type {
-    EighteenThirtyTwoState,
-    EighteenThirtyTwoStateHandler,
-    HydratedEighteenThirtyTwoState
-} from './state.js'
+import type { StepAction } from '@tabletop/18xx'
+import type { EighteenThirtyTwoStateHandler, HydratedEighteenThirtyTwoState } from './state.js'
 
 /** A title action offered within a family state, which stays in that state when taken. */
-export type TitleStepAction = {
-    type: string
-    available(state: EighteenThirtyTwoState, playerId: string): boolean
-    isValid(action: HydratedAction, state: HydratedEighteenThirtyTwoState): boolean
-}
-
-/** A step action whose hydrated class judges its own validity. */
-export function titleStepAction<Action extends HydratedAction>(
-    type: string,
-    hydrated: (action: HydratedAction) => action is Action & {
-        isValid(state: HydratedEighteenThirtyTwoState): boolean
-    },
-    available: TitleStepAction['available']
-): TitleStepAction {
-    return {
-        type,
-        available,
-        isValid: (action, state) => hydrated(action) && action.isValid(state)
-    }
-}
+export type TitleStepAction = StepAction<HydratedEighteenThirtyTwoState>
 
 export class TitleActionsHandler implements EighteenThirtyTwoStateHandler {
     constructor(

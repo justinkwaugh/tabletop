@@ -20,8 +20,10 @@ import {
     recordStockAction,
     type CompanyRules,
     type PrivateRules,
-    type StockState
+    type StockState,
+    stepAction
 } from '@tabletop/18xx'
+import type { TitleStepAction } from './titleActions.js'
 import {
     requireEighteenThirtyTwoState,
     type EighteenThirtyTwoState,
@@ -29,7 +31,6 @@ import {
 } from './state.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
-import { titleStepAction } from './titleActions.js'
 import { inGame, type EighteenThirtyTwoTitleState } from './titleState.js'
 
 export const LondonPrivateId = 'P4'
@@ -66,7 +67,6 @@ export function londonShareChoices(state: EighteenThirtyTwoState, playerId: stri
         state.stockRound.completed ||
         !state.activePlayerIds.includes(playerId) ||
         state.stockRound.turn.bought ||
-        state.stockRound.turn.corporateAction ||
         londonUsed(state) ||
         owner?.kind !== 'player' ||
         owner.playerId !== playerId ||
@@ -160,7 +160,7 @@ export class HydratedTakeLondonShare
     }
 }
 
-export const TakeLondonShareStep = titleStepAction(
+export const TakeLondonShareStep: TitleStepAction = stepAction(
     'TakeLondonShare',
     (action: HydratedAction) => action instanceof HydratedTakeLondonShare,
     (state, playerId) => londonShareChoices(state, playerId).length > 0
