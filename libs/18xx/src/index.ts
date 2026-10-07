@@ -45,6 +45,7 @@ export * from './stock/stockRoundHandler.js'
 export * from './stock/stockRules.js'
 export * from './stock/stockState.js'
 export * from './stock/stockTurn.js'
+export * from './stock/corporateStockTurn.js'
 export * from './stock/stopStockInstruction.js'
 export * from './stock/turnPurchases.js'
 

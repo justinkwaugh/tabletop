@@ -1,6 +1,7 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "eec53dafa6c3bdd98bdad63fb0397a97bf32d5902c4a52a5d14d0979e1a136eb",
+    "AnswerRedemption": "9dd8ee1ced79e6e7eeff5059a91e55458e0c4c644321505bab4a98ec65c51f34",
     "BuyAuctionLot": "155a50b51bc0f77c28377ff93ddb5839ed0bb8f60e8178de847119ab9d4640dc",
     "BuyCoalRights": "fd07d9693434758869735ef55dce27d2bb6f5781d4b622878133c742468487f1",
     "BuyPrivateTrain": "95fdc52339fbd1df0d770ba507be1f3c5bd812ef36ae70481603a4208c86a07c",
@@ -38,6 +39,8 @@
     "ProtectShares": "e8078b7c429165eb0eb0386e239b6b4411fb964f56a0b065ec0dade6d0561874",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
+    "RedeemShare": "eaaf81ce775d05cf773e5f22447c7bd4ff1a97851b6712314d31fed9bcb692b7",
+    "ReissueShares": "308c463e61f19bcda4cda39c074f35c9ecc7135469b8b09c081893f157ef08be",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ReserveBid": "765c6c89338935d58ea9f04b174a317b1aa1f94865477e20c971dd2dbe35800e",
     "ResolveAuction": "cda20486395def21f8016c871ae29af489eca8e1c6abb1f195feae213ca9a8ca",
@@ -1410,6 +1413,29 @@
       "id": {
         "type": "string"
       },
+      "lockedProceeds": {
+        "additionalProperties": false,
+        "properties": {
+          "amounts": {
+            "patternProperties": {
+              "^.*$": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "stockRound": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amounts",
+          "stockRound"
+        ],
+        "type": "object"
+      },
       "londonCompanyId": {
         "minLength": 1,
         "type": "string"
@@ -1486,6 +1512,10 @@
           },
           {
             "const": "ProtectingPrice",
+            "type": "string"
+          },
+          {
+            "const": "ConsentingRedemption",
             "type": "string"
           }
         ]
@@ -2584,6 +2614,87 @@
             "type": "object"
           }
         ]
+      },
+      "redemptionRefusals": {
+        "additionalProperties": false,
+        "properties": {
+          "playerIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "turnStart": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "playerIds",
+          "turnStart"
+        ],
+        "type": "object"
+      },
+      "redemptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "certificateId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "holderPlayerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "presidentPlayerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "certificateId",
+          "companyId",
+          "holderPlayerId",
+          "presidentPlayerId"
+        ],
+        "type": "object"
+      },
+      "redemptions": {
+        "patternProperties": {
+          "^.*$": {
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "stockRound": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count",
+              "stockRound"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "reissues": {
+        "patternProperties": {
+          "^.*$": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
       },
       "result": {
         "enum": [
@@ -4147,6 +4258,7 @@
     "AuctionBidding",
     "Bankrupt",
     "BuyingTrains",
+    "ConsentingRedemption",
     "DiscardingTrains",
     "DistributingEarnings",
     "FundingTrain",

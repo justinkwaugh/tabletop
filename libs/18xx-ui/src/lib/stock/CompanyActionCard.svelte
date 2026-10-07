@@ -10,8 +10,9 @@
 
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import { CompanyToken, type TitleFact } from '@tabletop/18xx-ui'
-    import type { EighteenSeventeenSession } from './session.svelte.js'
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import type { TitleFact } from '../session/titlePresentation.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
@@ -21,7 +22,7 @@
         facts = [],
         actions = []
     }: {
-        session: EighteenSeventeenSession
+        session: EighteenXXSessionView
         companyId: string
         /** The company's name, shown when the card is the subject rather than one of a list. */
         title?: string

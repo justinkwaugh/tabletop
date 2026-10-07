@@ -1,9 +1,9 @@
 <script lang="ts">
     import { companyMarketSpace, getCompany } from '@tabletop/18xx'
     import { takeLoanAction } from './cardActions.js'
-    import CompanyActionCard from './CompanyActionCard.svelte'
+    import { CompanyActionCard } from '@tabletop/18xx-ui'
     import { companyFinanceFacts } from './roundFacts.js'
-    import StockPanelHeading from './StockPanelHeading.svelte'
+    import { StockPanelHeading } from '@tabletop/18xx-ui'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)

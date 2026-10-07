@@ -62,6 +62,7 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
             ...(result.poolId ? { poolId: result.poolId } : {})
         })
         applySharePurchase(state, result.details)
+        this.#rules.afterPurchase?.(state, result.details)
         this.metadata = result.details
     }
 }

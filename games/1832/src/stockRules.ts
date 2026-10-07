@@ -12,6 +12,7 @@ import { isClosingSpace, saleDescent } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
 import { recordProtectableSale } from './priceProtection.js'
+import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 
 const Trading = ipoMarketTrading({
     ipoPoolId: 'initial-offering',
@@ -30,8 +31,19 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
     }
 }
 
+// A reissued share's price goes to its company (§5.11).
+const purchaseTerms: StockRules['purchaseTerms'] = (state, certificate, buyer) => {
+    const terms = Trading.purchaseTerms(state, certificate, buyer)
+    if (
+        typeof terms === 'string' ||
+        !isReissuedShare(state, certificate.companyId, certificate.poolId)
+    )
+        return terms
+    return { ...terms, recipient: { kind: 'company', companyId: certificate.companyId } }
+}
+
 export const EighteenThirtyTwoShareTrading = {
-    purchaseTerms: Trading.purchaseTerms,
+    purchaseTerms,
     stockSaleTerms: withSoftLedge(Trading.stockSaleTerms),
     emergencySaleTerms: withSoftLedge(Trading.emergencySaleTerms)
 }
@@ -73,6 +85,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         ownershipPercent: 60
     }),
     afterSale: recordProtectableSale,
+    afterPurchase: lockReissueProceeds,
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',

@@ -11,7 +11,7 @@ import {
 } from '../finance/finance.js'
 import type { CompanyAuctionRules } from './companyAuction.js'
 import type { PrivateSaleRules } from './privateSale.js'
-import type { ShareCertificate, SharePurchaseTerms } from './sharePurchase.js'
+import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import { companyMarketSpace } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
@@ -50,6 +50,8 @@ export interface StockRules {
     presidencyCandidates(state: StockState, companyId: string): President[]
     /** What follows any sale into the market, such as the market closing its own shorts. */
     afterSale?(state: StockState, details: ShareSaleDetails): void
+    /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
+    afterPurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**

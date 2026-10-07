@@ -68,6 +68,19 @@ import {
     startsPriceProtection
 } from '../priceProtection.js'
 import type { EighteenThirtyTwoStateHandler } from '../state.js'
+import {
+    AnswerRedemption,
+    ConsentingRedemptionHandler,
+    HydratedAnswerRedemption,
+    HydratedRedeemShare,
+    HydratedReissueShares,
+    RedeemShare,
+    ReissueShares,
+    companyShareActions,
+    isAnswerRedemption,
+    isRedeemShare,
+    isReissueShares
+} from '../redemption.js'
 
 // A company closes as its price enters the black area; once a seller finishes, the presidents
 // of the companies sold may protect their prices (§5.1.1, §5.9).
@@ -99,7 +112,9 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
         StockRound: (family) =>
-            closesAndProtects(new TitleActionsHandler(family, [TakeLondonShareStep])),
+            closesAndProtects(
+                companyShareActions(new TitleActionsHandler(family, [TakeLondonShareStep]))
+            ),
         StartingOperatingSet: capitalizesFloatedCompanies,
         OperatingSet: closesAndProtects,
         FundingTrain: closesCompanies,
@@ -108,9 +123,19 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         PlacingStation: (family) => new TitleActionsHandler(family, [PlaceRevenueTokenStep]),
         DistributingEarnings: recordsMiamiRun
     },
-    titleStateHandlers: { ProtectingPrice: new ProtectingPriceHandler() },
+    titleStateHandlers: {
+        ProtectingPrice: new ProtectingPriceHandler(),
+        ConsentingRedemption: new ConsentingRedemptionHandler()
+    },
     titleActions: [
         defineAction(CloseCompany, isCloseCompany, (action) => new HydratedCloseCompany(action)),
+        defineAction(RedeemShare, isRedeemShare, (action) => new HydratedRedeemShare(action)),
+        defineAction(
+            AnswerRedemption,
+            isAnswerRedemption,
+            (action) => new HydratedAnswerRedemption(action)
+        ),
+        defineAction(ReissueShares, isReissueShares, (action) => new HydratedReissueShares(action)),
         defineAction(
             StartPriceProtection,
             isStartPriceProtection,

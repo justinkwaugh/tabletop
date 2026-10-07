@@ -66,6 +66,7 @@ export function londonShareChoices(state: EighteenThirtyTwoState, playerId: stri
         state.stockRound.completed ||
         !state.activePlayerIds.includes(playerId) ||
         state.stockRound.turn.bought ||
+        state.stockRound.turn.corporateAction ||
         londonUsed(state) ||
         owner?.kind !== 'player' ||
         owner.playerId !== playerId ||

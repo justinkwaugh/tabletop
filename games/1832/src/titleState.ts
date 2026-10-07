@@ -58,10 +58,49 @@ export const PriceProtection = Type.Object(
 )
 export type PriceProtection = Type.Static<typeof PriceProtection>
 
+/** A redemption from another player's holding, awaiting their consent (§5.10.4). */
+export const RedemptionRequest = Type.Object(
+    { companyId: Id, certificateId: Id, holderPlayerId: Id, presidentPlayerId: Id },
+    { additionalProperties: false }
+)
+export type RedemptionRequest = Type.Static<typeof RedemptionRequest>
+
+const StockRoundNumber = Type.Integer({ minimum: 1 })
+
 export const EighteenThirtyTwoTitleFields = {
     priceProtection: Type.Optional(PriceProtection),
     /** Presidents keeping more than 60% after protecting, until they next sell (§5.9.8). */
     ownershipLimitExemptions: Type.Optional(Type.Array(OwnershipLimitExemption)),
+    /** Each company's redemptions in its latest stock round with one (§5.10.1). */
+    redemptions: Type.Optional(
+        Type.Record(
+            Id,
+            Type.Object(
+                { stockRound: StockRoundNumber, count: Type.Integer({ minimum: 1 }) },
+                { additionalProperties: false }
+            )
+        )
+    ),
+    redemptionRequest: Type.Optional(RedemptionRequest),
+    /** Holders who refused a redemption on the turn beginning at an action (§5.10.4). */
+    redemptionRefusals: Type.Optional(
+        Type.Object(
+            { turnStart: Type.Integer({ minimum: 0 }), playerIds: Type.Array(Id) },
+            { additionalProperties: false }
+        )
+    ),
+    /** The stock round in which each company last reissued its redeemed shares (§5.11). */
+    reissues: Type.Optional(Type.Record(Id, StockRoundNumber)),
+    /** Reissued shares' proceeds this stock round, unspendable until it ends (§5.11). */
+    lockedProceeds: Type.Optional(
+        Type.Object(
+            {
+                stockRound: StockRoundNumber,
+                amounts: Type.Record(Id, Type.Integer({ minimum: 1 }))
+            },
+            { additionalProperties: false }
+        )
+    ),
     /** Companies holding a West Virginia Coal Fields token. */
     coalRights: Type.Array(Id, { uniqueItems: true }),
     /** The latest WVCF token bought, which uses one of that turn's yellow lays. */

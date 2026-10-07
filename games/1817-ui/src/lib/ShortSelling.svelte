@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany, openShorts } from '@tabletop/18xx'
-    import CompanyActionCard from './CompanyActionCard.svelte'
-    import StockPanelHeading from './StockPanelHeading.svelte'
+    import { CompanyActionCard } from '@tabletop/18xx-ui'
+    import { StockPanelHeading } from '@tabletop/18xx-ui'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
