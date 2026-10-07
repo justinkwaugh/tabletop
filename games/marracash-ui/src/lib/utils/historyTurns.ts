@@ -11,6 +11,7 @@ import {
     type AuctionResult,
     type BringVisitors,
     type CompleteAntiqueSet,
+    type FountainId,
     type MarketColor,
     type MoveVisitors,
     type QueueEnd,
@@ -61,6 +62,17 @@ export type Bidder = { playerId: string; submitted: boolean }
 export type OpenAuction = {
     shopId: ShopId
     bidding: { participants: readonly { playerId: string; submitted?: boolean }[] }
+}
+
+export function openBidders(auction: OpenAuction): Bidder[] {
+    return auction.bidding.participants.map(({ playerId, submitted }) => ({
+        playerId,
+        submitted: submitted === true
+    }))
+}
+
+export function entranceGate(entranceId: FountainId): Gate {
+    return GateOfWallSide[wallSideOf(getFountain(entranceId).coords)]
 }
 
 export type PlayerIncome = { playerId: string; amount: number }
@@ -180,7 +192,7 @@ function historyTurn(
                 action,
                 colors: action.metadata.visitors,
                 end: action.end,
-                gate: GateOfWallSide[wallSideOf(getFountain(action.entranceId).coords)]
+                gate: entranceGate(action.entranceId)
             })
         } else if (isStartAuction(action)) {
             lines.push({
@@ -188,13 +200,7 @@ function historyTurn(
                 action,
                 color: getShop(action.shopId).color,
                 walkIns: { count: 0, income: 0 },
-                bidders:
-                    openAuction?.shopId === action.shopId
-                        ? openAuction.bidding.participants.map(({ playerId, submitted }) => ({
-                              playerId,
-                              submitted: submitted === true
-                          }))
-                        : []
+                bidders: openAuction?.shopId === action.shopId ? openBidders(openAuction) : []
             })
         } else if (isResolveAuction(action) && action.metadata) {
             const result = action.metadata

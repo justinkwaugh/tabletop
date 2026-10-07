@@ -52,12 +52,12 @@ test('clicking a shop starts its auction at once, and the auctioneer can undo it
     await expect(auctionableShops(page)).toHaveCount(25)
 
     await auctionFirstShop(page)
-    const stillToBid = actionPanel(page).getByText(/^Still to bid:/)
-    const everyone = await stillToBid.innerText()
+    const bidCount = actionPanel(page).getByText(/of 4 bids$/)
+    await expect(bidCount).toHaveText('0 of 4 bids')
     await page.getByRole('button', { name: 'Place bid' }).click()
-    await expect(stillToBid).not.toHaveText(everyone)
+    await expect(bidCount).toHaveText('1 of 4 bids')
     await undo.click()
-    await expect(stillToBid).toHaveText(everyone, { ignoreCase: true })
+    await expect(bidCount).toHaveText('0 of 4 bids')
 })
 
 test('choosing a fountain dims the board around its destinations, previews a route and Undo restores the turn', async ({

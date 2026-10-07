@@ -3,6 +3,7 @@
     import type { GameAction } from '@tabletop/common'
     import { QueueEnd, type MarketColor } from '@tabletop/marracash'
     import DirhamAmount from '$lib/components/DirhamAmount.svelte'
+    import BidSeals from '$lib/components/BidSeals.svelte'
     import HistorySign from '$lib/components/HistorySign.svelte'
     import PawnGroup from '$lib/components/PawnGroup.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -174,31 +175,11 @@
                             </div>
                         {/if}
                     {:else}
-                        {@const bidders = line.bidders}
                         <div class="line">
                             Auctioning the {@render swatch(line.color)}
                             {line.color} shop
                         </div>
-                        <div class="bids">
-                            {#each bidders as bidder (bidder.playerId)}
-                                <span class="bid">
-                                    <HistorySign
-                                        playerId={bidder.playerId}
-                                        height={SmallSignHeight}
-                                    />
-                                    <span
-                                        class="marracash-merchant"
-                                        class:submitted={bidder.submitted}
-                                        class:waiting={!bidder.submitted}
-                                        >{bidder.submitted ? '✓' : '…'}</span
-                                    >
-                                </span>
-                            {/each}
-                            <span class="bid-count marracash-merchant"
-                                >{bidders.filter((bidder) => bidder.submitted).length} of {bidders.length}
-                                bids</span
-                            >
-                        </div>
+                        <div class="bids"><BidSeals bidders={line.bidders} /></div>
                     {/if}
                 {/snippet}
                 {@render highlighted(line.action, auction)}
@@ -386,19 +367,6 @@
         display: inline-flex;
         align-items: center;
         gap: 3px;
-    }
-
-    .submitted {
-        color: #2e6b34;
-    }
-
-    .waiting {
-        color: #b7a181;
-    }
-
-    .bid-count {
-        margin-left: auto;
-        color: #6e6252;
     }
 
     .foot {
