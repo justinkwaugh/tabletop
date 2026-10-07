@@ -456,6 +456,132 @@ test.describe('scenario 30: answering another player’s request', () => {
     })
 })
 
+/** Accept or refuse Citizenship (R-6.6.1, R-6.6.2, R-9.3): the exchange as symbols and the warbands as pieces. */
+test.describe('answering an offer of Citizenship', () => {
+    const pieces = (page: Page) => grid(page).getByRole('button', { name: /^(Imperial|Removed): a warband/ })
+    const piece = (page: Page, name: string) => grid(page).getByRole('button', { name, exact: true })
+    const conversion = (page: Page) => grid(page).getByRole('img', { name: /^Your \d+ warbands become/ })
+
+    test('short: the pieces by place, the first three Imperial, and the rest removed; the line says so', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        expect((await call(page, 'tableFacts')).seatId).toBe('me')
+        await expect(grid(page)).toContainText('ann offers you Citizenship.')
+        await expect(grid(page)).not.toContainText('A question for you')
+        await expect(grid(page)).not.toContainText('the rest stay your own')
+        await expect(conversion(page)).toHaveAccessibleName(
+            'Your 5 warbands become 3 Imperial warbands; 2 are removed'
+        )
+        await expect(conversion(page)).toContainText('2 Removed')
+        await expect(grid(page).getByText('On your board', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('At Fertile Valley', { exact: true })).toBeVisible()
+
+        await expect(pieces(page)).toHaveCount(5)
+        for (const one of await pieces(page).all()) await expect(one).toBeEnabled()
+        await expect(piece(page, 'Imperial: a warband on your board')).toHaveCount(3)
+        await expect(piece(page, 'Removed: a warband at Fertile Valley')).toHaveCount(2)
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(3)
+        await expect(answer(page, 'Accept Citizenship')).toBeEnabled()
+    })
+
+    test('short: a tap on a removed piece makes it Imperial and removes the oldest pick', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        await piece(page, 'Removed: a warband at Fertile Valley').first().click()
+        await expect(piece(page, 'Imperial: a warband at Fertile Valley')).toHaveCount(1)
+        await expect(piece(page, 'Imperial: a warband on your board')).toHaveCount(2)
+        await expect(pieces(page).first()).toHaveAttribute('aria-pressed', 'false')
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(3)
+
+        await answer(page, 'Accept Citizenship').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).not.toBe('ConsentRequest')
+        const accepted = await call(page, 'tableFacts')
+        expect(accepted.boardOf.me?.imperial).toBe(2)
+        expect(accepted.boardOf.me?.me ?? 0).toBe(0)
+    })
+
+    test('none: every piece is removed and none can be tapped; Accept removes them all', async ({ page }) => {
+        await openTable(page, 'citizenshipNone')
+        await expect(conversion(page)).toHaveAccessibleName(
+            'Your 5 warbands become 0 Imperial warbands; 5 are removed'
+        )
+        await expect(conversion(page)).toContainText('5 Removed')
+        await expect(pieces(page)).toHaveCount(5)
+        for (const one of await pieces(page).all()) await expect(one).toBeDisabled()
+        await expect(grid(page).getByRole('button', { name: /^Removed: a warband/ })).toHaveCount(5)
+
+        await answer(page, 'Accept Citizenship').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).not.toBe('ConsentRequest')
+        const accepted = await call(page, 'tableFacts')
+        expect(accepted.boardOf.me?.imperial ?? 0).toBe(0)
+        expect(accepted.boardOf.me?.me ?? 0).toBe(0)
+    })
+
+    test('enough: every piece becomes Imperial and none can be tapped; the line names no loss', async ({ page }) => {
+        await openTable(page, 'citizenshipEnough')
+        await expect(conversion(page)).toHaveAccessibleName('Your 5 warbands become 5 Imperial warbands')
+        await expect(conversion(page)).not.toContainText('Removed')
+        await expect(pieces(page)).toHaveCount(5)
+        for (const one of await pieces(page).all()) await expect(one).toBeDisabled()
+        await expect(grid(page).getByRole('button', { name: /^Imperial: a warband/ })).toHaveCount(5)
+        await expect(grid(page)).not.toContainText('Removed')
+    })
+
+    test('"You give" shows what the Exile gives, its count in gold, and is gone when they give nothing', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        await expect(grid(page).getByText('You receive', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
+        const given = grid(page).getByRole('img', { name: '1 secrets', exact: true })
+        await expect(given).toBeVisible()
+        const [count, accent] = await given.evaluate((element) => {
+            const probe = document.createElement('span')
+            probe.style.color = 'var(--oath-accent)'
+            element.append(probe)
+            const colours = [
+                getComputedStyle(element.querySelector('.count') ?? element).color,
+                getComputedStyle(probe).color
+            ]
+            probe.remove()
+            return colours
+        })
+        expect(count).toBe(accent)
+
+        await openTable(page, 'citizenshipEnough')
+        await expect(grid(page).getByText('You receive', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('You give', { exact: true })).toHaveCount(0)
+    })
+
+    test('the relic is drawn as the Exile sees it, and its magnifier enlarges it', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        await grid(page).getByRole('button', { name: 'Enlarge the facedown relic on Reliquary space 1', exact: true }).click()
+        await expect(preview(page)).toBeVisible()
+        await page.mouse.click(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(3)
+    })
+
+    test('on a desktop the answers fit their label and share one width', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        const accept = await answer(page, 'Accept Citizenship').boundingBox()
+        const refuse = await answer(page, 'Refuse').boundingBox()
+        const panel = await grid(page).boundingBox()
+        expect(accept && refuse && panel).toBeTruthy()
+        if (!accept || !refuse || !panel) return
+        expect(Math.abs(accept.width - refuse.width)).toBeLessThan(1)
+        expect(accept.width + refuse.width).toBeLessThan(panel.width / 2)
+    })
+
+    test('on a phone the answers take the full width', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 812 })
+        await openTable(page, 'citizenshipShort')
+        const accept = await answer(page, 'Accept Citizenship').boundingBox()
+        const refuse = await answer(page, 'Refuse').boundingBox()
+        const panel = await grid(page).boundingBox()
+        expect(accept && refuse && panel).toBeTruthy()
+        if (!accept || !refuse || !panel) return
+        expect(Math.abs(accept.width - refuse.width)).toBeLessThan(1)
+        expect(refuse.x + refuse.width - accept.x).toBeGreaterThan(panel.width * 0.8)
+    })
+})
+
 /** Scenario 31: the defending side's losses after a won battle (R-5.5.6.a). */
 test.describe('scenario 31: choosing the defending side’s losses', () => {
     test('one row of number buttons per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
@@ -1435,7 +1561,10 @@ const FRAMED_TABLES: TableFixture.TableName[] = [
     'warbandMoveAsked',
     'joinDefenceAsked',
     'exileDefeated',
-    'imperialDefeated'
+    'imperialDefeated',
+    'citizenshipShort',
+    'citizenshipNone',
+    'citizenshipEnough'
 ]
 
 for (const name of FRAMED_TABLES) {

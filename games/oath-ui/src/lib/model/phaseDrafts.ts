@@ -22,7 +22,6 @@ import {
     canUseSitePower,
     citizenshipReplacementGroups,
     endDieIsRolled,
-    forceTotal,
     powerKey,
     requiredFavorSteps,
     usableFavor,
@@ -37,7 +36,15 @@ import {
     OathRevision,
     isAtLeastOathRevision
 } from '@tabletop/oath'
-import { assertExists, range } from '@tabletop/common'
+import { assert, assertExists, range } from '@tabletop/common'
+import {
+    citizenshipConversion,
+    pickPiece,
+    piecesByPlace,
+    replacementGroups,
+    type Conversion,
+    type PiecePlace
+} from './citizenshipAnswer.js'
 import {
     emptyPicks,
     favorBankSuits,
@@ -551,8 +558,8 @@ export class CitizenshipDraft implements PanelDraft {
     }
 }
 
-/** R-6.6.2, R-9.3 — which warbands become Imperial, when the Empire cannot cover them all. */
-export class ConsentDraft extends OneStepDraft<number[]> {
+/** R-6.6.2, R-9.3 — which of the Exile's warbands become Imperial, one entry for every pick. */
+export class ConsentDraft extends OneStepDraft<string[]> {
     private get playerId(): string | undefined {
         const pending = this.session.gameState.pendingConsent
         const playerId = this.session.liveSeatId
@@ -563,53 +570,50 @@ export class ConsentDraft extends OneStepDraft<number[]> {
             : undefined
     }
 
-    get groups(): WarbandGroup[] {
+    private get groups(): WarbandGroup[] {
         return this.playerId
             ? citizenshipReplacementGroups(this.session.gameState, this.playerId)
             : []
     }
 
-    get imperialAvailable() {
-        return availableImperialWarbands(this.session.gameState)
+    get conversion(): Conversion {
+        return citizenshipConversion(this.groups, availableImperialWarbands(this.session.gameState))
     }
 
-    get mustChoose() {
-        return this.playerId !== undefined && this.imperialAvailable < forceTotal(this.groups)
+    get places(): PiecePlace[] {
+        return piecesByPlace(this.groups)
     }
 
-    // The default fills the groups in order until the Imperial warbands run out.
-    get picked(): number[] {
-        if (!this.mustChoose) return []
+    private get pieceKeys(): string[] {
+        return this.places.flatMap((place) => place.pieces.map((piece) => piece.key))
+    }
+
+    get canPick(): boolean {
+        return this.conversion.kind === 'short'
+    }
+
+    // The default is the first pieces the Empire can cover, in the engine's order.
+    get picked(): string[] {
+        if (!this.canPick) return []
+        const keys = this.pieceKeys
         const stored = this.stored
-        if (
-            stored?.length === this.groups.length &&
-            stored.every((count, index) => count <= this.groups[index].count)
-        ) {
-            return stored
-        }
-        let left = this.imperialAvailable
-        return this.groups.map((group) => {
-            const take = Math.min(group.count, left)
-            left -= take
-            return take
-        })
+        if (stored?.every((key) => keys.includes(key))) return stored
+        return keys.slice(0, this.conversion.imperial)
     }
 
-    get pickedTotal() {
-        return this.picked.reduce((n, c) => n + c, 0)
+    isImperial(key: string): boolean {
+        return this.conversion.kind === 'enough' || this.picked.includes(key)
+    }
+
+    pick(key: string): void {
+        if (!this.canPick) return
+        assert(this.pieceKeys.includes(key), `${key} is not one of the Exile's warbands`)
+        this.store(pickPiece(this.picked, key, this.conversion.imperial))
     }
 
     get replacementChoice(): WarbandGroup[] | undefined {
-        if (!this.mustChoose) return undefined
-        return this.groups
-            .map((group, index) => ({ ...group, count: this.picked[index] ?? 0 }))
-            .filter((group) => group.count > 0)
-    }
-
-    setPicked(index: number, count: number): void {
-        const group = this.groups[index]
-        if (!this.mustChoose || !group) return
-        this.store(this.picked.with(index, Math.max(0, Math.min(count, group.count))))
+        if (this.conversion.kind === 'enough') return undefined
+        return replacementGroups(this.groups, this.picked)
     }
 
     get blockedBecause(): string | undefined {

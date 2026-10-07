@@ -426,54 +426,117 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
     })
 })
 
-/** R-6.6.2 — which warbands become Imperial, one entry for every group. */
-describe('the Citizenship replacement draft (docs/user-interactions.md)', () => {
-    const answering = () => {
-        const state = table(MachineState.ActPhase)
+/** R-6.6.2, R-9.3 — which warbands become Imperial, as pieces by place; every pick is one entry. */
+describe('the Citizenship answer draft (docs/user-interactions.md)', () => {
+    const BOARD = { kind: 'board', playerId: ME } as const
+    const SITE = { kind: 'site', siteId: 'c1' } as const
+
+    const answering = (imperial: number) => {
+        const state = table(
+            MachineState.ActPhase,
+            { warbandsOnBoard: { [ME]: 3 } },
+            { warbandsBySite: { c1: { [ME]: 2 } } }
+        )
+        state.getPlayerState(CHANCELLOR).warbandsInPersonalBank = { [IMPERIAL_WARBANDS]: imperial }
         state.pendingConsent = {
             request: { kind: ConsentRequestKind.CitizenshipOffer, exilePlayerId: ME, reliquarySlotId: 'reliquary.0' },
             askingPlayerId: CHANCELLOR,
             askedPlayerId: ME
         }
         state.activePlayerIds = [ME]
-        return opened(state).consent
+        return opened(state)
     }
+    const pieceKeys = (session: ReturnType<typeof answering>) =>
+        session.consent.places.flatMap((place) => place.pieces.map((piece) => piece.key))
 
-    it('a count on one group keeps the counts on the others', () => {
-        const consent = answering()
-        expect(consent.mustChoose).toBe(true)
-        consent.setPicked(0, 0)
-        consent.setPicked(1, 1)
-        expect(consent.picked).toEqual([0, 1])
+    it('short: the pieces by place, board first, and the first the Empire can cover picked', () => {
+        const session = answering(3)
+        const { consent } = session
+        expect(consent.conversion).toEqual({ kind: 'short', warbands: 5, imperial: 3, removed: 2 })
+        expect(consent.places.map((place) => [place.at, place.pieces.length])).toEqual([
+            [BOARD, 3],
+            [SITE, 2]
+        ])
+        expect(consent.canPick).toBe(true)
+        expect(consent.picked).toEqual(pieceKeys(session).slice(0, 3))
+        expect(consent.hasManualSelection()).toBe(false)
+        expect(consent.blockedBecause).toBeUndefined()
     })
 
-    it('Undo clears every count at once, and the default returns', () => {
-        const consent = answering()
-        const fallback = consent.picked
-        consent.setPicked(0, 0)
+    it('at the limit, a tap on another piece swaps out the oldest pick', () => {
+        const session = answering(3)
+        const { consent } = session
+        const [b1, b2, b3, v1, v2] = pieceKeys(session)
+        consent.pick(v1)
+        expect(consent.picked).toEqual([b2, b3, v1])
+        consent.pick(v2)
+        expect(consent.picked).toEqual([b3, v1, v2])
+        expect([b1, b2, b3, v1, v2].map((key) => consent.isImperial(key))).toEqual([
+            false,
+            false,
+            true,
+            true,
+            true
+        ])
+        expect(consent.hasManualSelection()).toBe(true)
+    })
+
+    it('a tap on a picked piece untaps it, and the engine refuses fewer than the Empire covers', () => {
+        const session = answering(3)
+        const { consent } = session
+        const [b1, b2, b3, v1] = pieceKeys(session)
+        consent.pick(b1)
+        expect(consent.picked).toEqual([b2, b3])
+        expect(consent.blockedBecause).toMatch(/must choose exactly 3 warbands to replace, not 2/)
+        consent.pick(v1)
+        expect(consent.picked).toEqual([b2, b3, v1])
+        expect(consent.blockedBecause).toBeUndefined()
+    })
+
+    it('Undo clears every pick at once, and the default returns', () => {
+        const session = answering(3)
+        const { consent } = session
+        const keys = pieceKeys(session)
+        consent.pick(keys[3])
+        consent.pick(keys[4])
         expect(consent.back()).toBe(true)
-        expect(consent.picked).toEqual(fallback)
+        expect(consent.picked).toEqual(keys.slice(0, 3))
         expect(consent.back()).toBe(false)
     })
 
-    it('the default fill is not a pick', () => {
-        const consent = answering()
-        expect(consent.pickedTotal).toBe(1)
-        expect(consent.hasManualSelection()).toBe(false)
+    it('none: every piece is removed and none can be picked; the answer names no warbands', () => {
+        const session = answering(0)
+        const { consent } = session
+        expect(consent.conversion).toEqual({ kind: 'none', warbands: 5, imperial: 0, removed: 5 })
+        expect(consent.canPick).toBe(false)
+        consent.pick(pieceKeys(session)[0])
+        expect(consent.picked).toEqual([])
+        expect(pieceKeys(session).some((key) => consent.isImperial(key))).toBe(false)
+        expect(consent.replacementChoice).toEqual([])
+        expect(consent.blockedBecause).toBeUndefined()
     })
 
-    it('a count is held to its group', () => {
-        const consent = answering()
-        consent.setPicked(0, 9)
-        expect(consent.picked[0]).toBeLessThanOrEqual(consent.groups[0].count)
+    it('enough: every piece becomes Imperial and none can be picked; the answer names no choice', () => {
+        const session = answering(5)
+        const { consent } = session
+        expect(consent.conversion).toEqual({ kind: 'enough', warbands: 5, imperial: 5, removed: 0 })
+        expect(consent.canPick).toBe(false)
+        expect(pieceKeys(session).every((key) => consent.isImperial(key))).toBe(true)
+        expect(consent.replacementChoice).toBeUndefined()
+        expect(consent.blockedBecause).toBeUndefined()
     })
 
-    it('recounting a group replaces its count only', () => {
-        const consent = answering()
-        consent.setPicked(0, 1)
-        consent.setPicked(1, 0)
-        consent.setPicked(0, 0)
-        expect(consent.picked).toEqual([0, 0])
+    it('Accept sends the picks as warband groups by place, as the engine reads them; Refuse sends none', async () => {
+        const session = answering(3)
+        const sent = vi.spyOn(session, 'answerCitizenshipOffer').mockResolvedValue()
+        session.consent.pick(pieceKeys(session)[3])
+        await session.consent.answer(true)
+        expect(sent).toHaveBeenLastCalledWith(true, [
+            { at: BOARD, owner: ME, count: 2 },
+            { at: SITE, owner: ME, count: 1 }
+        ])
+        await session.consent.answer(false)
+        expect(sent).toHaveBeenLastCalledWith(false, undefined)
     })
 })
 
