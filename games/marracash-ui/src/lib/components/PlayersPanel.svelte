@@ -24,7 +24,8 @@
     })
 </script>
 
-<div class="flex shrink-0 grow-0 flex-col gap-2 rounded-lg">
+<!-- Padded so the turn ring and glow round the active panel aren't clipped by the scrolling tab -->
+<div class="flex shrink-0 grow-0 flex-col gap-2 rounded-lg p-1.5">
     {#each seated as entry (entry.player.id)}
         <PlayerState player={entry.player} playerState={entry.playerState} />
     {/each}
