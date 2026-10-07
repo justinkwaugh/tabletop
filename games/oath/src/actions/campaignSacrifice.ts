@@ -16,7 +16,13 @@ import { concludeCampaign } from '../util/campaignEnd.js'
 import { MachineState } from '../definition/states.js'
 import { isImperialPlayer, rulingWarbandOwners } from '../util/rule.js'
 import { scopeOf } from '../util/campaign.js'
-import { BANDITS_PLAN_USER, plansUsedBy, sideOf, defendingPlayerIds } from '../util/battlePlans.js'
+import {
+    BANDITS_PLAN_USER,
+    ignoresKillAll,
+    plansUsedBy,
+    playerIdsOnSide,
+    sideOf
+} from '../util/battlePlans.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
 import { WarbandGroup, type CampaignState } from '../model/campaign.js'
@@ -270,7 +276,7 @@ export class HydratedCampaignSacrifice
         victorSide: BattlePlanSide,
         survivors: readonly WarbandGroup[]
     ): string | undefined {
-        for (const playerId of HydratedCampaignSacrifice.playerIdsOn(campaign, victorSide)) {
+        for (const playerId of playerIdsOnSide(campaign, victorSide)) {
             for (const plan of plansUsedBy(state, campaign, playerId)) {
                 const take = plan.hooks.takesEnemySurvivors
                 if (take) {
@@ -279,12 +285,6 @@ export class HydratedCampaignSacrifice
             }
         }
         return undefined
-    }
-
-    private static playerIdsOn(campaign: CampaignState, side: BattlePlanSide): string[] {
-        return side === BattlePlanSide.Attacker
-            ? [campaign.attackerPlayerId]
-            : defendingPlayerIds(campaign)
     }
 
     static sacrificeNeeded(campaign: CampaignState): number {
@@ -431,22 +431,18 @@ export class HydratedCampaignSacrifice
     ): number {
         const total = forceTotal(defeated)
         const attackerLost = defeated !== campaign.defendingForce
-        const losers = HydratedCampaignSacrifice.playerIdsOn(
-            campaign,
-            attackerLost ? BattlePlanSide.Attacker : BattlePlanSide.Defender
-        )
-        const rules = losers
+        const loserSide = attackerLost ? BattlePlanSide.Attacker : BattlePlanSide.Defender
+        const rules = playerIdsOnSide(campaign, loserSide)
             .flatMap((id) => plansUsedBy(state, campaign, id))
             .map((p) => p.hooks.defeatKills)
         // Peace Envoy — "ignore killing warbands", for either side.
         if (campaign.ignoreDefeatKills) return 0
+        // R-9.2 — from revision 5, checked before Sticky Fire's kill.
+        if (ignoresKillAll(state, campaign, loserSide)) return 0
         // Sticky Fire — the victor burns the whole enemy force.
-        const winners = HydratedCampaignSacrifice.playerIdsOn(
-            campaign,
-            attackerLost ? BattlePlanSide.Defender : BattlePlanSide.Attacker
-        )
+        const winnerSide = attackerLost ? BattlePlanSide.Defender : BattlePlanSide.Attacker
         if (
-            winners
+            playerIdsOnSide(campaign, winnerSide)
                 .flatMap((id) => plansUsedBy(state, campaign, id))
                 .some((p) => p.hooks.killsEnemyForce)
         )

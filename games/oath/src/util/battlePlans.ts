@@ -401,3 +401,24 @@ export function plansUsedBy(
     }
     return found
 }
+
+/** R-5.5.2.a — the attacker alone, or the defender and their allies. */
+export function playerIdsOnSide(campaign: CampaignState, side: BattlePlanSide): string[] {
+    return side === BattlePlanSide.Attacker
+        ? [campaign.attackerPlayerId]
+        : defendingPlayerIds(campaign)
+}
+
+/** Billowing Fog, Traveling Doctor — "ignore powers that kill all of your force" (R-9.2). */
+export function ignoresKillAll(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    side: BattlePlanSide
+): boolean {
+    return (
+        isAtLeastOathRevision(state, OathRevision.EngineFixes2) &&
+        playerIdsOnSide(campaign, side)
+            .flatMap((id) => plansUsedBy(state, campaign, id))
+            .some((plan) => plan.hooks.defeatKills === 'none')
+    )
+}
