@@ -470,21 +470,22 @@ registerEffect(
             i === 0
                 ? one(PowerChoiceKind.Warbands, {
                       what: 'warbands to move',
-                      domain: messengerSources
+                      domain: messengerSources,
+                      sequential: true
                   })
                 : optional(PowerChoiceKind.Warbands, {
                       what: 'more warbands to move',
-                      domain: messengerSources
+                      domain: messengerSources,
+                      sequential: true
                   }),
             optional(PowerChoiceKind.Site, {
                 what: 'a site you rule to move them to',
-                domain: siteChoicesYouRule
+                domain: siteChoicesYouRule,
+                sequential: true
             })
         ]).flat(),
-        reasonCannotResolve: (ctx) => {
-            const clone = new HydratedOathGameState(ctx.state.dehydrate())
-            return applyMessengerMoves(clone, ctx.playerId, ctx.choices).reason
-        },
+        reasonCannotResolve: (ctx) => messengerMovesOnCopy(ctx).reason,
+        stateAfter: (ctx) => messengerMovesOnCopy(ctx).state,
         resolve: (ctx) => ({
             summary: applyMessengerMoves(ctx.state, ctx.playerId, ctx.choices).summary
         })
@@ -520,6 +521,14 @@ function messengerSources(
         }
     }
     return out
+}
+
+function messengerMovesOnCopy(ctx: EffectContext): {
+    state: HydratedOathGameState
+    reason?: string
+} {
+    const copy = new HydratedOathGameState(ctx.state.dehydrate())
+    return { state: copy, reason: applyMessengerMoves(copy, ctx.playerId, ctx.choices).reason }
 }
 
 function applyMessengerMoves(
