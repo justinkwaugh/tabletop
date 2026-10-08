@@ -449,6 +449,9 @@
 .board-surface {
     border-radius: 14px;
     overflow: hidden;
+    /* Its own stacking context, so a square lifted above its neighbours while it pops still
+       sits beneath the sunlight drawn over the whole board. */
+    isolation: isolate;
     box-shadow:
         0 0 0 5px rgba(58, 28, 10, 0.32),
         0 10px 22px rgba(30, 14, 4, 0.35);
