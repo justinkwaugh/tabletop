@@ -1,5 +1,4 @@
-import { removeFavorFromBoard } from '../util/favor.js'
-import { burnFavor } from '../util/burn.js'
+import { burnHalfTheirFavor } from '../util/burn.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -34,6 +33,8 @@ import { pawnSiteId } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { askPowerMoveToll, powerMoveToll } from '../util/powerMoveTolls.js'
+import { PowerMoveKind, PowerMoveToll, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 
 /** R-5.5.7.I */
 export type CampaignPlacement = Type.Static<typeof CampaignPlacement>
@@ -67,7 +68,9 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
-    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
+    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** Toll Roads on the banish. */
+    tollMove: Type.Optional(PowerMoveToll)
 })
 
 export type CampaignResolveVictory = Type.Static<typeof CampaignResolveVictory>
@@ -137,10 +140,8 @@ export class HydratedCampaignResolveVictory
         )
         // R-7.1.4 — "after a player takes any relics" (Relic Thief).
         const relicNotes = afterRelicsTakenPersistent(state, campaign.attackerPlayerId, relicsTaken)
-        const { banishedToSiteId, favorBurned, revealed, banishNotes } = this.banishAndBurn(
-            state,
-            campaign
-        )
+        const { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove } =
+            this.banishAndBurn(state, campaign)
         // R-5.5.8 — the victorious attacker's "if you're victorious" plans, after R-5.5.7.
         const victoryPlans = HydratedCampaignSacrifice.runOutcomeHooks(
             state,
@@ -173,7 +174,8 @@ export class HydratedCampaignResolveVictory
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
             resumeMachineState: conclusion.resumeMachineState,
-            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined
+            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
+            tollMove
         }
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
         if (this.metadata.pileDeposits) this.revealsInfo = true
@@ -245,14 +247,29 @@ export class HydratedCampaignResolveVictory
                 banishedToSiteId: undefined,
                 favorBurned: 0,
                 revealed: undefined,
-                banishNotes: []
+                banishNotes: [],
+                tollMove: undefined
             }
         }
 
         let banishedToSiteId: string | undefined
         let revealed: SiteFlip | undefined
         let banishNotes: string[] = []
-        if (this.banishToSiteId) {
+        // Toll Roads — the banished player gives the favor or refuses, and refusing keeps them here.
+        const toll = this.banishToSiteId
+            ? powerMoveToll(state, defender.playerId, this.banishToSiteId)
+            : undefined
+        let tollMove: PowerMoveToll | undefined
+        if (this.banishToSiteId && toll) {
+            const move = {
+                move: PowerMoveKind.Banish,
+                moverPlayerId: campaign.attackerPlayerId,
+                movedPlayerId: defender.playerId,
+                toSiteId: this.banishToSiteId,
+                burnFavor: this.burnFavor || undefined
+            }
+            tollMove = askPowerMoveToll(state, move, toll, campaign.attackerPlayerId)
+        } else if (this.banishToSiteId) {
             // R-5.6.2 via R-5.5.7.III; Grasping Vines, Boiling Lake.
             const moved = travelByPower(state, defender.playerId, this.banishToSiteId)
             revealed = moved.revealed
@@ -272,18 +289,12 @@ export class HydratedCampaignResolveVictory
             })
         }
 
-        let favorBurned = 0
-        if (this.burnFavor) {
-            favorBurned = removeFavorFromBoard(
-                state,
-                defender.playerId,
-                HydratedCampaignResolveVictory.favorToBurn(state)
-            )
-            // R-10.4 — burned favor goes to the shared bank, not a suit bank.
-            burnFavor(state, favorBurned)
-        }
+        // R-5.5.7.III — the travel, then the burn: an asked toll's answer comes first.
+        const burnWaits = tollMove?.outcome === PowerMoveTollOutcome.Asked
+        const favorBurned =
+            this.burnFavor && !burnWaits ? burnHalfTheirFavor(state, defender.playerId) : 0
 
-        return { banishedToSiteId, favorBurned, revealed, banishNotes }
+        return { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove }
     }
 
     static reasonCannotResolveVictory(

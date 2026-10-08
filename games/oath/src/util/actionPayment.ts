@@ -2,6 +2,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { usableFavor } from './favor.js'
 import { favorNeeded, secretsNeeded } from './powerCost.js'
 import type { ActiveModifier } from './modifiers.js'
+import type { PowerCost } from '../data/cardPowers.js'
 
 /** R-7.1.2 — favor and secrets an action takes from its player, wherever they go. */
 export interface ActionPayment {
@@ -17,12 +18,17 @@ export function secretPayment(secrets: number): ActionPayment {
     return { favor: 0, secrets }
 }
 
+/** R-7.1.2 */
+export function costPayment(cost: PowerCost): ActionPayment {
+    return { favor: favorNeeded(cost), secrets: secretsNeeded(cost) }
+}
+
 /** R-7.4.1 — a mandatory modifier is not declared, so it is not paid. */
 export function modifierPayment(active: readonly ActiveModifier[]): ActionPayment {
-    const declared = active.filter((m) => !m.mandatory)
+    const payments = active.filter((m) => !m.mandatory).map((m) => costPayment(m.power.cost))
     return {
-        favor: declared.reduce((n, m) => n + favorNeeded(m.power.cost), 0),
-        secrets: declared.reduce((n, m) => n + secretsNeeded(m.power.cost), 0)
+        favor: payments.reduce((n, p) => n + p.favor, 0),
+        secrets: payments.reduce((n, p) => n + p.secrets, 0)
     }
 }
 

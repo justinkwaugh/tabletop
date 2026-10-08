@@ -5,6 +5,7 @@ import { MachineState } from '../definition/states.js'
 import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
 import { WarbandOwner } from './warbandCounts.js'
+import { PowerMoveKind } from './powerMoveToll.js'
 
 export const AskedPlayerPolicy = 'oath.askedPlayer'
 
@@ -150,7 +151,9 @@ export enum PowerQuestionKind {
     /** R-11.7 — the ruler of a Shrouded Wood chooses where a pawn leaving it goes. */
     ShroudedWoodDestination = 'shroudedWoodDestination',
     /** Law Glossary "Discard" — the order several cards go onto one pile. */
-    OrderDiscards = 'orderDiscards'
+    OrderDiscards = 'orderDiscards',
+    /** Toll Roads — a power moves the asked player into its ruler's site: give the favor, or refuse and stay. */
+    PayTravelToll = 'payTravelToll'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -360,6 +363,20 @@ export const PowerQuestion = Type.Union([
         /** Cards leaving play faceup, so their order is public. */
         cardIds: Type.Array(Type.String(), { maxItems: 16 }),
         fromRegion: Type.Enum(Region)
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayTravelToll),
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** Absent: the bandits rule the card, so the favor is burned. */
+        payeeId: Type.Optional(Type.String()),
+        move: Type.Enum(PowerMoveKind),
+        powerCardId: Type.Optional(Type.String()),
+        moverPlayerId: Type.String(),
+        fromSiteId: Type.String(),
+        siteId: Type.String(),
+        /** R-5.5.7.III — the attacker's burn, which waits on the answer. */
+        burnFavor: Type.Optional(Type.Boolean())
     })
 ])
 
@@ -434,7 +451,8 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.OrderDiscards),
         order: Type.Array(Type.Number(), { maxItems: 16 })
-    })
+    }),
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.PayTravelToll), pay: Type.Boolean() })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

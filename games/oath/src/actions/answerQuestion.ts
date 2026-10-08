@@ -8,6 +8,7 @@ import { PowerQuestionKind, QuestionAnswer, ShroudedWoodPick } from '../model/qu
 import { Region } from '../model/oathEnums.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
+import { PowerMoveToll } from '../model/powerMoveToll.js'
 import { currentQuestion, resumeStateAfterQuestions } from '../util/questions.js'
 import { applyAnswer, reasonCannotAnswer } from '../util/questionAnswers.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
@@ -32,7 +33,9 @@ export const AnswerQuestionMetadata = Type.Object({
     // Skeleton Key
     relicTakenFromSlotId: Type.Optional(Type.String()),
     /** R-11.7 */
-    woodPick: Type.Optional(ShroudedWoodPick)
+    woodPick: Type.Optional(ShroudedWoodPick),
+    // Toll Roads on a power's move
+    tollMove: Type.Optional(PowerMoveToll)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -95,7 +98,8 @@ export class HydratedAnswerQuestion
             discardPileRegion: outcome.discardPileRegion,
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
-            woodPick: outcome.woodPick
+            woodPick: outcome.woodPick,
+            tollMove: outcome.tollMove
         }
         commitHiddenOutputs(this, state, witnesses)
     }

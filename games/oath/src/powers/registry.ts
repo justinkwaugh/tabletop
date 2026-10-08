@@ -15,6 +15,7 @@ import type { RollRules, WarbandGroup } from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
+import type { TollOccasion } from '../util/tolls.js'
 import { assert } from '@tabletop/common'
 import type { ChoiceSpec, PowerChoice, PowerChoiceKind } from '../util/powerChoice.js'
 export interface ModifierParticulars {
@@ -348,6 +349,8 @@ export interface EffectDefinition {
     /** The vault's answer reaches `resolve` as `ctx.reveal`. */
     hidden?: (ctx: EffectContext) => HiddenRequest | undefined
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
+    /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
+    tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
     /** A copy of the state as `ctx.choices` leave it, which `sequential` choices are read on. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState

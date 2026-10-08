@@ -22,7 +22,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Salad Days:** accepts an empty favor bank (R-7.1.3).
 - **The Tribunal:** its exchange binds what changes hands at once, not promises of later actions (R-7.6.3-H1).
 - **Vow of Kinship:** Nomad-bank favor is always put into the People's Favor Wake, and Plague Engines and Dissent force it too; its Q&A makes it optional.
-- **Forced Labor:** not charged for Oracle's draw, and in a game created before revision 3 (R-X.4) not for an R-6.1 play either; both Q&As charge it.
+- **Forced Labor:** in a game created before revision 6 (R-X.4) not charged for Oracle's draw, and before revision 3 not for an R-6.1 play either; both Q&As charge it.
 - **R-6.1:** in a game created before revision 2 (R-X.4), a facedown adviser's play takes no Search modifier, so Book of Records' holder gains favor on a site play and New Growth, Crop Rotation, Wild Cry, Bracken and Cracked Horn cannot be used on it. From revision 2 the engine applies them, but the table offers no way to declare an optional one on that play; Book of Records, being mandatory, applies by itself.
 - **Relic Hunter:** cannot put on the bottom a relic the defender held; only relics taken from sites.
 - **Encirclement, Zealots:** in a game created before revision 5 (R-X.4) they count only the attacker's board, not the whole force (R-10.9), and an attacker's plan judges the defending force from the attacker's pawn, not the site Wild Allies or Captains names.
@@ -31,7 +31,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Warning Signals:** warbands moved from the board all go to one site per use.
-- **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse), nor, at any revision, on a Travel out of a Shrouded Wood an enemy rules, whose ruler may pick a Toll Roads site.
+- **Toll Roads:** in a game created before revision 6 (R-X.4), never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, a Shrouded Wood ruler's pick, Brass Horse). At any revision, never asked or paid on a Travel out of a Shrouded Wood an enemy rules, whose ruler may pick a Toll Roads site. From revision 6, a pawn banished from a Shrouded Wood has its favor burned before the ruler picks the site (R-5.5.7.III travels first), so a toll asked after the pick comes out of what the burn left; and Palanquin's user has already moved when its carried player, leaving a Shrouded Wood, refuses the toll.
 - **Ring of Devotion:** its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
 - **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
