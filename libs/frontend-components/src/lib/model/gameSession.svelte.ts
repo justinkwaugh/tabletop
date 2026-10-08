@@ -76,6 +76,11 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
 
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
+export type ViewerPerspective = {
+    player: Player | undefined
+    isMyTurn: boolean
+}
+
 export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
     static readonly supportsDeferredHistory = true
     historyLoading = $state(false)
@@ -319,49 +324,50 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.adminChoice =
             playerId === undefined ? undefined : { activation: this.adminActivation, playerId }
     }
-    adminPlayerId: string | undefined = $derived.by(() => {
+    adminPlayerId: string | undefined = $derived.by(() => this.adminPlayerIdIn(this.gameState))
+
+    private adminPlayerIdIn(state: U): string | undefined {
         if (!this.isActingAdmin) {
             return undefined
         }
 
-        const chosenPlayer = this.activePlayers.find(
-            (player) => player.id === this.chosenAdminPlayerId
-        )
+        const activePlayers = this.getActivePlayers(state)
+        const chosenPlayer = activePlayers.find((player) => player.id === this.chosenAdminPlayerId)
         if (chosenPlayer) {
             return chosenPlayer.id
         }
 
-        if (this.activePlayers.length === 1) {
-            return this.activePlayers[0].id
+        if (activePlayers.length === 1) {
+            return activePlayers[0].id
         }
         return undefined
-    })
+    }
 
     private playerNamesById = $derived(
         new Map(this.game.players.map((player) => [player.id, player.name]))
     )
 
-    activePlayers: Player[] = $derived.by(() => this.getActivePlayers())
+    activePlayers: Player[] = $derived.by(() => this.getActivePlayers(this.gameState))
 
-    protected getActivePlayers(): Player[] {
-        return this.game.players.filter((player) =>
-            this.gameState.activePlayerIds.includes(player.id)
-        )
+    protected getActivePlayers(state: U): Player[] {
+        return this.game.players.filter((player) => state.activePlayerIds.includes(player.id))
     }
 
-    private nonActivePlayer: Player | undefined = $derived.by(() =>
-        this.findNonActivePlayer(this.gameState)
-    )
-
-    canViewAsNonActivePlayer: boolean = $derived(
-        this.hostPerspective === undefined &&
-            this.game.hotseat &&
-            this.nonActivePlayer !== undefined
+    canViewAsNonActivePlayer: boolean = $derived.by(() =>
+        this.canViewAsNonActivePlayerIn(this.gameState)
     )
 
     isViewingAsNonActivePlayer: boolean = $derived(
         this.nonActivePlayerViewEnabled && this.canViewAsNonActivePlayer
     )
+
+    private canViewAsNonActivePlayerIn(state: U): boolean {
+        return (
+            this.hostPerspective === undefined &&
+            this.game.hotseat &&
+            this.findNonActivePlayer(state) !== undefined
+        )
+    }
 
     myPrimaryPlayer: Player | undefined = $derived.by(() => {
         if (this.hostPerspective !== undefined) {
@@ -379,17 +385,31 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     numPlayers: number = $derived.by(() => this.gameState.numPlayers)
 
-    myPlayer: Player | undefined = $derived.by(() => {
-        if (this.isViewingAsNonActivePlayer) {
-            return this.nonActivePlayer
+    myPlayer: Player | undefined = $derived.by(() => this.perspectiveIn(this.gameState).player)
+
+    // The perspective the session presents while `state` is visible, including once a state that is
+    // still animating in is published, so a Game UI can preview what that state will show.
+    perspectiveIn(state: U): ViewerPerspective {
+        const player = this.viewingPlayerIn(state)
+        return { player, isMyTurn: this.isMyTurnIn(state, player) }
+    }
+
+    private isViewingAsNonActivePlayerIn(state: U): boolean {
+        return this.nonActivePlayerViewEnabled && this.canViewAsNonActivePlayerIn(state)
+    }
+
+    private viewingPlayerIn(state: U): Player | undefined {
+        if (this.isViewingAsNonActivePlayerIn(state)) {
+            return this.findNonActivePlayer(state)
         }
 
         if (this.isExploring) {
-            return this.activePlayers.at(0)
+            return this.getActivePlayers(state).at(0)
         }
 
-        if (this.isActingAdmin && this.adminPlayerId) {
-            return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
+        const adminPlayerId = this.adminPlayerIdIn(state)
+        if (this.isActingAdmin && adminPlayerId) {
+            return this.gameContext.game.players.find((player) => player.id === adminPlayerId)
         }
 
         if (this.hostPerspective !== undefined && !this.isViewingHost) {
@@ -397,7 +417,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (this.gameContext.game.hotseat) {
-            return this.activePlayers.at(0)
+            return this.getActivePlayers(state).at(0)
         }
 
         const sessionUser = this.sessionUserStore.current
@@ -406,7 +426,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         return this.gameContext.game.players.find((player) => player.userId === sessionUser.id)
-    })
+    }
 
     chatMessagePlayer: Player | undefined = $derived.by(() =>
         this.primaryGame.hotseat && this.chatAvailable ? this.myPlayer : this.myPrimaryPlayer
@@ -437,8 +457,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.gameState.findPlayerState(currentTurn.playerId)
     })
 
-    isMyTurn: boolean = $derived.by(() => {
-        if (this.isViewingAsNonActivePlayer) {
+    isMyTurn: boolean = $derived.by(() => this.perspectiveIn(this.gameState).isMyTurn)
+
+    private isMyTurnIn(state: U, myPlayer: Player | undefined): boolean {
+        if (this.isViewingAsNonActivePlayerIn(state)) {
             return false
         }
 
@@ -450,15 +472,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return true
         }
 
-        const myPlayer = this.myPlayer
         if (!myPlayer) {
             return false
         }
-        const isMyPlayerActive =
-            this.activePlayers.find((player) => player.id === myPlayer.id) != undefined
-
-        return isMyPlayerActive
-    })
+        return this.getActivePlayers(state).some((player) => player.id === myPlayer.id)
+    }
 
     validActionTypes: string[] = $derived.by(() => {
         if (!this.myPlayer) {
@@ -934,6 +952,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     beforeNewState() {}
+
+    // The state the exposed gameState is moving to. While a transition animates, which can span a
+    // chain of actions, this is where the chain ends; otherwise it equals gameState.
+    get incomingGameState(): U {
+        return this.currentVisibleGameState
+    }
 
     private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
         const animationContext = new AnimationContext()
