@@ -1,5 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
+import { PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS, type WarbandOwner } from '../model/warbandCounts.js'
 import type { WarbandGroup, WarbandLocation } from '../model/campaign.js'
 import {
     totalWarbands,
@@ -9,6 +10,7 @@ import {
     warbandEntries
 } from './warbands.js'
 import { ownWarbandOwner, warbandsAt } from './rule.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-10.9 — recorded when computed, since R-5.5.6 moves the board afterwards. */
 
@@ -235,6 +237,22 @@ export function takeFromGroups(groups: readonly WarbandGroup[], limit: number): 
     return taken
 }
 
+/** R-5.2.2, R-6.6.2 — a Citizen has no colour of their own: they gain the Empire's warbands. */
+export function warbandOwnerGainedBy(state: HydratedOathGameState, playerId: string): WarbandOwner {
+    if (state.getPlayerState(playerId).status === PlayerStatus.Citizen) return IMPERIAL_WARBANDS
+    return ownWarbandOwner(state, playerId)
+}
+
+/** R-6.6.2, R-X.4 — in games created before revision 5 a power gave a Citizen their own colour. */
+export function warbandOwnerGainedByPower(
+    state: HydratedOathGameState,
+    playerId: string
+): WarbandOwner {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+        ? warbandOwnerGainedBy(state, playerId)
+        : ownWarbandOwner(state, playerId)
+}
+
 /** R-10.10 — capped by R-9.3. */
 export function gainWarbandsToBoard(
     state: HydratedOathGameState,
@@ -244,18 +262,19 @@ export function gainWarbandsToBoard(
     return gainWarbandsWithOwner(state, playerId, count).gained
 }
 
+/** R-10.10 — from the bank that holds `owner`'s warbands (R-10.13), capped by R-9.3. */
 export function gainWarbandsWithOwner(
     state: HydratedOathGameState,
     playerId: string,
-    count: number
+    count: number,
+    owner: WarbandOwner = warbandOwnerGainedByPower(state, playerId)
 ): { owner?: WarbandOwner; gained: number } {
-    const player = state.getPlayerState(playerId)
-    const own = ownWarbandOwner(state, playerId)
-    const available = countOf(player.warbandsInPersonalBank, own)
+    const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
+    const available = countOf(bank, owner)
     const gained = Math.max(0, Math.min(count, available))
-    player.warbandsInPersonalBank[own] = available - gained
-    addWarbandsToBoard(state, playerId, own, gained)
-    return { owner: gained > 0 ? own : undefined, gained }
+    bank[owner] = available - gained
+    addWarbandsToBoard(state, playerId, owner, gained)
+    return { owner: gained > 0 ? owner : undefined, gained }
 }
 
 /** R-5.5.6 — every survivor goes to its board, so only owners and boards tell the losses apart. */

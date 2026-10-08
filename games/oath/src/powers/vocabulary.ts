@@ -25,7 +25,11 @@ import { pawnSiteId, playersAt, regionOfPawn } from '../util/pawn.js'
 
 export { gainFavorFromBank, takeFavorFromPlayer } from '../util/favor.js'
 export { pawnSiteId, regionOfPawn } from '../util/pawn.js'
-export { gainWarbandsToBoard, gainWarbandsWithOwner } from '../util/force.js'
+export {
+    gainWarbandsToBoard,
+    gainWarbandsWithOwner,
+    warbandOwnerGainedByPower
+} from '../util/force.js'
 export { denizensOnMap } from '../util/access.js'
 export { rollDefenseShields } from '../data/dice.js'
 
