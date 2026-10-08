@@ -41,6 +41,9 @@ import {
     Search,
     SearchPlay,
     shroudedWoodChooser,
+    isFreeTravelNow,
+    payableWoodPicks,
+    woodTravelPaysAtPick,
     SearchResolve,
     SelfExile,
     SetupChoice,
@@ -80,6 +83,7 @@ import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
+import { woodRegions, type WoodRegion } from './woodTravel.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -1208,6 +1212,22 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return undefined
         return shroudedWoodChooser(this.gameState, playerId)
+    }
+
+    /** R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick. */
+    get woodRegions(): WoodRegion[] | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || !this.shroudedWoodChooser || !woodTravelPaysAtPick(this.gameState)) {
+            return undefined
+        }
+        const picks = payableWoodPicks(this.gameState, playerId, this.woodTravelIsFree)
+        return woodRegions(this.gameState, picks)
+    }
+
+    /** Second Wind, Brass Horse */
+    get woodTravelIsFree(): boolean {
+        const playerId = this.liveTurnSeatId
+        return playerId !== undefined && isFreeTravelNow(this.gameState, playerId)
     }
 
     get woodTravelReason(): string | undefined {

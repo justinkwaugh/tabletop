@@ -15,6 +15,7 @@ import {
     freeActionTypesNow,
     reasonFreeActionComesFirst,
     usableFavor,
+    shroudedWoodChooser,
     type HydratedOathGameState
 } from '@tabletop/oath'
 import type { MajorAction, MajorEntry } from './actionCatalogue.js'
@@ -31,6 +32,10 @@ export function reasonActionUnavailable(
 
     switch (type) {
         case ActionType.Travel: {
+            // R-11.7 — leaving an enemy's Shrouded Wood names no site.
+            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+                return HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, {})
+            }
             if (HydratedTravel.legalDestinations(gameState, playerId).length > 0) return undefined
             return player.siteId
                 ? 'no destination you can afford — the cheapest Travel is 1 Supply'

@@ -67,6 +67,7 @@ import {
     tableOf,
     type PlayedTable
 } from './sessionHarness.js'
+import { shroudedWoodState } from './shroudedWoodTable.js'
 
 export type TableName =
     | 'setup'
@@ -138,6 +139,8 @@ export type TableName =
     | 'tavernSongs'
     | 'usurperWins'
     | 'deedWriter'
+    | 'woodTraveller'
+    | 'woodRuler'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -2198,6 +2201,13 @@ function selfExileTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-11.7 — Cole asked where Jacob goes from the Shrouded Wood Cole rules. */
+function woodRulerTable(): PlayedTable {
+    const state = shroudedWoodState(2, { onBoard: true })
+    const table = tableOf(state)
+    return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Jacob' })])
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     warbandGiveAsked: warbandGiveAskedTable,
     offerCitizenship: () => offerCitizenshipTable(false),
@@ -2267,7 +2277,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,
     usurperWins: usurperWinsTable,
-    deedWriter: deedWriterTable
+    deedWriter: deedWriterTable,
+    woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
+    woodRuler: woodRulerTable
 }
 
 /** Every table a scenario can open. */

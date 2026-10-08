@@ -47,6 +47,7 @@ import {
     type CampaignTarget,
     Suit,
     type LetPeek,
+    type ShroudedWoodPick,
     type Search,
     type UseActionPower,
     type ResolveWake,
@@ -106,7 +107,12 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
 
 export function rowActorOf(action: GameAction): string | undefined {
     if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
-    return action.playerId
+    return woodTravelerOf(action) ?? action.playerId
+}
+
+/** R-11.7 — the ruler's pick settles the traveller's Travel, so the row is the traveller's. */
+function woodTravelerOf(action: GameAction): string | undefined {
+    return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
 }
 
 /**
@@ -124,7 +130,9 @@ export function rowWarbandOwner(
     const seat =
         (isUseActionPower(action) || isUseRestPower(action)
             ? action.metadata?.targetPlayerId
-            : undefined) ?? action.playerId
+            : undefined) ??
+        woodTravelerOf(action) ??
+        action.playerId
     return seat === undefined ? undefined : ownWarbandsOf(seat)
 }
 
@@ -168,6 +176,7 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
     }
     if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
+    if (isAnswerQuestion(action)) return action.metadata?.woodPick?.warbandOwner
     return undefined
 }
 
@@ -342,7 +351,9 @@ function describeActionCited(
         // R-11.7 — the Shrouded Wood's ruler names the site in their answer.
         if (action.siteId === undefined) {
             const chooser = meta?.destinationChooser
-            return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${chooser ? nameOf(chooser) : 'its ruler'} chooses where`
+            const ruler = chooser ? nameOf(chooser) : 'its ruler'
+            if (meta?.paysAtPick) return `set out from the Shrouded Wood; ${ruler} picks where`
+            return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${ruler} chooses where`
         }
         return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}`
     }
@@ -497,6 +508,7 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
+        if (meta?.woodPick) return describeWoodPick(meta.woodPick, action.playerId, names, viewerId)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
             : 'answered a question'
@@ -561,6 +573,27 @@ function describeActionCited(
             : `took the Oathkeeper title from ${nameOf(action.fromPlayerId)}`
     }
     return UNDESCRIBED
+}
+
+/** R-11.7 — the traveller's row: where the ruler sent them, what they paid, and what fired there. */
+function describeWoodPick(
+    pick: ShroudedWoodPick,
+    rulerId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    const site = (slotId: string) => {
+        const name = names.site(slotId)
+        return name.startsWith('a ') ? name : `the ${name}`
+    }
+    const paid = pick.supplySpent > 0 ? String(pick.supplySpent) : 'no'
+    const notes = (pick.notes ?? []).map((note) => `; ${nameIds(note, site)}`).join('')
+    return nameSeats(
+        `left the Shrouded Wood for ${site(pick.siteId)} (${rulerId}'s pick), paying ${paid} Supply${notes}`,
+        names,
+        viewerId,
+        pick.travelerPlayerId
+    )
 }
 
 /** R-5.1.2 — public from the record's own flag; a Search recorded before it shows its stop to the drawer alone. */

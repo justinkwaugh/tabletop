@@ -9,6 +9,7 @@ import {
     cardPower,
     currentQuestion,
     heldRelicsToBottom,
+    payableWoodPicks,
     playersAt,
     shroudedWoodDestinations,
     usableFavor,
@@ -31,6 +32,7 @@ import {
 } from './questionChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import { conspiracyPrizes, conspiracyTargets, type TakePrizeOption } from './conspiracyTake.js'
+import { woodRegions, type WoodRegion } from './woodTravel.js'
 import type { OathGameSession } from './session.svelte.js'
 
 // Only the stages of the open question's kind are ever set.
@@ -375,11 +377,23 @@ export class QuestionDraft implements PanelDraft {
     get woodDestinations(): string[] {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return []
+        if (question.travel) return this.woodRegions.flatMap((row) => row.siteIds)
         return shroudedWoodDestinations(
             this.session.gameState,
             question.travelerPlayerId,
             question.fromSiteId
         )
+    }
+
+    /** R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price. */
+    get woodRegions(): WoodRegion[] {
+        const question = this.question
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
+            return []
+        }
+        const state = this.session.gameState
+        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel.free)
+        return woodRegions(state, picks)
     }
 
     async sendThrough(siteId: string): Promise<void> {
