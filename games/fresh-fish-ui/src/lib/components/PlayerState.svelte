@@ -2,7 +2,6 @@
     import { type Player } from '@tabletop/common'
     import { FreshFishPlayerState } from '@tabletop/fresh-fish'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import WoodStall from '$lib/components/WoodStall.svelte'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
     import Disk from '$lib/components/Disk.svelte'
     import { isLightColor, LABEL_DARK, LABEL_LIGHT } from '$lib/utils/pieceColors.js'
@@ -14,12 +13,27 @@
     let color = $derived(gameSession.colors.getPlayerUiColor(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
     let textColor = $derived(gameSession.colors.getPlayerTextColor(player.id))
-    let chipInk = $derived(isLightColor(color) ? LABEL_DARK : LABEL_LIGHT)
+    let stallInk = $derived(isLightColor(color) ? LABEL_DARK : LABEL_LIGHT)
 
     function stallInitial(goodsType: string): string {
         return getGoodsName(goodsType).charAt(0).toUpperCase()
     }
 </script>
+
+{#snippet stallMarks(size: 'small' | 'large')}
+    {#each playerState.stalls as stall (stall.goodsType)}
+        <div
+            class="stall {size} {stall.placed ? 'placed' : ''}"
+            style:--stall-color={color}
+            style:--stall-ink={stallInk}
+            title={stall.placed
+                ? `${getGoodsName(stall.goodsType)} stall placed`
+                : `Unplaced ${getGoodsName(stall.goodsType)} stall`}
+        >
+            {stallInitial(stall.goodsType)}
+        </div>
+    {/each}
+{/snippet}
 
 <div class="rounded-md px-1.5 pb-1.5 {bgColor} {isTurn ? 'turn' : ''}">
     <div class="flex flex-row justify-between items-baseline px-1.5 py-1.5 {textColor}">
@@ -42,37 +56,12 @@
                 {/each}
             </div>
             <div class="flex flex-row gap-[3px] sm:hidden">
-                {#each playerState.stalls as stall (stall.goodsType)}
-                    <div
-                        class="chip {stall.placed ? 'placed' : ''}"
-                        style:--slot-color={color}
-                        style:--chip-ink={chipInk}
-                        title={stall.placed
-                            ? `${getGoodsName(stall.goodsType)} stall placed`
-                            : `Unplaced ${getGoodsName(stall.goodsType)} stall`}
-                    >
-                        {stallInitial(stall.goodsType)}
-                    </div>
-                {/each}
+                {@render stallMarks('small')}
             </div>
             <span class="money" title="Money">${playerState.money}</span>
         </div>
         <div class="flex flex-row gap-1.5 max-sm:hidden">
-            {#each playerState.stalls as stall (stall.goodsType)}
-                {#if stall.placed}
-                    <div
-                        class="slot"
-                        style:--slot-color={color}
-                        title="{getGoodsName(stall.goodsType)} stall placed"
-                    >
-                        {stallInitial(stall.goodsType)}
-                    </div>
-                {:else}
-                    <div class="tile" title="Unplaced {getGoodsName(stall.goodsType)} stall">
-                        <WoodStall size={46} {color} goodsType={stall.goodsType} />
-                    </div>
-                {/if}
-            {/each}
+            {@render stallMarks('large')}
         </div>
     </div>
 </div>
@@ -124,45 +113,34 @@
             font-size: 1.6rem;
         }
     }
-    .slot,
-    .chip.placed {
-        --slot-ink: color-mix(in srgb, var(--slot-color) 50%, #ffffff);
-        border: 2px dashed color-mix(in srgb, var(--slot-ink) 80%, transparent);
-        color: color-mix(in srgb, var(--slot-ink) 75%, transparent);
-    }
-    .chip {
-        width: 24px;
-        height: 24px;
+    .stall {
         border-radius: 5px;
-        background: var(--slot-color);
-        color: var(--chip-ink);
+        background: var(--stall-color);
+        color: var(--stall-ink);
         display: flex;
         align-items: center;
         justify-content: center;
         font-family: var(--ff-label-font, inherit);
-        font-size: 1rem;
         line-height: 1;
-        padding-top: 1px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     }
-    .chip.placed {
-        background: none;
-        box-shadow: none;
+    .stall.small {
+        width: 24px;
+        height: 24px;
+        font-size: 1rem;
+        padding-top: 1px;
     }
-    .slot {
+    .stall.large {
         width: 46px;
         height: 46px;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: var(--ff-label-font, inherit);
         font-size: 1.6rem;
-        line-height: 1;
+        padding-top: 2px;
     }
-    .tile {
-        border-radius: 5px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    .stall.placed {
+        --stall-faded: color-mix(in srgb, var(--stall-color) 50%, #ffffff);
+        background: none;
+        box-shadow: none;
+        border: 2px dashed color-mix(in srgb, var(--stall-faded) 80%, transparent);
+        color: color-mix(in srgb, var(--stall-faded) 75%, transparent);
     }
 </style>
