@@ -17,12 +17,19 @@ import {
     isPlaceStall
 } from '@tabletop/fresh-fish'
 import { OffsetTupleCoordinates, type GameAction } from '@tabletop/common'
+import {
+    hasManualFreshFishSelection,
+    isActionType,
+    popFreshFishSelection,
+    setFreshFishSelection,
+    type FreshFishSelection
+} from '../model/stagedSelection.js'
 
 export class FreshFishGameSession extends GameSession<
     FreshFishGameState,
     HydratedFreshFishGameState
 > {
-    private manualAction: string | undefined = $state(undefined)
+    private selection: FreshFishSelection = $state({})
     private automaticAction = $derived(
         this.isMyTurn &&
             this.validActionTypes.length === 1 &&
@@ -32,17 +39,32 @@ export class FreshFishGameSession extends GameSession<
     )
 
     get chosenAction(): string | undefined {
-        return this.manualAction ?? this.automaticAction
+        return this.selection.action?.value ?? this.automaticAction
     }
 
     set chosenAction(action: string | undefined) {
-        this.manualAction = action
+        if (action !== undefined && !isActionType(action)) {
+            throw new Error(`Unknown Fresh Fish action type: ${action}`)
+        }
+        this.selection = setFreshFishSelection(this.selection, 'action', action)
+    }
+
+    get hasManualSelection(): boolean {
+        return hasManualFreshFishSelection(this.selection)
+    }
+
+    override async undo() {
+        if (this.hasManualSelection) {
+            this.selection = popFreshFishSelection(this.selection)
+            return
+        }
+        await super.undo()
     }
     previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
     override beforeNewState() {
-        this.manualAction = undefined
+        this.selection = {}
     }
 
     override async onGameStateChange(_args: {
@@ -62,7 +84,7 @@ export class FreshFishGameSession extends GameSession<
             case ActionType.PlaceBid:
                 return 'Place Bid'
             case ActionType.PlaceDisk:
-                return 'Place Disk'
+                return 'Place Disc'
             case ActionType.PlaceMarket:
                 return 'Place Market'
             case ActionType.PlaceStall:
@@ -75,7 +97,9 @@ export class FreshFishGameSession extends GameSession<
     previewExpropriation(coords: OffsetTupleCoordinates) {
         const expropriator = new Expropriator(this.gameState.board)
         const { expropriatedCoords } = expropriator.calculateExpropriation(coords)
-        this.previewExpropriateCoords = expropriatedCoords
+        this.previewExpropriateCoords = expropriatedCoords.filter(
+            ([x, y]) => x !== coords[0] || y !== coords[1]
+        )
     }
 
     clearExpropriationPreview() {

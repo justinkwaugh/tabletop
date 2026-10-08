@@ -16,20 +16,21 @@ import { getGoodsName } from './goodsNames.js'
 export function getDescriptionForAction(action: GameAction) {
     switch (true) {
         case isDrawTile(action): {
-            const tileDesc = action.metadata?.chosenTile
-                ? getTileName(action.metadata.chosenTile)
-                : ''
-            return `drew a ${tileDesc} tile${isStallTile(action.metadata?.chosenTile) ? ' and put it up for auction' : ''}`
+            const tile = action.metadata?.chosenTile
+            if (isStallTile(tile)) {
+                return `auctioned a ${getGoodsName(tile.goodsType)} stall`
+            }
+            return `drew a ${tile ? getTileName(tile) : ''} tile`
         }
         case isPlaceDisk(action):
-            return 'placed a disk'
+            return 'placed a disc'
         case isPlaceMarket(action):
-            return 'drew and placed a market tile'
+            return 'placed a market'
         case isPlaceStall(action):
             if (action.coords) {
                 return `placed a ${getGoodsName(action.goodsType)} stall`
             } else {
-                return `had to place a ${getGoodsName(action.goodsType)} stall, but did not have a reserved location so the stall was discarded`
+                return `had to discard the ${getGoodsName(action.goodsType)} stall`
             }
         case isEndAuction(action):
             return 'The auction has ended'
@@ -37,7 +38,7 @@ export function getDescriptionForAction(action: GameAction) {
             return 'placed a bid'
         case isStartAuction(action):
             if (action.metadata) {
-                return `started a ${getGoodsName(action.metadata.goodsType)} stall auction`
+                return `auctioned a ${getGoodsName(action.metadata.goodsType)} stall`
             } else {
                 return `started an auction`
             }

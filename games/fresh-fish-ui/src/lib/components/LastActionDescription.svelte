@@ -1,50 +1,35 @@
 <script lang="ts">
-import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { auctionedGoodsById } from '$lib/utils/historyEntries.js'
     import { Button } from 'flowbite-svelte'
+    import ActorLine from './ActorLine.svelte'
     import AuctionResults from './AuctionResults.svelte'
     import { isEndAuction, isPlaceBid } from '@tabletop/fresh-fish'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getGameSession() as FreshFishGameSession
+    let gameSession = getGameSession()
 
-    let windowHeight: number | null | undefined = $state()
-
-    let lastAction = $derived.by(() => {
-        const actions = gameSession.actions.toReversed()
-        for (const action of actions) {
-            if (!isPlaceBid(action)) {
-                return action
-            }
-        }
-        return undefined
-    })
+    let lastAction = $derived(gameSession.actions.findLast((action) => !isPlaceBid(action)))
+    let auctionedGoods = $derived(auctionedGoodsById(gameSession.actions))
 </script>
 
-<svelte:window bind:innerHeight={windowHeight} />
-
-{#if lastAction}
+{#if lastAction || gameSession.hasManualSelection}
     <div
         class="rounded-lg bg-transparent text-gray-200 p-1 sm:p-2 text-center flex flex-row justify-center items-center mb-2"
     >
         <div class="flex flex-col justify-center items-center w-full grow-1">
-            {#if isEndAuction(lastAction)}
-                <AuctionResults winnerOnly={(windowHeight ?? 0) <= 700} action={lastAction} />
-            {:else}
-                <h1 class="text-sm sm:text-lg text-pretty leading-tight">
-                    {#if lastAction && lastAction.playerId}
-                        <PlayerName playerId={lastAction.playerId} />
-                    {/if}
+            {#if lastAction && isEndAuction(lastAction)}
+                <AuctionResults action={lastAction} goodsType={auctionedGoods.get(lastAction.id)} />
+            {:else if lastAction}
+                <ActorLine playerId={lastAction.playerId}>
                     {getDescriptionForAction(lastAction)}
-                </h1>
+                </ActorLine>
             {/if}
         </div>
 
-        {#if gameSession.undoableAction && gameSession.isPlayable}
+        {#if (gameSession.undoableAction || gameSession.hasManualSelection) && gameSession.isPlayable}
             <Button
                 onclick={async () => {
-                    gameSession.chosenAction = undefined
                     await gameSession.undo()
                 }}
                 size="xs"

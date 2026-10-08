@@ -522,7 +522,9 @@ describe('Fresh Fish visibility', () => {
         expect(result.processedActions[0]?.forwardPatch).toBeUndefined()
         expect(result.processedActions[0]?.undoPatch).not.toEqual(action.undoPatch)
         expect(Reflect.get(result.processedActions[0] ?? {}, 'metadata')).toBeUndefined()
-        expect(Reflect.get(result.processedActions[1] ?? {}, 'metadata')).toBeDefined()
+        expect(Reflect.get(result.processedActions[1] ?? {}, 'metadata')).toMatchObject({
+            goodsType: GoodsType.Fish
+        })
         expect(action.forwardPatch).toBeDefined()
         expect(Reflect.get(action, 'metadata')).toEqual({ submitted: 'not-authoritative' })
 

@@ -1,62 +1,108 @@
 <script lang="ts">
-import { isMarketTile, isStallTile } from '@tabletop/fresh-fish'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import { MachineState } from '@tabletop/fresh-fish'
+    import { isMarketTile, isStallTile, MachineState } from '@tabletop/fresh-fish'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import { PLAIN_PLAYER_NAME } from '$lib/utils/playerNames.js'
+    import { UNCLAIMED_STALL } from '$lib/utils/pieceColors.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import Disk from './Disk.svelte'
+    import TiltedTile from './TiltedTile.svelte'
+    import WoodMarket from './WoodMarket.svelte'
+    import WoodStall from './WoodStall.svelte'
 
-    let gameSession = getGameSession() as FreshFishGameSession
+    let gameSession = getGameSession()
 
-    let isAuctioning = $derived.by(() => {
-        return gameSession.gameState.machineState === MachineState.AuctioningTile
-    })
+    let windowHeight: number | undefined = $state()
+    let previewSize = $derived(windowHeight && windowHeight > 700 ? 84 : 56)
 
-    let isStallPlacement = $derived(isStallTile(gameSession.gameState.chosenTile))
-    let isMarketPlacement = $derived(isMarketTile(gameSession.gameState.chosenTile))
-    let stallName = $derived.by(() => {
-        const chosenTile = gameSession.gameState.chosenTile
-        if (isStallTile(chosenTile)) {
-            return getGoodsName(chosenTile.goodsType)
-        }
-        return ''
-    })
-
-    const currentPlayerId = $derived(
-        gameSession.gameState.activePlayerIds.length === 1
-            ? gameSession.gameState.activePlayerIds[0]
-            : undefined
-    )
+    let chosenTile = $derived(gameSession.gameState.chosenTile)
+    let isAuctioning = $derived(gameSession.gameState.machineState === MachineState.AuctioningTile)
+    let activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
+    let currentPlayerId = $derived(activePlayerIds.length === 1 ? activePlayerIds[0] : undefined)
 </script>
 
+<svelte:window bind:innerHeight={windowHeight} />
+
+{#snippet player(playerId: string | undefined)}
+    {#if playerId}
+        <span class="player">
+            <Disk color={gameSession.colors.getPlayerUiColor(playerId)} size={24} />
+            <PlayerName {playerId} {...PLAIN_PLAYER_NAME} />
+        </span>
+    {/if}
+{/snippet}
+
 <div
-    class="mb-2 rounded-lg bg-gray-300 p-2 text-center flex flex-row flex-wrap justify-center items-center"
+    class="mb-2 flex flex-row justify-center items-center gap-6 rounded-md px-5 py-2.5 bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
 >
-    <div class="flex flex-col justify-center items-center mx-4 leading-tight">
+    {#if isStallTile(chosenTile)}
+        <TiltedTile>
+            <WoodStall
+                size={previewSize}
+                color={isAuctioning
+                    ? UNCLAIMED_STALL
+                    : gameSession.colors.getPlayerUiColor(currentPlayerId)}
+                goodsType={chosenTile.goodsType}
+            />
+        </TiltedTile>
+    {:else if isMarketTile(chosenTile)}
+        <TiltedTile>
+            <WoodMarket size={previewSize} />
+        </TiltedTile>
+    {/if}
+
+    <div class="flex flex-col justify-center items-center text-center">
         {#if isAuctioning}
-            <h1 class="text-md sm:text-lg">Collecting other players' bids...</h1>
-            <div class="flex flex-row justify-center items-center">
-                {#each gameSession.gameState.activePlayerIds as playerId (playerId)}
-                    <div class="flex flex-col justify-center items-center mx-2">
-                        <h1 class="text-md sm:text-lg">
-                            <PlayerName {playerId} />
-                        </h1>
-                    </div>
+            <h1 class="title">Waiting for bids</h1>
+            <p class="line players">
+                {#each activePlayerIds as playerId (playerId)}
+                    {@render player(playerId)}
                 {/each}
-            </div>
-        {:else if isMarketPlacement}
-            <h1 class="text-md sm:text-lg text-pretty">
-                Waiting for <PlayerName playerId={currentPlayerId} /> to place their market tile...
-            </h1>
-        {:else if isStallPlacement}
-            <h1 class="text-md sm:text-lg text-pretty">
-                Waiting for <PlayerName playerId={currentPlayerId} /> to place their {stallName} stall
-                tile...
-            </h1>
+            </p>
+        {:else if isStallTile(chosenTile)}
+            <h1 class="title">Waiting for a stall</h1>
+            <p class="line">
+                {@render player(currentPlayerId)}
+                is placing their {getGoodsName(chosenTile.goodsType)} stall
+            </p>
+        {:else if isMarketTile(chosenTile)}
+            <h1 class="title">Waiting for a market</h1>
+            <p class="line">{@render player(currentPlayerId)} is placing the market</p>
         {:else}
-            <h1 class="text-md sm:text-lg text-pretty">
-                Waiting for <PlayerName playerId={currentPlayerId} /> to take their turn...
-            </h1>
+            <h1 class="title">Waiting</h1>
+            <p class="line">{@render player(currentPlayerId)} is taking their turn</p>
         {/if}
     </div>
 </div>
+
+<style>
+    .title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+    .line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0 6px;
+        font-size: 0.875rem;
+        color: #9ca3af;
+    }
+    .players {
+        gap: 0 14px;
+    }
+    .player {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        color: #e5e7eb;
+    }
+    @media (max-width: 640px) {
+        .player > :global(svg) {
+            width: 18px;
+            height: 18px;
+        }
+    }
+</style>

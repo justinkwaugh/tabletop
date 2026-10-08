@@ -811,3 +811,30 @@ export async function runCanonicalExplorationUndo() {
         client.dispose()
     }
 }
+
+export async function runManualSelectionUndo() {
+    const host = createExplorationHost()
+    for (let i = 0; i < host.game.players.length; i++) {
+        if (host.state.activePlayerIds.includes(PLAYER_B_PERSPECTIVE.playerId)) break
+        host.apply(diskAction(host))
+    }
+    const client = explorationClient(host)
+    const { session } = client
+    try {
+        await settleExploration(session)
+        const isMyTurn = session.isMyTurn
+        const actionCount = session.actions.length
+        session.chosenAction = 'placeDisk'
+        const stagesManualChoice = session.hasManualSelection
+        await session.undo()
+        await settleExploration(session)
+        return {
+            isMyTurn,
+            stagesManualChoice,
+            clearsManualChoice: !session.hasManualSelection,
+            keepsCommittedActions: session.actions.length === actionCount
+        }
+    } finally {
+        client.dispose()
+    }
+}
