@@ -3,8 +3,9 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { UiDefinition } from '../lib/definition/gameUiDefinition.js'
     import { Harness } from '@tabletop/frontend-components'
+    import { santiagoHarnessScenarios } from '../lib/dev/harnessScenarios.js'
     import '../app.css'
     const definition = UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>
 </script>
 
-<Harness {definition} />
+<Harness {definition} scenarios={santiagoHarnessScenarios} />
