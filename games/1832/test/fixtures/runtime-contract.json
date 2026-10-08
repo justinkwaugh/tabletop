@@ -4476,6 +4476,24 @@
         "type": "array",
         "uniqueItems": true
       },
+      "variants": {
+        "additionalProperties": false,
+        "properties": {
+          "diesels": {
+            "const": true,
+            "type": "boolean"
+          },
+          "finish400": {
+            "const": true,
+            "type": "boolean"
+          },
+          "noMergers": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "winningPlayerIds": {
         "items": {
           "type": "string"
@@ -4514,6 +4532,7 @@
       "trainInventory",
       "turnManager",
       "usedPrivatePowerIds",
+      "variants",
       "winningPlayerIds"
     ],
     "type": "object"

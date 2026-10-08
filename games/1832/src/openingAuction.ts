@@ -19,11 +19,13 @@ import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from './s
 import { EighteenThirtyTwoStationCounts } from './stationRules.js'
 import { createEighteenThirtyTwoStockMarket } from './stockMarket.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
-import { EighteenThirtyTwoTrainDepot } from './trains.js'
+import { createEighteenThirtyTwoTrainInventory } from './trains.js'
+import { EighteenThirtyTwoGameConfig } from './definition/gameConfig.js'
 
 export const EighteenThirtyTwoBank = 12000
 export const EighteenThirtyTwoInitialTitleState = {
     ownershipLimitExemptions: [],
+    variants: {},
     systems: {},
     mergers: [],
     coalRights: [],
@@ -61,9 +63,11 @@ export const EighteenThirtyTwoAuctionRules: WaterfallAuctionRules = {
 
 export function createEighteenThirtyTwoOpening({
     players,
+    config,
     startingPositions
 }: OpeningSetup): Opening<typeof EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> {
     assert(players.length >= 2 && players.length <= 7, '1832 supports two through seven players')
+    const variants = EighteenThirtyTwoGameConfig.variants(config)
     const majors = Object.values(EighteenThirtyTwoMajors)
     const capital = EighteenThirtyTwoStartingCash[players.length]
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
@@ -124,12 +128,12 @@ export function createEighteenThirtyTwoOpening({
         ),
         stationReservations: EighteenThirtyTwoMap.stationReservations(),
         tileInventory: EighteenThirtyTwoTileSet.createInventory(),
-        trainInventory: EighteenThirtyTwoTrainDepot.createInventory(),
+        trainInventory: createEighteenThirtyTwoTrainInventory(variants),
         phaseId: '2'
     }
     return {
         position,
-        titleState: EighteenThirtyTwoInitialTitleState,
+        titleState: { ...EighteenThirtyTwoInitialTitleState, variants },
         begin: beginWaterfallAuction(EighteenThirtyTwoAuctionRules, startingPositions)
     }
 }

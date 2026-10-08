@@ -178,6 +178,15 @@ export const EighteenThirtyTwoTitleFields = {
             { additionalProperties: false }
         )
     ),
+    /** The variants chosen before the game began (§17). */
+    variants: Type.Object(
+        {
+            finish400: Type.Optional(Type.Literal(true)),
+            diesels: Type.Optional(Type.Literal(true)),
+            noMergers: Type.Optional(Type.Literal(true))
+        },
+        { additionalProperties: false }
+    ),
     mergerPhase: Type.Optional(MergerPhase),
     /** Stations a survivor holds in place of a merged company's home (§7.3.3). */
     inheritedHomeStationIds: Type.Optional(Type.Array(Id)),

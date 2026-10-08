@@ -6,6 +6,10 @@ export {
 export { EighteenThirtyTwoMap } from './map.js'
 export { EighteenThirtyTwoInfo } from './definition/info.js'
 export { Definition, EighteenThirtyTwoTitleRules } from './definition/gameDefinition.js'
+export {
+    EighteenThirtyTwoGameConfig,
+    EighteenThirtyTwoConfigurator
+} from './definition/gameConfig.js'
 
 export * from './capitalization.js'
 export * from './closure.js'

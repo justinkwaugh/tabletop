@@ -25,9 +25,16 @@ import { eighteenThirtyTwoMapState } from './tileState.js'
 import type { MergerKind, MergerProposal, TakeoverFunding } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 
-/** Mergers begin with the first 4-train and end after the phase following the first 6-train. */
+/**
+ * Mergers begin with the first 4-train and end after the phase following the first 6-train,
+ * unless the game is played without them (§11.5, §17.6).
+ */
 export function mergersAllowed(state: EighteenThirtyTwoState): boolean {
-    return EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '4') && !state.mergersEnded
+    return (
+        !state.variants.noMergers &&
+        EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '4') &&
+        !state.mergersEnded
+    )
 }
 
 export function presidentId(state: EighteenThirtyTwoState, companyId: string) {

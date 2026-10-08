@@ -1,5 +1,6 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
 import type { GameInfo } from '@tabletop/common'
+import { EighteenThirtyTwoConfigurator } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
 
 export const EighteenThirtyTwoInfo: GameInfo = {
@@ -16,5 +17,6 @@ export const EighteenThirtyTwoInfo: GameInfo = {
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         beta: true
-    }
+    },
+    configurator: new EighteenThirtyTwoConfigurator()
 }
