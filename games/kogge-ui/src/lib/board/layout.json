@@ -1,0 +1,17 @@
+{
+    "width": 1600,
+    "height": 1100,
+    "card": { "width": 292, "height": 184 },
+    "harbourOffset": 34,
+    "cities": [
+        { "number": 0, "x": 150, "y": 20, "side": "top", "lon": 10.41, "lat": 59.27 },
+        { "number": 1, "x": 600, "y": 20, "side": "top", "lon": 18.07, "lat": 59.33 },
+        { "number": 2, "x": 1158, "y": 20, "side": "top", "lon": 22.27, "lat": 60.45 },
+        { "number": 3, "x": 1288, "y": 296, "side": "right", "lon": 24.75, "lat": 59.44 },
+        { "number": 4, "x": 1288, "y": 600, "side": "right", "lon": 24.11, "lat": 56.95 },
+        { "number": 5, "x": 1004, "y": 896, "side": "bottom", "lon": 18.65, "lat": 54.35 },
+        { "number": 6, "x": 446, "y": 896, "side": "bottom", "lon": 13.09, "lat": 54.31 },
+        { "number": 7, "x": 20, "y": 600, "side": "left", "lon": 10.69, "lat": 53.87 },
+        { "number": 8, "x": 20, "y": 296, "side": "left", "lon": 12.57, "lat": 55.68 }
+    ]
+}
