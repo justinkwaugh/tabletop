@@ -173,7 +173,8 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileLayouts: EighteenThirtyTwoTileLayouts,
         mapExample: { locationId: 'T29', definitionId: '18xx:57', rotation: 0, label: 'ACL' },
         tileSets: { '1832': EighteenThirtyTwoTileSet },
-        positions: []
+        positions: [],
+        finishedGame: () => import('./demo/fixtures/1832-finished.json')
     }
 ]
 

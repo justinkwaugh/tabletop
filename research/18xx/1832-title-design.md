@@ -495,3 +495,31 @@ dividend rounding, train limit, certificate-limit shells, station cost and track
 `mergers.spec.ts` covers the phase opening after a phase 4 stock round (and not before),
 consent, refusal, takeovers with their payments and with funding sales, and the last phase
 after the first 6-train.
+
+## Slice 6 design: variants and completion
+
+### Variants
+
+Game options record the chosen variants in the title state's `variants` (§17).
+
+- **$400 finish** (§17.1). Once a share price reaches $400 the game ends between companies, so
+  the company that reached it finishes its turn, or at once when it happens at a stock round's
+  end. The ending trigger checks only between companies and as an operating set starts.
+- **Diesels** (§17.2). The 8- and 10-trains leave the depot. From the first 6-train, 12-trains
+  may be bought as diesels, any train traded in for $300 off. The diesel phase rusts 4-trains,
+  as phase 8 would have; 5-trains never rust. **Ruling:** the diesel keeps the 12-train's
+  price, $1100, its twelve stops and its name.
+- **No mergers** (§17.6). No merger phase is held.
+
+### Completion
+
+The playground's full-game bot plays 1832 too: a waterfall opening with the CoG's par, five
+companies, track every turn, dividends, forced purchases, protection declined, merger phases
+forming Systems when offered, closures, and a broken bank. Its history replays and undoes.
+The playground records such a game as 1832's finished game, whose history shows the merger
+phases. The 2–7 player openings complete.
+
+### Limits after slice 6
+
+Southern Bank, Civil War and Historical Order remain later variants. 1832 stays in the
+playground only: no games.json entry or deploy.

@@ -13,6 +13,9 @@ import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/hi
 import { shouldContinueHistoryStep } from '../../../../libs/18xx-ui/src/lib/table/historyNavigation.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
 import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
+import { EighteenThirtyTwoPresentation } from '../../../../games/1832-ui/src/lib/presentation.js'
+import { describe1832Action } from '../../../../games/1832-ui/src/lib/history.js'
+import { moneyFormat } from '../../../../libs/18xx-ui/src/lib/presentation/money.js'
 import { finishedGame, replayFinishedGame, replayRecordedGame } from './finishedGame.js'
 import { playgroundTitle } from '../titles.js'
 import {
@@ -254,6 +257,41 @@ it('replays the finished 1889 game to its bank-break ending and back', async () 
         restored = engine.applyProcessedAction({ game, state: restored, action })
     expect(restored).toEqual(state)
 }, 60000)
+
+it('replays the finished 1832 game, its Systems and closures, to its ending and back', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        '1832'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(state.gameEnding?.reason).toBe('Bank broken')
+    expect(actions.some((action) => action.type === 'CompleteMergerPhase')).toBe(true)
+    expect(actions.some((action) => action.type === 'CloseCompany')).toBe(true)
+    expect(state.companies.some((company) => company.id === 'AMTK')).toBe(true)
+    const names = {
+        companyName: (id: string) => id,
+        playerName: (id: string) => id,
+        bankName: state.bank.name
+    }
+    for (const action of actions)
+        expect(
+            (describe1832Action(action, names, moneyFormat('$')) ?? historyDescription(action, state))
+                .text
+        ).toBeTruthy()
+    const rounds = historyRounds(actions, state, undefined, undefined, undefined, {
+        rounds: EighteenThirtyTwoPresentation.titleRounds
+    })
+    expect(rounds.some((round) => round.label.startsWith('MP '))).toBe(true)
+    expect(new Set(rounds.map((round) => round.id)).size).toBe(rounds.length)
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 120000)
 
 it('describes 1830’s awards and the B&O closure in the finished game’s history', async () => {
     const { state, actions } = await finishedGame('local-user', 'Finished game', '1830')
