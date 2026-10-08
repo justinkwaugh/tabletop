@@ -458,4 +458,25 @@ stay in 1832.
 - Each player proposes in turn until they pass; a refused pairing cannot be proposed again in
   that phase.
 - The System chosen is the first unused of A–E.
-- The optional forced purchase of a System's second train (§11.6.7) is not offered.
+- Sales to fund a takeover may be protected like other sales, once the takeover completes.
+- If the leftmost components share a column, the System starts from the lower one's row.
+- History and the round heading call the phase "Merger phase", numbered by the stock round it
+  follows, or by the operating round when it follows the first 6-train.
+
+### Shared changes
+
+`EarningsRules.holderDividend` pays a holding rather than a share; `TitleRound.followsStockRound`
+numbers a title's round by the stock round it follows when no operating round is under way.
+
+### Limits after slice 5
+
+The optional forced purchase of a System's second train (§11.6.7) is not offered. The
+playground has no prepared phase 4 position with the two homes joined; tests cover the flow.
+
+### Acceptance examples
+
+`systems.spec.ts` covers the System price and placement, presidency, certificates and assets,
+dividend rounding, train limit, certificate-limit shells, station cost and track allowance.
+`mergers.spec.ts` covers the phase opening after a phase 4 stock round (and not before),
+consent, refusal, takeovers with their payments and with funding sales, and the last phase
+after the first 6-train.

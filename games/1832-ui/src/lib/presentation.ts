@@ -1,5 +1,8 @@
 import {
     CoalTokens,
+    EighteenThirtyTwoSystems,
+    isCompleteMergerPhase,
+    isStartMergerPhase,
     EighteenThirtyTwoSoftLedge,
     miamiFirstRun,
     type EighteenThirtyTwoState
@@ -8,6 +11,15 @@ import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
+
+// A System names its letter and the two companies it was formed from (§11.6).
+function systemFacts(state: EighteenThirtyTwoState, companyId: string) {
+    const system = EighteenThirtyTwoSystems.find((entry) => entry.id === companyId)
+    const components = state.systems[companyId]
+    if (!system || !components) return []
+    const names = components.map((id) => EighteenThirtyTwoCompanyNames[id]?.initials ?? id)
+    return [{ label: `System ${system.letter}`, value: names.join(' & ') }]
+}
 
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
     money: moneyFormat('$'),
@@ -22,8 +34,22 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
         { label: 'WVCF tokens left', value: String(CoalTokens - state.coalRights.length) },
         ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0 on its first run' }] : [])
     ],
-    companyFacts: (state, companyId) =>
-        state.coalRights.includes(companyId) ? [{ label: 'Coal fields', value: 'WVCF token' }] : [],
+    companyFacts: (state, companyId) => [
+        ...systemFacts(state, companyId),
+        ...(state.coalRights.includes(companyId)
+            ? [{ label: 'Coal fields', value: 'WVCF token' }]
+            : [])
+    ],
+    titleRounds: [
+        {
+            name: 'Merger phase',
+            abbreviation: 'MP',
+            inProgress: (state) => !!state.mergerPhase,
+            starts: (action) => isStartMergerPhase(action) && !!action.metadata?.held,
+            ends: isCompleteMergerPhase,
+            followsStockRound: true
+        }
+    ],
     marketZones: [
         { color: 'pink', name: 'Par', description: 'A price a company may start at.' },
         {

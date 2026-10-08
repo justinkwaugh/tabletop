@@ -28,6 +28,7 @@ import type { TitleRound } from '../session/titlePresentation.js'
 import {
     AuctionHeading,
     operatingRoundHeading,
+    titleStockRoundHeading,
     roundLabel,
     roundTitle,
     stockRoundHeading
@@ -82,13 +83,15 @@ export function historyRounds(
     for (const [position, action] of reversed.entries()) {
         const snapshot = states.get(action.id)
         if (!snapshot) continue
-        const { phase, stock, operating, set, round, auction } = snapshot.after
+        const { phase, stock, operating, set, round, auction, setUnderWay } = snapshot.after
         const closing = roundClosingAction(reversed, position)
         openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
         const heading = auction
             ? AuctionHeading
             : openRound
-              ? operatingRoundHeading(set, round, openRound)
+              ? openRound.followsStockRound && !setUnderWay
+                  ? titleStockRoundHeading(stock, openRound)
+                  : operatingRoundHeading(set, round, openRound)
               : operating && !isCompleteStockRound(action)
                 ? operatingRoundHeading(set, round)
                 : stockRoundHeading(stock)

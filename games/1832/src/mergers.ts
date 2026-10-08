@@ -308,6 +308,8 @@ export function mergerDecision(state: EighteenThirtyTwoState): Decision | undefi
 export const MergerOutcome = Type.Object(
     {
         kind: MergerKind,
+        /** The two companies: for a takeover, the buyer then the company bought. */
+        companyIds: Type.Array(Id, { minItems: 2, maxItems: 2 }),
         survivorId: Id,
         system: Type.Optional(SystemFormation),
         payments: Type.Optional(Type.Array(CashPayment)),
@@ -416,6 +418,7 @@ function completeTakeover(
     if (overTrainLimit(state, buyerId)) phase.discardCompanyId = buyerId
     return {
         kind: 'takeover',
+        companyIds: [buyerId, targetId],
         survivorId: buyerId,
         payments: settled,
         stations,
@@ -441,7 +444,12 @@ function executeMerger(
                 survivorId: system.systemId
             }
         ]
-        return { kind: 'system', survivorId: system.systemId, system }
+        return {
+            kind: 'system',
+            companyIds: [proposal.companyId, proposal.partnerId],
+            survivorId: system.systemId,
+            system
+        }
     }
     const { buyerId, targetId } = takeoverSides(proposal)
     const playerId = presidentId(state, buyerId)

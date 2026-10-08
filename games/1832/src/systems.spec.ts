@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
     companyMarketSpace,
@@ -7,7 +8,16 @@ import {
     stockMarkerStackIndex
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { formSystem, systemMarketSpace, systemPresident } from './index.js'
+import {
+    EighteenThirtyTwoEarningsRules,
+    EighteenThirtyTwoStationRules,
+    EighteenThirtyTwoTrackRules,
+    EighteenThirtyTwoTrainRules,
+    certificateLimitColumn,
+    formSystem,
+    systemMarketSpace,
+    systemPresident
+} from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
@@ -77,5 +87,74 @@ describe('System formation', () => {
                 (station) => station.companyId === 'AMTK' && station.status === 'placed'
             )
         ).toHaveLength(2)
+    })
+})
+
+describe('System operations', () => {
+    function amtk() {
+        const play = trading()
+        const state = structuredClone(play.state)
+        state.phaseId = '4'
+        formSystem(state, ['ACL', 'CG'], 'alex')
+        play.replaceState(state)
+        return play.state
+    }
+
+    it('pays each holding its twentieths of the dividend, rounding an odd share up', () => {
+        const state = amtk()
+        const pay = (shares: number, choice: 'pay' | 'half-pay') =>
+            EighteenThirtyTwoEarningsRules.holderDividend?.(state, 'AMTK', {
+                shares,
+                choice,
+                revenue: 130,
+                retained: choice === 'pay' ? 0 : 65
+            })
+        expect([pay(1, 'pay'), pay(2, 'pay'), pay(3, 'pay')]).toEqual([7, 13, 20])
+        expect([pay(1, 'half-pay'), pay(3, 'half-pay')]).toEqual([4, 10])
+        expect(EighteenThirtyTwoEarningsRules.retainedRevenue(state, 'AMTK', 'half-pay', 130)).toBe(
+            65
+        )
+    })
+
+    it('has both shells’ train spaces and counts as two companies for certificate limits', () => {
+        const before = trading().state
+        const state = amtk()
+        expect(EighteenThirtyTwoTrainRules.trainLimit(state, 'AMTK')).toBe(6)
+        expect(certificateLimitColumn(state)).toBe(certificateLimitColumn(before))
+    })
+
+    it('prices every station at $100', () => {
+        const state = amtk()
+        const station = state.stations.find(
+            (entry) => entry.companyId === 'AMTK' && entry.status === 'available'
+        )
+        assertExists(station, 'AMTK has stations to place')
+        expect(EighteenThirtyTwoStationRules.placementCost(state, station.id)).toBe(100)
+    })
+
+    it('lays three yellow tiles, or one yellow tile and one upgrade', () => {
+        const state = amtk()
+        const lay = (locationId: string, color: string) => ({ locationId, color, cost: 0 })
+        const allowance = (
+            lays: { locationId: string; color: string }[],
+            color: string,
+            upgrade: boolean
+        ) =>
+            EighteenThirtyTwoTrackRules.allowance(
+                {
+                    ...state,
+                    trackStep: {
+                        companyId: 'AMTK',
+                        completed: false,
+                        lays: lays.map((entry) => lay(entry.locationId, entry.color))
+                    }
+                },
+                color,
+                upgrade
+            )
+        const yellow = { locationId: 'S24', color: 'yellow' }
+        expect(allowance([yellow, yellow], 'yellow', false)).toEqual({ cost: 0 })
+        expect(allowance([yellow], 'green', true)).toEqual({ cost: 0 })
+        expect(allowance([yellow, yellow], 'green', true)).toHaveProperty('reason')
     })
 })

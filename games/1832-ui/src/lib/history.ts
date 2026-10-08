@@ -1,4 +1,13 @@
 import {
+    isAnswerMerger,
+    isCompleteMergerPhase,
+    isCompleteTakeover,
+    isDiscardMergedTrain,
+    isPassMerger,
+    isProposeMerger,
+    isSellTakeoverShares,
+    isStartMergerPhase,
+    type MergerOutcome,
     isBuyCoalRights,
     isCapitalizeCompany,
     isCloseCompany,
@@ -76,6 +85,53 @@ export function describe1832Action(
                 ? `reissued ${action.metadata.certificateIds.length} ${companyName(action.companyId)} ${action.metadata.certificateIds.length === 1 ? 'share' : 'shares'} at ${money(action.metadata.parPrice)}`
                 : `reissued ${companyName(action.companyId)} shares`
         }
+    const merged = (outcome: MergerOutcome): HistoryDescription => {
+        const [first, second] = outcome.companyIds.map(companyName)
+        if (outcome.kind === 'system')
+            return {
+                text: `${companyName(outcome.survivorId)} formed from ${first} and ${second}`,
+                omitActor: true,
+                important: true
+            }
+        const paid = (outcome.payments ?? [])
+            .filter((payment) => payment.from.kind === 'company')
+            .reduce((total, payment) => total + payment.amount, 0)
+        return {
+            text: `${first} took over ${second}`,
+            value: money(paid),
+            omitActor: true,
+            important: true
+        }
+    }
+    if (isStartMergerPhase(action) || isCompleteMergerPhase(action) || isPassMerger(action))
+        return {
+            text: isPassMerger(action) ? 'passed on mergers' : 'Merger phase',
+            routine: !isPassMerger(action),
+            omitActor: !isPassMerger(action)
+        }
+    if (isProposeMerger(action)) {
+        const outcome = action.metadata?.outcome
+        if (outcome) return merged(outcome)
+        const verb =
+            action.kind === 'system'
+                ? `proposed a System of ${companyName(action.companyId)} and ${companyName(action.partnerId)}`
+                : action.yielded
+                  ? `offered ${companyName(action.partnerId)} a takeover of ${companyName(action.companyId)}`
+                  : `proposed that ${companyName(action.companyId)} take over ${companyName(action.partnerId)}`
+        return { text: verb }
+    }
+    if (isAnswerMerger(action)) {
+        const outcome = action.metadata?.outcome
+        if (outcome) return merged(outcome)
+        return { text: action.accept ? 'agreed to the merger' : 'refused the merger' }
+    }
+    if (isCompleteTakeover(action) && action.metadata) return merged(action.metadata)
+    if (isSellTakeoverShares(action))
+        return {
+            text: `sold ${action.shares} ${companyName(action.companyId)} to fund a takeover`,
+            ...(action.metadata ? { value: money(action.metadata.proceeds) } : {})
+        }
+    if (isDiscardMergedTrain(action)) return { text: 'discarded a train after the takeover' }
     if (isCloseCompany(action))
         return {
             text: `${companyName(action.companyId)} closed, its price in the black area`,

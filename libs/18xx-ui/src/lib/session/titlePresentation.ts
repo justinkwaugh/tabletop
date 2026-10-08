@@ -33,6 +33,11 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
     inProgress(state: State): boolean
     starts: (action: GameAction) => boolean
     ends: (action: GameAction) => boolean
+    /**
+     * Whether, held between stock and operating rounds, it takes the stock round's number; held
+     * during an operating round it takes that round's.
+     */
+    followsStockRound?: boolean
 }
 
 /** A labelled fact of the title's own, about the game or one of its companies. */

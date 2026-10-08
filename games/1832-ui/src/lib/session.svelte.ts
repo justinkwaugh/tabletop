@@ -1,5 +1,19 @@
 import {
+    AnswerMerger,
     AnswerRedemption,
+    DiscardMergedTrain,
+    MergingState,
+    PassMerger,
+    ProposeMerger,
+    SellTakeoverShares,
+    discardableMergedTrains,
+    mergerDecision,
+    mergerOptions,
+    systemMarketSpace,
+    systemPresident,
+    takeoverPayments,
+    takeoverSales,
+    type MergerOption,
     BuyCoalRights,
     ConsentingRedemptionState,
     DeclineProtection,
@@ -24,7 +38,12 @@ import {
     type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+import {
+    controllingOwner,
+    getCompany,
+    stockMarketSpace,
+    type ShareSaleDetails
+} from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -59,6 +78,13 @@ export type CompanyShareOptions = {
 }
 
 export class EighteenThirtyTwoSession extends BaseSession {
+    readonly canChooseAction = $derived(
+        this.isPlayable &&
+            this.isMyTurn &&
+            !this.isViewingHistory &&
+            !this.busy &&
+            !this.updatingVisibleState
+    )
     readonly stockPanels = this.titleStockPanels<'company'>([
         {
             id: 'company',
@@ -90,19 +116,116 @@ export class EighteenThirtyTwoSession extends BaseSession {
             }
         })
     })
+    /** The merger phase's open decision, and who makes it. */
+    readonly mergerDecision = $derived(
+        this.gameState.machineState === MergingState ? mergerDecision(this.gameState) : undefined
+    )
+    readonly myMergerDecision = $derived(
+        this.mergerDecision &&
+            this.canChooseAction &&
+            this.mergerDecision.playerId === this.myPlayer?.id
+            ? this.mergerDecision
+            : undefined
+    )
+    /** The mergers the player may propose, with what each would cost or make. */
+    readonly mergerProposals = $derived.by(() => {
+        const decision = this.myMergerDecision
+        if (decision?.kind !== 'propose') return []
+        return mergerOptions(this.gameState, decision.playerId).map((option) =>
+            this.describeMerger(option, decision.playerId)
+        )
+    })
+    /** The proposals grouped by the pair of companies they would merge. */
+    readonly mergerPairings = $derived.by(() => {
+        const keys = [
+            ...new Set(
+                this.mergerProposals.map(({ option }) => `${option.companyId}|${option.partnerId}`)
+            )
+        ]
+        return keys.map((key) => {
+            const proposals = this.mergerProposals.filter(
+                ({ option }) => `${option.companyId}|${option.partnerId}` === key
+            )
+            const [{ option }] = proposals
+            return { companyId: option.companyId, partnerId: option.partnerId, proposals }
+        })
+    })
+    /** The proposal the player is asked to answer, with what it would cost or make. */
+    readonly mergerAnswer = $derived.by(() => {
+        const decision = this.myMergerDecision
+        if (decision?.kind !== 'answer') return undefined
+        return this.describeMerger(decision.proposal, decision.proposal.proposerPlayerId)
+    })
+    /** The sales the buyer's president may make toward a takeover, and what remains to raise. */
+    readonly takeoverFunding = $derived.by(() => {
+        const decision = this.myMergerDecision
+        const funding = this.gameState.mergerPhase?.funding
+        if (decision?.kind !== 'fund' || !funding) return undefined
+        return {
+            ...funding,
+            sales: takeoverSales(this.gameState, funding.playerId, funding.targetId)
+        }
+    })
+    readonly mergedTrainDiscards = $derived(
+        this.myMergerDecision?.kind === 'discard'
+            ? discardableMergedTrains(this.gameState, this.myMergerDecision.playerId)
+            : []
+    )
+    private describeMerger(option: MergerOption, proposerPlayerId: string) {
+        const partnerPresident = controllingOwner(this.gameState, option.partnerId)?.playerId
+        assertExists(partnerPresident, 'A merger partner has a president')
+        const initiator = option.yielded ? partnerPresident : proposerPlayerId
+        if (option.kind === 'system') {
+            const companyIds = [option.companyId, option.partnerId]
+            const president = systemPresident(this.gameState, companyIds, initiator)
+            assertExists(president, 'A System has a president')
+            return {
+                kind: 'system' as const,
+                option,
+                proposerPlayerId,
+                initiator,
+                president,
+                price: systemMarketSpace(this.gameState.stockMarket, companyIds).price
+            }
+        }
+        const [buyerId, targetId] = option.yielded
+            ? [option.partnerId, option.companyId]
+            : [option.companyId, option.partnerId]
+        return {
+            kind: 'takeover' as const,
+            option,
+            proposerPlayerId,
+            initiator,
+            buyerId,
+            targetId,
+            price: takeoverPayments(this.gameState, buyerId, targetId).reduce(
+                (total, payment) => total + payment.amount,
+                0
+            )
+        }
+    }
+    async proposeMerger(option: MergerOption): Promise<void> {
+        await this.applyAction(this.createPlayerAction(ProposeMerger, option))
+    }
+    async passMerger(): Promise<void> {
+        await this.applyAction(this.createPlayerAction(PassMerger, {}))
+    }
+    async answerMerger(accept: boolean): Promise<void> {
+        await this.applyAction(this.createPlayerAction(AnswerMerger, { accept }))
+    }
+    async sellTakeoverShares(sale: ShareSaleDetails): Promise<void> {
+        const [{ companyId, shares }] = sale.sales
+        await this.applyAction(this.createPlayerAction(SellTakeoverShares, { companyId, shares }))
+    }
+    async discardMergedTrain(trainId: string): Promise<void> {
+        await this.applyAction(this.createPlayerAction(DiscardMergedTrain, { trainId }))
+    }
     /** A redemption awaiting a holder's consent. */
     readonly redemptionPrompt = $derived.by(() => {
         const request = this.gameState.redemptionRequest
         if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
         return { ...request, companyName: getCompany(this.gameState, request.companyId).name }
     })
-    readonly canChooseAction = $derived(
-        this.isPlayable &&
-            this.isMyTurn &&
-            !this.isViewingHistory &&
-            !this.busy &&
-            !this.updatingVisibleState
-    )
     readonly canAnswerRedemption = $derived(
         this.canChooseAction && this.validActionTypes.includes('AnswerRedemption')
     )

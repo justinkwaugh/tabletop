@@ -15,6 +15,11 @@ import LNLogo from './images/logos/LN.svg'
 import NWLogo from './images/logos/NW.svg'
 import SALLogo from './images/logos/SAL.svg'
 import SOULogo from './images/logos/SOU.svg'
+import AMTKLogo from './images/logos/AMTK.svg'
+import BNSFLogo from './images/logos/BNSF.svg'
+import ICLogo from './images/logos/IC.svg'
+import CSXLogo from './images/logos/CSX.svg'
+import NSLogo from './images/logos/NS.svg'
 import CottonToken from './images/tokens/cotton.svg'
 import KeyWestToken from './images/tokens/key-west.svg'
 import PortToken from './images/tokens/port.svg'
@@ -49,7 +54,13 @@ const Stations: MapViewDefinition['stations'] = {
     LN: { label: 'L&N', color: '#1b5cab', imageUrl: LNLogo },
     NW: { label: 'N&W', color: '#1a1a1a', imageUrl: NWLogo },
     SAL: { label: 'SAL', color: '#e8822a', imageUrl: SALLogo },
-    SOU: { label: 'Sou', color: '#2f7d45', imageUrl: SOULogo }
+    SOU: { label: 'Sou', color: '#2f7d45', imageUrl: SOULogo },
+    // Systems A–E (§11.6).
+    AMTK: { label: 'AMTK', color: '#2a5a9e', imageUrl: AMTKLogo },
+    BNSF: { label: 'BNSF', color: '#f2741c', imageUrl: BNSFLogo },
+    IC: { label: 'IC', color: '#10803d', imageUrl: ICLogo },
+    CSX: { label: 'CSX', color: '#1b3a6b', imageUrl: CSXLogo },
+    NS: { label: 'NS', color: '#5a5a5a', imageUrl: NSLogo }
 }
 
 // A placed Port, Cotton or Key West token outlines its hex and badges it with the placing

@@ -14,6 +14,7 @@
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
     import CompanyShareActions from './CompanyShareActions.svelte'
+    import MergerPhase from './MergerPhase.svelte'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
@@ -54,6 +55,8 @@
             {:else}
                 <WaterfallAuctionLots {session} />
             {/if}
+        {:else if session.mergerDecision}
+            <MergerPhase {session} />
         {:else if session.stockPanels.open === 'company'}
             <CompanyShareActions {session} />
         {:else}
