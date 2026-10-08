@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const MOOD_EASE_SECONDS = 4
-    const SUNLIGHT = 0.6
+    const SUNLIGHT = 0.45
 
     const session = getGameSession()
     const mood = $derived(session.landMood)
