@@ -3,7 +3,7 @@ import { Color } from '@tabletop/common'
 import { ActionType, CardKind, HydratedMuster, HydratedSearch, HydratedTravel, MachineState, PowerTiming, cardIdsOfKind, legalChoices, powersWithTiming } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { allowsSeveral } from './powerChoices.js'
-import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenuRows, cardCostLine, cardsThatCan, printedPowerWords, soleDeclarations, type ActionCard } from './actionCards.js'
+import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenuRows, cardCostLine, cardsMakingPossible, printedPowerWords, soleDeclarations, type ActionCard } from './actionCards.js'
 
 const MUSHROOMS = 'denizen.beast.mushrooms'
 const TENTS = 'denizen.nomad.tents'
@@ -143,19 +143,17 @@ describe('what a card brings, said before it is used', () => {
 })
 
 describe('the words of a card’s row and of the grey tile', () => {
-    const NAMES: Record<string, string> = { [TENTS]: 'Tents', [SPECIAL_ENVOY]: 'Special Envoy', [MUSHROOMS]: 'Mushrooms' }
-    const nameOf = (cardId: string) => NAMES[cardId] ?? cardId
     const card = (cardId: string, action: ActionCard['action'], kind: ActionCard['kind']): ActionCard => ({ cardId, powerIndex: 0, action, kind })
 
-    it('names every card that makes the tapped action possible, and none that only changes it', () => {
+    it('finds every card that makes the tapped action possible, and none that only changes it', () => {
         const cards = [
             card(TENTS, ActionType.Travel, 'makesPossible'),
             card(SPECIAL_ENVOY, ActionType.Travel, 'makesPossible'),
             card(MUSHROOMS, ActionType.Search, 'changes')
         ]
-        expect(cardsThatCan(cards, ActionType.Travel, nameOf)).toBe('Tents or Special Envoy: Use a power.')
-        expect(cardsThatCan(cards.slice(0, 1), ActionType.Travel, nameOf)).toBe('Tents: Use a power.')
-        expect(cardsThatCan(cards, ActionType.Search, nameOf)).toBeUndefined()
+        expect(cardsMakingPossible(cards, ActionType.Travel)).toEqual(cards.slice(0, 2))
+        expect(cardsMakingPossible(cards, ActionType.Search)).toEqual([])
+        expect(cardsMakingPossible(cards, ActionType.Muster)).toEqual([])
     })
 
     it('says what using the card costs, or that it is free (R-7.1.2)', () => {

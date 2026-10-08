@@ -4,8 +4,8 @@
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, type ReasonPart } from '$lib/model/names.js'
-    import { cardsThatCan } from '$lib/model/actionCards.js'
+    import { type ReasonPart } from '$lib/model/names.js'
+    import { cardsMakingPossible } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -50,29 +50,23 @@
 
     let minors = $derived(MINOR_ACTIONS.filter(available))
 
-    // R-7.4 — a card that would make the action possible is named after the reason.
+    // R-7.4 — where a card would make the action possible, Use a power is ringed while the reason
+    // shows; the card is named only behind it.
     function refusalOf(entry: MajorEntry) {
         const refusal = gridRefusal(gameState, seat.playerId, entry.type)
         if (!refusal) return undefined
-        const pointer = cardsThatCan(cards, entry.type, cardName)
-        const why =
+        const why: { parts: ReasonPart[]; text: string } =
             refusal.cause === 'engine'
-                ? engineWhy(refusal.reason, pointer !== undefined)
+                ? {
+                      parts: gameSession.reasonParts(refusal.reason),
+                      text: `${gameSession.humanizeReason(refusal.reason)}`
+                  }
                 : shortWhy(refusalWords(refusal))
-        return { parts: why.parts, pointer, title: pointer ? `${why.text} ${pointer}` : why.text }
+        return { ...why, cardHelps: cardsMakingPossible(cards, entry.type).length > 0 }
     }
 
     function shortWhy(words: string): { parts: ReasonPart[]; text: string } {
         return { parts: [{ kind: 'text', text: words }], text: words }
-    }
-
-    // The engine's sentence carries no full stop of its own.
-    function engineWhy(reason: string, followed: boolean): { parts: ReasonPart[]; text: string } {
-        const stop = followed ? '.' : ''
-        return {
-            parts: [...gameSession.reasonParts(reason), { kind: 'text', text: stop }],
-            text: `${gameSession.humanizeReason(reason)}${stop}`
-        }
     }
 
     // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
@@ -91,6 +85,11 @@
     let shownRefusal = $derived(
         pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
     )
+    // The ring is read with the reason it answers.
+    const reasonId = $props.id()
+    function ringed(entry: ActionEntry): boolean {
+        return entry.type === ActionType.UseActionPower && shownRefusal?.cardHelps === true
+    }
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
 
@@ -175,7 +174,7 @@
                     : 'border-oath-divider bg-oath-surface opacity-55 cursor-not-allowed'}"
                 {...pointing(entry)}
                 aria-disabled={!ok}
-                title={ok ? describe : (refusalOf(entry)?.title ?? describe)}
+                title={ok ? describe : (refusalOf(entry)?.text ?? describe)}
                 onclick={() => pressMajor(entry, ok)}
             >
                 <img src={actionImage(entry.type)} alt="" class="h-9 w-9 {ok ? '' : 'grayscale'}" />
@@ -188,11 +187,16 @@
     {#if minors.length > 0}
         <div class="minors mt-1.5 flex flex-wrap gap-1.5">
             {#each minors as entry (entry.type)}
+                {@const ring = ringed(entry)}
+                <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
                 <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised px-2 py-1
-                           text-[11px] font-medium transition-colors hover:border-oath-accent
-                           cursor-pointer"
+                    class="rounded border bg-oath-surface-raised px-2 py-1 text-[11px] font-medium
+                           transition-colors hover:border-oath-accent cursor-pointer
+                           {ring
+                        ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
+                        : 'border-oath-frame'}"
                     {...pointing(entry)}
+                    aria-describedby={ring ? reasonId : undefined}
                     title={`${entry.label}. ${entry.summary}`}
                     onclick={() => take(entry)}
                 >
@@ -206,7 +210,7 @@
 <!-- One fixed line: why the pointed or tapped major is refused, or what the hovered action does. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
     {#if shownRefusal}
-        <span class="text-oath-danger"
+        <span id={reasonId} class="text-oath-danger"
             >{#each shownRefusal.parts as part, i (i)}{#if part.kind === 'text'}<TokenText
                         text={part.text}
                     />{:else}<PlayerName
@@ -214,9 +218,6 @@
                         possessive={part.possessive}
                     />{/if}{/each}</span
         >
-        {#if shownRefusal.pointer}
-            <span class="text-oath-text">{shownRefusal.pointer}</span>
-        {/if}
     {:else if hoveredEntry}
         <span class="text-oath-text-muted"><TokenText text={hoveredEntry.summary} /></span>
     {/if}

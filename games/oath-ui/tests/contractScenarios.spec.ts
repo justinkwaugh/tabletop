@@ -1968,12 +1968,43 @@ test('the fixture opens the Chancellor setup with the hand offered', async ({ pa
 const usePower = (page: Page) => grid(page).getByRole('button', { name: 'Use a power', exact: true })
 const actionCard = (page: Page, cardId: string) => grid(page).locator(`[data-action-card="${cardId}"]`)
 const picked = (page: Page) => grid(page).locator('button[aria-pressed="true"]')
+// The ring on Use a power ties it to the reason it answers.
+const ringedBy = (page: Page) => grid(page).locator('.minors button[aria-describedby]')
+
+test('scenario 55: a dimmed major no card makes possible leaves Use a power unringed, and the ring clears with the reason', async ({ page }) => {
+    await openTable(page, 'cardsOpenTravel')
+    await expect(usePower(page)).toBeVisible()
+    await tile(page, 'Travel').click({ force: true })
+    await expect(ringedBy(page)).toHaveCount(1)
+    await tile(page, 'Search').click({ force: true })
+    await expect(reasonLine(page)).toHaveText('Needs 2 Supply; you have 0.')
+    await expect(ringedBy(page)).toHaveCount(0)
+    await expect(usePower(page)).not.toHaveAttribute('aria-describedby')
+})
+
+test('scenario 55: on a phone the ring on Use a power is drawn whole inside the grid', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await openTable(page, 'cardOpensSearch')
+    await tile(page, 'Search').click({ force: true })
+    await expect(ringedBy(page)).toHaveCount(1)
+    const chip = await usePower(page).boundingBox()
+    const actions = await grid(page).locator('.actions').boundingBox()
+    expect(chip).not.toBeNull()
+    expect(actions).not.toBeNull()
+    if (!chip || !actions) return
+    expect(chip.x).toBeGreaterThanOrEqual(actions.x)
+    expect(chip.x + chip.width).toBeLessThanOrEqual(actions.x + actions.width + 0.5)
+    expect(chip.y + chip.height).toBeLessThanOrEqual(actions.y + actions.height + 0.5)
+})
 
 test('scenario 55: a card that makes a Search possible is found with the powers; the Search tile stays dimmed and the pile’s button sends', async ({ page }) => {
     await openTable(page, 'cardOpensSearch')
     await expect(tile(page, 'Search')).toHaveAttribute('aria-disabled', 'true')
     await tile(page, 'Search').click({ force: true })
-    await expect(reasonLine(page)).toHaveText('Needs 2 Supply; you have 1. Mushrooms: Use a power.')
+    await expect(reasonLine(page)).toHaveText('Needs 2 Supply; you have 1.')
+    await expect(reasonLine(page)).not.toContainText('Mushrooms')
+    await expect(usePower(page)).toHaveAccessibleDescription('Needs 2 Supply; you have 1.')
+    expect(await usePower(page).evaluate((chip) => getComputedStyle(chip).boxShadow)).toContain('inset')
     expect((await call(page, 'tableFacts')).staged).toBeUndefined()
 
     await expect(usePower(page)).toBeEnabled()
@@ -2012,7 +2043,10 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
 test('scenario 56: two cards that make a Travel possible are two rows; one says it ends the Act Phase, and each opens the destinations it reaches', async ({ page }) => {
     await openTable(page, 'cardsOpenTravel')
     await tile(page, 'Travel').click({ force: true })
-    await expect(reasonLine(page)).toContainText('Tents or Special Envoy: Use a power.')
+    await expect(reasonLine(page)).not.toContainText('Tents')
+    await expect(reasonLine(page)).not.toContainText('Special Envoy')
+    await expect(ringedBy(page)).toHaveCount(1)
+    await expect(usePower(page)).toHaveAccessibleDescription(await reasonLine(page).innerText())
 
     await usePower(page).click()
     const tents = actionCard(page, 'denizen.nomad.tents')

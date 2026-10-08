@@ -135,18 +135,12 @@ export function actionCards(state: HydratedOathGameState, playerId: string): Act
     })
 }
 
-export function cardsThatCan(
+/** R-7.4 — the cards that would make an action possible that cannot be taken as printed. */
+export function cardsMakingPossible(
     cards: readonly ActionCard[],
-    action: ActionType,
-    nameOf: (cardId: string) => string
-): string | undefined {
-    const names = cards
-        .filter((card) => card.action === action && card.kind === 'makesPossible')
-        .map((card) => nameOf(card.cardId))
-    if (names.length === 0) return undefined
-    const list =
-        names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`
-    return `${list}: Use a power.`
+    action: ActionType
+): ActionCard[] {
+    return cards.filter((card) => card.action === action && card.kind === 'makesPossible')
 }
 
 /** R-7.1.2 — what using the card costs, as its row says it before the press. */
