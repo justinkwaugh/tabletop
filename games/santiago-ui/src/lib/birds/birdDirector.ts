@@ -8,6 +8,8 @@ import {
     nearbyCandidates
 } from './candidateFields.js'
 import { Flock, type BirdPose } from './flock.js'
+import { Kettle, KETTLE_REACH } from './kettle.js'
+import { desertFields, desertDominates, isDesertField } from './desertFields.js'
 
 const IDLE_MIN_MS = 30_000
 const IDLE_MAX_MS = 90_000
@@ -16,6 +18,8 @@ const MIN_FLOCK = 3
 const MAX_FLOCK = 6
 const PAIR_CHANCE = 0.5
 const BIRD_SCALE = 1.1
+const VULTURE_SCALE = 0.5
+const VULTURE_HALF_SPAN = 10.2 * VULTURE_SCALE
 
 export type TickCallback = (deltaMs: number) => void
 
@@ -36,6 +40,8 @@ export type BirdEnvironment = {
     prefersReducedMotion(): boolean
     onVisibilityChange(listener: (hidden: boolean) => void): () => void
 }
+
+type RenderedPose = BirdPose | 'vulture'
 
 export type PresenceListener = (birdIds: number[]) => void
 
@@ -91,9 +97,11 @@ export function browserBirdEnvironment(): BirdEnvironment {
 // birds' transforms straight to their SVG nodes; reactive state carries only the flock's presence.
 export class BirdDirector {
     private flock: Flock | undefined
+    private kettle: Kettle | undefined
+    private kettleSquare: Intersection | undefined
     private fields: Intersection[] = []
     private readonly nodes = new Map<number, SVGGElement>()
-    private readonly poses = new Map<number, BirdPose>()
+    private readonly poses = new Map<number, RenderedPose>()
     private idleTimer: ReturnType<typeof setTimeout> | undefined
     private publish: PresenceListener = () => {}
     private stopWatchingVisibility: (() => void) | undefined
@@ -110,6 +118,10 @@ export class BirdDirector {
         return this.flock !== undefined
     }
 
+    get hasKettle(): boolean {
+        return this.kettle !== undefined
+    }
+
     attach(onPresence: PresenceListener): () => void {
         this.detach()
         this.publish = onPresence
@@ -122,7 +134,7 @@ export class BirdDirector {
     }
 
     summon(): boolean {
-        if (this.flock) return false
+        if (this.flock || this.kettle) return false
         this.clearIdleTimer()
         return this.tryVisit()
     }
@@ -148,13 +160,43 @@ export class BirdDirector {
             this.host.isViewingHistory ||
             this.env.isHidden() ||
             this.env.prefersReducedMotion()
-        const candidates = suppressed ? [] : candidateFields(this.host.gameState.board.squares)
+        const squares = this.host.gameState.board.squares
+        if (!suppressed && desertDominates(squares)) {
+            const roomy = desertFields(squares).filter((square) => this.hasRoomToCircle(square))
+            if (roomy.length === 0) {
+                this.scheduleVisit()
+                return false
+            }
+            this.spawnKettle(roomy[Math.floor(this.env.random() * roomy.length)])
+            return true
+        }
+        const candidates = suppressed ? [] : candidateFields(squares)
         if (candidates.length === 0) {
             this.scheduleVisit()
             return false
         }
         this.spawn(candidates[Math.floor(this.env.random() * candidates.length)])
         return true
+    }
+
+    private spawnKettle(target: Intersection) {
+        const cell = this.cellRect(target)
+        this.kettleSquare = target
+        const center = { x: cell.x + cell.width / 2, y: cell.y + cell.height / 2 }
+        this.kettle = new Kettle(
+            {
+                center,
+                // Vultures glide in slowly, so they come from the nearer side.
+                entrySide: center.x < W / 2 ? 'left' : 'right',
+                exitSide: this.env.random() < 0.5 ? 'left' : 'right',
+                size: 1,
+                boardWidth: W,
+                boardHeight: H
+            },
+            this.env.random
+        )
+        this.publish(this.kettle.vultures.map((vulture) => vulture.id))
+        this.env.ticker.add(this.tick)
     }
 
     private spawn(target: Intersection) {
@@ -179,10 +221,22 @@ export class BirdDirector {
     }
 
     private onTick(deltaMs: number) {
+        const dt = Math.max(0, Math.min(deltaMs / 1000, MAX_DT))
+        const kettle = this.kettle
+        if (kettle) {
+            if (!kettle.leaving && this.kettleShouldLeave()) kettle.startle()
+            kettle.step(dt)
+            this.renderKettle(kettle)
+            if (kettle.isGone) {
+                this.clearFlock()
+                this.scheduleVisit()
+            }
+            return
+        }
         const flock = this.flock
         if (!flock) return
         if (!flock.leaving && this.shouldStartle(flock)) flock.startle()
-        flock.step(Math.max(0, Math.min(deltaMs / 1000, MAX_DT)))
+        flock.step(dt)
         this.render(flock)
         if (flock.isGone) {
             this.clearFlock()
@@ -215,6 +269,39 @@ export class BirdDirector {
         return false
     }
 
+    // A square whose kettle stays on the board while wheeling, so the vultures are never clipped.
+    private hasRoomToCircle(square: Intersection): boolean {
+        const cell = this.cellRect(square)
+        const x = cell.x + cell.width / 2
+        const y = cell.y + cell.height / 2
+        const margin = KETTLE_REACH + VULTURE_HALF_SPAN
+        return x >= margin && x <= W - margin && y >= margin && y <= H - margin
+    }
+
+    private kettleShouldLeave(): boolean {
+        if (this.host.isViewingHistory) return true
+        const square = this.kettleSquare
+        return square === undefined || !isDesertField(this.host.gameState.board.squares[square.col][square.row])
+    }
+
+    private renderKettle(kettle: Kettle) {
+        for (const vulture of kettle.vultures) {
+            const node = this.nodes.get(vulture.id)
+            if (!node) continue
+            node.setAttribute('visibility', vulture.mode === 'gone' ? 'hidden' : 'visible')
+            if (vulture.mode === 'gone') continue
+            const { x, y } = vulture.pos
+            node.setAttribute(
+                'transform',
+                `translate(${x} ${y}) rotate(${(vulture.heading * 180) / Math.PI}) scale(${VULTURE_SCALE})`
+            )
+            if (this.poses.get(vulture.id) !== 'vulture') {
+                this.poses.set(vulture.id, 'vulture')
+                node.dataset.pose = 'vulture'
+            }
+        }
+    }
+
     private render(flock: Flock) {
         for (const bird of flock.birds) {
             const node = this.nodes.get(bird.id)
@@ -242,8 +329,10 @@ export class BirdDirector {
     }
 
     private clearFlock() {
-        if (this.flock) this.env.ticker.remove(this.tick)
+        if (this.flock || this.kettle) this.env.ticker.remove(this.tick)
         this.flock = undefined
+        this.kettle = undefined
+        this.kettleSquare = undefined
         this.fields = []
         this.poses.clear()
         this.publish([])
