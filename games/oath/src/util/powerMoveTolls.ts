@@ -110,7 +110,11 @@ export function settlePowerMoveToll(
         if (question.move === PowerMoveKind.Palanquin) {
             state.getPlayerState(question.moverPlayerId).siteId = question.siteId
         }
-        const { notes } = travelByPower(state, moved, question.siteId)
+        const { notes, revealed } = travelByPower(state, moved, question.siteId)
+        assert(
+            revealed === undefined,
+            'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'
+        )
         if (notes.length > 0) record.notes = notes
         if (question.move === PowerMoveKind.Whistle) {
             record.secretsTaken = giveWhistleSecret(state, question.moverPlayerId, moved)

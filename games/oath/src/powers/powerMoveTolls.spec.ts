@@ -221,8 +221,8 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
             }
         }, oathRevision)
     }
-    function resolve(s: ReturnType<typeof table>, burnFavor: boolean) {
-        const action = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'cole', placements: [], banishToSiteId: 'c1', burnFavor }))
+    function resolve(s: ReturnType<typeof table>, burnFavor: boolean, banishToSiteId = 'c1') {
+        const action = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'cole', placements: [], banishToSiteId, burnFavor }))
         action.apply(s)
         return action
     }
@@ -270,6 +270,20 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
         expect(s.pendingQuestions).toBeUndefined()
         expect(s.getPlayerState('jacob').siteId).toBe('c2')
         expect(victory.metadata?.tollMove?.outcome).toBe(PowerMoveTollOutcome.NoFavor)
+    })
+
+    it('a facedown destination is ruled by nobody: no toll is asked, and the site is revealed as they arrive (R-5.6.2)', () => {
+        const s = won()
+        s.siteCards = { c1: 'c1', c2: 'c2', p1: 'p1' }
+        s.warbandsBySite.h1 = {}
+        s.vault = createOathVault({ siteFacedown: { h1: 'site.mountain' } }, getPrng(1))
+        const victory = resolve(s, true, 'h1')
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(s.siteCardAt('h1')).toBe('site.mountain')
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'h1', favor: 4 })
+        expect(victory.revealsInfo).toBe(true)
+        expect(victory.metadata).toMatchObject({ banishedToSiteId: 'h1', revealedSiteCardId: 'site.mountain', favorBurned: 3 })
+        expect(victory.metadata?.tollMove).toBeUndefined()
     })
 
     it('R-X.4 — before the revision the banish is free and the burn immediate', () => {
