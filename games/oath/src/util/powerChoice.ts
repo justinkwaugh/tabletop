@@ -9,7 +9,7 @@ import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
 import { describeWarbands } from './warbands.js'
-import { choiceSpecsFor } from '../powers/registry.js'
+import { choiceSpecsFor, effectFor } from '../powers/registry.js'
 
 export { PowerChoice, PowerChoiceKind }
 
@@ -26,6 +26,8 @@ export interface ChoiceSpec {
     min: number
     max: number
     domain?: ChoiceDomain
+    /** Its domain is read on the state the earlier choices leave: `EffectDefinition.stateAfter`. */
+    sequential?: true
     what?: string
     allows?: ExchangeAllowance
 }
@@ -135,14 +137,45 @@ export interface LegalChoice {
 
 export type LegalPowerUse = PowerUseKey & { choices: LegalChoice[] }
 
+function stateAfterChoices(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower,
+    earlier: readonly PowerChoice[]
+): HydratedOathGameState {
+    if (earlier.length === 0) return state
+    const stateAfter = effectFor(power)?.stateAfter
+    assertExists(
+        stateAfter,
+        `${power.cardId} power ${power.powerIndex} declares sequential choices but no stateAfter`
+    )
+    return stateAfter({ state, playerId, power, choices: earlier })
+}
+
+function readingStates(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower,
+    specs: readonly ChoiceSpec[],
+    earlier: readonly PowerChoice[]
+): (spec: ChoiceSpec) => HydratedOathGameState {
+    const after = specs.some((spec) => spec.sequential)
+        ? stateAfterChoices(state, playerId, power, earlier)
+        : state
+    return (spec) => (spec.sequential ? after : state)
+}
+
 export function legalChoices(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    earlier: readonly PowerChoice[] = []
 ): LegalChoice[] {
-    return choiceSpecsFor(power).map((spec) => ({
+    const specs = choiceSpecsFor(power)
+    const readingFor = readingStates(state, playerId, power, specs, earlier)
+    return specs.map((spec) => ({
         spec,
-        options: domainOf(spec)(state, playerId, power)
+        options: domainOf(spec)(readingFor(spec), playerId, power)
     }))
 }
 
@@ -181,7 +214,8 @@ export function reasonChoicesInvalid(
     choices: readonly PowerChoice[] | undefined
 ): string | undefined {
     const specs = choiceSpecsFor(power)
-    const given = [...(choices ?? [])]
+    const all = choices ?? []
+    const given = [...all]
 
     if (specs.length === 0) {
         return given.length === 0
@@ -194,11 +228,15 @@ export function reasonChoicesInvalid(
         // A later spec of the same kind takes what only its domain offers (Warning Signals).
         const later = specs.slice(i + 1).filter((l) => l.kind === spec.kind)
         const laterSameKind = later.length > 0
+        const earlier = all.slice(0, all.length - given.length)
+        const readingFor = readingStates(state, playerId, power, [spec, ...later], earlier)
         const offered = new Set(
-            domainOf(spec)(state, playerId, power).map((option) => keyOf(option))
+            domainOf(spec)(readingFor(spec), playerId, power).map((option) => keyOf(option))
         )
         const offeredLater = new Set(
-            later.flatMap((l) => domainOf(l)(state, playerId, power).map((option) => keyOf(option)))
+            later.flatMap((l) =>
+                domainOf(l)(readingFor(l), playerId, power).map((option) => keyOf(option))
+            )
         )
         while (taken.length < spec.max) {
             const next = given[0]
@@ -220,7 +258,10 @@ export function reasonChoicesInvalid(
         }
 
         const options = new Map(
-            domainOf(spec)(state, playerId, power).map((option) => [keyOf(option), option])
+            domainOf(spec)(readingFor(spec), playerId, power).map((option) => [
+                keyOf(option),
+                option
+            ])
         )
         const seen = new Set<string>()
         for (const choice of taken) {

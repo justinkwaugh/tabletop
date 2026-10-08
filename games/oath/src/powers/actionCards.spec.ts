@@ -7,14 +7,14 @@ import { ActPhaseStateHandler } from '../stateHandlers/actPhase.js'
 import { Banner, CardKind, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
-import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
-import { PowerTiming, registerCardPowers } from '../data/cardPowers.js'
+import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
+import { cardPowers, PowerTiming, powerIndexOf, registerCardPowers } from '../data/cardPowers.js'
 import { registerCards } from '../data/cardRegistry.js'
 import '../powers/index.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
-import { actionPowerUse, bank, card, player, site } from '../testing/choices.js'
+import { actionPowerUse, bank, boardWarbands, card, player, site, siteWarbands } from '../testing/choices.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { spectator } from '../testing/projection.js'
 
@@ -516,5 +516,104 @@ describe('Slice 2 — the two deferred Action powers', () => {
         expect(() =>
             actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'board', playerId: 'ruler' }, 1), site('h1')]).apply(elsewhere)
         ).toThrow(/not among the options/)
+    })
+})
+
+const MESSENGER = 'denizen.order.messenger'
+
+describe('Messenger — each move is read on the state the earlier moves leave', () => {
+    const fromBoard = (count: number) => boardWarbands('ruler', 'ruler', count)
+    const fromSite = (siteId: string, count: number) => siteWarbands(siteId, 'ruler', count)
+    const where = (s: ReturnType<typeof board>) => ({
+        board: s.getPlayerState('ruler').warbandsOnBoard['ruler'] ?? 0,
+        c1: s.warbandsBySite['c1']['ruler'],
+        c2: s.warbandsBySite['c2']['ruler']
+    })
+    const use = (s: ReturnType<typeof board>, choices: PowerChoice[]) => {
+        const action = actionPowerUse('ruler', MESSENGER, choices)
+        action.apply(s)
+        return action.metadata?.summary
+    }
+
+    it('Messenger chains a move: site A to the board, then the board to site B, with the board empty before', () => {
+        const s = board([MESSENGER], { ruler: { warbandsOnBoard: {} } })
+        s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
+        expect(use(s, [fromSite('c2', 2), fromBoard(2), site('c1')])).toBe('moved 2 c2 → board; 2 board → c1')
+        expect(where(s)).toEqual({ board: 0, c1: 3, c2: 1 })
+    })
+
+    it('Messenger takes from the board warbands an earlier move brought there', () => {
+        const s = board([MESSENGER], { ruler: { warbandsOnBoard: { ruler: 1 } } })
+        s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
+        expect(use(s, [fromSite('c2', 2), fromBoard(3), site('c1')])).toBe('moved 2 c2 → board; 3 board → c1')
+        expect(where(s)).toEqual({ board: 0, c1: 4, c2: 1 })
+    })
+
+    it('Messenger lifts from a site warbands an earlier move placed there', () => {
+        const s = board([MESSENGER])
+        expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
+        expect(use(s, [fromBoard(2), site('c2'), fromSite('c2', 2)])).toBe('moved 2 board → c2; 2 c2 → board')
+        expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
+    })
+
+    it('Messenger keeps the last warband at every step', () => {
+        const s = board([MESSENGER])
+        expect(() => use(s, [fromBoard(2), site('c2'), fromSite('c2', 2), fromSite('c2', 1)])).toThrow(
+            /1 of ruler's warbands is not among the options for more warbands to move/
+        )
+        expect(() => use(s, [fromBoard(2), site('c2'), fromSite('c2', 3)])).toThrow(
+            /3 of ruler's warbands chosen for more warbands to move, but only 2 are there/
+        )
+        expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
+    })
+
+    it('Messenger refuses another player\'s board and an owner the player does not rule with', () => {
+        const s = board([MESSENGER])
+        const before = s.dehydrate()
+        const theirBoard = boardWarbands('other', 'other', 1)
+        const theirWarbands = siteWarbands('c2', 'other', 1)
+        const empireOnMyBoard = boardWarbands('ruler', IMPERIAL_WARBANDS, 1)
+        for (const foreign of [theirBoard, theirWarbands, empireOnMyBoard]) {
+            expect(() => use(s, [foreign, site('c1')])).toThrow(/is not among the options for warbands to move/)
+            expect(() => use(s, [fromBoard(1), site('c2'), foreign, site('c1')])).toThrow(
+                /is not among the options for more warbands to move/
+            )
+        }
+        expect(s.dehydrate()).toEqual(before)
+    })
+
+    it('Messenger offers the next move\'s sources on the state the earlier moves leave', () => {
+        const s = board([MESSENGER], { ruler: { warbandsOnBoard: {} } })
+        s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
+        const before = s.dehydrate()
+        const power = cardPowers(MESSENGER)[powerIndexOf(MESSENGER, PowerTiming.Action)]
+        const sources = (earlier?: PowerChoice[]) => legalChoices(s, 'ruler', power, earlier)[2].options
+
+        expect(sources()).toEqual([fromSite('c2', 2)])
+        expect(legalChoices(s, 'ruler', power, [])).toEqual(legalChoices(s, 'ruler', power))
+        expect(sources([fromSite('c2', 2)])).toEqual([fromBoard(2)])
+        expect(sources([fromSite('c2', 1), site('c1')])).toEqual([fromSite('c1', 1), fromSite('c2', 1)])
+        expect(s.dehydrate()).toEqual(before)
+    })
+
+    it('Messenger replays every four-pair list the old check accepted unchanged', () => {
+        const accepted: { choices: PowerChoice[]; summary: string; after: ReturnType<typeof where> }[] = [
+            { choices: [fromBoard(2), site('c2')], summary: 'moved 2 board → c2', after: { board: 0, c1: 3, c2: 5 } },
+            { choices: [fromSite('c1', 2)], summary: 'moved 2 c1 → board', after: { board: 4, c1: 1, c2: 3 } },
+            { choices: [fromSite('c1', 2), site('c2')], summary: 'moved 2 c1 → c2', after: { board: 2, c1: 1, c2: 5 } },
+            {
+                choices: [fromBoard(1), site('c1'), fromSite('c2', 2), site('c1'), fromSite('c1', 1), fromBoard(1), site('c2')],
+                summary: 'moved 1 board → c1; 2 c2 → c1; 1 c1 → board; 1 board → c2',
+                after: { board: 1, c1: 5, c2: 2 }
+            },
+            { choices: [fromBoard(1), site('c1'), site('c2')], summary: 'moved 1 board → c1', after: { board: 1, c1: 4, c2: 3 } }
+        ]
+        for (const { choices, summary, after } of accepted) {
+            const s = board([MESSENGER])
+            s.warbandsBySite['c1'] = { ruler: 3 }
+            s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
+            expect(use(s, choices), summary).toBe(summary)
+            expect(where(s), summary).toEqual(after)
+        }
     })
 })

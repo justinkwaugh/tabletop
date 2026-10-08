@@ -330,6 +330,8 @@ export interface EffectDefinition {
     hidden?: (ctx: EffectContext) => HiddenRequest | undefined
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
     resolve: (ctx: EffectContext) => EffectResult
+    /** A copy of the state as `ctx.choices` leave it, which `sequential` choices are read on. */
+    stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */
     modifier?: ModifierHooks
     /** R-7.4.1's "must": applied unasked, never declared. */
