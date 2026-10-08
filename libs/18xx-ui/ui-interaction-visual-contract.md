@@ -662,7 +662,20 @@ A title may name rounds of its own that follow an operating round (1817's merger
 acquisition rounds). The turn header then reads the round's name and the operating
 round's number, such as "Merger round 2.1", shortening to its abbreviation like OR/SR;
 history groups its actions as a round of their own, such as "MR 2.1", from its start to
-its end action.
+its end action. A round that follows a stock round (1832's merger phase) takes the stock
+round's number, "Merger phase 3"; held within an operating round it takes that round's, and
+history then shows the operating round as two sections around it.
+
+1832's merger phase replaces the operating panels for the player deciding. The proposer
+sees a card for each company they may merge with, headed by their company and the partner,
+whose committed buttons form a System (with its price and president) or take over the
+partner (with the price of its shares), as initiator or yielding to the partner's president;
+Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
+A buyer's president short of a takeover's price sees the amount to raise and a card per
+company with each sale they may make, and a buyer over its train limit names the excess and
+discards trains, shown as train badges. Other players see who is deciding. History records
+Systems formed and takeovers as important rows, proposals and answers, funding sales with
+their proceeds, and discards.
 
 1817's merger and acquisition rounds replace the operating panels with a panel headed
 by the round's name and a card for the company being dealt with, in the share cards'

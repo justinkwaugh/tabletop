@@ -6,7 +6,7 @@ import {
     type TileFace,
     type TrackRules
 } from '@tabletop/18xx'
-import { requireEighteenThirtyTwoState } from './state.js'
+import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoMap, MediumCityLocationIds } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { coalFieldsOpen } from './coalAccess.js'
@@ -15,6 +15,7 @@ import { sameOperatingTurn } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { migrateRevenueTokens } from './revenueTokens.js'
 import { isSystem } from './systems.js'
+import { isHomeStation } from './absorption.js'
 
 const Tampa = 'Z25'
 
@@ -73,6 +74,32 @@ export function unpromotedMediumCities(state: MapStateData): string[] {
     })
 }
 
+/**
+ * An upgrade joining cities, as Atlanta's brown tile does, can leave a company two tokens in one
+ * city: one returns to its charter, to be placed again for $100, or is discarded when both were
+ * homes (§7.3.3).
+ */
+function resolveSharedCities(state: EighteenThirtyTwoState, locationId: string) {
+    const seen = new Map<string, string>()
+    state.stations = state.stations.map((station) => {
+        if (station.status !== 'placed' || station.position.locationId !== locationId)
+            return station
+        const key = `${station.companyId}|${station.position.nodeId}`
+        const kept = seen.get(key)
+        if (!kept) {
+            seen.set(key, station.id)
+            return station
+        }
+        if (
+            isHomeStation(state, kept, station.companyId) &&
+            isHomeStation(state, station.id, station.companyId)
+        )
+            return { id: station.id, companyId: station.companyId, status: 'removed' }
+        state.returnedStationIds = [...(state.returnedStationIds ?? []), station.id]
+        return { id: station.id, companyId: station.companyId, status: 'available' }
+    })
+}
+
 export const EighteenThirtyTwoTrackRules: TrackRules = {
     map: EighteenThirtyTwoMap,
     tileSet: EighteenThirtyTwoTileSet,
@@ -114,6 +141,7 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
             details.locationId,
             details.nodeMapping
         )
+        resolveSharedCities(requireEighteenThirtyTwoState(state), details.locationId)
         return { payments: [], closedPrivateIds: [] }
     },
     restriction(state, request) {

@@ -1,6 +1,11 @@
 <script lang="ts">
-    import { getCompany } from '@tabletop/18xx'
-    import { CompanyActionCard, CompanyActionPanel, type CardAction } from '@tabletop/18xx-ui'
+    import { getCompany, type ShareSaleDetails } from '@tabletop/18xx'
+    import {
+        CompanyActionCard,
+        CompanyActionPanel,
+        TrainBadge,
+        type CardAction
+    } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
     let { session }: { session: EighteenThirtyTwoSession } = $props()
     const money = $derived(session.presentation.money)
@@ -9,17 +14,17 @@
     const initials = (companyId: string) =>
         session.presentation.companyNames?.[companyId]?.initials ?? companyId
     const name = (playerId: string) => session.getPlayerName(playerId)
-    function proposalAction(
-        proposal: (typeof session.mergerProposals)[number]
-    ): CardAction {
-        const { option } = proposal
-        if (proposal.kind === 'system') {
+    function proposalAction({
+        option,
+        terms
+    }: (typeof session.mergerProposals)[number]): CardAction {
+        if (terms.kind === 'system') {
             const label = option.yielded
-                ? `Form a System, ${name(proposal.initiator)} initiating`
+                ? `Form a System, ${name(terms.initiator)} initiating`
                 : 'Form a System'
             return {
                 label,
-                detail: `${money(proposal.price)} · ${name(proposal.president)} presides`,
+                detail: `${money(terms.price)} · ${name(terms.president)} presides`,
                 ariaLabel: `${label} of ${initials(option.companyId)} and ${initials(option.partnerId)}`,
                 disabled: busy,
                 onclick: () => session.proposeMerger(option)
@@ -30,68 +35,75 @@
             : `Take over ${initials(option.partnerId)}`
         return {
             label,
-            detail: money(proposal.price),
-            ariaLabel: `${initials(option.companyId)}: ${label} for ${money(proposal.price)}`,
+            detail: money(terms.price),
+            ariaLabel: `${initials(option.companyId)}: ${label} for ${money(terms.price)}`,
             disabled: busy,
             onclick: () => session.proposeMerger(option)
+        }
+    }
+    function saleAction(sale: ShareSaleDetails): CardAction {
+        const [{ companyId, shares }] = sale.sales
+        return {
+            label: `Sell ${shares}`,
+            detail: money(sale.proceeds),
+            ariaLabel: `Sell ${shares} ${initials(companyId)} for ${money(sale.proceeds)}`,
+            disabled: busy,
+            onclick: () => session.sellTakeoverShares(sale)
         }
     }
 </script>
 
 {#if session.mergerAnswer}
-    {@const answer = session.mergerAnswer}
-    {@const option = answer.option}
+    {@const { proposal, terms } = session.mergerAnswer}
     <header class="merger-prompt">
         <span>
-            {#if answer.kind === 'system'}
-                {name(answer.proposerPlayerId)} proposes forming a System of {initials(
-                    option.companyId
-                )} and {initials(option.partnerId)} at {money(answer.price)}, {name(
-                    answer.president
+            {#if terms.kind === 'system'}
+                {name(proposal.proposerPlayerId)} proposes forming a System of {initials(
+                    proposal.companyId
+                )} and {initials(proposal.partnerId)} at {money(terms.price)}, {name(
+                    terms.president
                 )} presiding.
             {:else}
-                {name(answer.proposerPlayerId)} proposes that {initials(answer.buyerId)} take over
-                {initials(answer.targetId)}, paying {money(answer.price)} for its shares.
+                {name(proposal.proposerPlayerId)} proposes that {initials(terms.buyerId)} take over
+                {initials(terms.targetId)}, paying {money(terms.price)} for its shares.
             {/if}
         </span>
-        <button class="action-button inline-action" onclick={() => session.answerMerger(true)}
-            >agree</button
+        <button
+            class="action-button inline-action"
+            disabled={busy}
+            onclick={() => session.answerMerger(true)}>agree</button
         >
-        <button class="action-button inline-action" onclick={() => session.answerMerger(false)}
-            >refuse</button
+        <button
+            class="action-button inline-action"
+            disabled={busy}
+            onclick={() => session.answerMerger(false)}>refuse</button
         >
     </header>
 {:else if session.takeoverFunding}
     {@const funding = session.takeoverFunding}
     <CompanyActionPanel
         label="Takeover funding"
-        heading={`Sell shares for ${initials(funding.buyerId)}'s takeover of ${initials(funding.targetId)}`}
+        heading={`Raise ${money(funding.shortfall)} for ${initials(funding.buyerId)}'s takeover of ${initials(funding.targetId)}`}
     >
-        {#each funding.sales as sale (`${sale.sales[0].companyId}:${sale.sales[0].shares}`)}
-            {@const [{ companyId, shares }] = sale.sales}
-            <CompanyActionCard
-                {session}
-                {companyId}
-                actions={[
-                    {
-                        label: `Sell ${shares}`,
-                        detail: money(sale.proceeds),
-                        ariaLabel: `Sell ${shares} ${initials(companyId)} for ${money(sale.proceeds)}`,
-                        disabled: busy,
-                        onclick: () => session.sellTakeoverShares(sale)
-                    }
-                ]}
-            />
+        {#each funding.companies as { companyId, sales } (companyId)}
+            <CompanyActionCard {session} {companyId} actions={sales.map(saleAction)} />
         {/each}
     </CompanyActionPanel>
-{:else if session.mergedTrainDiscards.length}
-    <CompanyActionPanel label="Train discards" heading="Discard a train to the open market">
-        {#each session.mergedTrainDiscards as train (train.id)}
+{:else if session.mergedTrainDiscards}
+    {@const discards = session.mergedTrainDiscards}
+    <CompanyActionPanel
+        label="Train discards"
+        heading={`${getCompany(gameState, discards.companyId).name} has ${discards.excess} ${discards.excess === 1 ? 'train' : 'trains'} over its limit`}
+    >
+        {#each discards.trains as train (train.id)}
             <button
                 class="action-button"
                 disabled={busy}
-                onclick={() => session.discardMergedTrain(train.id)}
-                >Discard {train.definitionId}-train</button
+                onclick={() => session.discardMergedTrain(discards.companyId, train.id)}
+                >Discard <TrainBadge
+                    name={session.trainDepot.trainDefinition(train.definitionId).name}
+                    color={session.presentation.trainColors[train.definitionId]}
+                /></button
             >
         {/each}
     </CompanyActionPanel>

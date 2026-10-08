@@ -12,270 +12,38 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    DeparturePayments,
     ShareSaleDetails,
-    StationTransfer,
     SystemActionFirstHandler,
-    TrackNetwork,
     applyShareSale,
-    companyMarketSpace,
-    controllingOwner,
-    evaluateShareDisposal,
+    discardTrainToMarket,
     finiteCashOwnedBy,
-    getCompany,
-    moveCompanyStations,
-    reorderPendingOperatingCompanies,
-    removeStockMarker,
-    sameOwner,
     settleCashPayments,
-    sharesOwned,
-    transferCompanyAssets,
-    trainsCountingForLimit,
-    unownedTrain,
-    type PlacedStation
+    trainsCountingForLimit
 } from '@tabletop/18xx'
-import { coalFieldsOpen } from './coalAccess.js'
-import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
+import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
+import {
+    hasMergerOptions,
+    mergerOptions,
+    mergersAllowed,
+    presidentId,
+    takeoverPayments,
+    takeoverSales,
+    takeoverShortfall,
+    takeoverSides,
+    type MergerOption
+} from './mergerRules.js'
 import type {
     EighteenThirtyTwoState,
     EighteenThirtyTwoStateHandler,
     HydratedEighteenThirtyTwoState
 } from './state.js'
-import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
-import { SystemFormation, formSystem, isSystem, nextSystemId, systemPresident } from './systems.js'
-import { eighteenThirtyTwoMapState } from './tileState.js'
+import { EighteenThirtyTwoStockRules } from './stockRules.js'
+import { SystemFormation, formSystem } from './systems.js'
 import { MergerKind, MergingState, type MergerProposal } from './titleState.js'
 import { EighteenThirtyTwoPhases, EighteenThirtyTwoTrainRules } from './trains.js'
 
 const Id = Type.String({ minLength: 1 })
-
-/** Mergers begin with the first 4-train and end after the phase following the first 6-train. */
-function mergersAllowed(state: EighteenThirtyTwoState): boolean {
-    return EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '4') && !state.mergersEnded
-}
-
-function presidentId(state: EighteenThirtyTwoState, companyId: string): string | undefined {
-    return controllingOwner(state, companyId)?.playerId
-}
-
-// A System begins with its components' takeover (§11.5).
-function involvedIn(state: EighteenThirtyTwoState, companyId: string, kind: MergerKind) {
-    const ids = [companyId, ...(state.systems[companyId] ?? [])]
-    return state.mergers.some(
-        (merger) => merger.kind === kind && merger.companyIds.some((id) => ids.includes(id))
-    )
-}
-
-function placedStations(state: EighteenThirtyTwoState, companyId: string): PlacedStation[] {
-    return state.stations.flatMap((station) =>
-        station.status === 'placed' && station.companyId === companyId ? [station] : []
-    )
-}
-
-/**
- * Whether two companies can reach each other: a legal run of unlimited length from one to the
- * other's station, or stations sharing a city (§11.5).
- */
-export function companiesConnect(state: EighteenThirtyTwoState, first: string, second: string) {
-    const firstStations = placedStations(state, first)
-    const secondStations = placedStations(state, second)
-    const sameCity = (a: PlacedStation, b: PlacedStation) =>
-        a.position.locationId === b.position.locationId && a.position.nodeId === b.position.nodeId
-    if (firstStations.some((a) => secondStations.some((b) => sameCity(a, b)))) return true
-    const mapState = eighteenThirtyTwoMapState(state)
-    const reaches = (from: string, targets: readonly PlacedStation[]) => {
-        const network = new TrackNetwork(
-            mapState,
-            state,
-            from,
-            undefined,
-            undefined,
-            (locationId, nodeId) => !coalFieldsOpen(state, from, { locationId, nodeId })
-        )
-        return targets.some((target) =>
-            network.reaches(target.position.locationId, {
-                kind: 'node',
-                nodeId: target.position.nodeId
-            })
-        )
-    }
-    return reaches(first, secondStations) || reaches(second, firstStations)
-}
-
-/**
- * What the buyer pays for the other company's shares: players' and open-market shares at the
- * market price, unsold shares at par; the company's own redeemed shares are its assets (§11.7).
- */
-export function takeoverPayments(
-    state: EighteenThirtyTwoState,
-    buyerId: string,
-    targetId: string
-): CashPayment[] {
-    const target = getCompany(state, targetId)
-    const price = companyMarketSpace(state.stockMarket, targetId).price
-    const payments: CashPayment[] = []
-    for (const certificate of state.certificates) {
-        if (
-            certificate.retired ||
-            certificate.kind !== 'share' ||
-            certificate.companyId !== targetId ||
-            certificate.owner.kind === 'company'
-        )
-            continue
-        const unsold = certificate.poolId === 'initial-offering'
-        assertExists(target.parPrice, 'A started company has a par price')
-        const amount = (unsold ? target.parPrice : price) * certificate.shares
-        const to =
-            certificate.owner.kind === 'player' ? certificate.owner : { kind: 'bank' as const }
-        const previous = payments.find((payment) => sameOwner(payment.to, to))
-        if (previous) previous.amount += amount
-        else payments.push({ from: { kind: 'company', companyId: buyerId }, to, amount })
-    }
-    return payments
-}
-
-function takeoverCost(state: EighteenThirtyTwoState, buyerId: string, targetId: string) {
-    return takeoverPayments(state, buyerId, targetId).reduce(
-        (total, payment) => total + payment.amount,
-        0
-    )
-}
-
-/** What the buyer's treasury and its president's cash leave to raise by selling shares. */
-export function takeoverShortfall(
-    state: EighteenThirtyTwoState,
-    buyerId: string,
-    targetId: string,
-    playerId: string
-): number {
-    return Math.max(
-        0,
-        takeoverCost(state, buyerId, targetId) -
-            finiteCashOwnedBy(state, { kind: 'company', companyId: buyerId }) -
-            finiteCashOwnedBy(state, { kind: 'player', playerId })
-    )
-}
-
-/**
- * The sales a president may make to fund a takeover: shares of any company but the one bought,
- * within the open market's limit (§11.7).
- */
-export function takeoverSales(
-    state: EighteenThirtyTwoState,
-    playerId: string,
-    targetId: string
-): ShareSaleDetails[] {
-    const seller = { kind: 'player' as const, playerId }
-    return state.companies.flatMap((company) => {
-        if (company.id === targetId || company.kind === 'private') return []
-        const results: ShareSaleDetails[] = []
-        for (let shares = 1; shares <= sharesOwned(state, company.id, seller); shares++) {
-            const result = evaluateShareDisposal(
-                state,
-                seller,
-                [{ companyId: company.id, shares }],
-                {
-                    ...EighteenThirtyTwoStockRules,
-                    saleTerms: EighteenThirtyTwoShareTrading.emergencySaleTerms
-                }
-            )
-            if (result.details) results.push(result.details)
-        }
-        return results
-    })
-}
-
-// A president who cannot raise the price may not take the company over (§11.7).
-function fundable(state: EighteenThirtyTwoState, buyerId: string, targetId: string) {
-    const playerId = presidentId(state, buyerId)
-    if (!playerId) return false
-    const shortfall = takeoverShortfall(state, buyerId, targetId, playerId)
-    if (!shortfall) return true
-    const best = new Map<string, number>()
-    for (const sale of takeoverSales(state, playerId, targetId)) {
-        const companyId = sale.sales[0].companyId
-        best.set(companyId, Math.max(best.get(companyId) ?? 0, sale.proceeds))
-    }
-    return [...best.values()].reduce((total, proceeds) => total + proceeds, 0) >= shortfall
-}
-
-function mergeable(state: EighteenThirtyTwoState, companyId: string) {
-    const company = getCompany(state, companyId)
-    return (
-        company.kind === 'major' &&
-        !company.closed &&
-        !!company.operated &&
-        !!presidentId(state, companyId)
-    )
-}
-
-export type MergerOption = Omit<MergerProposal, 'proposerPlayerId'>
-
-/**
- * The mergers a player may propose between a company they preside and a partner that has
- * operated and that one of them can reach; in the last phase both must be theirs (§11.1,
- * §11.5).
- */
-export function mergerOptions(state: EighteenThirtyTwoState, playerId: string): MergerOption[] {
-    const phase = state.mergerPhase
-    if (!phase || !mergersAllowed(state)) return []
-    const options: MergerOption[] = []
-    for (const company of state.companies) {
-        if (!mergeable(state, company.id) || presidentId(state, company.id) !== playerId) continue
-        for (const partner of state.companies) {
-            if (partner.id === company.id || !mergeable(state, partner.id)) continue
-            const partnerPresident = presidentId(state, partner.id)
-            if (phase.final && partnerPresident !== playerId) continue
-            if (
-                phase.refused.some(
-                    (entry) => entry.companyId === company.id && entry.partnerId === partner.id
-                ) ||
-                !companiesConnect(state, company.id, partner.id)
-            )
-                continue
-            const yields = partnerPresident === playerId ? [false] : [false, true]
-            for (const yielded of yields) {
-                const initiator = yielded ? partnerPresident : playerId
-                assertExists(initiator, 'A mergeable company has a president')
-                if (
-                    !isSystem(state, company.id) &&
-                    !isSystem(state, partner.id) &&
-                    nextSystemId(state) &&
-                    systemPresident(state, [company.id, partner.id], initiator)
-                )
-                    options.push({
-                        companyId: company.id,
-                        partnerId: partner.id,
-                        kind: 'system',
-                        yielded
-                    })
-                const [buyerId, targetId] = yielded
-                    ? [partner.id, company.id]
-                    : [company.id, partner.id]
-                if (
-                    !involvedIn(state, buyerId, 'takeover') &&
-                    !involvedIn(state, targetId, 'takeover') &&
-                    fundable(state, buyerId, targetId)
-                )
-                    options.push({
-                        companyId: company.id,
-                        partnerId: partner.id,
-                        kind: 'takeover',
-                        yielded
-                    })
-            }
-        }
-    }
-    return options
-}
-
-function sameOption(option: MergerOption, other: MergerOption) {
-    return (
-        option.companyId === other.companyId &&
-        option.partnerId === other.partnerId &&
-        option.kind === other.kind &&
-        option.yielded === other.yielded
-    )
-}
 
 type Decision =
     | { kind: 'discard'; playerId: string; companyId: string }
@@ -300,7 +68,7 @@ export function mergerDecision(state: EighteenThirtyTwoState): Decision | undefi
     }
     for (let index = phase.index; index < phase.playerIds.length; index++) {
         const playerId = phase.playerIds[index]
-        if (mergerOptions(state, playerId).length) return { kind: 'propose', playerId, index }
+        if (hasMergerOptions(state, playerId)) return { kind: 'propose', playerId, index }
     }
     return undefined
 }
@@ -313,18 +81,12 @@ export const MergerOutcome = Type.Object(
         survivorId: Id,
         system: Type.Optional(SystemFormation),
         payments: Type.Optional(Type.Array(CashPayment)),
-        stations: Type.Optional(StationTransfer),
-        returnedCoalRight: Type.Optional(Type.Boolean())
+        absorption: Type.Optional(Absorption),
+        discardedHomeStationId: Type.Optional(Id)
     },
     { additionalProperties: false }
 )
 export type MergerOutcome = Type.Static<typeof MergerOutcome>
-
-function takeoverSides(proposal: MergerOption) {
-    return proposal.yielded
-        ? { buyerId: proposal.partnerId, targetId: proposal.companyId }
-        : { buyerId: proposal.companyId, targetId: proposal.partnerId }
-}
 
 function overTrainLimit(state: EighteenThirtyTwoState, companyId: string) {
     return (
@@ -334,80 +96,36 @@ function overTrainLimit(state: EighteenThirtyTwoState, companyId: string) {
 }
 
 /**
- * The buyer pays for every outside share, its president making up what its treasury lacks; it
- * takes the bought company's money, trains, privates, rights, tokens and placed stations, and
- * the bought company closes (§11.7, §11.7.1).
+ * The buyer pays for every outside share, its president making up what its treasury lacks as
+ * they are paid for their own; it takes the bought company's assets and the bought company
+ * closes (§11.7, §11.7.1).
  */
 function completeTakeover(
     state: HydratedEighteenThirtyTwoState,
     buyerId: string,
-    targetId: string
+    targetId: string,
+    playerId: string
 ): MergerOutcome {
-    const playerId = presidentId(state, buyerId)
-    assertExists(playerId, 'A buying company has a president')
+    assert(presidentId(state, buyerId) === playerId, 'The buyer’s president pays for a takeover')
+    const buyer = { kind: 'company' as const, companyId: buyerId }
+    const president = { kind: 'player' as const, playerId }
     const payments = takeoverPayments(state, buyerId, targetId)
-    const cost = payments.reduce((total, payment) => total + payment.amount, 0)
-    const contribution = Math.max(
-        0,
-        cost - finiteCashOwnedBy(state, { kind: 'company', companyId: buyerId })
-    )
+    const ownPrice = payments
+        .filter((payment) => payment.to.kind === 'player' && payment.to.playerId === playerId)
+        .reduce((sum, payment) => sum + payment.amount, 0)
+    const cost = payments.reduce((sum, payment) => sum + payment.amount, 0)
+    const contribution = Math.max(0, cost - finiteCashOwnedBy(state, buyer))
+    const net = contribution - ownPrice
     const settled: CashPayment[] = [
-        ...(contribution
-            ? [
-                  {
-                      from: { kind: 'player' as const, playerId },
-                      to: { kind: 'company' as const, companyId: buyerId },
-                      amount: contribution
-                  }
-              ]
-            : []),
-        ...payments
+        ...(net > 0 ? [{ from: president, to: buyer, amount: net }] : []),
+        ...payments.filter(
+            (payment) => !(payment.to.kind === 'player' && payment.to.playerId === playerId)
+        ),
+        ...(net < 0 ? [{ from: buyer, to: president, amount: -net }] : [])
     ]
     settleCashPayments(state, settled)
-    state.certificates = state.certificates.map((certificate) => {
-        if (certificate.retired || certificate.companyId !== targetId) return certificate
-        const { owner: _owner, poolId: _poolId, ...retired } = certificate
-        return { ...retired, retired: true }
-    })
-    transferCompanyAssets(state, targetId, buyerId, { loans: false })
-    // The bought company's unplaced stations are discarded; placed ones stay (§11.7.1).
-    state.stations = state.stations.map((station) =>
-        station.companyId === targetId && station.status === 'available'
-            ? { id: station.id, companyId: targetId, status: 'removed' }
-            : station
-    )
-    const stations = moveCompanyStations(state, targetId, buyerId)
-    state.stationReservations = state.stationReservations.filter(
-        (reservation) => reservation.companyId !== targetId
-    )
-    const returnedCoalRight =
-        state.coalRights.includes(buyerId) && state.coalRights.includes(targetId)
-    state.coalRights = [
-        ...new Set(
-            state.coalRights.map((companyId) => (companyId === targetId ? buyerId : companyId))
-        )
-    ]
-    state.revenueTokens = state.revenueTokens.map((token) =>
-        token.companyId === targetId ? { ...token, companyId: buyerId } : token
-    )
-    if (state.londonCompanyId === targetId) state.londonCompanyId = buyerId
-    state.ownershipLimitExemptions = state.ownershipLimitExemptions.filter(
-        (exemption) => exemption.companyId !== targetId
-    )
-    removeStockMarker(state.stockMarket, targetId)
-    const target = getCompany(state, targetId)
-    target.closed = true
-    delete target.president
-    const set = state.operatingSet
-    if (set && !set.completed) {
-        // A merged company that had already operated this round does not operate again (§11.8).
-        if (
-            set.completedCompanyIds.includes(targetId) &&
-            !set.completedCompanyIds.includes(buyerId)
-        )
-            set.completedCompanyIds = [...set.completedCompanyIds, buyerId]
-        reorderPendingOperatingCompanies(state, EighteenThirtyTwoOperatingRules.companyOrder(state))
-    }
+    const discardedHomeStationId = discardSharedHome(state, buyerId, targetId)
+    const absorption = absorbCompany(state, targetId, buyerId, 'takeover')
     state.mergers = [
         ...state.mergers,
         { kind: 'takeover', companyIds: [buyerId, targetId], survivorId: buyerId }
@@ -421,8 +139,8 @@ function completeTakeover(
         companyIds: [buyerId, targetId],
         survivorId: buyerId,
         payments: settled,
-        stations,
-        returnedCoalRight
+        absorption,
+        ...(discardedHomeStationId ? { discardedHomeStationId } : {})
     }
 }
 
@@ -460,7 +178,7 @@ function executeMerger(
         phase.funding = { buyerId, targetId, playerId }
         return undefined
     }
-    return completeTakeover(state, buyerId, targetId)
+    return completeTakeover(state, buyerId, targetId, playerId)
 }
 
 function currentDecision<Kind extends Decision['kind']>(
@@ -507,19 +225,31 @@ function phaseFor(state: EighteenThirtyTwoState, final: boolean) {
 
 function anyOptions(state: EighteenThirtyTwoState, final: boolean) {
     const probe = { ...state, mergerPhase: phaseFor(state, final) }
-    return state.players.some((player) => mergerOptions(probe, player.playerId).length > 0)
+    return state.players.some((player) => hasMergerOptions(probe, player.playerId))
 }
 
-/** Whether a merger phase begins: after a phase 4 or 5 stock round, or the first 6-train. */
-export function mergerPhaseDue(state: EighteenThirtyTwoState): { final: boolean } | undefined {
-    if (!mergersAllowed(state) || state.mergerPhase) return undefined
-    if (EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6'))
-        return state.machineState === 'OperatingSet' ? { final: true } : undefined
-    return state.machineState === 'StartingOperatingSet' &&
+/** Whether a merger phase follows this stock round in phases 4 and 5 (§11.1). */
+function stockMergerPhaseDue(state: EighteenThirtyTwoState): boolean {
+    return (
+        mergersAllowed(state) &&
+        !state.mergerPhase &&
+        !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6') &&
         state.mergedAfterStockRound !== state.stockRound.number &&
         anyOptions(state, false)
-        ? { final: false }
-        : undefined
+    )
+}
+
+/** Whether the last merger phase follows the first 6-train's buyer's turn (§11.1). */
+function finalMergerPhaseDue(state: EighteenThirtyTwoState): boolean {
+    return (
+        mergersAllowed(state) &&
+        !state.mergerPhase &&
+        EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6')
+    )
+}
+
+function mergerPhaseDue(state: EighteenThirtyTwoState, final: boolean) {
+    return final ? finalMergerPhaseDue(state) : stockMergerPhaseDue(state)
 }
 
 /** Opens the merger phase, or ends mergers when the last phase has nothing to merge. */
@@ -535,10 +265,10 @@ export class HydratedStartMergerPhase
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         assert(
-            this.source === ActionSource.System && mergerPhaseDue(state)?.final === this.final,
+            this.source === ActionSource.System && mergerPhaseDue(state, this.final),
             'A merger phase begins after a stock round in phases 4 and 5, or the first 6-train'
         )
-        const held = anyOptions(state, this.final)
+        const held = !this.final || anyOptions(state, true)
         if (held) state.mergerPhase = phaseFor(state, this.final)
         else state.mergersEnded = true
         this.metadata = { held }
@@ -631,7 +361,15 @@ export class HydratedProposeMerger
         return (
             this.source === ActionSource.User &&
             !!currentDecision(state, 'propose', this.playerId) &&
-            mergerOptions(state, this.playerId).some((option) => sameOption(option, this))
+            mergerOptions(state, this.playerId).some((option) => this.matches(option))
+        )
+    }
+    private matches(option: MergerOption): boolean {
+        return (
+            option.companyId === this.companyId &&
+            option.partnerId === this.partnerId &&
+            option.kind === this.kind &&
+            option.yielded === this.yielded
         )
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
@@ -715,7 +453,12 @@ export class HydratedAnswerMerger
         assertExists(proposal, 'An answer requires a proposal')
         delete phase.proposal
         if (!this.accept) {
-            phase.refused.push({ companyId: proposal.companyId, partnerId: proposal.partnerId })
+            phase.refused.push({
+                companyId: proposal.companyId,
+                partnerId: proposal.partnerId,
+                kind: proposal.kind,
+                yielded: proposal.yielded
+            })
             this.metadata = { proposal }
             return
         }
@@ -776,19 +519,6 @@ export function isSellTakeoverShares(action: GameAction): action is SellTakeover
     )
 }
 
-function takeoverSale(
-    state: EighteenThirtyTwoState,
-    playerId: string,
-    companyId: string,
-    shares: number
-) {
-    const funding = state.mergerPhase?.funding
-    if (!funding || funding.playerId !== playerId) return undefined
-    return takeoverSales(state, playerId, funding.targetId).find(
-        (sale) => sale.sales[0].companyId === companyId && sale.sales[0].shares === shares
-    )
-}
-
 /** The buyer's president sells shares to raise the takeover's price (§11.7). */
 export class HydratedSellTakeoverShares
     extends HydratableAction<typeof SellTakeoverShares>
@@ -806,12 +536,20 @@ export class HydratedSellTakeoverShares
         return (
             this.source === ActionSource.User &&
             !!currentDecision(state, 'fund', this.playerId) &&
-            !!takeoverSale(state, this.playerId, this.companyId, this.shares)
+            !!this.sale(state)
+        )
+    }
+    private sale(state: EighteenThirtyTwoState) {
+        const funding = state.mergerPhase?.funding
+        if (!funding || funding.playerId !== this.playerId) return undefined
+        return takeoverSales(state, funding).find(
+            (sale) =>
+                sale.sales[0].companyId === this.companyId && sale.sales[0].shares === this.shares
         )
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         assert(this.isValid(state), 'This sale cannot fund the takeover')
-        const details = takeoverSale(state, this.playerId, this.companyId, this.shares)
+        const details = this.sale(state)
         assertExists(details, 'A valid takeover sale has its details')
         applyShareSale(state, details)
         EighteenThirtyTwoStockRules.afterSale?.(state, details)
@@ -864,7 +602,7 @@ export class HydratedCompleteTakeover
             this.source === ActionSource.System && funding && fundingCovered(state),
             'A takeover completes once its price is raised'
         )
-        this.metadata = completeTakeover(state, funding.buyerId, funding.targetId)
+        this.metadata = completeTakeover(state, funding.buyerId, funding.targetId, funding.playerId)
     }
 }
 
@@ -872,7 +610,11 @@ export const DiscardMergedTrain = Type.Object(
     {
         ...PlayerAction.properties,
         type: Type.Literal('DiscardMergedTrain'),
-        trainId: Id
+        companyId: Id,
+        trainId: Id,
+        metadata: Type.Optional(
+            Type.Object({ departurePayments: DeparturePayments }, { additionalProperties: false })
+        )
     },
     { additionalProperties: false }
 )
@@ -885,11 +627,16 @@ export function isDiscardMergedTrain(action: GameAction): action is DiscardMerge
     )
 }
 
-/** The trains a buyer over its limit may discard to the open market. */
-export function discardableMergedTrains(state: EighteenThirtyTwoState, playerId: string) {
+/** The company over its train limit after a takeover, and the trains it may discard. */
+export function mergedTrainDiscards(state: EighteenThirtyTwoState, playerId: string) {
     const decision = mergerDecision(state)
-    if (decision?.kind !== 'discard' || decision.playerId !== playerId) return []
-    return trainsCountingForLimit(state, EighteenThirtyTwoTrainRules, decision.companyId)
+    if (decision?.kind !== 'discard' || decision.playerId !== playerId) return undefined
+    const trains = trainsCountingForLimit(state, EighteenThirtyTwoTrainRules, decision.companyId)
+    return {
+        companyId: decision.companyId,
+        trains,
+        excess: trains.length - EighteenThirtyTwoTrainRules.trainLimit(state, decision.companyId)
+    }
 }
 
 /** The president discards a train of their choice to the open market, uncompensated (§11.7.1). */
@@ -899,7 +646,9 @@ export class HydratedDiscardMergedTrain
 {
     declare type: 'DiscardMergedTrain'
     declare playerId: string
+    declare companyId: string
     declare trainId: string
+    declare metadata?: DiscardMergedTrain['metadata']
     constructor(data: DiscardMergedTrain) {
         super(
             data instanceof HydratedDiscardMergedTrain ? data.dehydrate() : data,
@@ -907,21 +656,25 @@ export class HydratedDiscardMergedTrain
         )
     }
     isValid(state: HydratedEighteenThirtyTwoState): boolean {
+        const discards = mergedTrainDiscards(state, this.playerId)
         return (
             this.source === ActionSource.User &&
-            discardableMergedTrains(state, this.playerId).some((train) => train.id === this.trainId)
+            discards?.companyId === this.companyId &&
+            discards.trains.some((train) => train.id === this.trainId)
         )
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         assert(this.isValid(state), 'This train cannot be discarded')
         const phase = state.mergerPhase
         assertExists(phase, 'Trains are discarded in a merger phase')
-        const companyId = phase.discardCompanyId
-        assertExists(companyId, 'A discard follows a takeover')
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.id === this.trainId ? unownedTrain(train, 'market') : train
+        const payments = discardTrainToMarket(
+            state,
+            EighteenThirtyTwoTrainRules,
+            this.companyId,
+            this.trainId
         )
-        if (!overTrainLimit(state, companyId)) delete phase.discardCompanyId
+        if (!overTrainLimit(state, this.companyId)) delete phase.discardCompanyId
+        if (payments.length) this.metadata = { departurePayments: payments }
     }
 }
 
@@ -978,14 +731,18 @@ export class MergingHandler implements EighteenThirtyTwoStateHandler {
     }
 }
 
-/** Opens a merger phase where one is due, before the state does anything else. */
+/**
+ * Opens a merger phase where one is due before the state does anything else: after a stock
+ * round, or, ``final``, after the first 6-train's buyer's turn.
+ */
 export function startsMergerPhase(
-    handler: EighteenThirtyTwoStateHandler
+    handler: EighteenThirtyTwoStateHandler,
+    final: boolean
 ): EighteenThirtyTwoStateHandler {
     return new SystemActionFirstHandler(
         handler,
         StartMergerPhase,
-        (state) => mergerPhaseDue(state),
+        (state) => (mergerPhaseDue(state, final) ? { final } : undefined),
         (state) => (state.mergerPhase ? MergingState : state.machineState)
     )
 }

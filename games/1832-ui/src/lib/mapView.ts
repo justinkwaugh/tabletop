@@ -55,7 +55,6 @@ const Stations: MapViewDefinition['stations'] = {
     NW: { label: 'N&W', color: '#1a1a1a', imageUrl: NWLogo },
     SAL: { label: 'SAL', color: '#e8822a', imageUrl: SALLogo },
     SOU: { label: 'Sou', color: '#2f7d45', imageUrl: SOULogo },
-    // Systems A–E (§11.6).
     AMTK: { label: 'AMTK', color: '#2a5a9e', imageUrl: AMTKLogo },
     BNSF: { label: 'BNSF', color: '#f2741c', imageUrl: BNSFLogo },
     IC: { label: 'IC', color: '#10803d', imageUrl: ICLogo },

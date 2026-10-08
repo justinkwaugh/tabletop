@@ -165,7 +165,9 @@ export function applyPrivateShareExchange(
     const presidency = evaluatePresidency(
         state,
         received.companyId,
-        rules.presidencyCandidates(state, received.companyId)
+        rules.presidencyCandidates(state, received.companyId),
+        undefined,
+        rules.presidencyExchangeLargestFirst
     )
     assert(!presidency.reason, presidency.reason ?? 'Invalid exchange presidency')
     if (presidency.change) applyPresidencyChange(state, presidency.change)

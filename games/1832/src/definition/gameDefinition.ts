@@ -143,8 +143,9 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
             closesAndProtects(
                 redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
             ),
-        StartingOperatingSet: (family) => capitalizesFloatedCompanies(startsMergerPhase(family)),
-        OperatingSet: (family) => closesAndProtects(startsMergerPhase(family)),
+        StartingOperatingSet: (family) =>
+            capitalizesFloatedCompanies(startsMergerPhase(family, false)),
+        OperatingSet: (family) => closesAndProtects(startsMergerPhase(family, true)),
         FundingTrain: closesCompanies,
         BuyingTrains: closesAndProtects,
         LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),

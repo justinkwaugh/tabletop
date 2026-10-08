@@ -30,13 +30,13 @@ export const EighteenThirtyTwoEarningsRules: EarningsRules = {
     retainedRevenue(state, companyId, choice, revenue) {
         if (choice === 'withhold') return revenue
         if (choice === 'pay') return 0
-        if (isSystem(requireEighteenThirtyTwoState(state), companyId)) return revenue / 2
         const count = shareCount(state, companyId)
         return revenue - Math.ceil(revenue / 2 / count) * count
     },
     roundDividend: (_state, _companyId, amount) => Math.ceil(amount),
     // A System pays each holding its twentieths of the dividend, an odd share rounding up; a half
-    // dividend pays half of that, rounded up (§11.6.4).
+    // dividend pays half of that, rounded up. Its half dividend, like a 10-share company's, leaves
+    // the company the revenue less each share's half rounded up (§9.1.2, §11.6.4).
     holderDividend(state, companyId, { shares, choice, revenue }) {
         if (!isSystem(requireEighteenThirtyTwoState(state), companyId)) return undefined
         const full = Math.ceil((shares * revenue) / SystemShareCount)

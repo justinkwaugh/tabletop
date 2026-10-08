@@ -144,7 +144,7 @@ export function evaluateShareDisposal(
     state: StockState,
     seller: Owner,
     sales: ShareSale[],
-    rules: Pick<StockRules, 'saleTerms' | 'presidencyCandidates'>
+    rules: Pick<StockRules, 'saleTerms' | 'presidencyCandidates' | 'presidencyExchangeLargestFirst'>
 ): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
         return { reason: 'Choose one sale block for each company.' }
@@ -183,7 +183,8 @@ export function evaluateShareDisposal(
             projected,
             company.id,
             rules.presidencyCandidates(projected, company.id),
-            { owner: seller, shares: owned - sale.shares }
+            { owner: seller, shares: owned - sale.shares },
+            rules.presidencyExchangeLargestFirst
         )
         if (presidency.reason) return { reason: presidency.reason }
         if (presidency.change) applyPresidencyChange(projected, presidency.change)

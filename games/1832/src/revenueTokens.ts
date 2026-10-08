@@ -22,6 +22,7 @@ import {
     type TrainRunningState,
     stepAction
 } from '@tabletop/18xx'
+import { successorOf } from './systems.js'
 import type { TitleStepAction } from './titleActions.js'
 import { EighteenThirtyTwoMap, PortLocationIds } from './map.js'
 import {
@@ -41,6 +42,11 @@ import { EighteenThirtyTwoPhases } from './trains.js'
 
 export const MiamiLocationId = 'AA28'
 export const KeyWestCompanyId = 'FEC'
+
+// The FEC's Key West token passes to whatever company the FEC merges into (§11.6.5, §11.7.1).
+function holdsKeyWest(state: EighteenThirtyTwoTitleState, companyId: string) {
+    return successorOf(state, KeyWestCompanyId) === companyId
+}
 /** The private whose token each kind is (§16.2 P2–P3). */
 export const RevenueTokenPrivateIds = { port: 'P3', cotton: 'P2' } as const
 
@@ -83,7 +89,7 @@ export function stopBonuses(
 ): StopBonus[] {
     return activeRevenueTokens(state).flatMap((token): StopBonus[] => {
         if (token.kind === 'key-west')
-            return companyId === KeyWestCompanyId && center.locationId === MiamiLocationId
+            return token.companyId === companyId && center.locationId === MiamiLocationId
                 ? [{ amount: 50, label: 'Key West' }]
                 : []
         if (token.locationId !== center.locationId || token.nodeId !== center.nodeId) return []
@@ -131,7 +137,8 @@ function inOperatingSet<State extends object>(
 
 /** Placing the Key West token is the FEC's token placement for that operating turn (§7.5). */
 export function keyWestPlacedThisTurn(state: StationPlacementState, companyId: string): boolean {
-    if (companyId !== KeyWestCompanyId || !inOperatingSet(state)) return false
+    if (!holdsKeyWest(requireEighteenThirtyTwoState(state), companyId) || !inOperatingSet(state))
+        return false
     const turn = currentTurn(state.operatingSet)
     return requireEighteenThirtyTwoState(state).revenueTokens.some(
         (token) =>
@@ -188,7 +195,7 @@ export function revenueTokenChoices(
     }
     const [miami] = revenueNodes(state, MiamiLocationId, ['offboard'])
     if (
-        companyId === KeyWestCompanyId &&
+        holdsKeyWest(state, companyId) &&
         miami &&
         !placed('key-west') &&
         step.placedStationIds.length === 0 &&

@@ -29,13 +29,18 @@ export interface OperatingRules {
     privateIncome?(state: OperatingState & TrainState, privateId: string): number
 }
 
+/**
+ * Reorders the companies yet to operate; the next company keeps its place while it is operating,
+ * unless ``betweenCompanies`` says no turn is under way.
+ */
 export function reorderPendingOperatingCompanies(
     state: OperatingState,
-    order: readonly string[]
+    order: readonly string[],
+    { betweenCompanies = false }: { betweenCompanies?: boolean } = {}
 ): void {
     const set = state.operatingSet
     if (!set || set.completed) return
-    const current = nextOperatingCompany(state)
+    const current = betweenCompanies ? undefined : nextOperatingCompany(state)
     const fixed = set.companyOrder.filter(
         (id) => set.completedCompanyIds.includes(id) || id === current
     )

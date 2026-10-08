@@ -98,9 +98,11 @@ export function historyRounds(
         const label = roundLabel(heading)
         if (openRound?.starts(action)) openRound = undefined
         let section = rounds.at(-1)
-        if (section?.id !== label) {
+        if (section?.label !== label) {
+            // A title's round held within an operating round splits it into two sections.
+            const repeated = rounds.some((round) => round.label === label)
             section = {
-                id: label,
+                id: repeated ? `${label}@${action.index}` : label,
                 label,
                 title: roundTitle(heading),
                 phases: [phase],

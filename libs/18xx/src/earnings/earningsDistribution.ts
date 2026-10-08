@@ -60,7 +60,7 @@ export interface EarningsRules {
     holderDividend?(
         state: DistributionState,
         companyId: string,
-        holding: { shares: number; choice: EarningsChoice; revenue: number; retained: number }
+        holding: { shares: number; choice: EarningsChoice; revenue: number }
     ): number | undefined
     marketEffect(
         state: DistributionState,
@@ -156,8 +156,7 @@ export class EarningsDistribution {
                 this.rules.holderDividend?.(this.state, companyId, {
                     shares: entitlement.shares,
                     choice,
-                    revenue,
-                    retained
+                    revenue
                 }) ?? entitlement.shares * dividendPerShare
             if (amount >= 0) this.addPayment(payments, entitlement.owner, amount)
             else

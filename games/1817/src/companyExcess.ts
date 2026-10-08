@@ -16,7 +16,7 @@ import {
     type HydratedGameState,
     type MachineContext
 } from '@tabletop/common'
-import { unownedTrain, DeparturePayments, settleTrainDepartures } from '@tabletop/18xx'
+import { DeparturePayments, discardTrainToMarket } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
@@ -158,18 +158,11 @@ export class HydratedDiscardMergedTrain
             this.source === ActionSource.User && this.isValidFor(state),
             'Only the president of the company over its limit discards its trains'
         )
-        const train = state.trainInventory.trains.find((entry) => entry.id === this.trainId)
-        assertExists(train, 'The discarded train exists')
-        const payments = settleTrainDepartures(state, EighteenSeventeenTrainRules, [
-            {
-                trainId: train.id,
-                definitionId: train.definitionId,
-                cause: 'discard',
-                owner: { kind: 'company', companyId: this.companyId }
-            }
-        ])
-        state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
-            entry.id === this.trainId ? unownedTrain(entry, 'market') : entry
+        const payments = discardTrainToMarket(
+            state,
+            EighteenSeventeenTrainRules,
+            this.companyId,
+            this.trainId
         )
         if (payments.length) this.metadata = { departurePayments: payments }
     }

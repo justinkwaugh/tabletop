@@ -119,8 +119,12 @@ export const MergerPhase = Type.Object(
         funding: Type.Optional(TakeoverFunding),
         /** A buyer left over its train limit, whose president discards trains (§11.7.1). */
         discardCompanyId: Type.Optional(Id),
+        /** Proposals refused this phase, which may not be made again in it. */
         refused: Type.Array(
-            Type.Object({ companyId: Id, partnerId: Id }, { additionalProperties: false })
+            Type.Object(
+                { companyId: Id, partnerId: Id, kind: MergerKind, yielded: Type.Boolean() },
+                { additionalProperties: false }
+            )
         )
     },
     { additionalProperties: false }
@@ -175,6 +179,10 @@ export const EighteenThirtyTwoTitleFields = {
         )
     ),
     mergerPhase: Type.Optional(MergerPhase),
+    /** Stations a survivor holds in place of a merged company's home (§7.3.3). */
+    inheritedHomeStationIds: Type.Optional(Type.Array(Id)),
+    /** Stations returned to their charter from a city holding two of the company's (§7.3.3). */
+    returnedStationIds: Type.Optional(Type.Array(Id)),
     mergers: Type.Array(MergerRecord),
     /** The stock round whose merger phase has been held. */
     mergedAfterStockRound: Type.Optional(StockRoundNumber),

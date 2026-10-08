@@ -1,27 +1,20 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
-    AssetTransfer,
     PresidencyChange,
-    StationTransfer,
     applyPresidencyChange,
     companyMarketSpace,
     evaluatePresidency,
-    getCompany,
-    moveCompanyStations,
     placeStockMarker,
     playersAfterPresident,
-    removeStockMarker,
-    reorderPendingOperatingCompanies,
     sharesOwned,
-    transferCompanyAssets,
     type StockMarket,
     type StockMarketSpace
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
-import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
 import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { isLowerArea } from './stockMarket.js'
+import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 
 /** Systems A–E, named for the modern railroads that grew from these lines. */
 export const EighteenThirtyTwoSystems = [
@@ -43,6 +36,28 @@ export function isSystem(state: Pick<EighteenThirtyTwoState, 'systems'>, company
 /** The 10-share companies a company stands for: a System's two shells, or the company itself. */
 export function shellsOf(state: Pick<EighteenThirtyTwoState, 'systems'>, companyId: string) {
     return state.systems[companyId] ?? [companyId]
+}
+
+/** The System a component company was merged into. */
+export function systemOf(
+    state: Pick<EighteenThirtyTwoState, 'systems'>,
+    companyId: string
+): string | undefined {
+    return Object.keys(state.systems).find((systemId) =>
+        state.systems[systemId].includes(companyId)
+    )
+}
+
+/** The company now holding a railroad's assets: itself, or what it merged into (§11.6, §11.7). */
+export function successorOf(state: Pick<EighteenThirtyTwoState, 'mergers'>, companyId: string) {
+    let current = companyId
+    for (;;) {
+        const merger = state.mergers.find(
+            (entry) => entry.survivorId !== current && entry.companyIds.includes(current)
+        )
+        if (!merger) return current
+        current = merger.survivorId
+    }
 }
 
 export function nextSystemId(state: Pick<EighteenThirtyTwoState, 'systems'>): string | undefined {
@@ -77,8 +92,8 @@ export function systemPresident(
     )
 }
 
-function nearestMarketPrice(market: StockMarket, target: number): number {
-    const prices = [...new Set(market.spaces.map((space) => space.price))]
+// The nearest price, a tie rounding up.
+function nearestPrice(prices: readonly number[], target: number): number {
     return prices.reduce((best, price) =>
         Math.abs(price - target) < Math.abs(best - target) ||
         (Math.abs(price - target) === Math.abs(best - target) && price > best)
@@ -92,22 +107,27 @@ function spaceAt(market: StockMarket, row: number, column: number) {
 }
 
 /**
- * The System's market space: the average of the two prices, rounded to a market value with a
- * tie upward, in the row of the leftmost component (the lower when they share a column), then
- * down and right along that price's diagonal to the soft or hard ledge (§11.6.3).
+ * The System's market space: the average of the two prices, rounded to a value in the row of
+ * the leftmost component (the lower when they share a column) with a tie upward, then down and
+ * right along that price's diagonal to the soft or hard ledge (§11.6.3). **Ruling:** a row
+ * without the rounded price takes its own nearest value.
  */
 export function systemMarketSpace(
     market: StockMarket,
     companyIds: readonly string[]
 ): StockMarketSpace {
     const [first, second] = companyIds.map((companyId) => companyMarketSpace(market, companyId))
-    const price = nearestMarketPrice(market, (first.price + second.price) / 2)
     const leftmost =
         first.column < second.column || (first.column === second.column && first.row > second.row)
             ? first
             : second
-    let space = market.spaces.find((entry) => entry.row === leftmost.row && entry.price === price)
-    assertExists(space, 'The leftmost component’s row holds the System price')
+    const row = market.spaces.filter((entry) => entry.row === leftmost.row)
+    const price = nearestPrice(
+        row.map((entry) => entry.price),
+        (first.price + second.price) / 2
+    )
+    let space = row.find((entry) => entry.price === price)
+    assertExists(space, 'The row holds its own price')
     for (;;) {
         const next = spaceAt(market, space.row + 1, space.column + 1)
         if (!next || next.price !== price || isLowerArea(next) !== isLowerArea(space)) break
@@ -124,9 +144,8 @@ export const SystemFormation = Type.Object(
         marketSpaceId: Type.String(),
         parPrice: Type.Integer({ minimum: 1 }),
         exchangedCertificateIds: Type.Array(Type.String()),
-        assets: Type.Array(AssetTransfer),
-        stations: Type.Array(StationTransfer),
-        returnedCoalRight: Type.Boolean(),
+        absorptions: Type.Array(Absorption),
+        discardedHomeStationId: Type.Optional(Type.String()),
         presidency: Type.Optional(PresidencyChange)
     },
     { additionalProperties: false }
@@ -242,53 +261,26 @@ export function formSystem(
     })
     state.certificates.push(...issued)
 
-    const assets = companyIds.map((companyId) =>
-        transferCompanyAssets(state, companyId, systemId, { loans: false })
-    )
-    const stations = companyIds.map((companyId) => moveCompanyStations(state, companyId, systemId))
-    state.stationReservations = state.stationReservations.filter(
-        (reservation) => !companyIds.includes(reservation.companyId)
-    )
-    const coalHolders = state.coalRights.filter((companyId) => companyIds.includes(companyId))
-    state.coalRights = [
-        ...state.coalRights.filter((companyId) => !companyIds.includes(companyId)),
-        ...(coalHolders.length ? [systemId] : [])
-    ]
-    state.revenueTokens = state.revenueTokens.map((token) =>
-        companyIds.includes(token.companyId) ? { ...token, companyId: systemId } : token
-    )
-    if (state.londonCompanyId && companyIds.includes(state.londonCompanyId))
-        state.londonCompanyId = systemId
-
-    for (const companyId of companyIds) {
-        removeStockMarker(state.stockMarket, companyId)
-        const component = getCompany(state, companyId)
-        component.closed = true
-        delete component.president
-    }
     placeStockMarker(state.stockMarket, systemId, space.id)
-    state.systems = { ...state.systems, [systemId]: [...companyIds] }
-    state.ownershipLimitExemptions = state.ownershipLimitExemptions.filter(
-        (exemption) => !companyIds.includes(exemption.companyId)
+    const [first, second] = companyIds
+    const discardedHomeStationId = discardSharedHome(state, first, second)
+    const reissued = companyIds.flatMap((companyId) => state.reissues?.[companyId] ?? [])
+    if (reissued.length) state.reissues = { ...state.reissues, [systemId]: Math.max(...reissued) }
+    const absorptions = companyIds.map((companyId) =>
+        absorbCompany(state, companyId, systemId, 'system')
     )
+    state.systems = { ...state.systems, [systemId]: [...companyIds] }
 
     const presidency = evaluatePresidency(
         state,
         systemId,
-        playersAfterPresident(state, systemId, state.turnManager.turnOrder)
+        playersAfterPresident(state, systemId, state.turnManager.turnOrder),
+        undefined,
+        true
     )
     if (presidency.change) applyPresidencyChange(state, presidency.change)
     for (const player of state.players)
         refreshOwnershipExcess(state, systemId, { kind: 'player', playerId: player.playerId })
-
-    const set = state.operatingSet
-    if (set && !set.completed) {
-        set.companyOrder = [...set.companyOrder, systemId]
-        // A merged company that had already operated this round does not operate again (§11.8).
-        if (companyIds.some((companyId) => set.completedCompanyIds.includes(companyId)))
-            set.completedCompanyIds = [...set.completedCompanyIds, systemId]
-        reorderPendingOperatingCompanies(state, EighteenThirtyTwoOperatingRules.companyOrder(state))
-    }
 
     return {
         systemId,
@@ -297,9 +289,8 @@ export function formSystem(
         marketSpaceId: space.id,
         parPrice,
         exchangedCertificateIds,
-        assets,
-        stations,
-        returnedCoalRight: coalHolders.length > 1,
+        absorptions,
+        ...(discardedHomeStationId ? { discardedHomeStationId } : {}),
         ...(presidency.change ? { presidency: presidency.change } : {})
     }
 }

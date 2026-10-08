@@ -19,6 +19,7 @@ import {
 } from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
+import { systemOf } from './systems.js'
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 
 const Trading = ipoMarketTrading({
@@ -90,11 +91,9 @@ export function certificateLimitColumn(
             !(company.started && isClosingSpace(companyMarketSpace(state.stockMarket, companyId)))
         )
     }
-    const systemOf = (companyId: string) =>
-        Object.keys(state.systems).find((systemId) => state.systems[systemId].includes(companyId))
     const remaining = state.companies.filter((company) => {
         if (!MajorIds.includes(company.id)) return false
-        const systemId = systemOf(company.id)
+        const systemId = systemOf(state, company.id)
         return systemId ? open(systemId) : open(company.id)
     }).length
     return Math.min(4, MajorIds.length - remaining)
@@ -128,6 +127,8 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         lockReissueProceeds(state, details)
         refreshBuyerExcess(state, details)
     },
+    // A System's new president exchanges any vice-president's certificate (§5.5).
+    presidencyExchangeLargestFirst: true,
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',

@@ -459,7 +459,22 @@ stay in 1832.
   that phase.
 - The System chosen is the first unused of A–E.
 - Sales to fund a takeover may be protected like other sales, once the takeover completes.
-- If the leftmost components share a column, the System starts from the lower one's row.
+- If the leftmost components share a column, the System starts from the lower one's row; a
+  row without the rounded average takes its own nearest value, a tie rounding up.
+- Yielding: the proposer chooses the merger type and whether to yield; the other president
+  agrees or refuses. A refusal bars that pairing, type and yield for the rest of the phase.
+- A takeover's buyer's president is paid for their own shares as they contribute, funding only
+  the difference. Funding sales may not change the buyer's presidency, close the buyer, sell
+  more shares of a company than the shortfall needs, or leave the rest unraisable. Unsold
+  shares bought at par pay the bank.
+- A System's half dividend, like a 10-share company's, leaves the company the revenue less
+  each share's half rounded up; each holding is still paid its own rounding (§11.6.4).
+- A component's reissue carries over to its System, whose unsold shares then pay it.
+- A survivor holds a merged company's home station as a home; two homes sharing a city, by
+  merger or by Atlanta's brown upgrade, lose one, and any other second token returns to the
+  charter at $100 (§7.3.3). A buyer's own charter stations keep their printed costs.
+- The FEC's Key West token passes to whatever the FEC merges into.
+- A run tracing reachability for a merger ends at an off-board area.
 - History and the round heading call the phase "Merger phase", numbered by the stock round it
   follows, or by the operating round when it follows the first 6-train.
 

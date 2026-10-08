@@ -144,7 +144,9 @@ export function evaluateShareTransfer(
     const presidency = evaluatePresidency(
         projected,
         company.id,
-        rules.presidencyCandidates(state, company.id)
+        rules.presidencyCandidates(state, company.id),
+        undefined,
+        rules.presidencyExchangeLargestFirst
     )
     if (presidency.reason) return { reason: presidency.reason }
     if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)

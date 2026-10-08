@@ -49,6 +49,11 @@ export interface StockRules {
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
     /**
+     * Whether a new president exchanges their largest ordinary certificates first, as 1832's
+     * vice-president's certificates must be included.
+     */
+    presidencyExchangeLargestFirst?: boolean
+    /**
      * What follows any sale into the market, such as the market closing its own shorts. Sale
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */

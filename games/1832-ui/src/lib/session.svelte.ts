@@ -6,13 +6,12 @@ import {
     PassMerger,
     ProposeMerger,
     SellTakeoverShares,
-    discardableMergedTrains,
+    mergedTrainDiscards,
     mergerDecision,
     mergerOptions,
-    systemMarketSpace,
-    systemPresident,
-    takeoverPayments,
+    mergerTerms,
     takeoverSales,
+    takeoverShortfall,
     type MergerOption,
     BuyCoalRights,
     ConsentingRedemptionState,
@@ -38,12 +37,7 @@ import {
     type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import {
-    controllingOwner,
-    getCompany,
-    stockMarketSpace,
-    type ShareSaleDetails
-} from '@tabletop/18xx'
+import { getCompany, stockMarketSpace, type ShareSaleDetails } from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -120,9 +114,10 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly mergerDecision = $derived(
         this.gameState.machineState === MergingState ? mergerDecision(this.gameState) : undefined
     )
+    /** The merger decision when it is this player's, shown even while an action is pending. */
     readonly myMergerDecision = $derived(
         this.mergerDecision &&
-            this.canChooseAction &&
+            !this.isViewingHistory &&
             this.mergerDecision.playerId === this.myPlayer?.id
             ? this.mergerDecision
             : undefined
@@ -131,9 +126,11 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly mergerProposals = $derived.by(() => {
         const decision = this.myMergerDecision
         if (decision?.kind !== 'propose') return []
-        return mergerOptions(this.gameState, decision.playerId).map((option) =>
-            this.describeMerger(option, decision.playerId)
-        )
+        return mergerOptions(this.gameState, decision.playerId).map((option) => ({
+            option,
+            proposerPlayerId: decision.playerId,
+            terms: mergerTerms(this.gameState, option, decision.playerId)
+        }))
     })
     /** The proposals grouped by the pair of companies they would merge. */
     readonly mergerPairings = $derived.by(() => {
@@ -154,56 +151,38 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly mergerAnswer = $derived.by(() => {
         const decision = this.myMergerDecision
         if (decision?.kind !== 'answer') return undefined
-        return this.describeMerger(decision.proposal, decision.proposal.proposerPlayerId)
+        const { proposal } = decision
+        return {
+            proposal,
+            terms: mergerTerms(this.gameState, proposal, proposal.proposerPlayerId)
+        }
     })
-    /** The sales the buyer's president may make toward a takeover, and what remains to raise. */
+    /** The sales the buyer's president may make toward a takeover, by company. */
     readonly takeoverFunding = $derived.by(() => {
         const decision = this.myMergerDecision
         const funding = this.gameState.mergerPhase?.funding
         if (decision?.kind !== 'fund' || !funding) return undefined
+        const sales = takeoverSales(this.gameState, funding)
+        const companyIds = [...new Set(sales.map((sale) => sale.sales[0].companyId))]
         return {
             ...funding,
-            sales: takeoverSales(this.gameState, funding.playerId, funding.targetId)
+            shortfall: takeoverShortfall(
+                this.gameState,
+                funding.buyerId,
+                funding.targetId,
+                funding.playerId
+            ),
+            companies: companyIds.map((companyId) => ({
+                companyId,
+                sales: sales.filter((sale) => sale.sales[0].companyId === companyId)
+            }))
         }
     })
     readonly mergedTrainDiscards = $derived(
         this.myMergerDecision?.kind === 'discard'
-            ? discardableMergedTrains(this.gameState, this.myMergerDecision.playerId)
-            : []
+            ? mergedTrainDiscards(this.gameState, this.myMergerDecision.playerId)
+            : undefined
     )
-    private describeMerger(option: MergerOption, proposerPlayerId: string) {
-        const partnerPresident = controllingOwner(this.gameState, option.partnerId)?.playerId
-        assertExists(partnerPresident, 'A merger partner has a president')
-        const initiator = option.yielded ? partnerPresident : proposerPlayerId
-        if (option.kind === 'system') {
-            const companyIds = [option.companyId, option.partnerId]
-            const president = systemPresident(this.gameState, companyIds, initiator)
-            assertExists(president, 'A System has a president')
-            return {
-                kind: 'system' as const,
-                option,
-                proposerPlayerId,
-                initiator,
-                president,
-                price: systemMarketSpace(this.gameState.stockMarket, companyIds).price
-            }
-        }
-        const [buyerId, targetId] = option.yielded
-            ? [option.partnerId, option.companyId]
-            : [option.companyId, option.partnerId]
-        return {
-            kind: 'takeover' as const,
-            option,
-            proposerPlayerId,
-            initiator,
-            buyerId,
-            targetId,
-            price: takeoverPayments(this.gameState, buyerId, targetId).reduce(
-                (total, payment) => total + payment.amount,
-                0
-            )
-        }
-    }
     async proposeMerger(option: MergerOption): Promise<void> {
         await this.applyAction(this.createPlayerAction(ProposeMerger, option))
     }
@@ -217,8 +196,8 @@ export class EighteenThirtyTwoSession extends BaseSession {
         const [{ companyId, shares }] = sale.sales
         await this.applyAction(this.createPlayerAction(SellTakeoverShares, { companyId, shares }))
     }
-    async discardMergedTrain(trainId: string): Promise<void> {
-        await this.applyAction(this.createPlayerAction(DiscardMergedTrain, { trainId }))
+    async discardMergedTrain(companyId: string, trainId: string): Promise<void> {
+        await this.applyAction(this.createPlayerAction(DiscardMergedTrain, { companyId, trainId }))
     }
     /** A redemption awaiting a holder's consent. */
     readonly redemptionPrompt = $derived.by(() => {

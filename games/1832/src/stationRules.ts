@@ -1,6 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import {
-    charterStationCost,
     charterStationCounts,
     getCompany,
     homeStationId,
@@ -33,20 +32,28 @@ export const EighteenThirtyTwoStationCounts = charterStationCounts(EighteenThirt
 const MergedStationCost = 100
 
 /**
- * A System's stations, and any a company gains past its charter by a merger, cost $100
- * (§11.6.6, §11.7.1); others follow the charter.
+ * A company's stations follow its charter's costs; a System's, those a company gains past its
+ * charter by a merger, and any returned to the charter from a shared city cost $100 (§7.3.3,
+ * §11.6.6, §11.7.1).
  */
 function mergedStationCost(state: StationState, stationId: string): number {
     const station = state.stations.find((entry) => entry.id === stationId)
     assertExists(station, 'A station placement requires a known station')
+    const title = requireEighteenThirtyTwoState(state)
     const schedule = EighteenThirtyTwoStationCosts[station.companyId] ?? []
-    const used = state.stations.filter(
-        (entry) => entry.companyId === station.companyId && entry.status !== 'available'
-    ).length
-    return isSystem(requireEighteenThirtyTwoState(state), station.companyId) ||
-        used >= schedule.length
-        ? MergedStationCost
-        : charterStationCost(state, stationId, EighteenThirtyTwoStationCosts)
+    // A company's own charter pieces come first among its stations; merged ones follow.
+    const charter = state.stations
+        .filter((entry) => entry.companyId === station.companyId)
+        .slice(0, schedule.length)
+    if (
+        isSystem(title, station.companyId) ||
+        title.returnedStationIds?.includes(stationId) ||
+        !charter.some((entry) => entry.id === stationId)
+    )
+        return MergedStationCost
+    const cost = schedule[charter.filter((entry) => entry.status !== 'available').length]
+    assertExists(cost, 'The charter prices each of its stations')
+    return cost
 }
 
 export const EighteenThirtyTwoStationRules: StationRules = {

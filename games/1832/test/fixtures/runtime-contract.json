@@ -1,7 +1,7 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "eec53dafa6c3bdd98bdad63fb0397a97bf32d5902c4a52a5d14d0979e1a136eb",
-    "AnswerMerger": "2f1baf55c1f75d14fa465b17bd12be16e9ce2febb94c55d3ca4bf2cf97622ca7",
+    "AnswerMerger": "f29591ad4fe818080e006ec685bfd28138f48483dfcc74c6fb5ddf5d5671cdbd",
     "AnswerRedemption": "df0e4766d17c3c52766a9a63c7619c60de9a6f2b76fe331909c03775de1f4ee8",
     "BuyAuctionLot": "155a50b51bc0f77c28377ff93ddb5839ed0bb8f60e8178de847119ab9d4640dc",
     "BuyCoalRights": "fd07d9693434758869735ef55dce27d2bb6f5781d4b622878133c742468487f1",
@@ -13,13 +13,13 @@
     "CompleteMergerPhase": "90719edc29b2ebebd58530194f971ec9c7c7b6fdec498c19c4525948d5446376",
     "CompletePriceProtection": "13f3089e9789141cc1a2f2ab3bbf7ec0d12e0b9db76e8c504a9164fd0636a1a1",
     "CompleteStockRound": "7f7e57359cd8d0691ee16a31e9801a1eb157cc7e320d298447358e6951372882",
-    "CompleteTakeover": "90dd6d15ba73a7a46aeb712a034720e010001ba8dfc7206513e07ef7f91b4a59",
+    "CompleteTakeover": "95a2ba62354462adab7c0dba45b5cf6f81c7e29b55e13fc79f5a6975621924ef",
     "ContinueOperatingRound": "9739c28a94fcb60ac7e05435f2d25ccba70f5534d4a28a43ac2107ec3f896637",
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
     "DeclareBankruptcy": "5ca00ef2afae7da19d8382234c57cd00091c69f2ad589e3567a9fa05be5509ed",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
     "DeclineProtection": "9a8bcbc342acf15a0e76acc67fd989fa94fb226a699ddd0d1ec9bc302c79b6b3",
-    "DiscardMergedTrain": "8638459c56ab1765c976182af269aba0906626d9bce0a57956755bcdddfaf279",
+    "DiscardMergedTrain": "5521dbaac6facf528f6f10d956a5363bb120e31c617ff5c364ae745b1c4cce78",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
     "DistributeEarnings": "730b0d2c5db385382646eeb2d6fd54588254ea0e245e4b2fabaaf882755366a6",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
@@ -41,7 +41,7 @@
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceRevenueToken": "2329cbd76c82c07fad6e0f09e9d929991d6b014073acdeeab68146f07eae822b",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
-    "ProposeMerger": "97d3540236827ca5f053e9504da74255d6d0be5d334e9174c185577b16f6b5e4",
+    "ProposeMerger": "8e3242fa526a30ffff98a303afaec7ccc3c326716720dd2c5c00ed844616f653",
     "ProtectShares": "e8078b7c429165eb0eb0386e239b6b4411fb964f56a0b065ec0dade6d0561874",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
@@ -1421,6 +1421,13 @@
       "id": {
         "type": "string"
       },
+      "inheritedHomeStationIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array"
+      },
       "lockedProceeds": {
         "additionalProperties": false,
         "properties": {
@@ -1638,14 +1645,31 @@
                   "minLength": 1,
                   "type": "string"
                 },
+                "kind": {
+                  "anyOf": [
+                    {
+                      "const": "system",
+                      "type": "string"
+                    },
+                    {
+                      "const": "takeover",
+                      "type": "string"
+                    }
+                  ]
+                },
                 "partnerId": {
                   "minLength": 1,
                   "type": "string"
+                },
+                "yielded": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "companyId",
-                "partnerId"
+                "kind",
+                "partnerId",
+                "yielded"
               ],
               "type": "object"
             },
@@ -2919,6 +2943,13 @@
           "Draw",
           "Win"
         ]
+      },
+      "returnedStationIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array"
       },
       "revenueTokens": {
         "items": {
