@@ -92,11 +92,21 @@ describe('MarraCash refilling entrances', () => {
     })
 })
 
+const RevealOptions = [
+    { concealedCash: false, antiqueCards: false },
+    { concealedCash: true, antiqueCards: false },
+    { concealedCash: false, antiqueCards: true },
+    { concealedCash: true, antiqueCards: true }
+]
+
 describe('MarraCash end of game', () => {
-    it.each([false, true])(
-        'plays out the round after the queue empties, then ends (concealed cash %s)',
-        (concealedCash) => {
-            const session = roundTwoWithEmptyEntrance([Yellow, Yellow], { concealedCash })
+    it.each(RevealOptions)(
+        'plays out the round after the queue empties, then ends (%o)',
+        ({ concealedCash, antiqueCards }) => {
+            const session = roundTwoWithEmptyEntrance([Yellow, Yellow], {
+                concealedCash,
+                antiqueCards
+            })
             const order = session.state.turnManager.turnOrder
             moveTwice(session)
             session.bringVisitors(order[0], QueueEnd.Front, 2, 16)
@@ -117,8 +127,13 @@ describe('MarraCash end of game', () => {
 
             expect(session.state.machineState).toBe(MachineState.EndOfGame)
             expect(session.state.activePlayerIds).toEqual([])
-            // Only Concealed Cash makes the game's end reveal anything, so only then does it block Undo
-            expect(session.actions.at(-1)?.revealsInfo).toBe(concealedCash)
+            // The game's end reveals Concealed Cash and every unfinished antique hand, so only
+            // then does it block Undo
+            const handsUnfinished = session.state.players.some(
+                (player) => player.antiques.length > 0
+            )
+            expect(handsUnfinished).toBe(antiqueCards)
+            expect(session.actions.at(-1)?.revealsInfo).toBe(concealedCash || antiqueCards)
         }
     )
 
@@ -190,10 +205,10 @@ describe('MarraCash end of game', () => {
 })
 
 describe('MarraCash Undo barriers', () => {
-    it.each([false, true])(
-        'marks only reveals of hidden information as Undo barriers (concealed cash %s)',
-        (concealedCash) => {
-            const session = startTestGame(4, { concealedCash })
+    it.each(RevealOptions)(
+        'marks only reveals of hidden information as Undo barriers (%o)',
+        ({ concealedCash, antiqueCards }) => {
+            const session = startTestGame(4, { concealedCash, antiqueCards })
             playToEnd(session)
             const barriers = session.actions.filter((action) => action.revealsInfo)
             const revealing = new Set<string>([
@@ -201,8 +216,15 @@ describe('MarraCash Undo barriers', () => {
                 ActionType.CompleteAntiqueSet
             ])
             const unexpected = barriers.filter((action) => !revealing.has(action.type))
+            const handsUnfinished = session.state.players.some(
+                (player) => player.antiques.length > 0
+            )
+            expect(handsUnfinished).toBe(antiqueCards)
             expect(unexpected.map((action) => action.type)).toEqual(
-                concealedCash ? [ActionType.EndTurn] : []
+                concealedCash || handsUnfinished ? [ActionType.EndTurn] : []
+            )
+            expect(barriers.at(-1)?.type === ActionType.EndTurn).toBe(
+                concealedCash || handsUnfinished
             )
             expect(barriers.some((action) => action.type === ActionType.ResolveAuction)).toBe(true)
         }

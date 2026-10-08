@@ -20,6 +20,7 @@ import { MarracashGameStateValidator, type MarracashProjectedState } from '../mo
 import { StartingMoney } from '../model/playerState.js'
 import { createGame, TestMasterSeed } from '../util/testHelper.js'
 import { MarketColor } from './marketColor.js'
+import { MarracashGameConfigOptions } from './config.js'
 import { MarracashColors } from './colors.js'
 import { MarracashRuntime } from './runtime.js'
 import { MachineState } from './states.js'
@@ -155,8 +156,9 @@ describe('MarraCash without antique cards', () => {
         expect(MarracashGameStateValidator.Check(state)).toBe(true)
     })
 
-    it('turns antique cards on by default', () => {
-        expect(start(4).antiqueCards).toBe(true)
+    it('leaves antique cards off by default', () => {
+        const option = MarracashGameConfigOptions.find((entry) => entry.id === 'antiqueCards')
+        expect(option?.default).toBe(false)
     })
 })
 
