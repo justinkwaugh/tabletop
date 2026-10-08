@@ -454,8 +454,8 @@ export class EighteenXXSession<
             []
         )
     }
-    protected override getActivePlayers() {
-        return this.gameState.activePlayerIds.flatMap((id) =>
+    protected override getActivePlayers(state: State) {
+        return state.activePlayerIds.flatMap((id) =>
             this.game.players.filter((player) => player.id === id)
         )
     }
