@@ -1,3 +1,4 @@
+import { tick } from 'svelte'
 import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
@@ -30,7 +31,9 @@ import { CanalBuildAnimator } from '$lib/animators/canalBuildAnimator.svelte.js'
 import { BribePopAnimator } from '$lib/animators/bribePopAnimator.svelte.js'
 import { FieldPopAnimator } from '$lib/animators/fieldPopAnimator.svelte.js'
 import { BoardPreview } from '$lib/model/boardPreview.svelte.js'
+import { DroughtDustAnimator } from '$lib/animators/droughtDustAnimator.svelte.js'
 import { actionBarView, type ActionBarView } from '$lib/model/actionBarView.js'
+import { landMood, type LandMood } from '$lib/model/landMood.js'
 import {
     canalProposals,
     canRevealTiles,
@@ -64,6 +67,7 @@ export class SantiagoGameSession extends GameSession<
     readonly bribePop = new BribePopAnimator(this)
     readonly fieldPop = new FieldPopAnimator(this)
     readonly boardPreview = new BoardPreview()
+    readonly droughtDust = new DroughtDustAnimator(this)
     readonly birds = new BirdDirector(this)
 
     chosenAction: string | undefined = $state(undefined)
@@ -74,6 +78,16 @@ export class SantiagoGameSession extends GameSession<
     // player choose where before dialing in how much, and change their mind by clicking
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
+
+    // Ambient changes that follow a transition the animators ran, such as the land's mood or newly
+    // offered canal spots, ease in; a silent restoration runs no animators, so they snap.
+    easesAmbientChanges = $state(false)
+    // Set from the developer harness's mood tuner to preview the light on any board.
+    moodOverride: LandMood | undefined = $state(undefined)
+
+    get landMood(): LandMood {
+        return this.moodOverride ?? landMood(this.gameState)
+    }
 
     override async onGameStateChange({
         to: _to,
@@ -86,6 +100,7 @@ export class SantiagoGameSession extends GameSession<
         action?: GameAction
         animationContext: AnimationContext
     }) {
+        this.easesAmbientChanges = true
         this.chosenAction = undefined
         this.bidValue = 0
         this.proposalAmount = 1
@@ -98,6 +113,9 @@ export class SantiagoGameSession extends GameSession<
         super.beforeNewState()
         this.selectedBribeSegment = undefined
         this.clearAnimationPreviews()
+        void tick().then(() => {
+            this.easesAmbientChanges = false
+        })
     }
 
     // A failed transition never reaches beforeNewState, which would leave the previews, and the
@@ -121,6 +139,7 @@ export class SantiagoGameSession extends GameSession<
         this.canalBuild.clearPreview()
         this.bribePop.clearPreview()
         this.fieldPop.clearPreview()
+        this.droughtDust.clearPreview()
     }
 
     override willUndo(_action: GameAction) {

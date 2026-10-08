@@ -19,6 +19,7 @@
     import ActionPanel from './ActionPanel.svelte'
     import ActionToolbar from './ActionToolbar.svelte'
     import PlayerActionBar from './PlayerActionBar.svelte'
+    import MoodTuner from './MoodTuner.svelte'
     import LastActionBanner from './LastActionBanner.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import History from './History.svelte'
@@ -111,6 +112,9 @@
 <CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
 
 <div class="santiago-root earth-texture bg-[#1c1410]" {@attach attachAnimator(deal)}>
+    {#if session.isDeveloperHarness}
+        <MoodTuner />
+    {/if}
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls

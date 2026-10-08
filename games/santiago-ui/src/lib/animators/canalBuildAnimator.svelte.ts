@@ -24,10 +24,6 @@ export class CanalBuildAnimator extends StateAnimator {
     revealingKey: string | undefined = $state(undefined)
 
     private revealRect: SVGRectElement | undefined
-    // Spots that appear after a transition the animators ran fade in; a silent restoration runs no
-    // animators, so spots it reveals appear without motion.
-    spotsFadeIn = false
-
     private readonly surveyNodes = new Map<string, SVGGElement>()
     private faded: SVGGElement[] = []
 
@@ -45,15 +41,11 @@ export class CanalBuildAnimator extends StateAnimator {
         this.revealingKey = undefined
         gsap.killTweensOf(this.faded)
         if (this.faded.length > 0) gsap.set(this.faded, { clearProps: 'opacity' })
-        void tick().then(() => {
-            this.spotsFadeIn = false
-        })
         if (this.revealRect) gsap.killTweensOf(this.revealRect)
         this.faded = []
     }
 
     override async onGameStateChange({ to, from, action, animationContext }: StateChange) {
-        this.spotsFadeIn = true
         if (!from) return
         const built = to.board.canals.find((seg) => !from.board.canals.some((old) => isSameSegment(old, seg)))
         if (!built) return

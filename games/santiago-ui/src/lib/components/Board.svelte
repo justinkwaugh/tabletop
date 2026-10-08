@@ -4,11 +4,13 @@
     import { fade } from 'svelte/transition'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { bribePillKey } from '$lib/animators/bribePopAnimator.svelte.js'
+    import { DUST_PARTICLES, dustParticleKey } from '$lib/animators/droughtDustAnimator.svelte.js'
     import { groupProposalsBySegment } from '$lib/model/turnRules.js'
     import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import BirdLayer from '$lib/birds/BirdLayer.svelte'
     import SunWash from './SunWash.svelte'
+    import DustMotes from './DustMotes.svelte'
     import SurveyLine from './SurveyLine.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { boardUrl, desertUrl, palmtreeUrl } from '$lib/utils/imageUrls.js'
@@ -16,12 +18,13 @@
         W, H, BORDER_X, BORDER_Y, FIELD_W, FIELD_H, CELL_W, CELL_H,
         GRID_TEMPLATE_COLUMNS, GRID_TEMPLATE_ROWS, COL_STARTS, gridLine, intersectionX, intersectionY
     } from '$lib/utils/boardGeometry.js'
-    import { CANAL_HALF_THICKNESS, segmentEndpointKeys, segmentEnds, segmentKey, waterEntersAtFarEnd } from '$lib/utils/canalGeometry.js'
+    import { CANAL_HALF_THICKNESS, intersectionKey, segmentEndpointKeys, segmentEnds, segmentKey, waterEntersAtFarEnd } from '$lib/utils/canalGeometry.js'
 
     const session = getGameSession()
     const canalBuild = session.canalBuild
     const bribePop = session.bribePop
     const fieldPop = session.fieldPop
+    const droughtDust = session.droughtDust
     const boardCanals = $derived(canalBuild.canals ?? session.gameState.board.canals)
     const waterNetwork = $derived({ spring: session.gameState.board.spring, canals: boardCanals })
 
@@ -522,10 +525,27 @@
                              style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
                     {:else}
                         <div class="absolute inset-0" {@attach fieldPop.field(col, row)}>
-                            <img src={fieldImage(sq.crop, sq.farmerCapacity)}
-                                 alt=""
-                                 class="absolute object-cover"
-                                 style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                            {#if droughtDust.flipping.includes(intersectionKey(col, row))}
+                                <!-- Drying: the field's card turns over to its desert side. -->
+                                <div class="absolute" style="inset:3px; perspective: 600px">
+                                    <div class="relative w-full h-full" style="transform-style: preserve-3d"
+                                         {@attach droughtDust.flipCard(col, row)}>
+                                        <img src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                             alt=""
+                                             class="absolute inset-0 w-full h-full object-cover"
+                                             style="backface-visibility: hidden; border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                                        <img src={desertUrl}
+                                             alt=""
+                                             class="absolute inset-0 w-full h-full object-cover"
+                                             style="backface-visibility: hidden; border-radius:3px; transform:rotateY(180deg) rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                                    </div>
+                                </div>
+                            {:else}
+                                <img src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                     alt=""
+                                     class="absolute object-cover"
+                                     style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                            {/if}
                             <!-- Farmer cubes — only for owned fields -->
                             {#if sq.playerId}
                                 <div class="absolute flex gap-[2px]" style="left: calc(20% - 7px); bottom: calc(20% - 6px)">
@@ -554,7 +574,8 @@
          style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none"
          {@attach attachAnimator(canalBuild)}
          {@attach attachAnimator(bribePop)}
-         {@attach attachAnimator(fieldPop)}>
+         {@attach attachAnimator(fieldPop)}
+         {@attach attachAnimator(droughtDust)}>
         <defs>
             <clipPath id="canalReveal">
                 <rect x="0" y="0" width={W} height={H}
@@ -563,6 +584,11 @@
                           return () => canalBuild.setRevealRect(undefined)
                       }} />
             </clipPath>
+            <radialGradient id="droughtDust">
+                <stop offset="0%" stop-color="rgb(238, 214, 172)" stop-opacity="1"/>
+                <stop offset="60%" stop-color="rgb(228, 200, 154)" stop-opacity="0.75"/>
+                <stop offset="100%" stop-color="rgb(218, 188, 140)" stop-opacity="0"/>
+            </radialGradient>
             <linearGradient id="surveyStakeWood" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stop-color="#f0c48a"/>
                 <stop offset="100%" stop-color="#b47a42"/>
@@ -655,6 +681,15 @@
         {/each}
         -->
 
+        {#each droughtDust.puffs as puff (puff.key)}
+            <g transform="translate({puff.x} {puff.y})">
+                {#each { length: DUST_PARTICLES } as _, i (i)}
+                    <circle r={7 + (i % 3) * 2.5} fill="url(#droughtDust)" opacity="0"
+                            {@attach droughtDust.particle(dustParticleKey(puff.key, i))} />
+                {/each}
+            </g>
+        {/each}
+
         <!-- Canal sparkles — small glints that drift along placed canal segments -->
         {#each sparkles as s (s.id)}
             <g transform="translate({s.x},{s.y}) scale({s.scale})">
@@ -715,7 +750,7 @@
                    canalBuild.setSurveyNode(key, el)
                    return () => canalBuild.setSurveyNode(key, undefined)
                }}>
-            <g in:fade={{ duration: canalBuild.spotsFadeIn ? 250 : 0 }}>
+            <g in:fade={{ duration: session.easesAmbientChanges ? 250 : 0 }}>
             <SurveyLine
                 {...c}
                 selected={session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
@@ -801,4 +836,5 @@
     </svg>
     <BirdLayer />
     <SunWash />
+    <DustMotes />
 </div>
