@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, MachineState, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
+import { Banner, HydratedSearchResolve, MachineState, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -104,7 +104,7 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
         const { draft, sent } = searchingWith([TENTS, TUTOR], HELD)
         draft.keep(TENTS)
         const faceup = draft.placements.find((o) => o.play === SearchPlay.Adviser && o.faceUp)
-        expect(faceup?.blockedBecause).toBeUndefined()
+        expect(faceup).toBeDefined()
         expect(faceup?.room).toEqual({ needed: 1, discardable: HELD })
 
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
@@ -194,6 +194,21 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
         const sent = vi.spyOn(session, 'resolveSearch').mockResolvedValue()
         return { draft: session.search, sent }
     }
+
+    it('Play is ready with nobody picked, not with a player alone, and again with a prize', async () => {
+        const { draft, sent } = withRival()
+        draft.keep(CONSPIRACY)
+        await draft.choosePlacement({ play: SearchPlay.Conspiracy })
+        expect(draft.conspiracyComplete).toBe(true)
+
+        draft.setConspiracyPick({ targetPlayerId: 'ann' })
+        expect(draft.conspiracyComplete).toBe(false)
+        await draft.confirmConspiracy()
+        expect(sent).not.toHaveBeenCalled()
+
+        draft.setConspiracyPick({ targetPlayerId: 'ann', prizeIndex: 0 })
+        expect(draft.conspiracyComplete).toBe(true)
+    })
 
     it('waits for the take, then sends it with the play', async () => {
         const { draft, sent } = withRival()
@@ -300,8 +315,82 @@ describe('Land Warden — the second play is picked on the cards', () => {
         const { draft } = searchingWith([TENTS, TUTOR], [], WARDEN_CARRIED)
         draft.keep(TENTS)
         draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)?.key)
-        const open = draft.placements.filter((option) => option.blockedBecause === undefined)
-        expect(open.map((option) => option.play)).toEqual([SearchPlay.Site])
-        expect(draft.placements.find((option) => option.play === SearchPlay.Adviser)?.blockedBecause).toMatch(/at least one of the two cards/)
+        expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
+    })
+})
+
+const FULL = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+const FABLED_FEAST = 'denizen.hearth.fabled-feast'
+const SLUM_SITES = { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+const FAVOR_HELD = {
+    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
+    [Banner.DarkestSecret]: { value: 1 }
+}
+
+describe('contract rule 2 — a play the engine refuses is not offered', () => {
+    it('a full site with nothing to open it offers no site play', () => {
+        const { draft } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+        draft.keep(TENTS)
+        expect(draft.placements.map((option) => option.play)).toEqual([
+            SearchPlay.Adviser,
+            SearchPlay.Adviser,
+            SearchPlay.Discard
+        ])
+    })
+})
+
+/** The engine's own judgement of the Search as the draft sent it. */
+function engineRefusal(session: ReturnType<typeof searchingWith>['session'], sent: ReturnType<typeof searchingWith>['sent']) {
+    const [choice] = sent.mock.calls[0]
+    return HydratedSearchResolve.reasonCannotResolve(session.gameState, ME, choice)
+}
+
+describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a discard first opens it', () => {
+    it("the People's Favor's holder at a full site plays to the open site picked in the region", async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, banners: FAVOR_HELD })
+        draft.keep(TENTS)
+        expect(draft.otherSites).toEqual(['c2'])
+        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
+        draft.setToSite('c2')
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, toSiteId: 'c2' }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('a full Great Slum takes the site play with a card discarded first', async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        draft.keep(TENTS)
+        expect(draft.otherSites).toEqual([])
+        expect(draft.discardFirstOptions).toEqual(FULL)
+        draft.setDiscardFirst(FULL[1])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[1] }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('the site play picked with nothing that opens it is judged at send: not sent, one reason, gone with the next pick', async () => {
+        const { draft, sent } = searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        draft.keep(TENTS)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.placement).toBeUndefined()
+        expect(draft.placementReason).toMatch(/capacity of 3/)
+
+        draft.setDiscardFirst(FULL[0])
+        expect(draft.placementReason).toBeUndefined()
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[0] }))
+    })
+
+    it('a When Played card played to a full Great Slum is judged with its discard first', async () => {
+        const { session, draft, sent } = searchingWith([FABLED_FEAST, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        draft.keep(FABLED_FEAST)
+        draft.setDiscardFirst(FULL[2])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(draft.whenPlayedReason).toBeUndefined()
+        await draft.confirmWhenPlayed()
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: FABLED_FEAST, play: SearchPlay.Site, discardFirstCardId: FULL[2] }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
     })
 })

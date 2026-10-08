@@ -8,6 +8,8 @@
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
+    import { ActionType } from '@tabletop/oath'
+    import { actionName } from '$lib/model/actionCatalogue.js'
     import { siteName, cardName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -15,32 +17,27 @@
     let gameState = $derived(gameSession.gameState)
     let search = $derived(gameSession.search)
     let busy = $derived(gameSession.busy)
+
+    // One short line per step under the bar; the cards and rings show the rest.
+    let step = $derived.by(() => {
+        if (!search.kept) return 'Keep one.'
+        if (!search.placement) return 'How do you play it?'
+        if (search.needsDisplaced) {
+            const needed = search.room.needed
+            return needed === 1 ? 'Discard 1 adviser.' : `Discard ${needed} advisers.`
+        }
+        if (search.needsConspiracy) return 'The Conspiracy: take a relic or banner?'
+        if (search.needsWhenPlayed) return `${cardName(search.kept)}: choose.`
+        return 'Tap to discard; the last goes on top.'
+    })
 </script>
 
 <div>
-    <div class="mb-2">
-        <span class="text-sm">
-            {#if !search.kept}
-                <span class="font-semibold">Tap the card to keep.</span>
-            {:else if !search.placement}
-                Keeping <span class="font-semibold">{cardName(search.kept)}</span>.
-                <span class="font-semibold">How do you play it?</span>
-            {:else if search.needsDisplaced}
-                <span class="font-semibold">Over the adviser limit.</span>
-                {search.room.needed === 1
-                    ? 'Discard which adviser?'
-                    : `Discard ${search.room.needed} advisers (${search.displaced.length} chosen).`}
-            {:else if search.needsConspiracy}
-                <span class="font-semibold">The Conspiracy:</span> take a relic or banner?
-            {:else if search.needsWhenPlayed}
-                <span class="font-semibold">{cardName(search.kept)}</span>: choose for its When
-                Played power.
-            {:else}
-                <span class="font-semibold">Tap the card that is discarded first</span>; the last
-                goes on top.
-            {/if}
-        </span>
+    <!-- The staged actions' bar names the action over every step. -->
+    <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
+        <span class="text-sm">{actionName(ActionType.Search)}</span>
     </div>
+    <p class="mb-2 text-sm font-semibold">{step}</p>
 
     {#if !search.kept}
         <div class="flex flex-wrap gap-2">
@@ -85,7 +82,7 @@
         {#if search.secondAllowed && search.drawn.length > 1}
             {@const second = search.second}
             <div class="mb-2 text-xs">
-                <span class="text-oath-text-muted">Also play one, and how:</span>
+                <span class="text-oath-text-muted">Also play:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.secondCandidates)}
                     picked={second ? [second.cardId] : []}
@@ -114,7 +111,7 @@
         {/if}
         {#if search.discardFirstOptions.length > 0}
             <div class="mb-2 text-xs">
-                <span class="text-oath-text-muted">If played to a site, discard first:</span>
+                <span class="text-oath-text-muted">Discard first:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.discardFirstOptions)}
                     picked={search.discardFirst ? [search.discardFirst] : []}
@@ -132,29 +129,31 @@
                 label={cardName(search.kept)}
                 inspect
             />
-            <div class="flex flex-wrap gap-1 grow">
-                {#each search.placements as option (option.label)}
-                    <button
-                        class="rounded border px-2 py-1 text-sm text-left {option.blockedBecause
-                            ? 'border-oath-divider bg-oath-surface opacity-55'
-                            : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
-                        disabled={busy || !!option.blockedBecause}
-                        title={option.blockedBecause
-                            ? gameSession.humanizeReason(option.blockedBecause)
-                            : ''}
-                        onclick={() =>
-                            search.choosePlacement({ play: option.play, faceUp: option.faceUp })}
-                    >
-                        {option.label}
-                        {#if option.blockedBecause}
-                            <span class="block text-[11px] text-oath-text-muted leading-snug">
-                                <TokenText
-                                    text={gameSession.humanizeReason(option.blockedBecause) ?? ''}
-                                />
-                            </span>
-                        {/if}
-                    </button>
-                {/each}
+            <div>
+                <!-- One width, the widest label's: a row on a wide screen, a column below it. -->
+                <div class="inline-grid auto-cols-fr gap-1 lg:grid-flow-col">
+                    {#each search.placements as option (option.label)}
+                        <button
+                            class="rounded border border-oath-frame bg-oath-surface-raised px-3 py-1
+                                   text-sm whitespace-nowrap hover:border-oath-accent max-sm:min-h-11"
+                            disabled={busy}
+                            onclick={() =>
+                                search.choosePlacement({
+                                    play: option.play,
+                                    faceUp: option.faceUp
+                                })}
+                        >
+                            {option.label}
+                        </button>
+                    {/each}
+                </div>
+                {#if search.placementReason}
+                    <p class="mt-1 text-[11px] text-oath-danger">
+                        <TokenText
+                            text={gameSession.humanizeReason(search.placementReason) ?? ''}
+                        />
+                    </p>
+                {/if}
             </div>
         </div>
     {:else if search.needsDisplaced}
@@ -192,36 +191,41 @@
             pick={search.conspiracyPick}
             onchange={(pick) => search.setConspiracyPick(pick)}
         />
-        {#if reason}
-            <p class="text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-            </p>
+        <!-- "Play" once the take is picked whole; a red line only for a complete pick refused. -->
+        {#if search.conspiracyComplete}
+            {#if reason}
+                <p class="text-[11px] text-oath-danger">
+                    <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                </p>
+            {/if}
+            <button
+                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
+                disabled={busy || !!reason}
+                onclick={() => search.confirmConspiracy()}
+            >
+                Play
+            </button>
         {/if}
-        <button
-            class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
-            disabled={busy || !!reason}
-            onclick={() => search.confirmConspiracy()}
-        >
-            Play the Conspiracy
-        </button>
     {:else if search.needsWhenPlayed}
         {@const reason = search.whenPlayedReason}
         <PowerChoicePicker
             choices={search.whenPlayed}
             bind:picks={() => search.picks, (picks) => search.setPicks(picks)}
         />
-        {#if reason}
-            <p class="text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-            </p>
+        {#if search.whenPlayedComplete}
+            {#if reason}
+                <p class="text-[11px] text-oath-danger">
+                    <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                </p>
+            {/if}
+            <button
+                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
+                disabled={busy || !!reason}
+                onclick={() => search.confirmWhenPlayed()}
+            >
+                Play
+            </button>
         {/if}
-        <button
-            class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
-            disabled={busy || !!reason}
-            onclick={() => search.confirmWhenPlayed()}
-        >
-            Play {cardName(search.kept)}
-        </button>
     {:else}
         <div class="flex flex-wrap gap-2">
             <DiscardOrderCards

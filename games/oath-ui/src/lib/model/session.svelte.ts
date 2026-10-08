@@ -623,7 +623,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const option = this.selection.value('option')
         return this.facedownAdviserOptions
             .find((adviser) => adviser.cardId === this.adviserCardId)
-            ?.placements.find((p) => p.play === option && p.blockedBecause === undefined)
+            ?.placements.find((p) => p.play === option)
     }
 
     /** The placement waiting on its picks: discards over the limit, When Played choices, a take. */

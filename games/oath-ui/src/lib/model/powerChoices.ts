@@ -120,6 +120,22 @@ export function withSeveralCount(
     }
 }
 
+/**
+ * A confirm waits until every spec has at least its least picks. A required single pick
+ * counts the option the picker shows picked, as `powerChoicesFrom` sends it.
+ */
+export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
+    return choices.every((legal, index) => {
+        const picked = allowsSeveral(legal)
+            ? (picks.several[index] ?? []).filter((option) => legal.options[option] !== undefined)
+                  .length
+            : legal.options[optionIndexOf(legal, index, picks)] === undefined
+              ? 0
+              : 1
+        return picked >= legal.spec.min
+    })
+}
+
 export function powerChoicesFrom(
     choices: readonly LegalChoice[],
     picks: PowerChoicePicks

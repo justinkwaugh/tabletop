@@ -159,7 +159,7 @@
                     </div>
                 {:else}
                     <div class="flex flex-wrap gap-1.5 grow">
-                        {#each adviser.placements.filter((p) => p.blockedBecause === undefined) as option (option.label)}
+                        {#each adviser.placements as option (option.label)}
                             <MenuChoice
                                 label="{option.label}: {cardName(adviser.cardId)}"
                                 disabled={busy}

@@ -25,9 +25,7 @@ function table(advisers: { cardId: string; faceUp: boolean }[], status = PlayerS
 }
 
 function offered(state: ReturnType<typeof table>, cardId: string): SearchPlay[] {
-    return adviserPlacements(state, 'p1', cardId)
-        .filter((option) => option.blockedBecause === undefined)
-        .map((option) => option.play)
+    return adviserPlacements(state, 'p1', cardId).map((option) => option.play)
 }
 
 describe('R-6.1 — where a facedown adviser may go', () => {
@@ -92,14 +90,21 @@ describe("R-6.1, R-5.1.4.I — a full site does not close the site play to the P
     })
 })
 
-describe('R-6.1 — what a refused placement says', () => {
-    it('keeps the site and adviser placements visible, and explains them', () => {
+describe('R-6.1, contract rule 2 — a placement the engine refuses is not offered', () => {
+    it('a site-only denizen is offered no adviser play, and a full site no site play', () => {
         const state = table([{ cardId: SITE_ONLY, faceUp: false }])
-        const adviser = adviserPlacements(state, 'p1', SITE_ONLY).find(
-            (option) => option.play === SearchPlay.Adviser
+        const plays = adviserPlacements(state, 'p1', SITE_ONLY).map((option) => option.play)
+        expect(plays).toEqual([SearchPlay.Site, SearchPlay.Discard])
+
+        const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+        const crowded = testState(
+            [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', advisers: [{ cardId: UNRESTRICTED, faceUp: false }] })],
+            { denizensBySite: { c1: full, c2: [], p1: [] } }
         )
-        expect(adviser).toBeDefined()
-        expect(adviser?.blockedBecause).toContain('can only be played to a site')
+        expect(adviserPlacements(crowded, 'p1', UNRESTRICTED).map((option) => option.play)).toEqual([
+            SearchPlay.Adviser,
+            SearchPlay.Discard
+        ])
     })
 
     it('drops the placements no player is reaching for', () => {

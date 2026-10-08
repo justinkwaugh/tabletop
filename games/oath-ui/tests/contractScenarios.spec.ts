@@ -251,13 +251,13 @@ test('scenario 25: another seat acting mid-pick starts the Search panel again wi
 }) => {
     await openTable(page, 'searching')
     await panelCards(page).first().click()
-    await page.getByRole('button', { name: 'Discard it', exact: true }).click()
-    await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
+    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
     expect((await call(page, 'searchPicks')).placement).toBe('discard')
 
     await call(page, 'anotherSeatLetsPeek')
     expect(await call(page, 'searchPicks')).toEqual({})
-    await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 })
 
 /** Scenario 16: a second question after the first starts with nothing picked. */
@@ -858,7 +858,7 @@ test.describe('scenario 32: waiting on a send', () => {
         await expect(page.getByText('How do you play it?', { exact: false })).toBeVisible()
 
         await call(page, 'setUpdatingVisibleState', true)
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
         await expect(page.getByText('How do you play it?', { exact: false })).toHaveCount(0)
         await expect(grid(page).locator('button:enabled')).toHaveCount(0)
 
@@ -1016,15 +1016,17 @@ test.describe('palette: every cost in the action panel is accent', () => {
         ])
     })
 
-    test('Search with a toll: the Supply, the "+" and the favor given are all accent', async ({ page }) => {
+    test('Search with a toll: the Supply, the "+", the favor given and "to" are all accent, then the payee chip', async ({ page }) => {
         await openTable(page, 'searchToll')
         await tile(page, 'Search').click()
         const deck = grid(page).getByRole('button', {
             name: /^Search the world deck: spend 2 Supply, give 1 favor to ann, draw 3$/
         })
         await expect(deck.locator('img')).toHaveCount(1)
+        // The payee is their name chip, drawn in the chip's own colours.
         expect(await tokenRuns(deck)).toEqual([
-            ['2 Supply + 1', 'accent'],
+            ['2 Supply + 1 to', 'accent'],
+            ['ann', 'rgb(255, 255, 255)'],
             ['draw 3', 'text-muted']
         ])
     })
@@ -1564,7 +1566,7 @@ test('scenario 6: the facedown advisers to play are cards in the panel, a tap sh
     await expect(grid(page).getByRole('button', { name: 'Curfew', exact: true })).toBeVisible()
     await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
     await grid(page).getByRole('button', { name: 'Curfew', exact: true }).click()
-    const discard = grid(page).getByRole('button', { name: /^Discard it: Curfew$/ })
+    const discard = grid(page).getByRole('button', { name: /^Discard: Curfew$/ })
     await expect(discard).toBeVisible()
     await expect(stepBacks(page)).toHaveCount(0)
     await undoButton(page).click()
@@ -1917,7 +1919,7 @@ test('scenario 49: with Observatory declared every non-empty pile is listed and 
     const piles = page.locator('.discard')
     await expect(piles.nth(1)).toContainText('3')
     await provinces.click()
-    await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
     expect((await call(page, 'tableFacts')).machineState).toBe('Searching')
     await expect(piles.nth(1)).toHaveClass(/empty/)
     await expect(piles.nth(2)).toContainText('2')
@@ -2122,6 +2124,61 @@ test('the fixture opens the Chancellor setup with the hand offered', async ({ pa
     expect(errors).toEqual([])
 })
 
+/** The Search keeps its bar over every step, one short line under it, and hides a refused play. */
+test('scenario 23: the Search bar stays over the steps with no Back; the plays share one width', async ({ page }) => {
+    await openTable(page, 'searching')
+    const bar = grid(page).locator('.bg-oath-accent-soft').first()
+    await expect(bar).toHaveText('Search')
+    await expect(grid(page).getByText('Keep one.', { exact: true })).toBeVisible()
+    await expect(stepBacks(page)).toHaveCount(0)
+
+    await panelCards(page).first().click()
+    await expect(bar).toHaveText('Search')
+    await expect(stepBacks(page)).toHaveCount(0)
+    await expect(grid(page).getByText('How do you play it?', { exact: true })).toBeVisible()
+    const plays = grid(page).getByRole('button', { name: /^(To your site|Adviser, faceup|Adviser, facedown|As your Vision|Play it|Discard)$/ })
+    expect(await plays.count()).toBeGreaterThan(1)
+    const widths = await plays.evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().width)))
+    expect(new Set(widths).size).toBe(1)
+})
+
+test('scenario 23: a Search toll names who gets the favor on the source’s button, its token no taller than the text', async ({ page }) => {
+    await openTable(page, 'searchTollByCole')
+    await tile(page, 'Search').click()
+    const pile = grid(page).getByRole('button', { name: /^Search the Cradle discard pile/ })
+    await expect(pile).toBeVisible()
+    await expect(pile).toContainText(/2 Supply\s*\+\s*1\s*to\s*cole/i)
+    const token = pile.getByRole('img', { name: 'favor' })
+    const [tokenHeight, fontSize] = await token.evaluate((image) => [
+        image.getBoundingClientRect().height,
+        parseFloat(getComputedStyle(image.parentElement ?? image).fontSize)
+    ])
+    expect(tokenHeight).toBeLessThanOrEqual(fontSize)
+})
+
+test('scenario 23: the Conspiracy takes from a player’s chip; "Play" shows with nobody picked or a prize, never a player alone', async ({ page }) => {
+    await openTable(page, 'searchConspiracy')
+    await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Play it', exact: true }).click()
+    await expect(grid(page).getByText('The Conspiracy: take a relic or banner?', { exact: true })).toBeVisible()
+    const play = grid(page).getByRole('button', { name: 'Play', exact: true })
+    const cole = grid(page).getByRole('button', { name: /^cole$/i })
+    await expect(grid(page).getByText('From:', { exact: true })).toBeVisible()
+    await expect(cole).toHaveAttribute('aria-pressed', 'false')
+    await expect(play).toBeVisible()
+
+    await cole.click()
+    await expect(cole).toHaveAttribute('aria-pressed', 'true')
+    await expect(play).toHaveCount(0)
+    await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
+
+    await grid(page).getByRole('button', { name: 'Cup of Plenty', exact: true }).click()
+    await expect(play).toBeVisible()
+    await cole.click()
+    await expect(cole).toHaveAttribute('aria-pressed', 'false')
+    await expect(play).toBeVisible()
+})
+
 const usePower = (page: Page) => grid(page).getByRole('button', { name: 'Use a power', exact: true })
 const actionCard = (page: Page, cardId: string) => grid(page).locator(`[data-action-card="${cardId}"]`)
 const picked = (page: Page) => grid(page).locator('button[aria-pressed="true"]')
@@ -2216,7 +2273,7 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
 
     await actionCard(page, 'denizen.beast.mushrooms').getByRole('button', { name: 'Search with Mushrooms', exact: true }).click()
     await pile.click()
-    await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
     const facts = await call(page, 'tableFacts')
     expect(facts.machineState).toBe('Searching')
     expect(facts.secretsOn['denizen.beast.mushrooms']).toBe(1)
@@ -2621,7 +2678,7 @@ test.describe('Undo is the one reversal control', () => {
         await expect(stepBacks(page)).toHaveCount(0)
 
         await undoButton(page).click()
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await expect(grid(page).getByText('Keep one.', { exact: true })).toBeVisible()
         expect(await call(page, 'searchPicks')).toEqual({})
     })
 

@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { IMPERIAL_WARBANDS, PowerChoiceKind, Suit, type LegalChoice } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
-import { emptyPicks, openCountCeiling, powerChoicesFrom, withSeveralCount } from './powerChoices.js'
+import {
+    NO_OPTION,
+    emptyPicks,
+    openCountCeiling,
+    picksComplete,
+    powerChoicesFrom,
+    withSeveralCount
+} from './powerChoices.js'
 
 const cage: LegalChoice = {
     spec: { kind: PowerChoiceKind.Warbands, min: 1, max: 16 },
@@ -41,6 +48,29 @@ describe('powerChoicesFrom — a spec taking several picks', () => {
     it('a ticked option with no count named sends all it carries', () => {
         const picks = { ...emptyPicks(), several: { 0: [0] } }
         expect(powerChoicesFrom([cage], picks)).toEqual([cage.options[0]])
+    })
+})
+
+describe('picksComplete — a confirm shows once every spec has its least picks', () => {
+    const bank: LegalChoice = {
+        spec: { kind: PowerChoiceKind.FavorBank, min: 1, max: 1 },
+        options: [
+            { kind: PowerChoiceKind.FavorBank, suit: Suit.Arcane },
+            { kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }
+        ]
+    }
+    const maybe: LegalChoice = { ...bank, spec: { ...bank.spec, min: 0 } }
+
+    it('a spec taking several picks waits for its least', () => {
+        expect(picksComplete([cage], emptyPicks())).toBe(false)
+        expect(picksComplete([cage], { ...emptyPicks(), several: { 0: [1] } })).toBe(true)
+    })
+
+    it('a required single pick is complete with the option shown picked; an optional one with none', () => {
+        expect(picksComplete([bank], emptyPicks())).toBe(true)
+        expect(picksComplete([bank], { ...emptyPicks(), option: { 0: NO_OPTION } })).toBe(false)
+        expect(picksComplete([maybe], emptyPicks())).toBe(true)
+        expect(picksComplete([{ ...bank, options: [] }], emptyPicks())).toBe(false)
     })
 })
 

@@ -3,10 +3,10 @@ import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
 
 // R-5.1.4 — the plays a Search and a facedown adviser print alike; an adviser play reads differently in each.
 export const PLAY_LABELS = {
-    [SearchPlay.Site]: 'Play to your site',
-    [SearchPlay.RevealedVision]: 'Reveal as your Vision',
-    [SearchPlay.Conspiracy]: 'Play the Conspiracy',
-    [SearchPlay.Discard]: 'Discard it'
+    [SearchPlay.Site]: 'To your site',
+    [SearchPlay.RevealedVision]: 'As your Vision',
+    [SearchPlay.Conspiracy]: 'Play it',
+    [SearchPlay.Discard]: 'Discard'
 } as const satisfies Record<Exclude<SearchPlay, SearchPlay.Adviser>, string>
 
 // R-6.1 — a route into R-5.1.4, played faceup; the action's predicate discounts the slot being vacated.
@@ -21,15 +21,8 @@ export const ADVISER_PLAYS: { play: SearchPlay; label: string }[] = [
 export type AdviserPlacement = {
     play: SearchPlay
     label: string
-    blockedBecause: string | undefined
     /** R-7.6.4 — a limiter turned faceup may put its holder over the limit. */
     room: AdviserRoom
-}
-
-// A refused Site or Adviser placement is shown greyed with its reason; the
-// Conspiracy and the Vision are refused for almost every card and are hidden.
-export function teaches(play: SearchPlay): boolean {
-    return play === SearchPlay.Site || play === SearchPlay.Adviser
 }
 
 function sitePlayOpen(
@@ -81,12 +74,13 @@ export function adviserDiscardFirstOptions(
         .filter((first) => sitePlayOpen(state, playerId, cardId, toSiteId, first))
 }
 
+// Contract rule 2 — a placement the engine refuses is not offered.
 export function adviserPlacements(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string
 ): AdviserPlacement[] {
-    return ADVISER_PLAYS.map((option) => {
+    return ADVISER_PLAYS.flatMap((option) => {
         const room =
             option.play === SearchPlay.Adviser
                 ? adviserRoom(state, playerId, cardId, { faceUp: true, fromAdvisers: true })
@@ -102,6 +96,6 @@ export function adviserPlacements(
             refused !== undefined &&
             (adviserOtherSites(state, playerId, cardId).length > 0 ||
                 adviserDiscardFirstOptions(state, playerId, cardId, undefined).length > 0)
-        return { ...option, room, blockedBecause: openElsewhere ? undefined : refused }
-    }).filter((option) => option.blockedBecause === undefined || teaches(option.play))
+        return refused === undefined || openElsewhere ? [{ ...option, room }] : []
+    })
 }

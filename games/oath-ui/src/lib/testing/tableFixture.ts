@@ -106,6 +106,8 @@ export type TableName =
     | 'defenderPlans'
     | 'oathkeeperChoice'
     | 'sneakAttackHeld'
+    | 'searchTollByCole'
+    | 'searchConspiracy'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1317,6 +1319,84 @@ function freeTravelTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.1.4: Cole rules this seat's site with Forced Labor, so a Search gives him a favor. */
+function searchTollByColeTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7, favor: 3 }),
+            testPlayer({ playerId: 'cole', color: Color.Blue, siteId: home }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.order.forced-labor'] },
+            warbandsBySite: { [home]: { cole: 2 } },
+            discardPileCounts: { cradle: 3, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.beast.wolves'
+                ]
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-5.1.4.IV: the Conspiracy drawn by a Search, with Cole at this seat's site holding a relic. */
+function searchConspiracyTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                secrets: 2,
+                handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
+                advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
+                    (cardId) => ({ cardId, faceUp: true })
+                )
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Blue,
+                siteId: home,
+                relicIds: ['relic.cup-of-plenty'],
+                advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.Searching,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -1360,7 +1440,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     askedOffTurn: askedOffTurnTable,
     defenderPlans: defenderPlansTable,
     oathkeeperChoice: oathkeeperChoiceTable,
-    sneakAttackHeld: sneakAttackHeldTable
+    sneakAttackHeld: sneakAttackHeldTable,
+    searchTollByCole: searchTollByColeTable,
+    searchConspiracy: searchConspiracyTable
 }
 
 /** Every table a scenario can open. */

@@ -165,6 +165,17 @@ describe('the history tab describes every action', () => {
         expect(search({})).toBe('searched the world deck, spending 3 Supply')
     })
 
+    it('R-7.1.4 — a Search names its toll: the favor, whom it went to and the card; a burned one; an older record as before', () => {
+        const FORCED_LABOR = 'denizen.order.forced-labor'
+        const search = (metadata: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.Search, playerId: 'p1', drawFrom: SearchSource.WorldDeck, metadata: { supplySpent: 2, cardsDrawn: 3, visionsDrawn: 0, ...metadata } }), nameOf, 'p2')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: gave a favor to p3`] })).toBe('searched the world deck, spending 2 Supply; 1 favor to Cass (Forced Labor)')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: burned a favor for the bandits`] })).toBe('searched the world deck, spending 2 Supply; burned 1 favor (Forced Labor)')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: gave a favor to p3`], stoppedOnVision: true })).toBe('searched the world deck, spending 2 Supply; 1 favor to Cass (Forced Labor); the draw stopped on a Vision')
+        expect(search({ tollsPaid: ['not a toll note'] })).toBe('searched the world deck, spending 2 Supply')
+        expect(search({})).toBe('searched the world deck, spending 2 Supply')
+    })
+
     it('names the banners the spoils seized', () => {
         const spoils = (metadata: Record<string, unknown>) =>
             describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p1', metadata: { warbandsPlaced: 0, seizeBurned: 0, favorBurned: 0, relicsTaken: [], bannersSeized: [], ...metadata } }), nameOf)

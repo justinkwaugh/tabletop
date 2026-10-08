@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices } from '$lib/model/cardChoice.js'
     import { type ConspiracyPick, type TakePrizeOption } from '$lib/model/conspiracyTake.js'
@@ -35,18 +36,23 @@
     }
 </script>
 
-<label class="flex items-center gap-2 text-xs mb-1">
-    take from
-    <select
-        class="rounded bg-oath-surface-raised px-1 py-0.5 grow"
-        disabled={busy}
-        value={target ?? ''}
-        onchange={(e) => onchange({ targetPlayerId: e.currentTarget.value || undefined })}
-    >
-        <option value="">nobody</option>
-        {#each targets as id (id)}<option value={id}>{gameSession.getPlayerName(id)}</option>{/each}
-    </select>
-</label>
+<!-- A player is their chip: a tap picks them, a second tap drops them; none picked takes nothing. -->
+<div class="mb-1 flex flex-wrap items-center gap-2 text-xs">
+    <span class="text-oath-text-muted">From:</span>
+    {#each targets as id (id)}
+        <button
+            type="button"
+            class="rounded p-0.5 text-sm max-sm:min-h-11 {target === id
+                ? 'ring-2 ring-oath-accent'
+                : 'ring-1 ring-transparent hover:ring-oath-accent'}"
+            aria-pressed={target === id}
+            disabled={busy}
+            onclick={() => onchange({ targetPlayerId: target === id ? undefined : id })}
+        >
+            <PlayerName playerId={id} />
+        </button>
+    {/each}
+</div>
 {#if target}
     <!-- A relic is a card; a banner keeps its own chip. -->
     <div class="mb-2 text-xs">

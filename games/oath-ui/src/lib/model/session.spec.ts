@@ -144,7 +144,7 @@ describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Pla
     it('Salad Days turned faceup waits for three different banks, then sends them', async () => {
         const { session, sent } = flipping()
         const faceup = session.facedownAdviserOptions[0].placements.find((p) => p.play === SearchPlay.Adviser)
-        expect(faceup?.blockedBecause).toBeUndefined()
+        expect(faceup).toBeDefined()
 
         await session.chooseAdviserPlay(SALAD_DAYS, SearchPlay.Adviser)
         expect(sent).not.toHaveBeenCalled()

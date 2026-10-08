@@ -11,10 +11,15 @@ import {
     type PowerChoice,
     type SearchSecondPlay
 } from '@tabletop/oath'
-import { PLAY_LABELS, teaches } from './adviserPlacements.js'
+import { PLAY_LABELS } from './adviserPlacements.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { cardName } from './names.js'
-import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
+import {
+    emptyPicks,
+    picksComplete,
+    powerChoicesFrom,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { whenPlayedChoices } from './whenPlayed.js'
 import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
@@ -31,10 +36,10 @@ import type { OathGameSession } from './session.svelte.js'
 export type SearchPlacement = Omit<SearchSecondPlay, 'cardId'>
 export type SearchPlacementOption = SearchPlacement & {
     label: string
-    blockedBecause: string | undefined
     /** R-5.1.4.II, R-7.6.4 — at the adviser limit, how many must go and which may. */
     room: AdviserRoom
 }
+type JudgedPlacement = SearchPlacementOption & { blockedBecause: string | undefined }
 export type SecondPlay = SearchSecondPlay & { label: string; mode: string; key: string }
 
 /** Chosen beside the placement: another site, a Great Slum discard, a Land Warden second play. */
@@ -105,25 +110,19 @@ export class SearchDraft implements PanelDraft {
     }
 
     // R-5.1.4.III and R-7.2.1 are card properties, so the placements change with the kept card;
-    // refusals that teach are kept and explained.
+    // a play the engine refuses is not offered (contract rule 2).
     // R-7.3.3 — a placement is judged apart from its When Played choices, which are asked after
     // it; at the limit it is open when some adviser could make room (R-5.1.4.II).
     get placements(): SearchPlacementOption[] {
         const cardId = this.kept
         const playerId = this.playerId
         if (!cardId || !playerId) return []
-        const options = PLACEMENTS.map((option) => {
-            const placed = this.placementOption(playerId, cardId, option)
-            return {
-                ...placed,
-                blockedBecause:
-                    placed.blockedBecause ?? this.reasonSecondCannotPair(playerId, option.play)
-            }
-        }).filter((option) => option.blockedBecause === undefined || teaches(option.play))
-        assert(
-            options.some((option) => option.blockedBecause === undefined),
-            'R-5.1.4 — a kept card can always be discarded'
-        )
+        const options = PLACEMENTS.flatMap((option) => {
+            const { blockedBecause, ...placed } = this.placementOption(playerId, cardId, option)
+            const refused = blockedBecause ?? this.reasonSecondCannotPair(playerId, option.play)
+            return refused === undefined ? [placed] : []
+        })
+        assert(options.length > 0, 'R-5.1.4 — a kept card can always be discarded')
         return options
     }
 
@@ -133,9 +132,27 @@ export class SearchDraft implements PanelDraft {
 
     private get chosenOption(): SearchPlacementOption | undefined {
         const chosen = this.flow.value('placement')
-        if (chosen === undefined) return undefined
-        return this.placements.find(
-            (o) => o.blockedBecause === undefined && this.samePlacement(o, chosen)
+        if (chosen === undefined || this.placementReason !== undefined) return undefined
+        return this.placements.find((o) => this.samePlacement(o, chosen))
+    }
+
+    /**
+     * R-5.1.4.I, R-11.10 — the site play is offered when some site or discard first opens it, so
+     * the one picked beside it (another site, a card discarded first, or neither) is judged when
+     * the play is chosen; a refused pick stays on this step with the engine's reason.
+     */
+    get placementReason(): string | undefined {
+        const chosen = this.flow.value('placement')
+        const cardId = this.kept
+        const playerId = this.playerId
+        if (chosen?.play !== SearchPlay.Site || !cardId || !playerId) return undefined
+        if (!this.placements.some((o) => this.samePlacement(o, chosen))) return undefined
+        return reasonCannotPlaceCard(
+            this.session.gameState,
+            playerId,
+            cardId,
+            SearchPlay.Site,
+            this.playExtras(SearchPlay.Site)
         )
     }
 
@@ -173,6 +190,11 @@ export class SearchDraft implements PanelDraft {
 
     get picks(): PowerChoicePicks {
         return this.flow.value('whenPlayed')?.picks ?? emptyPicks()
+    }
+
+    /** "Play" waits until every When Played choice has its picks. */
+    get whenPlayedComplete(): boolean {
+        return picksComplete(this.whenPlayed, this.picks)
     }
 
     get needsWhenPlayed(): boolean {
@@ -221,6 +243,16 @@ export class SearchDraft implements PanelDraft {
         )
     }
 
+    /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
+    get conspiracyComplete(): boolean {
+        const target = this.conspiracyPick.targetPlayerId
+        return (
+            target === undefined ||
+            !this.conspiracyTargets.includes(target) ||
+            this.conspiracy !== undefined
+        )
+    }
+
     setConspiracyPick(pick: Omit<ConspiracyPick, 'confirmed'>): void {
         if (this.conspiracyTargets.length > 0) {
             this.flow.set('conspiracy', { ...pick, confirmed: false })
@@ -228,7 +260,12 @@ export class SearchDraft implements PanelDraft {
     }
 
     async confirmConspiracy(): Promise<void> {
-        if (!this.needsConspiracy || this.whenPlayedReason !== undefined) return
+        if (
+            !this.needsConspiracy ||
+            !this.conspiracyComplete ||
+            this.whenPlayedReason !== undefined
+        )
+            return
         this.flow.set('conspiracy', { ...this.conspiracyPick, confirmed: true })
         await this.resolveWhenOrdered()
     }
@@ -243,8 +280,18 @@ export class SearchDraft implements PanelDraft {
             faceUp: placement.faceUp,
             choices: this.choices,
             discardedAdviserCardIds: this.displaced,
-            conspiracy: this.conspiracy
+            conspiracy: this.conspiracy,
+            ...this.playExtras(placement.play)
         })
+    }
+
+    // As the engine judges the play: with the Search's carried modifiers, and for a site play the
+    // site and the card discarded first picked beside it.
+    private playExtras(play: SearchPlay) {
+        const carried = searchPlayModifiers(this.session.gameState)
+        return play === SearchPlay.Site
+            ? { carried, toSiteId: this.toSite, discardFirstCardId: this.discardFirst }
+            : { carried }
     }
 
     /** The placement and the picks it asks for are all made; the discard order is next. */
@@ -330,8 +377,11 @@ export class SearchDraft implements PanelDraft {
     // R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded before a
     // site play, offered wherever the engine accepts it for the site being played to.
     get discardFirstOptions(): string[] {
+        return this.discardFirstOptionsFor(this.toSite)
+    }
+
+    private discardFirstOptionsFor(target: string | undefined): string[] {
         const state = this.session.gameState
-        const target = this.toSite
         return state
             .allSiteIds()
             .flatMap((siteId) => state.denizensAt(siteId))
@@ -399,7 +449,12 @@ export class SearchDraft implements PanelDraft {
     }
 
     async confirmWhenPlayed(): Promise<void> {
-        if (!this.needsWhenPlayed || this.whenPlayedReason !== undefined) return
+        if (
+            !this.needsWhenPlayed ||
+            !this.whenPlayedComplete ||
+            this.whenPlayedReason !== undefined
+        )
+            return
         this.flow.set('whenPlayed', { picks: this.picks, confirmed: true })
         await this.resolveWhenOrdered()
     }
@@ -488,21 +543,27 @@ export class SearchDraft implements PanelDraft {
         }
     }
 
+    // R-5.1.4.I, R-11.10 — a site play refused at the player's own site is open when another site
+    // or a card discarded first opens it, as for a facedown adviser's play (`adviserPlacements`).
     private placementOption(
         playerId: string,
         cardId: string,
         option: SearchPlacement & { label: string }
-    ): SearchPlacementOption {
+    ): JudgedPlacement {
         const state = this.session.gameState
         const room =
             option.play === SearchPlay.Adviser
                 ? adviserRoom(state, playerId, cardId, { faceUp: option.faceUp })
                 : { needed: 0, discardable: [] }
-        const blockedBecause = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
+        const refused = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
             faceUp: option.faceUp,
             discardedAdviserCardIds: room.discardable.slice(0, room.needed)
         })
-        return { ...option, blockedBecause, room }
+        const openElsewhere =
+            option.play === SearchPlay.Site &&
+            refused !== undefined &&
+            (this.otherSites.length > 0 || this.discardFirstOptionsFor(undefined).length > 0)
+        return { ...option, room, blockedBecause: openElsewhere ? undefined : refused }
     }
 
     private pairsWithAnOpenPlacement(playerId: string, kept: string, second: SearchSecondPlay) {
