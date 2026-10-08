@@ -3,6 +3,8 @@ services:
         ports: !reset []
 
     tabletop:
+        hostname: tabletop
+
         build:
             context: .
             dockerfile: ./.devcontainer/Dockerfile
@@ -13,6 +15,11 @@ services:
         env_file:
             - path: .env.devcontainer
               required: false
+
+        environment:
+            # Vite 7 rejects requests for hostnames it doesn't know. This adds the tailnet name
+            # to every dev server's allowedHosts without touching each vite.config.ts.
+            __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: tabletop
 
         volumes:
             # Mounts the project folder to '/workspace'. While this file is in .devcontainer,
@@ -35,6 +42,31 @@ services:
         networks:
             - backend
 
+    # Joins the tailnet as `tabletop`, sharing the tabletop container's network namespace so
+    # any server bound to 0.0.0.0 in the devcontainer is reachable at http://tabletop:<port>.
+    # Needs TS_AUTHKEY in .env.devcontainer for the first join; afterwards the node identity
+    # lives in the tailscale-state volume.
+    tailscale:
+        image: tailscale/tailscale:stable
+        network_mode: service:tabletop
+        restart: unless-stopped
+        env_file:
+            - path: .env.devcontainer
+              required: false
+        environment:
+            TS_HOSTNAME: tabletop
+            TS_STATE_DIR: /var/lib/tailscale
+            TS_USERSPACE: 'false'
+            # The image defaults to legacy iptables, which this host's kernel doesn't provide.
+            TS_DEBUG_FIREWALL_MODE: nftables
+        devices:
+            - /dev/net/tun:/dev/net/tun
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+        volumes:
+            - tailscale-state:/var/lib/tailscale
+
 volumes:
     codex-home:
     claude-home:
@@ -42,6 +74,7 @@ volumes:
     node-modules:
     pnpm-store:
     sshd-state:
+    tailscale-state:
 
 networks:
     backend:
