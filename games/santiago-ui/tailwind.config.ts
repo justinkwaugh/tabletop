@@ -29,4 +29,4 @@ export default {
 
     plugins: [flowbitePlugin],
     darkMode: 'class'
-} as Config
+} satisfies Config
