@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { humanizeReason, nameSeats, type Seats } from './names.js'
+import { humanizeReason, nameSeats, reasonParts, type Seats } from './names.js'
 
 const ALICE = 'p1'
 const BOB = 'Qx7_pL2mWb9-Rk4tYc1nZ'
@@ -62,6 +62,32 @@ describe('a refusal as its reader sees it', () => {
         expect(
             humanizeReason(`${BOB} holds relic.cup-of-plenty (R-5.5.2)`, seats, ALICE)
         ).toBe('Bob holds Cup of Plenty')
+    })
+})
+
+describe('a refusal with each other seat as its chip', () => {
+    const text = (value: string) => ({ kind: 'text', text: value })
+    const chip = (playerId: string, possessive = false) => ({ kind: 'seat', playerId, possessive })
+
+    it('reads as `humanizeReason` does, with another seat apart, and the reader still “you”', () => {
+        expect(reasonParts(`${BOB} has 0 favor, not the 2 ${ALICE} would take (R-5.5.2)`, seats.seats, ALICE)).toEqual([
+            chip(BOB),
+            text(' has 0 favor, not the 2 you would take')
+        ])
+        expect(reasonParts(`${ALICE} is the Chancellor; ${BOB}'s relics stay`, seats.seats, ALICE)).toEqual([
+            text('you are the Chancellor; '),
+            chip(BOB, true),
+            text(' relics stay')
+        ])
+    })
+
+    it('a spectator reads every seat as its chip; a reason with no seat is one run of text', () => {
+        expect(reasonParts(`${ALICE} gave relic.cup-of-plenty to ${BOB}`, seats.seats, undefined)).toEqual([
+            chip(ALICE),
+            text(' gave Cup of Plenty to '),
+            chip(BOB)
+        ])
+        expect(reasonParts('the world deck is empty', seats.seats, ALICE)).toEqual([text('the world deck is empty')])
     })
 })
 

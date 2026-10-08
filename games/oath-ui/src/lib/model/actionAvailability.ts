@@ -2,44 +2,34 @@ import {
     ActionType,
     Banner,
     bannerHolder,
+    anyRelaxesOccupancy,
+    cannotGainFavorFromTrade,
     HydratedCampaign,
-    HydratedExileCitizen,
-    HydratedMoveWarbands,
     HydratedMuster,
-    HydratedOfferCitizenship,
-    HydratedPeek,
-    HydratedLetPeek,
-    HydratedPlayFacedownAdviser,
     HydratedRecover,
     HydratedSearch,
-    HydratedSelfExile,
     HydratedTrade,
     HydratedTravel,
-    HydratedUseActionPower,
-    PlayerStatus,
     SearchSource,
     TradeOption,
     freeActionTypesNow,
     reasonFreeActionComesFirst,
+    usableFavor,
     type HydratedOathGameState
 } from '@tabletop/oath'
-import type { GridAction } from './actionCatalogue.js'
-import { unseenPeekSlots } from './relicKnowledge.js'
+import type { MajorAction, MajorEntry } from './actionCatalogue.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
     gameState: HydratedOathGameState,
     playerId: string,
-    type: GridAction
+    type: MajorAction
 ): string | undefined {
     const player = gameState.getPlayerState(playerId)
     const freeFirst = reasonFreeActionComesFirst(gameState, playerId, type)
     if (freeFirst) return freeFirst
 
     switch (type) {
-        case ActionType.SelfExile:
-            return HydratedSelfExile.reasonCannotSelfExile(gameState, playerId)
-
         case ActionType.Travel: {
             if (HydratedTravel.legalDestinations(gameState, playerId).length > 0) return undefined
             return player.siteId
@@ -86,14 +76,9 @@ export function reasonActionUnavailable(
 
         case ActionType.Recover: {
             if (HydratedRecover.canDoRecover(gameState, playerId)) return undefined
-            const hasRelic = !!player.siteId && gameState.relicSlotsAt(player.siteId).length > 0
-            const anyBanner = Object.values(Banner).some(
-                (banner) => bannerHolder(gameState, banner) !== playerId
-            )
-            if (!hasRelic && !anyBanner) {
-                return 'nothing at your site to recover, and you hold both banners'
-            }
-            return 'you cannot pay for anything recoverable here'
+            return nothingToRecover(gameState, playerId)
+                ? 'nothing at your site to recover, and you hold both banners'
+                : 'you cannot pay for anything recoverable here'
         }
 
         case ActionType.Campaign: {
@@ -105,63 +90,260 @@ export function reasonActionUnavailable(
             }
             return `costs ${HydratedCampaign.supplyCostFor(gameState, playerId)} Supply`
         }
-
-        case ActionType.PlayFacedownAdviser:
-            return HydratedPlayFacedownAdviser.legalCards(gameState, playerId).length > 0
-                ? undefined
-                : 'no facedown adviser to play or discard'
-
-        case ActionType.Peek:
-            if (!HydratedPeek.canDoPeek(gameState, playerId)) {
-                return 'no facedown relic you may peek at'
-            }
-            return unseenPeekSlots(gameState, playerId).length > 0
-                ? undefined
-                : 'you have already seen every relic here'
-
-        case ActionType.LetPeek:
-            return HydratedLetPeek.canDoLetPeek(gameState, playerId)
-                ? undefined
-                : 'no facedown adviser to show, and no Reliquary relic you may show an Exile'
-
-        case ActionType.MoveWarbands:
-            return HydratedMoveWarbands.legalMoves(gameState, playerId).length > 0
-                ? undefined
-                : 'no warbands you may move — you must rule your site'
-
-        case ActionType.ExileCitizen: {
-            if (HydratedExileCitizen.canDoExileCitizen(gameState, playerId)) return undefined
-            const citizen = gameState.players.find((p) => p.status === PlayerStatus.Citizen)
-            if (!citizen) return 'there are no Citizens to exile'
-            return HydratedExileCitizen.reasonCannotExile(gameState, playerId, citizen.playerId)
-        }
-
-        case ActionType.OfferCitizenship: {
-            if (HydratedOfferCitizenship.canDoOfferCitizenship(gameState, playerId)) {
-                return undefined
-            }
-            const exile = gameState.players.find((p) => p.status === PlayerStatus.Exile)
-            const space = gameState.reliquarySlots()[0]
-            if (!exile) return 'nobody is an Exile to offer Citizenship to'
-            if (!space) return 'the Imperial Reliquary is empty, so there is no relic to offer'
-            return HydratedOfferCitizenship.reasonCannotOffer(gameState, playerId, {
-                exilePlayerId: exile.playerId,
-                reliquarySlotId: space.slotId
-            })
-        }
-
-        // R-6.2 — offered only when some accessible card prints a built, affordable "Action:" power.
-        case ActionType.UseActionPower:
-            return HydratedUseActionPower.canDoUseActionPower(gameState, playerId)
-                ? undefined
-                : 'no built, affordable "Action:" power on a card you have access to'
     }
+}
+
+type PlainCause =
+    | 'noCard'
+    | 'noEmptyCard'
+    | 'nothingToDraw'
+    | 'tradeTokens'
+    | 'vowOfPoverty'
+    | 'nothingToRecover'
+    | 'cannotPayRecover'
+    | 'nobodyToAttack'
+
+/** Why a dimmed major tile is dimmed, by cause; a cause not named here keeps the engine's sentence. */
+export type GridRefusal =
+    | { cause: 'freeFirst'; due: ActionType[] }
+    | { cause: 'supply'; needs: number; has: number }
+    | { cause: 'favor'; has: number }
+    | { cause: PlainCause }
+    | { cause: 'engine'; reason: string }
+
+export type KnownRefusal = Exclude<GridRefusal, { cause: 'engine' }>
+
+/** What stops one card, pile or destination, for a cause the grid names. */
+type CandidateCause =
+    'supply' | 'favor' | 'noEmptyCard' | 'nothingToDraw' | 'tradeTokens' | 'vowOfPoverty'
+
+interface Candidate {
+    cost: number
+    cause: CandidateCause | undefined
+}
+
+export function gridRefusal(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    type: MajorAction
+): GridRefusal | undefined {
+    const reason = reasonActionUnavailable(gameState, playerId, type)
+    if (reason === undefined) return undefined
+    return knownCause(gameState, playerId, type) ?? { cause: 'engine', reason }
+}
+
+function knownCause(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    type: MajorAction
+): KnownRefusal | undefined {
+    if (reasonFreeActionComesFirst(gameState, playerId, type)) {
+        return { cause: 'freeFirst', due: freeActionTypesNow(gameState, playerId) }
+    }
+    switch (type) {
+        case ActionType.Travel:
+            return sharedCause(gameState, playerId, travelCandidates(gameState, playerId))
+
+        case ActionType.Muster: {
+            const cards = cardsAtSite(gameState, playerId)
+            if (cards.length === 0) return { cause: 'noCard' }
+            return sharedCause(
+                gameState,
+                playerId,
+                cards.map((cardId) => musterCandidate(gameState, playerId, cardId))
+            )
+        }
+
+        case ActionType.Trade: {
+            const cards = cardsAtSite(gameState, playerId)
+            if (cards.length === 0) return { cause: 'noCard' }
+            return sharedCause(
+                gameState,
+                playerId,
+                cards.map((cardId) => tradeCandidate(gameState, playerId, cardId))
+            )
+        }
+
+        case ActionType.Search:
+            return sharedCause(
+                gameState,
+                playerId,
+                Object.values(SearchSource).map((source) =>
+                    searchCandidate(gameState, playerId, source)
+                )
+            )
+
+        case ActionType.Recover:
+            return {
+                cause: nothingToRecover(gameState, playerId)
+                    ? 'nothingToRecover'
+                    : 'cannotPayRecover'
+            }
+
+        case ActionType.Campaign: {
+            const needs = HydratedCampaign.supplyCostFor(gameState, playerId)
+            const has = gameState.getPlayerState(playerId).supply
+            if (has < needs) return { cause: 'supply', needs, has }
+            if (HydratedCampaign.legalDefenders(gameState, playerId).length === 0) {
+                return { cause: 'nobodyToAttack' }
+            }
+            return undefined
+        }
+    }
+}
+
+/** Short words only when every candidate fails for the same cause; mixed causes keep the engine's sentence. */
+function sharedCause(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    candidates: readonly Candidate[]
+): KnownRefusal | undefined {
+    const cause = candidates[0]?.cause
+    if (cause === undefined || candidates.some((candidate) => candidate.cause !== cause)) {
+        return undefined
+    }
+    switch (cause) {
+        case 'supply':
+            return {
+                cause,
+                needs: Math.min(...candidates.map((candidate) => candidate.cost)),
+                has: gameState.getPlayerState(playerId).supply
+            }
+        case 'favor':
+            return { cause, has: usableFavor(gameState, playerId) }
+        default:
+            return { cause }
+    }
+}
+
+function travelCandidates(gameState: HydratedOathGameState, playerId: string): Candidate[] {
+    const player = gameState.getPlayerState(playerId)
+    return gameState
+        .allSiteIds()
+        .filter((siteId) => siteId !== player.siteId)
+        .map((siteId): Candidate => {
+            const cost = HydratedTravel.plan(gameState, playerId, siteId).cost
+            return { cost, cause: player.supply < cost ? 'supply' : undefined }
+        })
+}
+
+function musterCandidate(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): Candidate {
+    const plan = HydratedMuster.plan(gameState, playerId, cardId)
+    const candidate = (cause: CandidateCause | undefined) => ({ cost: plan.cost, cause })
+    if (gameState.getPlayerState(playerId).supply < plan.cost) return candidate('supply')
+    // Initiation Rite places a secret instead; that cause keeps the engine's sentence.
+    if (!HydratedMuster.placesSecret(plan.active) && usableFavor(gameState, playerId) < 1) {
+        return candidate('favor')
+    }
+    // R-7.1.2.a — Pressgangs lifts the bar.
+    if (holdsTokens(gameState, cardId) && !anyRelaxesOccupancy(gameState, playerId, plan.active)) {
+        return candidate('noEmptyCard')
+    }
+    return candidate(undefined)
+}
+
+function tradeCandidate(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): Candidate {
+    const player = gameState.getPlayerState(playerId)
+    const cost = Math.min(
+        ...[TradeOption.ForFavor, TradeOption.ForSecrets].map(
+            (option) => HydratedTrade.plan(gameState, playerId, cardId, option).cost
+        )
+    )
+    const candidate = (cause: CandidateCause | undefined) => ({ cost, cause })
+    if (player.supply < cost) return candidate('supply')
+    // R-7.1.2.a
+    if (holdsTokens(gameState, cardId)) return candidate('noEmptyCard')
+    // R-5.3.2 — trading for secrets places two favor, trading for favor a secret.
+    if (usableFavor(gameState, playerId) >= 2) return candidate(undefined)
+    if (player.secrets < 1) return candidate('tradeTokens')
+    // R-7.1.4-H1 — Vow of Poverty.
+    if (cannotGainFavorFromTrade(gameState, playerId)) return candidate('vowOfPoverty')
+    return candidate(undefined)
+}
+
+function searchCandidate(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    source: SearchSource
+): Candidate {
+    const cost = HydratedSearch.plan(gameState, playerId, source).cost
+    if (gameState.getPlayerState(playerId).supply < cost) return { cost, cause: 'supply' }
+    const empty =
+        source === SearchSource.WorldDeck
+            ? gameState.worldDeckExhausted
+            : gameState.discardPileCounts[HydratedSearch.drawRegion(gameState, playerId)] === 0
+    return { cost, cause: empty ? 'nothingToDraw' : undefined }
+}
+
+function holdsTokens(gameState: HydratedOathGameState, cardId: string): boolean {
+    const tokens = gameState.tokensOn(cardId)
+    return tokens.favor > 0 || tokens.secrets > 0
+}
+
+function nothingToRecover(gameState: HydratedOathGameState, playerId: string): boolean {
+    const siteId = gameState.getPlayerState(playerId).siteId
+    const hasRelic = !!siteId && gameState.relicSlotsAt(siteId).length > 0
+    const anyBanner = Object.values(Banner).some(
+        (banner) => bannerHolder(gameState, banner) !== playerId
+    )
+    return !hasRelic && !anyBanner
 }
 
 function cardsAtSite(gameState: HydratedOathGameState, playerId: string): string[] {
     const siteId = gameState.getPlayerState(playerId).siteId
     if (!siteId) return []
     return gameState.denizensBySite[siteId] ?? []
+}
+
+const PLAIN_WORDS: Record<PlainCause, string> = {
+    noCard: 'No card here.',
+    noEmptyCard: 'No empty card here.',
+    nothingToDraw: 'Nothing to draw.',
+    tradeTokens: 'Needs 1 secret or 2 favor.',
+    vowOfPoverty: 'Vow of Poverty: no favor from Trade.',
+    nothingToRecover: 'Nothing to recover.',
+    cannotPayRecover: 'Can’t pay for any of it.',
+    nobodyToAttack: 'Nobody here to attack.'
+}
+
+/** The line under the grid for a cause it names; the panel draws favor and secrets as tokens. */
+export function refusalWords(refusal: KnownRefusal): string {
+    switch (refusal.cause) {
+        case 'freeFirst':
+            return `Free ${freeActionNames(refusal.due)} first.`
+        case 'supply':
+            return `Needs ${refusal.needs} Supply; you have ${refusal.has}.`
+        case 'favor':
+            return `Needs 1 favor; you have ${refusal.has}.`
+        default:
+            return PLAIN_WORDS[refusal.cause]
+    }
+}
+
+/** R-5.5.1, R-10.2 — a tile's cost as the engine charges it now: none for a due free action. */
+export function tileCost(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    entry: MajorEntry
+): string {
+    const free =
+        entry.type === ActionType.Campaign
+            ? HydratedCampaign.supplyCostFor(gameState, playerId) === 0
+            : entry.type === ActionType.Travel &&
+              freeActionTypesNow(gameState, playerId).includes(ActionType.Travel)
+    return free ? 'no Supply' : entry.cost
+}
+
+function freeActionNames(due: readonly ActionType[]): string {
+    return due.map((type) => (type === ActionType.Travel ? 'Travel' : 'Campaign')).join(' or ')
 }
 
 /** R-10.2 — the line above the grid while a granted free action must come next. */
@@ -171,6 +353,5 @@ export function freeActionDueLine(
 ): string | undefined {
     const due = freeActionTypesNow(gameState, playerId)
     if (due.length === 0) return undefined
-    const names = due.map((type) => (type === ActionType.Travel ? 'Travel' : 'Campaign'))
-    return `Your free ${names.join(' or ')} comes next: take it, give it up, or end the Act Phase.`
+    return `Free ${freeActionNames(due)} next.`
 }

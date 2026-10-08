@@ -16,7 +16,6 @@ import {
     ForgoFreeAction,
     ExileCitizen,
     HydratedAnswerConsent,
-    HydratedCampaign,
     HydratedResolveOathkeeper,
     HydratedResolveWake,
     HydratedExileCitizen,
@@ -102,7 +101,7 @@ import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { VisionsSeen } from './visionsSeen.svelte.js'
-import { humanizeReason, siteName } from './names.js'
+import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
 import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
 import {
     endingRule,
@@ -292,6 +291,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return humanizeReason(reason, this.historyNames, this.myPlayer?.id)
     }
 
+    /** An engine refusal for a panel: as `humanizeReason`, with every other seat as its chip. */
+    reasonParts(reason: string): ReasonPart[] {
+        return reasonParts(reason, this.historyNames.seats, this.myPlayer?.id)
+    }
+
     async forgoFreeAction(): Promise<void> {
         await this.commit(
             this.createPlayerAction(ForgoFreeAction, { type: ActionType.ForgoFreeAction })
@@ -403,12 +407,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     startSneakAttack(): void {
         if (this.sneakAttackDefenderId === undefined) return
         this.chooseAction(ActionType.Campaign)
-    }
-
-    // R-5.5.1 — nothing right after Knights Errant or Hunting Party, or as a Sneak Attack.
-    get campaignSupplyCost(): number | undefined {
-        const playerId = this.myPlayer?.id
-        return playerId ? HydratedCampaign.supplyCostFor(this.gameState, playerId) : undefined
     }
 
     async declareCampaign(declaration: CampaignDeclaration): Promise<void> {

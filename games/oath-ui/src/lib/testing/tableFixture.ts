@@ -101,6 +101,7 @@ export type TableName =
     | 'citizenshipShort'
     | 'citizenshipNone'
     | 'citizenshipEnough'
+    | 'freeTravel'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1189,6 +1190,34 @@ function citizenshipOfferedTable(imperial: number, fromExile?: CitizenshipTransf
     ])
 }
 
+/** R-10.2: a granted free Travel is due, so only it, giving it up or ending the phase is offered. */
+function freeTravelTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 3, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                advisers: [{ cardId: 'denizen.arcane.tutor', faceUp: false }]
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.hearth.wayside-inn'], [next]: [] }
+        }
+    )
+    state.getPlayerState('me').freeTravelAtAction = state.actionCount
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -1227,7 +1256,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     citizenship: citizenshipTable,
     citizenshipShort: () => citizenshipOfferedTable(3, { secrets: 1 }),
     citizenshipNone: () => citizenshipOfferedTable(0, { secrets: 1 }),
-    citizenshipEnough: () => citizenshipOfferedTable(5)
+    citizenshipEnough: () => citizenshipOfferedTable(5),
+    freeTravel: freeTravelTable
 }
 
 /** Every table a scenario can open. */

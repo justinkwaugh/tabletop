@@ -145,6 +145,37 @@ export function humanizeReason(
     return nameSeats(nameIds(stripRules(reason), slotLabel), seats, viewerId)
 }
 
+export type ReasonPart =
+    { kind: 'text'; text: string } | { kind: 'seat'; playerId: string; possessive: boolean }
+
+/** An engine refusal as `humanizeReason` reads it, with every other seat apart for its colour chip. */
+export function reasonParts(
+    reason: string,
+    seats: readonly string[],
+    viewerId: string | undefined
+): ReasonPart[] {
+    const text = nameSeats(
+        nameIds(stripRules(reason), slotLabel),
+        { player: (id) => id, seats },
+        viewerId
+    )
+    const others = seats.filter((playerId) => playerId !== viewerId)
+    if (others.length === 0) return [{ kind: 'text', text }]
+    const seat = new RegExp(
+        `(?<![\\w-])(${others.map(escapeRegExp).join('|')})(['’]s)?(?![\\w-])`,
+        'g'
+    )
+    const parts: ReasonPart[] = []
+    let from = 0
+    for (const match of text.matchAll(seat)) {
+        if (match.index > from) parts.push({ kind: 'text', text: text.slice(from, match.index) })
+        parts.push({ kind: 'seat', playerId: match[1], possessive: match[2] !== undefined })
+        from = match.index + match[0].length
+    }
+    if (from < text.length) parts.push({ kind: 'text', text: text.slice(from) })
+    return parts
+}
+
 export type NameOf = (playerId: string) => string
 
 export type Seats = {

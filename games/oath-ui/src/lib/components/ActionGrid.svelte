@@ -1,21 +1,29 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName } from '$lib/model/names.js'
+    import { cardName, type ReasonPart } from '$lib/model/names.js'
     import { cardsThatCan } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
         UNTARGETED_ACTIONS,
-        type ActionEntry
+        type ActionEntry,
+        type MajorEntry
     } from '$lib/model/actionCatalogue.js'
-    import { freeActionDueLine, reasonActionUnavailable } from '$lib/model/actionAvailability.js'
+    import {
+        freeActionDueLine,
+        gridRefusal,
+        refusalWords,
+        tileCost
+    } from '$lib/model/actionAvailability.js'
     import { actionImage } from '$lib/images/actionImages.js'
     import { unseenPeekSlots } from '$lib/model/relicKnowledge.js'
 
-    // R-4.2 — every action is listed, the unavailable ones dimmed with the engine's reason.
+    // R-4.2 — the six majors are always listed, an unavailable one dimmed with why on a tap; a minor
+    // is listed only when it can be taken.
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
     let valid = $derived(new Set(gameSession.validActionTypes))
@@ -26,12 +34,6 @@
         assertExists(seat, 'The Act Phase grid is shown to the seat whose turn it is')
         return seat
     })
-
-    // R-4.2.a — a Campaign right after Knights Errant or Hunting Party costs nothing.
-    function costLabel(entry: ActionEntry): string {
-        if (entry.type !== ActionType.Campaign) return entry.cost
-        return gameSession.campaignSupplyCost === 0 ? 'no Supply' : entry.cost
-    }
 
     // R-7.4 — the cards that change an action are found with the powers.
     let cards = $derived(gameSession.actionCards)
@@ -46,15 +48,37 @@
         return true
     }
 
-    function blockedBecause(entry: ActionEntry): string | undefined {
-        return gameSession.humanizeReason(
-            reasonActionUnavailable(gameState, seat.playerId, entry.type)
-        )
+    let minors = $derived(MINOR_ACTIONS.filter(available))
+
+    // R-7.4 — a card that would make the action possible is named after the reason.
+    function refusalOf(entry: MajorEntry) {
+        const refusal = gridRefusal(gameState, seat.playerId, entry.type)
+        if (!refusal) return undefined
+        const pointer = cardsThatCan(cards, entry.type, cardName)
+        const why =
+            refusal.cause === 'engine'
+                ? engineWhy(refusal.reason, pointer !== undefined)
+                : shortWhy(refusalWords(refusal))
+        return { parts: why.parts, pointer, title: pointer ? `${why.text} ${pointer}` : why.text }
     }
 
-    // A dimmed tile answers "why not" on tap, where there is no hover; the reason is the
-    // engine's for the state and seat it was tapped in, and a hover on another tile replaces it.
-    let tap = $state.raw<{ entry: ActionEntry; seatId: string; actionCount: number } | undefined>(
+    function shortWhy(words: string): { parts: ReasonPart[]; text: string } {
+        return { parts: [{ kind: 'text', text: words }], text: words }
+    }
+
+    // The engine's sentence carries no full stop of its own.
+    function engineWhy(reason: string, followed: boolean): { parts: ReasonPart[]; text: string } {
+        const stop = followed ? '.' : ''
+        return {
+            parts: [...gameSession.reasonParts(reason), { kind: 'text', text: stop }],
+            text: `${gameSession.humanizeReason(reason)}${stop}`
+        }
+    }
+
+    // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
+    // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
+    // replaces it.
+    let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
         undefined
     )
     let tapped = $derived(
@@ -62,18 +86,11 @@
             ? tap.entry
             : undefined
     )
-    let tappedReason = $derived(tapped && !available(tapped) ? blockedBecause(tapped) : undefined)
-    let tappedCards = $derived(
-        tapped && !available(tapped) ? cardsThatCan(cards, tapped.type, cardName) : undefined
-    )
-
-    function refusal(entry: ActionEntry): string | undefined {
-        const why = blockedBecause(entry)
-        const can = cardsThatCan(cards, entry.type, cardName)
-        return why && can ? `${why}. ${can}` : why
-    }
-
     let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
+    let pointedMajor = $derived(tapped ?? MAJOR_ACTIONS.find((entry) => entry === hoveredEntry))
+    let shownRefusal = $derived(
+        pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
+    )
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
 
@@ -83,12 +100,16 @@
     }
 
     // A pressed tile gives way to its panel without a pointer leave, so the line clears here.
-    function press(entry: ActionEntry, ok: boolean) {
-        tap = ok ? undefined : { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
-        if (!ok) return
+    function take(entry: ActionEntry) {
+        tap = undefined
         hoveredEntry = undefined
         if (UNTARGETED_ACTIONS.has(entry.type)) send(entry.type)
         else gameSession.chooseAction(entry.type)
+    }
+
+    function pressMajor(entry: MajorEntry, ok: boolean) {
+        if (ok) take(entry)
+        else tap = { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
     }
 
     function hover(entry: ActionEntry, on: boolean) {
@@ -97,32 +118,19 @@
         else if (hoveredEntry === entry) hoveredEntry = undefined
     }
 
-    // What a major tile and a minor chip share; they differ in look and in the cost they print.
-    function tile(entry: ActionEntry, describe: string) {
-        const ok = available(entry)
+    function pointing(entry: ActionEntry) {
         return {
-            ok,
-            attrs: {
-                disabled: busy,
-                'aria-disabled': !ok,
-                title: ok ? describe : (refusal(entry) ?? describe),
-                onpointerenter: () => hover(entry, true),
-                onpointerleave: () => hover(entry, false),
-                onfocus: () => hover(entry, true),
-                onblur: () => hover(entry, false),
-                onclick: () => press(entry, ok)
-            }
+            disabled: busy,
+            onpointerenter: () => hover(entry, true),
+            onpointerleave: () => hover(entry, false),
+            onfocus: () => hover(entry, true),
+            onblur: () => hover(entry, false)
         }
     }
 </script>
 
 <div class="head flex items-center justify-between gap-2 mb-2">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">
-        Act Phase
-        <span class="ml-2 normal-case tracking-normal text-oath-text-muted"
-            >Supply {seat.supply}</span
-        >
-    </h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">Supply {seat.supply}</h3>
     {#if valid.has(ActionType.EndActPhase)}
         <!-- R-4.2 — the phase may end after zero actions. -->
         <button
@@ -131,7 +139,7 @@
             disabled={busy}
             onclick={() => send(ActionType.EndActPhase)}
         >
-            End the Act Phase
+            End Act Phase
         </button>
     {/if}
 </div>
@@ -147,7 +155,7 @@
                 disabled={busy}
                 onclick={() => void gameSession.forgoFreeAction()}
             >
-                Give it up
+                Skip
             </button>
         {/if}
     </div>
@@ -156,55 +164,61 @@
 <div class="actions">
     <div class="majors flex flex-wrap gap-1.5">
         {#each MAJOR_ACTIONS as entry (entry.type)}
-            {@const t = tile(entry, `${entry.label} — ${costLabel(entry)}. ${entry.summary}`)}
+            {@const ok = available(entry)}
+            {@const cost = tileCost(gameState, seat.playerId, entry)}
+            {@const describe = `${entry.label} — ${cost}. ${entry.summary}`}
             <button
                 class="group flex w-[92px] flex-col items-center gap-1 rounded border px-1
                        py-1.5 text-center transition-colors
-                       {t.ok
+                       {ok
                     ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent hover:bg-oath-surface-raised cursor-pointer'
                     : 'border-oath-divider bg-oath-surface opacity-55 cursor-not-allowed'}"
-                {...t.attrs}
+                {...pointing(entry)}
+                aria-disabled={!ok}
+                title={ok ? describe : (refusalOf(entry)?.title ?? describe)}
+                onclick={() => pressMajor(entry, ok)}
             >
-                <img
-                    src={actionImage(entry.type)}
-                    alt=""
-                    class="h-9 w-9 {t.ok ? '' : 'grayscale'}"
-                />
+                <img src={actionImage(entry.type)} alt="" class="h-9 w-9 {ok ? '' : 'grayscale'}" />
                 <span class="text-[11px] font-semibold leading-none">{entry.label}</span>
-                <span class="text-[10px] leading-none text-oath-accent">{costLabel(entry)}</span>
+                <span class="text-[10px] leading-none text-oath-accent">{cost}</span>
             </button>
         {/each}
     </div>
 
-    <div class="minors mt-1.5 flex flex-wrap gap-1.5">
-        {#each MINOR_ACTIONS as entry (entry.type)}
-            {@const t = tile(entry, `${entry.label}. ${entry.summary}`)}
-            <button
-                class="rounded border px-2 py-1 text-[11px] font-medium transition-colors
-                       {t.ok
-                    ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent cursor-pointer'
-                    : 'border-oath-divider bg-oath-surface text-oath-text-muted opacity-70 cursor-not-allowed'}"
-                {...t.attrs}
-            >
-                {entry.label}
-            </button>
-        {/each}
-    </div>
+    {#if minors.length > 0}
+        <div class="minors mt-1.5 flex flex-wrap gap-1.5">
+            {#each minors as entry (entry.type)}
+                <button
+                    class="rounded border border-oath-frame bg-oath-surface-raised px-2 py-1
+                           text-[11px] font-medium transition-colors hover:border-oath-accent
+                           cursor-pointer"
+                    {...pointing(entry)}
+                    title={`${entry.label}. ${entry.summary}`}
+                    onclick={() => take(entry)}
+                >
+                    {entry.label}
+                </button>
+            {/each}
+        </div>
+    {/if}
 </div>
 
-<!-- One fixed line: what the hovered action does, or why the tapped one is refused. -->
+<!-- One fixed line: why the pointed or tapped major is refused, or what the hovered action does. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
-    {#if tappedReason}
+    {#if shownRefusal}
         <span class="text-oath-danger"
-            ><TokenText text={tappedReason} />{tappedCards ? '.' : ''}</span
+            >{#each shownRefusal.parts as part, i (i)}{#if part.kind === 'text'}<TokenText
+                        text={part.text}
+                    />{:else}<PlayerName
+                        playerId={part.playerId}
+                        possessive={part.possessive}
+                    />{/if}{/each}</span
         >
-        {#if tappedCards}
-            <span class="text-oath-text">{tappedCards}</span>
+        {#if shownRefusal.pointer}
+            <span class="text-oath-text">{shownRefusal.pointer}</span>
         {/if}
     {:else if hoveredEntry}
-        <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
-        <span class="text-oath-accent">{hoveredEntry.cost}</span>
-        <span class="text-oath-text-muted">— <TokenText text={hoveredEntry.summary} /></span>
+        <span class="text-oath-text-muted"><TokenText text={hoveredEntry.summary} /></span>
     {/if}
 </div>
 

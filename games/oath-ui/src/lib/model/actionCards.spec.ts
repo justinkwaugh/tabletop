@@ -153,8 +153,8 @@ describe('the words of a card’s row and of the grey tile', () => {
             card(SPECIAL_ENVOY, ActionType.Travel, 'makesPossible'),
             card(MUSHROOMS, ActionType.Search, 'changes')
         ]
-        expect(cardsThatCan(cards, ActionType.Travel, nameOf)).toBe('Tents or Special Envoy can: see Use a power.')
-        expect(cardsThatCan(cards.slice(0, 1), ActionType.Travel, nameOf)).toBe('Tents can: see Use a power.')
+        expect(cardsThatCan(cards, ActionType.Travel, nameOf)).toBe('Tents or Special Envoy: Use a power.')
+        expect(cardsThatCan(cards.slice(0, 1), ActionType.Travel, nameOf)).toBe('Tents: Use a power.')
         expect(cardsThatCan(cards, ActionType.Search, nameOf)).toBeUndefined()
     })
 

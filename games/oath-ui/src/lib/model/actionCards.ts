@@ -146,7 +146,7 @@ export function cardsThatCan(
     if (names.length === 0) return undefined
     const list =
         names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`
-    return `${list} can: see Use a power.`
+    return `${list}: Use a power.`
 }
 
 /** R-7.1.2 — what using the card costs, as its row says it before the press. */

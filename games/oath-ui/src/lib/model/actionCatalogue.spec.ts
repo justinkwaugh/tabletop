@@ -52,6 +52,6 @@ describe('action catalogue (R-5, R-6)', () => {
         const entry = MINOR_ACTIONS.find((a) => a.type === ActionType.UseActionPower)
         expect(entry).toBeDefined()
         expect(entry?.summary).not.toMatch(/not implemented/)
-        expect(entry?.summary).toMatch(/Action:/)
+        expect(entry?.summary).toBe('Use a card’s Action power.')
     })
 })

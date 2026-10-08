@@ -316,7 +316,7 @@ async function pickCount(page: Page, group: number, value: number) {
 const countRows = (page: Page) => grid(page).getByRole('button', { name: /^0 of the / })
 
 /** Scenario 29: the one line under the Act Phase grid. */
-test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason; a hover replaces the reason and a new state clears it', async ({
+test('scenario 29: a hover writes the summary, a dimmed tile the reason; a hover replaces the reason and a new state clears it', async ({
     page
 }) => {
     await openTable(page, 'actPhase')
@@ -325,25 +325,22 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
     await expect(muster).toHaveAttribute('aria-disabled', 'true')
 
     await travel.hover()
-    await expect(reasonLine(page)).toContainText('Travel')
-    await expect(reasonLine(page)).toContainText('1–4 Supply')
-    await expect(reasonLine(page)).toContainText('Move your pawn to any site')
+    await expect(reasonLine(page)).toHaveText('Move your pawn.')
     await restMouse(page)
     await expect(reasonLine(page)).toHaveText('')
 
     await tapDimmed(muster)
-    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page)).toHaveText('No card here.')
     await travel.hover()
-    await expect(reasonLine(page)).toContainText('Move your pawn to any site')
-    await expect(reasonLine(page)).not.toContainText('no card at your site')
+    await expect(reasonLine(page)).toHaveText('Move your pawn.')
     await restMouse(page)
     await expect(reasonLine(page)).toHaveText('')
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page)).toHaveText('No card here.')
     await muster.hover()
-    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page)).toHaveText('No card here.')
     await restMouse(page)
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
@@ -354,12 +351,43 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page)).toHaveText('No card here.')
     await call(page, 'seatTravels', 'slot.cradle.1')
     await expect(muster).toHaveAttribute('aria-disabled', 'false')
     await expect(reasonLine(page)).toHaveText('')
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
+})
+
+test('the grid lists the six majors and only the minors that can be taken, under the Supply, with End Act Phase; a dimmed major under the pointer says why', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await expect(grid(page).locator('.majors button')).toHaveCount(6)
+    await expect(grid(page).locator('.minors button')).toHaveCount(0)
+    await expect(grid(page).locator('h3')).toHaveText('Supply 7')
+    await expect(grid(page).getByRole('button', { name: 'End Act Phase', exact: true })).toBeVisible()
+    await tile(page, 'Muster').hover()
+    await expect(reasonLine(page)).toHaveText('No card here.')
+    await restMouse(page)
+    await expect(reasonLine(page)).toHaveText('')
+
+    await openTable(page, 'advisers')
+    const minors = grid(page).locator('.minors button')
+    await expect(minors).toHaveText(['Adviser', 'Show'])
+    for (const minor of await minors.all()) await expect(minor).not.toHaveAttribute('aria-disabled', 'true')
+})
+
+test('a free Travel due: one line beside Skip, Travel lit at no Supply, every other tile dimmed and saying the free Travel comes first', async ({ page }) => {
+    await openTable(page, 'freeTravel')
+    await expect(grid(page).locator('.due')).toHaveText(/^\s*Free Travel next\.\s*Skip\s*$/)
+    await expect(tile(page, 'Travel')).toHaveAttribute('aria-disabled', 'false')
+    await expect(tile(page, 'Travel')).toContainText('no Supply')
+    await expect(grid(page).locator('.minors button')).toHaveCount(0)
+    for (const label of ['Search', 'Muster', 'Trade', 'Recover', 'Campaign']) {
+        await expect(tile(page, label)).toHaveAttribute('aria-disabled', 'true')
+    }
+    await tapDimmed(tile(page, 'Search'))
+    await restMouse(page)
+    await expect(reasonLine(page)).toHaveText('Free Travel first.')
 })
 
 test('Undo reads "Undo" and has no hover, both for a sent move and for a pick', async ({ page }) => {
@@ -823,7 +851,7 @@ async function tokenRuns(locator: ReturnType<Page['locator']>) {
 
 /** docs/ui-interaction-visual-contract.md, Palette: a cost is `accent`; a gain stays `text`, a note and "→" `text-muted`. */
 test.describe('palette: every cost in the action panel is accent', () => {
-    test('the cost line under each action in the grid, and in the line under it', async ({ page }) => {
+    test('the cost line under each action in the grid; the line under it is the summary alone', async ({ page }) => {
         await openTable(page, 'trade')
         for (const [label, cost] of [
             ['Search', '2–4 Supply'],
@@ -838,12 +866,9 @@ test.describe('palette: every cost in the action panel is accent', () => {
                 [cost, 'accent']
             ])
         }
+        // The line under a hovered tile is its summary alone, muted: the tile already shows the cost.
         await tile(page, 'Travel').hover()
-        expect((await tokenRuns(reasonLine(page))).slice(0, 3)).toEqual([
-            ['Travel', 'text'],
-            ['1–4 Supply', 'accent'],
-            [expect.stringMatching(/^— /), 'text-muted']
-        ])
+        expect(await tokenRuns(reasonLine(page))).toEqual([[expect.stringMatching(/\S/), 'text-muted']])
     })
 
     test('Search: the Supply is accent, the draw a muted note', async ({ page }) => {
@@ -942,20 +967,17 @@ test.describe('palette: every cost in the action panel is accent', () => {
     })
 })
 
-test('scenario 40: panel text shows favor as its token, the word only as the token’s name', async ({ page }) => {
-    await openTable(page, 'actPhase')
-    await tapDimmed(tile(page, 'Muster'))
-    await expect(reasonLine(page)).toContainText('no card at your site to place')
+test('scenario 40: panel text shows favor as its token, the word only as the token’s name; the bar names the action', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Muster').hover()
+    await expect(reasonLine(page)).toHaveText('Put on a card here; get 2 warbands.')
     await expect(reasonLine(page).getByRole('img', { name: 'favor' })).toBeVisible()
     await expect(reasonLine(page)).not.toContainText('favor')
     await restMouse(page)
 
-    await call(page, 'seatTravels', 'slot.cradle.1')
     await tile(page, 'Muster').click()
-    const prompt = page.locator('.panel').getByText('Choose a card at your site to place')
-    await expect(prompt).toBeVisible()
-    await expect(prompt.getByRole('img', { name: 'favor' })).toBeVisible()
-    await expect(prompt).not.toContainText('favor')
+    await expect(grid(page).getByText('Muster', { exact: true })).toBeVisible()
+    await expect(grid(page)).not.toContainText('Choose')
 })
 
 test('scenario 39: Trade lists every trade at the site, a strip tap only enlarges, a button sends', async ({ page }) => {
@@ -1390,22 +1412,20 @@ test('scenario 20: Recover lists the banners to outbid, the price is a row of nu
 
 test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {
     await openTable(page, 'peek')
-    const peek = grid(page).getByRole('button', { name: 'Peek at a relic', exact: true })
+    const peek = grid(page).getByRole('button', { name: 'Peek', exact: true })
     await peek.click()
     const rows = page.getByRole('list', { name: 'Relics to peek at' }).getByRole('listitem')
     await expect(rows).toHaveCount(1)
     await expect(rows.first()).toContainText('space 1')
     await rows.first().getByRole('button', { name: 'Peek at facedown relic, space 1' }).click()
     await expect(page.getByRole('list', { name: 'Relics to peek at' })).toHaveCount(0)
-    await expect(peek).toHaveAttribute('aria-disabled', 'true')
-    await expect(peek).toHaveJSProperty('disabled', false)
-    await tapDimmed(peek)
-    await expect(reasonLine(page)).toContainText('you have already seen every relic here')
+    await expect(tile(page, 'Search')).toBeVisible()
+    await expect(peek).toHaveCount(0)
 })
 
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
-    await grid(page).getByRole('button', { name: 'Play or discard an adviser', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
     await expect(grid(page).getByRole('button', { name: 'Curfew', exact: true })).toBeVisible()
     await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
     await grid(page).getByRole('button', { name: 'Curfew', exact: true }).click()
@@ -1855,7 +1875,7 @@ test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, 
 
     const watcher = await call(page, 'viewOffTheClock')
     expect(watcher).not.toBe('def')
-    await expect(grid(page).getByText('Waiting for another player')).toBeVisible()
+    await expect(grid(page).getByText('Waiting on', { exact: false })).toHaveText(/^\s*Waiting on\s+def\.\s*$/)
     await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
 })
 
@@ -1953,11 +1973,10 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
     await openTable(page, 'cardOpensSearch')
     await expect(tile(page, 'Search')).toHaveAttribute('aria-disabled', 'true')
     await tile(page, 'Search').click({ force: true })
-    await expect(reasonLine(page)).toContainText('costs 2 Supply')
-    await expect(reasonLine(page)).toContainText('Mushrooms can: see Use a power.')
+    await expect(reasonLine(page)).toHaveText('Needs 2 Supply; you have 1. Mushrooms: Use a power.')
     expect((await call(page, 'tableFacts')).staged).toBeUndefined()
 
-    await expect(usePower(page)).toHaveAttribute('aria-disabled', 'false')
+    await expect(usePower(page)).toBeEnabled()
     await usePower(page).click()
     await expect(grid(page)).toContainText('Makes an action possible')
     const card = actionCard(page, 'denizen.beast.mushrooms')
@@ -1993,7 +2012,7 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
 test('scenario 56: two cards that make a Travel possible are two rows; one says it ends the Act Phase, and each opens the destinations it reaches', async ({ page }) => {
     await openTable(page, 'cardsOpenTravel')
     await tile(page, 'Travel').click({ force: true })
-    await expect(reasonLine(page)).toContainText('Tents or Special Envoy can: see Use a power.')
+    await expect(reasonLine(page)).toContainText('Tents or Special Envoy: Use a power.')
 
     await usePower(page).click()
     const tents = actionCard(page, 'denizen.nomad.tents')
@@ -2219,12 +2238,12 @@ async function stepColumnHeight(page: Page, heights: number[]) {
 /** A taller step than the grid on a phone: the powers list (Travel picks on the map there). */
 async function choosePowers(page: Page) {
     await usePower(page).last().click()
-    await expect(page.getByText('Choose a power to use.').last()).toBeVisible()
+    await expect(page.getByText('Makes an action possible', { exact: true }).last()).toBeVisible()
     await waitFrames(page, 8)
 }
 
 test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on every frame', () => {
-    test.use({ viewport: { width: 375, height: 660 } })
+    test.use({ viewport: { width: 375, height: 540 } })
 
     test('the panel’s first frame on opening the table is already fitted', async ({ page }) => {
         await page.addInitScript(installPanelRecorder)
@@ -2238,14 +2257,14 @@ test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on
         await openTable(page, 'actPhase')
         await expect(tile(page, 'Travel')).toBeVisible()
         await recordPanel(page)
-        await stepColumnHeight(page, [640, 620, 600, 580, 600, 620, 640, 660])
+        await stepColumnHeight(page, [520, 500, 480, 460, 480, 500, 520, 540])
         const record = await panelRecord(page)
         expectFittedOnEveryFrame(record)
         expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(4)
     })
 
     test('a step with different content refits without an unscaled frame', async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 620 })
+        await page.setViewportSize({ width: 375, height: 500 })
         await openTable(page, 'cardsOpenTravel')
         await expect(usePower(page)).toBeVisible()
         await panelImagesLoaded(page)
@@ -2258,7 +2277,7 @@ test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on
     })
 
     test('in full screen, the window’s height changing and a new step never draw the panel unscaled', async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 580 })
+        await page.setViewportSize({ width: 375, height: 500 })
         await openTable(page, 'cardsOpenTravel')
         await expect(usePower(page)).toBeVisible()
         await recordPanel(page)
@@ -2266,7 +2285,7 @@ test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on
         await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
         expect(await page.locator('.fit__inner').last().evaluate((inner) => inner.closest('.fullscreen-panel') !== null)).toBe(true)
         await panelImagesLoaded(page)
-        await stepColumnHeight(page, [560, 540, 520, 540, 560, 580])
+        await stepColumnHeight(page, [480, 460, 440, 460, 480, 500])
         await choosePowers(page)
         const record = await panelRecord(page)
         expectFittedOnEveryFrame(record)
@@ -2285,9 +2304,9 @@ test('scenario 61: a panel image that arrives after its panel changes nothing it
     await openTable(page, 'actPhase')
     await call(page, 'seatTravels', 'slot.cradle.1')
     await tile(page, 'Muster').click()
-    const prompt = page.locator('.panel').getByText('Choose a card at your site to place')
-    await expect(prompt).toBeVisible()
-    const token = prompt.getByRole('img', { name: 'favor' })
+    const musters = page.getByRole('list', { name: 'Musters at your site' })
+    await expect(musters).toBeVisible()
+    const token = musters.locator('img[src*="token.favor"]').first()
     const box = page.locator('.fit').last()
     const layout = async () => ({
         complete: await token.evaluate((image) => image instanceof HTMLImageElement && image.complete),

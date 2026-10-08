@@ -1,13 +1,18 @@
+import { assertExists } from '@tabletop/common'
 import { ActionType } from '@tabletop/oath'
 
-/** R-5, R-6 — the actions the Act Phase grid offers. */
-export type GridAction =
+/** R-5 — the major actions. */
+export type MajorAction =
     | ActionType.Search
     | ActionType.Muster
     | ActionType.Trade
     | ActionType.Recover
     | ActionType.Campaign
     | ActionType.Travel
+
+/** R-5, R-6 — the actions the Act Phase grid offers. */
+export type GridAction =
+    | MajorAction
     | ActionType.PlayFacedownAdviser
     | ActionType.UseActionPower
     | ActionType.Peek
@@ -17,58 +22,62 @@ export type GridAction =
     | ActionType.ExileCitizen
     | ActionType.SelfExile
 
-// R-5.1.1 prices Search off the Visions Drawn track, so it shows a range.
 export interface ActionEntry {
     type: GridAction
     label: string
-    cost: string
     rule: string
     summary: string
 }
 
+// R-5.1.1 prices Search off the Visions Drawn track, so it shows a range.
+export interface MajorEntry extends ActionEntry {
+    type: MajorAction
+    cost: string
+}
+
 // R-5 — the six major actions, in player-board order.
-export const MAJOR_ACTIONS: readonly ActionEntry[] = [
+export const MAJOR_ACTIONS: readonly MajorEntry[] = [
     {
         type: ActionType.Search,
         label: 'Search',
         cost: '2–4 Supply',
         rule: 'R-5.1',
-        summary: 'Draw 3 cards from the world deck or your discard, play 1, discard the rest.'
+        summary: 'Draw 3, play 1.'
     },
     {
         type: ActionType.Muster,
         label: 'Muster',
         cost: '1 Supply',
         rule: 'R-5.2',
-        summary: 'Place a favor on an empty card at your site and gain 2 warbands.'
+        summary: 'Put favor on a card here; get 2 warbands.'
     },
     {
         type: ActionType.Trade,
         label: 'Trade',
         cost: '1 Supply',
         rule: 'R-5.3',
-        summary: 'Place a secret or favor on an empty card at your site and gain favor or secrets.'
+        summary: 'Secret for favor, or favor for secret.'
     },
     {
         type: ActionType.Recover,
         label: 'Recover',
         cost: '1 Supply',
         rule: 'R-5.4',
-        summary: 'Take a relic at your site, the People’s Favor, or the Darkest Secret.'
+        summary: 'Take a relic here, or a banner.'
     },
     {
         type: ActionType.Campaign,
         label: 'Campaign',
         cost: '2 Supply',
         rule: 'R-5.5',
-        summary: 'Attack an enemy at your site for their sites, banners and relics.'
+        summary: 'Attack someone here.'
     },
     {
         type: ActionType.Travel,
         label: 'Travel',
         cost: '1–4 Supply',
         rule: 'R-5.6',
-        summary: 'Move your pawn to any site, flipping it faceup if it is facedown.'
+        summary: 'Move your pawn.'
     }
 ]
 
@@ -76,62 +85,51 @@ export const MAJOR_ACTIONS: readonly ActionEntry[] = [
 export const MINOR_ACTIONS: readonly ActionEntry[] = [
     {
         type: ActionType.PlayFacedownAdviser,
-        label: 'Play or discard an adviser',
-        cost: 'free',
+        label: 'Adviser',
         rule: 'R-6.1',
-        summary: 'Play a facedown adviser faceup — to your site or your advisers — or discard it.'
+        summary: 'Play or discard a facedown adviser.'
     },
     {
         type: ActionType.UseActionPower,
         label: 'Use a power',
-        cost: 'free',
         rule: 'R-6.2, R-7.4',
-        summary:
-            'Use the "Action:" power of a card you have access to, or a card that changes an action, paying its cost.'
+        summary: 'Use a card’s Action power.'
     },
     {
         type: ActionType.Peek,
-        label: 'Peek at a relic',
-        cost: 'free',
+        label: 'Peek',
         rule: 'R-6.3',
-        summary: 'Look at a facedown relic at your site.'
+        summary: 'Look at a facedown relic here.'
     },
     {
         type: ActionType.LetPeek,
-        label: 'Let another peek',
-        cost: 'free',
+        label: 'Show',
         rule: 'R-6.1, R-6.6.1, R-9.4',
-        summary:
-            'Show a facedown adviser to another player, or, holding the Grand Scepter, a Reliquary relic to an Exile.'
+        summary: 'Show a facedown card to someone.'
     },
     {
         type: ActionType.MoveWarbands,
         label: 'Move warbands',
-        cost: 'free',
         rule: 'R-6.5',
-        summary: 'Move warbands between your board and your site, if you rule it.'
+        summary: 'Between your board and a site you rule.'
     },
     {
         type: ActionType.OfferCitizenship,
         label: 'Offer Citizenship',
-        cost: 'free',
         rule: 'R-6.6.1',
-        summary:
-            'Offer an Exile Citizenship, promising exactly one relic from the Reliquary. They answer; you cannot decide for them.'
+        summary: 'Offer an Exile Citizenship.'
     },
     {
         type: ActionType.ExileCitizen,
-        label: 'Exile a Citizen',
-        cost: 'free',
+        label: 'Exile Citizen',
         rule: 'R-6.7',
         summary: 'Return a Citizen to their Exile board.'
     },
     {
         type: ActionType.SelfExile,
         label: 'Exile yourself',
-        cost: 'free',
         rule: 'R-6.8',
-        summary: 'Leave the Empire, paying secrets on cards, and end your Act Phase.'
+        summary: 'Leave the Empire; ends your Act Phase.'
     }
 ]
 
@@ -161,38 +159,12 @@ export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.ExileCitizen
 ])
 
-export type PromptState = { cardChosen: boolean; adviserChosen: boolean }
-
 /** Travel on a phone, where the lit map is the menu. */
 export const TRAVEL_ON_THE_MAP_PROMPT = 'Tap a lit site.'
 
-export function actionPrompt(action: ActionType, state: PromptState): string {
-    switch (action) {
-        case ActionType.Travel:
-            return 'Travel'
-        case ActionType.Muster:
-            return 'Choose a card at your site to place favor on.'
-        case ActionType.Trade:
-            return 'Choose a trade.'
-        case ActionType.Recover:
-            return 'Choose a relic or a banner.'
-        case ActionType.Search:
-            return 'Choose where to draw from.'
-        case ActionType.PlayFacedownAdviser:
-            return state.adviserChosen
-                ? 'Choose where it goes.'
-                : 'Choose one of your facedown advisers.'
-        case ActionType.Peek:
-            return 'Choose a relic to look at.'
-        case ActionType.LetPeek:
-            return 'Choose what to show, and to whom.'
-        case ActionType.UseActionPower:
-            return 'Choose a power to use.'
-        case ActionType.MoveWarbands:
-            return 'Choose a move and how many.'
-        case ActionType.ExileCitizen:
-            return 'Choose a Citizen to exile.'
-        default:
-            return 'Choose a target.'
-    }
+/** The staged action's bar reads the action's name, the word on its tile. */
+export function actionName(action: ActionType): string {
+    const entry = ALL_ACTIONS.find((candidate) => candidate.type === action)
+    assertExists(entry, `${action} is not an Act Phase grid action`)
+    return entry.label
 }
