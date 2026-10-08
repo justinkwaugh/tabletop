@@ -26,10 +26,10 @@
     import WakePanel from '$lib/components/WakePanel.svelte'
     import RestPanel from '$lib/components/RestPanel.svelte'
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
-    import { PlayerName } from '@tabletop/frontend-components'
     import {
         MINOR_TARGETED_ACTIONS,
         MODIFIABLE_ACTIONS,
@@ -81,11 +81,7 @@
     {:else if gameState.machineState === MachineState.EndOfRound}
         <EndOfRoundPanel />
     {:else if !isMyTurn}
-        <p class="text-sm text-oath-text-muted">
-            Waiting on {#each gameState.activePlayerIds as playerId, i (playerId)}{i > 0
-                    ? ' and '
-                    : ''}<PlayerName {playerId} />{/each}.
-        </p>
+        <WaitingOn />
     {:else if gameState.machineState === MachineState.CampaignSacrifice || gameState.machineState === MachineState.CampaignDefeat || gameState.machineState === MachineState.CampaignVictory}
         <CampaignBattlePanel />
     {:else if gameState.machineState === MachineState.Searching}

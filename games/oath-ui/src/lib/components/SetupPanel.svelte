@@ -8,6 +8,7 @@
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
     import { cardName, regionName, siteName } from '$lib/model/names.js'
@@ -168,6 +169,6 @@
             </p>
         {/if}
     {:else}
-        <p class="text-sm text-oath-text-muted">Waiting for another player to set up.</p>
+        <WaitingOn />
     {/if}
 </div>

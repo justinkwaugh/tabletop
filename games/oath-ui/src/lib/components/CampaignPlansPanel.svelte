@@ -3,6 +3,7 @@
     import { assertExists } from '@tabletop/common'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -23,7 +24,7 @@
     let isAnswering = $derived(!!myId && answeringId === myId)
     let ally = $derived(
         answeringId !== undefined && answeringId !== campaign.defenderPlayerId
-            ? { name: gameSession.getPlayerName(answeringId), defender: defenderName() }
+            ? { defender: defenderName() }
             : undefined
     )
     let attackerName = $derived(gameSession.getPlayerName(campaign.attackerPlayerId))
@@ -107,12 +108,6 @@
             {plans.length > 0 ? `Use ${plans.length} and roll` : 'Use none and roll'}
         </button>
     {:else}
-        <p class="text-sm text-oath-text-muted">
-            {#if ally}
-                Waiting for {ally.name}, {ally.defender}'s ally, to use battle plans.
-            {:else}
-                Waiting for the defender to use their battle plans.
-            {/if}
-        </p>
+        <WaitingOn />
     {/if}
 </div>

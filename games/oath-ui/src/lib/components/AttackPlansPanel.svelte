@@ -3,6 +3,7 @@
     import { powerKey } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -22,12 +23,7 @@
         Campaign — the attacker's battle plans
     </h3>
     {#if !mine}
-        <p class="text-sm text-oath-text-muted">
-            Waiting for {draft.attackerId
-                ? gameSession.getPlayerName(draft.attackerId)
-                : 'the attacker'}
-            to choose battle plans.
-        </p>
+        <WaitingOn />
     {:else}
         <p class="text-sm mb-2">
             The Citizens have answered. Use any battle plans you rule, once each.

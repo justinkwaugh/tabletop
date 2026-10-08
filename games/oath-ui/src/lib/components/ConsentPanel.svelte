@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import CitizenshipAnswer from '$lib/components/CitizenshipAnswer.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { ConsentRequestKind } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { consentQuestion } from '$lib/model/consentRequests.js'
@@ -33,9 +33,7 @@
     {:else if !pending}
         <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
     {:else if !iAmAsked}
-        <p class="text-sm text-oath-text-muted">
-            Waiting on <PlayerName playerId={pending.askedPlayerId} />.
-        </p>
+        <WaitingOn />
     {:else if asked}
         <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
             A question for you

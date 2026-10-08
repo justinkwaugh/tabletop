@@ -2,6 +2,7 @@
     import { FINAL_ROUND } from '@tabletop/oath'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { endDieStakes } from '$lib/model/endOfRound.js'
 
     // R-3.3 — the round has ended with the Empire holding the title; only the Chancellor rolls.
@@ -24,9 +25,7 @@
                 The Empire holds the Oathkeeper title, so you roll the end die.
             </p>
         {:else}
-            <p class="text-sm text-oath-text-muted">
-                Waiting for <PlayerName playerId={chancellorId} /> to roll the end die.
-            </p>
+            <WaitingOn />
         {/if}
         <p class="mt-1 text-sm">
             A <b class="text-oath-danger">{stakes.threshold}</b> ends the game:

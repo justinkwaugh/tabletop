@@ -1,8 +1,8 @@
 <script lang="ts">
     import { OATHKEEPER_GOALS } from '@tabletop/oath'
     import { goalText } from '$lib/model/names.js'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
 
     // R-2.11.b, R-2.11-H1 — opens on anyone's turn.
     let gameSession = getGameSession()
@@ -27,10 +27,7 @@
     {#if !pending}
         <p class="text-sm text-oath-text-muted">No title is waiting to be settled.</p>
     {:else if !isMine}
-        <p class="text-sm text-oath-text-muted">
-            Waiting for <PlayerName playerId={pending.holderPlayerId} /> to choose who takes the Oathkeeper
-            title.
-        </p>
+        <WaitingOn />
     {:else}
         <p class="text-sm mb-1">
             You no longer {goalText(OATHKEEPER_GOALS[gameState.oathType])}, and more than one player

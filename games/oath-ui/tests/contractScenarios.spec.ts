@@ -476,6 +476,69 @@ test.describe('the turn bar', () => {
     })
 })
 
+/** The panel's waiting line reads exactly "Waiting on" and the colour chip of each seat the engine waits on. */
+async function expectWaitingOn(page: Page, playerIds: string[]) {
+    const line = grid(page).locator('p').filter({ hasText: /^\s*Waiting/ })
+    await expect(line).toHaveCount(1)
+    await expect(line).toHaveText(new RegExp(`^\\s*Waiting on\\s+${playerIds.join('\\s+')}\\.\\s*$`))
+    const chips = line.locator(':scope > span')
+    await expect(chips).toHaveText(playerIds)
+    for (const chip of await chips.all()) {
+        await expect(chip).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    }
+}
+
+/** Every seat the engine is not waiting on reads "Waiting on <chip>."; what is being decided is in the History. */
+test.describe('the waiting line', () => {
+    test('the action panel: the Sneak Attack’s turn seat waits on the campaigner', async ({ page }) => {
+        await openTable(page, 'sneakAttackHeld')
+        expect(await call(page, 'viewOffTheClock')).toBe('def')
+        await expectWaitingOn(page, ['att'])
+    })
+
+    test('a question: the turn seat waits on the asked seat', async ({ page }) => {
+        await openTable(page, 'askedOffTurn')
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expectWaitingOn(page, ['ann'])
+    })
+
+    test('a request: the asking seat waits on the asked seat', async ({ page }) => {
+        await openTable(page, 'warbandMoveAsked')
+        expect(await call(page, 'viewOffTheClock')).toBe('cit')
+        await expectWaitingOn(page, ['chan'])
+    })
+
+    test('the Campaign: the attacker waits on the defender’s battle plans, then on its losses', async ({ page }) => {
+        await openTable(page, 'defenderPlans')
+        expect(await call(page, 'viewOffTheClock')).toBe('att')
+        await expectWaitingOn(page, ['def'])
+
+        await openTable(page, 'exileDefeated')
+        expect(await call(page, 'viewOffTheClock')).toBe('att')
+        await expectWaitingOn(page, ['def'])
+    })
+
+    test('between rounds: every other seat waits on the Chancellor’s roll', async ({ page }) => {
+        await openTable(page, 'endOfRound')
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expectWaitingOn(page, ['ann'])
+    })
+
+    test('the Oathkeeper title: the turn seat waits on the outgoing holder', async ({ page }) => {
+        await openTable(page, 'oathkeeperChoice')
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expectWaitingOn(page, ['ann'])
+    })
+
+    test('setup: another seat waits on the seat setting up', async ({ page }) => {
+        await openTable(page, 'setup')
+        const { seatId } = await call(page, 'tableFacts')
+        if (seatId === undefined) throw Error('A seat sets up')
+        expect(await call(page, 'viewOffTheClock')).not.toBe(seatId)
+        await expectWaitingOn(page, [seatId])
+    })
+})
+
 /** Scenario 30: a warband move that needs the Chancellor's permission (R-6.5.a). */
 test.describe('scenario 30: answering another player’s request', () => {
     test('the asked player sees who asks for what; nothing moves until Allow, which moves it', async ({
@@ -519,7 +582,7 @@ test.describe('scenario 30: answering another player’s request', () => {
     test('another seat sees whom the game is waiting on, and no answer', async ({ page }) => {
         await openTable(page, 'warbandMoveAsked')
         expect(await call(page, 'viewOffTheClock')).toBe('cit')
-        await expect(grid(page)).toContainText('Waiting on chan.')
+        await expectWaitingOn(page, ['chan'])
         await expect(grid(page)).not.toContainText('A question for you')
         await expect(answer(page, 'Allow')).toHaveCount(0)
         await expect(answer(page, 'Refuse')).toHaveCount(0)
@@ -1947,7 +2010,7 @@ test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, 
 
     const watcher = await call(page, 'viewOffTheClock')
     expect(watcher).not.toBe('def')
-    await expect(grid(page).getByText('Waiting on', { exact: false })).toHaveText(/^\s*Waiting on\s+def\.\s*$/)
+    await expectWaitingOn(page, ['def'])
     await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
 })
 
@@ -2297,7 +2360,7 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
 
     expect(await call(page, 'viewOffTheClock')).toBe('dev')
     await expect(info).toContainText("'s roll")
-    await expect(grid(page)).toContainText('to roll the end die.')
+    await expectWaitingOn(page, ['ann'])
     await expect(grid(page)).toContainText('A 5 or higher ends the game:')
     await expect(grid(page).getByRole('button', { name: 'Roll the end die' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible()

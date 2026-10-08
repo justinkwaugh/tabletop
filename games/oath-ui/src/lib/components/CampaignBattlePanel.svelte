@@ -4,6 +4,7 @@
     import { CardKind, MachineState, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CountPicker from '$lib/components/CountPicker.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, plural, siteName, relicSiteName } from '$lib/model/names.js'
     import { spoilsSummary } from '$lib/model/spoils.js'
@@ -60,11 +61,7 @@
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}
-            <p class="text-sm text-oath-text-muted">
-                The attacker won. Waiting for {chooserId
-                    ? gameSession.getPlayerName(chooserId)
-                    : 'the defending side'} to choose which defending warbands die.
-            </p>
+            <WaitingOn />
         {:else}
             <p class="text-sm mb-2">
                 The attacker won. Choose which {plural(defeat.required, 'warband')} of the defending force
@@ -109,9 +106,7 @@
             </button>
         {/if}
     {:else if !isAttacker}
-        <p class="text-sm text-oath-text-muted">
-            Waiting for {gameSession.getPlayerName(attackerId)}, the attacker.
-        </p>
+        <WaitingOn />
     {:else if gameState.machineState === MachineState.CampaignSacrifice}
         <p class="text-sm mb-2">
             {#if campaign.decidedVictor}

@@ -2,6 +2,7 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists, range } from '@tabletop/common'
     import CountPicker from '$lib/components/CountPicker.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { PowerQuestionKind, RerolledRollKind, type RerolledRoll } from '@tabletop/oath'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
@@ -22,7 +23,6 @@
     let busy = $derived(gameSession.busy)
     let question = $derived(draft.open)
     let mine = $derived(draft.mine)
-    let asking = $derived(gameState.pendingQuestions?.askingPlayerId)
 
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
@@ -48,14 +48,7 @@
     {#if !question}
         <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
     {:else if !mine}
-        <p class="text-sm text-oath-text-muted">
-            Waiting on {gameSession.getPlayerName(question.askedPlayerId)} to answer {cardName(
-                question.cardId
-            )}
-            {#if asking && asking !== question.askedPlayerId}(played by {gameSession.getPlayerName(
-                    asking
-                )}){/if}.
-        </p>
+        <WaitingOn />
     {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
         <p class="text-sm mb-2">
             <TokenText
