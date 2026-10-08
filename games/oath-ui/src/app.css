@@ -40,9 +40,10 @@
     --oath-accent-soft: --alpha(var(--color-amber-950) / 60%);
     --oath-control: var(--color-stone-700);
     --oath-control-hover: var(--color-stone-600);
-    --oath-primary: var(--color-amber-700);
-    --oath-primary-hover: var(--color-amber-600);
-    --oath-primary-text: var(--color-stone-50);
+    --oath-primary: var(--color-stone-800);
+    --oath-primary-hover: var(--color-stone-700);
+    --oath-primary-text: var(--color-amber-300);
+    --oath-primary-border: var(--color-amber-300);
     --oath-danger: var(--color-rose-400);
     --oath-danger-soft: --alpha(var(--color-rose-900) / 70%);
     --oath-divider: --alpha(var(--color-stone-700) / 60%);
@@ -71,6 +72,7 @@
     --color-oath-primary: var(--oath-primary);
     --color-oath-primary-hover: var(--oath-primary-hover);
     --color-oath-primary-text: var(--oath-primary-text);
+    --color-oath-primary-border: var(--oath-primary-border);
     --color-oath-danger: var(--oath-danger);
     --color-oath-danger-soft: var(--oath-danger-soft);
     --color-oath-divider: var(--oath-divider);

@@ -592,6 +592,29 @@ async function isAmber(locator: ReturnType<Page['locator']>, property: ColourPro
     return red - blue > 40
 }
 
+const STONE_800 = { red: 41, green: 37, blue: 36 }
+const STONE_700 = { red: 68, green: 64, blue: 59 }
+const AMBER_300 = { red: 255, green: 210, blue: 48 }
+
+async function expectColour(
+    locator: ReturnType<Page['locator']>,
+    property: ColourProperty,
+    expected: { red: number; green: number; blue: number }
+) {
+    const actual = await rgbOf(locator, property)
+    for (const channel of ['red', 'green', 'blue'] as const) {
+        expect(Math.abs(actual[channel] - expected[channel]), `${property} ${channel}`).toBeLessThanOrEqual(2)
+    }
+}
+
+/** The palette's primary: a stone-800 fill inside an amber-300 border, with amber-300 text. */
+async function expectPrimary(locator: ReturnType<Page['locator']>) {
+    await expectColour(locator, 'backgroundColor', STONE_800)
+    await expectColour(locator, 'color', AMBER_300)
+    await expectColour(locator, 'borderTopColor', AMBER_300)
+    expect(await locator.evaluate((element) => parseFloat(getComputedStyle(element).borderTopWidth))).toBeGreaterThan(0)
+}
+
 test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oath’s palette on the dark page', async ({
     page
 }) => {
@@ -620,8 +643,13 @@ test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oa
     await call(page, 'seatTravels', 'slot.cradle.1')
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await expect(undo).toBeVisible()
-    expect(await isAmber(undo, 'backgroundColor')).toBe(true)
-    expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
+    await expectPrimary(undo)
+    await undo.hover()
+    await expectColour(undo, 'backgroundColor', STONE_700)
+    await expectColour(undo, 'color', AMBER_300)
+
+    await openTable(page, 'warbandMoveAsked')
+    await expectPrimary(answer(page, 'Allow'))
 })
 
 type TextToken = 'text' | 'text-muted' | 'heading' | 'accent' | 'danger'
