@@ -21,8 +21,15 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
+    import { runHarnessScenario, type HarnessScenario } from '$lib/harness/harnessScenarios.js'
 
-    let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
+    let {
+        definition,
+        scenarios = []
+    }: {
+        definition: GameUiDefinition<GameState, HydratedGameState>
+        scenarios?: HarnessScenario[]
+    } = $props()
     const appContext = createHarnessAppContext(definition)
     setAppContext(appContext)
 
@@ -126,6 +133,31 @@
         const optionsButton = document.getElementById('harness-options')
         if (optionsButton instanceof HTMLButtonElement) {
             optionsButton.blur()
+        }
+    }
+
+    let runningScenario: string | undefined = $state(undefined)
+    let scenarioError: string | undefined = $state(undefined)
+
+    async function runScenario(scenario: HarnessScenario) {
+        const sessionUser = authorizationService.getSessionUser()
+        if (!sessionUser?.username || runningScenario) return
+        runningScenario = scenario.id
+        scenarioError = undefined
+        try {
+            const game = await runHarnessScenario({
+                scenario,
+                definition,
+                gameService,
+                owner: { id: sessionUser.id, name: sessionUser.username }
+            })
+            await gameService.loadGames()
+            await loadGame(game.id)
+        } catch (error) {
+            console.error(`Scenario ${scenario.id} failed`, error)
+            scenarioError = `${scenario.label}: ${error instanceof Error ? error.message : String(error)}`
+        } finally {
+            runningScenario = undefined
         }
     }
 
@@ -236,6 +268,20 @@
                             style="transform: translateY(-2px) scale(1.5);">+</span
                         >
                     </Button>
+                    {#if scenarios.length > 0}
+                        <Button size="xs" color="alternative" class="ms-1" disabled={!!runningScenario}
+                            >{runningScenario ? 'Building…' : 'Scenarios'}<ChevronDownOutline
+                                class="ms-2"
+                            /></Button
+                        ><Dropdown simple={true} class="max-w-[22rem]">
+                            {#each scenarios as scenario (scenario.id)}
+                                <DropdownItem class="w-full px-3 py-2 text-left" onclick={() => runScenario(scenario)}>
+                                    <div class="font-semibold">{scenario.label}</div>
+                                    <div class="text-xs opacity-75">{scenario.description}</div>
+                                </DropdownItem>
+                            {/each}
+                        </Dropdown>
+                    {/if}
                 </div>
                 <div class="min-w-0 px-2">
                     <div class="truncate text-2xl text-white">{gameSession?.game.name}</div>
@@ -293,6 +339,9 @@
                     </Dropdown>
                 </div>
             </div>
+            {#if scenarioError}
+                <div class="p-2 text-center text-sm text-red-300" role="alert">{scenarioError}</div>
+            {/if}
             {#if sessions.protectedMode && gameSession}
                 <label class="flex items-center justify-center gap-2 p-2 text-sm text-white">
                     Protected view
