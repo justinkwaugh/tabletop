@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import { AuctionKind } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
@@ -22,24 +21,31 @@
             <span>{auction.kind === AuctionKind.Initial ? 'Initial auction:' : 'Share auction:'}</span>
             <CompanyBadge companyId={auction.companyId} full />
         </div>
-        <div class="terms">
-            {#if bidding.hasBid}
-                high bid <strong>${bidding.highBid}</strong> by <PlayerName playerId={bidding.highBidderId} />
-            {:else}
-                <PlayerName playerId={auction.bidding.auctioneerId} /> opens the bidding at any price
-            {/if}
-            · the winning bid goes to the company
-        </div>
-        <div class="bidders">
+        <div class="seats">
             {#each auction.bidding.participants as participant (participant.playerId)}
-                <span
-                    class="bidder"
+                {@const current = participant.playerId === bidding.currentBidderId}
+                <div
+                    class="seat"
                     class:passed={participant.passed}
-                    class:current={participant.playerId === bidding.currentBidderId}
+                    class:current
+                    style:--player={gameSession.colors.getPlayerUiColor(participant.playerId)}
                 >
-                    <PlayerName playerId={participant.playerId} />
-                    {#if participant.bid !== undefined}<span class="amount">${participant.bid}</span>{/if}
-                </span>
+                    <span class="name"
+                        >{participant.playerId === gameSession.myPlayerId
+                            ? 'You'
+                            : gameSession.getPlayerName(participant.playerId)}</span
+                    >
+                    <span class="amount"
+                        >{participant.bid !== undefined
+                            ? `$${participant.bid}`
+                            : current
+                              ? '?'
+                              : '—'}</span
+                    >
+                    {#if participant.passed}
+                        <span class="stamp">Passed</span>
+                    {/if}
+                </div>
             {/each}
         </div>
         {#if myBid}
@@ -78,42 +84,70 @@
         font-weight: 700;
     }
 
-    .terms {
-        font-size: 16px;
-        color: #7a4a2e;
-        text-align: center;
-    }
-
-    .bidders {
+    .seats {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 6px;
+        gap: 10px;
     }
 
-    .bidder {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        border: 1.5px solid #d4b48c;
-        border-radius: 999px;
-        padding: 1px 9px;
-        font-size: 15px;
+    .seat {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 96px;
+        border: 1px solid #d4b48c;
+        border-left: 14px solid var(--player);
+        border-radius: 2px;
+        background: #fffdf7;
+        padding: 5px 8px 6px;
     }
 
-    .bidder.current {
-        border: 2.5px solid #7a1d22;
-        background: #fdf3dc;
-        box-shadow: 0 1px 5px rgba(122, 29, 34, 0.35);
+    .seat.current {
+        border: 2px solid #7a1d22;
+        border-left: 14px solid var(--player);
+        box-shadow: 0 2px 6px rgba(122, 29, 34, 0.3);
+        transform: translateY(-3px);
     }
 
-    .bidder.passed {
-        opacity: 0.45;
-        text-decoration: line-through;
+    .name {
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .amount {
+        font-size: 22px;
         font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .seat.current .amount {
+        color: #7a1d22;
+    }
+
+    .seat.passed > :not(.stamp) {
+        opacity: 0.4;
+    }
+
+    .stamp {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-14deg);
+        border: 2px solid #b0262e;
+        border-radius: 2px;
+        padding: 0 5px;
+        color: #b0262e;
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.85;
     }
 
     .controls {
