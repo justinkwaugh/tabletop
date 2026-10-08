@@ -9,7 +9,7 @@
         "dev": "vite dev",
         "clean": "rimraf bundle && rimraf build && rimraf dist",
         "build": "vite build && pnpm run package",
-        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
+        "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "package": "svelte-kit sync && svelte-package",
         "test": "pnpm run test:integration && pnpm run test:unit",
