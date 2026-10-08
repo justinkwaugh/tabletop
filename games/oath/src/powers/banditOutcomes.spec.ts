@@ -3,7 +3,8 @@ import { Color, type GameAction } from '@tabletop/common'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Campaign } from '../actions/campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
-import { PlayerStatus, Suit } from '../model/oathEnums.js'
+import { CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import { PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { expectFavorConserved } from '../testing/census.js'
 import { ongoingCampaign } from '../testing/required.js'
@@ -108,10 +109,52 @@ describe('R-10.3-H1 — favor a bank would pay the victorious bandits is burned 
         expect(s.favorSupply).toBe(supply)
     })
 
-    it("Traveling Doctor's discard has no ruled meaning for the bandits, so a defeat leaves it at their site", () => {
+})
+
+describe('R-5.5.6 — defeated bandits resolve their "If you\'re defeated" plans (revision 4)', () => {
+    it('Traveling Doctor is discarded, from its own region to the next one’s pile (R-10.5)', () => {
         const s = table(atRevision, [DOCTOR])
         attackBandits(s, false)
-        finishCampaignSteps(s)
+        expect(ongoingCampaign(s).plansUsedBy).toEqual({ bandits: [DOCTOR] })
+        const { sacrifice, victory } = finishCampaignSteps(s)
+        expect(sacrifice.metadata?.attackerVictorious).toBe(true)
+        expect(sacrifice.metadata?.planNotes).toEqual(['Traveling Doctor: discarded, the bandits being defeated'])
+        expect(s.campaign).toBeUndefined()
+        expect(s.denizensBySite.c1).toEqual([])
+        expect(s.discardPileCounts).toEqual({ [Region.Cradle]: 0, [Region.Provinces]: 1, [Region.Hinterland]: 0 })
+        expect(s.vault?.discardPiles[Region.Provinces][0]).toBe(DOCTOR)
+        expect(victory?.metadata?.pileDeposits).toEqual([{ region: Region.Provinces, cardIds: [DOCTOR] }])
+    })
+
+    it('its "kill no warbands in your force" changes nothing for them: the bandits cannot be killed, and no warband is spared or lost', () => {
+        const plain = table(atRevision, [INN])
+        attackBandits(plain, false)
+        const plainSteps = finishCampaignSteps(plain)
+        const doctor = table(atRevision, [DOCTOR])
+        attackBandits(doctor, false)
+        const doctorSteps = finishCampaignSteps(doctor)
+        expect(doctorSteps.sacrifice.metadata?.defeatKilled).toBe(plainSteps.sacrifice.metadata?.defeatKilled)
+        const warbands = (s: HydratedOathGameState) => s.players.map(({ warbandsOnBoard, warbandsInPersonalBank }) => ({ warbandsOnBoard, warbandsInPersonalBank }))
+        expect(warbands(doctor)).toEqual(warbands(plain))
+        expect(doctor.warbandsBySite).toEqual(plain.warbandsBySite)
+        expect(doctor.favorBank).toEqual(plain.favorBank)
+    })
+
+    it('victorious bandits keep it', () => {
+        const s = table(atRevision, [DOCTOR])
+        attackBandits(s, true)
+        const sacrifice = finishCampaign(s)
+        expect(sacrifice.metadata?.attackerVictorious).toBe(false)
+        expect(sacrifice.metadata?.planNotes).toBeUndefined()
+        expect(s.denizensBySite.c1).toEqual([DOCTOR])
+    })
+
+    it('R-X.4 — before revision 4 a defeat left it at their site', () => {
+        const s = table(before, [DOCTOR])
+        attackBandits(s, false)
+        const { sacrifice } = finishCampaignSteps(s)
+        expect(sacrifice.metadata?.attackerVictorious).toBe(true)
+        expect(sacrifice.metadata?.planNotes).toBeUndefined()
         expect(s.denizensBySite.c1).toEqual([DOCTOR])
     })
 })
@@ -182,5 +225,59 @@ describe('R-X.4 — a Campaign the bandits win with Battle Honors and Military P
         expect(now.recorded.favorBank[Suit.Hearth]).toBe(now.start.favorBank[Suit.Hearth] - 1)
         expect(now.recorded.favorBank[Suit.Nomad]).toBe(now.start.favorBank[Suit.Nomad] - 1)
         expect(now.recorded.favorSupply).toBe(now.start.favorSupply + 4)
+    })
+})
+
+describe('R-X.4 — a Campaign that defeats the bandits with Traveling Doctor replays as it was recorded', () => {
+    const game = testGame([ATTACKER, CHANCELLOR])
+
+    function record(oathRevision: number, seed: number) {
+        const start = table(oathRevision, [DOCTOR], seed).dehydrate()
+        let state: OathProjectedState = structuredClone(start)
+        const processed: GameAction[] = []
+        const run = (action: GameAction) => {
+            const result = engine.runNext(action, state, game)
+            processed.push(...result.processedActions)
+            state = result.updatedState
+        }
+        run(buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 4 }))
+        const rolled = state.campaign
+        if (!rolled || rolled.swords <= rolled.defense) return undefined
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0)
+        run(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills }))
+        run(buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false }))
+        return { start, processed, recorded: state }
+    }
+
+    function recordedWhereBanditsLose(oathRevision: number) {
+        for (let seed = 1; seed < 400; seed++) {
+            const found = record(oathRevision, seed)
+            if (found) return found
+        }
+        throw new Error('no seed defeated the bandits')
+    }
+
+    function replay(start: OathProjectedState, processed: readonly GameAction[]) {
+        let replayed = structuredClone(start)
+        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        return replayed
+    }
+
+    it.each([
+        ['revision 3', before],
+        ['revision 4', atRevision]
+    ])('%s: every action replayed alone reaches the recorded state', (_name, oathRevision) => {
+        const { start, processed, recorded } = recordedWhereBanditsLose(oathRevision)
+        expect(recorded.campaign).toBeUndefined()
+        expect(replay(start, processed)).toEqual(recorded)
+    })
+
+    it('revision 3 left Traveling Doctor at the site; revision 4 discarded it', () => {
+        const old = recordedWhereBanditsLose(before).recorded
+        expect(old.denizensBySite.c1).toEqual([DOCTOR])
+        expect(old.discardPileCounts[Region.Provinces]).toBe(0)
+        const now = recordedWhereBanditsLose(atRevision).recorded
+        expect(now.denizensBySite.c1).toEqual([])
+        expect(now.discardPileCounts[Region.Provinces]).toBe(1)
     })
 })

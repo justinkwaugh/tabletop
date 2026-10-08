@@ -505,7 +505,7 @@ export class HydratedCampaignSacrifice
         return { notes, pileDeposits }
     }
 
-    /** R-5.5.3-H1, R-10.3-H1 — the bandits' compelled plans whose outcome is ruled for them. */
+    /** R-5.5.3-H1, R-5.5.6, R-10.3-H1 — the bandits' compelled plans whose outcome is ruled for them. */
     private static banditOutcomes(
         state: HydratedOathGameState,
         campaign: CampaignState,

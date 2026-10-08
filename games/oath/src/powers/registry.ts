@@ -156,7 +156,7 @@ export interface BattlePlanHooks {
     defeatKills?: 'none' | 'all'
     /** Runs once the sacrifice decides the battle. */
     onOutcome?: (ctx: PlayerPlanContext, victorious: boolean) => string | OutcomeResult | undefined
-    /** R-10.3-H1 — the same for the bandits' compelled plan, on the plans whose outcome is ruled for them. */
+    /** R-5.5.6, R-10.3-H1 — the same for the bandits' compelled plan, on the plans whose outcome is ruled for them. */
     onBanditOutcome?: (ctx: BattlePlanContext, victorious: boolean) => string | undefined
     /** Specialist */
     locksEnemyPlans?: boolean
@@ -177,6 +177,11 @@ export interface BattlePlanHooks {
         ctx: PlayerPlanContext,
         owedCardIds: readonly string[]
     ) => { planCardIds: string[]; insteadCardIds: string[] } | undefined
+    /** The same for the bandits' compelled plan: nobody is asked, and `insteadCardId` goes. */
+    banditSparesEndDiscards?: (
+        ctx: BattlePlanContext,
+        owedCardIds: readonly string[]
+    ) => { planCardIds: string[]; insteadCardId: string } | undefined
     /** Obsidian Cage — R-5.5.6 then moves none home. */
     takesEnemySurvivors?: (ctx: PlayerPlanContext, survivors: readonly WarbandGroup[]) => string
 }

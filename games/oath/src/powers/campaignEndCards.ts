@@ -1,8 +1,9 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
+import { cardDefinition, suitOf } from '../data/cardRegistry.js'
 import { ruledFaceupCardIds } from '../util/access.js'
+import { banditsRuleSite } from '../util/rule.js'
 import { isLockedFor } from '../util/locked.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -17,6 +18,21 @@ function beastCardsToDiscard(state: HydratedOathGameState, playerId: string): st
     )
 }
 
+/**
+ * Its Q&A, R-7.5-H1 — the first beast card the bandits rule, site by site from the top of the
+ * Cradle down through the regions. No player rules those sites, so only a printed lock applies.
+ */
+function banditsFirstBeastCard(state: HydratedOathGameState): string | undefined {
+    for (const siteId of state.allSiteIds()) {
+        if (!banditsRuleSite(state, siteId)) continue
+        const found = state
+            .denizensAt(siteId)
+            .find((cardId) => suitOf(cardId) === Suit.Beast && !cardDefinition(cardId)?.locked)
+        if (found) return found
+    }
+    return undefined
+}
+
 // It prints no "At end, discard" of its own, so R-5.5.8 never reaches it.
 registerBattlePlan(WILD_MOUNTS, powerIndexOf(WILD_MOUNTS, PowerTiming.BattlePlan), {
     hooks: {
@@ -26,6 +42,13 @@ registerBattlePlan(WILD_MOUNTS, powerIndexOf(WILD_MOUNTS, PowerTiming.BattlePlan
             return planCardIds.length > 0 && insteadCardIds.length > 0
                 ? { planCardIds, insteadCardIds }
                 : undefined
+        },
+        // Its Q&A: "If they would discard two or more Nomads, they discard the first Beast card they rule."
+        banditSparesEndDiscards: (ctx, owedCardIds) => {
+            const planCardIds = owedCardIds.filter((cardId) => suitOf(cardId) === Suit.Nomad)
+            if (planCardIds.length < 2) return undefined
+            const insteadCardId = banditsFirstBeastCard(ctx.state)
+            return insteadCardId ? { planCardIds, insteadCardId } : undefined
         }
     }
 })

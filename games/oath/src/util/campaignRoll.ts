@@ -353,6 +353,30 @@ function askToSpareEndDiscards(state: HydratedOathGameState, campaign: CampaignS
     return spared
 }
 
+/** Wild Mounts, by its Q&A — the bandits' swap is fixed, so nobody is asked (revision 4). */
+function banditsSpareEndDiscards(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): { spared: string[]; instead: string[] } {
+    const spared: string[] = []
+    const instead: string[] = []
+    const used = campaign.plansUsedBy[BANDITS_PLAN_USER]
+    if (!used || !isAtLeastOathRevision(state, OathRevision.CardFixes1)) return { spared, instead }
+    const owed = campaign.discardAtEnd.filter(
+        (cardId) => used.includes(cardId) && isInPlay(state, cardId)
+    )
+    for (const plan of plansUsedBy(state, campaign, BANDITS_PLAN_USER)) {
+        const swap = plan.hooks.banditSparesEndDiscards?.(
+            banditPlanContext(state, campaign, plan),
+            owed.filter((cardId) => !spared.includes(cardId))
+        )
+        if (!swap) continue
+        spared.push(...swap.planCardIds)
+        instead.push(swap.insteadCardId)
+    }
+    return { spared, instead }
+}
+
 /** R-5.5.8, R-9.4 — each plan is discarded from its own region. */
 export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
     const campaign = state.campaign
@@ -367,8 +391,14 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
     }
     campaign.heldForHospital = undefined
     const spared = askToSpareEndDiscards(state, campaign)
-    const going = campaign.discardAtEnd.filter((cardId) => !spared.includes(cardId))
-    // Law Glossary "Discard" — the attacker orders plans leaving for one pile.
+    const bandits = banditsSpareEndDiscards(state, campaign)
+    const going = [
+        ...campaign.discardAtEnd.filter(
+            (cardId) => !spared.includes(cardId) && !bandits.spared.includes(cardId)
+        ),
+        ...bandits.instead
+    ]
+    // Law Glossary "Discard" — the attacker orders the cards leaving for one pile.
     const deposits = discardFromPlayInChosenOrder(state, campaign.attackerPlayerId, going)
     state.campaign = undefined
     return deposits

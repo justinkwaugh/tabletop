@@ -321,16 +321,17 @@ registerBattlePlan(
 )
 
 // "If you're defeated, kill no warbands in your force and discard Traveling Doctor. Ignore powers that kill all of your force."
+// R-5.5.6: defeated bandits resolve it too. Their force holds no warbands, so only the discard does anything.
 const DOCTOR = 'denizen.hearth.traveling-doctor'
+function travelingDoctor(ctx: BattlePlanContext, victorious: boolean): string | undefined {
+    if (victorious) return undefined
+    discardAtOutcome(ctx, DOCTOR)
+    return ctx.playerId === undefined
+        ? 'Traveling Doctor: discarded, the bandits being defeated'
+        : 'Traveling Doctor: defeated, no warbands killed, and it is discarded'
+}
 registerBattlePlan(DOCTOR, powerIndexOf(DOCTOR, PowerTiming.BattlePlan), {
-    hooks: {
-        defeatKills: 'none',
-        onOutcome: (ctx, victorious) => {
-            if (victorious) return undefined
-            discardAtOutcome(ctx, DOCTOR)
-            return 'Traveling Doctor: defeated, no warbands killed, and it is discarded'
-        }
-    }
+    hooks: { defeatKills: 'none', onOutcome: travelingDoctor, onBanditOutcome: travelingDoctor }
 })
 
 // "±3 attack dice and ignore all skulls you roll, unless your enemy has the People's Favor." Cost: place 2 favor.
