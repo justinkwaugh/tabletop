@@ -2,11 +2,14 @@ import { assert } from '@tabletop/common'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS, type WarbandOwner } from '../model/warbandCounts.js'
 import { HydratedOathGameState } from '../model/gameState.js'
+import type { WarbandGroup } from '../model/campaign.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import {
     addWarbandsToBoard,
     addWarbandsToCard,
+    cagedReturnAsImperial,
     forceTotal,
+    killWarbands,
     removeWarbandsFrom,
     removeWarbandsFromCard,
     soleOwner,
@@ -16,7 +19,7 @@ import { optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoic
 import { FALSE_PROPHET_ID } from '../util/revealedVision.js'
 import { isImperialPlayer, ownWarbandOwner } from '../util/rule.js'
 import { chosen, registerBattlePlan, registerEffect, type EffectContext } from './registry.js'
-import { gainWarbandsToBoard } from './vocabulary.js'
+import { gainWarbandsToBoard, gainWarbandsWithOwner } from './vocabulary.js'
 import { countOf, describeWarbands, warbandEntries } from '../util/warbands.js'
 
 const OBSIDIAN_CAGE = 'relic.obsidian-cage'
@@ -83,17 +86,46 @@ registerEffect(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Action), {
     },
     resolve: (ctx) => {
         const moves = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => group)
-        for (const { at, owner, count } of moves) {
+        const kept: WarbandGroup[] = []
+        let replaced = 0
+        let imperial = 0
+        for (const group of moves) {
+            const { at, owner, count } = group
             assert(at.kind === 'board', 'Obsidian Cage moves warbands to a board')
             removeWarbandsFromCard(ctx.state, OBSIDIAN_CAGE, owner, count)
-            addWarbandsToBoard(ctx.state, at.playerId, owner, count)
+            if (cagedReturnAsImperial(ctx.state, owner)) {
+                killWarbands(ctx.state, owner, count)
+                replaced += count
+                imperial += gainWarbandsWithOwner(
+                    ctx.state,
+                    at.playerId,
+                    count,
+                    IMPERIAL_WARBANDS
+                ).gained
+            } else {
+                addWarbandsToBoard(ctx.state, at.playerId, owner, count)
+                kept.push(group)
+            }
         }
         return {
-            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`,
-            warbandOwner: soleOwner(moves)
+            summary: `Obsidian Cage: ${cageReturnSummary(forceTotal(kept), replaced, imperial)}`,
+            warbandOwner: soleOwner(kept)
         }
     }
 })
+
+function cageReturnSummary(moved: number, replaced: number, imperial: number): string {
+    const parts: string[] = []
+    if (moved > 0 || replaced === 0) {
+        parts.push(`moved ${moved} warbands from the Cage to their owners' boards`)
+    }
+    if (replaced > 0) {
+        parts.push(
+            `${replaced} of a Citizen's own went back to their bank and ${imperial} Imperial ${imperial === 1 ? 'warband' : 'warbands'} came from the Chancellor's bank in their place`
+        )
+    }
+    return parts.join('; ')
+}
 
 const revealedVisions: ChoiceDomain = (state, playerId) => {
     if (state.getPlayerState(playerId).status !== PlayerStatus.Exile) return []

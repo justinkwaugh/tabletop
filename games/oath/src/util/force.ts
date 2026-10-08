@@ -253,6 +253,18 @@ export function warbandOwnerGainedByPower(
         : ownWarbandOwner(state, playerId)
 }
 
+/**
+ * The Obsidian Cage's Q&A, R-6.6.2 — a caged player who is now a Citizen gets Imperial warbands
+ * back. In games created before revision 5 (R-X.4) they came back in the player's own colour.
+ */
+export function cagedReturnAsImperial(state: HydratedOathGameState, owner: WarbandOwner): boolean {
+    return (
+        isAtLeastOathRevision(state, OathRevision.EngineFixes2) &&
+        owner !== IMPERIAL_WARBANDS &&
+        state.getPlayerState(owner).status === PlayerStatus.Citizen
+    )
+}
+
 /** R-10.10 — capped by R-9.3. */
 export function gainWarbandsToBoard(
     state: HydratedOathGameState,
