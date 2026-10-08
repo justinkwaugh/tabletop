@@ -8,7 +8,7 @@ import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPowe
 import { CampaignTargetKind, type CampaignTarget, type WarbandGroup } from '../model/campaign.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { BattlePlanSide, powersWithTiming, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { testPlayer, testState, openTurn } from '../testing/fixture.js'
+import { partiesSuspendingNobody, testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { legalPowers } from '../util/powerDoorway.js'
 import { usableBattlePlans } from '../util/battlePlans.js'
@@ -100,8 +100,8 @@ describe('Obsidian Cage — registered', () => {
         expect(hasEffect(action)).toBe(true)
         const s = board({ [ME]: [CAGE] })
         for (const side of [BattlePlanSide.Attacker, BattlePlanSide.Defender]) {
-            expect(usableBattlePlans(s, ME, side).map((p) => p.cardId)).toContain(CAGE)
-            expect(usableBattlePlans(s, FOE, side).map((p) => p.cardId)).not.toContain(CAGE)
+            expect(usableBattlePlans(s, ME, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).toContain(CAGE)
+            expect(usableBattlePlans(s, FOE, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).not.toContain(CAGE)
         }
     })
 })

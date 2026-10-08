@@ -12,6 +12,7 @@ import { hasEffect } from './registry.js'
 import { HydratedUseRestPower } from '../actions/useRestPower.js'
 import '../powers/index.js'
 import { reachTable, routesFor, listed } from '../testing/reach.js'
+import { partiesSuspendingNobody } from '../testing/fixture.js'
 
 export const REACH_CARDS = [...PLAYTEST_DECK, ...PLAYTEST_RELICS]
 
@@ -42,7 +43,7 @@ describe('the playtest deck is in reach by every route', () => {
                         }
                         case PowerTiming.BattlePlan: {
                             const side = power.battlePlanSide === BattlePlanSide.Defender ? BattlePlanSide.Defender : BattlePlanSide.Attacker
-                            expect(listed(cardId, usableBattlePlans(s, 'me', side)), `${route}: offered as a battle plan`).toBe(true)
+                            expect(listed(cardId, usableBattlePlans(s, 'me', side, partiesSuspendingNobody(s, 'me'))), `${route}: offered as a battle plan`).toBe(true)
                             break
                         }
                         case PowerTiming.Persistent:
@@ -58,7 +59,7 @@ describe('the playtest deck is in reach by every route', () => {
                     expect(listed(cardId, usableModifiers(foreign, 'me', power.modifiesAction))).toBe(false)
                 }
                 if (power.timing === PowerTiming.Action) expect(listed(cardId, legalPowers(foreign, 'me', PowerTiming.Action))).toBe(false)
-                if (power.timing === PowerTiming.BattlePlan) expect(listed(cardId, usableBattlePlans(foreign, 'me', BattlePlanSide.Attacker))).toBe(false)
+                if (power.timing === PowerTiming.BattlePlan) expect(listed(cardId, usableBattlePlans(foreign, 'me', BattlePlanSide.Attacker, partiesSuspendingNobody(foreign, 'me')))).toBe(false)
             })
         }
     }

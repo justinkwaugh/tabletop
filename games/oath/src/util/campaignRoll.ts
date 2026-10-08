@@ -18,7 +18,12 @@ import {
 import { askQuestion } from './questions.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { offerReroll } from './reroll.js'
-import { collectDefendingBandits, collectDefendingForce, type CampaignParties } from './campaign.js'
+import {
+    battleScopeOf,
+    collectDefendingBandits,
+    collectDefendingForce,
+    type CampaignParties
+} from './campaign.js'
 import { attackingSiteOf } from './campaignSite.js'
 import {
     addWarbandsToSite,
@@ -172,11 +177,12 @@ function killForSkulls(
 /** R-5.5.5, R-10.22 — the board, then the sites the force reaches: every place and owner it holds. */
 export function attackingForceSources(
     state: HydratedOathGameState,
-    attackerId: string,
+    parties: CampaignParties,
     forceSiteIds: readonly string[]
 ): LossSource[] {
+    const attackerId = parties.attackerPlayerId
     const board = state.getPlayerState(attackerId).warbandsOnBoard
-    const siteOwners = rulingWarbandOwners(state, attackerId)
+    const siteOwners = rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
     return [
         ...boardOwnersOwnFirst(state, attackerId)
             .filter((owner) => countOf(board, owner) > 0)
@@ -201,11 +207,11 @@ export function sameLossSource(a: LossSource, b: LossSource): boolean {
 /** R-5.5.5-H1, R-10.22 — a declared loss order names only places and owners in the attacking force. */
 export function reasonLossOrderOutsideForce(
     state: HydratedOathGameState,
-    attackerId: string,
+    parties: CampaignParties,
     forceSiteIds: readonly string[],
     declaredOrder: readonly LossSource[] = []
 ): string | undefined {
-    const sources = attackingForceSources(state, attackerId, forceSiteIds)
+    const sources = attackingForceSources(state, parties, forceSiteIds)
     const stray = declaredOrder.find(
         (source) => !sources.some((held) => sameLossSource(held, source))
     )
@@ -219,7 +225,7 @@ export function killFromAttackingForce(
     count: number,
     declaredOrder: readonly LossSource[] = []
 ): WarbandGroup[] {
-    const sources = attackingForceSources(state, campaign.attackerPlayerId, campaign.forceSiteIds)
+    const sources = attackingForceSources(state, partiesOf(state, campaign), campaign.forceSiteIds)
     const order = [
         ...declaredOrder.filter((source) => sources.some((held) => sameLossSource(held, source))),
         ...sources.filter((held) => !declaredOrder.some((source) => sameLossSource(held, source)))
@@ -397,8 +403,9 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
     const campaign = state.campaign
     assertExists(campaign, 'only a Campaign in progress can end')
     // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
+    const scope = battleScopeOf(state, partiesOf(state, campaign))
     for (const held of campaign.heldForHospital ?? []) {
-        if (rulesSite(state, held.playerId, held.siteId)) {
+        if (rulesSite(state, held.playerId, held.siteId, scope)) {
             addWarbandsToSite(state, held.siteId, held.owner, held.count)
         } else {
             killWarbands(state, held.owner, held.count)

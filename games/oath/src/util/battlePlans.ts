@@ -16,6 +16,7 @@ import {
 } from '../data/cardPowers.js'
 import { banditRuledCardIds, denizensOnMap } from './access.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
+import { type ImperialScope } from './rule.js'
 import {
     addCosts,
     favorNeeded,
@@ -25,7 +26,7 @@ import {
     secretsNeeded
 } from './powerCost.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
-import { applyDiceDelta, type CampaignParties, type DicePools } from './campaign.js'
+import { applyDiceDelta, battleScopeOf, type CampaignParties, type DicePools } from './campaign.js'
 import type { CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import {
@@ -70,20 +71,23 @@ export function isBattlePlanCard(state: HydratedOathGameState, cardId: string): 
 export function mayUseBattlePlansOf(
     state: HydratedOathGameState,
     playerId: string,
-    cardId: string
+    cardId: string,
+    scope?: ImperialScope
 ): boolean {
     // R-5.1.4.II — a facedown adviser is ruled but has no power.
     if (isFacedownAdviserOf(state, playerId, cardId)) return false
-    if (rulesCard(state, playerId, cardId)) return true
+    if (rulesCard(state, playerId, cardId, scope)) return true
     return state.getPlayerState(playerId).relicIds.includes(cardId)
 }
 
 export function usableBattlePlans(
     state: HydratedOathGameState,
     playerId: string,
-    side: BattlePlanSide
+    side: BattlePlanSide,
+    parties: CampaignParties
 ): CardPower[] {
     const player = state.getPlayerState(playerId)
+    const scope = battleScopeOf(state, parties)
     const candidates = new Set<string>([
         ...player.faceupAdviserIds(),
         ...player.relicIds,
@@ -91,7 +95,7 @@ export function usableBattlePlans(
     ])
     const found: CardPower[] = []
     for (const cardId of candidates) {
-        if (!mayUseBattlePlansOf(state, playerId, cardId)) continue
+        if (!mayUseBattlePlansOf(state, playerId, cardId, scope)) continue
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, side)) continue
             if (!effectFor(power)?.battlePlan) continue
@@ -113,6 +117,7 @@ export function resolveBattlePlans(
 ): { reason?: string; active: ActiveBattlePlan[] } {
     const active: ActiveBattlePlan[] = []
     const seen = new Set<string>()
+    const scope = battleScopeOf(state, parties)
     for (const use of uses ?? []) {
         const key = powerKey(use.cardId, use.powerIndex)
         if (seen.has(key)) {
@@ -122,7 +127,7 @@ export function resolveBattlePlans(
             }
         }
         seen.add(key)
-        if (!mayUseBattlePlansOf(state, playerId, use.cardId)) {
+        if (!mayUseBattlePlansOf(state, playerId, use.cardId, scope)) {
             return { reason: `you do not rule ${use.cardId} (R-7.5.1)`, active }
         }
         const power = cardPowers(use.cardId)[use.powerIndex]

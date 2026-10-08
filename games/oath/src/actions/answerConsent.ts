@@ -128,7 +128,8 @@ export class HydratedAnswerConsent
         }
         // R-5.5.3 — the attacker's plans follow the Citizens' answers.
         const attackerId = held.declaration.attackerPlayerId
-        if (usableBattlePlans(state, attackerId, BattlePlanSide.Attacker).length > 0) {
+        const parties = HydratedCampaign.partiesOfDeclaration(state, held.declaration)
+        if (usableBattlePlans(state, attackerId, BattlePlanSide.Attacker, parties).length > 0) {
             held.awaitingAttackerPlans = true
             return undefined
         }

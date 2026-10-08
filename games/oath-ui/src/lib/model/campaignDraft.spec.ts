@@ -11,6 +11,7 @@ import {
     HydratedOathGameState,
     MachineState,
     OathRevision,
+    PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
     cardPowers,
@@ -370,5 +371,56 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         draft.declarePlan(planOf(SLANDER), true)
         expect(draft.blockedBecause).toBeUndefined()
         expect(draft.declarable).toBe(true)
+    })
+})
+
+describe('R-5.5.1.a — a Citizen attacking the Chancellor is offered nothing through the Empire’s sites', () => {
+    const HORSE_ARCHERS = 'denizen.nomad.horse-archers'
+    const VOW_OF_UNION = 'denizen.beast.vow-of-union'
+
+    /** `me`, a Citizen with Vow of Union, attacks the Chancellor; the Empire alone holds c1 and c2. */
+    function citizenAttacks(oathRevision: OathRevision) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [ME]: 4 },
+                    advisers: [{ cardId: VOW_OF_UNION, faceUp: true }]
+                }),
+                testPlayer({
+                    playerId: FOE,
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 }
+                })
+            ],
+            {
+                oathRevision,
+                denizensBySite: { c1: [], c2: [HORSE_ARCHERS], p1: [], h1: [] },
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 } }
+            }
+        )
+        const session = openSessionOn(tableOf(state))
+        session.chooseAction(ActionType.Campaign)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        return draft
+    }
+
+    it('lists no plan at a site only the Empire rules, and counts none of its warbands', () => {
+        const draft = citizenAttacks(OathRevision.EngineFixes2)
+        expect(draft.planOptions.map((p) => p.cardId)).not.toContain(HORSE_ARCHERS)
+        expect(draft.maxDice).toBe(4)
+        expect(draft.lossSources).toEqual([{ at: { kind: 'board', playerId: ME }, owner: ME }])
+    })
+
+    it('R-X.4 — before revision 5 the Empire’s sites were shared', () => {
+        const draft = citizenAttacks(OathRevision.CardFixes1)
+        expect(draft.planOptions.map((p) => p.cardId)).toContain(HORSE_ARCHERS)
+        expect(draft.maxDice).toBe(7)
     })
 })

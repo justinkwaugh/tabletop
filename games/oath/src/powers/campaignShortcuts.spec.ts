@@ -124,7 +124,7 @@ describe('Wild Allies and Captains — a Campaign from another site', () => {
         expect(HydratedCampaign.legalDefenders(s, 'att')).toContainEqual({ kind: 'player', playerId: 'def' })
         expect(HydratedCampaign.reasonCannotCampaign(s, 'att', { defender: { kind: 'player', playerId: 'def' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 6 })).toBeUndefined()
         expect(HydratedCampaign.reasonCannotCampaign(s, 'att', { defender: { kind: 'player', playerId: 'def' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 7 })).toMatch(/at most 6/)
-        expect(HydratedCampaign.maxAttackDice(s, 'att')).toBe(6)
+        expect(HydratedCampaign.maxAttackDice(s, HydratedCampaign.partiesFor(s, 'att', { defender: { kind: 'player', playerId: 'def' }, targets: [] }))).toBe(6)
         const a = campaign(s, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 6 })
         expect(a.metadata?.supplySpent).toBe(0)
         expect(s.campaign?.forceSiteIds).toEqual(['c2'])

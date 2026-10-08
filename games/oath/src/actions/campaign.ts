@@ -347,7 +347,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const answering = campaign.defenderPlansLocked
             ? []
             : defendingPlayerIds(parties).filter(
-                  (id) => usableBattlePlans(state, id, BattlePlanSide.Defender).length > 0
+                  (id) => usableBattlePlans(state, id, BattlePlanSide.Defender, parties).length > 0
               )
         const awaitingDefender = answering.length > 0
 
@@ -418,22 +418,22 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         )
         if (defenderReason) return defenderReason
 
+        const parties = HydratedCampaign.partiesFor(state, playerId, choice)
+
         if (choice.attackDice < 0) {
             return 'must declare at least 0 attack dice'
         }
-        const most = HydratedCampaign.maxAttackDice(state, playerId)
+        const most = HydratedCampaign.maxAttackDice(state, parties)
         if (choice.attackDice > most) {
             return `can add at most ${most} attack dice, one per warband in your force`
         }
         const lossOrderReason = reasonLossOrderOutsideForce(
             state,
-            playerId,
+            parties,
             forceSitesOf(state, playerId),
             choice.skullLossOrder
         )
         if (lossOrderReason) return lossOrderReason
-
-        const parties = HydratedCampaign.partiesFor(state, playerId, choice)
 
         const targetReason = reasonCannotDeclareTargets(state, parties)
         if (targetReason) return targetReason
@@ -448,7 +448,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             }
             // Relic Hunter — its target is declared now and the plan once they have answered.
             const hunter = plansTargetSiteRelics(
-                usableBattlePlans(state, playerId, BattlePlanSide.Attacker)
+                usableBattlePlans(state, playerId, BattlePlanSide.Attacker, parties)
             )
             return choice.targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) && !hunter
                 ? 'a facedown relic at a site can be targeted only with Relic Hunter to declare'
@@ -499,13 +499,8 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
     }
 
     /** R-5.5.2 — one attack die per warband in the force: the board and the sites it reaches. */
-    static maxAttackDice(state: HydratedOathGameState, playerId: string): number {
-        return forceTotal(
-            collectAttackingForce(state, {
-                attackerPlayerId: playerId,
-                forceSiteIds: forceSitesOf(state, playerId)
-            })
-        )
+    static maxAttackDice(state: HydratedOathGameState, parties: CampaignParties): number {
+        return forceTotal(collectAttackingForce(state, parties))
     }
 
     /** R-5.5.2.a, R-10.2-H1 — clockwise from the attacker. */

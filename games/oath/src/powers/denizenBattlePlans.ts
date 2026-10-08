@@ -7,10 +7,15 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
-import { collectAttackingForce, collectDefendingForce, type DiceDelta } from '../util/campaign.js'
+import {
+    battleScopeOf,
+    collectAttackingForce,
+    collectDefendingForce,
+    type DiceDelta
+} from '../util/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
-import { isImperialPlayer } from '../util/rule.js'
+import { type ImperialScope, isImperialPlayer } from '../util/rule.js'
 import { banditRuledCardIds, ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { registerBattlePlan, type BattlePlanContext } from './registry.js'
 import { PowerChoiceKind, optional } from '../util/powerChoice.js'
@@ -78,6 +83,11 @@ function defendingForce(ctx: BattlePlanContext): number {
     return forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
 }
 
+/** R-5.5.1.a — what its user rules and holds is judged within the Campaign. */
+function scope(ctx: BattlePlanContext): ImperialScope | undefined {
+    return battleScopeOf(ctx.state, ctx.campaign.parties)
+}
+
 /** R-10.9 — "your force". */
 function myForce(ctx: BattlePlanContext): number {
     return side(ctx) === BattlePlanSide.Attacker ? attackingForce(ctx) : defendingForce(ctx)
@@ -90,7 +100,7 @@ function enemyForce(ctx: BattlePlanContext): number {
 function cardsRuledByUser(ctx: BattlePlanContext): string[] {
     return ctx.playerId === undefined
         ? banditRuledCardIds(ctx.state)
-        : ruledFaceupCardIds(ctx.state, ctx.playerId)
+        : ruledFaceupCardIds(ctx.state, ctx.playerId, scope(ctx))
 }
 
 /** Fire Talkers' entry widens "you hold" to any Imperial player when you are one (R-10.28-H1). */
@@ -99,7 +109,10 @@ function holdsDarkestSecretWide(ctx: BattlePlanContext): boolean {
     const holder = bannerHolder(ctx.state, Banner.DarkestSecret)
     if (!holder) return false
     if (holder === user) return true
-    return isImperialPlayer(ctx.state, user) && isImperialPlayer(ctx.state, holder)
+    return (
+        isImperialPlayer(ctx.state, user, scope(ctx)) &&
+        isImperialPlayer(ctx.state, holder, scope(ctx))
+    )
 }
 
 /**
@@ -178,7 +191,7 @@ registerBattlePlan(
             ignoreSkulls: true,
             dice: (ctx) => {
                 const suits = new Set(
-                    ruledFaceupCardIds(ctx.state, planUser(ctx))
+                    ruledFaceupCardIds(ctx.state, planUser(ctx), scope(ctx))
                         .map((id) => suitOf(id))
                         .filter((s) => s !== undefined && s !== Suit.Arcane)
                 )

@@ -163,10 +163,14 @@ export class HydratedCampaignDefend
     static usablePlans(state: HydratedOathGameState, playerId: string): CardPower[] {
         if (HydratedCampaignDefend.reasonCannotDefend(state, playerId, [])) return []
         const campaign = state.campaign
-        if (campaign?.defenderPlansLocked) return []
-        return usableBattlePlans(state, playerId, BattlePlanSide.Defender).filter(
-            (plan) => !campaign?.plansUsed.includes(plan.cardId)
-        )
+        assertExists(campaign, 'a defender answers only while a Campaign is under way')
+        if (campaign.defenderPlansLocked) return []
+        return usableBattlePlans(
+            state,
+            playerId,
+            BattlePlanSide.Defender,
+            partiesOf(state, campaign)
+        ).filter((plan) => !campaign.plansUsed.includes(plan.cardId))
     }
 
     static canDoCampaignDefend(state: HydratedOathGameState, playerId: string): boolean {

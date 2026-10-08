@@ -50,8 +50,16 @@ export interface CampaignParties {
     forceSiteIds: readonly string[]
 }
 
-export function scopeOf(parties: CampaignParties): ImperialScope {
+export function scopeOf(parties: Pick<CampaignParties, 'nonImperialPlayerIds'>): ImperialScope {
     return { nonImperialPlayerIds: parties.nonImperialPlayerIds }
+}
+
+/** R-5.5.1.a for battle plans and the attacking force; R-X.4 — before revision 5 they ignored it. */
+export function battleScopeOf(
+    state: HydratedOathGameState,
+    parties: Pick<CampaignParties, 'nonImperialPlayerIds'>
+): ImperialScope | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes2) ? scopeOf(parties) : undefined
 }
 
 /** R-5.5.1.a */
@@ -288,10 +296,13 @@ export function collectDefendingForce(
     return force
 }
 
-/** R-5.5.2, R-10.9 — the sites the force reaches, then the board with the attacker's own warbands first. */
+/**
+ * R-5.5.2, R-10.9 — the sites the force reaches, then the board with the attacker's own warbands
+ * first; R-5.5.1.a — the warbands at those sites are judged in the Campaign's scope (battleScopeOf).
+ */
 export function collectAttackingForce(
     state: HydratedOathGameState,
-    parties: Pick<CampaignParties, 'attackerPlayerId' | 'forceSiteIds'>
+    parties: Pick<CampaignParties, 'attackerPlayerId' | 'forceSiteIds' | 'nonImperialPlayerIds'>
 ): WarbandGroup[] {
     const attackerId = parties.attackerPlayerId
     const board = state.getPlayerState(attackerId).warbandsOnBoard
@@ -306,7 +317,7 @@ export function collectAttackingForce(
         ...warbandGroupsAtSites(
             state,
             parties.forceSiteIds,
-            rulingWarbandOwners(state, attackerId)
+            rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
         ),
         ...onBoard
     ]

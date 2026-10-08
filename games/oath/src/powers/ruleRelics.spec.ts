@@ -11,7 +11,7 @@ import { type CampaignTarget } from '../model/campaign.js'
 import { OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { cardPowers, PowerTiming, BattlePlanSide, powerIndexOf } from '../data/cardPowers.js'
 import { defenseShieldsFromFaces } from '../data/dice.js'
-import { testPlayer, testState, openTurn } from '../testing/fixture.js'
+import { partiesSuspendingNobody, testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { accessibleCardIds, hasAccessToCard, ruledFaceupCardIds, rulesCard } from '../util/access.js'
 import { mayUseBattlePlansOf, usableBattlePlans } from '../util/battlePlans.js'
 import { legalPowers } from '../util/powerDoorway.js'
@@ -139,7 +139,7 @@ describe('Bandit Crown — "Act as if bandits are your warbands … (You rule em
     it('battle plans: the holder may use the plans at an empty site (R-7.5.1)', () => {
         const s = board({ [ME]: [CROWN] })
         expect(mayUseBattlePlansOf(s, ME, LONGBOWS)).toBe(true)
-        expect(usableBattlePlans(s, ME, BattlePlanSide.Defender).map((p) => p.cardId)).toContain(LONGBOWS)
+        expect(usableBattlePlans(s, ME, BattlePlanSide.Defender, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).toContain(LONGBOWS)
         expect(mayUseBattlePlansOf(board({}), ME, LONGBOWS)).toBe(false)
     })
 
@@ -369,11 +369,11 @@ describe('Grand Mask — "except battle plans"', () => {
         const s = maskBoard()
         expect(rulesCard(s, ME, LONGBOWS)).toBe(false)
         expect(mayUseBattlePlansOf(s, ME, LONGBOWS)).toBe(false)
-        expect(usableBattlePlans(s, ME, BattlePlanSide.Attacker).map((p) => p.cardId)).not.toContain(LONGBOWS)
+        expect(usableBattlePlans(s, ME, BattlePlanSide.Attacker, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).not.toContain(LONGBOWS)
         expect(ruledFaceupCardIds(s, ME)).not.toContain(LONGBOWS)
         for (const imperial of [CHAN, CIT]) {
             expect(mayUseBattlePlansOf(s, imperial, LONGBOWS), imperial).toBe(true)
-            expect(usableBattlePlans(s, imperial, BattlePlanSide.Defender).map((p) => p.cardId), imperial).toContain(LONGBOWS)
+            expect(usableBattlePlans(s, imperial, BattlePlanSide.Defender, partiesSuspendingNobody(s, ME)).map((p) => p.cardId), imperial).toContain(LONGBOWS)
         }
     })
 })
