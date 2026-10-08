@@ -280,11 +280,23 @@ export function countKilled(
             : { ...tally, attacker: tally.attacker + count }
 }
 
-/** Cursed Cauldron — "enemy warbands killed in this campaign", for the side `side`. */
-export function enemyWarbandsKilledFor(campaign: CampaignState, side: BattlePlanSide): number {
+/**
+ * Cursed Cauldron — "enemy warbands killed in this campaign", for the side `side`.
+ * Site rule is settled once a victory resolves, so the enemy's warbands Hospital holds for a site its user has lost
+ * count too: `endCampaign` kills them.
+ */
+export function enemyWarbandsKilledFor(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    side: BattlePlanSide
+): number {
     const tally = campaign.enemyWarbandsKilled
-    if (!tally) return 0
-    return side === BattlePlanSide.Attacker ? tally.attacker : tally.defender
+    const killed = !tally ? 0 : side === BattlePlanSide.Attacker ? tally.attacker : tally.defender
+    const heldToDie = (campaign.heldForHospital ?? [])
+        .filter((held) => sideOf(campaign, held.playerId) !== side)
+        .filter((held) => !rulesSite(state, held.playerId, held.siteId))
+        .reduce((total, held) => total + held.count, 0)
+    return killed + heldToDie
 }
 
 /** R-5.5.3-H1 — the bandits' compelled plans have no user, and the bandits always defend. */

@@ -137,6 +137,13 @@ describe('Cursed Cauldron counts every enemy warband killed in the Campaign (rev
         expect(cauldronNote(killed)).toBe(gainedNote(2))
         expect(bankOf(killed, DEFENDER) - DEFENDER_BANK).toBe(2)
     })
+
+    it('warbands Hospital cannot save, because its site is lost, are killed and count', () => {
+        const s = attackedWithCauldron(atRevision, [HOSPITAL], { c1: [HOSPITAL] })
+        expect(s.campaign?.killRedirects).toEqual([{ playerId: DEFENDER, siteId: 'c1' }])
+        expect(cauldronNote(s)).toBe(gainedNote(2))
+        expect(bankOf(s, DEFENDER) - DEFENDER_BANK).toBe(2)
+    })
 })
 
 describe('R-X.4 — before revision 4 Cursed Cauldron counts the defeat kills alone, as recorded', () => {

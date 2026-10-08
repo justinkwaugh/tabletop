@@ -323,7 +323,7 @@ registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.Ba
             const campaign = ctx.state.campaign
             assertExists(campaign, 'an outcome hook runs inside a Campaign')
             const killed = isAtLeastOathRevision(ctx.state, OathRevision.CardFixes1)
-                ? enemyWarbandsKilledFor(campaign, ctx.campaign.side)
+                ? enemyWarbandsKilledFor(ctx.state, campaign, ctx.campaign.side)
                 : (campaign.defeatKilled ?? 0)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, killed)
             return `Cursed Cauldron: gained ${gained} warbands, one per enemy warband killed`
