@@ -129,6 +129,36 @@ test('plays the initial auctions and builds a network on the map', async ({ page
     await screenshot(page, '05-after-build')
 })
 
+test('shows the board after a history entry and returns to the present', async ({ page }) => {
+    await createGame(page)
+    await playInitialAuctions(page)
+    await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+    const present = await page.evaluate(() => window.hcgSession.gameState.actionCount)
+
+    await page.getByRole('tab', { name: 'History' }).click()
+    const firstAuction = page.locator('.head.jump', { hasText: 'Initial auction' }).last()
+    await expect(firstAuction).toContainText('#001')
+    await firstAuction.click()
+
+    await expect(page.getByText('HISTORY', { exact: true })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => window.hcgSession.isViewingHistory)).toBe(true)
+    const past = await page.evaluate(() => ({
+        actionCount: window.hcgSession.gameState.actionCount,
+        owned: window.hcgSession.gameState.companies.filter((company) => company.owners.length)
+            .length
+    }))
+    expect(past.actionCount).toBeLessThan(present)
+    expect(past.owned).toBe(1)
+    await screenshot(page, '12-history-view')
+
+    await page.getByRole('button', { name: 'go to current' }).first().click()
+    await expect.poll(() => page.evaluate(() => window.hcgSession.isViewingHistory)).toBe(false)
+    await expect
+        .poll(() => page.evaluate(() => window.hcgSession.gameState.actionCount))
+        .toBe(present)
+    await expect(page.getByText('HISTORY', { exact: true })).toBeHidden()
+})
+
 test('develops towns and auctions a share', async ({ page }) => {
     await createGame(page)
     await playInitialAuctions(page)
