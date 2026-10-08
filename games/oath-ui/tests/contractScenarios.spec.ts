@@ -2014,6 +2014,28 @@ test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, 
     await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
 })
 
+test('the unrolled dice: while the defender uses battle plans, the dice row prints no total and the panel names the defender', async ({ page }) => {
+    await openTable(page, 'defenderPlans')
+    expect(await call(page, 'viewOffTheClock')).toBe('att')
+    const dice = grid(page).getByRole('region', { name: 'the Campaign\'s dice' })
+    await expect(dice.locator('[title$="not yet rolled"]').first()).toBeVisible()
+    await expect(dice).not.toContainText(/waiting/i)
+    await expect(dice.locator('.dice__total')).toHaveText(['', ''])
+    await expectWaitingOn(page, ['def'])
+})
+
+test('the unrolled dice keep the totals’ room: on a phone the dice row does not move when the defender rolls', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await openTable(page, 'defenderPlans')
+    const row = grid(page).getByRole('region', { name: 'the Campaign\'s dice' }).locator('.dice')
+    const before = await row.boundingBox()
+    await grid(page).getByRole('button', { name: 'Use none and roll' }).click()
+    await expect(row.locator('img').first()).toBeVisible()
+    await expect(row).toContainText(/\d+ swords?/)
+    const after = await row.boundingBox()
+    expect(after?.height).toBe(before?.height)
+})
+
 test('scenario 37: the goals on the rail, tap-only, with the next win; the seat cards keep only Visions and Successor', async ({ page }) => {
     await openTable(page, 'goalsRail')
     const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
