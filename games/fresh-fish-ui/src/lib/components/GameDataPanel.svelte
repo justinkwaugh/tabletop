@@ -1,10 +1,18 @@
 <script lang="ts">
     import WoodStall from '$lib/components/WoodStall.svelte'
     import BagIcon from '$lib/components/BagIcon.svelte'
+    import WoodSignpost from '$lib/components/WoodSignpost.svelte'
     import { UNCLAIMED_STALL } from '$lib/utils/pieceColors.js'
-    import type { GoodsType } from '@tabletop/fresh-fish'
+    import { Scorer, type GoodsType } from '@tabletop/fresh-fish'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let gameSession = getGameSession()
+
+    const maxDistance = $derived(
+        Scorer.MAXIMUM_DISTANCE_BY_PLAYER_COUNT[gameSession.game.players.length]
+    )
+    const maxDistanceTitle = $derived(
+        `Each stall costs a point per step to its truck, at most ${maxDistance}. A stall left unplaced or cut off costs ${maxDistance}.`
+    )
 
     function playerForFinalStall(goodsType: GoodsType) {
         const playersWithUnplacedStall = gameSession.gameState.players.filter((player) =>
@@ -38,6 +46,10 @@
                     />
                 </div>
             {/each}
+        </div>
+        <div class="plate" title={maxDistanceTitle}>
+            <WoodSignpost value={maxDistance} size={60} />
+            <span class="heading">Max<br />distance</span>
         </div>
     </div>
     {#if gameSession.gameState.boardSeed !== undefined}

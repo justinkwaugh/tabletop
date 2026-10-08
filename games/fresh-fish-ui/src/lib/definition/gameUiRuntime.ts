@@ -9,6 +9,7 @@ import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynam
 import { FreshFishColorizer } from './gameColorizer.js'
 import Table from '../components/Table.svelte'
 import { FreshFishGameSession } from '../stores/FreshFishGameSession.svelte.js'
+import '../../app.css'
 
 const freshFishPlayerColorPalette: PlayerColorPalette = {
     [Color.Blue]: {
