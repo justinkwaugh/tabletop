@@ -92,6 +92,9 @@ importers:
       '@tabletop/the-old-prince-ui':
         specifier: workspace:*
         version: link:../../games/the-old-prince-ui
+      nanoid:
+        specifier: 5.1.6
+        version: 5.1.6
     devDependencies:
       '@fontsource/atkinson-hyperlegible':
         specifier: ^5.3.0

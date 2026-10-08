@@ -8,6 +8,7 @@
     import { migrateCompanyNames } from './migrateCompanyNames.js'
     import { loadCompatibleExample } from './loadCompatibleExample.js'
     import { Compile } from 'typebox/compile'
+    import { nanoid } from 'nanoid'
     import {
         assertExists,
         GameEngine,
@@ -125,7 +126,7 @@
             }
             if (!loaded) {
                 const created = await app.gameService.createGame({
-                    id: crypto.randomUUID(),
+                    id: nanoid(),
                     typeId: definition.info.id,
                     name: exampleName,
                     ownerId: owner.id,
@@ -137,7 +138,7 @@
                           ? ['Alex', 'Blair', 'Casey', 'Drew']
                           : ['Alex', 'Blair', 'Casey']
                     ).map((name) => ({
-                        id: crypto.randomUUID(),
+                        id: nanoid(),
                         name,
                         isHuman: true,
                         status: PlayerStatus.Joined
