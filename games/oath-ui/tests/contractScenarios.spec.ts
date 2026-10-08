@@ -1982,6 +1982,32 @@ test('scenario 55: a dimmed major no card makes possible leaves Use a power unri
     await expect(usePower(page)).not.toHaveAttribute('aria-describedby')
 })
 
+test('scenario 55: pointing at the ringed Use a power keeps the reason and the ring; another tile clears both', async ({ page }) => {
+    await openTable(page, 'cardOpensSearch')
+    await tile(page, 'Search').click({ force: true })
+    await expect(ringedBy(page)).toHaveCount(1)
+    await usePower(page).hover()
+    await expect(reasonLine(page)).toHaveText('Needs 2 Supply; you have 1.')
+    await expect(ringedBy(page)).toHaveCount(1)
+    await expect(usePower(page)).toHaveAccessibleDescription('Needs 2 Supply; you have 1.')
+    await tile(page, 'Trade').hover()
+    // Trade's summary, its tokens read by their words.
+    await expect
+        .poll(() =>
+            reasonLine(page).evaluate((line) => {
+                const words = (node: Node): string =>
+                    node instanceof HTMLImageElement
+                        ? node.alt
+                        : node.hasChildNodes()
+                          ? Array.from(node.childNodes, words).join('')
+                          : (node.textContent ?? '')
+                return words(line).trim()
+            })
+        )
+        .toBe('secrets for favor, or favor for secrets.')
+    await expect(ringedBy(page)).toHaveCount(0)
+})
+
 test('scenario 55: on a phone the ring on Use a power is drawn whole inside the grid', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await openTable(page, 'cardOpensSearch')

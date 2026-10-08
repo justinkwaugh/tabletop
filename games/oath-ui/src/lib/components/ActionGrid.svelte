@@ -71,7 +71,7 @@
 
     // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
     // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
-    // replaces it.
+    // replaces it, except on the Use a power chip it rings, which answers it.
     let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
         undefined
     )
@@ -112,7 +112,7 @@
     }
 
     function hover(entry: ActionEntry, on: boolean) {
-        if (on && tapped !== entry) tap = undefined
+        if (on && tapped !== entry && !ringed(entry)) tap = undefined
         if (on) hoveredEntry = entry
         else if (hoveredEntry === entry) hoveredEntry = undefined
     }
