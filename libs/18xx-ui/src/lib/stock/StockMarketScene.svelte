@@ -2,7 +2,11 @@
     import { marketColors, marketDarkLightness } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
-    import { type StockMarket as StockMarketModel, type Company } from '@tabletop/18xx'
+    import {
+        type StockMarket as StockMarketModel,
+        type StockMarketSpace,
+        type Company
+    } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
@@ -39,6 +43,12 @@
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
     const rows = $derived(Math.max(...market.spaces.map((space) => space.row)) + 1)
+    const spaceRows = $derived(new Map(market.spaces.map((space) => [space.id, space.row])))
+    // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
+    function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
+        const target = space.moves[move]
+        return !target || spaceRows.get(target) !== space.row
+    }
     const banners = $derived(
         zones.flatMap(({ color, banner }) => {
             const zoneColumns = market.spaces
@@ -254,13 +264,13 @@
                         class="ledge {edge.side}"
                         aria-hidden="true"
                     ></span>{/each}
-                {#if space.moves.up && (!space.moves.right || space.moves.right === space.moves.up)}<svg
+                {#if space.moves.up && leavesRow(space, 'right')}<svg
                         class="edge-arrow right"
                         viewBox="0 0 10 32"
                         role="img"
                         aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
                     >{/if}
-                {#if space.moves.down && (!space.moves.left || space.moves.left === space.moves.down)}<svg
+                {#if space.moves.down && leavesRow(space, 'left')}<svg
                         class="edge-arrow left"
                         viewBox="0 0 10 32"
                         role="img"
