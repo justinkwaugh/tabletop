@@ -19,7 +19,6 @@ import {
 import { discardCards, isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { rulesCard } from './access.js'
-import { reasonPersistentForbidsTravel } from './persistent.js'
 import { applyAttackRoll, applyDefenseRoll } from './campaignRoll.js'
 import { rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import {
@@ -40,29 +39,15 @@ import {
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
 }
 
-/** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
 /** Fae Merchant — "any relic you hold except the Grand Scepter", besides the one drawn. */
 export function heldRelicsToBottom(state: HydratedOathGameState, playerId: string): string[] {
     return state.getPlayerState(playerId).relicIds.filter((id) => id !== GRAND_SCEPTER_ID)
-}
-
-export function shroudedWoodDestinations(
-    state: HydratedOathGameState,
-    travelerId: string,
-    fromSiteId: string
-): string[] {
-    return state
-        .allSiteIds()
-        .filter(
-            (siteId) =>
-                siteId !== fromSiteId &&
-                reasonPersistentForbidsTravel(state, travelerId, fromSiteId, siteId) === undefined
-        )
 }
 
 function isPermutationOf(order: readonly number[], count: number): boolean {
@@ -310,16 +295,30 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.ShroudedWoodDestination]: {
         reasonCannotAnswer: (state, _playerId, matched) => {
-            const { travelerPlayerId, fromSiteId } = matched.question
-            return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(
-                matched.answer.siteId
-            )
+            const { travelerPlayerId, fromSiteId, travel } = matched.question
+            const siteId = matched.answer.siteId
+            // R-11.7 — the traveller's own Travel goes only where they can pay.
+            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel.free)
+            return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(siteId)
                 ? undefined
-                : `${matched.answer.siteId} is not a site ${travelerPlayerId} can be sent to`
+                : `${siteId} is not a site ${travelerPlayerId} can be sent to`
         },
         apply: (state, _playerId, matched) => {
-            const { travelerPlayerId } = matched.question
+            const { travelerPlayerId, travel } = matched.question
             const siteId = matched.answer.siteId
+            if (travel) {
+                const { pick, revealed } = settleWoodPick(
+                    state,
+                    travelerPlayerId,
+                    siteId,
+                    travel.free
+                )
+                const notes = pick.notes ?? []
+                const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
+                return revealed
+                    ? { summary, woodPick: pick, disclosed: true }
+                    : { summary, woodPick: pick }
+            }
             const { notes, revealed } = travelByPower(state, travelerPlayerId, siteId)
             const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
             return revealed ? { summary, disclosed: true } : summary

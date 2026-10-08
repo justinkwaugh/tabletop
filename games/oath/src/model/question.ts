@@ -4,6 +4,7 @@ import { Visibility } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
+import { WarbandOwner } from './warbandCounts.js'
 
 export const AskedPlayerPolicy = 'oath.askedPlayer'
 
@@ -187,6 +188,26 @@ export const ExchangeTerms = Type.Object({
     fromCounterparty: Type.Optional(ExchangeTransfer)
 })
 
+/** R-11.7 — the traveller's own Travel, which pays when the Shrouded Wood's ruler names the site. */
+export type ShroudedWoodTravel = Type.Static<typeof ShroudedWoodTravel>
+export const ShroudedWoodTravel = Type.Object({
+    /** Second Wind, Brass Horse — the Travel spends no Supply wherever it goes. */
+    free: Type.Boolean()
+})
+
+/** R-11.7 — what the ruler's pick settled for the traveller's Travel. */
+export type ShroudedWoodPick = Type.Static<typeof ShroudedWoodPick>
+export const ShroudedWoodPick = Type.Object({
+    travelerPlayerId: Type.String(),
+    siteId: Type.String(),
+    supplySpent: Type.Number(),
+    supplyRemaining: Type.Number(),
+    /** R-7.4 (Tyrant), R-7.1.4 (Grasping Vines, Boiling Lake) */
+    notes: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
+    /** R-10.13 — whose warband Tyrant killed. */
+    warbandOwner: Type.Optional(WarbandOwner)
+})
+
 export type PowerQuestion = Type.Static<typeof PowerQuestion>
 export const PowerQuestion = Type.Union([
     Type.Object({
@@ -328,7 +349,9 @@ export const PowerQuestion = Type.Union([
         cardId: Type.String(),
         askedPlayerId: Type.String(),
         travelerPlayerId: Type.String(),
-        fromSiteId: Type.String()
+        fromSiteId: Type.String(),
+        /** Absent when a power moves the pawn, and in a game created before `UiBatch1`. */
+        travel: Type.Optional(ShroudedWoodTravel)
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.OrderDiscards),

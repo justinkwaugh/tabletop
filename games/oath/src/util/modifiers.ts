@@ -23,6 +23,7 @@ import { effectFor, type EffectContext, type ModifierHooks } from '../powers/reg
 import { traitModifiers } from './reliquaryTraits.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import type { DiscardTarget } from './discard.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 
 // R-7.4.1, R-7.4.2, R-X.1 — one use per action; a costed modifier pays at declaration.
 
@@ -412,16 +413,18 @@ export function runAfter(
     playerId: string,
     active: readonly ActiveModifier[],
     particulars: Partial<EffectContext['particulars']> = {}
-): { notes: string[]; endsActPhase: boolean } {
+): { notes: string[]; endsActPhase: boolean; warbandOwners: WarbandOwner[] } {
     const notes: string[] = []
+    const warbandOwners: WarbandOwner[] = []
     let endsActPhase = false
     for (const m of active) {
         const r = m.hooks.after?.({ ...modifierContext(state, playerId, m), particulars })
         if (!r) continue
         if (r.summary) notes.push(r.summary)
         if (r.endsActPhase) endsActPhase = true
+        if (r.warbandOwner !== undefined) warbandOwners.push(r.warbandOwner)
     }
-    return { notes, endsActPhase }
+    return { notes, endsActPhase, warbandOwners }
 }
 
 export function modifierSummary(active: readonly ActiveModifier[]): string[] {

@@ -136,8 +136,10 @@ export interface ModifierHooks {
     secondPlay?: boolean
     /** Part of the price: runs after costs, before the action. */
     before?: (ctx: EffectContext) => string | undefined
-    /** R-4.2 — runs once the action has finished. */
-    after?: (ctx: EffectContext) => { summary?: string; endsActPhase?: boolean } | undefined
+    /** R-4.2 — runs once the action has finished; `warbandOwner` is whose warbands it killed. */
+    after?: (
+        ctx: EffectContext
+    ) => { summary?: string; endsActPhase?: boolean; warbandOwner?: WarbandOwner } | undefined
     /** Portal */
     ignoresSitePowers?: boolean
 }

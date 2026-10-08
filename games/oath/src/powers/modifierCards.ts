@@ -5,7 +5,7 @@ import { kindOf, suitOf } from '../data/cardRegistry.js'
 import { warbandsOnBoardOf } from '../util/force.js'
 import { gainSupply } from '../util/rest.js'
 import { totalWarbandsAt } from '../util/rule.js'
-import { totalWarbands } from '../util/warbands.js'
+import { soleOwnerOf, totalWarbands } from '../util/warbands.js'
 import { registerModifier, type EffectContext } from './registry.js'
 import {
     gainFavorFromBank,
@@ -108,9 +108,15 @@ registerModifier(
             after: (ctx) => {
                 const to = ctx.particulars?.destinationSiteId
                 assertExists(to, 'Tyrant applies to a Travel, which always names a destination')
-                const killed = totalWarbands(killWarbandsAtSite(ctx.state, to, 1))
-                assert(killed === 1, "Tyrant's condition found a warband at the destination")
-                return { summary: `Tyrant killed a warband at ${to}` }
+                const killed = killWarbandsAtSite(ctx.state, to, 1)
+                assert(
+                    totalWarbands(killed) === 1,
+                    "Tyrant's condition found a warband at the destination"
+                )
+                return {
+                    summary: `Tyrant killed a warband at ${to}`,
+                    warbandOwner: soleOwnerOf(killed)
+                }
             }
         }
     }

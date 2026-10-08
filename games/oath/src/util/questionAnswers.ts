@@ -7,7 +7,8 @@ import {
     type Answered,
     type AnswerOf,
     type QuestionAnswer,
-    type QuestionOf
+    type QuestionOf,
+    type ShroudedWoodPick
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -44,6 +45,8 @@ export interface AnswerOutcome {
     relicTakenFromSlotId?: string
     /** R-X.3(c) */
     disclosed?: boolean
+    /** R-11.7 */
+    woodPick?: ShroudedWoodPick
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {

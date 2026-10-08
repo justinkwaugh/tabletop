@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext, Visibility } from '@table
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { PowerQuestionKind, QuestionAnswer } from '../model/question.js'
+import { PowerQuestionKind, QuestionAnswer, ShroudedWoodPick } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
@@ -30,7 +30,9 @@ export const AnswerQuestionMetadata = Type.Object({
     discardPileRegion: Type.Optional(Type.Enum(Region)),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
     // Skeleton Key
-    relicTakenFromSlotId: Type.Optional(Type.String())
+    relicTakenFromSlotId: Type.Optional(Type.String()),
+    /** R-11.7 */
+    woodPick: Type.Optional(ShroudedWoodPick)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -92,7 +94,8 @@ export class HydratedAnswerQuestion
             discardedCardIds: outcome.discardedCardIds,
             discardPileRegion: outcome.discardPileRegion,
             pileDeposits: outcome.pileDeposits,
-            relicTakenFromSlotId: outcome.relicTakenFromSlotId
+            relicTakenFromSlotId: outcome.relicTakenFromSlotId,
+            woodPick: outcome.woodPick
         }
         commitHiddenOutputs(this, state, witnesses)
     }

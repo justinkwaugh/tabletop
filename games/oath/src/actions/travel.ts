@@ -30,6 +30,12 @@ import {
     type ActionPlan
 } from '../util/modifiers.js'
 import { flipSiteFromVault } from '../util/hiddenInputs.js'
+import {
+    isFreeTravelNow,
+    payableWoodPicks,
+    woodPick,
+    woodTravelPaysAtPick
+} from '../util/shroudedWood.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
@@ -46,6 +52,8 @@ export const TravelMetadata = Type.Object({
     fromSiteId: Type.Optional(Type.String()),
     /** R-11.7 */
     destinationChooser: Type.Optional(Type.String()),
+    /** R-11.7 — the Supply is paid when the Shrouded Wood's ruler picks the site. */
+    paysAtPick: Type.Optional(Type.Boolean()),
     supplySpent: Type.Number(),
     supplyRemaining: Type.Number(),
     /** R-5.6.2 */
@@ -175,13 +183,15 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         }
     }
 
-    // R-11.7 — the Supply is paid now; the ruler's answer moves the pawn.
+    // R-11.7, R-X.4 — the ruler's answer moves the pawn and, from `UiBatch1`, pays.
     private leaveShroudedWood(state: HydratedOathGameState, chooser: string) {
         const reason = HydratedTravel.reasonCannotLeaveShroudedWood(state, this.playerId, this)
         if (reason) throw Error(`Cannot travel: ${reason}`)
         const player = state.getPlayerState(this.playerId)
         const fromSiteId = pawnSiteId(state, this.playerId)
-        const cost = HydratedTravel.shroudedWoodCost(state, this.playerId)
+        const paysAtPick = woodTravelPaysAtPick(state)
+        const free = isFreeTravelNow(state, this.playerId)
+        const cost = paysAtPick ? 0 : HydratedTravel.shroudedWoodCost(state, this.playerId)
         player.spendSupply(cost)
         HydratedTravel.useFreeTravel(state, this.playerId)
         askQuestion(state, this.playerId, {
@@ -189,11 +199,13 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             cardId: state.siteCardAt(fromSiteId) ?? fromSiteId,
             askedPlayerId: chooser,
             travelerPlayerId: this.playerId,
-            fromSiteId
+            fromSiteId,
+            ...(paysAtPick ? { travel: { free } } : {})
         })
         this.metadata = {
             fromSiteId,
             destinationChooser: chooser,
+            paysAtPick: paysAtPick || undefined,
             supplySpent: cost,
             supplyRemaining: player.supply
         }
@@ -209,9 +221,9 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         }
     }
 
-    /** R-11.7 — 2 Supply to leave, or none on a free Travel. */
+    /** R-11.7 — before `UiBatch1`: 2 Supply to leave, or none on a free Travel. */
     static shroudedWoodCost(state: HydratedOathGameState, playerId: string): number {
-        return state.getPlayerState(playerId).freeTravelAtAction === state.actionCount
+        return isFreeTravelNow(state, playerId)
             ? 0
             : siteTravelTerms(
                   state,
@@ -222,7 +234,10 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
               ).cost
     }
 
-    /** R-11.7 — leaving an enemy's Shrouded Wood names no destination and declares nothing on it. */
+    /**
+     * R-11.7 — leaving an enemy's Shrouded Wood names no destination and declares nothing on it,
+     * and the ruler must have a site the traveller can pay for.
+     */
     static reasonCannotLeaveShroudedWood(
         state: HydratedOathGameState,
         playerId: string,
@@ -233,7 +248,8 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             flipSecret?: boolean
         }
     ): string | undefined {
-        if (shroudedWoodChooser(state, playerId) === undefined) {
+        const chooser = shroudedWoodChooser(state, playerId)
+        if (chooser === undefined) {
             return 'no enemy rules the Shrouded Wood you stand at'
         }
         if (choice.siteId !== undefined) return "the Shrouded Wood's ruler chooses where you go"
@@ -244,9 +260,21 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         ) {
             return "nothing is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
         }
-        const cost = HydratedTravel.shroudedWoodCost(state, playerId)
         const supply = state.getPlayerState(playerId).supply
-        return supply < cost ? `costs ${cost} Supply, player has ${supply}` : undefined
+        if (!woodTravelPaysAtPick(state)) {
+            const cost = HydratedTravel.shroudedWoodCost(state, playerId)
+            return supply < cost ? `costs ${cost} Supply, player has ${supply}` : undefined
+        }
+        const free = isFreeTravelNow(state, playerId)
+        if (payableWoodPicks(state, playerId, free).length > 0) return undefined
+        const here = pawnSiteId(state, playerId)
+        const cheapest = Math.min(
+            ...state
+                .allSiteIds()
+                .filter((siteId) => siteId !== here)
+                .map((siteId) => woodPick(state, playerId, siteId, free).cost)
+        )
+        return `${chooser} would pick where you go, and you can pay for no site: the cheapest is ${cheapest} Supply, you have ${supply}`
     }
 
     static plan(
