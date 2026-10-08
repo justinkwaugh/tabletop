@@ -87,7 +87,7 @@
     <!-- The ground bleeds past the square so scaled boards show no seams. -->
     <rect x="-1" y="-1" width="102" height="102" fill={ground}></rect>
 
-    <g transform={showName ? 'translate(-1 0)' : 'translate(-1 8)'}>
+    <g transform={showName ? 'translate(2 0)' : 'translate(2 8)'}>
         <polygon points={backRail} fill={color}></polygon>
         <polygon points={backRail} fill="#000" opacity="0.45"></polygon>
 
