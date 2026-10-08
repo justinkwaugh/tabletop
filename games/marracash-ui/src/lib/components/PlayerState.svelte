@@ -25,6 +25,8 @@
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let isMe = $derived(player.id === gameSession.myPlayer?.id)
+    // Once the game is over every hand is shown, so all can see what each other held.
+    let handShown = $derived(isMe || gameSession.gameState.result !== undefined)
     let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
     let money = $derived(gameSession.visibleMoney(player.id))
     let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))
@@ -105,7 +107,7 @@
                     </div>
                     {@render tally(`${shortOrdinal(revealRank)} set`, payout)}
                 </div>
-            {:else if isMe && hand.length > 0}
+            {:else if handShown && hand.length > 0}
                 <div class="flex items-center gap-1">
                     <button
                         type="button"

@@ -75,5 +75,9 @@ test('a hotseat game plays through to the end', async ({ page }) => {
     await expect(gameOver).toBeVisible()
     await expect(actionPanel(page)).toContainText(/wins|share the win/)
     await expect(actionPanel(page)).toContainText('End of game')
+    // Every hand is shown once the game is over: each player's five antiques, held or completed
+    const players = page.getByRole('tabpanel').first()
+    await expect(players.getByText('hidden antiques')).toHaveCount(0)
+    await expect(players.getByRole('img', { name: / worth \d+/ })).toHaveCount(4 * 5)
     expect(errors).toEqual([])
 })

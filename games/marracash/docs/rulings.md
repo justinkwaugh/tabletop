@@ -40,11 +40,11 @@ The source files aren't in the repository.
 
 The **Antique Cards** game option, on by default. The original rulebook calls it the Souvenir Variant and the player aid the Antiques Variant. With it off, no cards are dealt and sets are never checked.
 
-- Each player is dealt 5 cards, visible only to them.
+- Each player is dealt 5 cards, visible only to them until the game ends.
 - **Dealing:** a rule from the designer, Stefan Dorra, given directly to this project and not in either rulebook. Each colour's cards are shuffled as a separate pile. Each player takes 2 cards from one random pile and 1 card from each of three other random piles, so every hand starts with a 2/1/1/1/0 colour split. Which colours are doubled and missing is random, limited only by there being 5 cards of each colour.
 - Every customer in a player's shops counts toward their set, from the start of the game. Two cards of one colour need two customers of that colour.
 - A completed set is detected, revealed and paid automatically, and every player sees it in the game history.
-- Undealt cards stay hidden all game. Hands that were never completed stay hidden after the game ends.
+- Undealt cards stay hidden all game. When the game ends, every hand that was never completed is shown to everyone, so all can see what each other held.
 - Antique payouts don't count toward the mover's-cut profit. The original variant counted card money, but it sold face-up cards one customer at a time; a completed set pays out all at once.
 - If one move completes two sets, they're ranked by the order their final customers entered, and sets completed by a turn's two moves rank in the order they were completed, even though all of them are revealed only when the turn commits.
 
