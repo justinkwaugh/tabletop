@@ -136,11 +136,13 @@
         }
     }
 
+    let scenariosOpen = $state(false)
     let runningScenario: string | undefined = $state(undefined)
     let scenarioError: string | undefined = $state(undefined)
 
     async function runScenario(scenario: HarnessScenario) {
         const sessionUser = authorizationService.getSessionUser()
+        scenariosOpen = false
         if (!sessionUser?.username || runningScenario) return
         runningScenario = scenario.id
         scenarioError = undefined
@@ -273,7 +275,7 @@
                             >{runningScenario ? 'Building…' : 'Scenarios'}<ChevronDownOutline
                                 class="ms-2"
                             /></Button
-                        ><Dropdown simple={true} class="max-w-[22rem]">
+                        ><Dropdown simple={true} class="max-w-[22rem]" bind:isOpen={scenariosOpen}>
                             {#each scenarios as scenario (scenario.id)}
                                 <DropdownItem class="w-full px-3 py-2 text-left" onclick={() => runScenario(scenario)}>
                                     <div class="font-semibold">{scenario.label}</div>
