@@ -2,6 +2,7 @@
     import { GoodsType } from '@tabletop/fresh-fish'
     import GoodsIcon from './GoodsIcon.svelte'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import { fitGoodsIcon } from '$lib/utils/goodsIconBounds.js'
     import {
         isLightColor,
         LABEL_DARK,
@@ -9,6 +10,7 @@
         luminance,
         PAINT_DARK,
         PAINT_LIGHT,
+        TRAY,
         rgbOf
     } from '$lib/utils/pieceColors.js'
 
@@ -26,6 +28,7 @@
     } = $props()
 
     const SHADE = 0.75
+    const BOARD = { x: 19, y: 38, width: 62, height: 39 }
 
     const id = `stall-${Math.random().toString(36).slice(2)}`
     const seed = Math.floor(Math.random() * 1000)
@@ -33,18 +36,11 @@
 
     let name = $derived(goodsType ? getGoodsName(goodsType).toUpperCase() : '')
     let light = $derived(isLightColor(color))
-    let paint = $derived(light ? PAINT_DARK : PAINT_LIGHT)
     let groundRgb = $derived(rgbOf(color).map((channel) => Math.round(channel * SHADE)))
     let ground = $derived(`rgb(${groundRgb.join(' ')})`)
     let nameColor = $derived(luminance(groundRgb) > 150 ? LABEL_DARK : LABEL_LIGHT)
 
-    // The goods icon centred on the counter front. Fish and cheese are wide and flat, so they
-    // draw larger; the cheese wedge and gelato cone sit low in their boxes, so they move up.
-    let counterIcon = $derived.by(() => {
-        const scale = goodsType === GoodsType.Fish || goodsType === GoodsType.Cheese ? 1.85 : 1.5
-        const dy = goodsType === GoodsType.Cheese ? -3 : goodsType === GoodsType.IceCream ? -2 : 0
-        return `translate(50 ${65 + dy}) scale(${scale}) translate(-10 -10)`
-    })
+    let boardIcon = $derived(goodsType ? fitGoodsIcon(goodsType, BOARD, { fill: 0.82 }) : undefined)
 
     // Alternate awning stripes: a pale tint of the player's colour, or on light colours
     // (yellow), a deeper shade, since a paler stripe would wash out.
@@ -58,9 +54,9 @@
     })
 
     const DEPTH = { x: 7, y: -5 }
-    const COUNTER = { left: 22, right: 78, top: 48, bottom: 80 }
+    const COUNTER = { left: 14, right: 86, top: 33, bottom: 82 }
     const POST = 3.5
-    const CANOPY = { left: 19, right: 81, front: 25, back: 17, valance: 5 }
+    const CANOPY = { left: 11, right: 89, front: 17, back: 11, valance: 4 }
     const STRIPES = 7
     const stripeWidth = (CANOPY.right - CANOPY.left) / STRIPES
     const stripes = Array.from({ length: STRIPES }, (_, k) => {
@@ -123,9 +119,9 @@
     <!-- The ground bleeds past the square so scaled boards show no seams. -->
     <rect x="-1" y="-1" width="102" height="102" fill={ground}></rect>
 
-    <g transform={showName ? 'translate(-3 -7)' : 'translate(-3 3)'}>
+    <g transform={showName ? 'translate(-3 -2)' : 'translate(-3 6)'}>
         <g filter="url(#{id}-soft)" opacity="0.45">
-            <polygon points="22,80 78,80 90,73 88,60 34,60" fill="#000"></polygon>
+            <polygon points="14,82 86,82 98,75 96,50 26,50" fill="#000"></polygon>
         </g>
 
         <polygon points={backBoard} fill={color}></polygon>
@@ -141,6 +137,8 @@
         <polygon points={counterTop} fill={color}></polygon>
         <polygon points={counterTop} fill="#fff" opacity="0.12"></polygon>
         <polygon points={counterFront} fill={color}></polygon>
+        <rect x={BOARD.x} y={BOARD.y} width={BOARD.width} height={BOARD.height} rx="2" fill={TRAY}
+        ></rect>
 
         {#each frontPosts as post (post.x)}
             <rect x={post.x} y={post.y} width={POST} height={post.h} fill={color}></rect>
@@ -186,9 +184,11 @@
             <polygon points={canopyRoof}></polygon>
         </g>
 
-        <g transform={counterIcon} opacity="0.92">
-            <GoodsIcon {goodsType} color={paint} />
-        </g>
+        {#if boardIcon}
+            <g transform={boardIcon}>
+                <GoodsIcon {goodsType} color={PAINT_DARK} painted />
+            </g>
+        {/if}
     </g>
 
     {#if showName}

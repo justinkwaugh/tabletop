@@ -2,6 +2,7 @@
     import { GoodsType } from '@tabletop/fresh-fish'
     import GoodsIcon from './GoodsIcon.svelte'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import { fitGoodsIcon } from '$lib/utils/goodsIconBounds.js'
     import { LABEL_LIGHT, PAINT_DARK, TRUCK_GROUND, TRUCK_WOOD } from '$lib/utils/pieceColors.js'
     import truckImg from '$lib/images/fish-truck.png'
 
@@ -15,6 +16,20 @@
     // The printed truck art's own outline is the stencil, so the wooden piece keeps its
     // rounded cartoon van shape exactly. The printed name below the van is cut off.
     const DEPTH = 5
+    const TRUCK_ICON_EDGE = 'rgb(74 50 22 / 0.55)'
+    const CARGO = { x: 28, y: 13, width: 62, height: 50 }
+
+    // Narrow icons sit forward of the cargo box's middle, where the eye reads the van's body.
+    const FORWARD_NUDGE: Partial<Record<GoodsType, number>> = {
+        [GoodsType.IceCream]: -4,
+        [GoodsType.Lemonade]: -4
+    }
+
+    let cargoIcon = $derived.by(() => {
+        if (!goodsType) return undefined
+        const fit = fitGoodsIcon(goodsType, CARGO, { fill: 0.86, maxCoverage: 0.45 })
+        return `translate(${FORWARD_NUDGE[goodsType] ?? 0} 0) ${fit}`
+    })
 </script>
 
 <svg
@@ -97,9 +112,11 @@
                 style="mix-blend-mode: multiply"
             ></rect>
         </g>
-        <g transform="translate(32 14) scale(2.4)" opacity="0.92">
-            <GoodsIcon {goodsType} color={PAINT_DARK} />
-        </g>
+        {#if cargoIcon}
+            <g transform={cargoIcon}>
+                <GoodsIcon {goodsType} color={PAINT_DARK} painted outline={TRUCK_ICON_EDGE} />
+            </g>
+        {/if}
     </g>
 
     <text
