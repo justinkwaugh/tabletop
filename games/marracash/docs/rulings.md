@@ -38,7 +38,7 @@ The source files aren't in the repository.
 
 ### Antique cards
 
-The **Antique Cards** game option, on by default. The original rulebook calls it the Souvenir Variant and the player aid the Antiques Variant. With it off, no cards are dealt and sets are never checked.
+The **Antique Cards** game option, off by default. The original rulebook calls it the Souvenir Variant and the player aid the Antiques Variant. With it off, no cards are dealt and sets are never checked.
 
 - Each player is dealt 5 cards, visible only to them until the game ends.
 - **Dealing:** a rule from the designer, Stefan Dorra, given directly to this project and not in either rulebook. Each colour's cards are shuffled as a separate pile. Each player takes 2 cards from one random pile and 1 card from each of three other random piles, so every hand starts with a 2/1/1/1/0 colour split. Which colours are doubled and missing is random, limited only by there being 5 cards of each colour.

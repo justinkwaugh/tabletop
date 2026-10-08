@@ -27,6 +27,8 @@ export function createGame(count: number, config: Partial<MarracashGameConfig> =
             ownerId: 'owner',
             config: normalizeGameConfig({
                 ...defaultGameConfig(MarracashInfo.configurator?.options ?? []),
+                // Most rules exercise the antique variant, so tests play it unless they say otherwise
+                antiqueCards: true,
                 ...config
             }),
             players: Array.from({ length: count }, (_, index) => ({

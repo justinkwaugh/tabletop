@@ -16,7 +16,8 @@ export async function createGame(page: Page, { concealedCash = false, antiqueCar
     if (concealedCash) {
         await options.first().click()
     }
-    if (!antiqueCards) {
+    // Antique Cards is off by default, and most tests play with them
+    if (antiqueCards) {
         await options.nth(1).click()
     }
     const names = page.locator('input[placeholder="player name"]:not([disabled])')
