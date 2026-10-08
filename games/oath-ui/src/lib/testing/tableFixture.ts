@@ -102,6 +102,10 @@ export type TableName =
     | 'citizenshipNone'
     | 'citizenshipEnough'
     | 'freeTravel'
+    | 'askedOffTurn'
+    | 'defenderPlans'
+    | 'oathkeeperChoice'
+    | 'sneakAttackHeld'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -601,8 +605,8 @@ function joinDefenceAskedTable(): PlayedTable {
     ])
 }
 
-/** R-5.5.6.a — a won battle whose defending force spans two groups, so the defending side chooses. */
-function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
+/** R-5.5.5 — the attacker's sacrifice after a won roll, against a defending force in two groups. */
+function wonBattle(defence: 'exile' | 'imperial') {
     const imperial = defence === 'imperial'
     const owner = imperial ? IMPERIAL_WARBANDS : 'def'
     const defendingForce: WarbandGroup[] = [
@@ -659,10 +663,105 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     )
     openTurn(state, 'att')
     state.activePlayerIds = ['att']
-    const table = tableOf(state)
+    return state
+}
+
+/** R-5.5.6.a — a won battle whose defending force spans two groups, so the defending side chooses. */
+function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
+    const table = tableOf(wonBattle(defence))
     return played(table, [
         createAction(CampaignSacrifice, { ...envelope(table), playerId: 'att', sacrifice: 0 })
     ])
+}
+
+/** R-5.5.3 — the defender answers with battle plans before anything is rolled, on the attacker's turn. */
+function defenderPlansTable(): PlayedTable {
+    const state = wonBattle('exile')
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is a Campaign')
+    state.machineState = MachineState.CampaignPlans
+    state.campaign = {
+        ...campaign,
+        attackRoll: [],
+        defenseRoll: [],
+        pendingDefenderPlans: { queue: ['def'] }
+    }
+    state.activePlayerIds = ['def']
+    return tableOf(state)
+}
+
+/** Sneak Attack — the campaigner chooses a sacrifice while the defender's own turn is paused. */
+function sneakAttackHeldTable(): PlayedTable {
+    const state = wonBattle('exile')
+    openTurn(state, 'def')
+    state.heldTurn = { queue: [], askingPlayerId: 'def', resumeMachineState: MachineState.ActPhase }
+    return tableOf(state)
+}
+
+/** R-X.1 — a card asks a seat whose turn it is not (Herald, during another seat's Act Phase). */
+function askedOffTurnTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Red, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.PickFavorBank,
+                        cardId: 'denizen.hearth.herald',
+                        askedPlayerId: 'ann',
+                        amount: 1
+                    }
+                ],
+                askingPlayerId: 'dev',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-2.11.b — the outgoing Oathkeeper names the new holder during another seat's turn. */
+function oathkeeperChoiceTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Red, siteId: 'c2' }),
+            testPlayer({ playerId: 'cal', color: Color.Blue, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.OathkeeperChoice,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            pendingOathkeeperChoice: {
+                holderPlayerId: 'ann',
+                candidates: ['dev', 'cal'],
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
 }
 
 /** R-5.5: the seat stands at the Chancellor's site, which the Empire rules. */
@@ -1257,7 +1356,11 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     citizenshipShort: () => citizenshipOfferedTable(3, { secrets: 1 }),
     citizenshipNone: () => citizenshipOfferedTable(0, { secrets: 1 }),
     citizenshipEnough: () => citizenshipOfferedTable(5),
-    freeTravel: freeTravelTable
+    freeTravel: freeTravelTable,
+    askedOffTurn: askedOffTurnTable,
+    defenderPlans: defenderPlansTable,
+    oathkeeperChoice: oathkeeperChoiceTable,
+    sneakAttackHeld: sneakAttackHeldTable
 }
 
 /** Every table a scenario can open. */

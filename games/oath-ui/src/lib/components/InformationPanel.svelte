@@ -1,28 +1,10 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { heldTurnOf } from '$lib/model/campaignTurn.js'
+    import { turnBarOf } from '$lib/model/turnBar.js'
 
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
-
-    const PHASE_NAMES: Record<MachineState, string> = {
-        [MachineState.Setup]: 'Setup',
-        [MachineState.WakePhase]: 'Wake Phase',
-        [MachineState.ActPhase]: 'Act Phase',
-        [MachineState.RestPhase]: 'Rest Phase',
-        [MachineState.EndOfRound]: 'End of round',
-        [MachineState.Searching]: 'Searching — resolve the draw',
-        [MachineState.CampaignPlans]: 'Campaign — the defending side uses battle plans',
-        [MachineState.CampaignSacrifice]: 'Campaign — choose a sacrifice',
-        [MachineState.CampaignDefeat]: 'Campaign — the defending side chooses its losses',
-        [MachineState.CampaignVictory]: 'Campaign — take the spoils',
-        [MachineState.OathkeeperChoice]: 'Oathkeeper — choose a successor',
-        [MachineState.ConsentRequest]: 'A question — an answer is owed',
-        [MachineState.PowerQuestion]: 'A card asks — an answer is owed',
-        [MachineState.EndOfGame]: 'Game over'
-    }
 
     // R-X.3 — `GameSession.undoableAction` stops at the first action that set `revealsInfo`.
     let undoable = $derived(gameSession.isViewingHistory ? undefined : gameSession.undoableAction)
@@ -30,42 +12,27 @@
     let undoOffered = $derived(pickInProgress || undoable !== undefined)
     let busy = $derived(gameSession.busy)
 
-    // R-3.3 — between rounds the clock is the Chancellor's roll, not a turn.
-    let endOfRound = $derived(gameState.machineState === MachineState.EndOfRound)
-    let turnWord = $derived(endOfRound ? 'roll' : 'turn')
-    let phase = $derived(
-        endOfRound
-            ? `${PHASE_NAMES[gameState.machineState]} ${gameState.round}`
-            : PHASE_NAMES[gameState.machineState]
-    )
-    let activePlayerId = $derived(gameState.activePlayerIds[0])
-    let heldTurn = $derived(heldTurnOf(gameState))
+    let bar = $derived(turnBarOf(gameState))
+    let clock = $derived(`${bar.roll ? 'roll' : 'turn'}${bar.paused ? ' is paused' : ''}`)
 </script>
 
 <div
     class="info mb-2 rounded-lg bg-oath-surface border border-oath-frame px-3 py-1.5 text-oath-text"
 >
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        {#if heldTurn}
-            <span class="text-base font-semibold">
-                <PlayerName playerId={heldTurn.campaignerId} />
-                {heldTurn.campaignerId === gameSession.myPlayer?.id ? 'are' : 'is'} campaigning out of
-                turn
-            </span>
-            <span class="text-xs text-oath-text-muted">
-                <PlayerName playerId={heldTurn.turnPlayerId} possessive /> turn is held
-            </span>
-        {:else if activePlayerId}
+        {#if bar.playerId}
             <span class="text-base font-semibold">
                 <!-- `PlayerName` prints "You" for the viewer. -->
-                {#if activePlayerId === gameSession.myPlayer?.id}
-                    Your {turnWord}
+                {#if bar.playerId === gameSession.myPlayer?.id}
+                    Your {clock}
                 {:else}
-                    <PlayerName playerId={activePlayerId} />'s {turnWord}
+                    <PlayerName playerId={bar.playerId} />'s {clock}
                 {/if}
             </span>
+            <span class="text-sm text-oath-text-muted">{bar.phase}</span>
+        {:else}
+            <span class="text-base font-semibold">{bar.phase}</span>
         {/if}
-        <span class="text-sm text-oath-text-muted">{phase}</span>
         {#if undoOffered}
             <button
                 type="button"

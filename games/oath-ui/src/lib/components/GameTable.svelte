@@ -280,8 +280,8 @@
     .info-wrap {
         display: contents;
     }
-    /* On a phone held sideways the Act Phase header already says what the
-       information line says; its height goes to the buttons. */
+    /* On a phone held sideways, in your own Act Phase the grid's End button already
+       names the phase the information line names; its height goes to the buttons. */
     @media (max-height: 520px) and (orientation: landscape) {
         .info-wrap--redundant {
             display: none;

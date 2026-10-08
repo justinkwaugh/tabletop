@@ -404,6 +404,78 @@ test('Undo reads "Undo" and has no hover, both for a sent move and for a pick', 
     await expect(undo).not.toHaveAttribute('title')
 })
 
+/** The turn bar's main line and the words after it, whitespace collapsed. */
+async function turnBar(page: Page): Promise<string[]> {
+    const lines = await page.locator('.info > div > span').allTextContents()
+    return lines.map((line) => line.replace(/\s+/g, ' ').trim())
+}
+
+/** The turn bar names whose turn it is and the turn's phase, whichever seat the engine waits on. */
+test.describe('the turn bar', () => {
+    test('a card asks a seat on another seat’s turn: the bar names the turn and its phase', async ({ page }) => {
+        await openTable(page, 'askedOffTurn')
+        expect((await call(page, 'tableFacts')).seatId).toBe('ann')
+        await expect.poll(() => turnBar(page)).toEqual(["dev's turn", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('a seat asks another for permission on its own turn: the bar names the asker’s turn', async ({ page }) => {
+        await openTable(page, 'warbandMoveAsked')
+        expect((await call(page, 'tableFacts')).seatId).toBe('chan')
+        await expect.poll(() => turnBar(page)).toEqual(["cit's turn", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('cit')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('the defender’s battle plans: the bar names the attacker’s turn', async ({ page }) => {
+        await openTable(page, 'defenderPlans')
+        expect((await call(page, 'tableFacts')).seatId).toBe('def')
+        await expect.poll(() => turnBar(page)).toEqual(["att's turn", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('att')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('the defending side’s losses: the bar names the attacker’s turn', async ({ page }) => {
+        await openTable(page, 'exileDefeated')
+        expect((await call(page, 'tableFacts')).seatId).toBe('def')
+        await expect.poll(() => turnBar(page)).toEqual(["att's turn", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('att')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('the Oathkeeper title’s choice on another seat’s turn: the bar names the turn', async ({ page }) => {
+        await openTable(page, 'oathkeeperChoice')
+        expect((await call(page, 'tableFacts')).seatId).toBe('ann')
+        await expect.poll(() => turnBar(page)).toEqual(["dev's turn", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('a Campaign out of turn: the bar says whose turn is paused, not who campaigns', async ({ page }) => {
+        await openTable(page, 'sneakAttackHeld')
+        expect((await call(page, 'tableFacts')).seatId).toBe('att')
+        await expect.poll(() => turnBar(page)).toEqual(["def's turn is paused", 'Act Phase'])
+        expect(await call(page, 'viewOffTheClock')).toBe('def')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn is paused', 'Act Phase'])
+        await expect(page.locator('.info')).not.toContainText('campaigning')
+    })
+
+    test('setup: no turn has begun, so the bar names nobody', async ({ page }) => {
+        await openTable(page, 'setup')
+        await expect.poll(() => turnBar(page)).toEqual(['Setup'])
+        expect(await call(page, 'viewOffTheClock')).toBeDefined()
+        await expect.poll(() => turnBar(page)).toEqual(['Setup'])
+    })
+
+    test('between rounds: the bar names the Chancellor’s roll', async ({ page }) => {
+        await openTable(page, 'endOfRound')
+        await expect.poll(() => turnBar(page)).toEqual(['Your roll', 'End of round 6'])
+        expect(await call(page, 'viewOffTheClock')).toBe('dev')
+        await expect.poll(() => turnBar(page)).toEqual(["ann's roll", 'End of round 6'])
+    })
+})
+
 /** Scenario 30: a warband move that needs the Chancellor's permission (R-6.5.a). */
 test.describe('scenario 30: answering another player’s request', () => {
     test('the asked player sees who asks for what; nothing moves until Allow, which moves it', async ({
