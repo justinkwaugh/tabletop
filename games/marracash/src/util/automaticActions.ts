@@ -27,11 +27,15 @@ export function queueAntiqueSetCompletions(context: MachineContext<HydratedMarra
 }
 
 // Undo stops only where hidden information is revealed. Ending a turn reveals nothing, except
-// that the game's last turn shows Concealed Cash.
+// that the game's last turn shows Concealed Cash and every unfinished antique hand.
 export function queueEndTurn(context: MachineContext<HydratedMarracashGameState>) {
-    const revealsConcealedCash =
-        context.gameState.turnEndsGame() && context.gameConfig.concealedCash === true
-    context.addSystemAction(EndTurn, { revealsInfo: revealsConcealedCash })
+    const { gameState } = context
+    const revealsConcealedCash = context.gameConfig.concealedCash === true
+    const revealsHands =
+        gameState.antiqueCards && gameState.players.some((player) => player.antiques.length > 0)
+    context.addSystemAction(EndTurn, {
+        revealsInfo: gameState.turnEndsGame() && (revealsConcealedCash || revealsHands)
+    })
 }
 
 export function queueTurnCommit(context: MachineContext<HydratedMarracashGameState>) {
