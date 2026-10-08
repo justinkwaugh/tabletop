@@ -80,6 +80,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData
+    /** The phase chart for the game's state, where a variant changes the trains or phases. */
+    phaseChartFor?(state: State): PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
     marketPoolId: string

@@ -3,6 +3,7 @@ import { EighteenThirtyTileSet } from './tiles.js'
 import {
     PhaseTable,
     TrainDepot,
+    dieselTrains,
     requiresStationRoute,
     type TrainInventory,
     type TrainRules
@@ -80,22 +81,16 @@ export const EighteenThirtyPhases = new PhaseTable(
 )
 export const EighteenThirtyTrainRules: TrainRules = {
     depot: EighteenThirtyTrainDepot,
-    exchangePrice: (state, _companyId, definitionId, train) =>
-        EighteenThirtyPhases.isAtLeast(state.phaseId, '6') &&
-        definitionId === 'D' &&
-        ['4', '5', '6'].includes(train.definitionId)
-            ? 800
-            : undefined,
     requiresTrain: requiresStationRoute(EighteenThirtyMap, EighteenThirtyTileSet),
-    availableDefinitions(state) {
-        const next = EighteenThirtyTrainDepot.nextDefinitionId(state.trainInventory)
-        return [
-            ...new Set([
-                ...(next ? [next] : []),
-                ...(EighteenThirtyPhases.isAtLeast(state.phaseId, '6') ? ['D'] : [])
-            ])
-        ]
-    },
+    // Diesels go on sale with the first 6-train, taking 4-, 5- and 6-trains for $300 off.
+    ...dieselTrains({
+        depot: EighteenThirtyTrainDepot,
+        phases: EighteenThirtyPhases,
+        dieselId: 'D',
+        fromPhaseId: '6',
+        tradeInIds: ['4', '5', '6'],
+        credit: 300
+    }),
     phaseAfterPurchase: (state, definitionId) =>
         EighteenThirtyPhases.phaseAfterPurchase(state.phaseId, definitionId),
     trainLimit: (state) => EighteenThirtyPhases.phase(state.phaseId).trainLimit,

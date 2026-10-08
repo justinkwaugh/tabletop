@@ -9,7 +9,7 @@ import {
 } from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
-import { EighteenThirtyTwoPhaseChart } from './phaseChart.js'
+import { EighteenThirtyTwoPhaseChart, eighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
 
 // A System names its letter and the two companies it was formed from (§11.6).
@@ -24,6 +24,7 @@ function systemFacts(state: EighteenThirtyTwoState, companyId: string) {
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
     money: moneyFormat('$'),
     phaseChart: EighteenThirtyTwoPhaseChart,
+    phaseChartFor: eighteenThirtyTwoPhaseChart,
     trainColors: EighteenThirtyTwoTrainColors,
     phaseColors: EighteenThirtyTwoTrainColors,
     marketPoolId: 'open-market',

@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     RailwayMapState,
     charterStationCost,

@@ -112,6 +112,7 @@ export * from './trains/train.js'
 export * from './trains/trainDepartures.js'
 export * from './trains/trainDepot.js'
 export * from './trains/trainPurchase.js'
+export * from './trains/diesels.js'
 
 export * from './routes/route.js'
 export * from './routes/routeEvaluation.js'

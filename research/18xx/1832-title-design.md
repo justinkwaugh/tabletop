@@ -506,18 +506,27 @@ Game options record the chosen variants in the title state's `variants` (§17).
   the company that reached it finishes its turn, or at once when it happens at a stock round's
   end. The ending trigger checks only between companies and as an operating set starts.
 - **Diesels** (§17.2). The 8- and 10-trains leave the depot. From the first 6-train, 12-trains
-  may be bought as diesels, any train traded in for $300 off. The diesel phase rusts 4-trains,
-  as phase 8 would have; 5-trains never rust. **Ruling:** the diesel keeps the 12-train's
-  price, $1100, its twelve stops and its name.
+  may be bought as diesels, a 4-, 5- or 6-train traded in for $300 off as in 1830 (the shared
+  `dieselTrains` serves both titles). The diesel phase rusts 4-trains, as phase 8 would have;
+  5-trains never rust. **Rulings:** the diesel keeps the 12-train's price, $1100, its twelve
+  stops and its name; with phases 8 and 10 gone, offboards pay their last value and the Key
+  West token leaves at the first diesel. The phase chart drops phases 8 and 10 and their trains
+  under this variant.
 - **No mergers** (§17.6). No merger phase is held.
 
 ### Completion
 
-The playground's full-game bot plays 1832 too: a waterfall opening with the CoG's par, five
-companies, track every turn, dividends, forced purchases, protection declined, merger phases
-forming Systems when offered, closures, and a broken bank. Its history replays and undoes.
+The playground's full-game bot plays 1832 too: a waterfall opening with the CoG's par, up to
+five live companies, track every turn, dividends withheld only to afford a train, depot and
+market trains, forced purchases, protection declined, merger phases forming Systems when
+offered, the last merger phase, closures, phase 12 and a broken bank. Its history replays and
+undoes.
 The playground records such a game as 1832's finished game, whose history shows the merger
 phases. The 2–7 player openings complete.
+
+Options are chosen where the site offers 1832's configurator; the playground replaces it with
+its scenario positions, so variants there are seen only through tests until 1832 has a site
+entry.
 
 ### Limits after slice 6
 

@@ -32,7 +32,10 @@ export function createPhaseChart({
     rustNotes = {},
     rustPhases = {},
     phaseNotes = {},
-    notes = []
+    notes = [],
+    omittedPhaseIds = [],
+    omittedTrainIds = [],
+    permanentTrainIds = []
 }: {
     phases: PhaseTable
     depot: TrainDepot
@@ -40,32 +43,42 @@ export function createPhaseChart({
     rustPhases?: Readonly<Record<string, string>>
     phaseNotes?: Readonly<Record<string, string>>
     notes?: readonly string[]
+    /** Phases and trains a variant leaves out, and trains it makes permanent. */
+    omittedPhaseIds?: readonly string[]
+    omittedTrainIds?: readonly string[]
+    permanentTrainIds?: readonly string[]
 }): PhaseChartData {
     return {
-        phases: phases.phases.map(({ id, tileColors, operatingRounds, trainLimit }) => ({
-            id,
-            tileColors,
-            operatingRounds,
-            trainLimit,
-            notes: phaseNotes[id]
-        })),
+        phases: phases.phases
+            .filter(({ id }) => !omittedPhaseIds.includes(id))
+            .map(({ id, tileColors, operatingRounds, trainLimit }) => ({
+                id,
+                tileColors,
+                operatingRounds,
+                trainLimit,
+                notes: phaseNotes[id]
+            })),
         trains: depot.definition.supply.flatMap(({ definitionId }) =>
-            depot
-                .certificateDefinitions(definitionId)
-                .map((id) => depot.trainDefinition(id))
-                .toSorted((first, second) => first.price - second.price)
-                .map((train) => {
-                    const rustPhaseId = rustPhases[train.id] ?? phases.rustPhaseId(train.id)
-                    return {
-                        id: train.id,
-                        name: train.name,
-                        price: train.price,
-                        supplyId: definitionId,
-                        rustPhaseId,
-                        rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
-                        rustNote: rustNotes[train.id]
-                    }
-                })
+            omittedTrainIds.includes(definitionId)
+                ? []
+                : depot
+                      .certificateDefinitions(definitionId)
+                      .map((id) => depot.trainDefinition(id))
+                      .toSorted((first, second) => first.price - second.price)
+                      .map((train) => {
+                          const rustPhaseId = permanentTrainIds.includes(train.id)
+                              ? undefined
+                              : (rustPhases[train.id] ?? phases.rustPhaseId(train.id))
+                          return {
+                              id: train.id,
+                              name: train.name,
+                              price: train.price,
+                              supplyId: definitionId,
+                              rustPhaseId,
+                              rustTrainIds: rustPhaseId ? phases.phase(rustPhaseId).startedBy : [],
+                              rustNote: rustNotes[train.id]
+                          }
+                      })
         ),
         notes
     }

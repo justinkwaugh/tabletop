@@ -10,8 +10,6 @@ import {
 import { requireEighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoPrivateCatalog } from './privates.js'
 
-// Bankruptcy ends the game at once; a broken bank after the operating set (§13). Shares count
-// at market value and privates at face value (§14).
 const FinishPrice = 400
 
 /**
@@ -28,6 +26,8 @@ function reachedFinishPrice(state: EndingState) {
     )
 }
 
+// Bankruptcy ends the game at once; a broken bank after the operating set (§13). Shares count
+// at market value and privates at face value (§14).
 export const EighteenThirtyTwoEndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }

@@ -117,11 +117,14 @@
         poolName,
         trainColors,
         phaseColors,
-        phaseChart,
+        phaseChart: defaultPhaseChart,
         portfolioCompanyIds = [],
         includedPortfolioCompanyIds = [],
         privatePurchaseLabel = 'Buy privates'
     } = $derived(session.presentation)
+    const phaseChart = $derived(
+        session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
+    )
     const operatingRules = $derived(session.operatingRules)
     const valuationRules = $derived(session.valuationRules)
     const phaseTileColors = $derived(

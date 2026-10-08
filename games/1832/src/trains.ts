@@ -1,7 +1,9 @@
 import { requireEighteenThirtyTwoState } from './state.js'
 import { shellsOf } from './systems.js'
+import type { EighteenThirtyTwoTitleState } from './titleState.js'
 import {
     PhaseTable,
+    dieselTrains,
     TrainDepot,
     requiresStationRoute,
     type TrainInventory,
@@ -38,9 +40,9 @@ export const EighteenThirtyTwoTrainDepot = new TrainDepot({
 })
 
 /** The depot's trains; the diesels variant takes the 8- and 10-trains out (§17.2). */
-export function createEighteenThirtyTwoTrainInventory(variants: {
-    diesels?: true
-}): TrainInventory {
+export function createEighteenThirtyTwoTrainInventory(
+    variants: EighteenThirtyTwoTitleState['variants']
+): TrainInventory {
     const inventory = EighteenThirtyTwoTrainDepot.createInventory()
     if (!variants.diesels) return inventory
     return {
@@ -52,10 +54,6 @@ export function createEighteenThirtyTwoTrainInventory(variants: {
         )
     }
 }
-
-// With diesels, a train may be traded in for $300 off a diesel from the first 6-train (§17.2).
-const DieselId = '12'
-const DieselTradeIn = 300
 
 const yellow = ['yellow']
 const green = ['yellow', 'green']
@@ -82,24 +80,29 @@ export function revenueStages(phaseId: string): readonly string[] {
     return ['yellow']
 }
 
+// With diesels, 12-trains go on sale with the first 6-train as 1830's diesels, taking 4-, 5- and
+// 6-trains for $300 off (§17.2).
+const Diesels = dieselTrains({
+    depot: EighteenThirtyTwoTrainDepot,
+    phases: EighteenThirtyTwoPhases,
+    dieselId: '12',
+    fromPhaseId: '6',
+    tradeInIds: ['4', '5', '6'],
+    credit: 300
+})
+
 export const EighteenThirtyTwoTrainRules: TrainRules = {
     depot: EighteenThirtyTwoTrainDepot,
     requiresTrain: requiresStationRoute(EighteenThirtyTwoMap, EighteenThirtyTwoTileSet),
-    exchangePrice(state, _companyId, definitionId) {
-        if (
-            !requireEighteenThirtyTwoState(state).variants.diesels ||
-            definitionId !== DieselId ||
-            !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6')
-        )
-            return undefined
-        return EighteenThirtyTwoTrainDepot.trainDefinition(DieselId).price - DieselTradeIn
-    },
+    exchangePrice: (state, companyId, definitionId, train) =>
+        requireEighteenThirtyTwoState(state).variants.diesels
+            ? Diesels.exchangePrice(state, companyId, definitionId, train)
+            : undefined,
     availableDefinitions(state) {
+        if (requireEighteenThirtyTwoState(state).variants.diesels)
+            return Diesels.availableDefinitions(state)
         const next = EighteenThirtyTwoTrainDepot.nextDefinitionId(state.trainInventory)
-        const diesels =
-            requireEighteenThirtyTwoState(state).variants.diesels &&
-            EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6')
-        return [...new Set([...(next ? [next] : []), ...(diesels ? [DieselId] : [])])]
+        return next ? [next] : []
     },
     phaseAfterPurchase: (state, definitionId) =>
         EighteenThirtyTwoPhases.phaseAfterPurchase(state.phaseId, definitionId),
