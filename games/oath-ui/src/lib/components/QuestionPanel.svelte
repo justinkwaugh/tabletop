@@ -10,6 +10,7 @@
     import QuestionForm from '$lib/components/QuestionForm.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
     import QuestionStackOrder from '$lib/components/QuestionStackOrder.svelte'
+    import QuestionToll from '$lib/components/QuestionToll.svelte'
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
     import QuestionWoodPick from '$lib/components/QuestionWoodPick.svelte'
@@ -171,7 +172,9 @@
                         width={siteWidth}
                         onclick={() => draft.travelTo(siteId)}
                     >
-                        {siteName(gameState, siteId)}
+                        {siteName(gameState, siteId)}{#if draft.travelTollAt(siteId)}<TokenText
+                                text=" · +1 favor"
+                            />{/if}
                     </MenuChoice>
                 {/each}
             </div>
@@ -238,5 +241,7 @@
             {#snippet line()}Propose an exchange?{/snippet}
             <QuestionGatheringFloor />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.PayTravelToll}
+        <QuestionToll question={mine} />
     {/if}
 </div>

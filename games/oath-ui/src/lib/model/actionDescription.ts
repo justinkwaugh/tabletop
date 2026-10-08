@@ -40,6 +40,7 @@ import {
     isUseRestPower,
     cardPower,
     soleOwner,
+    PowerMoveTollOutcome,
     IMPERIAL_WARBANDS,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
@@ -77,6 +78,7 @@ import {
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
 import type { WarbandWhose } from '$lib/model/tokenText.js'
+import { tollMoveText, tollStoryText, tollsGivenText } from '$lib/model/tollMoveText.js'
 
 // Past tense with no leading capital or possessive about the actor: `PlayerName` renders "You" first.
 // R-9.4 — a card is named only where the game showed it, recorded as `playedCardId`.
@@ -107,12 +109,17 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
 
 export function rowActorOf(action: GameAction): string | undefined {
     if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
-    return woodTravelerOf(action) ?? action.playerId
+    return woodTravelerOf(action) ?? tollMoverOf(action) ?? action.playerId
 }
 
 /** R-11.7 — the ruler's pick settles the traveller's Travel, so the row is the traveller's. */
 function woodTravelerOf(action: GameAction): string | undefined {
     return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
+}
+
+/** Toll Roads — the moved player's answer tells the mover's story, so it starts with the mover. */
+function tollMoverOf(action: GameAction): string | undefined {
+    return isAnswerQuestion(action) ? action.metadata?.tollMove?.moverPlayerId : undefined
 }
 
 /**
@@ -445,11 +452,15 @@ function describeActionCited(
             ...(taken.length > 0 ? [`taking ${taken.join(', ')}`] : []),
             ...(seized.length > 0 ? [`seizing ${seized.join(' and ')}`] : [])
         ]
+        const toll = meta?.tollMove
         return (
             'took the spoils' +
             (gains.length > 0 ? `, ${gains.join(' and ')}` : '') +
             ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '') +
-            placementsClause(action.placements, action.playerId, names)
+            placementsClause(action.placements, action.playerId, names) +
+            (toll && toll.outcome !== PowerMoveTollOutcome.Asked
+                ? `; ${tollStoryText(toll, names, viewerId)}`
+                : '')
         )
     }
     if (isPlayFacedownAdviser(action)) {
@@ -472,11 +483,15 @@ function describeActionCited(
         )
     }
     if (isUseActionPower(action)) {
-        return (
-            `used ${cardName(action.cardId)}` +
-            printedCost(action.cardId, action.powerIndex) +
-            powerEffect(action, names, viewerId)
-        )
+        const cost = printedCost(action.cardId, action.powerIndex)
+        const toll = action.metadata?.tollMove
+        if (toll) return tollMoveText(toll, names, viewerId, cost)
+        const tolls = action.metadata?.tollsGiven ?? []
+        const paying =
+            tolls.length > 0
+                ? `${cost ? ' and' : ','} ${tollsGivenText(tolls, names, viewerId, action.playerId)}`
+                : ''
+        return `used ${cardName(action.cardId)}${cost}${paying}${powerEffect(action, names, viewerId)}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -509,6 +524,7 @@ function describeActionCited(
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
         if (meta?.woodPick) return describeWoodPick(meta.woodPick, action.playerId, names, viewerId)
+        if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
             : 'answered a question'

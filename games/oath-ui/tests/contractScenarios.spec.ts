@@ -5528,3 +5528,71 @@ for (const viewport of [
         })
     })
 }
+
+/** Toll Roads on a power's move and Forced Labor on Oracle: the moved player's question, the mover's wait, Oracle's toll line. */
+test.describe('Toll Roads when a power moves another player', () => {
+    const answers = (page: Page) => ({
+        pay: grid(page).getByRole('button', { name: 'Pay', exact: true }),
+        refuse: grid(page).getByRole('button', { name: 'Refuse', exact: true })
+    })
+
+    test('the moved player is asked; Pay sends them, and the History tells the whole story', async ({ page }) => {
+        expect((await openTable(page, 'tollAsked')).seatId).toBe('Jacob')
+        await expect(grid(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+        await expect(grid(page)).toContainText('Pay Cole 1?')
+        const { pay, refuse } = answers(page)
+        const [payBox, refuseBox] = [await pay.boundingBox(), await refuse.boundingBox()]
+        // Desktop: the two answers share the wider label's width, and nothing stretches.
+        expect(payBox?.width).toBeCloseTo(refuseBox?.width ?? 0, 0)
+        expect(payBox?.width ?? 999).toBeLessThan(120)
+
+        await pay.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+        expect((await call(page, 'tableFacts')).favorOf).toMatchObject({ Jacob: 3, Cole: 4 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        const history = page.locator('.history')
+        await expect(history).toContainText("used the Whistle on Jacob; Jacob paid you 1 (Toll Roads) and went to the Great Slum, taking the Whistle's 1")
+        await expect(history).toContainText('used the Whistle on Jacob, placing 1 on it')
+    })
+
+    test('Refuse leaves the pawn where it was', async ({ page }) => {
+        await openTable(page, 'tollAsked')
+        await answers(page).refuse.click()
+        await expect(answers(page).refuse).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.2')
+    })
+
+    test('the mover reads only who they are waiting on', async ({ page }) => {
+        await openTable(page, 'tollAsked')
+        expect(await call(page, 'viewOffTheClock')).toBe('Cole')
+        await expect(grid(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+        await expect(grid(page)).toContainText('Waiting on Jacob.')
+        await expect(answers(page).pay).toHaveCount(0)
+    })
+
+    test('Oracle at a Forced Labor site shows its toll; with no favor its row is hidden', async ({ page }) => {
+        await openTable(page, 'oracleToll')
+        await usePower(page).click()
+        const oracle = grid(page).locator('div.flex.gap-2.items-start').filter({ hasText: 'Oracle' })
+        await expect(oracle).toContainText('+1 to Cole')
+
+        await openTable(page, 'oracleNoFavor')
+        await usePower(page).click()
+        await expect(grid(page)).toContainText('Whistle')
+        await expect(grid(page).getByText('Oracle', { exact: true })).toHaveCount(0)
+    })
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('Pay and Refuse share the row', async ({ page }) => {
+            await openTable(page, 'tollAsked')
+            const { pay, refuse } = answers(page)
+            await expect(pay).toBeVisible()
+            const [payBox, refuseBox] = [await pay.boundingBox(), await refuse.boundingBox()]
+            expect(payBox?.width).toBeCloseTo(refuseBox?.width ?? 0, 0)
+            expect(payBox?.y).toBeCloseTo(refuseBox?.y ?? 0, 0)
+            expect(payBox?.width ?? 0).toBeGreaterThan(90)
+        })
+    })
+})
