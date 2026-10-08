@@ -21,6 +21,8 @@
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
+    import CourierPrimeFont from '$lib/fonts/CourierPrime-Regular.woff2'
+    import CourierPrimeBoldFont from '$lib/fonts/CourierPrime-Bold.woff2'
 
     let { gameSession }: { gameSession: GameSession<HcgGameState, HydratedHcgGameState> } =
         $props()
@@ -65,6 +67,13 @@
     format="woff2"
     fontWeight="400 700"
     fontStyle="italic"
+/>
+<CustomFont fontFamily="Courier Prime" url={CourierPrimeFont} format="woff2" fontWeight="400" />
+<CustomFont
+    fontFamily="Courier Prime"
+    url={CourierPrimeBoldFont}
+    format="woff2"
+    fontWeight="700"
 />
 
 <div class="bg-[#efe2c2]">

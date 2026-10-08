@@ -1,8 +1,7 @@
 <script lang="ts">
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardLayout.js'
     import ActionBoard from './board/ActionBoard.svelte'
-    import CompanyCards from './board/CompanyCards.svelte'
-    import EndGameTracker from './board/EndGameTracker.svelte'
+    import EndGameMarker from './board/EndGameMarker.svelte'
     import MapLayer from './board/MapLayer.svelte'
     import MapLegend from './board/MapLegend.svelte'
     import RoundTracker from './board/RoundTracker.svelte'
@@ -22,8 +21,7 @@
     <MapLegend />
     <ActionBoard />
     <RoundTracker />
-    <CompanyCards />
-    <EndGameTracker />
+    <EndGameMarker />
 </svg>
 
 <style>

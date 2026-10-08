@@ -33,14 +33,7 @@ import {
     type BuildCost
 } from './network.js'
 import { HcgPlayerState, HydratedHcgPlayerState } from './playerState.js'
-import {
-    companyValue,
-    companyValueBreakdown,
-    markersIn,
-    markersPlaced,
-    valuePerShare,
-    type ValueBreakdown
-} from './valuation.js'
+import { companyValue, markersIn, markersPlaced, valuePerShare } from './valuation.js'
 
 export const COMPANIES_EXHAUSTED_TO_END = 2
 
@@ -269,10 +262,6 @@ export class HydratedHcgGameState
 
     value(companyId: CompanyId): number {
         return companyValue(this, companyId)
-    }
-
-    valueBreakdown(companyId: CompanyId): ValueBreakdown {
-        return companyValueBreakdown(this, companyId)
     }
 
     perShare(companyId: CompanyId): number {

@@ -57,31 +57,16 @@ export function actionBoxX(space: ActionSpace): number {
 }
 
 export const LEGEND_RECT = {
-    x: MAP_RECT.x + MAP_RECT.width - 230,
-    y: MAP_RECT.y + MAP_RECT.height - 168,
-    width: 222,
-    height: 160
+    x: MAP_RECT.x + MAP_RECT.width - 206,
+    y: MAP_RECT.y + MAP_RECT.height - 124,
+    width: 198,
+    height: 116
 }
 
 export const ROUND_SLOT_WIDTH = 54
 export const ROUND_SLOT_HEIGHT = 44
 
-export const COMPANY_CARD_X = 980
-export const COMPANY_CARD_Y = 12
-export const COMPANY_CARD_WIDTH = 400
-export const COMPANY_CARD_HEIGHT = 182
-export const COMPANY_CARD_GAP = 8
+export const BOARD_WIDTH = MAP_RECT.x + MAP_RECT.width + 12
 
-export const BOARD_WIDTH = COMPANY_CARD_X + COMPANY_CARD_WIDTH + 12
-
-const END_GAME_TOP = COMPANY_CARD_Y + 5 * (COMPANY_CARD_HEIGHT + COMPANY_CARD_GAP)
-
-export const END_GAME_RECT = {
-    x: COMPANY_CARD_X,
-    y: END_GAME_TOP,
-    width: COMPANY_CARD_WIDTH,
-    height: 182
-}
-
-export const BOARD_HEIGHT =
-    Math.max(MAP_RECT.y + MAP_RECT.height, END_GAME_RECT.y + END_GAME_RECT.height) + 12
+// Room under the map for the scaling wrapper's bottom-left zoom controls.
+export const BOARD_HEIGHT = MAP_RECT.y + MAP_RECT.height + 56

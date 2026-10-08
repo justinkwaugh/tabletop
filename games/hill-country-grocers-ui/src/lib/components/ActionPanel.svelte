@@ -23,7 +23,7 @@
     {:else if !gameSession.canAct}
         <WaitingView />
     {:else if machineState === MachineState.ChoosingAction}
-        <p class="prompt">Choose an action above the map. You cannot repeat your last action.</p>
+        <p class="prompt">Choose an action.</p>
     {:else if machineState === MachineState.PlacingBonusCube}
         <p class="prompt">
             You bought a <CompanyBadge companyId={CompanyId.Streamside} /> share: place one of its stores
@@ -37,7 +37,17 @@
         </div>
     {:else if machineState === MachineState.BuildingNetwork}
         {#if !gameSession.buildCompany}
-            <p class="prompt">Choose which of your grocers builds: pick its card beside the map.</p>
+            <p class="prompt">Choose which of your grocers builds:</p>
+            <div class="row">
+                {#each gameSession.buildCompanyOptions as companyId (companyId)}
+                    <button
+                        type="button"
+                        class="secondary"
+                        onclick={() => gameSession.selectBuildCompany(companyId)}
+                        ><CompanyBadge {companyId} /></button
+                    >
+                {/each}
+            </div>
         {:else}
             <p class="prompt">
                 Build for <CompanyBadge companyId={gameSession.buildCompany} /> (treasury ${state.company(
@@ -113,7 +123,17 @@
                 />
             </div>
         {:else}
-            <p class="prompt">Select the company share for auction: pick its card.</p>
+            <p class="prompt">Select the company share for auction:</p>
+            <div class="row">
+                {#each gameSession.auctionCompanyOptions as companyId (companyId)}
+                    <button
+                        type="button"
+                        class="secondary"
+                        onclick={() => gameSession.selectAuctionCompany(companyId)}
+                        ><CompanyBadge {companyId} /></button
+                    >
+                {/each}
+            </div>
         {/if}
         <p class="rules">{ACTION_RULES[ActionSpace.AuctionShare]}</p>
     {:else}

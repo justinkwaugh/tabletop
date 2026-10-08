@@ -102,8 +102,9 @@
     }
 
     .bidder.current {
-        border-color: #c8961a;
-        background: #fff1c2;
+        border: 2.5px solid #7a1d22;
+        background: #fdf3dc;
+        box-shadow: 0 1px 5px rgba(122, 29, 34, 0.35);
     }
 
     .bidder.passed {

@@ -221,22 +221,22 @@
     }
 
     .ring {
-        fill: rgba(255, 230, 140, 0.25);
-        stroke: #c8961a;
-        stroke-width: 4;
-        stroke-dasharray: 8 5;
-        animation: hcg-ring 1.4s linear infinite;
+        fill: rgba(255, 248, 205, 0.55);
+        stroke: #7a1d22;
+        stroke-width: 5;
+        stroke-dasharray: 10 6;
+        animation: hcg-ring 1.7s linear infinite;
     }
 
     .target:hover .ring,
     .target:focus-visible .ring,
     .target.chosen .ring {
-        fill: rgba(255, 220, 110, 0.55);
+        fill: rgba(255, 226, 120, 0.75);
     }
 
     @keyframes hcg-ring {
         to {
-            stroke-dashoffset: -26;
+            stroke-dashoffset: -32;
         }
     }
 </style>

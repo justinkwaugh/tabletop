@@ -14,6 +14,7 @@ import { CompanyId } from '../components/companies.js'
 import { HILL_COUNTRY_MAP, hexKey, printedHex } from '../components/map.js'
 import { ActionSpace } from './actionSpaces.js'
 import type { HcgGameState, HydratedHcgGameState } from './gameState.js'
+import { companyValueBreakdown } from './valuation.js'
 
 const engine = new GameEngine(HcgRuntime)
 const game = HcgRuntime.initializer.initializeGame(
@@ -312,7 +313,7 @@ describe('valuation', () => {
         expect(state.value(CompanyId.AlamoCity)).toBe(2 + 3 * 2)
         expect(state.value(CompanyId.CompleteComestibles)).toBe(1 + 3)
         expect(state.value(CompanyId.Balcones)).toBe(4)
-        expect(state.valueBreakdown(CompanyId.AlamoCity)).toEqual({
+        expect(companyValueBreakdown(state, CompanyId.AlamoCity)).toEqual({
             cities: 2,
             cityValue: 1,
             developments: 3,

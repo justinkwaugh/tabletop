@@ -59,7 +59,7 @@ export const COMPANIES: readonly CompanyDefinition[] = [
         color: Color.Orange,
         kind: CompanyKind.Grocer,
         supply: 8,
-        ability: 'Each development in its cities adds $3 to its value, not $2'
+        ability: 'Developments in its cities add $3 to its value'
     },
     {
         id: CompanyId.Balcones,

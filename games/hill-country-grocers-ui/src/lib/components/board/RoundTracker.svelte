@@ -47,11 +47,11 @@
                 <text x={BOX_WIDTH / 2} y="38" class="pay">Divs</text>
             {/if}
             {#if slot.taken}
-                <path
-                    d="M 4 4 L {BOX_WIDTH - 4} {ROUND_SLOT_HEIGHT - 4} M {BOX_WIDTH -
-                        4} 4 L 4 {ROUND_SLOT_HEIGHT - 4}"
-                    class="mark"
-                />
+                <g transform="translate({BOX_WIDTH / 2} {ROUND_SLOT_HEIGHT / 2 + 2})" class="seal">
+                    <circle r="14" class="seal-disc" />
+                    <circle r="10.5" class="seal-ring" />
+                    <path d="M -5.5 0.5 L -1.5 4.5 L 6 -4.5" class="seal-check" />
+                </g>
             {/if}
         </g>
     {/each}
@@ -111,10 +111,25 @@
         text-anchor: middle;
     }
 
-    .mark {
+    .seal-disc {
+        fill: #7a1d22;
+        stroke: #5a1418;
+        stroke-width: 1.5;
+    }
+
+    .seal-ring {
         fill: none;
-        stroke: #2b1a10;
+        stroke: #e8c9a8;
+        stroke-width: 1;
+        stroke-dasharray: 2 2;
+        opacity: 0.8;
+    }
+
+    .seal-check {
+        fill: none;
+        stroke: #fdf8ec;
         stroke-width: 2.6;
         stroke-linecap: round;
+        stroke-linejoin: round;
     }
 </style>
