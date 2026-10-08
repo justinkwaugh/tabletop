@@ -44,6 +44,8 @@ The Firestore emulator and Redis run as the `firebase` and `cache` Docker Compos
 
 For end-to-end verification through the hosted site, use `.agents/skills/local-hosted-game/SKILL.md`.
 
+The devcontainer is on the user's Tailscale network as `tabletop`. Bind dev servers to `0.0.0.0` (e.g. `vite --host`) and report URLs as `http://tabletop:<port>`, not `localhost`.
+
 ### Releasing
 
 To release, deploy, or publish a game or the site frontend, or to check what is serving, use `.agents/skills/release/SKILL.md`.

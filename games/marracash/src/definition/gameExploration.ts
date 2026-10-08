@@ -62,11 +62,15 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
         actions: readonly GameAction[],
         random: RandomFunction
     ) {
+        // A hand is known when the projection shows it: the viewer's own, or every hand once the
+        // game has ended.
+        const handKnown = (player: (typeof sample.players)[number]) =>
+            player.playerId === knownPlayerId || player.antiques.length > 0
         const unknownHolders = sample.players.filter(
-            (player) => player.playerId !== knownPlayerId && player.revealedAntiques.length === 0
+            (player) => !handKnown(player) && player.revealedAntiques.length === 0
         )
         const seen = sample.players.flatMap((player) =>
-            player.playerId === knownPlayerId
+            handKnown(player)
                 ? [...player.antiques, ...player.revealedAntiques]
                 : player.revealedAntiques
         )

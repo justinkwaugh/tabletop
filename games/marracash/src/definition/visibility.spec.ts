@@ -159,19 +159,18 @@ describe('MarraCash visibility', () => {
         }
     })
 
-    it('keeps unfinished hands and the undealt deck hidden after the game ends', () => {
+    it('shows every unfinished hand to everyone once the game ends, but never the undealt deck', () => {
         const { session } = startSession()
         const finished = playToEnd(session)
+        const unfinished = finished.players.filter((seat) => seat.revealedAntiques.length === 0)
+        expect(unfinished.length).toBeGreaterThan(0)
         for (const perspective of perspectivesFor(finished)) {
             const view = project(session, perspective, finished)
             expect(view.antiqueDeck.items).toEqual([])
             for (const player of view.players) {
-                const own =
-                    perspective.kind === 'player' && perspective.playerId === player.playerId
-                const unfinished =
-                    finished.players.find((seat) => seat.playerId === player.playerId)
-                        ?.revealedAntiques.length === 0
-                expect(player.antiques).toHaveLength(own && unfinished ? AntiquesPerPlayer : 0)
+                const canonical = finished.players.find((seat) => seat.playerId === player.playerId)
+                assertExists(canonical, 'Every projected player is seated')
+                expect(player.antiques).toEqual(canonical.antiques)
             }
         }
     })
@@ -346,6 +345,24 @@ describe('MarraCash exploration', () => {
             random: getPrng(seed)
         })
     }
+
+    it('keeps every hand shown at the end of the game when exploring from there', () => {
+        const { session } = startSession()
+        const finished = playToEnd(session)
+        assertExists(MarracashRuntime.exploration.createFromProjectedState, 'Expected population')
+        for (const perspective of perspectivesFor(finished)) {
+            const sample = MarracashRuntime.exploration.createFromProjectedState({
+                game: session.game,
+                state: project(session, perspective, finished),
+                actions: session.actions,
+                perspective,
+                random: getPrng(123)
+            })
+            expect(sample.players.map((player) => player.antiques)).toEqual(
+                finished.players.map((player) => player.antiques)
+            )
+        }
+    })
 
     it('samples unseen antiques consistently with the game so far', () => {
         const { session } = startSession()
