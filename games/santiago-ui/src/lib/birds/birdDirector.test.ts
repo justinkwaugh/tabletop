@@ -25,6 +25,12 @@ function emptyBoard(): BoardSquare[][] {
     )
 }
 
+function dryField(squares: BoardSquare[][], col: number, row: number) {
+    plantField(squares, col, row)
+    const field = squares[col][row]
+    if (field.type === SquareType.Field) field.dried = true
+}
+
 function plantField(squares: BoardSquare[][], col: number, row: number) {
     squares[col][row] = {
         type: SquareType.Field,
@@ -175,5 +181,63 @@ describe('bird director', () => {
         expect(f.ids).toEqual([])
         expect(f.env.ticker.callbacks.size).toBe(0)
         expect(vi.getTimerCount()).toBe(0)
+    })
+})
+
+describe('bird director over a drying board', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('sends vultures instead of crows once more than half the fields are desert', () => {
+        const squares = emptyBoard()
+        plantField(squares, 1, 1)
+        dryField(squares, 4, 2)
+        dryField(squares, 5, 3)
+        const f = fixture(squares)
+        expect(f.director.summon()).toBe(true)
+        expect(f.director.hasKettle).toBe(true)
+        expect(f.director.hasFlock).toBe(false)
+        expect(f.ids).toHaveLength(1)
+    })
+
+    it('sends no birds at all when the only desert lies too near the edge to circle', () => {
+        const squares = emptyBoard()
+        plantField(squares, 3, 2)
+        dryField(squares, 0, 0)
+        dryField(squares, 7, 5)
+        const f = fixture(squares)
+        expect(f.director.summon()).toBe(false)
+        expect(f.director.hasKettle).toBe(false)
+        expect(f.director.hasFlock).toBe(false)
+        expect(f.ids).toEqual([])
+    })
+
+    it('still sends crows while desert is half the fields or less', () => {
+        const squares = emptyBoard()
+        plantField(squares, 1, 1)
+        dryField(squares, 4, 2)
+        const f = fixture(squares)
+        expect(f.director.summon()).toBe(true)
+        expect(f.director.hasFlock).toBe(true)
+        expect(f.director.hasKettle).toBe(false)
+    })
+
+    it('sends the vultures away on entering history or when their square is no longer desert', () => {
+        const squares = emptyBoard()
+        dryField(squares, 2, 2)
+        const f = fixture(squares)
+        f.director.summon()
+        f.env.ticker.run(4)
+        f.host.isViewingHistory = true
+        f.env.ticker.run(20)
+        expect(f.director.hasKettle).toBe(false)
+        expect(f.ids).toEqual([])
+
+        f.host.isViewingHistory = false
+        f.director.summon()
+        f.env.ticker.run(4)
+        squares[2][2] = { type: SquareType.Empty, hasPalmTree: false }
+        f.env.ticker.run(20)
+        expect(f.director.hasKettle).toBe(false)
     })
 })

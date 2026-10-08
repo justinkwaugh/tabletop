@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const MOOD_EASE_SECONDS = 4
+    const SUNLIGHT = 0.6
 
     const session = getGameSession()
     const mood = $derived(session.landMood)
@@ -12,10 +13,10 @@
     )
 </script>
 
-<div class="light sun-wash" aria-hidden="true" style={layerStyle}></div>
-<div class="light lush" aria-hidden="true" style="{layerStyle}; opacity: {mood.lush}"></div>
+<div class="light sun-wash" aria-hidden="true" style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"></div>
+<div class="light lush" aria-hidden="true" style="{layerStyle}; opacity: {mood.lush * SUNLIGHT}"></div>
 <div class="light bleach" aria-hidden="true" style="{layerStyle}; opacity: {mood.drought * 0.35}"></div>
-<div class="light glare" aria-hidden="true" style="{layerStyle}; opacity: {mood.drought}"></div>
+<div class="light glare" aria-hidden="true" style="{layerStyle}; opacity: {mood.drought * SUNLIGHT}"></div>
 
 <style>
     .light {
@@ -27,7 +28,6 @@
     }
     .sun-wash {
         mix-blend-mode: soft-light;
-        opacity: 0.7;
         background:
             radial-gradient(
                 130% 120% at 4% 0%,
