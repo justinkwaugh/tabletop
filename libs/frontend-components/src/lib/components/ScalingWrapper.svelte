@@ -417,6 +417,12 @@
         }, RENDER_SCALE_SETTLE_MS)
     }
 
+    // A programmatic view change ends at a known moment, so it is redrawn at once instead of
+    // waiting to see whether the view keeps moving.
+    function settleProgrammaticView() {
+        if (renderAtViewScale && !viewIsMoving()) commitRenderScale()
+    }
+
     // Lays the content out again at the current scale, so the transform scales it by one.
     function commitRenderScale() {
         clearTimeout(renderScaleTimer)
@@ -728,6 +734,7 @@
 
             applyView(targetScale, targetLeft, targetTop)
             viewAnimationFrame = undefined
+            settleProgrammaticView()
         }
 
         viewAnimationFrame = requestAnimationFrame(step)
@@ -950,6 +957,7 @@
 
         cancelViewAnimation()
         applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        settleProgrammaticView()
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
@@ -969,6 +977,7 @@
 
         cancelViewAnimation()
         applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        settleProgrammaticView()
     }
 
     function getTouchDistance(touches: TouchList) {
