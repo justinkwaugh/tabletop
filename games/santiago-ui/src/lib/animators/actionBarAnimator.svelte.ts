@@ -10,7 +10,8 @@ const OVERSEER_WIPE = 0.4
 const CLOSING_BIDS_HOLD = 1.2
 
 // Previews where the whole transition ends, not each step's `to`, so a chain of system actions
-// settles the bar once; the preview holds until that state publishes for the same reason. See the
+// settles the bar once, on the chain's last action; the preview holds until that state publishes
+// for the same reason. See the
 // visual contract's "Action bar transitions".
 export class ActionBarAnimator extends StateAnimator {
     preview: ActionBarView | undefined = $state.raw(undefined)
@@ -64,6 +65,9 @@ export class ActionBarAnimator extends StateAnimator {
         await tick()
         const bar = this.bar
         if (!from || !bar) return
+        // Each action in a chain plays its own timelines in turn, so the bar waits for the last
+        // one, after every earlier action's motion, such as fields drying at the end of a round.
+        if (action && to.actionCount < this.gameSession.incomingGameState.actionCount) return
 
         const shown = this.gameSession.actionBarView
         const next = this.gameSession.actionBarViewIn(this.gameSession.incomingGameState)
