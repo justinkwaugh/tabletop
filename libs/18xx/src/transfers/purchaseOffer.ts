@@ -109,16 +109,13 @@ export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): O
         const company = state.companies.find((item) => item.id === asset.companyId)
         if (!company || company.closed || !company.shareCount) return undefined
         const shares = state.certificates.filter(
-            (certificate) => !certificate.retired && certificate.companyId === company.id
+            (certificate) => certificate.companyId === company.id
         )
         const first = shares[0]
-        if (!first || first.retired || first.owner.kind !== 'player') return undefined
+        if (!first || first.owner.kind !== 'player') return undefined
         const owner = first.owner
         return shares.every(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.kind === 'share' &&
-                sameOwner(certificate.owner, owner)
+            (certificate) => certificate.kind === 'share' && sameOwner(certificate.owner, owner)
         ) &&
             shares.reduce(
                 (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
@@ -224,18 +221,14 @@ export function settlePurchaseOffer(
         closePrivatesOnTrainPurchase(state, trains, offer.companyId)
     } else if (asset.kind === 'private') {
         const certificate = state.certificates.find(
-            (item) =>
-                !item.retired &&
-                item.kind === 'private' &&
-                item.companyId === asset.privateCompanyId
+            (item) => item.kind === 'private' && item.companyId === asset.privateCompanyId
         )
-        assertExists(certificate, 'The private requires its certificate')
-        assert(!certificate.retired, 'The private must remain open')
+        assertExists(certificate, 'The private must remain open')
         certificate.owner = owner
         delete certificate.poolId
     } else {
         for (const certificate of state.certificates)
-            if (!certificate.retired && certificate.companyId === asset.companyId) {
+            if (certificate.companyId === asset.companyId) {
                 certificate.owner = owner
                 delete certificate.poolId
             }

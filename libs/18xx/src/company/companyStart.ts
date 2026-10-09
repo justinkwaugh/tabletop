@@ -41,13 +41,11 @@ export function evaluateCompanyStart(
     if (!space) return { reason: 'Unknown stock market space.' }
     const certificate = state.certificates.find(
         (certificate) =>
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.president &&
             certificate.companyId === company.id
     )
-    if (!certificate || certificate.retired)
-        return { reason: 'The president’s certificate is unavailable.' }
+    if (!certificate) return { reason: 'The president’s certificate is unavailable.' }
     if (state.stockRound.turn.bought)
         return { reason: 'A company cannot be started after this turn’s purchase.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)

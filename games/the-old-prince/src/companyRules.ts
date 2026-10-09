@@ -33,7 +33,6 @@ export function availableTheOldPrinceTranche(state: FormationState) {
             !!company.operated ||
             state.certificates.every(
                 (certificate) =>
-                    certificate.retired ||
                     certificate.kind !== 'share' ||
                     certificate.companyId !== companyId ||
                     certificate.poolId === 'reserved' ||
@@ -62,7 +61,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         const peir = state.certificates.find(
             (certificate) => certificate.id === association.peirCertificateId
         )
-        if (!peir || peir.retired || peir.owner.kind !== 'player')
+        if (!peir || peir.owner.kind !== 'player')
             return 'The associated PEIR share must be owned by a player.'
         const certificate = presidentCertificate(state, companyId)
         if (!certificate || certificate.owner.kind !== 'bank' || certificate.poolId !== 'market')
@@ -112,7 +111,6 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         }
         const replacement = state.certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 certificate.companyId === companyId &&
                 !certificate.president &&
@@ -121,8 +119,8 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
                 certificate.poolId === 'market'
         )
         assertExists(replacement, 'PEIR exchange requires an ordinary Bank share')
-        const owner = exchangeCertificate(state, association.peirCertificateId, replacement.id)
-        grantOwnershipLimitExemption(state, companyId, owner)
+        const exchange = exchangeCertificate(state, association.peirCertificateId, replacement.id)
+        grantOwnershipLimitExemption(state, companyId, exchange.owner)
         const presidency = evaluatePresidency(
             state,
             companyId,
@@ -152,6 +150,6 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             closePrivate(state, 'KM')
         }
-        return [{ surrenderedId: association.peirCertificateId, receivedId: replacement.id, owner }]
+        return [exchange]
     }
 }

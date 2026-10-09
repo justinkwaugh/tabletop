@@ -73,7 +73,7 @@ export function createEighteenThirtyCompanyExample(
             ['CO:share:2', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -195,7 +195,7 @@ export function createEighteenThirtyCompanyExample(
     }
     if (position === 'transfers' || position === 'powers') {
         const delaware = state.certificates.find((item) => item.companyId === 'DH')
-        assert(delaware && !delaware.retired, 'The example requires Delaware & Hudson')
+        assert(delaware, 'The example requires Delaware & Hudson')
         delaware.owner = { kind: 'player', playerId: players[0].playerId }
         state.phaseId = '3'
         for (const companyId of ['PRR', 'NYC']) {
@@ -232,20 +232,13 @@ export function createEighteenThirtyCompanyExample(
         if (position === 'funding')
             for (const id of ['PRR:share:5', 'PRR:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(
-                    certificate && !certificate.retired,
-                    'Funding example requires ordinary shares'
-                )
+                assert(certificate, 'Funding example requires ordinary shares')
                 certificate.owner = { kind: 'player', playerId: players[1].playerId }
                 delete certificate.poolId
             }
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
-                if (
-                    !certificate.retired &&
-                    certificate.kind === 'share' &&
-                    !certificate.president
-                ) {
+                if (certificate.kind === 'share' && !certificate.president) {
                     certificate.owner = { kind: 'bank' }
                     certificate.poolId = 'initial-offering'
                 }

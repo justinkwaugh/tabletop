@@ -1,6 +1,6 @@
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     getCompany,
     type PrivateRules,
@@ -24,7 +24,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
                 certificateIds: state.certificates
                     .filter(
                         (item) =>
-                            !item.retired &&
                             item.id === reservedId &&
                             item.owner.kind === 'bank' &&
                             item.poolId === 'reserved'
@@ -39,7 +38,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             certificateIds: state.certificates
                 .filter(
                     (item) =>
-                        !item.retired &&
                         item.kind === 'share' &&
                         !item.president &&
                         item.shares === 1 &&
@@ -87,15 +85,17 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             const share = state.certificates.find(
                 (item) =>
                     item.id === certificateId &&
-                    !item.retired &&
                     item.owner.kind === 'bank' &&
                     item.poolId === 'reserved'
             )
             assertExists(share, 'Open Shortline exchange requires its reserved share')
+            assert(share.kind === 'share', 'Open Shortline exchanges for a share')
             return {
                 kind: 'exchange',
                 privateCompanyId: company.id,
                 certificateId,
+                companyId: share.companyId,
+                shares: share.shares,
                 exemptOwnershipLimit: true
             }
         })

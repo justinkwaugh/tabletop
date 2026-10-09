@@ -177,13 +177,12 @@ describe('1846 first stock round', () => {
         for (const certificate of table.state.certificates
             .filter(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     certificate.companyId === 'IC' &&
                     !certificate.president
             )
             .slice(0, 2))
-            if (!certificate.retired) certificate.owner = { kind: 'player', playerId: successor }
+            certificate.owner = { kind: 'player', playerId: successor }
         table.finishTurn()
         table.finishTurn()
         const sale = table
@@ -267,11 +266,9 @@ describe('1846 first stock round', () => {
         })
         expect(getCompany(table.state, 'IC').closed).toBe(true)
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(0)
-        expect(
-            table.state.certificates
-                .filter((certificate) => certificate.companyId === 'IC')
-                .every((certificate) => certificate.retired)
-        ).toBe(true)
+        expect(table.state.certificates.some((certificate) => certificate.companyId === 'IC')).toBe(
+            false
+        )
         expect(
             table.state.stations
                 .filter((station) => station.companyId === 'IC')

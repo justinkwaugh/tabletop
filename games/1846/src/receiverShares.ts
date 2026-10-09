@@ -62,12 +62,11 @@ export function receiverShareChoices(
         )
             return []
         const certificates = state.certificates.filter(
-            (certificate) => !certificate.retired && certificate.companyId === company.id
+            (certificate) => certificate.companyId === company.id
         )
         if (
             certificates.some(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.poolId === 'open-market'
@@ -75,12 +74,10 @@ export function receiverShareChoices(
         )
             return []
         const president = certificates.find(
-            (certificate) =>
-                !certificate.retired && certificate.kind === 'share' && certificate.president
+            (certificate) => certificate.kind === 'share' && certificate.president
         )
         const ordinary = certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 sameOwner(certificate.owner, buyer)

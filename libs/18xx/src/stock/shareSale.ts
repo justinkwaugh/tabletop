@@ -167,8 +167,7 @@ export function evaluateShareDisposal(
         const marketShares = projected.certificates.reduce(
             (sum, certificate) =>
                 sum +
-                (!certificate.retired &&
-                certificate.kind === 'share' &&
+                (certificate.kind === 'share' &&
                 certificate.companyId === company.id &&
                 certificate.poolId === pool.id
                     ? certificate.shares
@@ -236,7 +235,7 @@ export function transferSaleCertificates(state: StockState, sale: ShareSaleSettl
     assertExists(pool, 'Missing sale pool')
     for (const id of sale.certificateIds) {
         const certificate = state.certificates.find((certificate) => certificate.id === id)
-        assert(certificate && !certificate.retired, 'Missing sold certificate')
+        assert(certificate, 'Missing sold certificate')
         certificate.owner = pool.owner
         certificate.poolId = pool.id
     }

@@ -18,7 +18,6 @@ function financeGame() {
 }
 function putInMarket(table: ReturnType<typeof stockGame>, count: number) {
     const certificates = table.state.certificates
-        .filter((c) => !c.retired)
         .filter((c) => c.companyId === 'IC' && c.owner.kind === 'company')
         .slice(0, count)
     for (const certificate of certificates) {
@@ -115,7 +114,7 @@ describe('1846 corporate finance', () => {
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(40)
         expect(
             table.state.certificates.filter(
-                (c) => !c.retired && c.companyId === 'IC' && c.poolId === 'open-market'
+                (c) => c.companyId === 'IC' && c.poolId === 'open-market'
             )
         ).toHaveLength(0)
     })

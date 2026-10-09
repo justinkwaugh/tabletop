@@ -39,7 +39,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
     const certificates = table.state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 certificate.companyId === companyId &&
@@ -48,7 +47,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
         .slice(0, shares)
     expect(certificates).toHaveLength(shares)
     for (const certificate of certificates) {
-        assert(!certificate.retired)
         certificate.owner = { kind: 'player', playerId }
         delete certificate.poolId
     }
@@ -101,7 +99,7 @@ describe('1846 bankruptcy and receivership', () => {
         })
         expect(
             table.state.certificates.some(
-                (c) => !c.retired && c.owner.kind === 'player' && c.owner.playerId === playerId
+                (c) => c.owner.kind === 'player' && c.owner.playerId === playerId
             )
         ).toBe(false)
         let replay = before
@@ -116,11 +114,7 @@ describe('1846 bankruptcy and receivership', () => {
         const { table, playerId } = funding(20)
         giveShares(table, 'IC', playerId, 4)
         for (const certificate of table.state.certificates) {
-            if (
-                !certificate.retired &&
-                certificate.companyId === 'IC' &&
-                certificate.owner.kind === 'company'
-            ) {
+            if (certificate.companyId === 'IC' && certificate.owner.kind === 'company') {
                 certificate.owner = { kind: 'bank' }
                 certificate.poolId = 'open-market'
             }
@@ -343,7 +337,6 @@ describe('1846 bankruptcy and receivership', () => {
         const table = receiverStock()
         for (const certificate of table.state.certificates) {
             if (
-                certificate.retired ||
                 certificate.kind !== 'share' ||
                 certificate.president ||
                 certificate.companyId !== 'IC'

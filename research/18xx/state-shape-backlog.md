@@ -114,9 +114,21 @@ mechanism below, plus the six implemented titles.
    scheme. Storing each kind of certificate once in a State table was measured at only
    1–2 KB more per finished game than this change, against a lookup at every reader.
 4. **Retired and removed records are dropped.** Retired certificates, removed stations
-   and rusted trains leave State; new ids come from a counter instead of scanning
-   existing records (`nextCertificateNumber`, `addCompanyStations`). History and the UI
-   resolve an absent id's face from the id.
+   and rusted or exported trains leave State.
+    - Certificates leave through `removeCertificates`, and the `retired` flag goes: every
+      certificate in State is in play.
+    - Ids must stay unique for the whole game, because recorded Actions and metadata name
+      them. A company records `lastIssuedNumber`, the highest number of a certificate or
+      station that has left play; `nextIssuedNumber` continues above it and above every
+      number still in play. Random ids were considered and rejected: a 21-character id
+      costs about ten bytes more at each mention, in State and in every Action naming it
+      (about 1 KB more State in a finished 1817 game against 0.15 KB of counters), each
+      new id would consume a draw from the game's randomness, and ids lose readability.
+    - History describes an Action from its metadata, not from current State, where the
+      certificate may no longer exist. Share purchases, starts and private exchanges
+      record the certificate's `shares`; a private's exchange effect records the received
+      company and shares; a certificate exchange records the surrendered company and
+      number and the received company and shares.
 5. **Names, depot and final wealth.** Company and pool names move to the definition. The
    depot's roster comes from the resolved configuration, with State keeping what remains
    in order and any trains created during play. `finalWealth` labels are built by the

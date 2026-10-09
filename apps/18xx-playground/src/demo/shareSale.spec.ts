@@ -31,7 +31,7 @@ const casey = { kind: 'player', playerId: 'casey' } as const
 const union = { kind: 'company', companyId: 'UB' } as const
 function give(state: EighteenXXState, id: string, owner: Owner, poolId?: string) {
     const certificate = state.certificates.find((certificate) => certificate.id === id)
-    if (!certificate || certificate.retired) throw new Error('Missing fixture certificate')
+    if (!certificate) throw new Error('Missing fixture certificate')
     certificate.owner = owner
     if (poolId) certificate.poolId = poolId
     else delete certificate.poolId

@@ -117,7 +117,7 @@ describe('closing a short', () => {
         })
         expect(sharesOwned(play.state, 'BA', casey)).toBe(0)
         expect(openShorts(play.state, 'BA')).toEqual([])
-        expect(play.state.certificates.find((c) => c.id === 'BA:share:2')?.retired).toBe(true)
+        expect(play.state.certificates.find((c) => c.id === 'BA:share:2')).toBeUndefined()
     })
 })
 
@@ -181,7 +181,6 @@ describe('the market’s shorts', () => {
         const { shareId, shortId } = openShort(state, 'BA', market.owner, market)
         retireCertificates(state, [shareId])
         for (const certificate of state.certificates) {
-            if (certificate.retired) continue
             if (certificate.id === shortId) certificate.poolId = market.id
             if (certificate.id === 'BA:share:2') {
                 certificate.owner = { kind: 'player', playerId: 'alex' }
@@ -239,10 +238,7 @@ describe('the end of the stock round', () => {
             // Blair and alex end up with three shares each, 120% between them.
             const { shareId } = openShort(state, 'BA', casey, marketPool(state))
             for (const certificate of state.certificates)
-                if (
-                    !certificate.retired &&
-                    [shareId, 'BA:share:2', 'BA:share:3'].includes(certificate.id)
-                ) {
+                if ([shareId, 'BA:share:2', 'BA:share:3'].includes(certificate.id)) {
                     certificate.owner = {
                         kind: 'player',
                         playerId: certificate.id === 'BA:share:2' ? 'blair' : 'alex'

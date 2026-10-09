@@ -40,7 +40,7 @@ function acquire(table: ReturnType<typeof major>, id: string) {
         )
     }
     const certificate = table.state.certificates.find((certificate) => certificate.companyId === id)
-    assert(certificate && !certificate.retired)
+    assert(certificate)
     certificate.owner = { kind: 'player', playerId: table.state.activePlayerIds[0] }
     table.act('OfferPurchase', {
         companyId: 'NYC',

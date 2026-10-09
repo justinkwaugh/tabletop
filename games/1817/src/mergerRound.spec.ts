@@ -284,7 +284,7 @@ describe('mergers', () => {
         expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(1)
         expect(
             play.state.certificates.filter(
-                (certificate) => !certificate.retired && certificate.poolId === treasuryPoolId('BA')
+                (certificate) => certificate.poolId === treasuryPoolId('BA')
             )
         ).toHaveLength(2)
     })

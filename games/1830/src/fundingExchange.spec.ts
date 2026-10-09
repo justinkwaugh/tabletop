@@ -28,9 +28,9 @@ function position(ownerId = 'blair', prepare: (state: EighteenXXState) => void =
     const opening = playExample(EighteenThirtyScenarios, 'opening', 4).state
     return playExample(EighteenThirtyScenarios, 'funding', 4, (state) => {
         const company = opening.companies.find((company) => company.id === 'MH')
-        const certificate = opening.certificates
-            .filter((certificate) => !certificate.retired)
-            .find((certificate) => certificate.companyId === 'MH')
+        const certificate = opening.certificates.find(
+            (certificate) => certificate.companyId === 'MH'
+        )
         assertExists(company, 'M&H exists')
         assertExists(certificate, 'M&H has a certificate')
         certificate.owner = { kind: 'player', playerId: ownerId }
@@ -92,9 +92,8 @@ it.each(['blair', 'casey'])(
         const offer = exchange(play, playerId)
         expect(getCompany(play.state, 'MH').closed).toBe(true)
         expect(
-            play.state.certificates
-                .filter((certificate) => !certificate.retired)
-                .find((certificate) => certificate.id === offer.certificateId)?.owner
+            play.state.certificates.find((certificate) => certificate.id === offer.certificateId)
+                ?.owner
         ).toEqual({ kind: 'player', playerId })
         expect(play.state.trainFunding).toEqual(obligation)
         expect(play.state.machineState).toBe('FundingTrain')
@@ -138,7 +137,6 @@ function otherwiseBankrupt() {
         }
         for (const certificate of state.certificates)
             if (
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 certificate.owner.kind === 'player' &&
@@ -214,7 +212,6 @@ it('keeps the train and sales obligation when an exchange changes the operating 
             if (cash.owner.kind === 'company' && cash.owner.companyId === 'NYC') cash.amount = 0
         // Both players hold 30%; the fourth share gives Casey the presidency.
         const additions = state.certificates
-            .filter((certificate) => !certificate.retired)
             .filter(
                 (certificate) =>
                     certificate.companyId === 'NYC' && certificate.owner.kind === 'bank'

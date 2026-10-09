@@ -35,7 +35,7 @@ function giveCash(state: EighteenXXState, playerId: string, amount: number) {
 
 function givePrivate(state: EighteenXXState, privateId: string, playerId: string) {
     const certificate = state.certificates.find((item) => item.companyId === privateId)!
-    if (!certificate.retired) certificate.owner = { kind: 'player', playerId }
+    certificate.owner = { kind: 'player', playerId }
 }
 
 describe('company auctions', () => {
@@ -99,9 +99,7 @@ describe('company auctions', () => {
         expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(120)
         expect(play.treasury('AS')).toBe(200)
         expect(
-            play.state.certificates
-                .filter((item) => !item.retired && item.companyId === 'AS')
-                .map((item) => item.id)
+            play.state.certificates.filter((item) => item.companyId === 'AS').map((item) => item.id)
         ).toEqual(['AS:president', 'AS:share:1', 'AS:share:2', 'AS:share:3'])
         expect(play.state.stations.filter((station) => station.companyId === 'AS')).toHaveLength(2)
     })

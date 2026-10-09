@@ -197,7 +197,7 @@ export function setCompanyInReceivership(table: StockTestGame, companyId: string
             certificate.companyId === companyId &&
             certificate.president
     )
-    assert(president && !president.retired, 'Receiver must have an active president certificate')
+    assert(president, 'Receiver must have an active president certificate')
     president.owner = { kind: 'bank' }
     president.poolId = 'open-market'
     delete getCompany(table.state, companyId).president

@@ -31,7 +31,6 @@ it('returns a company to an unstarted charter with its president’s certificate
                 kind: 'share',
                 president: true,
                 shares: 2,
-                retired: false,
                 owner: { kind: 'player', playerId: 'one' }
             },
             {
@@ -39,7 +38,6 @@ it('returns a company to an unstarted charter with its president’s certificate
                 companyId: 'A',
                 kind: 'short',
                 shares: 1,
-                retired: false,
                 owner: { kind: 'player', playerId: 'two' }
             }
         ],
@@ -55,13 +53,16 @@ it('returns a company to an unstarted charter with its president’s certificate
         stockMarket
     }
     resetCompany(state, 'A', 2)
-    expect(state.companies[0]).toEqual({ id: 'A', name: 'A', kind: 'major', shareCount: 2 })
+    expect(state.companies[0]).toEqual({
+        id: 'A',
+        name: 'A',
+        kind: 'major',
+        shareCount: 2,
+        lastIssuedNumber: 1
+    })
     expect(state.stockMarket.stacks).toEqual([])
-    expect(
-        state.certificates.map((certificate) => [certificate.retired, certificate.owner])
-    ).toEqual([
-        [false, { kind: 'bank' }],
-        [true, undefined]
+    expect(state.certificates.map((certificate) => [certificate.id, certificate.owner])).toEqual([
+        ['A:president', { kind: 'bank' }]
     ])
     expect(state.stations).toEqual([
         { id: 'A:home', companyId: 'A', status: 'available' },

@@ -1,5 +1,5 @@
 import { assert } from '@tabletop/common'
-import { getCompany, type FinancialState } from '../finance/finance.js'
+import { getCompany, removeCertificates, type FinancialState } from '../finance/finance.js'
 import { homeStationId, type Station, type StationState } from '../map/station.js'
 import { removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 
@@ -28,13 +28,19 @@ export function resetCompany(
         delete company[field]
     company.shareCount = shareCount
     removeStockMarker(state.stockMarket, companyId)
-    state.certificates = state.certificates.map((certificate) => {
-        if (certificate.retired || certificate.companyId !== companyId) return certificate
-        const { owner: _owner, poolId: _poolId, ...interest } = certificate
-        return interest.kind === 'share' && interest.president
-            ? { ...interest, retired: false, owner: { kind: 'bank' } }
-            : { ...interest, retired: true }
-    })
+    const leaving = state.certificates.filter(
+        (certificate) =>
+            certificate.companyId === companyId &&
+            !(certificate.kind === 'share' && certificate.president)
+    )
+    removeCertificates(
+        state,
+        leaving.map((certificate) => certificate.id)
+    )
+    const president = state.certificates.find((certificate) => certificate.companyId === companyId)
+    assert(president, 'A reset company keeps its president’s certificate')
+    president.owner = { kind: 'bank' }
+    delete president.poolId
     state.stations = state.stations.map((station): Station => {
         if (station.companyId !== companyId) return station
         return station.id === homeStationId(companyId)

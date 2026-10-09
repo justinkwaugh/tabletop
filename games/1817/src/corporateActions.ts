@@ -31,7 +31,6 @@ export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: 
     return state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 certificate.companyId === companyId &&
                 certificate.owner.kind === 'bank' &&
@@ -83,9 +82,7 @@ function buyBackPrice(
     const shares = state.certificates
         .filter((certificate) => certificateIds.includes(certificate.id))
         .reduce(
-            (sum, certificate) =>
-                sum +
-                (!certificate.retired && certificate.kind === 'share' ? certificate.shares : 0),
+            (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
             0
         )
     return EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price * shares
@@ -173,7 +170,7 @@ export class HydratedBuyBackShares
         }
         settleCashPayments(state, [payment])
         for (const certificate of state.certificates)
-            if (!certificate.retired && this.certificateIds.includes(certificate.id)) {
+            if (this.certificateIds.includes(certificate.id)) {
                 certificate.owner = company
                 certificate.poolId = treasuryPoolId(this.companyId)
             }

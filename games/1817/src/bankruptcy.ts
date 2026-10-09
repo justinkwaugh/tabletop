@@ -21,7 +21,6 @@ export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
         const market = marketPool(state)
         for (const certificate of state.certificates)
             if (
-                !certificate.retired &&
                 certificate.kind !== 'private' &&
                 certificate.owner.kind === 'player' &&
                 certificate.owner.playerId === playerId

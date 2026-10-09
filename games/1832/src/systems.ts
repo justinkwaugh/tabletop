@@ -8,7 +8,8 @@ import {
     playersAfterPresident,
     sharesOwned,
     type StockMarket,
-    type StockMarketSpace
+    type StockMarketSpace,
+    removeCertificates
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
 import { refreshOwnershipExcess } from './ownershipExcess.js'
@@ -162,7 +163,6 @@ function exchangedCertificates(
     playerId: string
 ): string[] {
     const held = state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
         certificate.kind === 'share' &&
         companyIds.includes(certificate.companyId) &&
         certificate.owner.kind === 'player' &&
@@ -229,17 +229,14 @@ export function formSystem(
             kind: 'share',
             shares: PresidentShares,
             president: true,
-            retired: false,
             owner: president
         }
     ]
-    state.certificates = state.certificates.map((certificate) => {
-        if (
-            certificate.retired ||
-            certificate.kind !== 'share' ||
-            !companyIds.includes(certificate.companyId)
-        )
-            return certificate
+    const components = state.certificates.filter(
+        (certificate) => certificate.kind === 'share' && companyIds.includes(certificate.companyId)
+    )
+    for (const certificate of components) {
+        if (certificate.kind !== 'share') continue
         if (!exchangedCertificateIds.includes(certificate.id)) {
             const owner =
                 certificate.owner.kind === 'company'
@@ -251,14 +248,15 @@ export function formSystem(
                 companyId: systemId,
                 kind: 'share',
                 shares: certificate.shares,
-                retired: false,
                 owner,
                 ...(certificate.poolId ? { poolId: certificate.poolId } : {})
             })
         }
-        const { owner: _owner, poolId: _poolId, ...retired } = certificate
-        return { ...retired, retired: true }
-    })
+    }
+    removeCertificates(
+        state,
+        components.map((certificate) => certificate.id)
+    )
     state.certificates.push(...issued)
 
     placeStockMarker(state.stockMarket, systemId, space.id)

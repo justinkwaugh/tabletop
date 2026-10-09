@@ -87,7 +87,7 @@ export function createTheOldPrinceCompanyExample(
             ['A:share:3', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -216,10 +216,7 @@ export function createTheOldPrinceCompanyExample(
     if (position === 'transfers' || position === 'powers') {
         getCompany(state, 'So').president = { kind: 'player', playerId: players[1].playerId }
         const shortlinePresident = state.certificates.find((item) => item.id === 'So:president')
-        assert(
-            shortlinePresident && !shortlinePresident.retired,
-            'The example requires Shortline presidency'
-        )
+        assert(shortlinePresident, 'The example requires Shortline presidency')
         shortlinePresident.owner = { kind: 'player', playerId: players[1].playerId }
         state.phaseId = '4H'
         for (const companyId of ['ML', 'So']) {
@@ -259,7 +256,6 @@ export function createTheOldPrinceCompanyExample(
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
                 if (
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.companyId !== 'PEIR'
@@ -284,7 +280,7 @@ export function createTheOldPrinceCompanyExample(
             ['So:president', blair]
         ] as const) {
             const certificate = state.certificates.find((item) => item.id === id)
-            assert(certificate && !certificate.retired, 'Funding chain requires its share')
+            assert(certificate, 'Funding chain requires its share')
             certificate.owner = owner
             delete certificate.poolId
         }

@@ -481,7 +481,7 @@ export function convertedSharePurchase(
         return { reason: 'It is not this player’s turn to buy.' }
     const certificateId = treasuryShareIds(state, conversion.companyId)[0]
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    if (!certificate || certificate.retired || certificate.kind !== 'share')
+    if (!certificate || certificate.kind !== 'share')
         return { reason: 'The company has no treasury shares left.' }
     const buyer = { kind: 'player' as const, playerId }
     return evaluateShareTransfer(

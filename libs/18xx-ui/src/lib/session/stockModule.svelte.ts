@@ -206,7 +206,6 @@ export class StockModule implements LocalSelection {
         if (!playerId || !this.trading) return []
         const choices = rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
             state.certificates
-                .filter((certificate) => !certificate.retired)
                 .filter(
                     (certificate) =>
                         certificate.kind === 'share' &&

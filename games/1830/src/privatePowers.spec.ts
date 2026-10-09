@@ -26,10 +26,8 @@ const play = (position: ScenarioPosition, prepare?: (state: EighteenXXState) => 
     playExample(EighteenThirtyScenarios, position, 3, prepare)
 
 function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Owner) {
-    const existing = state.certificates.find(
-        (item) => item.companyId === privateCompanyId && !item.retired
-    )
-    if (existing && !existing.retired) {
+    const existing = state.certificates.find((item) => item.companyId === privateCompanyId)
+    if (existing) {
         existing.owner = owner
         return
     }
@@ -45,7 +43,6 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
         id: `${privateCompanyId}:charter`,
         companyId: privateCompanyId,
         kind: 'private',
-        retired: false,
         owner
     })
 }
@@ -53,7 +50,7 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
 const cash = (state: EighteenXXState, owner: Owner) => Number(cashOwnedBy(state, owner))
 const certificateOwner = (state: EighteenXXState, id: string) => {
     const certificate = state.certificates.find((item) => item.id === id)
-    assert(certificate && !certificate.retired, `Missing certificate ${id}`)
+    assert(certificate, `Missing certificate ${id}`)
     return certificate.owner
 }
 
@@ -151,9 +148,7 @@ describe('B&O private closure', () => {
         expect(getCompany(state, 'BOP').closed).toBeFalsy()
         buy('BO')
         expect(getCompany(state, 'BOP').closed).toBe(true)
-        expect(state.certificates.find((item) => item.id === 'BOP:charter')).toMatchObject({
-            retired: true
-        })
+        expect(state.certificates.find((item) => item.id === 'BOP:charter')).toBeUndefined()
     })
 })
 
@@ -366,7 +361,7 @@ describe('Mohawk & Hudson', () => {
             givePrivate(state, 'MH', alex)
             for (const id of ['NYC:share:5', 'NYC:share:6', 'NYC:share:7']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(certificate && !certificate.retired, `Missing ${id}`)
+                assert(certificate, `Missing ${id}`)
                 certificate.owner = alex
                 delete certificate.poolId
             }

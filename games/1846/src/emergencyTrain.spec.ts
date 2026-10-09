@@ -72,10 +72,9 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
     it('deducts market shares from the issuance limit', () => {
         const table = buyingGame(0, 40)
         const cert = table.state.certificates.find(
-            (c) => !c.retired && c.companyId === 'IC' && c.owner.kind === 'company'
+            (c) => c.companyId === 'IC' && c.owner.kind === 'company'
         )
         assertExists(cert)
-        if (cert.retired) throw new Error('Expected live certificate')
         cert.owner = { kind: 'bank' }
         cert.poolId = 'open-market'
         expect(choice(table)).toMatchObject({ issuedShares: 1, proceeds: 20, contribution: 60 })

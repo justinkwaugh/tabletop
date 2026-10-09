@@ -18,7 +18,6 @@ function setup(): FinancialState {
                 id: 'private',
                 companyId: 'private',
                 kind: 'private',
-                retired: false,
                 owner: { kind: 'bank' }
             },
             {
@@ -27,7 +26,6 @@ function setup(): FinancialState {
                 kind: 'share',
                 shares: 2,
                 president: true,
-                retired: false,
                 owner: { kind: 'bank' }
             }
         ]
@@ -42,9 +40,7 @@ it('charges once for a bundle and transfers each existing certificate', () => {
     expect(state.cash.map((account) => account.amount)).toEqual([260, 40])
     expect(state.certificates).toHaveLength(2)
     expect(
-        state.certificates.every(
-            (c) => !c.retired && c.owner.kind === 'player' && c.owner.playerId === 'winner'
-        )
+        state.certificates.every((c) => c.owner.kind === 'player' && c.owner.playerId === 'winner')
     ).toBe(true)
 })
 it('rejects a duplicate, unavailable certificate or unaffordable bundle before any transfer', () => {

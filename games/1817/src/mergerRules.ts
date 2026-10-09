@@ -297,7 +297,7 @@ function giveShare(
     owner: Owner
 ): void {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    assert(certificate && !certificate.retired, 'A merger gives an issued share')
+    assert(certificate, 'A merger gives an issued share')
     certificate.owner = { ...owner }
     delete certificate.poolId
 }
@@ -312,7 +312,7 @@ function migrateHoldings(
 ): void {
     const unused = [...newShareIds]
     for (const certificate of state.certificates) {
-        if (certificate.retired || certificate.companyId !== targetId) continue
+        if (certificate.companyId !== targetId) continue
         if (certificate.kind === 'short') {
             addShort(state, companyId, certificate.owner, certificate.poolId)
             continue
@@ -327,7 +327,7 @@ function migrateHoldings(
                 })[0]
             if (certificate.poolId === treasuryPoolId(targetId)) continue
             const share = state.certificates.find((item) => item.id === id)
-            assert(share && !share.retired, 'A migrated share is issued')
+            assert(share, 'A migrated share is issued')
             share.owner = { ...certificate.owner }
             if (certificate.poolId === MarketPoolId) share.poolId = MarketPoolId
             else delete share.poolId

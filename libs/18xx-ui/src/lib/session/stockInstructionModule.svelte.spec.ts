@@ -21,7 +21,6 @@ const bank = { kind: 'bank' } as const
 const share = {
     kind: 'share',
     shares: 1,
-    retired: false,
     owner: bank
 } as const
 

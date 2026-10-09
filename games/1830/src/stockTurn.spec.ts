@@ -72,8 +72,7 @@ describe('brown-zone purchases', () => {
             placeStockMarker(state.stockMarket, 'NYC', '5:0')
             for (const id of ['NYC:share:5', 'NYC:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                if (certificate && !certificate.retired && certificate.kind === 'share')
-                    certificate.poolId = 'open-market'
+                if (certificate && certificate.kind === 'share') certificate.poolId = 'open-market'
             }
             if (multipleBrownFromIpo) Object.assign(state, { multipleBrownFromIpo: true })
         })
@@ -110,7 +109,7 @@ describe('brown-zone purchases', () => {
             stockTurnPurchases: [{ kind: 'start' as const, companyId: 'CO' }]
         }
         const certificate = state.certificates.find((item) => item.id === 'NYC:share:4')
-        assert(certificate && !certificate.retired && certificate.kind === 'share')
+        assert(certificate && certificate.kind === 'share')
         expect(furtherShareAllowed(state, certificate, EighteenThirtyStockRules)).toBe(false)
         expect(
             furtherShareAllowed(
@@ -175,7 +174,6 @@ describe('private sales between players', () => {
                 id: 'BOP:charter',
                 companyId: 'BOP',
                 kind: 'private',
-                retired: false,
                 owner: { kind: 'player', playerId: 'casey' }
             })
         })
@@ -197,7 +195,7 @@ describe('private sales between players', () => {
         const turn = trading((state) => {
             for (const id of ['PRR:share:5', 'PRR:share:6', 'PRR:share:7', 'PRR:share:8']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                if (certificate && !certificate.retired && certificate.kind === 'share') {
+                if (certificate && certificate.kind === 'share') {
                     certificate.owner = alex
                     delete certificate.poolId
                 }

@@ -53,7 +53,7 @@ export function flotationAfterPurchase(
 ): CompanyFlotationDetails | undefined {
     const projected: FormationState = { ...state, ...copyFinances(state) }
     const certificate = projected.certificates.find((item) => item.id === purchase.certificateId)
-    assert(certificate && !certificate.retired, 'Missing purchased certificate')
+    assert(certificate, 'Missing purchased certificate')
     certificate.owner = purchase.buyer
     delete certificate.poolId
     settleCashPayments(projected, purchase.payments)

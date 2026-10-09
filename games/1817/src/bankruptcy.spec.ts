@@ -99,7 +99,7 @@ describe('crisis sales', () => {
         // Alex, in debt, presides BA with two shares; blair holds two others.
         const state = structuredClone(pleDefaults().state)
         for (const certificate of state.certificates)
-            if (!certificate.retired && certificate.companyId === 'BA') {
+            if (certificate.companyId === 'BA') {
                 if (certificate.kind === 'share' && certificate.president) certificate.owner = alex
                 else if (certificate.id === 'BA:share:1' || certificate.id === 'BA:share:2') {
                     certificate.owner = { kind: 'player', playerId: 'blair' }
@@ -135,7 +135,6 @@ describe('bankruptcy', () => {
         expect(
             play.state.certificates.some(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.owner.kind === 'player' &&
                     certificate.owner.playerId === 'alex' &&
                     certificate.kind === 'share'

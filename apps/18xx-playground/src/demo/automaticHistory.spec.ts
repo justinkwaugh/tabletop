@@ -10,12 +10,7 @@ import { example } from './stockTestUtils.js'
 it.each([true, false])('shows meaningful sold-out market movements only: %s', (canMove) => {
     const run = example(Shikoku)
     for (const certificate of run.state.certificates) {
-        if (
-            certificate.kind !== 'share' ||
-            certificate.retired ||
-            certificate.owner.kind !== 'bank'
-        )
-            continue
+        if (certificate.kind !== 'share' || certificate.owner.kind !== 'bank') continue
         certificate.owner = { kind: 'player', playerId: 'casey' }
         delete certificate.poolId
     }

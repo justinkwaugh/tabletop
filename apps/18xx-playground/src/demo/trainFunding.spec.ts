@@ -246,7 +246,7 @@ it('uses company, Union Bank, and player balances in order, contributing only th
     getCompany(state, 'ML').president = union
     getCompany(state, 'So').president = { kind: 'player', playerId: 'blair' }
     for (const certificate of state.certificates) {
-        if (certificate.retired || certificate.kind !== 'share') continue
+        if (certificate.kind !== 'share') continue
         if (certificate.id === 'ML:president') certificate.owner = union
         else if (certificate.id === 'So:president')
             certificate.owner = { kind: 'player', playerId: 'blair' }
@@ -369,7 +369,6 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
     const { game, engine, state } = example(Top, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'ML' &&
             !certificate.president &&
@@ -460,7 +459,6 @@ it('requires 1889 excess ownership sales even when they raise more than the trai
     const { game, engine, state } = example(Shikoku, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'IR' &&
             certificate.owner.kind === 'player' &&
@@ -543,7 +541,6 @@ it('reevaluates 1889 ownership limits when an emergency sale moves into the Oran
     const { state } = example(Shikoku, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'IR' &&
             certificate.owner.kind === 'player' &&
@@ -736,9 +733,7 @@ it('the funding-chain example exhausts Union Bank before its owner sells and buy
 
 it('allows separate 1830 emergency sale blocks without falsely declaring bankruptcy', () => {
     const { game, engine, state } = example(Thirty, 'funding', 4)
-    const other = state.certificates
-        .filter((certificate) => !certificate.retired)
-        .find((certificate) => certificate.id === 'NYC:share:2')!
+    const other = state.certificates.find((certificate) => certificate.id === 'NYC:share:2')!
     other.owner = { kind: 'player', playerId: 'casey' }
     const funding = (state: EighteenXXState) =>
         new EmergencyTrainFunding(

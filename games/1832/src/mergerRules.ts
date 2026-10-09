@@ -112,7 +112,6 @@ export function takeoverPayments(
     const payments: CashPayment[] = []
     for (const certificate of state.certificates) {
         if (
-            certificate.retired ||
             certificate.kind !== 'share' ||
             certificate.companyId !== targetId ||
             certificate.owner.kind === 'company'

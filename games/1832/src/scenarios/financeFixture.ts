@@ -109,14 +109,12 @@ export function createEighteenThirtyTwoFinanceExample(
                 id: 'P2:charter',
                 companyId: 'P2',
                 kind: 'private',
-                retired: false,
                 owner: casey
             },
             {
                 id: 'P5:charter',
                 companyId: 'P5',
                 kind: 'private',
-                retired: false,
                 owner: { kind: 'company', companyId: 'CG' }
             }
         ]

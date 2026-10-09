@@ -32,6 +32,8 @@ export const PrivateEffect = Type.Union([
             kind: Type.Literal('exchange'),
             privateCompanyId: Type.String(),
             certificateId: Type.String(),
+            companyId: Type.String(),
+            shares: Type.Integer({ minimum: 1 }),
             exemptOwnershipLimit: Type.Boolean()
         },
         { additionalProperties: false }

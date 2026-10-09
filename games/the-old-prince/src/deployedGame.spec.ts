@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
-import type { StockMarketSpace } from '@tabletop/18xx'
+import { recordLeavingNumber, type StockMarketSpace } from '@tabletop/18xx'
 
 function readFixture(name: string) {
     return JSON.parse(
@@ -23,9 +23,14 @@ function readFixture(name: string) {
 }
 
 type Certificate = TheOldPrinceState['certificates'][number]
+type RecordedFace<Current> = Omit<Current, 'president' | 'owner' | 'poolId'> & {
+    president?: boolean
+    certificateLimitCount: number
+}
 type RecordedCertificate = Certificate extends infer Current
     ? Current extends Certificate
-        ? Omit<Current, 'president'> & { president?: boolean; certificateLimitCount: number }
+        ? RecordedFace<Current> &
+              ({ retired: false; owner: Current['owner']; poolId?: string } | { retired: true })
         : never
     : never
 type RecordedState = Omit<TheOldPrinceState, 'stockMarket' | 'certificates'> & {
@@ -34,28 +39,40 @@ type RecordedState = Omit<TheOldPrinceState, 'stockMarket' | 'certificates'> & {
     certificates: RecordedCertificate[]
 }
 
-function currentCertificate({
-    certificateLimitCount,
-    president,
-    ...certificate
-}: RecordedCertificate): Certificate {
-    assert(certificateLimitCount === 1, 'Every deployed certificate counted once')
-    if (certificate.kind !== 'share' || !president) return certificate
-    return { ...certificate, president }
+function currentCertificates(
+    state: Pick<TheOldPrinceState, 'companies'>,
+    certificates: readonly RecordedCertificate[]
+): Certificate[] {
+    return certificates.flatMap((recorded) => {
+        if (recorded.retired) {
+            recordLeavingNumber(state, recorded.companyId, recorded.id)
+            return []
+        }
+        const { certificateLimitCount, president, retired: _retired, ...certificate } = recorded
+        assert(certificateLimitCount === 1, 'Every deployed certificate counted once')
+        if (certificate.kind !== 'share' || !president) return [certificate]
+        return [{ ...certificate, president }]
+    })
 }
 
 function currentShape({
     usedPrivatePowerIds,
     stockMarket: { stacks },
     certificates,
-    ...state
+    ...recorded
 }: RecordedState): TheOldPrinceState {
     assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
+    const state = { ...recorded, companies: structuredClone(recorded.companies) }
     return {
         ...state,
         stockMarket: { stacks },
-        certificates: certificates.map(currentCertificate)
+        certificates: currentCertificates(state, certificates)
     }
+}
+
+// Metadata is what logic records on applying an Action; it is regenerated in the current shape.
+function withoutRecordedMetadata({ metadata: _metadata, ...action }: GameAction): GameAction {
+    return action
 }
 
 const recordedLatestState: RecordedState = readFixture('state')
@@ -123,7 +140,7 @@ describe('the deployed game', () => {
             const transition = transitions.get(action.id)
             assertExists(transition?.before, 'Every recorded action has an undo patch')
             const { updatedState } = engine.executeSingleAction({
-                action,
+                action: withoutRecordedMetadata(action),
                 state: transition.before,
                 game
             })

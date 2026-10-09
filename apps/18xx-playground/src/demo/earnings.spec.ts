@@ -130,17 +130,7 @@ it('PEIR uses surviving shares, rounds each dividend up and retains the rounded-
             .slice(0, 2)
             .map((c) => c.id)
     )
-    state.certificates = state.certificates.map((c) =>
-        removed.has(c.id)
-            ? {
-                  id: c.id,
-                  companyId: c.companyId,
-                  kind: 'share',
-                  shares: 1,
-                  retired: true
-              }
-            : c
-    )
+    state.certificates = state.certificates.filter((c) => !removed.has(c.id))
     earnings(state, 'PEIR', 101)
     const distribution = new EarningsDistribution(state, TheOldPrinceEarningsRules)
     const full = distribution.evaluate('PEIR', 'pay').details!

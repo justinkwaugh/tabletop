@@ -50,7 +50,6 @@ describe('PrivatesModule', () => {
                     id: 'P:charter',
                     companyId: 'P',
                     kind: 'private',
-                    retired: false,
                     owner: { kind: 'player', playerId: TestPlayerId }
                 },
                 ...createOrdinaryShareCertificates('R', [bank, bank], bank),
@@ -106,7 +105,6 @@ describe('PrivatesModule', () => {
                     id: 'P:charter',
                     companyId: 'P',
                     kind: 'private',
-                    retired: false,
                     owner: { kind: 'player', playerId: TestPlayerId }
                 },
                 ...createOrdinaryShareCertificates('R', [bank], bank)

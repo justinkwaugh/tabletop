@@ -33,14 +33,12 @@ function closingState() {
                 kind: 'share' as const,
                 president: true,
                 shares: 2,
-                retired: false as const,
                 owner: { kind: 'player' as const, playerId: 'one' }
             },
             {
                 id: 'P:charter',
                 companyId: 'P',
                 kind: 'private' as const,
-                retired: false as const,
                 owner
             }
         ],
@@ -77,7 +75,7 @@ it('closes a share company, its owned privates and its holdings', () => {
     })
     expect(state.companies[0]).toMatchObject({ closed: true })
     expect(state.companies[0].president).toBeUndefined()
-    expect(state.certificates[0]).toMatchObject({ retired: true })
+    expect(state.certificates).toEqual([])
     expect(state.stations).toEqual([{ id: 'A:home', companyId: 'A', status: 'removed' }])
     expect(state.stationReservations).toEqual([])
     expect(state.trainInventory.trains).toEqual([{ id: 't1', definitionId: '2', status: 'market' }])

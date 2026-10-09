@@ -56,9 +56,7 @@ export const StockRules1846: StockRules = {
         poolDrop: (state, id) =>
             state.certificates.some(
                 (certificate) =>
-                    !certificate.retired &&
-                    certificate.companyId === id &&
-                    certificate.poolId === 'open-market'
+                    certificate.companyId === id && certificate.poolId === 'open-market'
             )
                 ? 1
                 : 0

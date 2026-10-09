@@ -199,11 +199,9 @@ describe('1846 game endings', () => {
         for (const company of table.state.companies) {
             if (company.id !== 'IC') company.closed = true
         }
-        table.state.certificates = table.state.certificates.map((certificate) => {
-            if (certificate.companyId === 'IC' || certificate.retired) return certificate
-            const { owner: _owner, poolId: _poolId, ...retired } = certificate
-            return { ...retired, retired: true }
-        })
+        table.state.certificates = table.state.certificates.filter(
+            (certificate) => certificate.companyId === 'IC'
+        )
         for (const cash of table.state.cash) {
             if (cash.owner.kind === 'player') cash.amount = 100
         }

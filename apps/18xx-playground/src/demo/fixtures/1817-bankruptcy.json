@@ -824,7 +824,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -835,7 +834,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -846,7 +844,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -857,7 +854,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -868,7 +864,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -879,7 +874,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -890,7 +884,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -901,7 +894,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -912,7 +904,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -923,7 +914,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -934,7 +924,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -945,7 +934,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -956,7 +944,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -967,7 +954,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -978,7 +964,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -989,7 +974,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1000,7 +984,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1011,7 +994,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1022,7 +1004,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1033,7 +1014,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1042,7 +1022,6 @@
     "id": "OBC:charter",
     "companyId": "OBC",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1051,7 +1030,6 @@
     "id": "P21:charter",
     "companyId": "P21",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1060,7 +1038,6 @@
     "id": "MTE:charter",
     "companyId": "MTE",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1069,7 +1046,6 @@
     "id": "P23:charter",
     "companyId": "P23",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1078,7 +1054,6 @@
     "id": "P19:charter",
     "companyId": "P19",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1087,7 +1062,6 @@
     "id": "P15:charter",
     "companyId": "P15",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1096,7 +1070,6 @@
     "id": "TS:charter",
     "companyId": "TS",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1105,7 +1078,6 @@
     "id": "MAJC:charter",
     "companyId": "MAJC",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1114,7 +1086,6 @@
     "id": "CM:charter",
     "companyId": "CM",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1123,7 +1094,6 @@
     "id": "MINC:charter",
     "companyId": "MINC",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1132,7 +1102,6 @@
     "id": "P12:charter",
     "companyId": "P12",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1141,7 +1110,6 @@
     "id": "P13:charter",
     "companyId": "P13",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1150,7 +1118,6 @@
     "id": "P14:charter",
     "companyId": "P14",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1159,7 +1126,6 @@
     "id": "UBC:charter",
     "companyId": "UBC",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1168,7 +1134,6 @@
     "id": "MAIL:charter",
     "companyId": "MAIL",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1177,7 +1142,6 @@
     "id": "P20:charter",
     "companyId": "P20",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1186,7 +1150,6 @@
     "id": "MINM:charter",
     "companyId": "MINM",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1195,7 +1158,6 @@
     "id": "MAJM:charter",
     "companyId": "MAJM",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1204,7 +1166,6 @@
     "id": "P18:charter",
     "companyId": "P18",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1213,7 +1174,6 @@
     "id": "P22:charter",
     "companyId": "P22",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -1222,7 +1182,6 @@
     "id": "P24:charter",
     "companyId": "P24",
     "kind": "private",
-    "retired": false,
     "owner": {
      "kind": "bank"
     }

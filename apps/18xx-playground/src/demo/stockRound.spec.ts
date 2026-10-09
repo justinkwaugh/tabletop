@@ -47,7 +47,7 @@ function buy(state: EighteenXXState, certificateId: string, expectedPrice: numbe
 }
 function give(state: EighteenXXState, certificateId: string, owner: Owner) {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    if (!certificate || certificate.retired) throw new Error('Missing certificate')
+    if (!certificate) throw new Error('Missing certificate')
     certificate.owner = owner
     delete certificate.poolId
 }
@@ -321,11 +321,7 @@ it('counts TOP reserved and Union Bank shares as sold, but excludes Bank and tre
 it('moves sold-out companies in market order, preserves an existing top marker, and derives operations after movement', () => {
     const { game, engine, state } = example(Shikoku)
     for (const certificate of state.certificates)
-        if (
-            certificate.kind === 'share' &&
-            !certificate.retired &&
-            certificate.owner.kind === 'bank'
-        )
+        if (certificate.kind === 'share' && certificate.owner.kind === 'bank')
             give(state, certificate.id, { kind: 'player', playerId: 'casey' })
     placeStockMarker(state.stockMarket, 'AR', '0:2')
     placeStockMarker(state.stockMarket, 'IR', '1:2')
@@ -446,11 +442,7 @@ it('automatically passes a stock player with no affordable purchase or holdings 
     for (const cash of state.cash)
         if (cash.owner.kind === 'player' && cash.owner.playerId === 'blair') cash.amount = 0
     for (const certificate of state.certificates)
-        if (
-            !certificate.retired &&
-            certificate.owner.kind === 'player' &&
-            certificate.owner.playerId === 'blair'
-        ) {
+        if (certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
             certificate.owner = { kind: 'player', playerId: 'casey' }
         }
     const result = engine.executeCanonicalAction({ game, state, action: finish(state) })

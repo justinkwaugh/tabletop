@@ -222,10 +222,7 @@ it('falls back to another pool when the preferred pool holds no shares of the co
     const blair = { kind: 'player', playerId: 'blair' } as const
     expect(
         state.certificates.some(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.companyId === 'IR' &&
-                certificate.poolId === 'open-market'
+            (certificate) => certificate.companyId === 'IR' && certificate.poolId === 'open-market'
         )
     ).toBe(false)
     const declared = engine.executeCanonicalAction({

@@ -33,7 +33,9 @@ export const CompanyProperties = {
     operated: Type.Optional(Type.Boolean()),
     floated: Type.Optional(Type.Boolean()),
     president: Type.Optional(President),
-    privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
+    privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
+    /** The highest number its certificates or stations have used, once any has left play. */
+    lastIssuedNumber: Type.Optional(Type.Integer({ minimum: 1 }))
 }
 export const CompanyLoanFields = { loans: Type.Optional(Type.Integer({ minimum: 1 })) }
 export const CompanyRoleFields = { role: Type.Optional(Id) }
@@ -91,55 +93,43 @@ const ShortFields = {
     kind: Type.Literal('short'),
     shares: Type.Integer({ minimum: 1 })
 }
-const OwnedFields = { retired: Type.Literal(false), owner: Owner, poolId: Type.Optional(Id) }
-const RetiredFields = { retired: Type.Literal(true) }
-const ShareCertificates = [
-    Type.Object({ ...ShareFields, ...OwnedFields }, { additionalProperties: false }),
-    Type.Object({ ...ShareFields, ...RetiredFields }, { additionalProperties: false })
-] as const
-const PrivateCertificates = [
-    Type.Object({ ...PrivateFields, ...OwnedFields }, { additionalProperties: false }),
-    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false })
-] as const
-const ShortCertificates = [
-    Type.Object({ ...ShortFields, ...OwnedFields }, { additionalProperties: false }),
-    Type.Object({ ...ShortFields, ...RetiredFields }, { additionalProperties: false })
-] as const
-const NumberedShareFields = { ...ShareFields, number: Type.Optional(Type.Integer({ minimum: 1 })) }
-const NumberedShareCertificates = [
-    Type.Object({ ...NumberedShareFields, ...OwnedFields }, { additionalProperties: false }),
-    Type.Object({ ...NumberedShareFields, ...RetiredFields }, { additionalProperties: false })
-] as const
-export const OrdinaryCertificate = Type.Union([
-    ShareCertificates[0],
-    PrivateCertificates[0],
-    ShareCertificates[1],
-    PrivateCertificates[1]
-])
+const OwnedFields = { owner: Owner, poolId: Type.Optional(Id) }
+const ShareCertificate = Type.Object(
+    { ...ShareFields, ...OwnedFields },
+    { additionalProperties: false }
+)
+const PrivateCertificate = Type.Object(
+    { ...PrivateFields, ...OwnedFields },
+    { additionalProperties: false }
+)
+const ShortCertificate = Type.Object(
+    { ...ShortFields, ...OwnedFields },
+    { additionalProperties: false }
+)
+const NumberedShareCertificate = Type.Object(
+    {
+        ...ShareFields,
+        number: Type.Optional(Type.Integer({ minimum: 1 })),
+        ...OwnedFields
+    },
+    { additionalProperties: false }
+)
+export const OrdinaryCertificate = Type.Union([ShareCertificate, PrivateCertificate])
 export const ShortingCertificate = Type.Union([
-    ShareCertificates[0],
-    PrivateCertificates[0],
-    ShareCertificates[1],
-    PrivateCertificates[1],
-    ...ShortCertificates
+    ShareCertificate,
+    PrivateCertificate,
+    ShortCertificate
 ])
-export const NumberedCertificate = Type.Union([
-    NumberedShareCertificates[0],
-    PrivateCertificates[0],
-    NumberedShareCertificates[1],
-    PrivateCertificates[1]
-])
+export const NumberedCertificate = Type.Union([NumberedShareCertificate, PrivateCertificate])
 export const Certificate = Type.Union([
-    NumberedShareCertificates[0],
-    PrivateCertificates[0],
-    NumberedShareCertificates[1],
-    PrivateCertificates[1],
-    ...ShortCertificates
+    NumberedShareCertificate,
+    PrivateCertificate,
+    ShortCertificate
 ])
 export type Certificate = Type.Static<typeof Certificate>
-export type Portfolio = Extract<Certificate, { retired: false }>[]
-export type OpenShare = Extract<Portfolio[number], { kind: 'share' }>
-export type OpenShort = Extract<Portfolio[number], { kind: 'short' }>
+export type Portfolio = Certificate[]
+export type OpenShare = Extract<Certificate, { kind: 'share' }>
+export type OpenShort = Extract<Certificate, { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }
 
 export const FinanceFields = {
@@ -205,7 +195,6 @@ export function validateFinances(state: FinancialState, playerIds: readonly stri
             (company.kind === 'private') === (certificate.kind === 'private'),
             'Certificate must match its company kind'
         )
-        if (certificate.retired) continue
         assertOwner(state, certificate.owner, playerIds)
         if (certificate.poolId !== undefined) {
             const pool = state.certificatePools.find((pool) => pool.id === certificate.poolId)
@@ -229,10 +218,7 @@ export function certificatesOwnedBy(
     state: Pick<FinancialState, 'certificates'>,
     owner: Owner
 ): Portfolio {
-    return state.certificates.filter(
-        (certificate): certificate is Portfolio[number] =>
-            !certificate.retired && sameOwner(certificate.owner, owner)
-    )
+    return state.certificates.filter((certificate) => sameOwner(certificate.owner, owner))
 }
 
 export function certificatesInPool(
@@ -243,10 +229,7 @@ export function certificatesInPool(
         state.certificatePools.some((pool) => pool.id === poolId),
         'Unknown certificate pool'
     )
-    return state.certificates.filter(
-        (certificate): certificate is Portfolio[number] =>
-            !certificate.retired && certificate.poolId === poolId
-    )
+    return state.certificates.filter((certificate) => certificate.poolId === poolId)
 }
 
 export function cashOwnedBy(
@@ -277,9 +260,7 @@ export function openShares(
     companyId: string
 ): OpenShare[] {
     return state.certificates.flatMap((certificate) =>
-        !certificate.retired && certificate.kind === 'share' && certificate.companyId === companyId
-            ? [certificate]
-            : []
+        certificate.kind === 'share' && certificate.companyId === companyId ? [certificate] : []
     )
 }
 
@@ -316,10 +297,7 @@ export function privateOwner(
     companyId: string
 ): Owner | undefined {
     assert(getCompany(state, companyId).kind === 'private', 'Expected a private company')
-    const certificate = state.certificates.find(
-        (certificate) => certificate.companyId === companyId && !certificate.retired
-    )
-    return certificate && !certificate.retired ? certificate.owner : undefined
+    return state.certificates.find((certificate) => certificate.companyId === companyId)?.owner
 }
 
 export function controllingOwner(
@@ -353,7 +331,7 @@ export function createOrdinaryShareCertificates(
     companyId: string,
     ordinary: readonly CertificateAllocation[],
     president: President | CertificateAllocation
-): Extract<Certificate, { kind: 'share'; retired: false }>[] {
+): OpenShare[] {
     return [
         {
             id: `${companyId}:president`,
@@ -361,7 +339,6 @@ export function createOrdinaryShareCertificates(
             kind: 'share',
             shares: 2,
             president: true,
-            retired: false,
             ...('owner' in president ? president : { owner: president })
         },
         ...ordinary.map((allocation, index) =>
@@ -372,12 +349,17 @@ export function createOrdinaryShareCertificates(
 
 /** Issues one-share certificates numbered after every certificate the company has had. */
 export function issueShareCertificates(
-    state: Pick<FinancialState, 'certificates'>,
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
     companyId: string,
     count: number,
     allocation: CertificateAllocation
 ): string[] {
-    const first = nextCertificateNumber(state, ordinaryShareIdPrefix(companyId))
+    const first = nextIssuedNumber(
+        state,
+        companyId,
+        state.certificates.map((certificate) => certificate.id),
+        ordinaryShareIdPrefix(companyId)
+    )
     return Array.from({ length: count }, (_, index) => {
         const certificate = ordinaryShareCertificate(companyId, first + index, allocation)
         state.certificates.push(certificate)
@@ -385,14 +367,43 @@ export function issueShareCertificates(
     })
 }
 
-export function nextCertificateNumber(
-    state: Pick<FinancialState, 'certificates'>,
+/**
+ * The next number for an id such as `BA:share:` or `BA:station:`, after every one in play and
+ * every one that has left play, so a recorded action's id never names a later record.
+ */
+export function nextIssuedNumber(
+    state: Pick<FinancialState, 'companies'>,
+    companyId: string,
+    idsInPlay: readonly string[],
     prefix: string
 ): number {
-    const numbers = state.certificates.flatMap((certificate) =>
-        certificate.id.startsWith(prefix) ? [Number(certificate.id.slice(prefix.length))] : []
+    const numbers = idsInPlay.flatMap((id) =>
+        id.startsWith(prefix) ? [Number(id.slice(prefix.length))] : []
     )
-    return Math.max(0, ...numbers) + 1
+    return Math.max(getCompany(state, companyId).lastIssuedNumber ?? 0, ...numbers) + 1
+}
+
+/** Records the number of an id leaving play, so a later record cannot reuse it. */
+export function recordLeavingNumber(
+    state: Pick<FinancialState, 'companies'>,
+    companyId: string,
+    id: string
+): void {
+    const number = Number(id.slice(id.lastIndexOf(':') + 1))
+    if (!Number.isInteger(number) || number < 1) return
+    const company = getCompany(state, companyId)
+    if (number > (company.lastIssuedNumber ?? 0)) company.lastIssuedNumber = number
+}
+
+/** Takes certificates out of play: retired, exchanged, closed or cancelled. */
+export function removeCertificates(
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
+    ids: readonly string[]
+): void {
+    for (const certificate of state.certificates)
+        if (ids.includes(certificate.id))
+            recordLeavingNumber(state, certificate.companyId, certificate.id)
+    state.certificates = state.certificates.filter((certificate) => !ids.includes(certificate.id))
 }
 
 function ordinaryShareIdPrefix(companyId: string): string {
@@ -403,13 +414,12 @@ function ordinaryShareCertificate(
     companyId: string,
     number: number,
     allocation: CertificateAllocation
-): Extract<Certificate, { kind: 'share'; retired: false }> {
+): OpenShare {
     return {
         id: `${ordinaryShareIdPrefix(companyId)}${number}`,
         companyId,
         kind: 'share',
         shares: 1,
-        retired: false,
         ...allocation
     }
 }

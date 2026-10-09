@@ -198,7 +198,7 @@ export class PrivatesModule {
                 (item) => item.id === offer.certificateId
             )
             assert(
-                certificate && !certificate.retired && certificate.kind === 'share',
+                certificate && certificate.kind === 'share',
                 'An exchange offer requires an available share certificate'
             )
             const key = JSON.stringify([

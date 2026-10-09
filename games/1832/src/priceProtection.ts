@@ -133,7 +133,6 @@ function applyProtection(
         const certificate = state.certificates.find((item) => item.id === id)
         assert(
             certificate &&
-                !certificate.retired &&
                 certificate.owner.kind === 'bank' &&
                 certificate.poolId === 'open-market',
             'Protected shares are bought back from the open market'

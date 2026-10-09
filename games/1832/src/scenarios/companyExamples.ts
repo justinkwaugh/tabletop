@@ -130,7 +130,7 @@ export function createEighteenThirtyTwoCompanyExample(
             ['SAL:share:2', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -158,7 +158,7 @@ export function createEighteenThirtyTwoCompanyExample(
     }
     if (position === 'transfers' || position === 'powers') {
         const coalFields = state.certificates.find((item) => item.companyId === 'P5')
-        assert(coalFields && !coalFields.retired, 'The example requires the coal fields')
+        assert(coalFields, 'The example requires the coal fields')
         coalFields.owner = { kind: 'player', playerId: players[0].playerId }
         state.phaseId = '3'
         buyTrains(state, 'CG', ['2'])
@@ -182,17 +182,13 @@ export function createEighteenThirtyTwoCompanyExample(
         if (position === 'funding')
             for (const id of ['CG:share:5', 'CG:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(certificate && !certificate.retired, 'Funding example requires shares')
+                assert(certificate, 'Funding example requires shares')
                 certificate.owner = { kind: 'player', playerId: players[1].playerId }
                 delete certificate.poolId
             }
         if (position === 'bankruptcy')
             for (const certificate of state.certificates)
-                if (
-                    !certificate.retired &&
-                    certificate.kind === 'share' &&
-                    !certificate.president
-                ) {
+                if (certificate.kind === 'share' && !certificate.president) {
                     certificate.owner = { kind: 'bank' }
                     certificate.poolId = 'initial-offering'
                 }

@@ -178,7 +178,6 @@ describe('purchase rejection', () => {
                 const owner = { kind: 'player' as const, playerId: 'alex' }
                 const spare = state.certificates.filter(
                     (certificate) =>
-                        !certificate.retired &&
                         certificate.kind === 'share' &&
                         !certificate.president &&
                         certificate.owner.kind === 'bank' &&
@@ -194,7 +193,6 @@ describe('purchase rejection', () => {
                     Shikoku1889StockRules.certificateLimit(state, owner) -
                     stockCertificateCount(state, owner, Shikoku1889StockRules)
                 for (const certificate of byRound.slice(0, needed)) {
-                    if (certificate.retired) throw new Error('Spare certificates are in play')
                     certificate.owner = owner
                     delete certificate.poolId
                 }
@@ -207,10 +205,8 @@ describe('purchase rejection', () => {
                     const certificate = state.certificates.find(
                         (certificate) => certificate.id === `AR:share:${id}`
                     )!
-                    if (!certificate.retired) {
-                        certificate.owner = alex
-                        delete certificate.poolId
-                    }
+                    certificate.owner = alex
+                    delete certificate.poolId
                 }
             }
         }
@@ -261,6 +257,7 @@ describe('purchase rejection', () => {
         action.metadata = {
             certificateId: 'wrong',
             companyId: 'wrong',
+            shares: 9,
             buyer: alex,
             seller: bank,
             price: 1,

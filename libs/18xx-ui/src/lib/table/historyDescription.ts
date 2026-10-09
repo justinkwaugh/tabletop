@@ -68,7 +68,7 @@ import {
     type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
-import { assert, assertExists, type GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -223,18 +223,8 @@ function describeShared(
         )
         return extras.length ? `, with ${extras.join(' and ')}` : ''
     }
-    function receivedShare(certificateId: string) {
-        const certificate = state.certificates.find((item) => item.id === certificateId)
-        assert(certificate?.kind === 'share', 'Recorded exchange requires its received share')
-        return `${certificate.shares} ${companyName(certificate.companyId)}`
-    }
     function marketPrice(id: string) {
         return chart.space(id).price
-    }
-    function shares(certificateId: string) {
-        const certificate = state.certificates.find((item) => item.id === certificateId)
-        assert(certificate?.kind === 'share', 'Recorded share action requires its certificate')
-        return certificate.shares
     }
     if (isRequestTrackConsent(action))
         return { text: `Requested permission to lay track at ${action.locationId}` }
@@ -408,7 +398,7 @@ function describeShared(
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
         return {
-            text: `Bought ${shares(action.certificateId)} ${companyName(action.metadata.companyId)} for ${money(action.expectedPrice)}`,
+            text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)} for ${money(action.expectedPrice)}`,
             detail:
                 [
                     action.buyer.kind === 'company'
@@ -451,7 +441,7 @@ function describeShared(
         return {
             text: `Started ${companyName(action.companyId)} for ${money(action.expectedPrice)}`,
             detail: action.metadata
-                ? `${shares(action.metadata.certificateId)} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
+                ? `${action.metadata.shares} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
                 : undefined,
             important: true
         }
@@ -464,7 +454,7 @@ function describeShared(
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,
             detail: action.metadata
-                ? `For ${shares(action.certificateId)} ${companyName(action.metadata.companyId)}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
+                ? `For ${action.metadata.shares} ${companyName(action.metadata.companyId)}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
                 : action.certificateId,
             important: true
         }
@@ -496,7 +486,7 @@ function describeShared(
                 const name = companyName(effect.privateCompanyId)
                 if (effect.kind === 'close') return `${name} closed`
                 if (effect.kind === 'income') return `${name} income ${money(effect.revenue)}`
-                return `${name} exchanged for ${receivedShare(effect.certificateId)}`
+                return `${name} exchanged for ${effect.shares} ${companyName(effect.companyId)}`
             }),
             ...presidentChanges
         ]
@@ -588,18 +578,10 @@ function describeShared(
                 [
                     ...(capital ? [`${money(capital)} capital`] : []),
                     ...(action.metadata.exchanges ?? []).map((exchange) => {
-                        const certificate = state.certificates.find(
-                            (item) => item.id === exchange.surrenderedId
-                        )
-                        assertExists(
-                            certificate,
-                            'Recorded flotation requires its surrendered certificate'
-                        )
-                        const number =
-                            certificate.kind === 'share' && certificate.number
-                                ? ` #${certificate.number}`
-                                : ''
-                        return `${nameOf(exchange.owner)} exchanged ${companyName(certificate.companyId)}${number} for ${receivedShare(exchange.receivedId)}`
+                        const number = exchange.surrenderedNumber
+                            ? ` #${exchange.surrenderedNumber}`
+                            : ''
+                        return `${nameOf(exchange.owner)} exchanged ${companyName(exchange.surrenderedCompanyId)}${number} for ${exchange.receivedShares} ${companyName(exchange.receivedCompanyId)}`
                     }),
                     ...presidentChanges,
                     ...closures

@@ -23,7 +23,6 @@ function contested(): StockState {
         companyId: TestCompanyId,
         kind: 'share' as const,
         shares: 1,
-        retired: false as const,
         owner: holder
     })
     state.certificates.push(

@@ -17,7 +17,7 @@ function stationsPlay(privateIds: readonly string[]) {
     return playExample(EighteenThirtyTwoScenarios, 'stations', 3, (state) => {
         for (const id of privateIds) {
             const existing = state.certificates.find((item) => item.id === `${id}:charter`)
-            if (existing && !existing.retired) {
+            if (existing) {
                 existing.owner = { kind: 'company', companyId: 'CG' }
                 continue
             }
@@ -32,7 +32,6 @@ function stationsPlay(privateIds: readonly string[]) {
                 id: `${id}:charter`,
                 companyId: id,
                 kind: 'private',
-                retired: false,
                 owner: { kind: 'company', companyId: 'CG' }
             })
         }

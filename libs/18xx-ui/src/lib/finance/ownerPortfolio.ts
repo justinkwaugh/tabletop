@@ -38,10 +38,7 @@ export function ownerPortfolio(
                 company.shareCount ??
                 state.certificates.reduce(
                     (sum, item) =>
-                        sum +
-                        (!item.retired && item.kind === 'share' && item.companyId === id
-                            ? item.shares
-                            : 0),
+                        sum + (item.kind === 'share' && item.companyId === id ? item.shares : 0),
                     0
                 )
             assert(total > 0, 'Owned shares require outstanding company shares')

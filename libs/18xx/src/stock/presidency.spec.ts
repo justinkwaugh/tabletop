@@ -12,7 +12,6 @@ function example(): FinancialState {
             kind: 'share',
             shares: 4,
             president: true,
-            retired: false,
             owner: previous
         },
         ...[2, 2, 2, 1, 1, 2, 2].map((shares, index): Certificate => ({
@@ -20,7 +19,6 @@ function example(): FinancialState {
             companyId: 'rail',
             kind: 'share',
             shares,
-            retired: false,
             owner: index < 2 ? previous : next
         }))
     ]

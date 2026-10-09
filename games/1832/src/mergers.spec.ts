@@ -254,7 +254,7 @@ describe('merger phase', () => {
             state.phaseId = '6'
             // Alex presides over both: he holds CG's president's certificate, Blair his share.
             for (const certificate of state.certificates) {
-                if (certificate.retired || certificate.companyId !== 'CG') continue
+                if (certificate.companyId !== 'CG') continue
                 if (certificate.id === 'CG:president') certificate.owner = player('alex')
                 else if (certificate.id === 'CG:share:2') certificate.owner = player('blair')
             }

@@ -9,7 +9,6 @@ export const Shikoku1889PrivateRules: PrivateRules = {
             certificateIds: state.certificates
                 .filter(
                     (item) =>
-                        !item.retired &&
                         item.kind === 'share' &&
                         item.companyId === 'IR' &&
                         !item.president &&

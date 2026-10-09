@@ -350,7 +350,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -361,7 +360,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -372,7 +370,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -383,7 +380,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -394,7 +390,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -405,7 +400,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -416,7 +410,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -427,7 +420,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -438,7 +430,6 @@
                 "companyId": "AR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -450,7 +441,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -461,7 +451,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -472,7 +461,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -483,7 +471,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -494,7 +481,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -505,7 +491,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -516,7 +501,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -527,7 +511,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -538,7 +521,6 @@
                 "companyId": "IR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -550,7 +532,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -561,7 +542,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -572,7 +552,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -583,7 +562,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -594,7 +572,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -605,7 +582,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -616,7 +592,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -627,7 +602,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -638,7 +612,6 @@
                 "companyId": "SR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -650,7 +623,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -661,7 +633,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -672,7 +643,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -683,7 +653,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -694,7 +663,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -705,7 +673,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -716,7 +683,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -727,7 +693,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -738,7 +703,6 @@
                 "companyId": "KO",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -750,7 +714,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -761,7 +724,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -772,7 +734,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -783,7 +744,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -794,7 +754,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -805,7 +764,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -816,7 +774,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -827,7 +784,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -838,7 +794,6 @@
                 "companyId": "TR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -850,7 +805,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -861,7 +815,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -872,7 +825,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -883,7 +835,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -894,7 +845,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -905,7 +855,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -916,7 +865,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -927,7 +875,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -938,7 +885,6 @@
                 "companyId": "KU",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -950,7 +896,6 @@
                 "kind": "share",
                 "shares": 2,
                 "president": true,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -961,7 +906,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -972,7 +916,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -983,7 +926,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -994,7 +936,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -1005,7 +946,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -1016,7 +956,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -1027,7 +966,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -1038,7 +976,6 @@
                 "companyId": "UR",
                 "kind": "share",
                 "shares": 1,
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 },
@@ -1048,7 +985,6 @@
                 "id": "TE:charter",
                 "companyId": "TE",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1057,7 +993,6 @@
                 "id": "MF:charter",
                 "companyId": "MF",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1066,7 +1001,6 @@
                 "id": "ER:charter",
                 "companyId": "ER",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1075,7 +1009,6 @@
                 "id": "SRR:charter",
                 "companyId": "SRR",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1084,7 +1017,6 @@
                 "id": "DR:charter",
                 "companyId": "DR",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1093,7 +1025,6 @@
                 "id": "PR:charter",
                 "companyId": "PR",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }
@@ -1102,7 +1033,6 @@
                 "id": "UTF:charter",
                 "companyId": "UTF",
                 "kind": "private",
-                "retired": false,
                 "owner": {
                     "kind": "bank"
                 }

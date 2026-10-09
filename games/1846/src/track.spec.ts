@@ -158,10 +158,10 @@ describe('1846 phase-I construction', () => {
             TrackRules1846.restriction(table.hydrated, { ...request, locationId: 'F14' })
         ).toBeDefined()
         const certificate = table.state.certificates.find(
-            (certificate) => certificate.companyId === 'O&I' && !certificate.retired
+            (certificate) => certificate.companyId === 'O&I'
         )
         assertExists(certificate)
-        if (!certificate.retired) certificate.owner = { kind: 'company', companyId: 'MS' }
+        certificate.owner = { kind: 'company', companyId: 'MS' }
         expect(
             TrackRules1846.restriction(table.hydrated, { ...request, locationId: 'F14' })
         ).toBeUndefined()

@@ -85,15 +85,11 @@ export function evaluatePresidency(
     const previous = company.president
     const president = state.certificates.find(
         (certificate) =>
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.president &&
             certificate.companyId === companyId
     )
-    assert(
-        president && !president.retired && president.kind === 'share',
-        'Missing president certificate'
-    )
+    assert(president && president.kind === 'share', 'Missing president certificate')
     const owned = (owner: Owner) =>
         remaining && sameOwner(owner, remaining.owner)
             ? remaining.shares
@@ -139,7 +135,7 @@ export function evaluatePresidency(
 export function applyPresidencyChange(state: FinancialState, change: PresidencyChange): void {
     for (const id of [change.presidentCertificateId, ...change.exchangedCertificateIds]) {
         const certificate = state.certificates.find((certificate) => certificate.id === id)
-        assert(certificate && !certificate.retired, 'Missing presidency exchange certificate')
+        assert(certificate, 'Missing presidency exchange certificate')
         certificate.owner = id === change.presidentCertificateId ? change.next : change.previous
         delete certificate.poolId
     }
@@ -169,7 +165,7 @@ export function applyPresidencyClaim(state: FinancialState, claim: PresidencyCla
     assertExists(pool, 'Presidency claim requires a certificate pool')
     for (const id of [claim.presidentCertificateId, ...claim.exchangedCertificateIds]) {
         const certificate = state.certificates.find((certificate) => certificate.id === id)
-        assert(certificate && !certificate.retired, 'Presidency claim requires a live certificate')
+        assert(certificate, 'Presidency claim requires a live certificate')
         if (id === claim.presidentCertificateId) {
             certificate.owner = claim.next
             delete certificate.poolId

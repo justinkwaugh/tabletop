@@ -30,7 +30,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
     const certificates = table.state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 certificate.companyId === companyId &&
@@ -39,7 +38,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
         .slice(0, shares)
     expect(certificates).toHaveLength(shares)
     for (const certificate of certificates) {
-        assert(!certificate.retired)
         certificate.owner = { kind: 'player', playerId }
         delete certificate.poolId
     }
@@ -55,13 +53,9 @@ function launchOther(table: Table, companyId = 'NYC', price = 40, presidentId = 
         parPrice: price
     })
     const certificate = table.state.certificates.find(
-        (entry) =>
-            !entry.retired &&
-            entry.kind === 'share' &&
-            entry.companyId === companyId &&
-            entry.president
+        (entry) => entry.kind === 'share' && entry.companyId === companyId && entry.president
     )
-    assert(certificate && !certificate.retired)
+    assert(certificate)
     certificate.owner = { kind: 'player', playerId: presidentId }
     delete certificate.poolId
     setPrice(table, companyId, price)
@@ -188,12 +182,8 @@ describe('1846 personal emergency train funding', () => {
         ).toContain('before')
         getCompany(table.state, 'NYC').operated = true
         for (const certificate of table.state.certificates
-            .filter(
-                (entry) =>
-                    !entry.retired && entry.companyId === 'NYC' && entry.owner.kind === 'company'
-            )
+            .filter((entry) => entry.companyId === 'NYC' && entry.owner.kind === 'company')
             .slice(0, 4)) {
-            assert(!certificate.retired)
             certificate.owner = { kind: 'bank' }
             certificate.poolId = 'open-market'
         }

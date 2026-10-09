@@ -54,11 +54,7 @@ function giveOfferingShares(
 ) {
     for (const certificate of state.certificates) {
         if (count === 0) return
-        if (
-            certificate.retired ||
-            certificate.companyId !== companyId ||
-            certificate.poolId !== 'initial-offering'
-        )
+        if (certificate.companyId !== companyId || certificate.poolId !== 'initial-offering')
             continue
         certificate.owner = player(playerId)
         delete certificate.poolId
@@ -199,19 +195,14 @@ describe('share price protection', () => {
             placeStockMarker(state.stockMarket, 'CG', '3:0')
             const offered = state.certificates.find(
                 (certificate) =>
-                    !certificate.retired &&
-                    certificate.companyId === 'CG' &&
-                    certificate.poolId === 'initial-offering'
+                    certificate.companyId === 'CG' && certificate.poolId === 'initial-offering'
             )
             assertExists(offered, 'CG has an offering share left')
-            if (!offered.retired) offered.poolId = 'open-market'
+            offered.poolId = 'open-market'
         })
         play.act('FinishStockTurn')
         const certificateId = play.state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.poolId === 'open-market' &&
-                certificate.companyId === 'CG'
+            (certificate) => certificate.poolId === 'open-market' && certificate.companyId === 'CG'
         )?.id
         assertExists(certificateId, 'A CG share is in the market')
         play.act('BuyShares', { buyer: player('blair'), certificateId, expectedPrice: 50 }, 'blair')

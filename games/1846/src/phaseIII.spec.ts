@@ -47,7 +47,7 @@ describe('1846 Phase III trains and lifecycle', () => {
             expect(buyer).not.toBe(decider)
             table.state.steamboat = { companyId: 'IC', locationId: 'D6' }
             const mail = table.state.certificates.find(
-                (certificate) => certificate.companyId === 'MAIL' && !certificate.retired
+                (certificate) => certificate.companyId === 'MAIL'
             )
             assertExists(mail)
             mail.owner = { kind: 'company', companyId: 'IC' }

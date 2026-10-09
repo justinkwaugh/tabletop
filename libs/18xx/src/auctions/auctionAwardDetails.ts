@@ -25,9 +25,7 @@ export class AuctionAwardRecorder {
     private readonly owners: Map<string, Owner>
     constructor(state: Pick<FinancialState, 'certificates'>) {
         this.owners = new Map(
-            state.certificates.flatMap((certificate) =>
-                certificate.retired ? [] : [[certificate.id, { ...certificate.owner }]]
-            )
+            state.certificates.map((certificate) => [certificate.id, { ...certificate.owner }])
         )
     }
     award(state: Pick<FinancialState, 'certificates'>, award: AuctionAward): AuctionAwardDetails {
@@ -36,7 +34,6 @@ export class AuctionAwardRecorder {
             shares: state.certificates.flatMap((certificate) => {
                 if (
                     certificate.kind !== 'share' ||
-                    certificate.retired ||
                     certificate.owner.kind !== 'player' ||
                     certificate.owner.playerId !== award.playerId
                 )

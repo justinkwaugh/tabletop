@@ -54,7 +54,7 @@ function restorePrivate(table: ReturnType<typeof major>, privateId: RevenuePriva
     const company = full.companies.find((company) => company.id === privateId)
     const certificate = full.certificates.find((certificate) => certificate.companyId === privateId)
     assertExists(company)
-    assert(certificate && !certificate.retired)
+    assert(certificate)
     table.state.companies.push(structuredClone(company))
     table.state.certificates.push({
         ...certificate,
@@ -421,7 +421,7 @@ describe('1846 Mail Contract run scoring', () => {
         const mail = table.state.certificates.find(
             (certificate) => certificate.companyId === 'MAIL'
         )
-        assert(mail && !mail.retired)
+        assert(mail)
         mail.owner = { kind: 'player', playerId: table.state.activePlayerIds[0] }
         expect(privateOwner(table.state, 'MAIL')?.kind).toBe('player')
         expect(new RouteEvaluation(hydrated(), rules).evaluate('NYC', routes).result?.revenue).toBe(

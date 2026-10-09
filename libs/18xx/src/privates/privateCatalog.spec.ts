@@ -74,7 +74,6 @@ function state(phaseId: string, owners: Record<string, Owner>, closed: string[] 
                 id: `${id}:charter`,
                 companyId: id,
                 kind: 'private' as const,
-                retired: false as const,
                 owner
             }))
     }

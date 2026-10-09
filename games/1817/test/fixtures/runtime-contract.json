@@ -1,16 +1,16 @@
 {
   "actionSchemaDigests": {
     "AcquireCompany": "27234f242a1eadc8d6b59b3efda2edd72b01cc898e3be015966cf392057f065c",
-    "AdvancePhase": "eec53dafa6c3bdd98bdad63fb0397a97bf32d5902c4a52a5d14d0979e1a136eb",
+    "AdvancePhase": "49a335040056ae42bc2bc97697bf14f316921c0baa33e79a8108d2e038c034ad",
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
     "BidForLot": "8ab4c24d5d3df608d5ccef32d6ed194338b5153cec0957bf1cfaebdcfc59a819",
     "BidToAcquire": "af905b200b3ac52194d012a6471a05480f15aec598e588361ed65ad53602d6a9",
     "BuyBackShares": "8bc3e8889554550fb768d70bdda039943d7de41882ad04e6ceb4c4f00eb439db",
-    "BuyConvertedShare": "74567f9c45bb9a9c5cc6ff6ec2a4167944d2d1d09a6075ef5e8400ca5f920718",
+    "BuyConvertedShare": "6d528247eb146e1085347ccd90ed6b59bd3fa9dcc86ca3aabdec59c2f768392d",
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
     "BuyPrivateTrain": "95fdc52339fbd1df0d770ba507be1f3c5bd812ef36ae70481603a4208c86a07c",
-    "BuyShares": "74c26aa5a67ac13ab422954f9de8a6060959a9679c0050e465a5488696b0dfae",
+    "BuyShares": "7176945db6b51c301ad282380b561466466903e9080c0e11f76a9919f6827049",
     "BuyTrain": "3e7d28d5ea1a5efb9c08327644b787b728ffb709da1418a9b335b76183df62f2",
     "CloseCompanySale": "8e7da990405a3d252ace0de46bc69e8f32170aee87858f5696e25c3ef802717f",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
@@ -24,11 +24,11 @@
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
     "DiscardMergedTrain": "28fc4501a33c98e5b1d6d749864d4b6626291b3549ab12a570755f0feab0470d",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
-    "DistributeEarnings": "730b0d2c5db385382646eeb2d6fd54588254ea0e245e4b2fabaaf882755366a6",
+    "DistributeEarnings": "d54dab8b70f303099d7c19fb371c39dfa473766b1d265b7915257080b0e7f7c1",
     "EndAcquisitionRound": "35ac90cca4983490e56282b501866d15eac5cc7605b4427131093d108c85afde",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "083610f8001cf930908d3d9f76c6ac3e93834732d00a64728d6812927558f09b",
-    "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
+    "ExchangePrivate": "a8d59aaff1f7e7aa26b87d315ffcd738ad845aea9307ecf3eb0575455f1d306d",
     "ExportTrains": "4d90e5878388ba8dcbcf048793fc8666b439834e602a4db755344ef8f3844647",
     "FinishAcquisitionLoans": "e30e778ac17758d59eec1630746d4d128e999f3642a02df101d0da53381297b3",
     "FinishConversionLoans": "3f76e10e6d8670b996b4dc66f84ffaad222d01ecfbfe8e897f32402ca8c809f6",
@@ -37,7 +37,7 @@
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
     "FinishTrains": "7c4a513b2c13b79715a871e56557b6b3dfa4c5fb45b98c87b6ffb95a788ded02",
-    "FloatCompany": "e2c5c7a84616bc06d2915dee442bf8ea9b31c102b9412ff83c4d070cfc0b9b46",
+    "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FormCompany": "ea920ced95d72745f93d29acc902cbde0c08bbe89e21546af60b479264169e71",
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "GoBankrupt": "3a5b633126e5e4a436f27ec4b48c445750bde6c2dacf22cac01f56a0011ebf5b",
@@ -77,7 +77,7 @@
     "ShortShare": "3b228b1a2306183b1a679eafb7bd8ffb02e7792438abcea8db414c7e9634449d",
     "SkipCompanySale": "c477b0804b42f31b194672a2a080683065938d4bd037adfbec47a6bba6f81a07",
     "StartAcquisitionRound": "65ae9860c83b368e1609b9f2ae1ef1101f9e15536b87e201918d2534250e8f33",
-    "StartCompany": "71e78a83d97964d99bc001533d6e4f6845205b73a1ab970fee330dbb530acd69",
+    "StartCompany": "088dbcf78d2b0ba76714fb09e68fa0e67df031634d115ab88a043c9748ce1450",
     "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -642,10 +642,6 @@
                   "const": true,
                   "type": "boolean"
                 },
-                "retired": {
-                  "const": false,
-                  "type": "boolean"
-                },
                 "shares": {
                   "minimum": 1,
                   "type": "integer"
@@ -656,7 +652,6 @@
                 "id",
                 "kind",
                 "owner",
-                "retired",
                 "shares"
               ],
               "type": "object"
@@ -736,83 +731,13 @@
                 "poolId": {
                   "minLength": 1,
                   "type": "string"
-                },
-                "retired": {
-                  "const": false,
-                  "type": "boolean"
                 }
               },
               "required": [
                 "companyId",
                 "id",
                 "kind",
-                "owner",
-                "retired"
-              ],
-              "type": "object"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "companyId": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "id": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "kind": {
-                  "const": "share",
-                  "type": "string"
-                },
-                "president": {
-                  "const": true,
-                  "type": "boolean"
-                },
-                "retired": {
-                  "const": true,
-                  "type": "boolean"
-                },
-                "shares": {
-                  "minimum": 1,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "companyId",
-                "id",
-                "kind",
-                "retired",
-                "shares"
-              ],
-              "type": "object"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "companyId": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "id": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "kind": {
-                  "const": "private",
-                  "type": "string"
-                },
-                "retired": {
-                  "const": true,
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "companyId",
-                "id",
-                "kind",
-                "retired"
+                "owner"
               ],
               "type": "object"
             },
@@ -892,10 +817,6 @@
                   "minLength": 1,
                   "type": "string"
                 },
-                "retired": {
-                  "const": false,
-                  "type": "boolean"
-                },
                 "shares": {
                   "minimum": 1,
                   "type": "integer"
@@ -906,40 +827,6 @@
                 "id",
                 "kind",
                 "owner",
-                "retired",
-                "shares"
-              ],
-              "type": "object"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "companyId": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "id": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "kind": {
-                  "const": "short",
-                  "type": "string"
-                },
-                "retired": {
-                  "const": true,
-                  "type": "boolean"
-                },
-                "shares": {
-                  "minimum": 1,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "companyId",
-                "id",
-                "kind",
-                "retired",
                 "shares"
               ],
               "type": "object"
@@ -968,6 +855,10 @@
             "kind": {
               "minLength": 1,
               "type": "string"
+            },
+            "lastIssuedNumber": {
+              "minimum": 1,
+              "type": "integer"
             },
             "loans": {
               "minimum": 1,
@@ -2476,6 +2367,9 @@
                       "certificateId": {
                         "type": "string"
                       },
+                      "companyId": {
+                        "type": "string"
+                      },
                       "exemptOwnershipLimit": {
                         "type": "boolean"
                       },
@@ -2485,13 +2379,19 @@
                       },
                       "privateCompanyId": {
                         "type": "string"
+                      },
+                      "shares": {
+                        "minimum": 1,
+                        "type": "integer"
                       }
                     },
                     "required": [
                       "certificateId",
+                      "companyId",
                       "exemptOwnershipLimit",
                       "kind",
-                      "privateCompanyId"
+                      "privateCompanyId",
+                      "shares"
                     ],
                     "type": "object"
                   }

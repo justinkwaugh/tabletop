@@ -24,7 +24,6 @@ function assetState(): FinancialState & TrainState {
                 companyId: 'P',
                 kind: 'private',
                 shares: 0,
-                retired: false,
                 owner: company('B')
             }
         ],

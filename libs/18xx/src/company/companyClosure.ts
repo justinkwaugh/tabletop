@@ -4,6 +4,7 @@ import {
     President,
     finiteCashOwnedBy,
     getCompany,
+    removeCertificates,
     type FinancialState
 } from '../finance/finance.js'
 import { StationReservation, type StationState } from '../map/station.js'
@@ -52,9 +53,8 @@ export function closeShareCompany(
     const retiredCertificateIds = state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
-                (certificate.companyId === companyId ||
-                    closedPrivateIds.includes(certificate.companyId))
+                certificate.companyId === companyId ||
+                closedPrivateIds.includes(certificate.companyId)
         )
         .map((certificate) => certificate.id)
     const removedStationIds = state.stations
@@ -80,11 +80,12 @@ export function closeShareCompany(
     for (const id of closedPrivateIds) closePrivate(state, id)
     company.closed = true
     delete company.president
-    state.certificates = state.certificates.map((certificate) => {
-        if (certificate.retired || certificate.companyId !== companyId) return certificate
-        const { owner: _owner, poolId: _poolId, ...retired } = certificate
-        return { ...retired, retired: true }
-    })
+    removeCertificates(
+        state,
+        state.certificates
+            .filter((certificate) => certificate.companyId === companyId)
+            .map((certificate) => certificate.id)
+    )
     state.stations = state.stations.map((station) =>
         station.companyId === companyId ? { id: station.id, companyId, status: 'removed' } : station
     )

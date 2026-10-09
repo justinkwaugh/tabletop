@@ -63,7 +63,7 @@ export function createShikoku1889CompanyExample(
             ['SR:share:2', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -180,11 +180,11 @@ export function createShikoku1889CompanyExample(
     }
     if (position === 'transfers' || position === 'powers') {
         const ehime = state.certificates.find((item) => item.companyId === 'ER')
-        assert(ehime && !ehime.retired, 'The example requires Ehime')
+        assert(ehime, 'The example requires Ehime')
         ehime.owner = { kind: 'player', playerId: players[0].playerId }
         if (position === 'powers') {
             const ferry = state.certificates.find((item) => item.companyId === 'MF')
-            assert(ferry && !ferry.retired, 'The example requires Mitsubishi Ferry')
+            assert(ferry, 'The example requires Mitsubishi Ferry')
             ferry.owner = { kind: 'player', playerId: players[1].playerId }
         }
         state.phaseId = '3'
@@ -226,17 +226,13 @@ export function createShikoku1889CompanyExample(
         if (position === 'funding')
             for (const id of ['IR:share:5', 'IR:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(
-                    certificate && !certificate.retired,
-                    'Funding example requires ordinary shares'
-                )
+                assert(certificate, 'Funding example requires ordinary shares')
                 certificate.owner = { kind: 'player', playerId: players[1].playerId }
                 delete certificate.poolId
             }
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
                 if (
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.companyId !== 'PEIR'

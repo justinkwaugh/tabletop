@@ -264,9 +264,7 @@ export function liquidateByBank(
         trainIds.includes(train.id) ? unownedTrain(train, 'removed') : train
     )
     const privateIds = state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
-        certificate.kind === 'private' &&
-        sameOwner(certificate.owner, owner)
+        certificate.kind === 'private' && sameOwner(certificate.owner, owner)
             ? [certificate.companyId]
             : []
     )

@@ -108,7 +108,6 @@ export function createEighteenThirtyOpening({
                 id: `${company.id}:charter`,
                 companyId: company.id,
                 kind: 'private' as const,
-                retired: false as const,
                 owner: { kind: 'bank' as const }
             }))
         ],

@@ -32,9 +32,7 @@ it.each([
             .slice(0, 5)
         const space = rules.market.spaces.find((space) => space.color === 'pink')
         assertExists(space, 'The market has an ordinary space')
-        for (const certificate of state.certificates.filter(
-            (certificate) => !certificate.retired
-        )) {
+        for (const certificate of state.certificates) {
             certificate.owner = { kind: 'bank' }
             certificate.poolId = 'initial-offering'
         }
@@ -48,9 +46,9 @@ it.each([
                 parPrice: space.price
             })
             placeStockMarker(state.stockMarket, company.id, space.id)
-            const certificates = state.certificates
-                .filter((certificate) => !certificate.retired)
-                .filter((certificate) => certificate.companyId === company.id)
+            const certificates = state.certificates.filter(
+                (certificate) => certificate.companyId === company.id
+            )
             certificates.forEach((certificate, index) => {
                 certificate.owner = index < 4 ? owner : { kind: 'bank' }
                 if (index < 4) delete certificate.poolId
@@ -90,9 +88,9 @@ it.each([
             parPrice: space.price
         })
         placeStockMarker(state.stockMarket, exemptCompany.id, yellow.id)
-        const exemptShares = state.certificates
-            .filter((certificate) => !certificate.retired)
-            .filter((certificate) => certificate.companyId === exemptCompany.id)
+        const exemptShares = state.certificates.filter(
+            (certificate) => certificate.companyId === exemptCompany.id
+        )
         exemptShares.forEach((certificate, index) => {
             certificate.owner = index < 4 ? otherOwner : { kind: 'bank' }
             if (index < 4) delete certificate.poolId
@@ -112,9 +110,8 @@ it.each([
         }
         const bought = engine.executeCanonicalAction({ game, state, action: purchase })
         expect(
-            bought.updatedState.certificates
-                .filter((certificate) => !certificate.retired)
-                .find((certificate) => certificate.id === exempt.id)?.owner
+            bought.updatedState.certificates.find((certificate) => certificate.id === exempt.id)
+                ?.owner
         ).toEqual(owner)
         expect(stockCertificateCount(bought.updatedState, owner, rules)).toBe(20)
         let replay = state
@@ -125,13 +122,10 @@ it.each([
             replay = engine.undoProcessedAction({ state: replay, action: processed })
         expect(replay).toEqual(state)
         // Free one market slot while retaining enough holdings to stay over the limit.
-        const available = state.certificates
-            .filter((certificate) => !certificate.retired)
-            .find(
-                (certificate) =>
-                    certificate.companyId === companies[0].id &&
-                    certificate.poolId === 'open-market'
-            )
+        const available = state.certificates.find(
+            (certificate) =>
+                certificate.companyId === companies[0].id && certificate.poolId === 'open-market'
+        )
         assertExists(available, 'The first market pool is full')
         expect(
             evaluateSharePurchase(

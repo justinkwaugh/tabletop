@@ -82,7 +82,6 @@ export function prepareTheOldPrinceBranchSplit(
         id: 'HS:charter',
         companyId: 'HS',
         kind: 'private',
-        retired: false,
         owner
     })
 }

@@ -1,7 +1,8 @@
 import { assert } from '@tabletop/common'
 import {
     issueShareCertificates,
-    nextCertificateNumber,
+    nextIssuedNumber,
+    removeCertificates,
     sameOwner,
     type CertificatePool,
     type FinancialState,
@@ -16,7 +17,6 @@ export function openShorts(
     owner?: Owner
 ): OpenShort[] {
     return state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
         certificate.kind === 'short' &&
         certificate.companyId === companyId &&
         (!owner || sameOwner(certificate.owner, owner))
@@ -31,7 +31,6 @@ export function ordinaryShares(
     companyId: string
 ): OpenShare[] {
     return state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
         certificate.kind === 'share' &&
         !certificate.president &&
         certificate.shares === 1 &&
@@ -42,12 +41,11 @@ export function ordinaryShares(
 }
 
 export function retireCertificates(state: FinancialState, ids: readonly string[]): void {
-    state.certificates = state.certificates.map((certificate) => {
-        if (!ids.includes(certificate.id)) return certificate
-        assert(!certificate.retired, 'Only an outstanding certificate is retired')
-        const { owner: _owner, poolId: _poolId, ...interest } = certificate
-        return { ...interest, retired: true }
-    })
+    assert(
+        ids.every((id) => state.certificates.some((certificate) => certificate.id === id)),
+        'Only an outstanding certificate is retired'
+    )
+    removeCertificates(state, ids)
 }
 
 /**
@@ -69,19 +67,23 @@ export function openShort(
 
 /** Gives the holder a short of the company without issuing its market share. */
 export function addShort(
-    state: Pick<FinancialState, 'certificates'>,
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
     companyId: string,
     holder: Owner,
     poolId?: string
 ): string {
     const prefix = `${companyId}:short:`
-    const id = `${prefix}${nextCertificateNumber(state, prefix)}`
+    const id = `${prefix}${nextIssuedNumber(
+        state,
+        companyId,
+        state.certificates.map((certificate) => certificate.id),
+        prefix
+    )}`
     state.certificates.push({
         id,
         companyId,
         kind: 'short',
         shares: 1,
-        retired: false,
         owner: { ...holder },
         ...(poolId ? { poolId } : {})
     })

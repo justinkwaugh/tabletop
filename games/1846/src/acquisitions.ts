@@ -15,7 +15,8 @@ import {
     type TransferRules,
     type StationTransfer,
     type TrainRunningState,
-    type Train
+    type Train,
+    removeCertificates
 } from '@tabletop/18xx'
 import { draftCompany } from './catalog.js'
 import { TrainRules1846, finalDepotEmpty } from './trains.js'
@@ -131,11 +132,12 @@ export const TransferRules1846: TransferRules = {
         const company = getCompany(state, id)
         company.closed = true
         delete company.president
-        state.certificates = state.certificates.map((certificate) => {
-            if (certificate.retired || certificate.companyId !== id) return certificate
-            const { owner: _owner, poolId: _poolId, ...interest } = certificate
-            return { ...interest, retired: true }
-        })
+        removeCertificates(
+            state,
+            state.certificates
+                .filter((certificate) => certificate.companyId === id)
+                .map((certificate) => certificate.id)
+        )
         if (state.steamboat?.companyId === id) delete state.steamboat
         return { assets, stations }
     }

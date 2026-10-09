@@ -110,21 +110,18 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 id: 'UB:charter',
                 companyId: 'UB',
                 kind: 'private',
-                retired: false,
                 owner: alex
             },
             {
                 id: 'VR:charter',
                 companyId: 'VR',
                 kind: 'private',
-                retired: false,
                 owner: casey
             },
             {
                 id: 'KM:charter',
                 companyId: 'KM',
                 kind: 'private',
-                retired: false,
                 owner: { kind: 'company', companyId: 'PEIR' }
             },
             ...[alex, blair, casey, blair, casey].map((owner, index): Certificate => ({
@@ -133,7 +130,6 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 kind: 'share',
                 shares: 1,
                 number: index + 2,
-                retired: false,
                 owner
             }))
         ]

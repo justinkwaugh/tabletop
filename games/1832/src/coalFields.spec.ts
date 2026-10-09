@@ -26,7 +26,7 @@ function coalFieldsPlay(coalFieldsOwner: 'ACL' | 'player') {
             cost: 0
         })
         const coalFields = state.certificates.find((item) => item.id === 'P5:charter')
-        if (coalFields && !coalFields.retired)
+        if (coalFields)
             coalFields.owner =
                 coalFieldsOwner === 'ACL'
                     ? { kind: 'company', companyId: 'ACL' }

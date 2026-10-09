@@ -21,7 +21,6 @@ export function prepareEighteenThirtyTwoPrivates(
             id: `${id}:charter`,
             companyId: id,
             kind: 'private',
-            retired: false,
             owner: { kind: 'player', playerId: players[playerIndex].playerId }
         })
     }

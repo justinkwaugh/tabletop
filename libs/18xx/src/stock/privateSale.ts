@@ -108,7 +108,7 @@ export function privateCharter(state: StockState, privateCompanyId: string) {
         (certificate) =>
             certificate.kind === 'private' && certificate.companyId === privateCompanyId
     )
-    assert(certificate && !certificate.retired, 'A private has a charter certificate')
+    assert(certificate, 'A private has a charter certificate')
     return certificate
 }
 

@@ -153,15 +153,12 @@ describe('1846 complete two-player rules', () => {
         const playerId = table.state.activePlayerIds[0]
         table.launch('IC', 40)
         const owner = { kind: 'player' as const, playerId }
-        const ordinary = table.state.certificates
-            .filter((certificate) => !certificate.retired)
-            .filter(
-                (certificate) =>
-                    !certificate.retired &&
-                    certificate.companyId === 'IC' &&
-                    certificate.kind === 'share' &&
-                    !certificate.president
-            )
+        const ordinary = table.state.certificates.filter(
+            (certificate) =>
+                certificate.companyId === 'IC' &&
+                certificate.kind === 'share' &&
+                !certificate.president
+        )
         for (const certificate of ordinary.slice(0, 4)) certificate.owner = owner
         expect(sharesOwned(table.state, 'IC', owner)).toBe(6)
         table.finishTurn()
@@ -169,10 +166,7 @@ describe('1846 complete two-player rules', () => {
         expect(sharesOwned(table.state, 'IC', owner)).toBe(7)
         table.finishTurn()
         const certificate = table.state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.companyId === 'IC' &&
-                certificate.owner.kind === 'company'
+            (certificate) => certificate.companyId === 'IC' && certificate.owner.kind === 'company'
         )
         assertExists(certificate)
         expect(

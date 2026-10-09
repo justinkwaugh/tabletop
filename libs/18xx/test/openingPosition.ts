@@ -52,16 +52,13 @@ function seededPosition({
     return {
         ...position,
         stockMarketStacks: stockMarket.stacks,
-        certificates: certificates.map((certificate) =>
-            certificate.retired
-                ? { id: certificate.id, retired: true }
-                : {
-                      id: certificate.id,
-                      retired: false,
-                      owner: certificate.owner,
-                      poolId: certificate.poolId
-                  }
-        ),
+        // The shape digests were first recorded in, so setup randomness stays comparable.
+        certificates: certificates.map(({ id, owner, poolId }) => ({
+            id,
+            retired: false,
+            owner,
+            poolId
+        })),
         companies: companies.map(({ name, ...company }) => company),
         certificatePools: certificatePools.map(({ name, ...pool }) => pool),
         bank

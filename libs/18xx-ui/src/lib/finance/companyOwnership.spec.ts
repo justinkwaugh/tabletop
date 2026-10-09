@@ -29,13 +29,6 @@ describe('company ownership', () => {
                 investor
             )
         }
-        state.certificates.push({
-            id: 'retired',
-            kind: 'share',
-            companyId: 'A',
-            shares: 4,
-            retired: true
-        })
         const before = structuredClone(state)
         expect(companyOwnership(state, 'A')).toEqual([
             { owner: player, poolId: undefined, shares: 2, certificateNumbers: [] },
@@ -60,7 +53,6 @@ describe('company ownership', () => {
                 kind: 'share',
                 shares: 1,
                 number,
-                retired: false,
                 owner
             }))
         }

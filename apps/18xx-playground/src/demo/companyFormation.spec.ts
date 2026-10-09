@@ -59,7 +59,7 @@ function start(
 }
 function give(state: EighteenXXState, id: string, owner: Owner, poolId?: string) {
     const certificate = state.certificates.find((certificate) => certificate.id === id)
-    if (!certificate || certificate.retired) throw new Error('Missing fixture certificate')
+    if (!certificate) throw new Error('Missing fixture certificate')
     certificate.owner = owner
     if (poolId) certificate.poolId = poolId
     else delete certificate.poolId
@@ -165,7 +165,7 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
                 result.updatedState.certificates.find(
                     (certificate) => certificate.id === 'PEIR:share:2'
                 )
-            ).toMatchObject({ retired: true })
+            ).toBeUndefined()
             expect(sharesOwned(result.updatedState, 'A', alex)).toBe(5)
             expect(peirShares(result.updatedState)).toHaveLength(4)
             expect(
@@ -247,7 +247,7 @@ it('applies TOP phase prices and tranche completion independently of flotation',
     expect(availableTheOldPrinceTranche(state)?.id).toBe('2')
     getCompany(state, 'A').operated = false
     for (const certificate of state.certificates)
-        if (!certificate.retired && certificate.companyId === 'A') {
+        if (certificate.companyId === 'A') {
             certificate.owner = alex
             delete certificate.poolId
         }
@@ -347,16 +347,9 @@ it('floats an already funded branch without granting initial capital again', () 
 })
 it('closes PEIR and removes its cash and trains on its final exchange', () => {
     const { game, engine, state } = example(Top, 'flotation')
-    state.certificates = state.certificates.map((certificate) => {
-        if (
-            certificate.retired ||
-            certificate.companyId !== 'PEIR' ||
-            certificate.id === 'PEIR:share:2'
-        )
-            return certificate
-        const { owner: _owner, poolId: _poolId, ...interest } = certificate
-        return { ...interest, retired: true }
-    })
+    state.certificates = state.certificates.filter(
+        (certificate) => certificate.companyId !== 'PEIR' || certificate.id === 'PEIR:share:2'
+    )
     state.stations = state.stations.map((station) =>
         station.companyId === 'PEIR' && station.id !== 'PEIR:A'
             ? { id: station.id, companyId: station.companyId, status: 'removed' }
@@ -387,8 +380,7 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'PEIR' })).toBe(0)
     expect(
         result.updatedState.certificates.find((certificate) => certificate.id === 'KM:charter')
-            ?.retired
-    ).toBe(true)
+    ).toBeUndefined()
     let undone = result.updatedState
     for (const action of [...result.processedActions].reverse())
         undone = engine.undoProcessedAction({ state: undone, action })

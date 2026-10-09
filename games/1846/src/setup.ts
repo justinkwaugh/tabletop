@@ -73,7 +73,6 @@ export class Initializer extends BaseGameInitializer<
             ...privates.map((company): EighteenFortySixState['certificates'][number] => ({
                 id: `${company.id}:charter`,
                 companyId: company.id,
-                retired: false,
                 owner: { kind: 'bank' },
                 ...(company.kind === 'independent'
                     ? { kind: 'share', shares: 1, president: true }

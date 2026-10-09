@@ -173,7 +173,6 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     )
     for (const certificate of state.certificates)
         if (
-            !certificate.retired &&
             certificate.kind === 'private' &&
             formation.privateIds.includes(certificate.companyId)
         ) {

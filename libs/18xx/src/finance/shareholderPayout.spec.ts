@@ -9,7 +9,6 @@ it('pays players per net share and charges those short, leaving pools unpaid', (
         companyId: 'A',
         kind: 'share' as const,
         shares: 1,
-        retired: false as const,
         owner: holder
     })
     const state: FinancialState & { players: { playerId: string }[] } = {
@@ -27,7 +26,6 @@ it('pays players per net share and charges those short, leaving pools unpaid', (
                 companyId: 'A',
                 kind: 'short',
                 shares: 1,
-                retired: false,
                 owner: owner('two')
             }
         ]

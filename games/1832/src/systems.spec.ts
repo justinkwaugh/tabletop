@@ -65,7 +65,6 @@ describe('System formation', () => {
         expect(
             play.state.certificates.filter(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.companyId === 'AMTK' &&
                     certificate.kind === 'share' &&
                     certificate.shares === 2
@@ -74,9 +73,7 @@ describe('System formation', () => {
         const total = play.state.certificates.reduce(
             (sum, certificate) =>
                 sum +
-                (!certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.companyId === 'AMTK'
+                (certificate.kind === 'share' && certificate.companyId === 'AMTK'
                     ? certificate.shares
                     : 0),
             0
@@ -110,11 +107,7 @@ describe('System formation edge cases', () => {
         const play = trading()
         const state = structuredClone(play.state)
         for (const certificate of state.certificates)
-            if (
-                !certificate.retired &&
-                certificate.companyId === 'ACL' &&
-                certificate.poolId === 'initial-offering'
-            ) {
+            if (certificate.companyId === 'ACL' && certificate.poolId === 'initial-offering') {
                 certificate.owner = player('blair')
                 delete certificate.poolId
             }
@@ -123,7 +116,6 @@ describe('System formation edge cases', () => {
         expect(formation.presidency?.next).toEqual(player('blair'))
         const vicePresident = play.state.certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.companyId === 'AMTK' &&
                 certificate.kind === 'share' &&
                 !certificate.president &&

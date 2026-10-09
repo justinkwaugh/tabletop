@@ -49,7 +49,6 @@ describe('StockModule', () => {
                 companyId: TestCompanyId,
                 kind: 'share',
                 shares: 1,
-                retired: false,
                 owner: treasury
             },
             {
@@ -58,7 +57,6 @@ describe('StockModule', () => {
                 kind: 'share',
                 shares: 2,
                 president: true,
-                retired: false,
                 owner: player
             }
         )

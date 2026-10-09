@@ -129,6 +129,6 @@ function startCompany(
 
 function givePrivate(state: CompanyState, privateId: string, owner: Owner): void {
     const certificate = state.certificates.find((item) => item.companyId === privateId)
-    assert(certificate && !certificate.retired, 'An example private is open')
+    assert(certificate, 'An example private is open')
     certificate.owner = owner
 }

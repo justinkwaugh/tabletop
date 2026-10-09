@@ -31,10 +31,8 @@ import { receiverTrainPurchase } from './receiverOperations.js'
 
 function phaseIVReady() {
     const table = phaseIIIReadyGame()
-    const mail = table.state.certificates.find(
-        (certificate) => certificate.companyId === 'MAIL' && !certificate.retired
-    )
-    assert(mail && !mail.retired)
+    const mail = table.state.certificates.find((certificate) => certificate.companyId === 'MAIL')
+    assert(mail)
     mail.owner = { kind: 'company', companyId: 'IC' }
     buyTrain(table, '5')
     discardTrain(table)

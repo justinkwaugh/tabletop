@@ -50,17 +50,16 @@ function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
         state.certificates.push({
             id: `${company.id}:charter`,
             companyId: company.id,
-            retired: false,
             owner: { kind: 'bank' },
             kind: 'private'
         })
         state.removedPrivateIds = state.removedPrivateIds.filter((id) => id !== privateId)
     }
     const certificate = state.certificates.find(
-        (certificate) => certificate.companyId === privateId && !certificate.retired
+        (certificate) => certificate.companyId === privateId
     )
     assertExists(certificate, `Scenario needs ${privateId}`)
-    if (!certificate.retired) certificate.owner = owner
+    certificate.owner = owner
 }
 /** Lays a yellow tile in each city, so an upgrade has something to replace. */
 function cityTiles(state: ScenarioState, companyId: string, locationIds: string[]) {

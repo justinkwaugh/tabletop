@@ -20,7 +20,6 @@ export function unboughtOpeningCompanies(state: State): string[] {
     return state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.owner.kind === 'bank' &&
                 certificate.id === `${certificate.companyId}:charter`
         )

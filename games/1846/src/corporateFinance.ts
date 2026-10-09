@@ -62,8 +62,7 @@ export function corporateIssueLimit(state: FinancialState, companyId: string): n
     const playerShares = state.certificates.reduce(
         (total, certificate) =>
             total +
-            (!certificate.retired &&
-            certificate.companyId === companyId &&
+            (certificate.companyId === companyId &&
             certificate.kind === 'share' &&
             certificate.owner.kind === 'player'
                 ? certificate.shares

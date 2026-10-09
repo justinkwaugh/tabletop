@@ -356,10 +356,7 @@ export class TheOldPrinceBranchSplit {
             const certificate = state.certificates.find(
                 (certificate) => certificate.id === transfer.certificateId
             )
-            assert(
-                certificate && !certificate.retired,
-                'A split requires its existing certificates'
-            )
+            assert(certificate, 'A split requires its existing certificates')
             certificate.owner = transfer.owner
             delete certificate.poolId
             if (transfer.poolId) certificate.poolId = transfer.poolId
@@ -402,7 +399,6 @@ export class TheOldPrinceBranchSplit {
     }
     private shares(companyId: string) {
         return this.state.certificates
-            .filter((certificate) => !certificate.retired)
             .filter((certificate) => certificate.kind === 'share')
             .filter((certificate) => certificate.companyId === companyId)
     }

@@ -64,10 +64,7 @@ describe('1846 setup and distribution', () => {
     })
     it('rejects wrong actors, unavailable cards, forged system actions and invalid action flags', () => {
         const { game, state, engine } = start()
-        const cardId = choicesFor(
-            hydrateEighteenFortySixState(state),
-            state.activePlayerIds[0]
-        )[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(state), state.activePlayerIds[0])[0]
         for (const invalid of [
             {
                 ...action(state, cardId),
@@ -187,7 +184,7 @@ describe('1846 setup and distribution', () => {
             const owned = result.updatedState.certificates.find(
                 (certificate) => certificate.companyId === id
             )
-            expect(owned && !owned.retired && owned.owner).toEqual({
+            expect(owned && owned.owner).toEqual({
                 kind: 'player',
                 playerId: expectedOwner
             })
@@ -250,10 +247,7 @@ describe('1846 setup and distribution', () => {
     })
     it('re-executes choices deterministically from identical canonical state', () => {
         const { game, state, engine } = start()
-        const cardId = choicesFor(
-            hydrateEighteenFortySixState(state),
-            state.activePlayerIds[0]
-        )[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(state), state.activePlayerIds[0])[0]
         const choice = action(state, cardId)
         expect(engine.executeCanonicalAction({ game, state, action: choice }).updatedState).toEqual(
             engine.executeCanonicalAction({ game, state, action: choice }).updatedState

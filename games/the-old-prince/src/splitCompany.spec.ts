@@ -204,7 +204,7 @@ it('rejects duplicate trains, a missing Hunslet, wrong actors, system actions, a
             engine.executeCanonicalAction({ game, state, action: { ...action, ...override } })
         ).toThrow()
     const hunslet = state.certificates.find((c) => c.id === 'HS:charter')
-    if (!hunslet || hunslet.retired) throw new Error('Missing Hunslet')
+    if (!hunslet) throw new Error('Missing Hunslet')
     hunslet.owner = alex
     expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
 })
@@ -317,7 +317,7 @@ it('finishes the stock turn, bars a second purchase, and floats later without pa
 it('preserves reserved certificates and non-acting-player authority during stock exchanges', () => {
     const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const certificate = state.certificates.find((c) => c.id === 'So:share:8')
-    if (!certificate || certificate.retired) throw new Error('Missing share')
+    if (!certificate) throw new Error('Missing share')
     certificate.poolId = 'reserved'
     const result = engine.executeCanonicalAction({ game, state, action: split(state) })
     expect(result.updatedState.certificates.find((c) => c.id === certificate.id)).toEqual(

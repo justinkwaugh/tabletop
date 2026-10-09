@@ -14,7 +14,7 @@ export function awardCertificates(
     const certificates = certificateIds.map((id) => {
         const certificate = state.certificates.find((item) => item.id === id)
         assert(
-            certificate && !certificate.retired && certificate.owner.kind === 'bank',
+            certificate && certificate.owner.kind === 'bank',
             'Awarded certificates must be available from the bank'
         )
         return certificate

@@ -121,10 +121,7 @@ export function purchaseOpeningCompany(
     const certificate = state.certificates.find(
         (certificate) => certificate.id === `${company.id}:charter`
     )
-    assert(
-        certificate && !certificate.retired && certificate.owner.kind === 'bank',
-        'Draft certificate must be bank owned'
-    )
+    assert(certificate && certificate.owner.kind === 'bank', 'Draft certificate must be bank owned')
     certificate.owner = { kind: 'player', playerId }
     if (selection.price > 0)
         settleCashPayments(state, [

@@ -219,7 +219,6 @@ it('TOP applies one explicit confirmation when the same player controls both com
     const controller = { kind: 'company', companyId: 'UB' } as const
     getCompany(state, 'So').president = controller
     const certificate = state.certificates.find((item) => item.id === 'So:president')!
-    if (certificate.retired) throw Error('Expected presidency')
     certificate.owner = controller
     const request = purchaseChoices(
         Top.runtime.hydrator.hydrateState(state),
@@ -431,7 +430,6 @@ it('Sumitomo relieves the owning company’s mountain cost but preserves combine
     const { state } = example(Shikoku, 'powers')
     const hydrated = Shikoku.runtime.hydrator.hydrateState(state)
     const certificate = hydrated.certificates.find((item) => item.companyId === 'SRR')!
-    if (certificate.retired) throw Error('Expected private')
     certificate.owner = { kind: 'company', companyId: 'IR' }
     for (const location of Shikoku1889TrackRules.map.definition.locations.filter((item) =>
         item.terrain?.kinds.includes('mountain')
@@ -674,7 +672,6 @@ it.each([true, false])(
 it('Vernon River Bridge owner can approve through the ordinary lay without an extra turn', () => {
     const { game, engine, state } = example(Top, 'powers')
     const certificate = state.certificates.find((item) => item.companyId === 'VR')!
-    if (certificate.retired) throw Error('Expected private')
     certificate.owner = { kind: 'player', playerId: 'alex' }
     const details = new TrackConstruction(
         Top.runtime.hydrator.hydrateState(state),
@@ -700,7 +697,6 @@ it('Vernon River Bridge owner can approve through the ordinary lay without an ex
 it('construction entitlement stays owner-specific and uses the ordinary allowance', () => {
     const { game, engine, state } = example(Top, 'powers')
     const certificate = state.certificates.find((item) => item.companyId === 'SBC')!
-    if (certificate.retired) throw Error('Expected private')
     const construction = () =>
         new TrackConstruction(Top.runtime.hydrator.hydrateState(state), TheOldPrinceTrackRules)
     expect(
@@ -841,7 +837,6 @@ it('Hunslet resolves compulsory discards before returning to construction', () =
     const { game, engine, state } = example(Top, 'powers')
     state.phaseId = '6H'
     const hunslet = state.certificates.find((item) => item.companyId === 'HS')!
-    if (hunslet.retired) throw Error('Expected private')
     hunslet.owner = { kind: 'company', companyId: 'ML' }
     const depot = TheOldPrinceTrainRules.depot
     state.trainInventory = depot.createInventory()
