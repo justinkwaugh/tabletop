@@ -48,6 +48,7 @@ import {
     type LetPeek,
     type Search,
     type UseActionPower,
+    type ResolveWake,
     type UseRestPower,
     type WarbandMove,
     type WarbandOwner
@@ -407,7 +408,7 @@ function describeActionCited(
     if (isResolveWake(action)) {
         // R-4.1.3's Usurper flip decides R-3.1 at the next Wake.
         return (
-            'began the turn' +
+            ['began the turn', ...wakeDone(action)].join('; ') +
             (action.metadata?.flippedToUsurper
                 ? ' — the Oathkeeper title flipped to Usurper'
                 : '') +
@@ -492,6 +493,20 @@ function namedSummary(
     viewerId: string | undefined
 ): string {
     return namedBanks(nameSeats(withoutCardName(summary, cardId), names, viewerId, actorId))
+}
+
+/** R-4.1.1, R-4.1.4 — the People's Favor steps and the site's take; R-4.1.2's win ends the Wake before the take. */
+function wakeDone(action: ResolveWake): string[] {
+    const steps = action.favorSteps.map((step) =>
+        step.kind === 'place'
+            ? 'placed 1 favor on the People’s Favor'
+            : `returned 1 favor to the ${suitName(step.toSuit)} bank`
+    )
+    const took =
+        action.sitePowerTake && !action.metadata?.wonBy
+            ? [`took 1 ${action.sitePowerTake} from their site`]
+            : []
+    return [...steps, ...took]
 }
 
 export function withoutCardName(summary: string, cardId: string): string {

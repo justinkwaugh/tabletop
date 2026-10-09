@@ -28,6 +28,7 @@ import {
     SearchResolve,
     SearchSource,
     SelfExile,
+    Suit,
     UseActionPower,
     ownWarbandOwner,
     powerIndexOf
@@ -522,6 +523,40 @@ describe('the history tab describes every action', () => {
             nameOf
         )
         expect(text).toContain('Usurper')
+    })
+
+    it('R-4.1.1, R-4.1.4 — the Wake says each People’s Favor step and the site’s take, from its own record', () => {
+        const wake = (fields: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.ResolveWake, playerId: 'p1', ...fields }), nameOf)
+        expect(
+            wake({
+                favorSteps: [{ kind: 'place' }, { kind: 'return', toSuit: Suit.Order }],
+                sitePowerTake: 'secret'
+            })
+        ).toBe(
+            'began the turn; placed 1 favor on the People’s Favor; returned 1 favor to the Order bank; took 1 secret from their site'
+        )
+        expect(wake({ favorSteps: [], sitePowerTake: 'favor' })).toBe(
+            'began the turn; took 1 favor from their site'
+        )
+        expect(wake({ favorSteps: [{ kind: 'place' }], metadata: { flippedToMob: true } })).toBe(
+            'began the turn; placed 1 favor on the People’s Favor — the People’s Favor flipped to Mob'
+        )
+    })
+
+    it('R-4.1.2 — a Wake that won the game took nothing from the site', () => {
+        expect(
+            describeAction(
+                action({
+                    type: ActionType.ResolveWake,
+                    playerId: 'p1',
+                    favorSteps: [],
+                    sitePowerTake: 'favor',
+                    metadata: { wonBy: 'R-3.1' }
+                }),
+                nameOf
+            )
+        ).toBe('began the turn')
     })
 
     it('never says "their" about the acting player', () => {
