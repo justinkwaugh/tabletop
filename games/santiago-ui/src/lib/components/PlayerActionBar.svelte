@@ -5,8 +5,6 @@
     import PlayerNameChip from './PlayerNameChip.svelte'
     import OverseerPill from './OverseerPill.svelte'
 
-    let { boardCenterX = null }: { boardCenterX?: number | null } = $props()
-
     const session = getGameSession()
     const animator = session.actionBar
     const attachAnimatorToBar = attachAnimator(animator)
@@ -35,8 +33,7 @@
 >
 {#if view.kind !== 'none'}
     <div class="action-area shrink-0 mt-1 min-h-[56px]">
-    <div class="centered-row h-full max-w-full px-3 py-2 flex flex-wrap items-center gap-3 text-white text-base"
-         style="--board-center: {boardCenterX !== null ? `${boardCenterX}px` : '50%'}">
+    <div class="centered-row h-full max-w-full px-3 py-2 flex flex-wrap items-center gap-3 text-white text-base">
 
         <!-- SPRING PLACEMENT -->
         {#if view.kind === 'placeSpring'}
@@ -230,7 +227,7 @@
 
 <style>
     .centered-row {
-        margin-left: var(--board-center);
+        margin-left: var(--board-center, 50%);
         transform: translateX(-50%);
         width: fit-content;
     }
