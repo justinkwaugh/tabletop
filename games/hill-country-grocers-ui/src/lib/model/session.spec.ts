@@ -67,6 +67,20 @@ describe('building with a choice of grocers', () => {
     })
 })
 
+describe('the cost shown on each buildable hex', () => {
+    it('is $2 to the bank plus $1 for each other grocer already there', () => {
+        const session = openSessionOn(twoGrocerBuildTable())
+        session.selectBuildCompany(CompanyId.AlamoCity)
+        expect(session.hexTargets.length).toBeGreaterThan(0)
+        for (const target of session.hexTargets) {
+            const others = session.gameState
+                .companiesIn(target)
+                .filter((companyId) => companyId !== CompanyId.AlamoCity)
+            expect(session.placementCost(target)).toBe(2 + others.length)
+        }
+    })
+})
+
 describe('building for a lone grocer', () => {
     it('chooses the grocer automatically, as no manual step', () => {
         const session = openSessionOn(oneGrocerBuildTable())

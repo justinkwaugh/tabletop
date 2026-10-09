@@ -106,6 +106,15 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
             : undefined
     )
 
+    placementCost(coords: AxialCoordinates): number {
+        const companyId = this.buildCompany
+        if (!companyId) {
+            return 0
+        }
+        const withHex = this.gameState.buildCost(companyId, [...this.chosenHexes, coords])
+        return withHex.total - (this.chosenCost?.total ?? 0)
+    }
+
     selectBuildCompany(companyId: CompanyId) {
         if (this.buildCompanyOptions.includes(companyId)) {
             this.buildSelection = selectBuildCompany(this.buildSelection, companyId)
