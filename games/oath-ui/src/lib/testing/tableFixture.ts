@@ -62,12 +62,14 @@ import {
     played,
     searchingTable,
     setupTable,
+    shortBankTable,
     tableOf,
     type PlayedTable
 } from './sessionHarness.js'
 
 export type TableName =
     | 'setup'
+    | 'shortBank'
     | 'searching'
     | 'prophets'
     | 'offTurn'
@@ -2069,6 +2071,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
+    shortBank: shortBankTable,
     searching: searchingTable,
     prophets: prophetsTable,
     offTurn: offTurnTable,

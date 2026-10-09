@@ -7,7 +7,8 @@ import type { OathGameSession } from './session.svelte.js'
 /**
  * R-1.19 to R-1.23.3 — the pawn's site and the adviser kept, in either order (R-1.20 deals the
  * hand before R-1.23 places the pawn), then the order of the discards, which waits for the site
- * because R-10.5 sends them one region along from it; the last tap sends.
+ * because R-10.5 sends them one region along from it, and for a short bank's whole split
+ * (R-1.16); the last tap sends.
  */
 export class SetupDraft {
     constructor(private readonly session: OathGameSession) {}
@@ -42,38 +43,57 @@ export class SetupDraft {
             : []
     }
 
-    // Map order fills first until the player moves favor between sites.
-    get siteFavor(): SiteFavor[] | undefined {
+    // Map order fills first until the player moves favor between sites; the fill is the whole bank.
+    private get mapOrderFill(): SiteFavor[] | undefined {
         const pending = this.pendingSiteFavor
         if (pending.length === 0) return undefined
-        const stored = this.value('siteFavor')
         let left = this.session.gameState.favorSupply
         return pending.map(({ siteCardId, wanted }) => {
-            const favor = stored?.[siteCardId] ?? Math.min(wanted, left)
+            const favor = Math.min(wanted, left)
             left -= favor
             return { siteCardId, favor }
         })
+    }
+
+    get siteFavor(): SiteFavor[] | undefined {
+        const stored = this.value('siteFavor')
+        return this.mapOrderFill?.map(({ siteCardId, favor }) => ({
+            siteCardId,
+            favor: stored?.[siteCardId] ?? favor
+        }))
     }
 
     get siteFavorPlaced(): number {
         return (this.siteFavor ?? []).reduce((n, s) => n + s.favor, 0)
     }
 
+    /** R-1.16 — every favor the bank holds is placed, or no split is asked for. */
+    get splitWhole(): boolean {
+        return (
+            this.siteFavor === undefined ||
+            this.siteFavorPlaced === this.session.gameState.favorSupply
+        )
+    }
+
+    // The split comes before the card in the flow, so a card kept while it was short is set again.
     setSiteFavor(siteCardId: string, favor: number): void {
         const site = this.pendingSiteFavor.find((p) => p.siteCardId === siteCardId)
         const split = this.siteFavor
         if (!site || !split) return
+        const kept = this.adviserCardId
         this.session.selection.autoSelect('action', ActionType.SetupChoice)
         this.session.selection.set('siteFavor', {
             ...Object.fromEntries(split.map((s) => [s.siteCardId, s.favor])),
             [siteCardId]: Math.max(0, Math.min(favor, site.wanted))
         })
+        if (kept !== undefined) this.session.selection.set('card', kept)
     }
 
+    // R-1.23.1 — the site is checked against a whole bank, so a split being made never moves it.
     get sites(): string[] {
         const playerId = this.playerId
         return playerId
-            ? setupSites(this.session.gameState, playerId, this.hand, this.siteFavor)
+            ? setupSites(this.session.gameState, playerId, this.hand, this.mapOrderFill)
             : []
     }
 
@@ -95,7 +115,7 @@ export class SetupDraft {
     }
 
     get ordering(): boolean {
-        return this.siteId !== undefined && this.adviserCardId !== undefined
+        return this.siteId !== undefined && this.adviserCardId !== undefined && this.splitWhole
     }
 
     get tapped(): string[] {

@@ -2262,6 +2262,38 @@ test('scenario 2: Undo unwinds an Exile’s picks, the card then the site, and t
     await expect(boardOffers(page)).toHaveCount(litBefore)
 })
 
+const favorOn = (page: Page, n: number, site: string) =>
+    grid(page).getByRole('button', { name: `place ${n} favor on ${site}`, exact: true })
+
+/** R-1.16, R-1.23.1 — a real six-seat deal: the bank holds 4, the Salt Flats want 2 and the Mine 3. */
+test('setup: a short split keeps the Chancellor at the top Cradle site and holds only the discards', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const { seatId } = await openTable(page, 'shortBank')
+    if (seatId === undefined) throw Error('A seat is on the clock')
+
+    await favorOn(page, 1, 'Salt Flats').click()
+    const count = grid(page).getByText('3 of 4 placed.')
+    await expect(count).toBeVisible()
+    await expect(count).toHaveClass(/text-oath-danger/)
+    await expect(page.getByRole('list', { name: 'Start sites' })).toHaveCount(0)
+    await expect(grid(page)).not.toContainText('Tap the site where your pawn starts')
+
+    await panelCards(page).filter({ hasNotText: /^\d$/ }).first().click()
+    await expect(favorOn(page, 2, 'Salt Flats')).toBeVisible()
+    await expect(grid(page)).toContainText('Place all 4')
+    await expect(count).toBeVisible()
+    expect((await call(page, 'tableFacts')).siteOf[seatId]).toBeUndefined()
+
+    await favorOn(page, 2, 'Salt Flats').click()
+    await expect(count).toHaveCount(0)
+    await expect(favorOn(page, 2, 'Salt Flats')).toHaveCount(0)
+    await panelCards(page).first().click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf[seatId]).toBe('slot.cradle.0')
+    expect((await call(page, 'cardTokens', 'site.salt-flats')).favor).toBe(2)
+    expect(errors).toEqual([])
+})
+
 test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
