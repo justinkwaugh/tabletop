@@ -46,6 +46,8 @@ For end-to-end verification through the hosted site, use `.agents/skills/local-h
 
 The devcontainer is on the user's Tailscale network as `tabletop`. Bind dev servers to `0.0.0.0` (e.g. `vite --host`) and report URLs as `http://tabletop:<port>`, not `localhost`.
 
+`/tmp` is wiped when the devcontainer is rebuilt. Put scratch work that may be needed again (scripts, generators, extracted data, screenshots shown to the user) in `/workspace/tmp/<topic>/`, which is on the host mount and gitignored. Only throwaway output, such as logs for the current command, belongs in `/tmp`.
+
 ### Releasing
 
 To release, deploy, or publish a game or the site frontend, or to check what is serving, use `.agents/skills/release/SKILL.md`.
