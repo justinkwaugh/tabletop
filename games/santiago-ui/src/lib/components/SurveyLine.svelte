@@ -31,6 +31,9 @@
     const PENNANT_SPACING = 14
     const FILL_STAGGER_MS = 45
     const CREAM_PENNANTS = ['#fff3d6', '#f4e3bb', '#fbecd0', '#ecd7a8', '#fff8e6', '#f1dfb4']
+    const TWINE_TINT = 50
+    const uid = $props.id()
+    const twineGradientId = `survey-twine-${uid}`
 
     const length = $derived(Math.hypot(x2 - x1, y2 - y1))
     const along = $derived({ x: (x2 - x1) / length, y: (y2 - y1) / length })
@@ -44,11 +47,25 @@
     const stakesBehindTwine = $derived(vertical ? stakes.slice(0, 1) : [])
     const stakesInFrontOfTwine = $derived(vertical ? stakes.slice(1) : stakes)
     const span = $derived(Math.hypot(tops[1].x - tops[0].x, tops[1].y - tops[0].y))
-    const angle = $derived((Math.atan2(tops[1].y - tops[0].y, tops[1].x - tops[0].x) * 180) / Math.PI)
+    const angle = $derived(
+        (Math.atan2(tops[1].y - tops[0].y, tops[1].x - tops[0].x) * 180) / Math.PI
+    )
     const SAG = 5
     const twine = $derived(`M 0 0 Q ${span / 2} ${SAG * 2} ${span} 0`)
     const swayDelay = $derived(`animation-delay: ${-phase * SWAY_SECONDS}s`)
     const palette = $derived(bunting && bunting.length > 0 ? bunting : CREAM_PENNANTS)
+    // The twine takes a lighter shade of the pennants' player colors, running from one to the next
+    // when several players bribed the spot.
+    const twineTints = $derived(
+        (selected && selectedColor ? [selectedColor] : (bunting ?? [])).map(
+            (color) => `color-mix(in srgb, ${color} ${TWINE_TINT}%, #fff8e6)`
+        )
+    )
+    const twineStroke = $derived(
+        twineTints.length === 0
+            ? ''
+            : `--twine: ${twineTints.length === 1 ? twineTints[0] : `url(#${twineGradientId})`}`
+    )
     const pennants = $derived.by(() => {
         const count = Math.max(2, Math.floor(span / PENNANT_SPACING) - 1)
         return Array.from({ length: count }, (_, i) => {
@@ -74,15 +91,16 @@
         fill="url(#surveyStakeWood)"
         stroke="rgba(80, 42, 14, 0.7)"
         stroke-width="0.8"
-    />
-    <ellipse cx={stake.x} cy={stake.y - STAKE_HEIGHT} rx="3" ry="1.5" fill="#fbe2bd" />
+    ></rect>
+    <ellipse cx={stake.x} cy={stake.y - STAKE_HEIGHT} rx="3" ry="1.5" fill="#fbe2bd"></ellipse>
 {/snippet}
 
 <g class="survey" class:selected>
     {@render children?.()}
 
     {#each stakes as stake, i (i)}
-        <ellipse cx={stake.x + 3.5} cy={stake.y + 1.5} rx="6" ry="2.6" fill="rgba(40, 20, 5, 0.45)" />
+        <ellipse cx={stake.x + 3.5} cy={stake.y + 1.5} rx="6" ry="2.6" fill="rgba(40, 20, 5, 0.45)"
+        ></ellipse>
     {/each}
 
     {#each stakesBehindTwine as stake, i (i)}
@@ -91,10 +109,27 @@
 
     <g transform="translate({tops[0].x + 1.5} {tops[0].y + 2.5}) rotate({angle})">
         <g class="tension">
-            <path class="twine-shadow twine-sway" d={twine} style={swayDelay} />
+            <path class="twine-shadow twine-sway" d={twine} style={swayDelay}></path>
         </g>
     </g>
     <g transform="translate({tops[0].x} {tops[0].y}) rotate({angle})">
+        {#if twineTints.length > 1}
+            <defs>
+                <linearGradient
+                    id={twineGradientId}
+                    gradientUnits="userSpaceOnUse"
+                    x1="0"
+                    y1="0"
+                    x2={span}
+                    y2="0"
+                >
+                    {#each twineTints as tint, i (i)}
+                        <stop offset={i / (twineTints.length - 1)} style="stop-color: {tint}"
+                        ></stop>
+                    {/each}
+                </linearGradient>
+            </defs>
+        {/if}
         {#each pennants as pennant, i (i)}
             <g transform="translate({pennant.x} 0)">
                 <g class="pennant-lift" style="--rest-y: {pennant.y}px">
@@ -104,13 +139,18 @@
                             d="M -4.5 0 L 4.5 0 L 0 10 Z"
                             fill={pennant.color}
                             style="animation-delay: {pennant.flutterDelay}s; transition-delay: {pennant.fillDelay}ms"
-                        />
+                        ></path>
                     </g>
                 </g>
             </g>
         {/each}
         <g class="tension">
-            <path class="twine twine-sway" d={twine} style={swayDelay} />
+            <path
+                class="twine twine-sway"
+                class:tinted={twineTints.length > 0}
+                d={twine}
+                style="{swayDelay}; {twineStroke}"
+            ></path>
         </g>
     </g>
 
@@ -128,19 +168,20 @@
         transition: stroke 0.15s ease-out;
     }
     .twine {
-        stroke: #fff3d6;
+        stroke: var(--twine, #fff3d6);
         stroke-width: 2.6;
     }
     .twine-shadow {
         stroke: rgba(50, 25, 8, 0.4);
         stroke-width: 2.4;
     }
-    .survey:hover .twine {
+    .survey:hover .twine:not(.tinted) {
         stroke: #ffffff;
     }
     .survey.selected .twine {
-        stroke: #fbbf24;
+        stroke: var(--twine, #fbbf24);
         stroke-width: 3.4;
+        transition: stroke 0.45s ease-in-out;
     }
     /* Pulling the twine taut flattens its sag and lifts each pennant by the same share of its
        drop, on wrappers of their own so the transition never competes with the sway. */
