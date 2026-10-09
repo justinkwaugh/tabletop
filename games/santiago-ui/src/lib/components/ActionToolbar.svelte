@@ -45,21 +45,21 @@
 </script>
 
 <!-- Status bar -->
-<div class="font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
+<div class="status-bar font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
     {#if ms === MachineState.EndOfGame}
         <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
     {:else if activePlayerId}
         {@const Icon = phaseIcon(ms)}
         <span class="font-bold text-amber-300"><PlayerName playerId={activePlayerId} possessive capitalization="uppercase" /> turn</span>
         {#if Icon}
-            <Icon class="w-4 h-4 shrink-0" />
+            <Icon class="phase-icon w-4 h-4 shrink-0" />
         {:else}
             <span class="text-sm text-amber-400">·</span>
         {/if}
         <span class="text-sm text-green-300">Round {state.round} of {totalRounds}</span>
         {#if phaseName(ms)}
             {#if Icon}
-                <Icon class="w-4 h-4 shrink-0" />
+                <Icon class="phase-icon w-4 h-4 shrink-0" />
             {:else}
                 <span class="text-sm text-amber-400">·</span>
             {/if}
@@ -67,9 +67,50 @@
         {/if}
     {/if}
     {#if canUndo}
-        <button class="ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors shrink-0"
+        <button class="undo ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors shrink-0"
             onclick={() => session.undo()}>
             Undo
         </button>
     {/if}
 </div>
+
+<style>
+    /* Narrow screens: each item stays on one line, and the bar may take two lines rather than
+       crushing them. */
+    @media (max-width: 639px) {
+        .status-bar {
+            height: auto;
+            min-height: 44px;
+            flex-wrap: wrap;
+            row-gap: 2px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+        }
+        .status-bar > :global(*) {
+            white-space: nowrap;
+        }
+        .status-bar :global(.text-sm) {
+            font-size: 11px;
+        }
+        .status-bar :global(.phase-icon) {
+            display: none;
+        }
+    }
+    /* Short screens, such as a phone held sideways: every pixel here comes out of the board. */
+    @media (max-height: 500px) {
+        .status-bar {
+            height: 30px;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+        }
+        .status-bar :global(.text-sm) {
+            font-size: 11px;
+        }
+        .undo {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    }
+</style>
