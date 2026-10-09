@@ -3,8 +3,8 @@
 
     let { size = 100 }: { size?: number } = $props()
 
-    // A flea-market booth seen from the front: a canopy over a stocked counter, standing on
-    // its lot. Its soft edges match the faint lines on the other pieces.
+    // A flea-market booth seen from the front: a canopy with a straight valance over a stocked
+    // counter, standing on its lot. Its soft edges match the faint lines on the other pieces.
     const BOOTH = {
         left: 12,
         right: 88,
@@ -20,20 +20,8 @@
     const INTERIOR = '#3c3c3c'
     const POLE = '#b5b5b5'
 
-    const SCALLOPS = 5
-    const scallopWidth = (BOOTH.right - BOOTH.left) / SCALLOPS
-    const scallopDepth = scallopWidth / 2.6
-    const VALANCE = 9
-
     const roof = `M${BOOTH.left} ${BOOTH.eave} L${50 - BOOTH.roofTopHalf} ${BOOTH.roofTop} L${50 + BOOTH.roofTopHalf} ${BOOTH.roofTop} L${BOOTH.right} ${BOOTH.eave} Z`
-    const valance = Array.from({ length: SCALLOPS }, (_, i) => {
-        const x0 = BOOTH.left + i * scallopWidth
-        const bottom = BOOTH.eave + VALANCE - scallopDepth
-        return {
-            i,
-            d: `M${x0} ${BOOTH.eave} H${x0 + scallopWidth} V${bottom} A${scallopWidth / 2} ${scallopDepth} 0 0 1 ${x0} ${bottom} Z`
-        }
-    })
+    const VALANCE = 6
 
     // A few goods of different heights, in greys so they never read as one of the four stall
     // goods.
@@ -46,7 +34,7 @@
     ].map(({ stack = 0, ...good }, i) => ({ ...good, i, y: counterTop - good.h - stack }))
 
     // Shrunk about its base, then moved so it sits centred in the lot.
-    const SCALE = 0.836
+    const SCALE = 0.794
     const scaledTop = BOOTH.ground - (BOOTH.ground - BOOTH.roofTop) * SCALE
     const shift = 50 - (scaledTop + BOOTH.ground) / 2
     const placement = `translate(0 ${shift}) translate(50 ${BOOTH.ground}) scale(${SCALE}) translate(-50 ${-BOOTH.ground})`
@@ -104,8 +92,12 @@
             ></rect>
         {/each}
         <path d={roof} fill={MARKET_CANVAS_LIGHT}></path>
-        {#each valance as flap (flap.i)}
-            <path d={flap.d} fill={MARKET_CANVAS_LIGHT}></path>
-        {/each}
+        <rect
+            x={BOOTH.left}
+            y={BOOTH.eave}
+            width={BOOTH.right - BOOTH.left}
+            height={VALANCE}
+            fill={MARKET_CANVAS_LIGHT}
+        ></rect>
     </g>
 </svg>
