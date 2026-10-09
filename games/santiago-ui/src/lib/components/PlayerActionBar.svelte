@@ -44,7 +44,7 @@
         {:else if view.kind === 'bidding'}
             <div class="decision-row flex items-center flex-wrap sm:flex-nowrap justify-center gap-x-8 gap-y-2">
                 {#if view.canBid}
-                    <div class="flex flex-col gap-1 shrink-0">
+                    <div class="flex flex-col gap-1 shrink-0" style:visibility={view.closed ? 'hidden' : undefined}>
                         <div class="flex items-center gap-2">
                             <button class="step shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
                                 onclick={() => session.setBidValue(session.bidValue - 1)} disabled={session.bidValue <= 0}>−</button>

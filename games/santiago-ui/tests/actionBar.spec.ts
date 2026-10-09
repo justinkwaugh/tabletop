@@ -27,12 +27,12 @@ async function boardTopsWhile(page: Page, act: () => Promise<void>): Promise<num
         const start = performance.now()
         const sample = () => {
             tops.push(Math.round(board.getBoundingClientRect().top))
-            if (performance.now() - start < 1200) requestAnimationFrame(sample)
+            if (performance.now() - start < 2600) requestAnimationFrame(sample)
         }
         requestAnimationFrame(sample)
     })
     await act()
-    await page.waitForTimeout(1400)
+    await page.waitForTimeout(2800)
     return page.evaluate(() => {
         const tops: unknown = Reflect.get(window, '__boardTops')
         return Array.isArray(tops) ? tops.filter((top) => typeof top === 'number') : []

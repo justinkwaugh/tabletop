@@ -1,11 +1,13 @@
 import { gsap } from 'gsap'
 import { flushSync, tick } from 'svelte'
-import { sameActionBarView, type ActionBarView } from '$lib/model/actionBarView.js'
+import { isPlaceBid } from '@tabletop/santiago'
+import { closingBidsView, sameActionBarView, type ActionBarView } from '$lib/model/actionBarView.js'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 const RESIZE = 0.3
 const FADE = 0.2
 const OVERSEER_WIPE = 0.4
+const CLOSING_BIDS_HOLD = 1.2
 
 // Previews where the whole transition ends, not each step's `to`, so a chain of system actions
 // settles the bar once; the preview holds until that state publishes for the same reason. See the
@@ -56,7 +58,7 @@ export class ActionBarAnimator extends StateAnimator {
         })
     }
 
-    override async onGameStateChange({ from, action, animationContext }: StateChange) {
+    override async onGameStateChange({ to, from, action, animationContext }: StateChange) {
         // Lets the session's own resets for this transition, such as a cleared bribe selection,
         // render before the bar is measured, and measures outside the session's state effect.
         await tick()
@@ -68,40 +70,59 @@ export class ActionBarAnimator extends StateAnimator {
         if (sameActionBarView(shown, next)) return
         const transition = this.clearedTransitions
 
-        const heightBefore = bar.offsetHeight
-        const heightAfter = this.measure(bar, next)
-        const resizes = heightAfter !== heightBefore
-        const overseerTag = action ? this.newOverseerTag(shown, next) : undefined
-        if (!resizes && !overseerTag) return
-
+        // The round's last bid first settles in the bidding table, which holds a moment before
+        // the bar moves on.
+        const closing =
+            action && isPlaceBid(action) && action.playerId && next.kind !== 'bidding'
+                ? closingBidsView(shown, { playerId: action.playerId, amount: action.amount }, to.canalOverseerId)
+                : undefined
+        const stages = closing ? [closing, next] : [next]
         const timeline = action ? animationContext.finalTimeline : animationContext.actionTimeline
         const resize = action ? RESIZE : FALLBACK_DURATION
-        const fadesIn = !!action && next.kind !== shown.kind
-        timeline.call(
-            () => {
-                if (transition === this.clearedTransitions) this.swapTo(bar, next, resizes ? heightBefore : undefined, fadesIn)
-            },
-            [],
-            0
-        )
-        if (overseerTag) {
-            timeline.fromTo(
-                overseerTag,
-                { clipPath: 'inset(0% 100% 0% 0%)' },
-                { clipPath: 'inset(0% 0% 0% 0%)', duration: OVERSEER_WIPE, ease: 'power2.out', immediateRender: false },
-                0
-            )
-            timeline.set(overseerTag, { clearProps: 'clipPath' }, OVERSEER_WIPE)
-        }
-        if (!resizes) return
-        timeline.fromTo(
-            bar,
-            { height: heightBefore },
-            { height: heightAfter, duration: resize, ease: 'power2.inOut', immediateRender: false },
-            0
-        )
-        timeline.set(bar, { clearProps: 'height,overflow' }, resize)
-        if (fadesIn) timeline.to(bar, { opacity: 1, duration: FADE, ease: 'power1.out' }, resize)
+
+        let before = shown
+        let heightBefore = bar.offsetHeight
+        let at = 0
+        const heights = stages.map((view) => this.measure(bar, view))
+        stages.forEach((view, index) => {
+            const heightAfter = heights[index]
+            const resizes = heightAfter !== heightBefore
+            const overseerTag = action ? this.newOverseerTag(before, view) : undefined
+            const holds = view === closing
+            if (resizes || overseerTag || holds) {
+                const lockedHeight = resizes ? heightBefore : undefined
+                const fadesIn = !!action && view.kind !== before.kind
+                timeline.call(
+                    () => {
+                        if (transition === this.clearedTransitions) this.swapTo(bar, view, lockedHeight, fadesIn)
+                    },
+                    [],
+                    at
+                )
+                if (overseerTag) {
+                    timeline.fromTo(
+                        overseerTag,
+                        { clipPath: 'inset(0% 100% 0% 0%)' },
+                        { clipPath: 'inset(0% 0% 0% 0%)', duration: OVERSEER_WIPE, ease: 'power2.out', immediateRender: false },
+                        at
+                    )
+                    timeline.set(overseerTag, { clearProps: 'clipPath' }, at + OVERSEER_WIPE)
+                }
+                if (resizes) {
+                    timeline.fromTo(
+                        bar,
+                        { height: heightBefore },
+                        { height: heightAfter, duration: resize, ease: 'power2.inOut', immediateRender: false },
+                        at
+                    )
+                    timeline.set(bar, { clearProps: 'height,overflow' }, at + resize)
+                    if (fadesIn) timeline.to(bar, { opacity: 1, duration: FADE, ease: 'power1.out' }, at + resize)
+                }
+            }
+            at += holds ? CLOSING_BIDS_HOLD : 0
+            before = view
+            heightBefore = heightAfter
+        })
     }
 
     private swapTo(bar: HTMLElement, next: ActionBarView, lockedHeight: number | undefined, fadesIn: boolean) {
@@ -109,7 +130,7 @@ export class ActionBarAnimator extends StateAnimator {
             gsap.set(bar, { height: lockedHeight, overflow: 'hidden', opacity: fadesIn ? 0 : 1 })
         }
         const focused = document.activeElement
-        this.focusBeforePreview = focused instanceof HTMLElement && bar.contains(focused) ? focused : undefined
+        if (focused instanceof HTMLElement && bar.contains(focused)) this.focusBeforePreview = focused
         flushSync(() => {
             this.preview = next
             this.previewInert = true
