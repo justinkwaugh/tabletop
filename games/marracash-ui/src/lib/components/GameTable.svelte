@@ -158,6 +158,8 @@
                         justify="center"
                         controls="bottom-left"
                         coverBelowScale={0.45}
+                        maxScale={1.5}
+                        maxFitScale={1.5}
                         renderAtViewScale
                         expandable
                     >
