@@ -12,7 +12,7 @@
                     : [
                           {
                               key: `${city.number}-${index}`,
-                              lane: laneBetween(city.number, slot.value)
+                              lane: laneBetween(gameSession.geometry, city.number, slot.value)
                           }
                       ]
             )

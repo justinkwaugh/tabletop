@@ -1,6 +1,5 @@
 <script lang="ts">
     import { SailRouteKind, type SailOption } from '@tabletop/kogge'
-    import { cityPlacement } from '$lib/board/layout.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { laneBetween, pointAlong, type Lane } from '$lib/utils/lanes.js'
     import { sameRoute } from '$lib/utils/payment.js'
@@ -26,7 +25,10 @@
                 origin,
                 option,
                 chosen: sameRoute(option.route, gameSession.sailRoute),
-                lane: destination === undefined ? undefined : laneBetween(origin, destination)
+                lane:
+                    destination === undefined
+                        ? undefined
+                        : laneBetween(gameSession.geometry, origin, destination)
             }
         })
     })
@@ -79,7 +81,7 @@
                 </g>
             {/if}
         {:else}
-            {@const harbour = cityPlacement(origin).harbour}
+            {@const harbour = gameSession.geometry.harbour(origin)}
             <g transform="translate({harbour.x} {harbour.y})">
                 <circle r="20" fill="none" stroke="#a8321f" stroke-width="2" stroke-dasharray="4 4"
                 ></circle>

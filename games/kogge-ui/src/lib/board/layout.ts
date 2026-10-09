@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import type { BoardGeometry } from './geometry.js'
 import { LAYOUT as layout } from './layoutData.js'
 
 export type CardSide = 'top' | 'right' | 'bottom' | 'left'
@@ -75,3 +76,14 @@ export function pierStart(placement: CityPlacement): Point {
 export const MARKET_AREA: Rect = { x: 24, y: 806, width: 404, height: 270 }
 export const WAREHOUSE_AREA: Rect = { x: 1314, y: 806, width: 266, height: 270 }
 export const TITLE_AREA: Rect = { x: 752, y: 912, width: 240, height: 164 }
+
+export const CHART_GEOMETRY: BoardGeometry = {
+    width: BOARD_WIDTH,
+    height: BOARD_HEIGHT,
+    seaCentre: SEA_CENTRE,
+    harbour: (city) => cityPlacement(city).harbour,
+    guildMasterSpot: (city) => {
+        const { card } = cityPlacement(city)
+        return { x: card.x + card.width - 26, y: card.y + card.height - 8 }
+    }
+}

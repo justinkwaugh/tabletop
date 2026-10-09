@@ -8,7 +8,8 @@ import {
 } from '@tabletop/kogge'
 import { gsap } from 'gsap'
 import type { Attachment } from 'svelte/attachments'
-import { cogPosition, guildMasterPosition } from '$lib/utils/fleet.js'
+import type { BoardGeometry } from '$lib/board/geometry.js'
+import { cogPosition } from '$lib/utils/fleet.js'
 import { laneBetween, pointAlong } from '$lib/utils/lanes.js'
 
 const SAIL_SECONDS = 1.1
@@ -27,7 +28,10 @@ interface Voyage {
 export class FleetAnimator {
     private elements = new Map<string, SVGGElement>()
 
-    constructor(private settle: (state: HydratedKoggeGameState) => void) {}
+    constructor(
+        private settle: (state: HydratedKoggeGameState) => void,
+        private geometry: () => BoardGeometry
+    ) {}
 
     attachCog(playerId: string): Attachment<SVGGElement> {
         return this.attach(playerId)
@@ -82,8 +86,8 @@ export class FleetAnimator {
         animationContext: AnimationContext
     ) {
         const element = this.elements.get(playerId)
-        const start = cogPosition(from, playerId)
-        const end = cogPosition(to, playerId)
+        const start = cogPosition(this.geometry(), from, playerId)
+        const end = cogPosition(this.geometry(), to, playerId)
         if (!element || !start || !end || (start.x === end.x && start.y === end.y)) {
             return
         }
@@ -102,7 +106,7 @@ export class FleetAnimator {
             )
             return
         }
-        const lane = laneBetween(voyage.from, voyage.to)
+        const lane = laneBetween(this.geometry(), voyage.from, voyage.to)
         const control = {
             x: lane.control.x + (start.x - lane.start.x + end.x - lane.end.x) / 2,
             y: lane.control.y + (start.y - lane.start.y + end.y - lane.end.y) / 2
@@ -137,12 +141,12 @@ export class FleetAnimator {
         if (!element || from.guildMaster.city === to.guildMaster.city) {
             return
         }
-        const start = guildMasterPosition(from.guildMaster.city)
+        const start = this.geometry().guildMasterSpot(from.guildMaster.city)
         const stops = action && isMoveGuildMaster(action) ? (action.metadata?.stops ?? []) : []
         const path = stops.length > 0 ? stops : [to.guildMaster.city]
         const duration = action ? GUILD_MASTER_STEP_SECONDS : FAST_SECONDS / path.length
         path.forEach((city, index) => {
-            const point = guildMasterPosition(city)
+            const point = this.geometry().guildMasterSpot(city)
             animationContext.actionTimeline.to(
                 element,
                 { x: point.x - start.x, y: point.y - start.y, duration, ease: 'power2.inOut' },

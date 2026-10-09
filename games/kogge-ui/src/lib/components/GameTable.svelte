@@ -17,6 +17,7 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import { KoggeGameSession } from '$lib/model/session.svelte'
+    import { BoardStyle } from '$lib/board/geometry.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import FellRegular from '$lib/fonts/IMFellEnglish-Regular.woff2'
     import FellItalic from '$lib/fonts/IMFellEnglish-Italic.woff2'
@@ -128,6 +129,20 @@
                     coverBelowScale={0.4}
                 >
                     <Board />
+                    {#snippet overlay()}
+                        <div class="board-switch">
+                            {#each [BoardStyle.Chart, BoardStyle.Redesign] as style (style)}
+                                <button
+                                    type="button"
+                                    class:chosen={gameSession.boardStyle === style}
+                                    onclick={() => (gameSession.boardStyle = style)}
+                                    >{style === BoardStyle.Chart
+                                        ? 'Drawn chart'
+                                        : 'Redesign'}</button
+                                >
+                            {/each}
+                        </div>
+                    {/snippet}
                     {#snippet toolbar()}
                         <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
                         <div {@attach watchExpansion}>
@@ -155,6 +170,28 @@
         border-radius: 8px;
         background: #f4ead0;
         box-shadow: 0 2px 5px rgba(42, 26, 12, 0.25);
+    }
+
+    .board-switch {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        border: 1.5px solid #3f2a16;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #f4ead0;
+        font-size: 0.8rem;
+    }
+
+    .board-switch button {
+        padding: 0.15rem 0.6rem;
+        color: #3f2a16;
+    }
+
+    .board-switch button.chosen {
+        background: #3f2a16;
+        color: #f4ead0;
     }
 
     .fullscreen-controls {

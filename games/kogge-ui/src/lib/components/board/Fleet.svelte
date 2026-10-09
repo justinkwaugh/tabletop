@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cogPosition, guildMasterPosition } from '$lib/utils/fleet.js'
+    import { cogPosition } from '$lib/utils/fleet.js'
     import CogShip from '../art/CogShip.svelte'
     import GuildMasterPawn from '../art/GuildMasterPawn.svelte'
 
@@ -8,11 +8,11 @@
     const fleet = $derived(gameSession.fleetState)
     const cogs = $derived(
         fleet.players.flatMap((player) => {
-            const position = cogPosition(fleet, player.playerId)
+            const position = cogPosition(gameSession.geometry, fleet, player.playerId)
             return position ? [{ playerId: player.playerId, position }] : []
         })
     )
-    const guildMaster = $derived(guildMasterPosition(fleet.guildMaster.city))
+    const guildMaster = $derived(gameSession.geometry.guildMasterSpot(fleet.guildMaster.city))
 </script>
 
 <g pointer-events="none">

@@ -50,6 +50,10 @@ import {
 } from './selection.js'
 import { paymentFromItems, sameRoute } from '$lib/utils/payment.js'
 import { FleetAnimator } from '$lib/animators/fleetAnimator.js'
+import { BoardStyle, type BoardGeometry } from '$lib/board/geometry.js'
+import { CHART_GEOMETRY } from '$lib/board/layout.js'
+import { REDESIGN_GEOMETRY } from '$lib/board/redesignLayout.js'
+import { GOOD_ART, REDESIGN_GOOD_ART, type GoodArt } from '$lib/utils/goodsArt.js'
 
 export interface BoardTarget {
     label: string
@@ -67,9 +71,23 @@ export class KoggeGameSession extends GameSession<KoggeProjectedState, HydratedK
     // settles this on the new state, so they never jump back while the state is swapped in.
     fleetState: HydratedKoggeGameState = $derived(this.gameState)
 
-    fleetAnimator = new FleetAnimator((state) => {
-        this.fleetState = state
-    })
+    // A throwaway switch between the drawn chart and rvtk's redesigned board.
+    boardStyle: BoardStyle = $state(BoardStyle.Chart)
+
+    geometry: BoardGeometry = $derived(
+        this.boardStyle === BoardStyle.Redesign ? REDESIGN_GEOMETRY : CHART_GEOMETRY
+    )
+
+    goodArt: Record<Good, GoodArt> = $derived(
+        this.boardStyle === BoardStyle.Redesign ? REDESIGN_GOOD_ART : GOOD_ART
+    )
+
+    fleetAnimator = new FleetAnimator(
+        (state) => {
+            this.fleetState = state
+        },
+        () => this.geometry
+    )
 
     myPlayerId = $derived(this.myPlayer?.id)
 

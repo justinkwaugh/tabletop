@@ -1,5 +1,5 @@
 import type { Point } from '@tabletop/common'
-import { SEA_CENTRE, cityPlacement } from '$lib/board/layout.js'
+import type { BoardGeometry } from '$lib/board/geometry.js'
 
 export interface Curve {
     start: Point
@@ -17,15 +17,15 @@ const SEPARATION = 16
 
 // A lane bows out through open water so it does not cut across the coast; the lanes of a
 // city pair that run both ways sit side by side rather than on top of each other.
-export function laneBetween(from: number, to: number): Lane {
-    const start = cityPlacement(from).harbour
-    const end = cityPlacement(to).harbour
+export function laneBetween(geometry: BoardGeometry, from: number, to: number): Lane {
+    const start = geometry.harbour(from)
+    const end = geometry.harbour(to)
     const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }
     const length = Math.hypot(end.x - start.x, end.y - start.y)
     const normal = { x: -(end.y - start.y) / length, y: (end.x - start.x) / length }
     const control = {
-        x: mid.x + (SEA_CENTRE.x - mid.x) * PULL + normal.x * SEPARATION,
-        y: mid.y + (SEA_CENTRE.y - mid.y) * PULL + normal.y * SEPARATION
+        x: mid.x + (geometry.seaCentre.x - mid.x) * PULL + normal.x * SEPARATION,
+        y: mid.y + (geometry.seaCentre.y - mid.y) * PULL + normal.y * SEPARATION
     }
     const angle = Math.atan2(end.y - control.y, end.x - control.x)
     return {

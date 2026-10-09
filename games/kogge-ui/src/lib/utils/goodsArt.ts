@@ -26,3 +26,16 @@ export const GOOD_ART: Record<Good, GoodArt> = {
         ink: '#b3262b'
     }
 }
+
+// rvtk's redesign colours fur brown and amber orange.
+export const REDESIGN_GOOD_ART: Record<Good, GoodArt> = {
+    ...GOOD_ART,
+    [Good.Fur]: { name: 'Fur', fill: '#7a4a24', light: '#9c6838', dark: '#55321a', ink: '#f3e2b8' },
+    [Good.Amber]: {
+        name: 'Amber',
+        fill: '#e8932f',
+        light: '#f5b45c',
+        dark: '#b06a1c',
+        ink: '#2a1a0c'
+    }
+}

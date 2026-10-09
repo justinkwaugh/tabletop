@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Good } from '@tabletop/kogge'
-    import { GOOD_ART } from '$lib/utils/goodsArt.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
         good,
@@ -9,7 +9,8 @@
         size = 14
     }: { good: Good; x?: number; y?: number; size?: number } = $props()
 
-    const art = $derived(GOOD_ART[good])
+    const gameSession = getGameSession()
+    const art = $derived(gameSession.goodArt[good])
     const h = $derived(size / 2)
 </script>
 
