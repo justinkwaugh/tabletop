@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { AxialCoordinates } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import { ActionSpace, CompanyId, MachineState } from '@tabletop/hill-country-grocers'
 import {
@@ -18,6 +19,14 @@ afterEach(() => {
 
 function spyOnActionUndo() {
     return vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
+}
+
+function otherGrocers(
+    session: HcgGameSession,
+    coords: AxialCoordinates,
+    companyId: CompanyId
+): number {
+    return session.gameState.companiesIn(coords).filter((present) => present !== companyId).length
 }
 
 async function stageFirstHex(session: HcgGameSession) {
@@ -73,10 +82,37 @@ describe('the cost shown on each buildable hex', () => {
         session.selectBuildCompany(CompanyId.AlamoCity)
         expect(session.hexTargets.length).toBeGreaterThan(0)
         for (const target of session.hexTargets) {
-            const others = session.gameState
-                .companiesIn(target)
-                .filter((companyId) => companyId !== CompanyId.AlamoCity)
-            expect(session.placementCost(target)).toBe(2 + others.length)
+            expect(session.placementCost(target)).toBe(
+                2 + otherGrocers(session, target, CompanyId.AlamoCity)
+            )
+        }
+    })
+
+    it('prices the next store once one is staged', async () => {
+        const session = openSessionOn(twoGrocerBuildTable())
+        session.selectBuildCompany(CompanyId.AlamoCity)
+        await stageFirstHex(session)
+        expect(session.hexTargets.length).toBeGreaterThan(0)
+        for (const target of session.hexTargets) {
+            expect(session.placementCost(target)).toBe(
+                2 + otherGrocers(session, target, CompanyId.AlamoCity)
+            )
+        }
+    })
+
+    it('lets Verbena waive the fees of its costliest store', async () => {
+        const session = openSessionOn(twoGrocerBuildTable())
+        session.selectBuildCompany(CompanyId.Verbena)
+        expect(session.hexTargets.length).toBeGreaterThan(0)
+        for (const target of session.hexTargets) {
+            expect(session.placementCost(target)).toBe(2)
+        }
+        await stageFirstHex(session)
+        const [staged] = session.chosenHexes
+        const stagedFees = otherGrocers(session, staged, CompanyId.Verbena)
+        for (const target of session.hexTargets) {
+            const targetFees = otherGrocers(session, target, CompanyId.Verbena)
+            expect(session.placementCost(target)).toBe(2 + Math.min(stagedFees, targetFees))
         }
     })
 })
