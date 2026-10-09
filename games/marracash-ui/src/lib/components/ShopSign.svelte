@@ -11,6 +11,9 @@
         SignShadowOffset,
         signInitial
     } from '$lib/utils/shopSign.js'
+    import { centredBaseline, ElMessiriCentralShift } from '$lib/utils/textBaseline.js'
+
+    const InitialSize = 22
 
     let {
         ownerId,
@@ -47,8 +50,12 @@
         opacity="0.35"
     ></path>
     <SignFace {outline} {fill} {edge} {frame}>
-        <text x="0" y="-27" class="sign-initial marracash-initial" fill={ink}
-            >{signInitial(ownerName)}</text
+        <text
+            x="0"
+            y={centredBaseline(-27, InitialSize, ElMessiriCentralShift)}
+            font-size={InitialSize}
+            class="sign-initial marracash-initial"
+            fill={ink}>{signInitial(ownerName)}</text
         >
     </SignFace>
 </g>
@@ -65,8 +72,6 @@
 
 <style>
     .sign-initial {
-        font-size: 22px;
         text-anchor: middle;
-        dominant-baseline: central;
     }
 </style>

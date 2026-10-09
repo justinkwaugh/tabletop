@@ -3,6 +3,9 @@
     import Pawn from '$lib/components/Pawn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PawnCountChip, pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
+    import { BaskervilleCentralShift, centredBaseline } from '$lib/utils/textBaseline.js'
+
+    const CountSize = 16
 
     let {
         color,
@@ -55,9 +58,8 @@
     <Pawn {color} x={left + PawnCountChip.pawnWidth / 2} y={0} size={PawnCountChip.pawnSize} />
     <text
         x={left + PawnCountChip.pawnWidth + PawnCountChip.gap}
-        y="1"
-        dominant-baseline="central"
-        font-size="16"
+        y={centredBaseline(1, CountSize, BaskervilleCentralShift)}
+        font-size={CountSize}
         font-weight="700"
         fill={palette.stroke}>{count}</text
     >

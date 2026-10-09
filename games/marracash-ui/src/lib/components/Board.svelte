@@ -170,7 +170,14 @@
     style:width="{TableWidth}px"
     style:height="{TableHeight}px"
 >
-    <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
+    <!-- Redrawn at each zoom, the board's text scales exactly with it instead of snapping to
+     whole font sizes, which moved the letters within their signs from one zoom to the next. -->
+    <svg
+        width={TableWidth}
+        height={TableHeight}
+        viewBox="0 0 {TableWidth} {TableHeight}"
+        text-rendering="geometricPrecision"
+    >
         <defs>
             <StallDefs />
             <PawnDefs />

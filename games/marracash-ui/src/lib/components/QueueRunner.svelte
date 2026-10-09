@@ -3,6 +3,7 @@
     import type { QueueRunner, Segment } from '$lib/utils/boardGeometry.js'
     import { registerRunnerPart, type QueueAnimator } from '$lib/animators/queueAnimator.js'
     import { TableHeight, TableWidth } from '$lib/utils/boardGeometry.js'
+    import { centredBaseline, ElMessiriCentralShift } from '$lib/utils/textBaseline.js'
 
     const Selvedge = '#5a1f16'
     const Field = '#8a2f22'
@@ -11,6 +12,7 @@
     const Underside = '#4a1a12'
     const Fringe = '#e8d7b5'
     const Ink = '#f6e2b0'
+    const LabelSize = 15
     const MaskId = 'marracash-runner-reveal'
     const RevealWidth = 48
     const CutReach = 60
@@ -45,7 +47,8 @@
     <text
         class="marracash-merchant runner-label"
         x={placed.at.x}
-        y={placed.at.y + 1}
+        y={centredBaseline(placed.at.y + 1, LabelSize, ElMessiriCentralShift)}
+        font-size={LabelSize}
         fill={Ink}
         text-anchor={placed.anchor}
         transform={placed.rotate
@@ -150,8 +153,6 @@
 
 <style>
     .runner-label {
-        font-size: 15px;
-        dominant-baseline: central;
         letter-spacing: 0.06em;
         text-transform: uppercase;
     }
