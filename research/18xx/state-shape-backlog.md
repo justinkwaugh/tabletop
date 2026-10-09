@@ -13,8 +13,9 @@ first-diesel trigger; a second TOP game started on 2026-10-08 will be deleted. T
 decided that the finished game may become unviewable. So:
 
 - No saved-state reader or undo-patch migration is written. TOP's existing reader for its
-  empty `usedPrivatePowerIds` placeholder is deleted, and the deployed-game replay spec
-  and its fixture are retired.
+  empty `usedPrivatePowerIds` placeholder is deleted. The deployed-game replay stays: its
+  raw fixture is unchanged, and the spec converts each recorded State to the current
+  shape before replaying. When the game ends, its full history replaces the fixture.
 - The change ships as TOP Logic and UI `2.0.0`, published only after that game ends. The
   branch may merge to main before then; TOP is not released from it until the game ends.
 - 1889, 1830, 1846 and 1817 have no published artifacts or hosted games; their shape
@@ -74,8 +75,10 @@ mechanism below, plus the six implemented titles.
 
 ## Changes
 
-0. **Preparation.** Delete TOP's saved-state reader and retire the deployed-game replay.
-   Change `openingPosition.spec.ts` to hash only setup's random outcomes, so its digests
+0. **Preparation.** Delete TOP's saved-state reader and the family's `readStored` hook.
+   The deployed-game spec rebuilds recorded States with `RecordedHistory` and converts
+   them in test code; each later change extends that converter. The opening-position
+   digest hashes setup without the definition data this plan removes, so its digests
    stay the check that setup randomness is untouched while the shape changes.
 1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
    class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own

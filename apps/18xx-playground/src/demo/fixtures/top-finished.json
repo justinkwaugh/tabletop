@@ -71,7 +71,6 @@
         ],
         "example": "finances",
         "phaseEvents": [],
-        "usedPrivatePowerIds": [],
         "machineState": "OfferingLot",
         "stockRound": {
             "number": 1,

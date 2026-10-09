@@ -87,6 +87,11 @@ different runtime.
 
 ## Saved states and publication
 
+On 2026-10-09 TOP's reader and the `readStored` hook were removed: hosted saves are no
+longer read across state-shape changes, and the deployed-game replay converts its recorded
+states in test code instead. See [state shape](state-shape-backlog.md). The rest of this
+section records the 2026-10-03 change.
+
 The only existing hosted save is one TOP game. TOP owns a reader that removes its
 obsolete `usedPrivatePowerIds` field only when it is an empty array. There are no
 compatibility readers for 1889, 1830, or 1817; their recorded test fixtures have been

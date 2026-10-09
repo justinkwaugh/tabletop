@@ -193,13 +193,11 @@ export type EighteenXXStateDefinition<
 
 export function defineEighteenXXState<Schema extends TitleStateSchema>(
     schema: Schema,
-    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[],
-    readStored?: (data: unknown) => unknown
+    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[]
 ): EighteenXXStateDefinition<Schema> {
     const validator = Compile(schema)
     function read(data: unknown): unknown {
-        const stored = data instanceof StateHydrator ? data.dehydrate() : data
-        return readStored ? readStored(stored) : stored
+        return data instanceof StateHydrator ? data.dehydrate() : data
     }
     return {
         schema,

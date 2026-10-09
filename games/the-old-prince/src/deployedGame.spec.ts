@@ -1,5 +1,12 @@
 import type { TheOldPrinceState } from './state.js'
-import { assert, assertExists, GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    GameEngine,
+    PlayerStatus,
+    RecordedHistory,
+    type GameAction
+} from '@tabletop/common'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
@@ -13,15 +20,22 @@ function readFixture(name: string) {
     )
 }
 
-type LegacyState = TheOldPrinceState & { usedPrivatePowerIds?: string[] }
-const latestState: LegacyState = readFixture('state')
-const newestFirstActions: GameAction[] = readFixture('actions').map(
-    ({ createdAt, updatedAt, ...action }: Record<string, string>) => ({
+type RecordedState = TheOldPrinceState & { usedPrivatePowerIds: string[] }
+
+function currentShape({ usedPrivatePowerIds, ...state }: RecordedState): TheOldPrinceState {
+    assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
+    return state
+}
+
+const recordedLatestState: RecordedState = readFixture('state')
+const latestState = currentShape(recordedLatestState)
+const oldestFirstActions: GameAction[] = readFixture('actions')
+    .map(({ createdAt, updatedAt, ...action }: Record<string, string>) => ({
         ...action,
         createdAt: new Date(createdAt),
         ...(updatedAt ? { updatedAt: new Date(updatedAt) } : {})
-    })
-)
+    }))
+    .reverse()
 
 const engine = new GameEngine(Definition.runtime)
 const game = Definition.runtime.initializer.initializeGame(
@@ -47,19 +61,16 @@ const recordedReservedShareOverpayments = new Map([
     [177, 12]
 ])
 
-function recordedStates(): LegacyState[] {
-    const states = [latestState]
-    for (const action of newestFirstActions)
-        states.unshift(engine.undoProcessedAction({ action, state: states[0] }))
-    return states
-}
-
 describe('the deployed game', () => {
-    it('loads its latest state, dropping only unused legacy power tracking', () => {
+    it('no longer loads in its recorded shape', () => {
+        expect(Definition.runtime.canonicalStateValidator?.Check(recordedLatestState)).toBe(false)
+    })
+
+    it('loads its latest state in the current shape', () => {
         engine.validateCanonicalState(latestState)
-        const { usedPrivatePowerIds, ...expected } = latestState
-        expect(usedPrivatePowerIds).toEqual([])
-        expect(Definition.runtime.hydrator.hydrateState(latestState).dehydrate()).toEqual(expected)
+        expect(Definition.runtime.hydrator.hydrateState(latestState).dehydrate()).toEqual(
+            latestState
+        )
     })
 
     it('offers the active player the same actions', () => {
@@ -68,27 +79,20 @@ describe('the deployed game', () => {
         ).toEqual(['LayTile', 'FinishTrack'])
     })
 
-    it.each([{ value: ['unexpected'] }, { value: null }, { value: 'invalid' }])(
-        'rejects an unexpected legacy power tracker: $value',
-        ({ value: usedPrivatePowerIds }) => {
-            const invalid = { ...latestState, usedPrivatePowerIds }
-            expect(Definition.runtime.canonicalStateValidator?.Check(invalid)).toBe(false)
-            expect(() => Definition.runtime.hydrator.hydrateState(invalid)).toThrow()
-        }
-    )
-
     it('reproduces recorded actions with the corrected reserved-share payouts', () => {
-        const states = recordedStates()
-        const oldestFirstActions = [...newestFirstActions].reverse()
-        expect(states).toHaveLength(oldestFirstActions.length + 1)
+        const transitions = new RecordedHistory(recordedLatestState, oldestFirstActions).select(
+            currentShape
+        )
+        expect(transitions.size).toBe(oldestFirstActions.length)
         for (const [index, action] of oldestFirstActions.entries()) {
+            const transition = transitions.get(action.id)
+            assertExists(transition?.before, 'Every recorded action has an undo patch')
             const { updatedState } = engine.executeSingleAction({
                 action,
-                state: states[index],
+                state: transition.before,
                 game
             })
-            const { usedPrivatePowerIds, ...recorded } = structuredClone(states[index + 1])
-            expect(usedPrivatePowerIds).toEqual([])
+            const recorded = structuredClone(transition.after)
             const overpayment = recordedReservedShareOverpayments.get(index)
             if (overpayment) {
                 expect(action).toMatchObject({ type: 'DistributeEarnings', companyId: 'C' })
