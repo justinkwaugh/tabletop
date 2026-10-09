@@ -74,7 +74,9 @@ test('choosing a fountain dims the board around its destinations, previews a rou
     await expect(actionPanel(page)).toContainText('Choose the destination for these visitors.')
 
     await page.getByRole('button', { name: 'Move visitors to fountain 6' }).hover()
-    await expect(page.locator('polyline')).toHaveCount(2)
+    // The route's track and its flowing dashes; its glow is drawn beneath them
+    await expect(page.locator('polyline:not(.route-glow)')).toHaveCount(2)
+    await expect(page.locator('polyline.route-glow')).toHaveCount(1)
 
     await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(destinationFountains(page)).toHaveCount(0)

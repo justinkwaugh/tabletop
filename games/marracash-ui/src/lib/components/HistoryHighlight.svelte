@@ -13,6 +13,8 @@
     } from '$lib/utils/fountainShape.js'
     import type { HistoryHighlight } from '$lib/utils/historyHighlight.js'
 
+    import RouteGlow from '$lib/components/RouteGlow.svelte'
+
     let { highlight }: { highlight: HistoryHighlight } = $props()
 
     const gameSession = getGameSession()
@@ -67,6 +69,12 @@
             {/each}
         </defs>
         {#each branches as branch (branch.shopId)}
+            <RouteGlow
+                id="marracash-history-glow-{branch.shopId}"
+                line={branch.line}
+                color={branch.stroke}
+                width={BranchWidth}
+            />
             <polyline
                 points={points(branch.line)}
                 fill="none"
@@ -76,6 +84,12 @@
                 marker-end="url(#{arrowId(branch.color)})"
             ></polyline>
         {/each}
+        <RouteGlow
+            id="marracash-history-glow"
+            line={routeLine(highlight.route)}
+            color={White}
+            width={RouteWidth}
+        />
         <polyline
             points={points(routeLine(highlight.route))}
             fill="none"
