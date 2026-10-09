@@ -144,6 +144,18 @@ export class HydratedReefEncounterPlayerState
         this.getLarvaCubes()[color] -= 1
     }
 
+    spendShrimp() {
+        assert(
+            this.getShrimpsBehindScreen() > 0,
+            `Player ${this.playerId} has no shrimp behind the screen`
+        )
+        this.shrimpsBehindScreen = this.getShrimpsBehindScreen() - 1
+    }
+
+    returnShrimp() {
+        this.shrimpsBehindScreen = this.getShrimpsBehindScreen() + 1
+    }
+
     screenPolypCount(): number {
         return totalCount(this.getKnownScreenPolyps()) + totalCount(this.getSecretScreenPolyps())
     }
@@ -174,6 +186,14 @@ export class HydratedReefEncounterPlayerState
             'The secret parrotfish polyp is unavailable in this representation'
         )
         return this.secretParrotfishPolyps
+    }
+
+    getShrimpsBehindScreen(): number {
+        assertExists(
+            this.shrimpsBehindScreen,
+            'Shrimps behind the screen are unavailable in this representation'
+        )
+        return this.shrimpsBehindScreen
     }
 
     getLarvaCubes(): CoralCounts {

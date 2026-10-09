@@ -40,6 +40,13 @@ In the rulebook's order (pp. 3–4):
 - **Shrimp protection.** A shrimp protects the polyp under it and the polyps of the same coral orthogonally next to it, never another coral's polyps (rulebook p. 9).
 - **Extra growth.** Whenever a polyp is placed orthogonally next to the board's empty starfish square, a bonus polyp of its colour grows there at once, without counting towards the cube's four. It does not grow if a shrimp is on the square, if no bonus polyp of that colour is left, or if it would join two guarded corals (rulebook p. 7). The bonus polyp is replaced by picking one of that colour out of the bag, when the bag has one.
 
+## Shrimps
+
+- **Introducing (action 4).** Once a turn, a player may put a shrimp from behind the screen onto any polyp of a coral that has no shrimp. A new shrimp never goes onto bare rock (rulebook p. 5).
+- **Order of actions.** Every action except moving shrimps must be finished before another starts (rulebook p. 4). Introducing a shrimp therefore ends the larva cube being played: no more polyps of its colour may follow, though a second cube may still be played.
+- **Moving (action 5).** Any number of times a turn, and in the middle of placing polyps, a player may move one of their own shrimps to another polyp of the same coral, to a polyp of another coral, to bare rock, or back behind the screen (rulebook p. 5). A shrimp left on bare rock must move on before the turn ends, so the turn cannot end while one is there (rulebook p. 5).
+- **Limits.** Two shrimps are never on the same coral, and a player never has more than two of their own shrimps on one board (rulebook p. 9). Both hold for introducing and moving.
+
 ## Scoring
 
 - Each polyp in a player's parrotfish scores its colour's value: 1, plus 1 for every coral tile currently showing that colour as the stronger coral. The values always total 15 (rulebook p. 12).

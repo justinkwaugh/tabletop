@@ -31,6 +31,8 @@ import {
 import { HydratedPolypBag, PolypBag } from '../components/polypBag.js'
 import { isRock, ReefBoards, type ReefBoardId } from '../components/reefBoards.js'
 import {
+    coralAt,
+    isGuarded,
     isProtected,
     isStronger,
     joinsGuardedCorals,
@@ -39,6 +41,7 @@ import {
     polypAt,
     PolypPlacement,
     Reef,
+    type ReefSquare,
     Shrimp,
     shrimpAt
 } from './reef.js'
@@ -47,6 +50,8 @@ import { compareScores, coralValues, scoreBreakdown, type ScoreBreakdown } from 
 import { HydratedReefEncounterPlayerState, ReefEncounterPlayerState } from './playerState.js'
 
 export const LarvaCubesChosenAtSetup = 2
+// A player may never have more than two of their own shrimps on one board (rulebook p. 9).
+export const ShrimpsPerPlayerPerBoard = 2
 
 export type ReefEncounterGameState = Type.Static<typeof ReefEncounterGameState>
 // Left unevaluated, like the player state, so hidden player fields stay optional when projected.
@@ -138,13 +143,17 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return space
     }
 
-    canTakeOpenSeaSpace(larvaColor: CoralColor): boolean {
-        return this.openSeaSpace(larvaColor).hasLarvaCube
+    // A shrimp may not end the turn on bare rock (rulebook p. 5).
+    canTakeOpenSeaSpace(playerId: string, larvaColor: CoralColor): boolean {
+        return this.openSeaSpace(larvaColor).hasLarvaCube && !this.hasShrimpOnBareRock(playerId)
     }
 
     // Action 10: the larva cube and every polyp on its space go behind the player's screen.
     takeOpenSeaSpace(playerId: string, larvaColor: CoralColor): CoralColor[] {
-        assert(this.canTakeOpenSeaSpace(larvaColor), `The ${larvaColor} space has no larva cube`)
+        assert(
+            this.canTakeOpenSeaSpace(playerId, larvaColor),
+            `Player ${playerId} cannot take the ${larvaColor} space`
+        )
         const space = this.openSeaSpace(larvaColor)
         const polyps = space.polyps
         const player = this.getPlayerState(playerId)
@@ -307,6 +316,111 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return placement
     }
 
+    canIntroduceShrimp(playerId: string, square: ReefSquare): boolean {
+        return (
+            this.mayIntroduceShrimp(playerId) && this.shrimpBlocker(playerId, square) === undefined
+        )
+    }
+
+    hasShrimpIntroduction(playerId: string): boolean {
+        return (
+            this.mayIntroduceShrimp(playerId) &&
+            this.reefs.some((reef) =>
+                reef.polyps.some(
+                    (polyp) =>
+                        this.shrimpBlocker(playerId, {
+                            boardId: reef.boardId,
+                            coords: polyp.coords
+                        }) === undefined
+                )
+            )
+        )
+    }
+
+    // Action 4. Like every action but moving shrimps, it finishes the action before it,
+    // so no more polyps of the cube being played may follow (rulebook p. 4).
+    introduceShrimp(playerId: string, square: ReefSquare) {
+        assert(
+            this.canIntroduceShrimp(playerId, square),
+            `Player ${playerId} cannot introduce a shrimp there`
+        )
+        this.getPlayerState(playerId).spendShrimp()
+        this.shrimps.push({
+            playerId,
+            boardId: square.boardId,
+            coords: structuredClone(square.coords)
+        })
+        this.turn.shrimpIntroduced = true
+        this.turn.placing = undefined
+    }
+
+    // Action 5: to another square, or back behind the screen when no square is given.
+    canMoveShrimp(playerId: string, from: ReefSquare, to?: ReefSquare): boolean {
+        const shrimp = this.ownShrimpAt(playerId, from)
+        return (
+            shrimp !== undefined &&
+            (to === undefined || this.shrimpBlocker(playerId, to, shrimp) === undefined)
+        )
+    }
+
+    hasShrimpOnBoard(playerId: string): boolean {
+        return this.shrimps.some((shrimp) => shrimp.playerId === playerId)
+    }
+
+    moveShrimp(playerId: string, from: ReefSquare, to?: ReefSquare) {
+        assert(this.canMoveShrimp(playerId, from, to), `Player ${playerId} cannot move that shrimp`)
+        const shrimp = this.ownShrimpAt(playerId, from)
+        assertExists(shrimp, `Player ${playerId} has no shrimp there`)
+        if (to) {
+            shrimp.boardId = to.boardId
+            shrimp.coords = structuredClone(to.coords)
+        } else {
+            this.shrimps = this.shrimps.filter((candidate) => candidate !== shrimp)
+            this.getPlayerState(playerId).returnShrimp()
+        }
+    }
+
+    hasShrimpOnBareRock(playerId: string): boolean {
+        return this.shrimps.some(
+            (shrimp) =>
+                shrimp.playerId === playerId && !polypAt(this.reefOn(shrimp.boardId), shrimp.coords)
+        )
+    }
+
+    // Why a shrimp may not go on this square, or undefined when it may. A moving shrimp may
+    // also go on bare rock; a new one must go onto a coral.
+    shrimpBlocker(playerId: string, square: ReefSquare, moving?: Shrimp): string | undefined {
+        const reef = this.reefs.find((candidate) => candidate.boardId === square.boardId)
+        if (!reef) {
+            return `Reef board ${square.boardId} is not in play`
+        }
+        if (!isRock(square.boardId, square.coords)) {
+            return 'Shrimps stay on rock'
+        }
+        const others = this.shrimpsOn(square.boardId).filter((shrimp) => shrimp !== moving)
+        if (shrimpAt(others, square.coords)) {
+            return 'A shrimp is already there'
+        }
+        if (
+            moving &&
+            moving.boardId === square.boardId &&
+            sameCoordinates(moving.coords, square.coords)
+        ) {
+            return 'The shrimp is already there'
+        }
+        const own = others.filter((shrimp) => shrimp.playerId === playerId)
+        if (own.length >= ShrimpsPerPlayerPerBoard) {
+            return `At most ${ShrimpsPerPlayerPerBoard} of your shrimps may be on one board`
+        }
+        if (!polypAt(reef, square.coords)) {
+            return moving ? undefined : 'A new shrimp must go onto a coral'
+        }
+        if (isGuarded(coralAt(reef, square.coords), others)) {
+            return 'That coral already has a shrimp'
+        }
+        return undefined
+    }
+
     scores(): Record<string, ScoreBreakdown> {
         const values = coralValues(this.coralTiles)
         return Object.fromEntries(
@@ -333,6 +447,18 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return fromConsumed
             ? player.consumedPolyps[placing.color] > 0
             : placing.screenPolypsLeft > 0 && player.hasScreenPolyp(placing.color)
+    }
+
+    private mayIntroduceShrimp(playerId: string): boolean {
+        return (
+            !this.turn.shrimpIntroduced &&
+            this.getPlayerState(playerId).getShrimpsBehindScreen() > 0
+        )
+    }
+
+    private ownShrimpAt(playerId: string, square: ReefSquare): Shrimp | undefined {
+        const shrimp = shrimpAt(this.shrimpsOn(square.boardId), square.coords)
+        return shrimp?.playerId === playerId ? shrimp : undefined
     }
 
     private reefOn(boardId: ReefBoardId): Reef {

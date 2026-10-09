@@ -14,9 +14,10 @@ export const PlacingPolyps = Type.Object({
 export type TurnRecord = Type.Static<typeof TurnRecord>
 export const TurnRecord = Type.Object({
     larvaCubesPlayed: Type.Number(),
+    shrimpIntroduced: Type.Boolean(),
     placing: Type.Optional(PlacingPolyps)
 })
 
 export function newTurnRecord(): TurnRecord {
-    return { larvaCubesPlayed: 0 }
+    return { larvaCubesPlayed: 0, shrimpIntroduced: false }
 }

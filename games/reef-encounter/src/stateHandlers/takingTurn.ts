@@ -5,11 +5,18 @@ import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedTakeOpenSeaSpace, isTakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
 import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube.js'
 import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
+import { HydratedIntroduceShrimp, isIntroduceShrimp } from '../actions/introduceShrimp.js'
+import { HydratedMoveShrimp, isMoveShrimp } from '../actions/moveShrimp.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { CoralColors } from '../components/colors.js'
 import { activateTurnPlayer } from '../util/turns.js'
 
-type TakingTurnAction = HydratedPlayLarvaCube | HydratedPlacePolyp | HydratedTakeOpenSeaSpace
+type TakingTurnAction =
+    | HydratedPlayLarvaCube
+    | HydratedPlacePolyp
+    | HydratedIntroduceShrimp
+    | HydratedMoveShrimp
+    | HydratedTakeOpenSeaSpace
 
 export class TakingTurnStateHandler implements MachineStateHandler<
     TakingTurnAction,
@@ -34,7 +41,19 @@ export class TakingTurnStateHandler implements MachineStateHandler<
                 action.fromConsumed
             )
         }
-        return isTakeOpenSeaSpace(action) && gameState.canTakeOpenSeaSpace(action.larvaColor)
+        if (isIntroduceShrimp(action)) {
+            return gameState.canIntroduceShrimp(action.playerId, {
+                boardId: action.boardId,
+                coords: action.coords
+            })
+        }
+        if (isMoveShrimp(action)) {
+            return gameState.canMoveShrimp(action.playerId, action.from, action.to)
+        }
+        return (
+            isTakeOpenSeaSpace(action) &&
+            gameState.canTakeOpenSeaSpace(action.playerId, action.larvaColor)
+        )
     }
 
     validActionsForPlayer(
@@ -52,7 +71,15 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         if (gameState.hasLegalPlacement(playerId)) {
             actions.push(ActionType.PlacePolyp)
         }
-        actions.push(ActionType.TakeOpenSeaSpace)
+        if (gameState.hasShrimpIntroduction(playerId)) {
+            actions.push(ActionType.IntroduceShrimp)
+        }
+        if (gameState.hasShrimpOnBoard(playerId)) {
+            actions.push(ActionType.MoveShrimp)
+        }
+        if (CoralColors.some((color) => gameState.canTakeOpenSeaSpace(playerId, color))) {
+            actions.push(ActionType.TakeOpenSeaSpace)
+        }
         return actions
     }
 

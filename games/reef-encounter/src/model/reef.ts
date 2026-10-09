@@ -28,6 +28,13 @@ export const Shrimp = Type.Object({
     coords: OffsetCoordinates
 })
 
+// A square on one of the reef boards in play.
+export type ReefSquare = Type.Static<typeof ReefSquare>
+export const ReefSquare = Type.Object({
+    boardId: ReefBoardIdSchema,
+    coords: OffsetCoordinates
+})
+
 export type PolypPlacement = Type.Static<typeof PolypPlacement>
 export const PolypPlacement = Type.Object({
     color: Type.Enum(CoralColor),
