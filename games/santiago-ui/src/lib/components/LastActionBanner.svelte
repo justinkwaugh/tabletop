@@ -8,7 +8,6 @@
     import SproutIcon from './SproutIcon.svelte'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
-    let { boardCenterX = null }: { boardCenterX?: number | null } = $props()
 
     const session = getGameSession()
 
@@ -33,8 +32,7 @@
      do, so this would just be repeating the previous entry from History for no reason. -->
 {#if !session.isMyTurn || session.isViewingHistory}
     <div class="shrink-0 min-h-[44px] mt-2">
-        <div class="centered-line max-w-[90%] px-3 flex items-center gap-2"
-             style="--board-center: {boardCenterX !== null ? `${boardCenterX}px` : '50%'}">
+        <div class="centered-line max-w-[90%] px-3 flex items-center gap-2">
             <SproutIcon class="w-5 h-5 shrink-0" />
             {#key lastAction?.id}
                 <div class="flex flex-col items-center"
@@ -70,7 +68,7 @@
     /* The board center is measured in screen pixels; dividing by the zoom applied to everything
        above the board on phones keeps it in this element's own pixels. */
     .centered-line {
-        margin-left: calc(var(--board-center) / var(--above-board-zoom, 1));
+        margin-left: calc(var(--board-center, 50%) / var(--above-board-zoom, 1));
         transform: translateX(-50%);
         width: fit-content;
     }

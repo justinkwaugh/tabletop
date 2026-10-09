@@ -26,7 +26,7 @@
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { desertUrl } from '$lib/utils/imageUrls.js'
     import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
-    import { useBoardCenterX } from '$lib/utils/boardCenter.svelte.js'
+    import { centerOverBoard } from '$lib/utils/boardCenter.js'
     import BitterFont from '$lib/fonts/Bitter.woff2'
     import LoraFont from '$lib/fonts/Lora.woff2'
 
@@ -74,13 +74,9 @@
     const playerName = (id: string) =>
         session.game?.players.find((p) => p.id === id)?.name ?? id
 
-    // Tracks the board's live horizontal center (relative to the bar above it) so that
-    // bar's contents can be centered over just the board rather than over the board +
-    // the tile strip beside it. Board.svelte doesn't expose a bindable root element, so
-    // this wraps it in a plain div below and measures via getBoundingClientRect.
+    // Board.svelte doesn't expose a bindable root element, so this wraps it in a plain div below
+    // for centerOverBoard to measure.
     let boardEl: HTMLDivElement | undefined
-    let topBarEl: HTMLDivElement | undefined
-    const boardCenter = useBoardCenterX(() => boardEl, () => topBarEl)
 </script>
 
 <style>
@@ -177,10 +173,10 @@
 
         {#snippet gameContent()}
             <!-- Top part is not allowed to shrink -->
-            <div class="above-board shrink-0" bind:this={topBarEl}>
+            <div class="above-board shrink-0" {@attach centerOverBoard(() => boardEl)}>
                 <ActionToolbar />
-                <LastActionBanner boardCenterX={boardCenter.value} />
-                <PlayerActionBar boardCenterX={boardCenter.value} />
+                <LastActionBanner />
+                <PlayerActionBar />
             </div>
             <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size -->
