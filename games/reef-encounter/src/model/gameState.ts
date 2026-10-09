@@ -72,6 +72,8 @@ export const ReefEncounterGameState = Type.Intersect([
         openSea: Type.Array(OpenSeaSpace),
         larvaCubeSupply: CoralCounts,
         bonusPolyps: CoralCounts,
+        // Once the bag runs out, the bonus polyps join it for good (rulebook p. 11).
+        bonusPolypsInBag: Type.Boolean(),
         polypBag: PolypBag
     })
 ])
@@ -104,6 +106,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare openSea: OpenSeaSpace[]
     declare larvaCubeSupply: CoralCounts
     declare bonusPolyps: CoralCounts
+    declare bonusPolypsInBag: boolean
     declare polypBag: HydratedPolypBag
 
     constructor(data: ReefEncounterProjectedState) {
@@ -348,8 +351,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
         const player = this.getPlayerState(playerId)
         player.spendConsumedPolyp(color)
-        this.polypBag.addItem(color)
-        this.polypBag.shuffle(this.getProtectedPrng().random)
+        this.returnPolyps(color, 1)
         this.larvaCubeSupply[color] -= 1
         player.addLarvaCube(color)
         this.turn.cubeToPlay = color
@@ -410,8 +412,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
 
         const returnedToBag = Math.min(PolypsReturnedWhenEating, coral.length)
-        this.polypBag.addItems(Array.from({ length: returnedToBag }, () => color))
-        this.polypBag.shuffle(this.getProtectedPrng().random)
+        this.returnPolyps(color, returnedToBag)
 
         const player = this.getPlayerState(playerId)
         const shrimpToOpenSea = !player.shrimpOnOpenSea
@@ -646,8 +647,22 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return this.turn.cubeToPlay === undefined || this.turn.cubeToPlay === color
     }
 
+    // Polyps returned to the bag first fill an empty bonus space of their colour (user ruling).
+    private returnPolyps(color: CoralColor, count: number) {
+        let toBag = count
+        if (toBag > 0 && !this.bonusPolypsInBag && this.bonusPolyps[color] === 0) {
+            this.bonusPolyps[color] = 1
+            toBag -= 1
+        }
+        if (toBag > 0) {
+            this.polypBag.addItems(Array.from({ length: toBag }, () => color))
+            this.polypBag.shuffle(this.getProtectedPrng().random)
+        }
+    }
+
     // When the bag runs out, the bonus polyps join it for ordinary play (rulebook p. 11).
     private returnBonusPolypsToBag() {
+        this.bonusPolypsInBag = true
         this.polypBag.addItems(
             CoralColors.flatMap((color) =>
                 Array.from({ length: this.bonusPolyps[color] }, () => color)

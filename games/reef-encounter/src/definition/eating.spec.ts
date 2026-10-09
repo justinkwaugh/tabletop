@@ -71,6 +71,29 @@ describe('eating a coral', () => {
         })
     })
 
+    it('first fills an empty bonus space of the colour', () => {
+        const session = startWithOwnCoral(5)
+        session.edit((draft) => {
+            draft.bonusPolyps[CoralColor.White] = 0
+        })
+        const bag = session.state.polypBag.remaining
+        eat(session)
+        expect(session.state.bonusPolyps[CoralColor.White]).toBe(1)
+        expect(session.state.polypBag.remaining).toBe(bag + 3)
+    })
+
+    it('returns every polyp to the bag once the bonus polyps have joined it', () => {
+        const session = startWithOwnCoral(5)
+        session.edit((draft) => {
+            draft.bonusPolyps = coralCounts(0)
+            draft.bonusPolypsInBag = true
+        })
+        const bag = session.state.polypBag.remaining
+        eat(session)
+        expect(session.state.bonusPolyps[CoralColor.White]).toBe(0)
+        expect(session.state.polypBag.remaining).toBe(bag + 4)
+    })
+
     it('puts later shrimps inside the parrotfish', () => {
         const session = startWithOwnCoral(5)
         give(session, (player) => {

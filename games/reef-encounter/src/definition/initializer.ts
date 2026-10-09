@@ -86,6 +86,7 @@ export class ReefEncounterGameInitializer
             openSea,
             larvaCubeSupply: coralCounts(LarvaCubesPerColor - 1),
             bonusPolyps,
+            bonusPolypsInBag: false,
             polypBag
         })
 

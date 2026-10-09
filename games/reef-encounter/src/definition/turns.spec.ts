@@ -108,6 +108,7 @@ describe('running the bag dry', () => {
         session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.White)
 
         expect(session.state.bonusPolyps).toEqual(coralCounts(0))
+        expect(session.state.bonusPolypsInBag).toBe(true)
         expect(session.state.machineState).toBe(MachineState.TakingTurn)
         const added = session.state.openSea.reduce(
             (total, candidate) => total + candidate.polyps.length,
