@@ -1,4 +1,5 @@
 import { gsap } from 'gsap'
+import { assertExists } from '@tabletop/common'
 import { tick } from 'svelte'
 import { isRevealTiles } from '@tabletop/santiago'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
@@ -67,7 +68,13 @@ export class TileDealAnimator extends StateAnimator {
         // parent and never reflow mid-deal, so layout offsets give the travel in the column's own
         // coordinates, unaffected by ScalingWrapper.
         gsap.set(nodes, { opacity: 0, rotationY: 0, transformOrigin: 'center center' })
-        const slotY = (index: number) => nodes[index].offsetTop - pile.offsetTop
+        // Each card is measured by its slot, which shares the pile's offset parent; the card's own
+        // 3D context makes its slot its offset parent, so the card's own offsetTop is always 0.
+        const slotY = (index: number) => {
+            const slot = nodes[index].parentElement
+            assertExists(slot, 'A dealing card sits in its slot')
+            return slot.offsetTop - pile.offsetTop
+        }
         gsap.set(pile, { y: slotY(0) })
         nodes.forEach((node, index) => {
             timeline.set(node, { opacity: 1 }, arrival)
