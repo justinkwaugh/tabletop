@@ -126,7 +126,7 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.attackDice).toBeUndefined()
     })
 
-    it('Back takes the last target, then the plan, then the defender', () => {
+    it('Undo takes the last target, then the plan, then the defender', async () => {
         const session = campaigning()
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -136,26 +136,26 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         draft.toggleTarget(RELIC_AT_C2)
         expect(draft.targets).toEqual([FOES_RELIC, SITE_C2, RELIC_AT_C2])
 
-        session.back()
+        await session.undo()
         expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
-        session.back()
-        session.back()
+        await session.undo()
+        await session.undo()
         expect(draft.targets).toEqual([])
         expect(draft.plans).toEqual([HUNTER_PLAN])
-        session.back()
+        await session.undo()
         expect(draft.plans).toEqual([])
         expect(draft.defender).toEqual(FOE_DEFENDS)
-        session.back()
+        await session.undo()
         expect(draft.defender).toBeUndefined()
         expect(session.selection.action).toBe(ActionType.Campaign)
     })
 
-    it('a pool of one die is taken for the player and is not a pick Back returns to', () => {
+    it('a pool of one die is taken for the player and is not a pick Undo returns to', async () => {
         const session = campaigning(1)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.attackDice).toBe(1)
-        session.back()
+        await session.undo()
         expect(draft.defender).toBeUndefined()
         expect(draft.hasManualSelection()).toBe(false)
     })
@@ -251,7 +251,7 @@ function sneakAttackOffered(): PlayedTable {
 }
 
 describe('the Campaign draft in a Sneak Attack', () => {
-    it('the card names the defender, which Back never returns to; Back leaves for the question', async () => {
+    it('the card names the defender, which Undo never returns to; Undo leaves for the question', async () => {
         const session = openSessionOn(sneakAttackOffered())
         expect(session.myPlayer?.id).toBe(FOE)
         await session.question.accept()
@@ -262,11 +262,11 @@ describe('the Campaign draft in a Sneak Attack', () => {
 
         draft.toggleTarget({ kind: CampaignTargetKind.PawnAndFavor })
         expect(draft.hasManualSelection()).toBe(true)
-        session.back()
+        await session.undo()
         expect(draft.targets).toEqual([])
         expect(draft.defender).toEqual({ kind: 'player', playerId: ME })
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBeUndefined()
         expect(draft.open).toBe(false)
     })

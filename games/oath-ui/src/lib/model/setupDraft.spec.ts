@@ -99,15 +99,15 @@ describe('an Exile sees the hand while choosing where to start', () => {
         expect(sent).toHaveBeenCalledWith(site, keep, [first, last], undefined)
     })
 
-    it('Back unwinds the card and then the site, whichever was tapped first', async () => {
+    it('Undo unwinds the card and then the site, whichever was tapped first', async () => {
         const { session, setup } = exileOnTheClock()
         const [keep] = setup.hand
         await setup.chooseAdviser(keep)
         setup.chooseSite(setup.sites[0])
-        session.back()
+        await session.undo()
         expect(setup.adviserCardId).toBeUndefined()
         expect(setup.siteId).toBeDefined()
-        session.back()
+        await session.undo()
         expect(setup.siteId).toBeUndefined()
         expect(session.selection.hasManualSelection()).toBe(false)
     })

@@ -25,7 +25,6 @@
     let others = $derived(gameSession.setup.others)
     let tapped = $derived(gameSession.setup.tapped)
     let ordering = $derived(gameSession.setup.ordering)
-    let canGoBack = $derived(gameSession.selection.hasManualSelection())
 
     // R-1.23.1 — the start sites by region in the board's order; one legal site is taken for the player.
     const REGIONS = [Region.Cradle, Region.Provinces, Region.Hinterland]
@@ -140,45 +139,34 @@
                 {/each}
             </div>
         {/if}
-        <div class="flex items-start justify-between gap-2">
-            {#if siteId && adviserCardId}
-                <p class="text-sm">
-                    Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>. The other
-                    two go to the
-                    <span class="font-semibold"
-                        >{regionName(discardRegionFor(gameState.regionOf(siteId)))} discard pile</span
-                    >.
-                    <span class="font-semibold">Tap the card that is discarded first</span>; the
-                    other goes on top.
-                </p>
-            {:else if siteId}
-                <p class="text-sm">
-                    Your pawn starts at
-                    <span class="font-semibold">{siteName(gameState, siteId)}</span
-                    >{legalSites.length === 1 ? ', the top Cradle site' : ''}.
-                    <span class="font-semibold">Tap the card to keep</span> as a facedown adviser.
-                </p>
-            {:else if adviserCardId}
-                <p class="text-sm">
-                    Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
-                    <span class="font-semibold">Tap the site where your pawn starts.</span>
-                </p>
-            {:else}
-                <p class="text-sm">
-                    <span class="font-semibold">Tap the site where your pawn starts</span>
-                    <span class="font-semibold">and the card to keep</span> as a facedown adviser.
-                </p>
-            {/if}
-            {#if canGoBack}
-                <button
-                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs font-semibold"
-                    disabled={busy}
-                    onclick={() => gameSession.back()}
-                >
-                    Back
-                </button>
-            {/if}
-        </div>
+        {#if siteId && adviserCardId}
+            <p class="text-sm">
+                Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>. The other two
+                go to the
+                <span class="font-semibold"
+                    >{regionName(discardRegionFor(gameState.regionOf(siteId)))} discard pile</span
+                >.
+                <span class="font-semibold">Tap the card that is discarded first</span>; the other
+                goes on top.
+            </p>
+        {:else if siteId}
+            <p class="text-sm">
+                Your pawn starts at
+                <span class="font-semibold">{siteName(gameState, siteId)}</span
+                >{legalSites.length === 1 ? ', the top Cradle site' : ''}.
+                <span class="font-semibold">Tap the card to keep</span> as a facedown adviser.
+            </p>
+        {:else if adviserCardId}
+            <p class="text-sm">
+                Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
+                <span class="font-semibold">Tap the site where your pawn starts.</span>
+            </p>
+        {:else}
+            <p class="text-sm">
+                <span class="font-semibold">Tap the site where your pawn starts</span>
+                <span class="font-semibold">and the card to keep</span> as a facedown adviser.
+            </p>
+        {/if}
     {:else}
         <p class="text-sm text-oath-text-muted">Waiting for another player to set up.</p>
     {/if}

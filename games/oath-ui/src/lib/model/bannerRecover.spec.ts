@@ -64,12 +64,12 @@ describe('recovering a banner', () => {
         expect(sentRecover(sent).redistributeFrom).toBe(Suit.Hearth)
     })
 
-    it('Back from the bid returns to the lit banners', () => {
+    it('Undo from the bid returns to the lit banners', async () => {
         const { session } = recovering(Banner.DarkestSecret)
         session.setBannerAmount(4)
-        session.back()
+        await session.undo()
         expect(session.bannerAmount).toBe(3)
-        session.back()
+        await session.undo()
         expect(session.stagedBanner).toBeUndefined()
         expect(session.bannerBid(Banner.DarkestSecret)).toBe(3)
     })

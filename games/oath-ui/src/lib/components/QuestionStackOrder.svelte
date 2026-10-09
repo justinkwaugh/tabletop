@@ -49,11 +49,4 @@
     >
         Stack them
     </button>
-    <button
-        class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
-        disabled={busy || draft.stackTapped.length === 0}
-        onclick={() => gameSession.back()}
-    >
-        Back
-    </button>
 </div>

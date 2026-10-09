@@ -64,13 +64,6 @@
         <div class="mb-2">
             <CampaignPanel />
         </div>
-        <button
-            disabled={busy}
-            class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
-            onclick={() => gameSession.resetAction()}
-        >
-            {gameSession.sneakAttackDefenderId ? 'Back to the question' : 'Cancel the Campaign'}
-        </button>
     {:else if gameState.machineState === MachineState.ConsentRequest}
         <ConsentPanel />
     {:else if gameState.machineState === MachineState.PowerQuestion}
@@ -110,28 +103,9 @@
             <div class="mb-2">
                 <CitizenshipPanel />
             </div>
-            <button
-                disabled={busy}
-                class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
-                onclick={() => gameSession.resetAction()}
-            >
-                Cancel the offer
-            </button>
         {:else if chosen}
-            <!-- docs/user-interactions.md — `Back` unwinds local selection only. -->
-            <div
-                class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5
-                       flex items-center justify-between gap-2"
-            >
+            <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
                 <span class="text-sm"><TokenText text={prompt ?? ''} /></span>
-                <button
-                    disabled={busy}
-                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1
-                           text-xs font-semibold"
-                    onclick={() => gameSession.back()}
-                >
-                    Back
-                </button>
             </div>
 
             {#if MODIFIABLE_ACTIONS.has(chosen)}

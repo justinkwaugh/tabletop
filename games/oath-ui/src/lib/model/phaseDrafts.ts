@@ -49,7 +49,7 @@ import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svel
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
 
-/** The panel drafts with one step: Back clears the draft, and the derived default returns. */
+/** The panel drafts with one step: Undo clears the draft, and the derived default returns. */
 abstract class OneStepDraft<V> implements PanelDraft {
     private flow = new StagedFlow<{ draft: V }>(['draft'])
 
@@ -628,5 +628,17 @@ export class ConsentDraft extends OneStepDraft<number[]> {
             granted,
             granted ? this.replacementChoice : undefined
         )
+    }
+}
+
+/** R-9.4 — outside this seat's Act Phase the seat card opens the let-peek picker on its own; opening it is the pick. */
+export class SeatCardPeekDraft extends OneStepDraft<true> {
+    get open(): boolean {
+        return this.stored === true
+    }
+
+    toggle(): void {
+        if (this.open) this.reset()
+        else this.store(true)
     }
 }

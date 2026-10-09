@@ -196,13 +196,6 @@
             >
                 Put the offer to {gameSession.getPlayerName(exilePlayerId)}
             </button>
-            <button
-                disabled={busy}
-                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1.5 text-sm"
-                onclick={() => gameSession.back()}
-            >
-                Back
-            </button>
         </div>
     {/if}
 </div>

@@ -2,9 +2,12 @@ import { mount, tick, unmount } from 'svelte'
 import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
     Banner,
+    CampaignDefend,
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    HydratedCampaignSacrifice,
+    HydratedOathGameState,
     EndActPhase,
     IMPERIAL_WARBANDS,
     LetPeek,
@@ -86,6 +89,9 @@ export type TableName =
     | 'cardChangesSearch'
     | 'cardsOpenTravel'
     | 'majorEvents'
+    | 'stackOrder'
+    | 'sneakAttack'
+    | 'citizenship'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -911,6 +917,152 @@ function travelCardsTable(): PlayedTable {
     return tableOf(state)
 }
 
+const STACKED_CARDS = [
+    'denizen.order.longbows',
+    'denizen.hearth.wayside-inn',
+    'denizen.beast.wolves'
+]
+
+/** R-10.5: Pilgrimage asks the seat to stack three drawn cards onto the Cradle discard pile. */
+function stackOrderTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.OrderDrawnCards,
+                        cardId: 'denizen.nomad.pilgrimage',
+                        askedPlayerId: 'me',
+                        region: Region.Cradle,
+                        cardCount: STACKED_CARDS.length,
+                        cardIds: STACKED_CARDS
+                    }
+                ],
+                askingPlayerId: 'me',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-7.1.4-H2: ann's Campaign against the seat ends, and the seat's Sneak Attack asks it to strike back. */
+function sneakAttackTable(): PlayedTable {
+    const site = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: { me: 4 },
+                advisers: [{ cardId: 'denizen.discord.sneak-attack', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: site,
+                supply: 6,
+                warbandsOnBoard: { ann: 6 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [site]: [] }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    const campaign = played(table, [
+        createAction(Campaign, {
+            ...envelope(table),
+            playerId: 'ann',
+            defender: { kind: 'player', playerId: 'me' },
+            targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+            attackDice: 0,
+            plans: []
+        })
+    ])
+    const defended =
+        campaign.state.machineState === MachineState.CampaignPlans
+            ? played(campaign, [
+                  createAction(CampaignDefend, { ...envelope(table), playerId: 'me', plans: [] })
+              ])
+            : campaign
+    const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+        new HydratedOathGameState(defended.state),
+        0
+    )
+    return played(defended, [
+        createAction(CampaignSacrifice, {
+            ...envelope(table),
+            playerId: 'ann',
+            sacrifice: 0,
+            defeatKills
+        })
+    ])
+}
+
+const RELIQUARY_RELICS = [
+    'relic.dowsing-sticks',
+    'relic.oracular-pig',
+    'relic.brass-horse',
+    'relic.truthful-harp'
+]
+
+/** R-6.6.1: the seat is the Chancellor holding the Scepter, and ann is an Exile it may offer Citizenship. */
+function citizenshipTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c2',
+                favor: 2
+            })
+        ],
+        { machineState: MachineState.ActPhase, chancellorPlayerId: 'me' }
+    )
+    state.reliquary = state.reliquary.map((slot, index) => ({
+        ...slot,
+        cardId: RELIQUARY_RELICS[index]
+    }))
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -941,7 +1093,19 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
     cardsOpenTravel: travelCardsTable,
-    majorEvents: majorEventsTable
+    majorEvents: majorEventsTable,
+    stackOrder: stackOrderTable,
+    sneakAttack: sneakAttackTable,
+    citizenship: citizenshipTable
+}
+
+/** Every table a scenario can open. */
+export function tableNames(): TableName[] {
+    return Object.keys(TABLES).filter(isTableName)
+}
+
+function isTableName(name: string): name is TableName {
+    return name in TABLES
 }
 
 let session: OathGameSession | undefined
@@ -1023,11 +1187,17 @@ export function searchPicks(): { kept?: string; placement?: SearchPlay } {
     return { kept: search.kept, placement: search.placement?.play }
 }
 
-export function questionPicks(): { visionDiscard?: string; offered: string[]; queued: number } {
+export function questionPicks(): {
+    visionDiscard?: string
+    offered: string[]
+    stacked: string[]
+    queued: number
+} {
     const table = current()
     return {
         visionDiscard: table.question.visionDiscard,
         offered: table.question.visionDiscards,
+        stacked: table.question.stackTapped,
         queued: table.gameState.pendingQuestions?.queue.length ?? 0
     }
 }

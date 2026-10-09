@@ -2,7 +2,6 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { describeAction } from '$lib/model/actionDescription.js'
     import { heldTurnOf } from '$lib/model/campaignTurn.js'
 
     let gameSession = getGameSession()
@@ -25,27 +24,11 @@
         [MachineState.EndOfGame]: 'Game over'
     }
 
-    // R-X.3 — `GameSession.undoableAction` stops at the first action that set
-    // `revealsInfo`. With a pick in progress, Undo steps back through the picks first.
+    // R-X.3 — `GameSession.undoableAction` stops at the first action that set `revealsInfo`.
     let undoable = $derived(gameSession.isViewingHistory ? undefined : gameSession.undoableAction)
-    let steppingBack = $derived(!gameSession.isViewingHistory && gameSession.hasManualDraft)
+    let pickInProgress = $derived(!gameSession.isViewingHistory && gameSession.hasManualDraft)
+    let undoOffered = $derived(pickInProgress || undoable !== undefined)
     let busy = $derived(gameSession.busy)
-
-    let undoTooltip = $derived.by(() => {
-        if (steppingBack) return 'Steps back through your picks not yet sent, as Back does.'
-        if (!undoable) return undefined
-        const description = describeAction(
-            undoable,
-            gameSession.historyNames,
-            gameSession.myPlayer?.id
-        )
-        return `Reverses for everyone: ${description}. Not the same as Back.`
-    })
-
-    function undo() {
-        if (!undoable && !steppingBack) return
-        void gameSession.undo()
-    }
 
     // R-3.3 — between rounds the clock is the Chancellor's roll, not a turn.
     let endOfRound = $derived(gameState.machineState === MachineState.EndOfRound)
@@ -83,14 +66,13 @@
             </span>
         {/if}
         <span class="text-sm text-oath-text-muted">{phase}</span>
-        {#if undoTooltip}
+        {#if undoOffered}
             <button
                 type="button"
                 class="ml-auto shrink-0 self-center rounded-lg bg-oath-primary text-oath-primary-text
                        border-[1.5px] border-oath-primary-border hover:bg-oath-primary-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold"
                 disabled={busy}
-                title={undoTooltip}
-                onclick={undo}>Undo</button
+                onclick={() => gameSession.undo()}>Undo</button
             >
         {/if}
     </div>

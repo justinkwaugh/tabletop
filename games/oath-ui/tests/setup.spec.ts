@@ -15,7 +15,7 @@ test('a hotseat game opens on the Chancellor setup and hands the turn on', async
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
 
     await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
-    const cards = page.locator('.panel').getByRole('button').filter({ hasNotText: 'Back' })
+    const cards = page.locator('.panel').getByRole('button')
     await cards.first().click()
     await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
     await page.getByRole('button', { name: /Undo/ }).click()

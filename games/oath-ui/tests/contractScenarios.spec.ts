@@ -38,8 +38,7 @@ async function uncovered(page: Page, selector: string) {
 }
 
 const preview = (page: Page) => page.locator('.card-preview')
-const panelCards = (page: Page) =>
-    page.locator('.panel button:not(.magnifier)').filter({ hasNotText: /Back|Undo/ })
+const panelCards = (page: Page) => page.locator('.panel button:not(.magnifier)')
 const magnifiers = (page: Page) => page.locator('.panel button.magnifier')
 
 /** docs/ui-interaction-visual-contract.md, rules 1 and 4 and scenarios 7, 24 and 44, on touch. */
@@ -291,6 +290,9 @@ test('let another peek off the clock: the seat card opens the picker and stages 
 })
 
 const grid = (page: Page) => page.locator('.panel')
+const undoButton = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
+/** docs/user-interactions.md — Undo is the one reversal control, so no panel renders a Back or a step-cancel. */
+const stepBacks = (page: Page) => page.getByRole('button', { name: /^(Back|Cancel)\b/ })
 const tile = (page: Page, label: string) =>
     grid(page).locator('.majors button').filter({ hasText: label })
 const reasonLine = (page: Page) => grid(page).locator('.strip')
@@ -360,20 +362,18 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
     await expect(dimmedSites(page)).toHaveCount(0)
 })
 
-test('Undo reads "Undo"; its tooltip names the action it reverses, or the picks it steps back through', async ({
-    page
-}) => {
+test('Undo reads "Undo" and has no hover, both for a sent move and for a pick', async ({ page }) => {
     await openTable(page, 'actPhase')
-    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    const undo = undoButton(page)
     await expect(undo).toHaveCount(0)
 
     await call(page, 'seatTravels', 'slot.cradle.1')
-    await expect(undo).toBeVisible()
-    await expect(undo).toHaveAttribute('title', /travelled to/)
+    await expect(undo).toHaveText('Undo')
+    await expect(undo).not.toHaveAttribute('title')
 
     await tile(page, 'Travel').click()
     await expect(undo).toHaveText('Undo')
-    await expect(undo).toHaveAttribute('title', /picks not yet sent/)
+    await expect(undo).not.toHaveAttribute('title')
 })
 
 /** Scenario 30: a warband move that needs the Chancellor's permission (R-6.5.a). */
@@ -856,10 +856,12 @@ test('scenario 4: Travel lists every affordable destination under its region, a 
     const go = cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
     await expect(go).toBeVisible()
     await expect(dimmedSites(page).first()).toBeVisible()
+    await expect(stepBacks(page)).toHaveCount(0)
 
-    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await undoButton(page).click()
     await expect(cradle).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(undoButton(page)).toHaveCount(0)
     await tile(page, 'Travel').click()
     await go.click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
@@ -921,9 +923,13 @@ test('scenario 6: the facedown advisers to play are cards in the panel, a tap sh
     await grid(page).getByRole('button', { name: 'Curfew', exact: true }).click()
     const discard = grid(page).getByRole('button', { name: /^Discard it: Curfew$/ })
     await expect(discard).toBeVisible()
-    await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    await undoButton(page).click()
     await expect(discard).toHaveCount(0)
     await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
+    await undoButton(page).click()
+    await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toHaveCount(0)
+    expect((await call(page, 'tableFacts')).staged).toBeUndefined()
 })
 
 test('scenario 18: each warband move is a row of counts, and a count sends', async ({ page }) => {
@@ -957,18 +963,21 @@ test('scenario 5: a Campaign target is a row with its picture, a tap adds it and
     await rows.nth(0).click()
     await rows.nth(1).click()
     await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(2)
-    const back = grid(page).getByRole('button', { name: 'Back', exact: true })
-    await back.click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    const undo = undoButton(page)
+    await undo.click()
     await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(1)
     await expect(rows.nth(0)).toHaveAttribute('aria-pressed', 'true')
-    await back.click()
+    await undo.click()
     await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
-    await back.click()
+    await undo.click()
     await expect(grid(page).getByRole('button', { name: /^ann$/i })).toBeVisible()
     await expect(page.locator('.travel-cost.targeted')).toHaveCount(0)
-    await grid(page).getByRole('button', { name: 'Cancel the Campaign' }).click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    await undo.click()
     await expect(tile(page, 'Campaign')).toBeVisible()
     expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+    await expect(undo).toHaveCount(0)
 })
 
 test('scenario 2: an Exile chooses a start site from the rows, and a tap on another moves the choice', async ({ page }) => {
@@ -1006,7 +1015,7 @@ test('scenario 2: the other sites dim; a card kept first stays marked, and the s
     await expect(page.getByText(/^Keeping /)).toBeVisible()
 })
 
-test('scenario 2: Back and Undo unwind an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
+test('scenario 2: Undo unwinds an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
     await openTable(page, 'setup')
     await call(page, 'seatMakesSetupChoice')
     const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
@@ -1015,19 +1024,18 @@ test('scenario 2: Back and Undo unwind an Exile’s picks, the card then the sit
     expect(litBefore).toBeGreaterThan(1)
     const pickedSites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed="true"]')
 
-    for (const unwind of ['Back', 'Undo']) {
-        await sites.nth(0).click()
-        await expect(pickedSites).toHaveCount(1)
-        await panelCards(page).filter({ hasNotText: /start here/ }).first().click()
-        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
-        const button = page.getByRole('button', { name: unwind, exact: true })
-        await button.click()
-        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toHaveCount(0)
-        await expect(pickedSites).toHaveCount(1)
-        await button.click()
-        await expect(pickedSites).toHaveCount(0)
-        await expect(boardOffers(page)).toHaveCount(litBefore)
-    }
+    await sites.nth(0).click()
+    await expect(pickedSites).toHaveCount(1)
+    await panelCards(page).filter({ hasNotText: /start here/ }).first().click()
+    await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+    await expect(stepBacks(page)).toHaveCount(0)
+    const undo = undoButton(page)
+    await undo.click()
+    await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toHaveCount(0)
+    await expect(pickedSites).toHaveCount(1)
+    await undo.click()
+    await expect(pickedSites).toHaveCount(0)
+    await expect(boardOffers(page)).toHaveCount(litBefore)
 })
 
 test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
@@ -1305,8 +1313,10 @@ test('scenario 19: Muster lists every card a favor can go on, a button sends', a
     await expect(list).not.toContainText('Council Seat')
     await expect(page.getByRole('button', { name: 'Muster at Book Binders: place 1 favor, get 2 warbands' })).toBeVisible()
 
-    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    await undoButton(page).click()
     await expect(list).toHaveCount(0)
+    await expect(undoButton(page)).toHaveCount(0)
     await tile(page, 'Muster').click()
     await page.getByRole('button', { name: 'Muster at Assassin: place 1 favor, get 2 warbands' }).click()
     await expect.poll(() => call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 1, secrets: 0 })
@@ -1475,7 +1485,8 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
     await expect(picked(page)).toHaveCount(1)
     await expect(pile).toBeVisible()
 
-    await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    await undoButton(page).click()
     await expect(actionCard(page, 'denizen.beast.mushrooms')).toBeVisible()
     expect((await call(page, 'tableFacts')).staged).toBe('useActionPower')
 
@@ -1507,7 +1518,8 @@ test('scenario 56: two cards that make a Travel possible are two rows; one says 
     const ways = cradle.getByRole('button', { name: /^Travel to / })
     await expect(ways).toHaveCount(await cradle.getByRole('button', { name: /^Travel to .*: spend no Supply/ }).count())
     expect(await ways.count()).toBeGreaterThan(0)
-    await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(stepBacks(page)).toHaveCount(0)
+    await undoButton(page).click()
 
     await actionCard(page, 'denizen.nomad.special-envoy').getByRole('button', { name: 'Travel with Special Envoy', exact: true }).click()
     await expect(grid(page).getByRole('list', { name: 'Destinations in the Provinces' })).toBeVisible()
@@ -1805,4 +1817,136 @@ test('scenario 61: on a desktop a panel that fits is drawn unscaled', async ({ p
     await openTable(page, 'actPhase')
     await expect(tile(page, 'Travel')).toBeVisible()
     await expect(page.locator('.fit__inner')).toHaveCSS('transform', 'none')
+})
+
+/** docs/user-interactions.md — one contextual Undo, one pick per press, and no Back or step-cancel in any panel. */
+test.describe('Undo is the one reversal control', () => {
+    test('no panel renders a Back or a step-cancel, on any table or in any menu the grid opens', async ({ page }) => {
+        test.setTimeout(180_000)
+        await page.goto('/')
+        for (const name of await call(page, 'tableNames')) {
+            await call(page, 'open', name)
+            await expect(stepBacks(page), name).toHaveCount(0)
+            const offered = grid(page).locator('.majors button[aria-disabled="false"]')
+            for (const label of await offered.allTextContents()) {
+                await grid(page).locator('.majors button').filter({ hasText: label.trim() }).click()
+                await expect(stepBacks(page), `${name}: ${label.trim()}`).toHaveCount(0)
+                await undoButton(page).click()
+                await expect(grid(page).locator('.majors'), `${name}: ${label.trim()}`).toBeVisible()
+            }
+        }
+    })
+
+    test('a Sneak Attack’s Campaign: Undo takes the target, then returns to the question with nothing sent', async ({ page }) => {
+        await openTable(page, 'sneakAttack')
+        await answer(page, 'Campaign').click()
+        await grid(page).locator('button[aria-pressed]').first().click()
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(1)
+        await expect(stepBacks(page)).toHaveCount(0)
+
+        await undoButton(page).click()
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
+        await expect(answer(page, 'Pass')).toHaveCount(0)
+        await undoButton(page).click()
+        await expect(answer(page, 'Campaign')).toBeVisible()
+        await expect(answer(page, 'Pass')).toBeVisible()
+        const facts = await call(page, 'tableFacts')
+        expect(facts.machineState).toBe('PowerQuestion')
+        expect(facts.staged).toBeUndefined()
+    })
+
+    test('a Citizenship offer: Undo takes the terms, the space and the Exile one press each, then closes the offer', async ({ page }) => {
+        await openTable(page, 'citizenship')
+        await grid(page).getByRole('button', { name: 'Offer Citizenship', exact: true }).click()
+        await grid(page).getByRole('button', { name: /^ann$/i }).click()
+        const spaces = grid(page).getByRole('button', { name: /^Facedown relic on / })
+        await spaces.first().click()
+        const offer = grid(page).getByRole('button', { name: /^Put the offer to / })
+        await expect(offer).toBeVisible()
+        const giveOne = grid(page).getByRole('button', { name: 'you give 1 favor', exact: true })
+        await giveOne.click()
+        await expect(giveOne).toHaveAttribute('aria-pressed', 'true')
+        await expect(stepBacks(page)).toHaveCount(0)
+
+        const undo = undoButton(page)
+        await undo.click()
+        await expect(giveOne).toHaveAttribute('aria-pressed', 'false')
+        await undo.click()
+        await expect(offer).toHaveCount(0)
+        await expect(spaces.first()).toBeVisible()
+        await undo.click()
+        await expect(grid(page).getByRole('button', { name: /^ann$/i })).toBeVisible()
+        await expect(stepBacks(page)).toHaveCount(0)
+        await undo.click()
+        await expect(grid(page).getByRole('button', { name: /^ann$/i })).toHaveCount(0)
+        await expect(tile(page, 'Travel')).toBeVisible()
+        expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+        await expect(undo).toHaveCount(0)
+    })
+
+    test('a Search: with a card kept, Undo returns to the drawn cards', async ({ page }) => {
+        await openTable(page, 'searching')
+        await panelCards(page).first().click()
+        await expect(page.getByText('How do you play it?', { exact: false })).toBeVisible()
+        await expect(stepBacks(page)).toHaveCount(0)
+
+        await undoButton(page).click()
+        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        expect(await call(page, 'searchPicks')).toEqual({})
+    })
+
+    test('a card-ordering question: Undo untaps the last card, one per press, and never answers', async ({ page }) => {
+        await openTable(page, 'stackOrder')
+        await panelCards(page).filter({ has: page.getByRole('img', { name: 'Wolves', exact: true }) }).click()
+        await panelCards(page).filter({ has: page.getByRole('img', { name: 'Longbows', exact: true }) }).click()
+        const stacked = async () => (await call(page, 'questionPicks')).stacked
+        await expect.poll(stacked).toEqual(['denizen.beast.wolves', 'denizen.order.longbows'])
+        await expect(stepBacks(page)).toHaveCount(0)
+
+        const undo = undoButton(page)
+        await undo.click()
+        await expect.poll(stacked).toEqual(['denizen.beast.wolves'])
+        await undo.click()
+        await expect.poll(stacked).toEqual([])
+        await expect(undo).toHaveCount(0)
+        expect((await call(page, 'questionPicks')).queued).toBe(1)
+    })
+
+    test('let another peek off the clock: Undo or a second press closes the seat card’s picker, and the button keeps its words', async ({ page }) => {
+        await openTable(page, 'offTurn')
+        expect(await call(page, 'viewOffTheClock')).toBe('me')
+        const button = page.locator('.let-peek > button')
+        await button.click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: true, staged: false })
+
+        await undoButton(page).click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: false })
+        await expect(undoButton(page)).toHaveCount(0)
+
+        await button.click()
+        await expect(button).toHaveText('Let another peek')
+        await expect(button).toHaveAttribute('aria-expanded', 'true')
+        await expect(stepBacks(page)).toHaveCount(0)
+        await button.click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: false })
+        await expect(button).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    test('let another peek in your Act Phase: Undo or a second press closes the picker, and the seat card’s button keeps its words', async ({ page }) => {
+        await openTable(page, 'advisers')
+        const button = page.locator('.let-peek > button')
+        await button.click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: true, staged: true, action: 'letPeek' })
+
+        await undoButton(page).click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: true })
+
+        await button.click()
+        await expect(button).toHaveText('Let another peek')
+        await expect(button).toHaveAttribute('aria-expanded', 'true')
+        await expect(stepBacks(page)).toHaveCount(0)
+        await button.click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: true })
+        await expect(button).toHaveAttribute('aria-expanded', 'false')
+    })
 })

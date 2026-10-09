@@ -68,7 +68,7 @@ const SITES = [
     { kind: CampaignTargetKind.Site, siteId: 'c2' }
 ] as const
 
-/** R-5.5.7 — one entry holds every count and every bottomed relic, so Back clears them together. */
+/** R-5.5.7 — one entry holds every count and every bottomed relic, so Undo clears them together. */
 describe('the spoils draft (docs/user-interactions.md)', () => {
     const won = () =>
         battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME).victory
@@ -80,7 +80,7 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
         expect(spoils.placeCounts).toEqual({ c1: 2, c2: 1 })
     })
 
-    it('Back clears every count at once', () => {
+    it('Undo clears every count at once', () => {
         const spoils = won()
         spoils.setPlaceCount('c1', ME, 2)
         spoils.setPlaceCount('c2', ME, 1)
@@ -89,7 +89,7 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
         expect(spoils.back()).toBe(false)
     })
 
-    it('before any count there is nothing for Back or Undo to take', () => {
+    it('before any count there is nothing for Undo to take', () => {
         const spoils = won()
         expect(spoils.hasManualSelection()).toBe(false)
         expect(spoils.back()).toBe(false)
@@ -198,7 +198,7 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         ])
     })
 
-    it('Back clears the picks', () => {
+    it('Undo clears the picks', () => {
         const { losses } = sacrificing()
         losses.setSacrificed(0, 2)
         expect(losses.back()).toBe(true)
@@ -261,7 +261,7 @@ describe('the defence draft (docs/user-interactions.md)', () => {
         expect(defence.plans).toEqual([])
     })
 
-    it('Back clears the declared plans', () => {
+    it('Undo clears the declared plans', () => {
         const defence = defending()
         defence.setPlan({ cardId: WILD_MOUNTS, powerIndex: MOUNTS_PLAN }, true)
         expect(defence.back()).toBe(true)
@@ -269,7 +269,7 @@ describe('the defence draft (docs/user-interactions.md)', () => {
         expect(defence.back()).toBe(false)
     })
 
-    it('before any tick there is nothing for Back or Undo to take', () => {
+    it('before any tick there is nothing for Undo to take', () => {
         const defence = defending()
         expect(defence.usable.map((power) => power.cardId)).toEqual([WILD_MOUNTS])
         expect(defence.hasManualSelection()).toBe(false)
@@ -316,7 +316,7 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         expect(defeat.picked).toEqual([1, 1])
     })
 
-    it('Back clears every count at once', () => {
+    it('Undo clears every count at once', () => {
         const defeat = defeated()
         defeat.setPicked(0, 2)
         expect(defeat.back()).toBe(true)
@@ -324,7 +324,7 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         expect(defeat.back()).toBe(false)
     })
 
-    it('before any count there is nothing for Back or Undo to take', () => {
+    it('before any count there is nothing for Undo to take', () => {
         const defeat = defeated()
         expect(defeat.required).toBeGreaterThan(0)
         expect(defeat.hasManualSelection()).toBe(false)

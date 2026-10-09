@@ -95,6 +95,7 @@ import {
     CitizenshipDraft,
     ConsentDraft,
     RestDraft,
+    SeatCardPeekDraft,
     WakeDraft
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
@@ -167,6 +168,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly actionPowers = new ActionPowersDraft(this)
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
+    readonly seatCardPeek = new SeatCardPeekDraft(this)
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
     readonly visionsSeen = new VisionsSeen(this)
@@ -186,9 +188,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.isMyTurn ? this.liveSeatId : undefined
     }
 
-    // At most one panel is on screen, so at most one of these holds picks.
+    // The seat card's picker opens over any panel, so Undo closes it first; at most one panel holds picks.
     private get panelDrafts(): PanelDraft[] {
         return [
+            this.seatCardPeek,
             this.search,
             this.question,
             this.victory,
@@ -213,7 +216,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     resetAction(): void {
-        this.seatCardLetPeekOpen = false
         this.selection.reset()
         this.clearActionDrafts()
         for (const draft of this.panelDrafts) draft.reset()
@@ -223,22 +225,21 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         this.resetAction()
     }
 
-    // Back unwinds manual picks only: an auto pick stays when nothing manual is left.
-    back(): void {
+    // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
+    override async undo(): Promise<void> {
         if (this.busy) return
+        if (this.hasManualDraft) {
+            this.popHighestManualSelection()
+            return
+        }
+        await super.undo()
+    }
+
+    private popHighestManualSelection(): void {
         if (this.panelDrafts.some((draft) => draft.back())) return
         const action = this.selection.action
         if (this.selection.back() === undefined) return
         if (this.selection.action !== action) this.clearActionDrafts()
-    }
-
-    override async undo(): Promise<void> {
-        if (this.busy) return
-        if (this.hasManualDraft) {
-            this.back()
-            return
-        }
-        await super.undo()
     }
 
     private clearActionDrafts(): void {
@@ -522,9 +523,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return unseenPeekSlots(this.gameState, playerId)
     }
 
-    // R-9.4 — at any time, from the seat card or the Act Phase grid.
-    private seatCardLetPeekOpen = $state(false)
-
     // Visual contract, "Coexistence": one let-peek picker; in this seat's Act Phase it is the staged action.
     get letPeekIsStaged(): boolean {
         return (
@@ -536,7 +534,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get letPeekOpen(): boolean {
         return this.letPeekIsStaged
             ? this.selection.action === ActionType.LetPeek
-            : this.seatCardLetPeekOpen
+            : this.seatCardPeek.open
     }
 
     get canLetPeek(): boolean {
@@ -552,7 +550,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     toggleLetPeek(): void {
         if (!this.canLetPeek) return
         if (!this.letPeekIsStaged) {
-            this.seatCardLetPeekOpen = !this.seatCardLetPeekOpen
+            this.seatCardPeek.toggle()
         } else if (this.letPeekOpen) {
             this.resetAction()
         } else {

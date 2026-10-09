@@ -271,15 +271,6 @@
             >
                 Declare the Campaign
             </button>
-            {#if draft.hasManualSelection()}
-                <button
-                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm"
-                    disabled={busy}
-                    onclick={() => gameSession.back()}
-                >
-                    Back
-                </button>
-            {/if}
         </div>
     {/if}
 </div>

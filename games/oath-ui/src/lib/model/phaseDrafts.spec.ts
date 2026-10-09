@@ -103,7 +103,7 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         expect(wake.suits[0]).toBe(bank)
     })
 
-    it('Back clears every step at once, and the defaults return', () => {
+    it('Undo clears every step at once, and the defaults return', () => {
         const wake = waking()
         wake.setKind(0, 'return')
         expect(wake.back()).toBe(true)
@@ -111,7 +111,7 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         expect(wake.back()).toBe(false)
     })
 
-    it('the defaults are not picks: before any tap there is nothing for Back or Undo to take', () => {
+    it('the defaults are not picks: before any tap there is nothing for Undo to take', () => {
         const wake = waking()
         expect(wake.kinds[0]).toBe('place')
         expect(wake.hasManualSelection()).toBe(false)
@@ -191,7 +191,7 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         expect(rest.pickedSuit(power(rest, SILVER_TONGUE))).toBe(Suit.Beast)
     })
 
-    it('Back clears every bank at once', () => {
+    it('Undo clears every bank at once', () => {
         const rest = resting()
         rest.pickBank(power(rest, SILVER_TONGUE), Suit.Beast)
         expect(rest.back()).toBe(true)
@@ -278,7 +278,7 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
         expect(draft.picksOf(SNARE_USE)).toEqual(ticked)
     })
 
-    it('Back clears every power’s picks at once', () => {
+    it('Undo clears every power’s picks at once', () => {
         const draft = using()
         draft.setPicks(INN_USE, ticked)
         expect(draft.back()).toBe(true)
@@ -286,7 +286,7 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
         expect(draft.back()).toBe(false)
     })
 
-    it('before any pick there is nothing for Back or Undo to take', () => {
+    it('before any pick there is nothing for Undo to take', () => {
         expect(using().hasManualSelection()).toBe(false)
     })
 
@@ -365,7 +365,7 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         expect(offer.offerTerms.givenFavor).toBe(0)
     })
 
-    it('Back takes the terms, then the space, then the Exile', () => {
+    it('Undo takes the terms, then the space, then the Exile', () => {
         const offer = offering()
         offer.chooseExile(CHANCELLOR)
         offer.chooseReliquarySlot(SLOT_A)
@@ -381,7 +381,7 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         expect(offer.back()).toBe(false)
     })
 
-    it('before any pick there is nothing for Back or Undo to take', () => {
+    it('before any pick there is nothing for Undo to take', () => {
         const offer = offering()
         expect(offer.exiles).toEqual([CHANCELLOR, 'exile2'])
         expect(offer.hasManualSelection()).toBe(false)
@@ -447,7 +447,7 @@ describe('the Citizenship replacement draft (docs/user-interactions.md)', () => 
         expect(consent.picked).toEqual([0, 1])
     })
 
-    it('Back clears every count at once, and the default returns', () => {
+    it('Undo clears every count at once, and the default returns', () => {
         const consent = answering()
         const fallback = consent.picked
         consent.setPicked(0, 0)
@@ -537,5 +537,30 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
     it('keeps today’s panel in a game created before the revision', () => {
         const session = opened(table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] }))
         expect(session.rest.turnFlow).toBe(false)
+    })
+})
+
+/** R-9.4 — outside this seat's Act Phase the seat card's let-peek picker is one Manual Draft Entry. */
+describe('the seat card’s let-peek picker draft (docs/user-interactions.md)', () => {
+    const picker = () => opened(table(MachineState.ActPhase)).seatCardPeek
+
+    it('opening it is a manual pick, and Undo takes it back', () => {
+        const draft = picker()
+        expect(draft.open).toBe(false)
+        expect(draft.hasManualSelection()).toBe(false)
+        draft.toggle()
+        expect(draft.open).toBe(true)
+        expect(draft.hasManualSelection()).toBe(true)
+        expect(draft.back()).toBe(true)
+        expect(draft.open).toBe(false)
+        expect(draft.back()).toBe(false)
+    })
+
+    it('a second press closes it', () => {
+        const draft = picker()
+        draft.toggle()
+        draft.toggle()
+        expect(draft.open).toBe(false)
+        expect(draft.hasManualSelection()).toBe(false)
     })
 })

@@ -422,7 +422,7 @@ export class CampaignDraft implements PanelDraft {
         return this.flow.hasManualSelection()
     }
 
-    // Back takes one target or one plan at a time, the last one chosen first.
+    // Undo takes one target or one plan at a time, the last one chosen first.
     back(): boolean {
         const top = this.flow.highestManualStage()
         if (top === 'targets' && this.targets.length > 1) {

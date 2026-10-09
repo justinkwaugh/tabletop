@@ -18,7 +18,7 @@
 </script>
 
 <div>
-    <div class="mb-2 flex items-center justify-between gap-2">
+    <div class="mb-2">
         <span class="text-sm">
             {#if !search.kept}
                 <span class="font-semibold">Tap the card to keep.</span>
@@ -40,15 +40,6 @@
                 goes on top.
             {/if}
         </span>
-        {#if search.kept}
-            <button
-                class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs font-semibold"
-                disabled={busy}
-                onclick={() => gameSession.back()}
-            >
-                Back
-            </button>
-        {/if}
     </div>
 
     {#if !search.kept}

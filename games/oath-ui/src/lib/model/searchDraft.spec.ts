@@ -35,7 +35,7 @@ describe('the Search draft (docs/user-interactions.md)', () => {
         expect(draft.tapped).toEqual([])
     })
 
-    it('Back pops the highest manual pick, and says so only while one is left', async () => {
+    it('Undo pops the highest manual pick, and says so only while one is left', async () => {
         const { draft } = searching()
         const [first] = draft.drawn
         draft.keep(first)
@@ -48,7 +48,7 @@ describe('the Search draft (docs/user-interactions.md)', () => {
         expect(draft.back()).toBe(false)
     })
 
-    it('a Search has no auto pick: before any tap there is nothing for Back or Undo to take', () => {
+    it('a Search has no auto pick: before any tap there is nothing for Undo to take', () => {
         const { session, draft } = searching()
         expect(draft.hasManualSelection()).toBe(false)
         expect(draft.back()).toBe(false)
@@ -122,7 +122,7 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
         )
     })
 
-    it('Back from the adviser pick returns to the placements', async () => {
+    it('Undo from the adviser pick returns to the placements', async () => {
         const { draft } = searchingWith([TENTS, TUTOR], HELD)
         draft.keep(TENTS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })

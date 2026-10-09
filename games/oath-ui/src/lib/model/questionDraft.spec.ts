@@ -62,20 +62,20 @@ describe('the question draft (docs/user-interactions.md)', () => {
         expect(draft.floorTerms).toEqual({})
     })
 
-    it('Back untaps the Pilgrimage stack one card at a time', () => {
+    it('Undo untaps the Pilgrimage stack one card at a time', async () => {
         const { session, draft } = asked(stack())
         draft.tapStack(DRAWN[2])
         draft.tapStack(DRAWN[0])
         expect(draft.stackTapped).toEqual([DRAWN[2], DRAWN[0]])
 
-        session.back()
+        await session.undo()
         expect(draft.stackTapped).toEqual([DRAWN[2]])
-        session.back()
+        await session.undo()
         expect(draft.stackTapped).toEqual([])
         expect(draft.hasManualSelection()).toBe(false)
     })
 
-    it('an open question is not a pick: before any tap, Back and Undo have nothing to take', () => {
+    it('an open question is not a pick: before any tap, Undo has nothing to take', () => {
         const { session, draft } = asked(stack())
         expect(draft.isMine).toBe(true)
         expect(draft.hasManualSelection()).toBe(false)

@@ -6,7 +6,7 @@ import { FIXTURE_SITE_CAPACITY, openTurn, required, testPlayer, testState } from
 import { disposeSessions, openSessionOn, searchingTable, setupTable, tableOf } from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
 
-// docs/user-interactions.md — Back unwinds manual picks, Undo waits for them, and nothing is offered from history.
+// docs/user-interactions.md — Undo unwinds manual picks before any sent action, and nothing is offered from history.
 function openSession() {
     return openSessionOn(searchingTable())
 }
@@ -16,7 +16,7 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-describe('OathGameSession — Back, Undo and the history gate', () => {
+describe('OathGameSession — Undo and the history gate', () => {
     it('opens on the Search the chancellor drew, with nothing picked', () => {
         const session = openSession()
         expect(session.gameState.machineState).toBe(MachineState.Searching)
@@ -39,23 +39,23 @@ describe('OathGameSession — Back, Undo and the history gate', () => {
         expect(historyUndo).toHaveBeenCalledTimes(1)
     })
 
-    it('Back unwinds one pick at a time: the placement, then the kept card', () => {
+    it('Undo unwinds one pick at a time: the placement, then the kept card', async () => {
         const session = openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
         void session.search.choosePlacement({ play: SearchPlay.Discard })
         expect(session.search.placement).toEqual({ play: SearchPlay.Discard })
 
-        session.back()
+        await session.undo()
         expect(session.search.placement).toBeUndefined()
         expect(session.search.kept).toBe(first)
 
-        session.back()
+        await session.undo()
         expect(session.search.kept).toBeUndefined()
         expect(session.hasManualDraft).toBe(false)
     })
 
-    it('a pick in the action grid is a draft too, and Back returns to the grid', async () => {
+    it('a pick in the action grid is a draft too, and Undo returns to the grid', async () => {
         const session = openSession()
         const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
         session.chooseAction(ActionType.Travel)
@@ -303,7 +303,7 @@ describe('the let-peek picker beside a staged Act Phase action', () => {
         return openSessionOn(tableOf(state))
     }
 
-    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and its Cancel leaves it', () => {
+    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and a second press leaves it', () => {
         const session = table('me')
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekIsStaged).toBe(true)
@@ -322,6 +322,15 @@ describe('the let-peek picker beside a staged Act Phase action', () => {
         session.toggleLetPeek()
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekOpen).toBe(false)
+    })
+
+    it('in your Act Phase, Undo closes the picker, as it puts down any staged action', async () => {
+        const session = table('me')
+        session.toggleLetPeek()
+        expect(session.hasManualDraft).toBe(true)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+        expect(session.selection.action).toBeUndefined()
     })
 })
 
