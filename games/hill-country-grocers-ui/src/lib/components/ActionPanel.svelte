@@ -90,8 +90,7 @@
             </div>
         {:else if state.turnDevelopments.length === 0}
             <p class="prompt">
-                Place a development in a highlighted city. Grocers there get $1 each from Balcones
-                Builders.
+                Place a development.
             </p>
         {:else}
             <p class="prompt">
@@ -107,7 +106,9 @@
                 >
             </div>
         {/if}
-        <p class="rules">{ACTION_RULES[ActionSpace.DevelopTowns]}</p>
+        {#if gameSession.cityTargets.length > 0}
+            <p class="rules">{ACTION_RULES[ActionSpace.DevelopTowns]}</p>
+        {/if}
     {:else if machineState === MachineState.StartingAuction}
         {#if gameSession.auctionCompany}
             <p class="prompt">
