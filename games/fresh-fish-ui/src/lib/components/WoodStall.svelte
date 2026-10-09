@@ -6,9 +6,9 @@
     import {
         LABEL_DARK,
         LABEL_LIGHT,
+        CHALKBOARD,
         luminance,
         PAINT_DARK,
-        TRAY,
         rgbOf
     } from '$lib/utils/pieceColors.js'
 
@@ -110,7 +110,17 @@
             rx={SLOT.height / 2}
             fill={ground}
         ></rect>
-        <rect x={BOARD.x} y={BOARD.y} width={BOARD.width} height={BOARD.height} fill={TRAY}></rect>
+        <rect x={BOARD.x} y={BOARD.y} width={BOARD.width} height={BOARD.height} fill={CHALKBOARD}
+        ></rect>
+        <rect
+            x={BOARD.x}
+            y={BOARD.y}
+            width={BOARD.width}
+            height={BOARD.height}
+            filter="url(#{id}-grain)"
+            opacity="0.08"
+            style="mix-blend-mode: screen"
+        ></rect>
         <polygon
             points={front}
             fill="none"

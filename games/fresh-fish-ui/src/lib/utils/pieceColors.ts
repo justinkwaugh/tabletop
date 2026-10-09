@@ -10,6 +10,7 @@ export const LABEL_LIGHT = '#ecebe6'
 export const LABEL_DARK = '#2a1d0b'
 
 export const TRAY = '#0d1014'
+export const CHALKBOARD = '#33383b'
 
 export const PAINT_LIGHT = '#f3ead2'
 export const PAINT_DARK = '#4a3216'
