@@ -139,23 +139,32 @@ mechanism below, plus the six implemented titles.
       results record the train's definition, and purchase-offer metadata records an
       offered train's. 1817's first-8-train ending reads phase 8, which that train
       starts, instead of looking for 8-trains outside the depot.
-5. **Names, depot and final wealth.** Company and pool names move to the definition. The
-   depot's roster comes from the resolved configuration, with State keeping what remains
-   in order and any trains created during play. `finalWealth` labels are built by the
-   UI instead of stored. 1846's independents' 2-trains move into the supply, as upstream
-   models them: players plus four 2-trains (seven in the two-player variant), with setup
-   assigning the first two to MS and Big 4. Both independents are in every game and
-   are always bought, but in the two-player game possibly only after preliminary
-   operating rounds, so assigning at setup keeps the depot's count unchanged until then.
-   `assignedTrains` is then removed.
+5. **Names move to the definition.** Companies, certificate pools and the bank lose their
+   `name`; each title supplies `names: TitleNames` (`company(id)`, `pool(id)`) on its
+   rules, built from its catalogs, and the bank is always "Bank". Final-wealth labels take
+   the title's names. Recorded metadata stops repeating names: earnings distributions drop
+   `companyName`, and operating-round snapshots record `companyIds` instead of
+   `companyNames`. The UI names through the session (`companyName`, `poolName`, `names`).
 6. **One buyer field for purchase offers.** `buyer: Owner` replaces both a company
    offer's `companyId` and a player offer's `buyerPlayerId`, in the State union and in
    `RespondToPurchaseOffer` metadata. `OfferPurchase` input stays a company buyer.
 
-Changes 2 to 4 reduce a finished game's State by roughly a fifth (1846) to two fifths (1832);
-estimated, not yet measured.
+Measured after change 4, replaying each recorded finished game: TOP 75.1 → 58.8 KB, 1889
+48.9 → 34.0, 1830 58.7 → 39.4, 1846 37.1 → 29.0, 1817 92.4 → 66.2, 1832 76.0 → 44.4 (22–42%).
 
 ## Deferred
+
+Measured on 2026-10-09 against the finished games after change 4, these were judged not
+worth their cost for now:
+
+- **Final-wealth labels built by the UI** (1.0–3.7 KB, final State only). Titles' custom
+  items (TOP's PEIR and Union Bank, 1846's privates) would each need UI label code.
+- **The depot as remaining counts per train kind** (0.65–4.2 KB at the opening, shrinking
+  to about nothing by the end). It changes the depot interface for every title.
+- **1846's independents' 2-trains in the supply**, as upstream models them: players plus
+  four 2-trains (seven in the two-player variant), setup assigning the first two to MS and
+  Big 4, and `assignedTrains` removed. It renumbers train ids in recorded games and specs
+  and belongs with the depot change.
 
 - **Stations as placed positions plus a count**, and creating TOP's branches at the
   split. Both change station identity in action inputs and other State, and the saving

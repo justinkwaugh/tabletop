@@ -19,11 +19,10 @@ export function createEighteenSeventeenPosition(
 ): Omit<InitialPosition, 'stockMarket'> {
     const privates = privateIds.map((id) => EighteenSeventeenPrivateCatalog.definition(id))
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             ...EighteenSeventeenCorporations.map((company) => ({
                 id: company.id,
-                name: company.name,
                 kind: 'major',
                 shareCount: 2,
                 started: false,
@@ -33,7 +32,6 @@ export function createEighteenSeventeenPosition(
             })),
             ...privates.map((company) => ({
                 id: company.id,
-                name: company.name,
                 kind: 'private',
                 privateRevenue: 0
             }))
@@ -50,10 +48,9 @@ export function createEighteenSeventeenPosition(
             }))
         ],
         certificatePools: [
-            { id: MarketPoolId, name: 'Market', owner: bank },
+            { id: MarketPoolId, owner: bank },
             ...EighteenSeventeenCorporations.map((company) => ({
                 id: treasuryPoolId(company.id),
-                name: 'Treasury',
                 owner: { kind: 'company' as const, companyId: company.id }
             }))
         ],

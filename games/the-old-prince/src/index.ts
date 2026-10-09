@@ -44,3 +44,4 @@ export * from './splitCompany.js'
 export * from './endingRules.js'
 
 export * from './state.js'
+export * from './names.js'

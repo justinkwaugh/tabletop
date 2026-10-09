@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
+import { TheOldPrinceNames } from './names.js'
 import { recordLeavingNumber, type StockMarketSpace } from '@tabletop/18xx'
 
 function readFixture(name: string) {
@@ -38,11 +39,22 @@ type RecordedTrain = Train | { id: string; definitionId: string; status: 'remove
 type PhaseEvent = TheOldPrinceState['phaseEvents'][number]
 type RouteStep = NonNullable<TheOldPrinceState['routeStep']>
 type RouteResult = NonNullable<RouteStep['result']>['routes'][number]
+type Named<Item> = Item & { name: string }
 type RecordedState = Omit<
     TheOldPrinceState,
-    'stockMarket' | 'certificates' | 'trainInventory' | 'phaseEvents' | 'routeStep'
+    | 'stockMarket'
+    | 'certificates'
+    | 'trainInventory'
+    | 'phaseEvents'
+    | 'routeStep'
+    | 'companies'
+    | 'certificatePools'
+    | 'bank'
 > & {
     usedPrivatePowerIds: string[]
+    companies: Named<TheOldPrinceState['companies'][number]>[]
+    certificatePools: Named<TheOldPrinceState['certificatePools'][number]>[]
+    bank: Named<TheOldPrinceState['bank']>
     stockMarket: TheOldPrinceState['stockMarket'] & { spaces: StockMarketSpace[] }
     certificates: RecordedCertificate[]
     trainInventory: Omit<TheOldPrinceState['trainInventory'], 'trains'> & {
@@ -95,6 +107,10 @@ function currentRouteStep(
     }
 }
 
+function withoutName<Item>({ name: _name, ...item }: Named<Item>): Omit<Named<Item>, 'name'> {
+    return item
+}
+
 function currentShape({
     usedPrivatePowerIds,
     stockMarket: { stacks },
@@ -106,7 +122,14 @@ function currentShape({
 }: RecordedState): TheOldPrinceState {
     assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
     const trains = trainInventory.trains
-    const state = { ...recorded, companies: structuredClone(recorded.companies) }
+    const state = {
+        ...recorded,
+        companies: recorded.companies.map(({ name: _name, ...company }) =>
+            structuredClone(company)
+        ),
+        certificatePools: recorded.certificatePools.map(({ name: _name, ...pool }) => pool),
+        bank: withoutName(recorded.bank)
+    }
     return {
         ...state,
         stockMarket: { stacks },
@@ -165,6 +188,13 @@ const recordedReservedShareOverpayments = new Map([
 describe('the deployed game', () => {
     it('no longer loads in its recorded shape', () => {
         expect(Definition.runtime.canonicalStateValidator?.Check(recordedLatestState)).toBe(false)
+    })
+
+    it('recorded the names TOP now defines', () => {
+        for (const company of recordedLatestState.companies)
+            expect(company.name).toBe(TheOldPrinceNames.company(company.id))
+        for (const pool of recordedLatestState.certificatePools)
+            expect(pool.name).toBe(TheOldPrinceNames.pool(pool.id))
     })
 
     it('recorded the market TOP now defines', () => {

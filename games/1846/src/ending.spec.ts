@@ -13,6 +13,7 @@ import {
 import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from './testSupport.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { EndingRules1846 } from './ending.js'
+import { Names1846 } from './names.js'
 import { Runtime } from './definition/gameDefinition.js'
 import { DraftCompanies } from './catalog.js'
 import type { EighteenFortySixProjectedState } from './state.js'
@@ -248,7 +249,7 @@ describe('1846 game endings', () => {
         expect(EndingRules1846.certificateItems(table.state, certificate)).toEqual([
             {
                 assetId: certificate.id,
-                label: getCompany(table.state, 'IC').name,
+                label: Names1846.company('IC'),
                 value:
                     certificate.shares *
                     Market1846.companySpace(table.state.stockMarket, 'IC').price

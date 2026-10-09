@@ -63,7 +63,7 @@
         <div aria-label="Confirm share purchase">
             <p>
                 <strong>{session.ownerName(details.buyer)}</strong> buys a certificate in
-                <strong>{getCompany(gameState, details.companyId).name}</strong>
+                <strong>{session.companyName(details.companyId)}</strong>
                 from {session.ownerName(details.seller)} for {details.price}.
             </p>
             <ul>
@@ -76,7 +76,7 @@
             {#if details.presidency}{@render presidency(details.presidency)}{/if}
             {#if session.stock.selectedPurchaseFlotation}
                 <div aria-label="Flotation preview">
-                    <p>{getCompany(gameState, details.companyId).name} will float.</p>
+                    <p>{session.companyName(details.companyId)} will float.</p>
                     {#each session.stock.selectedPurchaseFlotation.payments as payment, i (i)}<p>
                             {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                                 payment.to
@@ -98,7 +98,7 @@
                 <ol>
                     {#each session.stock.selectedSale.sales as sale (sale.companyId)}
                         <li>
-                            <strong>{getCompany(gameState, sale.companyId).name}</strong> · {sale.shares}
+                            <strong>{session.companyName(sale.companyId)}</strong> · {sale.shares}
                             shares
                             <div class="buttons">
                                 <button
@@ -116,7 +116,7 @@
                     <p>Total proceeds: <strong>{details.proceeds}</strong></p>
                     {#each details.sales as sale (sale.companyId)}
                         <p>
-                            {getCompany(gameState, sale.companyId).name}: {sale.shares} × {sale.price}
+                            {session.companyName(sale.companyId)}: {sale.shares} × {sale.price}
                             = {sale.proceeds}. Market price: {sale.price} → {session.stockMarketChart.space(
                                 sale.toMarketSpaceId
                             ).price}.
@@ -147,7 +147,7 @@
                         disabled={session.busy || !choice.result.details}
                         onclick={() => session.stock.selectSale(choice.request)}
                     >
-                        <strong>{getCompany(gameState, choice.sale.companyId).name}</strong>
+                        <strong>{session.companyName(choice.sale.companyId)}</strong>
                         <span
                             >{session.ownerName(choice.request.seller)} · {choice.sale.shares}
                             {choice.sale.shares === 1 ? 'share' : 'shares'}</span
@@ -175,13 +175,12 @@
                             disabled={session.busy || !choice.result.details}
                             onclick={() => session.stock.selectPurchase(choice.request)}
                         >
-                            <strong
-                                >{getCompany(gameState, choice.certificate.companyId).name}</strong
-                            >
+                            <strong>{session.companyName(choice.certificate.companyId)}</strong>
                             <span
-                                >{session.ownerName(choice.request.buyer)} · {gameState.certificatePools.find(
-                                    (pool) => pool.id === choice.certificate.poolId
-                                )?.name}</span
+                                >{session.ownerName(choice.request.buyer)} · {choice.certificate
+                                    .poolId
+                                    ? session.poolName(choice.certificate.poolId)
+                                    : ''}</span
                             >
                             <span
                                 >{choice.result.details
@@ -207,7 +206,7 @@
                         Stock round complete.
                         {#each trade.metadata.marketMoves as move (move.companyId)}
                             <span
-                                >{getCompany(gameState, move.companyId).name} sold out: {session.stockMarketChart.space(
+                                >{session.companyName(move.companyId)} sold out: {session.stockMarketChart.space(
                                     move.fromMarketSpaceId
                                 ).price} → {session.stockMarketChart.space(move.toMarketSpaceId)
                                     .price}.</span
@@ -221,15 +220,14 @@
                     </li>
                 {:else if isStartCompany(trade) && trade.metadata}
                     <li>
-                        {session.ownerName(trade.metadata.buyer)} started {getCompany(
-                            gameState,
+                        {session.ownerName(trade.metadata.buyer)} started {session.companyName(
                             trade.companyId
-                        ).name} at {trade.metadata.parPrice}, paying {trade.metadata.price} for the president’s
+                        )} at {trade.metadata.parPrice}, paying {trade.metadata.price} for the president’s
                         certificate.
                     </li>
                 {:else if isFloatCompany(trade) && trade.metadata}
                     <li>
-                        {getCompany(gameState, trade.companyId).name} floated.
+                        {session.companyName(trade.companyId)} floated.
                         {#each trade.metadata.payments as payment, i (i)}<span
                                 >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
                                     payment.to
@@ -239,10 +237,9 @@
                 {:else if isBuyShares(trade) && trade.metadata}
                     {@const details = trade.metadata}
                     <li>
-                        {session.ownerName(details.buyer)} bought {getCompany(
-                            gameState,
+                        {session.ownerName(details.buyer)} bought {session.companyName(
                             details.companyId
-                        ).name} for {details.price}.
+                        )} for {details.price}.
                         {#each details.payments as payment, i (i)}<span
                                 >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
                                     payment.to
@@ -255,7 +252,7 @@
                     <li>
                         {session.ownerName(details.seller)} sold shares for {details.proceeds}.
                         {#each details.sales as sale (sale.companyId)}<span
-                                >{getCompany(gameState, sale.companyId).name}: {sale.shares} shares at
+                                >{session.companyName(sale.companyId)}: {sale.shares} shares at
                                 {sale.price}; market price {session.stockMarketChart.space(
                                     sale.toMarketSpaceId
                                 ).price}.</span

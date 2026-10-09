@@ -133,13 +133,10 @@
     "5472": 0
    }
   },
-  "bank": {
-   "name": "Bank"
-  },
+  "bank": {},
   "companies": [
    {
     "id": "AS",
-    "name": "Alton & Southern Railway",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -149,7 +146,6 @@
    },
    {
     "id": "AA",
-    "name": "Arcade and Attica",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -159,7 +155,6 @@
    },
    {
     "id": "BELT",
-    "name": "Belt Railway of Chicago",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -169,7 +164,6 @@
    },
    {
     "id": "BESS",
-    "name": "Bessemer and Lake Erie Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -179,7 +173,6 @@
    },
    {
     "id": "BA",
-    "name": "Boston and Albany Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -189,7 +182,6 @@
    },
    {
     "id": "DLW",
-    "name": "Delaware, Lackawanna and Western Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -199,7 +191,6 @@
    },
    {
     "id": "J",
-    "name": "Elgin, Joliet and Eastern Railway",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -209,7 +200,6 @@
    },
    {
     "id": "GT",
-    "name": "Grand Trunk Western Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -219,7 +209,6 @@
    },
    {
     "id": "H",
-    "name": "Housatonic Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -229,7 +218,6 @@
    },
    {
     "id": "ME",
-    "name": "Morristown and Erie Railway",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -239,7 +227,6 @@
    },
    {
     "id": "NYOW",
-    "name": "New York, Ontario and Western Railway",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -249,7 +236,6 @@
    },
    {
     "id": "NYSW",
-    "name": "New York, Susquehanna and Western Railway",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -259,7 +245,6 @@
    },
    {
     "id": "PSNR",
-    "name": "Pittsburgh, Shawmut and Northern Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -269,7 +254,6 @@
    },
    {
     "id": "PLE",
-    "name": "Pittsburgh and Lake Erie Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -279,7 +263,6 @@
    },
    {
     "id": "PW",
-    "name": "Providence and Worcester Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -289,7 +272,6 @@
    },
    {
     "id": "R",
-    "name": "Rutland Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -299,7 +281,6 @@
    },
    {
     "id": "SR",
-    "name": "Strasburg Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -309,7 +290,6 @@
    },
    {
     "id": "UR",
-    "name": "Union Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -319,7 +299,6 @@
    },
    {
     "id": "WT",
-    "name": "Warren & Trumbull Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -329,7 +308,6 @@
    },
    {
     "id": "WC",
-    "name": "West Chester Railroad",
     "kind": "major",
     "shareCount": 2,
     "started": false,
@@ -339,67 +317,56 @@
    },
    {
     "id": "MINC",
-    "name": "Minor Coal Mine",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "OBC",
-    "name": "Ohio Bridge Company",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "MTE",
-    "name": "Mountain Engineers",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "PSM",
-    "name": "Pittsburgh Steel Mill",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "CM",
-    "name": "Coal Mine",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "MINM",
-    "name": "Minor Mail Contract",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "TS",
-    "name": "Train Station",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "UBC",
-    "name": "Union Bridge Company",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "MAIL",
-    "name": "Mail Contract",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "MAJC",
-    "name": "Major Coal Mine",
     "kind": "private",
     "privateRevenue": 0
    },
    {
     "id": "MAJM",
-    "name": "Major Mail Contract",
     "kind": "private",
     "privateRevenue": 0
    }
@@ -590,14 +557,12 @@
   "certificatePools": [
    {
     "id": "market",
-    "name": "Market",
     "owner": {
      "kind": "bank"
     }
    },
    {
     "id": "treasury:AS",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "AS"
@@ -605,7 +570,6 @@
    },
    {
     "id": "treasury:AA",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "AA"
@@ -613,7 +577,6 @@
    },
    {
     "id": "treasury:BELT",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "BELT"
@@ -621,7 +584,6 @@
    },
    {
     "id": "treasury:BESS",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "BESS"
@@ -629,7 +591,6 @@
    },
    {
     "id": "treasury:BA",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "BA"
@@ -637,7 +598,6 @@
    },
    {
     "id": "treasury:DLW",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "DLW"
@@ -645,7 +605,6 @@
    },
    {
     "id": "treasury:J",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "J"
@@ -653,7 +612,6 @@
    },
    {
     "id": "treasury:GT",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "GT"
@@ -661,7 +619,6 @@
    },
    {
     "id": "treasury:H",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "H"
@@ -669,7 +626,6 @@
    },
    {
     "id": "treasury:ME",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "ME"
@@ -677,7 +633,6 @@
    },
    {
     "id": "treasury:NYOW",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "NYOW"
@@ -685,7 +640,6 @@
    },
    {
     "id": "treasury:NYSW",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "NYSW"
@@ -693,7 +647,6 @@
    },
    {
     "id": "treasury:PSNR",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "PSNR"
@@ -701,7 +654,6 @@
    },
    {
     "id": "treasury:PLE",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "PLE"
@@ -709,7 +661,6 @@
    },
    {
     "id": "treasury:PW",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "PW"
@@ -717,7 +668,6 @@
    },
    {
     "id": "treasury:R",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "R"
@@ -725,7 +675,6 @@
    },
    {
     "id": "treasury:SR",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "SR"
@@ -733,7 +682,6 @@
    },
    {
     "id": "treasury:UR",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "UR"
@@ -741,7 +689,6 @@
    },
    {
     "id": "treasury:WT",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "WT"
@@ -749,7 +696,6 @@
    },
    {
     "id": "treasury:WC",
-    "name": "Treasury",
     "owner": {
      "kind": "company",
      "companyId": "WC"

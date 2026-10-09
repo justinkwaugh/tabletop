@@ -67,7 +67,7 @@
         if (!jumpDisabled) void session.history.goToEnd()
     }
     function fullCompanyName(id: string) {
-        return gameState.companies.find((company) => company.id === id)?.name ?? id
+        return session.companyName(id)
     }
     function companyName(id: string) {
         return companyNames?.[id]?.history ?? fullCompanyName(id)

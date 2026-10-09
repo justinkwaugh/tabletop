@@ -53,7 +53,7 @@
             onDecline={() => session.decisions.respondToPurchaseOffer(false)}
         >
             <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
-            <strong>{getCompany(session.gameState, response.companyId).name}</strong>
+            <strong>{session.companyName(response.companyId)}</strong>
             <span>offers {money(response.price)} for</span>
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
             <span>from</span>
@@ -109,14 +109,10 @@
     {:else}
         <div class="choices">
             {#each companies as { companyId, trains } (companyId)}
-                <div
-                    class="company"
-                    role="group"
-                    aria-label={getCompany(session.gameState, companyId).name}
-                >
+                <div class="company" role="group" aria-label={session.companyName(companyId)}>
                     <div class="company-heading">
                         <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
-                        <strong>{getCompany(session.gameState, companyId).name}</strong>
+                        <strong>{session.companyName(companyId)}</strong>
                     </div>
                     <div class="company-roster">
                         {#each trains as choice (choice.request.asset.kind === 'train' ? choice.request.asset.trainId : choice.request.asset.kind === 'private' ? choice.request.asset.privateCompanyId : choice.request.asset.companyId)}

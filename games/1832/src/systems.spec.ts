@@ -250,7 +250,7 @@ describe('System operations', () => {
                     ...close('CG').map((company) =>
                         company.id === 'ACL' ? { ...company, closed: true } : company
                     ),
-                    { id: 'AMTK', name: 'Amtrak', kind: 'major' }
+                    { id: 'AMTK', kind: 'major' }
                 ],
                 systems: { AMTK: ['ACL', 'CG'] }
             })

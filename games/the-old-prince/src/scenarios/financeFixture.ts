@@ -21,12 +21,11 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
     const union: President = { kind: 'company', companyId: 'UB' }
     const market = { owner: bank, poolId: 'market' }
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
-            { id: 'UB', name: 'Union Bank', kind: 'private', privateRevenue: 0 },
+            { id: 'UB', kind: 'private', privateRevenue: 0 },
             {
                 id: 'ML',
-                name: 'Charlottetown',
                 role: 'mainline',
                 kind: 'major',
                 shareCount: 10,
@@ -38,7 +37,6 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             },
             {
                 id: 'So',
-                name: 'Souris',
                 role: 'shortline',
                 kind: 'major',
                 shareCount: 10,
@@ -48,23 +46,21 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 floated: true,
                 president: union
             },
-            { id: 'PEIR', name: 'Prince Edward Island Railway', kind: 'major', president: blair },
-            { id: 'VR', name: 'Vernon River Bridge', kind: 'private', privateRevenue: 10 },
+            { id: 'PEIR', kind: 'major', president: blair },
+            { id: 'VR', kind: 'private', privateRevenue: 10 },
             {
                 id: TheOldPrinceKingsMail.id,
-                name: TheOldPrinceKingsMail.name,
                 kind: 'private',
                 privateRevenue: TheOldPrinceKingsMail.revenue
             }
         ],
         certificatePools: [
-            { id: 'market', name: 'Market', owner: bank },
+            { id: 'market', owner: bank },
             {
                 id: 'treasury:ML',
-                name: 'Treasury shares',
                 owner: { kind: 'company', companyId: 'ML' }
             },
-            { id: 'reserved', name: 'Reserved exchanges', owner: bank }
+            { id: 'reserved', owner: bank }
         ],
         cash: [
             ...players.map((player, index) => ({

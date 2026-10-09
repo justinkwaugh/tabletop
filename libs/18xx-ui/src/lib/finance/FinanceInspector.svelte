@@ -4,7 +4,8 @@
         cashOwnedBy,
         getTreasury,
         privateOwner,
-        controllingOwner
+        controllingOwner,
+        type TitleNames
     } from '@tabletop/18xx'
     import { assertExists, type Player, type PlayerState } from '@tabletop/common'
     import type {
@@ -19,6 +20,7 @@
     import Portfolio from './Portfolio.svelte'
     let {
         gameState,
+        names,
         players,
         playerStates,
         certificateDetail,
@@ -27,6 +29,7 @@
         stationReservations = []
     }: {
         gameState: FinancialState
+        names: TitleNames
         players: readonly Player[]
         playerStates: readonly PlayerState[]
         certificateDetail?: Snippet<[Certificate]>
@@ -44,9 +47,9 @@
             case 'player':
                 return playerName(owner.playerId)
             case 'company':
-                return getCompany(gameState, owner.companyId).name
+                return names.company(owner.companyId)
             case 'bank':
-                return gameState.bank.name
+                return 'Bank'
         }
     }
 </script>
@@ -58,6 +61,7 @@
             {#each playerStates as player (player.playerId)}
                 {@const owner = { kind: 'player', playerId: player.playerId } as const}
                 <Portfolio
+                    {names}
                     {gameState}
                     {owner}
                     name={playerName(player.playerId)}
@@ -78,9 +82,10 @@
                     company.kind === 'private' ? privateOwner(gameState, company.id) : undefined}
                 <div class="company" data-company-id={company.id}>
                     <Portfolio
+                        {names}
                         {gameState}
                         owner={{ kind: 'company', companyId: company.id }}
-                        name={company.name}
+                        name={names.company(company.id)}
                         label="treasury"
                         cash={getTreasury(gameState, company.id).cash}
                         {certificateDetail}
@@ -130,9 +135,10 @@
         <h2>Bank</h2>
         <div class="portfolios">
             <Portfolio
+                {names}
                 {gameState}
                 owner={{ kind: 'bank' }}
-                name={gameState.bank.name}
+                name="Bank"
                 label="certificates"
                 cash={cashOwnedBy(gameState, { kind: 'bank' })}
                 {certificateDetail}

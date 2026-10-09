@@ -26,7 +26,6 @@ export const EighteenSeventeenPresentation: TitlePresentation<EighteenSeventeenS
     phaseColors: EighteenSeventeenTrainColors,
     marketPoolId: MarketPoolId,
     companyNames: EighteenSeventeenCompanyNames,
-    poolName: (pool) => (pool.id.startsWith('treasury:') ? 'Treasury' : pool.name),
     gameFacts: eighteenSeventeenGameFacts,
     companyColumns: EighteenSeventeenCompanyColumns,
     companyFacts: eighteenSeventeenCompanyFacts,

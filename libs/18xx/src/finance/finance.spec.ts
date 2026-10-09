@@ -25,14 +25,14 @@ const player = { kind: 'player', playerId: 'one' } as const
 const investor = { kind: 'company', companyId: 'investment' } as const
 const bank = { kind: 'bank' } as const
 const position: FinancialState = {
-    bank: { name: 'Bank' },
+    bank: {},
     companies: [
-        { id: 'investment', name: 'Investment company', kind: 'private' },
-        { id: 'railway', name: 'Railway', kind: 'major', shareCount: 20, president: investor }
+        { id: 'investment', kind: 'private' },
+        { id: 'railway', kind: 'major', shareCount: 20, president: investor }
     ],
     certificatePools: [
-        { id: 'ipo', name: 'IPO', owner: bank },
-        { id: 'market', name: 'Market', owner: bank }
+        { id: 'ipo', owner: bank },
+        { id: 'market', owner: bank }
     ],
     cash: [
         { owner: player, amount: 100 },
@@ -144,9 +144,9 @@ describe('finances', () => {
 
     it('allows company control chains and cycles without inventing a controlling player', () => {
         const companies: FinancialState['companies'] = [
-            { id: 'a', name: 'A', kind: 'major', president: { kind: 'company', companyId: 'b' } },
-            { id: 'b', name: 'B', kind: 'minor', president: { kind: 'company', companyId: 'c' } },
-            { id: 'c', name: 'C', kind: 'major', president: player }
+            { id: 'a', kind: 'major', president: { kind: 'company', companyId: 'b' } },
+            { id: 'b', kind: 'minor', president: { kind: 'company', companyId: 'c' } },
+            { id: 'c', kind: 'major', president: player }
         ]
         const state = validatedCopy({ ...position, companies, certificates: [], cash: [] })
         expect(controllingOwner(state, 'a')).toEqual(player)
@@ -178,7 +178,7 @@ describe('finances', () => {
             expect(() =>
                 validatedCopy({
                     ...position,
-                    certificatePools: [{ id: 'bad', name: 'Bad', owner }]
+                    certificatePools: [{ id: 'bad', owner }]
                 })
             ).toThrow('Unknown')
         }

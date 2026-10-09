@@ -31,7 +31,7 @@
         <CompanyActionCard
             {session}
             {companyId}
-            title={getCompany(gameState, companyId).name}
+            title={session.companyName(companyId)}
             value={money(
                 EighteenSeventeenMarket.companySpace(gameState.stockMarket, companyId).price
             )}

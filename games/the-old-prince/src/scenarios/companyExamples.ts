@@ -53,10 +53,9 @@ export function createTheOldPrinceCompanyExample(
         position === 'powers'
     ) {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
-        for (const { companyId, name } of peirCompanies(state)) {
+        for (const { companyId } of peirCompanies(state)) {
             state.companies.push({
                 id: companyId,
-                name,
                 kind: 'major',
                 shareCount: 10,
                 started: false,

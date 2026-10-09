@@ -6,7 +6,7 @@ import {
 } from '../ending/finalWealth.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { TestMarket } from './minimalState.js'
+import { TestMarket, TestNames } from './minimalState.js'
 import type { TrainFundingRules } from '../funding/trainFunding.js'
 import { TrainDepot } from '../trains/trainDepot.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
@@ -83,6 +83,10 @@ export const minimalTransferRules: TransferRules = {
 
 export const minimalValuationRules: ValuationRules = {
     certificateItems: (state, certificate) => [
-        certificateWealthItem(state, certificate, marketShareValue(TestMarket, state, certificate))
+        certificateWealthItem(
+            TestNames,
+            certificate,
+            marketShareValue(TestMarket, state, certificate)
+        )
     ]
 }

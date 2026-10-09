@@ -35,11 +35,12 @@
         appearances={session.mapView.stations}
         chart={session.stockMarketChart}
         market={gameState.stockMarket}
-        companies={gameState.companies}
+        companyName={(companyId) => session.companyName(companyId)}
     />
 {/if}
 
 <FinanceInspector
+    names={session.names}
     stations={gameState.stations}
     stationReservations={gameState.stationReservations}
     certificateWeight={session.certificateWeight}

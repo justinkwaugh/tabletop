@@ -1,3 +1,4 @@
+import { Names1846 } from './names.js'
 import { Market1846 } from './stock.js'
 import { Phases1846 } from './trains.js'
 import { assert, assertExists } from '@tabletop/common'
@@ -43,13 +44,19 @@ export const ValuationRules1846: ValuationRules = {
             return [
                 {
                     assetId: certificate.id,
-                    label: company.name,
+                    label: Names1846.company(company.id),
                     value: marketShareValue(Market1846, state, certificate)
                 }
             ]
         const privateCompany = DraftCompanies.find((entry) => entry.id === company.id)
         assertExists(privateCompany, 'A private or independent has a printed value')
-        return [{ assetId: certificate.id, label: company.name, value: privateCompany.price }]
+        return [
+            {
+                assetId: certificate.id,
+                label: Names1846.company(company.id),
+                value: privateCompany.price
+            }
+        ]
     }
 }
 

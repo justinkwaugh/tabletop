@@ -15,8 +15,8 @@ export function prepareShikoku1889Privates(
     ] as const) {
         const definition = Shikoku1889Privates.find((item) => item.id === id)
         assert(definition, 'Missing private definition')
-        const { name, revenue } = definition
-        state.companies.push({ id, name, kind: 'private', privateRevenue: revenue })
+        const { revenue } = definition
+        state.companies.push({ id, kind: 'private', privateRevenue: revenue })
         state.certificates.push({
             id: `${id}:charter`,
             companyId: id,

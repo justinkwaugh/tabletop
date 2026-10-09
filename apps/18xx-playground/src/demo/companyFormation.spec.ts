@@ -299,7 +299,6 @@ it('floats an already funded branch without granting initial capital again', () 
     const { game, engine, state } = example(Top)
     state.companies.push({
         id: 'CB',
-        name: 'Cornwall Branch',
         kind: 'major',
         shareCount: 10,
         started: true,

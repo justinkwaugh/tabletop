@@ -1,3 +1,4 @@
+import { TheOldPrinceNames } from './names.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     certificateWealthItem,
@@ -33,6 +34,6 @@ export const TheOldPrinceEndingRules: EndingRules = {
                     ? marketShareValue(TheOldPrinceMarket, state, certificate)
                     : TheOldPrincePrivateCatalog.faceValue(company.id)
         }
-        return [certificateWealthItem(state, certificate, value)]
+        return [certificateWealthItem(TheOldPrinceNames, certificate, value)]
     }
 }

@@ -112,13 +112,10 @@
                 "13748": 0
             }
         },
-        "bank": {
-            "name": "Bank"
-        },
+        "bank": {},
         "companies": [
             {
                 "id": "So",
-                "name": "Souris",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -128,7 +125,6 @@
             },
             {
                 "id": "A",
-                "name": "Alberton",
                 "kind": "major",
                 "shareCount": 10,
                 "started": true,
@@ -140,7 +136,6 @@
             },
             {
                 "id": "MS",
-                "name": "Mount Stewart",
                 "kind": "major",
                 "shareCount": 10,
                 "started": true,
@@ -152,7 +147,6 @@
             },
             {
                 "id": "MR",
-                "name": "Murray River",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -162,7 +156,6 @@
             },
             {
                 "id": "S",
-                "name": "Summerside",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -172,7 +165,6 @@
             },
             {
                 "id": "Gt",
-                "name": "Georgetown",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -182,7 +174,6 @@
             },
             {
                 "id": "C",
-                "name": "Charlottetown",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -192,78 +183,65 @@
             },
             {
                 "id": "PEIR",
-                "name": "Prince Edward Island Railway",
                 "kind": "major"
             },
             {
                 "id": "MC",
-                "name": "Merchants and Co.",
                 "kind": "private",
                 "privateRevenue": 5
             },
             {
                 "id": "VR",
-                "name": "Vernon River Bridge",
                 "kind": "private",
                 "privateRevenue": 5
             },
             {
                 "id": "RA",
-                "name": "Royal Agricultural Society",
                 "kind": "private",
                 "privateRevenue": 10
             },
             {
                 "id": "RF",
-                "name": "Railcar Ferry",
                 "kind": "private",
                 "privateRevenue": 15
             },
             {
                 "id": "SB",
-                "name": "Shipbuilding",
                 "kind": "private",
                 "privateRevenue": 15
             },
             {
                 "id": "HS",
-                "name": "Hunslet Steam Engine",
                 "kind": "private",
                 "privateRevenue": 20
             },
             {
                 "id": "MLC",
-                "name": "Mainline Concession",
                 "kind": "private",
                 "privateRevenue": 20
             },
             {
                 "id": "SBC",
-                "name": "Schreiber and Burpee Construction",
                 "kind": "private",
                 "privateRevenue": 30
             },
             {
                 "id": "SLC",
-                "name": "Shortline Concession",
                 "kind": "private",
                 "privateRevenue": 30
             },
             {
                 "id": "UB",
-                "name": "Union Bank",
                 "kind": "private",
                 "privateRevenue": 0
             },
             {
                 "id": "KM",
-                "name": "The King’s Mail",
                 "kind": "private",
                 "privateRevenue": 80
             },
             {
                 "id": "branch:CB",
-                "name": "Cornwall Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -273,7 +251,6 @@
             },
             {
                 "id": "branch:SB",
-                "name": "Stratford Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -283,7 +260,6 @@
             },
             {
                 "id": "branch:MB",
-                "name": "Morel Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -293,7 +269,6 @@
             },
             {
                 "id": "branch:BB",
-                "name": "Belfast Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -303,7 +278,6 @@
             },
             {
                 "id": "branch:WB",
-                "name": "Wellington Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -313,7 +287,6 @@
             },
             {
                 "id": "branch:HRB",
-                "name": "Hunter River Branch",
                 "kind": "major",
                 "shareCount": 10,
                 "started": false,
@@ -459,28 +432,24 @@
         "certificatePools": [
             {
                 "id": "market",
-                "name": "Market",
                 "owner": {
                     "kind": "bank"
                 }
             },
             {
                 "id": "reserved",
-                "name": "Reserved exchanges",
                 "owner": {
                     "kind": "bank"
                 }
             },
             {
                 "id": "auction",
-                "name": "Auction",
                 "owner": {
                     "kind": "bank"
                 }
             },
             {
                 "id": "treasury:So",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "So"
@@ -488,7 +457,6 @@
             },
             {
                 "id": "treasury:A",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "A"
@@ -496,7 +464,6 @@
             },
             {
                 "id": "treasury:MS",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "MS"
@@ -504,7 +471,6 @@
             },
             {
                 "id": "treasury:MR",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "MR"
@@ -512,7 +478,6 @@
             },
             {
                 "id": "treasury:S",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "S"
@@ -520,7 +485,6 @@
             },
             {
                 "id": "treasury:Gt",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "Gt"
@@ -528,7 +492,6 @@
             },
             {
                 "id": "treasury:C",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "C"
@@ -536,7 +499,6 @@
             },
             {
                 "id": "treasury:branch:CB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:CB"
@@ -544,7 +506,6 @@
             },
             {
                 "id": "treasury:branch:SB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:SB"
@@ -552,7 +513,6 @@
             },
             {
                 "id": "treasury:branch:MB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:MB"
@@ -560,7 +520,6 @@
             },
             {
                 "id": "treasury:branch:BB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:BB"
@@ -568,7 +527,6 @@
             },
             {
                 "id": "treasury:branch:WB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:WB"
@@ -576,7 +534,6 @@
             },
             {
                 "id": "treasury:branch:HRB",
-                "name": "Treasury shares",
                 "owner": {
                     "kind": "company",
                     "companyId": "branch:HRB"

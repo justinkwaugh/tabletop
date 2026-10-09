@@ -39,7 +39,7 @@
                     ><CompanyToken
                         appearance={session.mapView.stations[selection.parentId.value]}
                         size={26}
-                    />{getCompany(gameState, selection.parentId.value).name}</span
+                    />{session.companyName(selection.parentId.value)}</span
                 >
                 {#if selection.branchId}
                     <span class="arrow" aria-hidden="true">→</span>
@@ -47,7 +47,7 @@
                         ><CompanyToken
                             appearance={session.mapView.stations[selection.branchId.value]}
                             size={26}
-                        />{getCompany(gameState, selection.branchId.value).name}</span
+                        />{session.companyName(selection.branchId.value)}</span
                     >
                 {/if}
                 {#if preview}<span class="selected-price"
@@ -60,13 +60,13 @@
                 {#each parents as { company } (company.id)}
                     <button
                         class="company-choice"
-                        aria-label={`Split ${company.name}`}
+                        aria-label={`Split ${session.companyName(company.id)}`}
                         data-split-parent={company.id}
                         disabled={!session.canPreviewSplit}
                         onclick={() => session.selectSplitParent(company.id)}
                     >
                         <CompanyToken appearance={session.mapView.stations[company.id]} size={36} />
-                        <span>{company.name}</span>
+                        <span>{session.companyName(company.id)}</span>
                     </button>
                 {/each}
                 {#if !parents.length}<p>No companies can split.</p>{/if}
@@ -74,13 +74,13 @@
                 {#each session.splitModel.branches() as company (company.id)}
                     <button
                         class="company-choice"
-                        aria-label={`Choose ${company.name}`}
+                        aria-label={`Choose ${session.companyName(company.id)}`}
                         data-split-branch={company.id}
                         disabled={!session.canPreviewSplit}
                         onclick={() => session.selectSplitBranch(company.id)}
                     >
                         <CompanyToken appearance={session.mapView.stations[company.id]} size={36} />
-                        <span>{company.name}</span>
+                        <span>{session.companyName(company.id)}</span>
                     </button>
                 {/each}
             {:else if !selection.marketSpaceId}

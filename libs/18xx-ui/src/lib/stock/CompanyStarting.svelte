@@ -8,7 +8,7 @@
 {#if session.stock.selectedStartCompany}
     {@const company = getCompany(gameState, session.stock.selectedStartCompany.companyId)}
     <div class="start" aria-label="Start company">
-        <h3>Start {company.name}</h3>
+        <h3>Start {session.companyName(company.id)}</h3>
         {#if session.stock.selectedStartResult?.details}
             {@const details = session.stock.selectedStartResult.details}
             <p>
@@ -67,7 +67,7 @@
                     disabled={session.busy || !choice.prices.some((price) => price.result.details)}
                     onclick={() => session.stock.selectCompanyStart(choice.request)}
                 >
-                    <strong>{getCompany(gameState, choice.request.companyId).name}</strong>
+                    <strong>{session.companyName(choice.request.companyId)}</strong>
                     <span>{session.ownerName(choice.request.buyer)}</span>
                     {#if !choice.prices.some((price) => price.result.details)}<span
                             >{choice.prices[0]?.result.reason}</span

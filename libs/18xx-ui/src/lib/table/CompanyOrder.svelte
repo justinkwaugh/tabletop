@@ -21,6 +21,7 @@
         money,
         showDetails,
         companies,
+        companyName,
         gameState,
         trainDepot,
         trainColors,
@@ -37,6 +38,7 @@
         money: MoneyFormat
         showDetails: boolean
         companies: readonly Company[]
+        companyName: (companyId: string) => string
         gameState: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
         trainDepot: TrainDepot
@@ -155,15 +157,15 @@
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}
-                aria-label={`${company.name}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => train.name).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
-                title={company.name}
+                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => train.name).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
+                title={companyName(company.id)}
             >
                 <button
                     id={`${detailsId}-${company.id}`}
                     class="pill"
                     class:token-only={!detailed}
                     class:current={currentCompanyId === company.id}
-                    aria-label={company.name}
+                    aria-label={companyName(company.id)}
                     aria-expanded={expandedCompanyId === company.id}
                     aria-controls={`${detailsId}-panel`}
                     onclick={() =>

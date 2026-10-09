@@ -43,11 +43,10 @@ function position(): FundingState & DistributionState {
     const stockMarket: StockMarket = { stacks: [] }
     market.placeMarker(stockMarket, 'A', '0:1')
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             {
                 id: 'A',
-                name: 'Alpha',
                 kind: 'major',
                 shareCount: 10,
                 started: true,
@@ -77,8 +76,8 @@ function position(): FundingState & DistributionState {
             { owner: company, amount: 0 }
         ],
         certificatePools: [
-            { id: 'ipo', name: 'IPO', owner: bank },
-            { id: 'market', name: 'Market', owner: bank }
+            { id: 'ipo', owner: bank },
+            { id: 'market', owner: bank }
         ],
         players: [
             { playerId: 'alex', color: Color.Blue },

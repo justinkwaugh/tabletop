@@ -137,13 +137,11 @@
       "PRR"
     ],
     "bank": {
-      "name": "Bank",
       "unlimitedAfterExhaustion": true
     },
     "companies": [
       {
         "id": "PRR",
-        "name": "Pennsylvania",
         "kind": "major",
         "shareCount": 10,
         "closed": true,
@@ -151,7 +149,6 @@
       },
       {
         "id": "NYC",
-        "name": "New York Central",
         "kind": "major",
         "shareCount": 10,
         "closed": false,
@@ -159,7 +156,6 @@
       },
       {
         "id": "B&O",
-        "name": "Baltimore & Ohio",
         "kind": "major",
         "shareCount": 10,
         "closed": false,
@@ -167,7 +163,6 @@
       },
       {
         "id": "C&O",
-        "name": "Chesapeake & Ohio",
         "kind": "major",
         "shareCount": 10,
         "closed": true,
@@ -175,7 +170,6 @@
       },
       {
         "id": "ERIE",
-        "name": "Erie",
         "kind": "major",
         "shareCount": 10,
         "closed": false,
@@ -183,7 +177,6 @@
       },
       {
         "id": "GT",
-        "name": "Grand Trunk",
         "kind": "major",
         "shareCount": 10,
         "closed": false,
@@ -191,7 +184,6 @@
       },
       {
         "id": "IC",
-        "name": "Illinois Central",
         "kind": "major",
         "shareCount": 10,
         "closed": false,
@@ -199,39 +191,33 @@
       },
       {
         "id": "MS",
-        "name": "Michigan Southern",
         "kind": "minor",
         "privateRevenue": 0,
         "shareCount": 1
       },
       {
         "id": "BIG4",
-        "name": "Big 4",
         "kind": "minor",
         "privateRevenue": 0,
         "shareCount": 1
       },
       {
         "id": "C&WI",
-        "name": "Chicago & Western Indiana",
         "kind": "private",
         "privateRevenue": 10
       },
       {
         "id": "MAIL",
-        "name": "Mail Contract",
         "kind": "private",
         "privateRevenue": 0
       },
       {
         "id": "MC",
-        "name": "Michigan Central",
         "kind": "private",
         "privateRevenue": 15
       },
       {
         "id": "MPC",
-        "name": "Meat Packing Company",
         "kind": "private",
         "privateRevenue": 15
       }
@@ -239,7 +225,6 @@
     "certificatePools": [
       {
         "id": "open-market",
-        "name": "Market",
         "owner": {
           "kind": "bank"
         }

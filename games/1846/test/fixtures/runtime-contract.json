@@ -15,11 +15,11 @@
     "CorporateFinance": "3f52f4e5e534b41cd07208809c12042d3b1171817bc6f69738fa80365aebcb38",
     "DeclareBankruptcy1846": "87e52928362fc1b9789a27ce970bf7002d1dcaf6366247166642a950b4bc2dcc",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
-    "DistributeEarnings": "d54dab8b70f303099d7c19fb371c39dfa473766b1d265b7915257080b0e7f7c1",
+    "DistributeEarnings": "d1a60eb8722250aeb4f79f3fe6b30a59d3fd4b128636228368a0b7f8e6111dbc",
     "EmergencyBuyTrain": "d4f3cf05985e5de8e5c2c45867f43ef0c7d9023a331c1ed577ae5015c5cfa99a",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
-    "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
-    "FinishReceiverTurn": "c4bceafce30f14f0399ac4f46201c39ea016758831885b3846890dfbd046066a",
+    "FinishOperatingTurn": "688c7c8befa3325e16ed4ac7d55f787c1c21b3770a28b9abde34781cb912a849",
+    "FinishReceiverTurn": "f301c5aa20d907b5635ffe7d90709795b772448d9e9214b22d4009716edd85b2",
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
@@ -43,7 +43,7 @@
     "SettleReceiver": "a3a9f36a7e636269a900c7d5e945926563365e84a969b4cc2299da1923e67a19",
     "StartCompany": "088dbcf78d2b0ba76714fb09e68fa0e67df031634d115ab88a043c9748ce1450",
     "StartEmergencyFunding": "162d1195ee853859ab7abe4db2a9bc9a680b77884513fc4c4b6697837108e653",
-    "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
+    "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartReceiverTurn": "ef73c41e66b39d7970b46ee3d7b6ceb8c8fd5a756e790621ccf7178222aa724b",
@@ -71,17 +71,10 @@
           "broken": {
             "type": "boolean"
           },
-          "name": {
-            "minLength": 1,
-            "type": "string"
-          },
           "unlimitedAfterExhaustion": {
             "type": "boolean"
           }
         },
-        "required": [
-          "name"
-        ],
         "type": "object"
       },
       "bankruptPlayerIds": {
@@ -181,10 +174,6 @@
               "minLength": 1,
               "type": "string"
             },
-            "name": {
-              "minLength": 1,
-              "type": "string"
-            },
             "owner": {
               "anyOf": [
                 {
@@ -245,7 +234,6 @@
           },
           "required": [
             "id",
-            "name",
             "owner"
           ],
           "type": "object"
@@ -463,10 +451,6 @@
               "minimum": 1,
               "type": "integer"
             },
-            "name": {
-              "minLength": 1,
-              "type": "string"
-            },
             "operated": {
               "type": "boolean"
             },
@@ -528,8 +512,7 @@
           },
           "required": [
             "id",
-            "kind",
-            "name"
+            "kind"
           ],
           "type": "object"
         },

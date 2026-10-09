@@ -13,7 +13,8 @@ import {
     Phases1846,
     PhaseRules1846,
     TransferRules1846,
-    EndingRules1846
+    EndingRules1846,
+    Names1846
 } from '@tabletop/1846'
 import type { EighteenXXSessionRules } from '@tabletop/18xx-ui'
 import { CompanyDescriptions } from './companyDescriptions.js'
@@ -23,6 +24,7 @@ export const SessionRules1846: EighteenXXSessionRules<
     HydratedEighteenFortySixState
 > = {
     state: EighteenFortySixStateDefinition,
+    names: Names1846,
     stockRules: StockRules1846,
     companyRules: CompanyRules1846,
     operatingRules: OperatingRules1846,

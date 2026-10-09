@@ -52,7 +52,7 @@
         onDecline={() => session.decisions.respondToTrackConsent(false)}
     >
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
-        <strong>{getCompany(gameState, request.companyId).name}</strong>
+        <strong>{session.companyName(request.companyId)}</strong>
         <span>requests permission to lay track at {request.locationId}</span>
         {#if definition}
             <Tile
@@ -92,12 +92,12 @@
                     />{/if}
                 <span
                     >{isCompanyPurchaseOffer(offer)
-                        ? getCompany(gameState, offer.companyId).name
+                        ? session.companyName(offer.companyId)
                         : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
                     {offer.asset.kind === 'private'
-                        ? getCompany(gameState, offer.asset.privateCompanyId).name
+                        ? session.companyName(offer.asset.privateCompanyId)
                         : offer.asset.kind === 'company'
-                          ? getCompany(gameState, offer.asset.companyId).name
+                          ? session.companyName(offer.asset.companyId)
                           : offer.asset.trainId}</span
                 >
             </DecisionResponse>
@@ -168,7 +168,7 @@
                             <header class="private-track-prompt">
                                 <span
                                     >{privateTilePrompts[power.privateCompanyId] ??
-                                        `Place a tile using ${getCompany(gameState, power.privateCompanyId).name}`}</span
+                                        `Place a tile using ${session.companyName(power.privateCompanyId)}`}</span
                                 >
                                 {#if gameState.privateTrackLay}
                                     <span>or</span>
@@ -187,7 +187,7 @@
                             {#each session.privateActions.sharedTrackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
-                                    >{getCompany(gameState, power.privateCompanyId).name}</button
+                                    >{session.companyName(power.privateCompanyId)}</button
                                 >
                             {/each}
                             {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}`)}
@@ -210,7 +210,7 @@
                                     session.mapView,
                                     option.kind,
                                     option.locationId
-                                )} ({getCompany(gameState, option.privateCompanyId).name})</button
+                                )} ({session.companyName(option.privateCompanyId)})</button
                             >
                         {/each}
                     </div>
@@ -221,7 +221,7 @@
                 {#if session.privateActions.selection === 'powers' && session.privates.exchangeOptions.length}
                     <div class="private-track">
                         {#each session.privates.exchangeOptions as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
-                            <span>{getCompany(gameState, option.privateCompanyId).name}</span>
+                            <span>{session.companyName(option.privateCompanyId)}</span>
                             <PrivateExchangeButton {session} {option} />
                         {/each}
                     </div>

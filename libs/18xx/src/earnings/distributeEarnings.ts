@@ -38,8 +38,7 @@ export const DistributeEarnings = Type.Object(
                     ...EarningsDetails.properties,
                     privateEffects: Type.Array(PrivateEffect),
                     chargesPaid: Type.Optional(Type.Array(CashPayment)),
-                    round: Type.Optional(OperatingRoundIdentity),
-                    companyName: Type.String()
+                    round: Type.Optional(OperatingRoundIdentity)
                 },
                 { additionalProperties: false }
             )
@@ -108,7 +107,6 @@ export class HydratedDistributeEarnings
             ...result.details,
             ...(chargesPaid.length ? { chargesPaid } : {}),
             privateEffects,
-            companyName: getCompany(state, this.companyId).name,
             ...(state.operatingSet
                 ? {
                       round: {

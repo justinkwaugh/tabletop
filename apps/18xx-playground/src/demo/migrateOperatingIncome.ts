@@ -11,7 +11,6 @@ import {
     isFinishOperatingTurn,
     isStartOperatingRound,
     operatingRoundSnapshot,
-    getCompany,
     type ValuationRules,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
@@ -27,7 +26,8 @@ export function migrateOperatingIncome<
 ): boolean {
     const needsSnapshot = (action: GameAction) =>
         (action.type === 'StartOperatingRound' && !isStartOperatingRound(action)) ||
-        (action.type === 'DistributeEarnings' && !isDistributeEarnings(action)) ||
+        (action.type === 'DistributeEarnings' &&
+            (!isDistributeEarnings(action) || !action.metadata?.round)) ||
         (action.type === 'FinishOperatingTurn' &&
             (!isFinishOperatingTurn(action) || !action.metadata))
     if (!actions.some(needsSnapshot)) return false
@@ -47,9 +47,7 @@ export function migrateOperatingIncome<
                 if (action.type === 'StartOperatingRound') {
                     Reflect.set(metadata, 'snapshot', operatingRoundSnapshot(incomeState, rules))
                 } else {
-                    const companyId: unknown = Reflect.get(action, 'companyId')
-                    assert(typeof companyId === 'string', 'Distribution requires a company')
-                    Reflect.set(metadata, 'companyName', getCompany(incomeState, companyId).name)
+                    Reflect.deleteProperty(metadata, 'companyName')
                     if (incomeState.operatingSet)
                         Reflect.set(metadata, 'round', {
                             number: incomeState.operatingSet.number,

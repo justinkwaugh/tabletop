@@ -28,7 +28,7 @@
         <div class="company">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={48} />
             <div>
-                <strong>{company.name}</strong>
+                <strong>{session.companyName(company.id)}</strong>
                 <span
                     >{session.getPlayerName(pending.playerId)} won for {money(pending.price)} · starts
                     at {money(startPrice)}</span
@@ -51,7 +51,7 @@
                         aria-pressed={choice?.privateIds.includes(privateId)}
                         disabled={!module.canForm}
                         onclick={() => module.toggleContribution(privateId)}
-                        >{getCompany(session.gameState, privateId).name}</button
+                        >{session.companyName(privateId)}</button
                     >
                 {/each}
             </div>
@@ -60,7 +60,7 @@
         <button
             class="action-button"
             disabled={!module.canForm || !!reason}
-            onclick={() => module.form()}>Form {company.name}</button
+            onclick={() => module.form()}>Form {session.companyName(company.id)}</button
         >
     </div>
 </article>

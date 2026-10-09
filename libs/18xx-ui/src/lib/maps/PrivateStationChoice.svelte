@@ -8,8 +8,8 @@
 {#if pending}
     <section aria-label="Private station choice">
         <p>
-            {getCompany(session.gameState, pending.companyId).name}: click the highlighted city for
-            {getCompany(session.gameState, pending.privateCompanyId).name}’s free station, or
+            {session.companyName(pending.companyId)}: click the highlighted city for
+            {session.companyName(pending.privateCompanyId)}’s free station, or
         </p>
         <button class="action-button" onclick={() => session.stations.declinePrivateStation()}
             >Decline</button

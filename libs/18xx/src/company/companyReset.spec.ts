@@ -8,11 +8,10 @@ it('returns a company to an unstarted charter with its president’s certificate
     const stockMarket: StockMarket = { stacks: [] }
     placeStockMarker(stockMarket, 'A', '0:1')
     const state: FinancialState & StationState & { stockMarket: StockMarket } = {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             {
                 id: 'A',
-                name: 'A',
                 kind: 'major',
                 shareCount: 5,
                 started: true,
@@ -55,7 +54,6 @@ it('returns a company to an unstarted charter with its president’s certificate
     resetCompany(state, 'A', 2)
     expect(state.companies[0]).toEqual({
         id: 'A',
-        name: 'A',
         kind: 'major',
         shareCount: 2,
         lastIssuedNumber: 1

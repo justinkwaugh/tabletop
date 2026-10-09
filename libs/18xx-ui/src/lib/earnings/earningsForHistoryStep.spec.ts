@@ -20,7 +20,6 @@ const earnings: DistributeEarnings = {
     choice: 'withhold',
     metadata: {
         companyId: 'IC',
-        companyName: 'Illinois Central',
         choice: 'withhold',
         revenue: 0,
         retained: 0,

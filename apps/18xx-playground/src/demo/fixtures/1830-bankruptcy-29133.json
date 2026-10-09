@@ -125,13 +125,11 @@
    "stacks": []
   },
   "bank": {
-   "name": "Bank",
    "unlimitedAfterExhaustion": true
   },
   "companies": [
    {
     "id": "PRR",
-    "name": "Pennsylvania Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -141,7 +139,6 @@
    },
    {
     "id": "NYC",
-    "name": "New York Central Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -151,7 +148,6 @@
    },
    {
     "id": "CPR",
-    "name": "Canadian Pacific Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -161,7 +157,6 @@
    },
    {
     "id": "BO",
-    "name": "Baltimore & Ohio Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -171,7 +166,6 @@
    },
    {
     "id": "CO",
-    "name": "Chesapeake & Ohio Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -181,7 +175,6 @@
    },
    {
     "id": "ERIE",
-    "name": "Erie Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -191,7 +184,6 @@
    },
    {
     "id": "NYNH",
-    "name": "New York, New Haven & Hartford Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -201,7 +193,6 @@
    },
    {
     "id": "BM",
-    "name": "Boston & Maine Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -211,37 +202,31 @@
    },
    {
     "id": "SV",
-    "name": "Schuylkill Valley",
     "kind": "private",
     "privateRevenue": 5
    },
    {
     "id": "CS",
-    "name": "Champlain & St. Lawrence",
     "kind": "private",
     "privateRevenue": 10
    },
    {
     "id": "DH",
-    "name": "Delaware & Hudson",
     "kind": "private",
     "privateRevenue": 15
    },
    {
     "id": "MH",
-    "name": "Mohawk & Hudson",
     "kind": "private",
     "privateRevenue": 20
    },
    {
     "id": "CA",
-    "name": "Camden & Amboy",
     "kind": "private",
     "privateRevenue": 25
    },
    {
     "id": "BOP",
-    "name": "Baltimore & Ohio",
     "kind": "private",
     "privateRevenue": 30
    }
@@ -341,14 +326,12 @@
   "certificatePools": [
    {
     "id": "initial-offering",
-    "name": "IPO",
     "owner": {
      "kind": "bank"
     }
    },
    {
     "id": "open-market",
-    "name": "Market",
     "owner": {
      "kind": "bank"
     }

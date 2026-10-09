@@ -38,11 +38,10 @@ function fixture(
         supply: [{ definitionId: 'train', count: 2 }]
     })
     const state: TrainRunningState = {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             {
                 id: 'A',
-                name: 'A',
                 kind: 'major',
                 shareCount: 10,
                 president: { kind: 'player', playerId: 'one' }

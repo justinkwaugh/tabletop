@@ -1,3 +1,4 @@
+import { TheOldPrinceNames } from '../names.js'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import type { GameDefinition } from '@tabletop/common'
 import { TheOldPrinceCompanyRules } from '../companyRules.js'
@@ -30,6 +31,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
 > = {
     state: TheOldPrinceStateDefinition,
     endingRules: TheOldPrinceEndingRules,
+    names: TheOldPrinceNames,
     decisionHandlers: { StockRound: (family) => new TheOldPrinceStockRoundHandler(family) },
     titleActions: [
         defineAction(SplitCompany, isSplitCompany, (action) => new HydratedSplitCompany(action))

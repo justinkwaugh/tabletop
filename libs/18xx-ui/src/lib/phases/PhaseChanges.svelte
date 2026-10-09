@@ -14,7 +14,7 @@
     {#if change && companyId}
         <div aria-label="Compulsory train discard">
             <h2>
-                {getCompany(gameState, companyId).name} · Discard {session.discard.excess} excess {session
+                {session.companyName(companyId)} · Discard {session.discard.excess} excess {session
                     .discard.excess === 1
                     ? 'train'
                     : 'trains'}
@@ -23,10 +23,9 @@
                 {owner
                     ? session.ownerName(owner)
                     : gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(' / ')} decides.
-                {#if change.continuation.companyId}Then {getCompany(
-                        gameState,
+                {#if change.continuation.companyId}Then {session.companyName(
                         change.continuation.companyId
-                    ).name} resumes {change.continuation.machineState === 'BuyingTrains'
+                    )} resumes {change.continuation.machineState === 'BuyingTrains'
                         ? 'buying trains'
                         : change.continuation.machineState}.{:else}Then the operating round ends.{/if}
             </p>

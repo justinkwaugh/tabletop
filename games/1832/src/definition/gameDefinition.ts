@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoNames } from '../names.js'
 import { type GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import {
@@ -121,6 +122,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
 > = {
     state: EighteenThirtyTwoStateDefinition,
     endingRules: EighteenThirtyTwoEndingRules,
+    names: EighteenThirtyTwoNames,
     auctionRules: EighteenThirtyTwoAuctionRules,
     trainFundingRules: EighteenThirtyTwoTrainFundingRules,
     transferRules: EighteenThirtyTwoTransferRules,

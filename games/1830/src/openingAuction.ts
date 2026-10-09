@@ -63,10 +63,10 @@ export function createEighteenThirtyOpening({
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
-        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        bank: { unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({
-                ...company,
+                id: company.id,
                 kind: 'major',
                 shareCount: 10,
                 started: false,
@@ -76,7 +76,6 @@ export function createEighteenThirtyOpening({
             })),
             ...EighteenThirtyPrivates.map((company) => ({
                 id: company.id,
-                name: company.name,
                 kind: 'private',
                 privateRevenue: company.revenue
             }))
@@ -93,8 +92,8 @@ export function createEighteenThirtyOpening({
             }))
         ],
         certificatePools: [
-            { id: 'initial-offering', name: 'IPO', owner: { kind: 'bank' } },
-            { id: 'open-market', name: 'Market', owner: { kind: 'bank' } }
+            { id: 'initial-offering', owner: { kind: 'bank' } },
+            { id: 'open-market', owner: { kind: 'bank' } }
         ],
         certificates: [
             ...majors.flatMap((company) =>

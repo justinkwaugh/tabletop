@@ -15,6 +15,7 @@
         appearances,
         view,
         companyNames,
+        companyName,
         onPreviewMap
     }: {
         money: MoneyFormat
@@ -24,10 +25,13 @@
         appearances: Readonly<Record<string, StationAppearance>>
         view: 'Company' | 'Player'
         companyNames: Readonly<Record<string, CompanyNameVariants>>
+        companyName: (companyId: string) => string
     } = $props()
-    const companies = $derived([
-        ...new Map(rounds.flatMap((round) => Object.entries(round.companyNames))).entries()
-    ])
+    const companies = $derived(
+        [...new Set(rounds.flatMap((round) => round.companyIds))].map(
+            (companyId) => [companyId, companyName(companyId)] as const
+        )
+    )
 </script>
 
 {#if rounds.length}
@@ -128,7 +132,7 @@
                                     {:else if run && round.companyIncome[companyId] > 0}<button
                                             class="payout"
                                             onclick={() => onPreviewMap(run)}
-                                            aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
+                                            aria-label={`Show ${companyName(companyId)} run in OR ${round.id}`}
                                             >{money(round.companyIncome[companyId])}</button
                                         >
                                     {:else}{money(round.companyIncome[companyId])}{/if}

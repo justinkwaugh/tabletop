@@ -23,7 +23,6 @@ export type Owner = Type.Static<typeof Owner>
 
 export const CompanyProperties = {
     id: Id,
-    name: Id,
     kind: Id,
     shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
     parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
@@ -55,7 +54,6 @@ export const Company = Type.Object(
 export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
     {
-        name: Id,
         unlimitedAfterExhaustion: Type.Optional(Type.Boolean()),
         broken: Type.Optional(Type.Boolean())
     },
@@ -71,7 +69,7 @@ export const Cash = Type.Object(
 )
 export type Cash = Type.Static<typeof Cash>
 export const CertificatePool = Type.Object(
-    { id: Id, name: Id, owner: Owner },
+    { id: Id, owner: Owner },
     { additionalProperties: false }
 )
 export type CertificatePool = Type.Static<typeof CertificatePool>

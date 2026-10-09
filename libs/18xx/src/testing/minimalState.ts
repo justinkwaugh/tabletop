@@ -1,3 +1,4 @@
+import { titleNames } from '../game/titleNames.js'
 import { Color } from '@tabletop/common'
 import type { FormationState } from '../company/companyState.js'
 import type { DistributionState } from '../earnings/earningsDistribution.js'
@@ -11,6 +12,7 @@ import {
 } from '../stock/stockMarket.js'
 
 export const TestCompanyId = 'R'
+export const TestNames = titleNames({ [TestCompanyId]: 'Railway' }, () => undefined)
 export const TestMarket = new StockMarketChart(
     createRectangularStockMarketSpaces([[100, 110, 120]], () => 'white')
 )
@@ -19,8 +21,8 @@ export function minimalRailwayState(): DistributionState {
     const stockMarket: StockMarket = { stacks: [] }
     TestMarket.placeMarker(stockMarket, TestCompanyId, '0:0')
     return {
-        companies: [{ id: TestCompanyId, name: 'Railway', kind: 'major', shareCount: 10 }],
-        bank: { name: 'Bank' },
+        companies: [{ id: TestCompanyId, kind: 'major', shareCount: 10 }],
+        bank: {},
         cash: [{ owner: { kind: 'bank' }, amount: 'unlimited' }],
         certificates: [],
         certificatePools: [],

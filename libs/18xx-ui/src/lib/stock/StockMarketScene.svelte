@@ -5,8 +5,7 @@
     import {
         type StockMarket as StockMarketModel,
         type StockMarketChart,
-        type StockMarketSpace,
-        type Company
+        type StockMarketSpace
     } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
@@ -26,7 +25,7 @@
     let {
         chart,
         market,
-        companies,
+        companyName,
         appearances,
         animation,
         zones = [],
@@ -36,7 +35,7 @@
     }: {
         chart: StockMarketChart
         market: StockMarketModel
-        companies: readonly Company[]
+        companyName: (companyId: string) => string
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
         zones?: readonly MarketZone[]
@@ -312,8 +311,7 @@
                         <div
                             class="token-payload"
                             role="img"
-                            aria-label={companies.find((company) => company.id === token.companyId)
-                                ?.name}
+                            aria-label={companyName(token.companyId)}
                             onpointerenter={() => expandStack(token.spaceId)}
                         >
                             <CompanyToken

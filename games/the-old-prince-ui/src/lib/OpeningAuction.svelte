@@ -11,7 +11,7 @@
             {#each gameState.companies.filter((company) => company.role) as company (company.id)}
                 <span>
                     {company.role === 'mainline' ? 'Mainline' : 'Shortline'}:
-                    <strong>{company.name}</strong>
+                    <strong>{session.companyName(company.id)}</strong>
                 </span>
             {/each}
         </p>

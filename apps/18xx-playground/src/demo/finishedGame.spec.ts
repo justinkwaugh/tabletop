@@ -1,4 +1,8 @@
-import { CanonicalValidator as Validator1846, hydrateEighteenFortySixState } from '@tabletop/1846'
+import {
+    CanonicalValidator as Validator1846,
+    Names1846,
+    hydrateEighteenFortySixState
+} from '@tabletop/1846'
 import { HistoricalMaps } from '../../../../libs/18xx-ui/src/lib/maps/historicalMap.js'
 import { mapState1846 } from '../../../../games/1846-ui/src/lib/mapState.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
@@ -42,6 +46,7 @@ it('replays the finished 1846 game and restores its opening and final state', as
     )
     const maps = new HistoricalMaps(
         () => MapView1846,
+        (companyId) => Names1846.company(companyId),
         (snapshot: typeof state) => {
             if (!Validator1846.Check(snapshot)) throw Error('Expected canonical 1846 state')
             return mapState1846(hydrateEighteenFortySixState(snapshot))
@@ -279,7 +284,7 @@ it('replays the finished 1832 game, its Systems and closures, to its ending and 
     const names = {
         companyName: (id: string) => id,
         playerName: (id: string) => id,
-        bankName: state.bank.name
+        bankName: 'Bank'
     }
     for (const action of actions)
         expect(

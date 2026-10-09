@@ -23,10 +23,10 @@ function example(): FinancialState {
         }))
     ]
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
-            { id: 'rail', name: 'Rail', kind: 'major', shareCount: 20, president: previous },
-            { id: 'investor', name: 'Investor', kind: 'major' }
+            { id: 'rail', kind: 'major', shareCount: 20, president: previous },
+            { id: 'investor', kind: 'major' }
         ],
         certificates,
         cash: [],

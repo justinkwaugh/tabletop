@@ -25,7 +25,7 @@ function deciding(valid: string[], pending: Partial<State> = {}, availability = 
         machineState: 'LayingTrack',
         companies: [
             ...base.companies.map((company) => ({ ...company, floated: true })),
-            { id: PrivateId, name: 'Tramway', kind: 'private', shareCount: 1 }
+            { id: PrivateId, kind: 'private', shareCount: 1 }
         ],
         cash: [...base.cash, { owner: { kind: 'company', companyId: TestCompanyId }, amount: 100 }],
         tileInventory: minimalTrackTileSet.createInventory(),

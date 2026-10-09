@@ -41,7 +41,7 @@ it('rejects an overdrawn settlement atomically, including earlier valid payments
 })
 it.each([50, 51])('breaks an eligible bank at exhaustion and pays the full %s', (amount) => {
     const state: Pick<FinancialState, 'bank' | 'cash'> = {
-        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        bank: { unlimitedAfterExhaustion: true },
         cash: [
             { owner: bank, amount: 50 },
             { owner: player, amount: 0 }
@@ -55,7 +55,7 @@ it.each([50, 51])('breaks an eligible bank at exhaustion and pays the full %s', 
 })
 it('does not break the bank if another payment in the settlement is invalid', () => {
     const state: Pick<FinancialState, 'bank' | 'cash'> = {
-        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        bank: { unlimitedAfterExhaustion: true },
         cash: [
             { owner: bank, amount: 50 },
             { owner: player, amount: 0 },

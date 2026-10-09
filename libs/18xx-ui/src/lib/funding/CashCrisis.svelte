@@ -5,7 +5,7 @@
         $props()
     const money = $derived(session.presentation.money)
     const debt = $derived(session.cashCrisis.debt)
-    const companyName = (id: string) => getCompany(session.gameState, id).name
+    const companyName = (id: string) => session.companyName(id)
 </script>
 
 {#if debt && session.gameState.machineState === 'RaisingCash'}

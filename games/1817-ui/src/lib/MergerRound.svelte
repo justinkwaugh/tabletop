@@ -15,7 +15,7 @@
     const decision = $derived(session.mergerDecision)
     const trading = $derived(session.convertedShareTrading)
     const stations = $derived(session.conversionStations)
-    const name = (id: string) => getCompany(gameState, id).name
+    const name = (id: string) => session.companyName(id)
 
     const stationText = (count: number, cost: number) =>
         count ? `${plural(count, 'station')} for ${money(cost)}` : 'no stations'

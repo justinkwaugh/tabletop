@@ -91,7 +91,7 @@ it('rounds players and Union Bank independently and preserves reserved exchange 
 })
 it('retains existing treasury shares and rounds eligible Bank shares across pools together', () => {
     const { state } = exampleGame(TheOldPrinceScenarios, 'split')
-    state.certificatePools.push({ id: 'ipo', name: 'IPO', owner: bank })
+    state.certificatePools.push({ id: 'ipo', owner: bank })
     allocate(state, [
         { owner: alex },
         { owner: alex },

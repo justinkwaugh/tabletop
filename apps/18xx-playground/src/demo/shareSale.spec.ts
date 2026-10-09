@@ -182,7 +182,7 @@ it.each([
     (first, second) => {
         const { game, engine, state } = example(Top)
         give(state, 'So:share:2', alex)
-        state.companies.push({ id: 'stationary', kind: 'major', name: 'Stationary' })
+        state.companies.push({ id: 'stationary', kind: 'major' })
         placeStockMarker(state.stockMarket, 'stationary', '2:1')
         placeStockMarker(state.stockMarket, 'So', '1:1')
         let current = state

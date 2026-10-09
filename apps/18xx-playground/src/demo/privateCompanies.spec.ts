@@ -499,7 +499,6 @@ it('TOP concessions close on operation and no longer receive private income', ()
     const { game, engine, state } = example(Top, 'operations')
     state.companies.push({
         id: 'MLC',
-        name: 'Mainline Concession',
         kind: 'private',
         privateRevenue: 20
     })

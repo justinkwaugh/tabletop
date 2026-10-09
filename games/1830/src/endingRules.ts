@@ -1,3 +1,4 @@
+import { EighteenThirtyNames } from './names.js'
 import { EighteenThirtyMarket } from './stockMarket.js'
 import {
     bankExhaustionAtSetEnd,
@@ -21,6 +22,6 @@ export const EighteenThirtyEndingRules: EndingRules = {
                     ? marketShareValue(EighteenThirtyMarket, state, certificate)
                     : EighteenThirtyPrivateCatalog.faceValue(company.id)
         }
-        return [certificateWealthItem(state, certificate, value)]
+        return [certificateWealthItem(EighteenThirtyNames, certificate, value)]
     }
 }

@@ -43,7 +43,6 @@ function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
         const company = draftCompany(privateId)
         state.companies.push({
             id: company.id,
-            name: company.name,
             kind: 'private',
             privateRevenue: company.revenue
         })

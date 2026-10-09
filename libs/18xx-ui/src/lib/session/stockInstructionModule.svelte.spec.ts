@@ -52,12 +52,12 @@ function instructionState(
         activePlayerIds: ['blake'],
         companies: [
             { ...state.companies[0], started: true },
-            { id: 'S', name: 'Shortline', kind: 'major', shareCount: 10 }
+            { id: 'S', kind: 'major', shareCount: 10 }
         ],
         certificatePools: [
-            { id: 'ipo', name: 'IPO', owner: bank },
-            { id: 'market', name: 'Market', owner: bank },
-            { id: 'reserved', name: 'Reserved', owner: bank }
+            { id: 'ipo', owner: bank },
+            { id: 'market', owner: bank },
+            { id: 'reserved', owner: bank }
         ],
         cash: [...state.cash, { owner: { kind: 'player', playerId: TestPlayerId }, amount: cash }],
         certificates: [

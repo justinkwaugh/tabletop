@@ -348,7 +348,6 @@ export class TheOldPrinceBranchSplit {
         if (!state.certificatePools.some((pool) => pool.id === `treasury:${parent.id}`))
             state.certificatePools.push({
                 id: `treasury:${parent.id}`,
-                name: 'Treasury shares',
                 owner: treasury
             })
         settleCashPayments(state, details.payments)

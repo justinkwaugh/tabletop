@@ -43,9 +43,6 @@ function seededPosition({
     masterSeed,
     stockMarket,
     certificates,
-    companies,
-    certificatePools,
-    bank: { name: bankName, ...bank },
     trainInventory,
     ...position
 }: EighteenXXState) {
@@ -58,9 +55,6 @@ function seededPosition({
             retired: false,
             owner,
             poolId
-        })),
-        companies: companies.map(({ name, ...company }) => company),
-        certificatePools: certificatePools.map(({ name, ...pool }) => pool),
-        bank
+        }))
     }
 }

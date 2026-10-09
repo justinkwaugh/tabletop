@@ -17,8 +17,8 @@ it('passes the chosen payout and calculated dividend to market policy without mu
     const market: StockMarket = { stacks: [] }
     chart.placeMarker(market, 'R', '0:0')
     const state: DistributionState = {
-        companies: [{ id: 'R', name: 'Railway', kind: 'major', shareCount: 10 }],
-        bank: { name: 'Bank' },
+        companies: [{ id: 'R', kind: 'major', shareCount: 10 }],
+        bank: {},
         cash: [{ owner: { kind: 'bank' }, amount: 'unlimited' }],
         certificates: [],
         certificatePools: [],

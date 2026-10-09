@@ -41,7 +41,7 @@ export function prepareTheOldPrinceBranchSplit(
         )
     )
     const owner = { kind: 'company' as const, companyId }
-    state.certificatePools.push({ id: `treasury:${companyId}`, owner, name: 'Treasury shares' })
+    state.certificatePools.push({ id: `treasury:${companyId}`, owner })
     const cash = state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
     )
@@ -74,7 +74,6 @@ export function prepareTheOldPrinceBranchSplit(
     assert(hunslet, 'The split example requires Hunslet')
     state.companies.push({
         id: hunslet.id,
-        name: hunslet.name,
         kind: 'private',
         privateRevenue: hunslet.revenue
     })

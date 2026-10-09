@@ -24,11 +24,10 @@ function example(): StockState {
     const stockMarket: StockMarket = { stacks: [] }
     market.placeMarker(stockMarket, 'R', '0:0')
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             {
                 id: 'R',
-                name: 'Railway',
                 kind: 'major',
                 shareCount: 10,
                 president: seller,
@@ -55,8 +54,8 @@ function example(): StockState {
             { owner: other, amount: 100 }
         ],
         certificatePools: [
-            { id: 'market', owner: bank, name: 'Market' },
-            { id: 'ipo', owner: bank, name: 'IPO' }
+            { id: 'market', owner: bank },
+            { id: 'ipo', owner: bank }
         ],
         players: [
             { playerId: 'a', color: Color.Blue },

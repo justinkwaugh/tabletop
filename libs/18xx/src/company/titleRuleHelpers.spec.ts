@@ -7,6 +7,7 @@ import {
     type Owner
 } from '../finance/finance.js'
 import { certificateWealthItem } from '../ending/finalWealth.js'
+import { titleNames } from '../game/titleNames.js'
 import { createCompanyStations, homeStationId } from '../map/station.js'
 import { floatedCompaniesInMarketOrder } from '../operating/operatingSet.js'
 import {
@@ -38,7 +39,6 @@ function position(sold: number, funded = false) {
             companies: [
                 {
                     id: 'A',
-                    name: 'Alpha',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -48,7 +48,6 @@ function position(sold: number, funded = false) {
                 },
                 {
                     id: 'B',
-                    name: 'Beta',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -56,7 +55,6 @@ function position(sold: number, funded = false) {
                 },
                 {
                     id: 'C',
-                    name: 'Gamma',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -125,7 +123,8 @@ describe('helpers for ordinary title rules', () => {
 
     it('labels a final-wealth line and names a company’s station markers', () => {
         const state = position(5)
-        expect(certificateWealthItem(state, presidentCertificate(state, 'A')!, 140)).toEqual({
+        const names = titleNames({ A: 'Alpha' }, () => undefined)
+        expect(certificateWealthItem(names, presidentCertificate(state, 'A')!, 140)).toEqual({
             assetId: 'A:president',
             label: 'Alpha · 2 shares',
             value: 140

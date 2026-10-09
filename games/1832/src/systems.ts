@@ -209,7 +209,6 @@ export function formSystem(
 
     state.companies.push({
         id: systemId,
-        name: system.name,
         kind: 'major',
         shareCount: SystemShareCount,
         parPrice,

@@ -71,7 +71,7 @@
                         session.map.inspectCompanyNetwork(event.currentTarget.value)}
                 >
                     {#each session.map.networkCompanies as company (company.id)}<option
-                            value={company.id}>{company.name}</option
+                            value={company.id}>{session.companyName(company.id)}</option
                         >{/each}
                 </select></label
             >

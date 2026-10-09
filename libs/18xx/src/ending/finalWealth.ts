@@ -1,3 +1,4 @@
+import type { TitleNames } from '../game/titleNames.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import {
@@ -99,11 +100,11 @@ export function validateFinalResults(state: {
 }
 
 export function certificateWealthItem(
-    state: Pick<StockState, 'companies'>,
+    names: TitleNames,
     certificate: Portfolio[number],
     value: number
 ): WealthItem {
-    const { name } = getCompany(state, certificate.companyId)
+    const name = names.company(certificate.companyId)
     return {
         assetId: certificate.id,
         label:

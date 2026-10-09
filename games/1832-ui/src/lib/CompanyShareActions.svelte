@@ -12,7 +12,7 @@
 
 <CompanyActionPanel label="Company share actions" heading="Act for a company">
         {#each session.companyShareOptions as { companyId, redemptions, reissue } (companyId)}
-            {@const name = getCompany(gameState, companyId).name}
+            {@const name = session.companyName(companyId)}
             <CompanyActionCard
                 {session}
                 {companyId}

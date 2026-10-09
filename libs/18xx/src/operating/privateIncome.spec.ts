@@ -5,10 +5,10 @@ import { privateIncomePayments } from './startOperatingRound.js'
 
 function state(): OperatingState & TrainState {
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
-            { id: 'P', name: 'P', kind: 'private', privateRevenue: 5 },
-            { id: 'A', name: 'A', kind: 'major' }
+            { id: 'P', kind: 'private', privateRevenue: 5 },
+            { id: 'A', kind: 'major' }
         ],
         cash: [],
         certificatePools: [],

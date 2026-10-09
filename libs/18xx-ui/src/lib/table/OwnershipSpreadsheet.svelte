@@ -253,7 +253,7 @@
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
             id: `company:${ownerId}`,
-            name: getCompany(session.gameState, ownerId).name,
+            name: session.companyName(ownerId),
             controllerId: controllingOwner(session.gameState, ownerId)?.playerId,
             count: (companyId: string) =>
                 sharesOwned(session.gameState, companyId, {
@@ -600,7 +600,7 @@
         <button
             class="last-run"
             disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${company.name}'s last run for ${money(run.metadata.revenue)}`}
+            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(run.metadata.revenue)}`}
             onclick={() => onPreviewMap(run)}>{money(run.metadata.revenue)}</button
         >
     {:else}<span class="empty">—</span>{/if}
@@ -645,7 +645,7 @@
         {#if purchase}
             <button
                 class="share-trade"
-                aria-label={`Buy ${getCompany(session.gameState, companyId).name} from ${ownerId === 'market' ? 'Market' : 'Treasury'}`}
+                aria-label={`Buy ${session.companyName(companyId)} from ${ownerId === 'market' ? 'Market' : 'Treasury'}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
                 ><span class="share-value">{shares}</span></button
@@ -653,7 +653,7 @@
         {:else if saleChoices.length}
             <button
                 class="share-trade"
-                aria-label={`Sell ${getCompany(session.gameState, companyId).name} shares`}
+                aria-label={`Sell ${session.companyName(companyId)} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
                 >{@render shareHolding(String(shares), president, numbers)}</button
@@ -690,7 +690,9 @@
         {#if session.mapView.stations[company.id]}
             <CompanyToken appearance={session.mapView.stations[company.id]} size={22} />
         {/if}
-        <span title={company.name}>{companyNames[company.id]?.initials ?? company.id}</span>
+        <span title={session.companyName(company.id)}
+            >{companyNames[company.id]?.initials ?? company.id}</span
+        >
     </span>
 {/snippet}
 
@@ -745,6 +747,7 @@
                 appearances={session.mapView.stations}
                 view={period === 'Player income' ? 'Player' : 'Company'}
                 {companyNames}
+                companyName={(companyId) => session.companyName(companyId)}
                 {onPreviewMap}
             />
         {:else}
@@ -829,7 +832,7 @@
                                             scope="col"
                                             class:operating-column={row.company.id ===
                                                 operatingCompanyId}
-                                            aria-label={row.company.name}
+                                            aria-label={session.companyName(row.company.id)}
                                             >{@render companyLabel(row.company)}</th
                                         >
                                     {/each}
@@ -848,7 +851,9 @@
                                         class:operating-company={row.company.id ===
                                             operatingCompanyId}
                                     >
-                                        <th scope="row" aria-label={row.company.name}
+                                        <th
+                                            scope="row"
+                                            aria-label={session.companyName(row.company.id)}
                                             >{@render companyLabel(row.company)}</th
                                         >
                                         {#each row.shares as shares, index (index)}{@render shareCell(

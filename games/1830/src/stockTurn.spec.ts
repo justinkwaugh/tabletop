@@ -166,7 +166,6 @@ describe('private sales between players', () => {
         const withBaltimore = trading((state) => {
             state.companies.push({
                 id: 'BOP',
-                name: 'Baltimore & Ohio',
                 kind: 'private',
                 privateRevenue: 30
             })

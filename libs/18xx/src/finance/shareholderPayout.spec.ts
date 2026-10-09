@@ -13,8 +13,8 @@ it('pays players per net share and charges those short, leaving pools unpaid', (
     })
     const state: FinancialState & { players: { playerId: string }[] } = {
         players: [{ playerId: 'one' }, { playerId: 'two' }, { playerId: 'three' }],
-        bank: { name: 'Bank' },
-        companies: [{ id: 'A', name: 'A', kind: 'major', shareCount: 5 }],
+        bank: {},
+        companies: [{ id: 'A', kind: 'major', shareCount: 5 }],
         cash: [],
         certificatePools: [],
         certificates: [

@@ -133,11 +133,10 @@ export function createTheOldPrinceOpening({
             })
     }
     const position: InitialPosition = {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             ...TheOldPrinceCompanies.map((c) => ({
                 id: c.companyId,
-                name: c.name,
                 kind: 'major',
                 shareCount: 10,
                 started: c === mainline || c === shortline,
@@ -150,10 +149,9 @@ export function createTheOldPrinceOpening({
                       ? { role: 'shortline', parPrice: 86 }
                       : {})
             })),
-            { id: 'PEIR', name: 'Prince Edward Island Railway', kind: 'major' },
+            { id: 'PEIR', kind: 'major' },
             ...privates.map((p) => ({
                 id: p.id,
-                name: p.name,
                 kind: 'private',
                 privateRevenue: p.revenue
             }))
@@ -172,12 +170,11 @@ export function createTheOldPrinceOpening({
             { owner: { kind: 'company', companyId: 'UB' }, amount: 0 }
         ],
         certificatePools: [
-            { id: 'market', name: 'Market', owner: { kind: 'bank' } },
-            { id: 'reserved', name: 'Reserved exchanges', owner: { kind: 'bank' } },
-            { id: 'auction', name: 'Auction', owner: { kind: 'bank' } },
+            { id: 'market', owner: { kind: 'bank' } },
+            { id: 'reserved', owner: { kind: 'bank' } },
+            { id: 'auction', owner: { kind: 'bank' } },
             ...TheOldPrinceCompanies.map((c) => ({
                 id: `treasury:${c.companyId}`,
-                name: 'Treasury shares',
                 owner: { kind: 'company' as const, companyId: c.companyId }
             }))
         ],

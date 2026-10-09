@@ -24,7 +24,6 @@ function stationsPlay(privateIds: readonly string[]) {
             const definition = EighteenThirtyTwoPrivates.find((item) => item.id === id)!
             state.companies.push({
                 id,
-                name: definition.name,
                 kind: 'private',
                 privateRevenue: definition.revenue
             })
@@ -123,7 +122,7 @@ function keyWestPlay(phaseId: string) {
         const central = state.companies.find((company) => company.id === 'CG')!
         state.companies.push({
             ...central,
-            ...EighteenThirtyTwoMajors.FEC
+            id: EighteenThirtyTwoMajors.FEC.id
         })
         state.cash.push({ owner: { kind: 'company', companyId: 'FEC' }, amount: 300 })
         placeStockMarker(state.stockMarket, 'FEC', '1:6')

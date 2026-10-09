@@ -5,7 +5,8 @@ import {
     minimalCompanyRules,
     minimalPlayState,
     minimalPrivateRules,
-    minimalStockRules
+    minimalStockRules,
+    TestNames
 } from '@tabletop/18xx/testing'
 import { PrivatesModule, type PrivatesSession } from './privatesModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
@@ -17,7 +18,7 @@ function privates(availability = {}) {
     const state: PrivatesSession['state'] = {
         ...base,
         usedPrivatePowerIds: [],
-        companies: [...base.companies, { id: 'P', name: 'Private', kind: 'private' }]
+        companies: [...base.companies, { id: 'P', kind: 'private' }]
     }
     const harness = testSession(
         state,
@@ -25,6 +26,7 @@ function privates(availability = {}) {
             privateRules: minimalPrivateRules,
             stockRules: minimalStockRules,
             companyRules: minimalCompanyRules,
+            names: TestNames,
             privatePowerRules: { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
         },
         [],
@@ -41,7 +43,6 @@ describe('PrivatesModule', () => {
             const bank = { owner: { kind: 'bank' as const }, poolId: 'market' }
             session.state.companies.push({
                 id: 'S',
-                name: 'Second railway',
                 kind: 'major',
                 shareCount: 10
             })

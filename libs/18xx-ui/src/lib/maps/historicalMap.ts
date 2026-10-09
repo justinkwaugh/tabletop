@@ -30,6 +30,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
     /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
     constructor(
         private readonly currentView: () => MapViewDefinition,
+        private readonly companyName: (companyId: string) => string,
         private readonly read: (state: State) => HistoricalMapState
     ) {}
 
@@ -69,7 +70,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
             : undefined
         const preview: HistoricalMap = {
             actionId: action.id,
-            label: `${company.name}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
+            label: `${this.companyName(company.id)}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
             kind: isRunTrains(action) ? 'run' : 'track lay',
             revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
             scene: createMapDrawing(

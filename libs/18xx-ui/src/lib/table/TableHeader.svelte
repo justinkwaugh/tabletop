@@ -121,9 +121,9 @@
         {#if company && gameState.stockRound.completed && !gameState.result}<span
                 class="separator"
                 aria-hidden="true">/</span
-            ><span class="company" title={company.name}
+            ><span class="company" title={session.companyName(company.id)}
                 ><CompanyToken appearance={session.mapView.stations[company.id]} size={22} /><span
-                    class="max-sm:hidden">{company.name}</span
+                    class="max-sm:hidden">{session.companyName(company.id)}</span
                 ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
                 ></span
             >{/if}

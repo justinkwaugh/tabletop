@@ -1,3 +1,4 @@
+import { Shikoku1889Names } from './names.js'
 import { Shikoku1889Market } from './stockMarket.js'
 import {
     bankExhaustionAtSetEnd,
@@ -21,6 +22,6 @@ export const Shikoku1889EndingRules: EndingRules = {
                     ? marketShareValue(Shikoku1889Market, state, certificate)
                     : Shikoku1889PrivateCatalog.faceValue(company.id)
         }
-        return [certificateWealthItem(state, certificate, value)]
+        return [certificateWealthItem(Shikoku1889Names, certificate, value)]
     }
 }

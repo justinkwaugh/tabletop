@@ -1,8 +1,8 @@
+import { TheOldPrinceNames } from './names.js'
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
-    getCompany,
     type PrivateRules,
     type PrivateEffect,
     type FinancialState
@@ -113,9 +113,9 @@ export const TheOldPrincePrivateRules: PrivateRules = {
     },
     description(state, id) {
         if (ShortlineExchanges[id]) {
-            const company = getCompany(state, theOldPrinceRole(state, 'shortline'))
+            const company = TheOldPrinceNames.company(theOldPrinceRole(state, 'shortline'))
             return (
-                `**Includes one reserved share of ${company.name}.**\n\n` +
+                `**Includes one reserved share of ${company}.**\n\n` +
                 (id === 'VR'
                     ? 'The owner’s permission is required to build on N18 while this private is open.\n\n'
                     : '') +
@@ -123,15 +123,14 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             )
         }
         if (id === 'RA' || id === 'RF') {
-            const company = getCompany(state, theOldPrinceRole(state, 'mainline'))
-            return `**Includes one share of ${company.name}.**\n\nCloses at 4+.`
+            const company = TheOldPrinceNames.company(theOldPrinceRole(state, 'mainline'))
+            return `**Includes one share of ${company}.**\n\nCloses at 4+.`
         }
         if (id === 'MLC' || id === 'SLC') {
-            const company = getCompany(
-                state,
+            const company = TheOldPrinceNames.company(
                 theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline')
             )
-            return `**Includes the president's cert for ${company.name}.**\n\nCloses when its railway first operates, or at 4+.`
+            return `**Includes the president's cert for ${company}.**\n\nCloses when its railway first operates, or at 4+.`
         }
         return TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
     }

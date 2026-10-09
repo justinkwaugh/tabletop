@@ -10,8 +10,8 @@
     <h2>Private companies</h2>
     <div class="cards">
         {#each session.privates.companies as company (company.id)}
-            <article aria-label={company.name}>
-                <strong>{company.name}</strong>
+            <article aria-label={session.companyName(company.id)}>
+                <strong>{session.companyName(company.id)}</strong>
                 {#if company.closed}<p>Closed</p>
                 {:else}
                     {@const owner = privateOwner(session.gameState, company.id)}

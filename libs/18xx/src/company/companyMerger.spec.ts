@@ -9,11 +9,11 @@ const company = (companyId: string) => ({ kind: 'company' as const, companyId })
 function assetState(): FinancialState & TrainState {
     return {
         companies: [
-            { id: 'A', name: 'A', kind: 'major', loans: 1 },
-            { id: 'B', name: 'B', kind: 'major', loans: 2 },
-            { id: 'P', name: 'P', kind: 'private' }
+            { id: 'A', kind: 'major', loans: 1 },
+            { id: 'B', kind: 'major', loans: 2 },
+            { id: 'P', kind: 'private' }
         ],
-        bank: { name: 'Bank' },
+        bank: {},
         cash: [
             { owner: company('A'), amount: 100 },
             { owner: company('B'), amount: 40 }

@@ -3,10 +3,10 @@ import { awardCertificates } from './awardCertificates.js'
 import type { FinancialState } from '../finance/finance.js'
 function setup(): FinancialState {
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
-            { id: 'private', name: 'Private', kind: 'private' },
-            { id: 'railway', name: 'Railway', kind: 'major', shareCount: 10 }
+            { id: 'private', kind: 'private' },
+            { id: 'railway', kind: 'major', shareCount: 10 }
         ],
         certificatePools: [],
         cash: [

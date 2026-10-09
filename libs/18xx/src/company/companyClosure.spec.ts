@@ -7,19 +7,18 @@ function closingState() {
     placeStockMarker(stockMarket, 'A', '0:0')
     const owner = { kind: 'company' as const, companyId: 'A' }
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         stockMarket,
         companies: [
             {
                 id: 'A',
-                name: 'A',
                 kind: 'major' as const,
                 shareCount: 10,
                 started: true,
                 floated: true,
                 president: { kind: 'player' as const, playerId: 'one' }
             },
-            { id: 'P', name: 'P', kind: 'private' as const, privateRevenue: 10 }
+            { id: 'P', kind: 'private' as const, privateRevenue: 10 }
         ],
         cash: [
             { owner, amount: 70 },

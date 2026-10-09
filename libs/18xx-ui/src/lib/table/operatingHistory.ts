@@ -17,7 +17,7 @@ export type OperatingRoundHistory = {
     playerIncome: Record<string, number>
     playerNetWorth: Record<string, number>
     companyIncome: Record<string, number>
-    companyNames: Record<string, string>
+    companyIds: string[]
     companyRuns: Record<string, RunTrains>
     withheldCompanyIds: string[]
 }
@@ -36,7 +36,7 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
                 playerIncome: {},
                 playerNetWorth: {},
                 companyIncome: {},
-                companyNames: {},
+                companyIds: [],
                 companyRuns: {},
                 withheldCompanyIds: []
             }
@@ -44,11 +44,14 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
         }
         return round
     }
+    function addCompany(round: OperatingRoundHistory, companyId: string) {
+        if (!round.companyIds.includes(companyId)) round.companyIds.push(companyId)
+    }
     function recordSnapshot(snapshot: OperatingRoundSnapshot) {
         const round = roundFor(snapshot)
         round.complete = snapshot.complete
         round.playerNetWorth = { ...snapshot.playerNetWorth }
-        Object.assign(round.companyNames, snapshot.companyNames)
+        for (const companyId of snapshot.companyIds) addCompany(round, companyId)
         return round
     }
     function recordPayments(round: OperatingRoundHistory, payments: CashPayment[]) {
@@ -72,7 +75,7 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
             assertExists(action.metadata, 'Recorded earnings require metadata')
             if (!action.metadata.round) continue
             const round = roundFor(action.metadata.round)
-            round.companyNames[action.companyId] = action.metadata.companyName
+            addCompany(round, action.companyId)
             round.companyIncome[action.companyId] =
                 (round.companyIncome[action.companyId] ?? 0) + action.metadata.revenue
             const run = runs.get(action.companyId)

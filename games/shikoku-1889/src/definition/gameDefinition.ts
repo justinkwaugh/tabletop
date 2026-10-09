@@ -1,3 +1,4 @@
+import { Shikoku1889Names } from '../names.js'
 import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { type GameDefinition } from '@tabletop/common'
 import { Shikoku1889CompanyRules } from '../companyRules.js'
@@ -28,6 +29,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules<
 > = {
     state: Shikoku1889StateDefinition,
     endingRules: Shikoku1889EndingRules,
+    names: Shikoku1889Names,
     auctionRules: Shikoku1889AuctionRules,
     trainFundingRules: Shikoku1889TrainFundingRules,
     transferRules: Shikoku1889TransferRules,

@@ -182,7 +182,7 @@ export function historyDescription(
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
-        { companyName, playerName, bankName: state.bank.name },
+        { companyName, playerName, bankName: 'Bank' },
         money
     )
     return paid ? { ...description, detail: joinDetails(description.detail, paid) } : description
@@ -204,7 +204,7 @@ function describeShared(
                   ...effects.closedPrivateIds.map((privateId) => `${companyName(privateId)} closed`)
               ].join(' · ')
             : undefined
-    const names = { companyName, playerName, bankName: state.bank.name }
+    const names = { companyName, playerName, bankName: 'Bank' }
     const nameOf = (owner: Owner) => ownerName(owner, names)
     const presidency = (change: PresidencyChange) =>
         `President: ${nameOf(change.previous)} → ${nameOf(change.next)}`
@@ -654,7 +654,7 @@ function describeShared(
                 : `Offered to buy ${asset} for ${money(offer.price)}`,
             omitActor: accepted,
             value: accepted ? money(offer.price) : undefined,
-            detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : nameOf(offer.seller)}`,
+            detail: `From ${offer.seller.kind === 'bank' ? 'Bank' : nameOf(offer.seller)}`,
             important: accepted
         }
     }

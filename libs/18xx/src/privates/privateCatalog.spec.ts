@@ -55,14 +55,13 @@ const company: Owner = { kind: 'company', companyId: 'R' }
 function state(phaseId: string, owners: Record<string, Owner>, closed: string[] = []) {
     const position: FinancialState & { phaseId: string } = {
         phaseId,
-        bank: { name: 'Bank' },
+        bank: {},
         cash: [],
         certificatePools: [],
         companies: [
-            { id: 'R', name: 'Railway', kind: 'major', shareCount: 10 },
+            { id: 'R', kind: 'major', shareCount: 10 },
             ...Object.keys(owners).map((id) => ({
                 id,
-                name: id,
                 kind: 'private',
                 privateRevenue: catalog.definition(id).revenue,
                 ...(closed.includes(id) ? { closed: true } : {})

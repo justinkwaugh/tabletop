@@ -97,7 +97,7 @@
                   : statusLabels[gameState.machineState]
     )
     function companyName(id: string) {
-        return gameState.companies.find((company) => company.id === id)?.name ?? id
+        return session.companyName(id)
     }
     function describe(action: GameAction): HistoryDescription {
         if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
@@ -265,7 +265,7 @@
                         owner.kind === 'player'
                             ? session.getPlayerName(owner.playerId)
                             : owner.kind === 'bank'
-                              ? gameState.bank.name
+                              ? 'Bank'
                               : companyName(owner.companyId)}
                 />
             </div>

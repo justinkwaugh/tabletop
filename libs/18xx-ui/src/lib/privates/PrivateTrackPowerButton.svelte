@@ -32,7 +32,7 @@
 <button
     class="power"
     data-description-exclude
-    aria-label={`Use ${getCompany(session.gameState, power.privateCompanyId).name}`}
+    aria-label={`Use ${session.companyName(power.privateCompanyId)}`}
     aria-pressed={selected}
     disabled={session.busy}
     onclick={start}>{label}</button

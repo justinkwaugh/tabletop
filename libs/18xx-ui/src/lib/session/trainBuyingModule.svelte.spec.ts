@@ -79,7 +79,7 @@ describe('TrainBuyingModule', () => {
             usedPrivatePowerIds: [],
             companies: [
                 { ...base.companies[0], president: alex },
-                { id: 'S', name: 'Seller', kind: 'major', shareCount: 10, president: alex }
+                { id: 'S', kind: 'major', shareCount: 10, president: alex }
             ],
             cash: [
                 ...base.cash,

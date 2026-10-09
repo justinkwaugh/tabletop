@@ -14,7 +14,7 @@
 <button
     class="exchange"
     data-description-exclude
-    aria-label={`Exchange ${getCompany(session.gameState, option.privateCompanyId).name} for ${company.name}`}
+    aria-label={`Exchange ${session.companyName(option.privateCompanyId)} for ${session.companyName(company.id)}`}
     disabled={session.busy}
     onclick={() => void session.privates.exchange(option)}
 >

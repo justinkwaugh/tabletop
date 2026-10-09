@@ -806,7 +806,7 @@
                     appearances={session.mapView.stations}
                     chart={session.stockMarketChart}
                     market={session.gameState.stockMarket}
-                    companies={session.gameState.companies}
+                    companyName={(companyId) => session.companyName(companyId)}
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
                 />
@@ -1043,6 +1043,7 @@
                                         {money}
                                         showDetails
                                         companies={companyOrder}
+                                        companyName={(companyId) => session.companyName(companyId)}
                                         {gameState}
                                         trainDepot={session.trainDepot}
                                         {trainColors}
@@ -1241,7 +1242,8 @@
                                             renderScale={2}
                                             chart={session.stockMarketChart}
                                             market={session.gameState.stockMarket}
-                                            companies={session.gameState.companies}
+                                            companyName={(companyId) =>
+                                                session.companyName(companyId)}
                                             zones={session.presentation.marketZones}
                                             ledge={session.presentation.marketLedge}
                                         />

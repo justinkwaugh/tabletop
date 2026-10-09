@@ -56,7 +56,7 @@ function addUnstartedMajors(state: CompanyState): void {
     for (const major of Object.values(EighteenThirtyTwoMajors)) {
         if (state.companies.some((company) => company.id === major.id)) continue
         state.companies.push({
-            ...major,
+            id: major.id,
             kind: 'major',
             shareCount: 10,
             started: false,

@@ -131,11 +131,10 @@ export class Initializer extends BaseGameInitializer<
             priorityDealPlayerId: order[0],
             removedPrivateIds,
             removedCorporationIds,
-            bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+            bank: { unlimitedAfterExhaustion: true },
             companies: [
                 ...Corporations.map((company) => ({
                     id: company.id,
-                    name: company.name,
                     kind: 'major',
                     shareCount: 10,
                     closed: removedCorporationIds.includes(company.id),
@@ -143,13 +142,12 @@ export class Initializer extends BaseGameInitializer<
                 })),
                 ...privates.map((company) => ({
                     id: company.id,
-                    name: company.name,
                     kind: company.kind === 'independent' ? 'minor' : 'private',
                     privateRevenue: company.revenue,
                     ...(company.kind === 'independent' ? { shareCount: 1 } : {})
                 }))
             ],
-            certificatePools: [{ id: 'open-market', name: 'Market', owner: { kind: 'bank' } }],
+            certificatePools: [{ id: 'open-market', owner: { kind: 'bank' } }],
             cash: [
                 {
                     owner: { kind: 'bank' },

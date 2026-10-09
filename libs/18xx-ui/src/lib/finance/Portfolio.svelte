@@ -8,12 +8,14 @@
         type Certificate,
         type Owner,
         type FinancialState,
-        standardCertificateWeight
+        standardCertificateWeight,
+        type TitleNames
     } from '@tabletop/18xx'
     import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     let {
         gameState,
+        names,
         owner,
         name,
         cash,
@@ -24,6 +26,7 @@
         certificateWeight = standardCertificateWeight
     }: {
         gameState: FinancialState
+        names: TitleNames
         owner: Owner
         name: string
         cash?: Cash['amount']
@@ -44,7 +47,7 @@
             .filter((pool) => sameOwner(pool.owner, owner))
             .map((pool) => ({
                 id: pool.id,
-                name: pool.name,
+                name: names.pool(pool.id),
                 certificates: certificatesInPool(gameState, pool.id)
             }))
     ])
@@ -70,7 +73,7 @@
                         {#each group.certificates as certificate (certificate.id)}
                             <li data-certificate-id={certificate.id}>
                                 <div class="issuer">
-                                    {getCompany(gameState, certificate.companyId).name}
+                                    {names.company(certificate.companyId)}
                                     {#if certificate.kind === 'share' && certificate.president}<span
                                             class="badge">President’s certificate</span
                                         >{/if}

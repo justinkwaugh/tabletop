@@ -34,7 +34,7 @@ export function createShikoku1889CompanyExample(
     }
     if (position === 'starting' || position === 'flotation') {
         state.companies.push({
-            ...Shikoku1889Majors.SR,
+            id: Shikoku1889Majors.SR.id,
             kind: 'major',
             shareCount: 10,
             started: false,

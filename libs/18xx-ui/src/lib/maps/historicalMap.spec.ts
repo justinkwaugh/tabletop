@@ -1,5 +1,5 @@
 import { type EighteenXXState, type LayTile } from '@tabletop/18xx'
-import { minimalRailwayMap, minimalTileSet } from '@tabletop/18xx/testing'
+import { minimalRailwayMap, minimalTileSet, TestNames } from '@tabletop/18xx/testing'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { expect, it } from 'vitest'
 import { historyStateFixture } from '../table/history.fixture.js'
@@ -24,7 +24,6 @@ it('shows the selected historical company and reservations, with cache invalidat
         expectedCost: 0
     }
     const then = structuredClone(state)
-    then.companies[0].name = 'Earlier railway'
     then.stationReservations.push({ companyId: 'R', locationId: '0', nodeId: 'city' })
     const actions: GameAction[] = [
         lay,
@@ -40,10 +39,11 @@ it('shows the selected historical company and reservations, with cache invalidat
     let view: MapViewDefinition = { map: minimalRailwayMap, tileSet: minimalTileSet, stations: {} }
     const maps = new HistoricalMaps(
         () => view,
+        (companyId) => TestNames.company(companyId),
         (state: EighteenXXState) => state
     )
     const preview = maps.preview(state, actions, lay)
-    expect(preview.label).toBe('Earlier railway')
+    expect(preview.label).toBe('Railway')
     expect(preview.reservations).toEqual(then.stationReservations)
     expect(preview.selection).toEqual({ kind: 'hex', locationId: '0' })
     expect(maps.preview(state, actions, lay)).toBe(preview)

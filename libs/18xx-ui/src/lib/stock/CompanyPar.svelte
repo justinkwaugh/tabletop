@@ -10,8 +10,9 @@
     {@const company = getCompany(session.gameState, pending.companyId)}
     <section aria-label="Set par">
         <p>
-            {session.ownerName({ kind: 'player', playerId: pending.playerId })} sets {company.name}’s
-            par.
+            {session.ownerName({ kind: 'player', playerId: pending.playerId })} sets {session.companyName(
+                company.id
+            )}’s par.
         </p>
         {#if session.stock.canPar}
             <div class="choices" aria-label="Par prices">

@@ -35,7 +35,6 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
     assert(definition, 'Unknown 1830 private')
     state.companies.push({
         id: privateCompanyId,
-        name: definition.name,
         kind: 'private',
         privateRevenue: definition.revenue
     })

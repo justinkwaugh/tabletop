@@ -38,7 +38,7 @@ import {
     EighteenThirtyTwoMarket
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { getCompany, type ShareSaleDetails } from '@tabletop/18xx'
+import { type ShareSaleDetails } from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -204,7 +204,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly redemptionPrompt = $derived.by(() => {
         const request = this.gameState.redemptionRequest
         if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
-        return { ...request, companyName: getCompany(this.gameState, request.companyId).name }
+        return { ...request, companyName: this.companyName(request.companyId) }
     })
     readonly canAnswerRedemption = $derived(
         this.canChooseAction && this.validActionTypes.includes('AnswerRedemption')

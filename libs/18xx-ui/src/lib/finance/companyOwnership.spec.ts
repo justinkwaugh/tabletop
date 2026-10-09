@@ -9,12 +9,12 @@ describe('company ownership', () => {
         const company = { kind: 'company', companyId: 'A' } as const
         const investor = { kind: 'company', companyId: 'UB' } as const
         const state: FinancialState = {
-            bank: { name: 'Bank' },
-            companies: [{ id: 'A', name: 'A', kind: 'major' }],
+            bank: {},
+            companies: [{ id: 'A', kind: 'major' }],
             cash: [],
             certificatePools: [
-                { id: 'ipo', name: 'IPO', owner: bank },
-                { id: 'market', name: 'Market', owner: bank }
+                { id: 'ipo', owner: bank },
+                { id: 'market', owner: bank }
             ],
             certificates: createOrdinaryShareCertificates(
                 'A',
@@ -43,10 +43,10 @@ describe('company ownership', () => {
     it('preserves numbered shares without inventing a fixed share count or unused pools', () => {
         const owner = { kind: 'player', playerId: 'p1' } as const
         const state: FinancialState = {
-            bank: { name: 'Bank' },
-            companies: [{ id: 'N', name: 'National', kind: 'major' }],
+            bank: {},
+            companies: [{ id: 'N', kind: 'major' }],
             cash: [],
-            certificatePools: [{ id: 'ipo', name: 'IPO', owner: { kind: 'bank' } }],
+            certificatePools: [{ id: 'ipo', owner: { kind: 'bank' } }],
             certificates: [7, 2].map((number) => ({
                 id: `N:${number}`,
                 companyId: 'N',

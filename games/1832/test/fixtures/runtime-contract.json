@@ -21,10 +21,10 @@
     "DeclineProtection": "9a8bcbc342acf15a0e76acc67fd989fa94fb226a699ddd0d1ec9bc302c79b6b3",
     "DiscardMergedTrain": "5521dbaac6facf528f6f10d956a5363bb120e31c617ff5c364ae745b1c4cce78",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
-    "DistributeEarnings": "d54dab8b70f303099d7c19fb371c39dfa473766b1d265b7915257080b0e7f7c1",
+    "DistributeEarnings": "d1a60eb8722250aeb4f79f3fe6b30a59d3fd4b128636228368a0b7f8e6111dbc",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "a8d59aaff1f7e7aa26b87d315ffcd738ad845aea9307ecf3eb0575455f1d306d",
-    "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
+    "FinishOperatingTurn": "688c7c8befa3325e16ed4ac7d55f787c1c21b3770a28b9abde34781cb912a849",
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
@@ -61,7 +61,7 @@
     "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
     "StartCompany": "088dbcf78d2b0ba76714fb09e68fa0e67df031634d115ab88a043c9748ce1450",
     "StartMergerPhase": "2613ad99ae9dd71f73a3aed54a1bd6bad8807d02b659888a18c456ea5dbacabc",
-    "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
+    "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartPriceProtection": "b9134e0f97e2621cfaf344acd2084bc5ce4f11e1a16b796b1f9009a68923f156",
@@ -90,17 +90,10 @@
           "broken": {
             "type": "boolean"
           },
-          "name": {
-            "minLength": 1,
-            "type": "string"
-          },
           "unlimitedAfterExhaustion": {
             "type": "boolean"
           }
         },
-        "required": [
-          "name"
-        ],
         "type": "object"
       },
       "bankruptcy": {
@@ -214,10 +207,6 @@
               "minLength": 1,
               "type": "string"
             },
-            "name": {
-              "minLength": 1,
-              "type": "string"
-            },
             "owner": {
               "anyOf": [
                 {
@@ -278,7 +267,6 @@
           },
           "required": [
             "id",
-            "name",
             "owner"
           ],
           "type": "object"
@@ -536,10 +524,6 @@
               "minimum": 1,
               "type": "integer"
             },
-            "name": {
-              "minLength": 1,
-              "type": "string"
-            },
             "operated": {
               "type": "boolean"
             },
@@ -601,8 +585,7 @@
           },
           "required": [
             "id",
-            "kind",
-            "name"
+            "kind"
           ],
           "type": "object"
         },

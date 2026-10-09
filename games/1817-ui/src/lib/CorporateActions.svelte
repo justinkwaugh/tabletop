@@ -14,12 +14,10 @@
 
 <CompanyActionPanel
     label="Corporate actions"
-    heading={acting
-        ? `Acting for ${getCompany(gameState, acting.companyId).name}`
-        : 'Act for a company'}
+    heading={acting ? `Acting for ${session.companyName(acting.companyId)}` : 'Act for a company'}
 >
     {#each session.corporateActions as { companyId, canBorrow, buyBack } (companyId)}
-        {@const name = getCompany(gameState, companyId).name}
+        {@const name = session.companyName(companyId)}
         <CompanyActionCard
             {session}
             {companyId}
