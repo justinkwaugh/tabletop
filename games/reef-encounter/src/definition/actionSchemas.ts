@@ -8,6 +8,8 @@ import { IntroduceShrimp } from '../actions/introduceShrimp.js'
 import { MoveShrimp } from '../actions/moveShrimp.js'
 import { PlacePolyp } from '../actions/placePolyp.js'
 import { PlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
+import { EndGame } from '../actions/endGame.js'
+import { PassFinalTurn } from '../actions/passFinalTurn.js'
 import { PlayLarvaCube } from '../actions/playLarvaCube.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { TakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
@@ -25,5 +27,7 @@ export const ReefEncounterActionSchemas = {
     [ActionType.ExchangeLarvaCube]: ExchangeLarvaCube,
     [ActionType.PlayAlgaCylinder]: PlayAlgaCylinder,
     [ActionType.TakeOpenSeaSpace]: TakeOpenSeaSpace,
-    [ActionType.RefillOpenSea]: RefillOpenSea
+    [ActionType.PassFinalTurn]: PassFinalTurn,
+    [ActionType.RefillOpenSea]: RefillOpenSea,
+    [ActionType.EndGame]: EndGame
 } satisfies Record<ActionType, Type.TSchema>

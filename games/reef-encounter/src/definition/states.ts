@@ -3,5 +3,7 @@ export enum MachineState {
     ChoosingLarvaCubes = 'ChoosingLarvaCubes',
     TakingTurn = 'TakingTurn',
     RefillingOpenSea = 'RefillingOpenSea',
+    FinalTurns = 'FinalTurns',
+    EndingGame = 'EndingGame',
     EndOfGame = 'EndOfGame'
 }

@@ -14,8 +14,12 @@ export const polyp = (row: number, col: number, color: CoralColor): Polyp => ({
 // Board 1 (docs/board-map.md): (2,1) and (3,3) are sand, (0,2) is off the board,
 // and (2,3) is the extra-growth square. Every coral tile shows its starfish side,
 // so grey beats yellow, orange beats pink, white beats yellow and pink beats grey.
-export function startOnBoardOne(polyps: Polyp[], shrimps: Omit<Shrimp, 'boardId'>[] = []) {
-    const session = startTestGame(2)
+export function startOnBoardOne(
+    polyps: Polyp[],
+    shrimps: Omit<Shrimp, 'boardId'>[] = [],
+    playerCount = 2
+) {
+    const session = startTestGame(playerCount)
     completeSetup(session)
     session.edit((draft) => {
         draft.reefs = [

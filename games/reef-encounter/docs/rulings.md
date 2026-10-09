@@ -56,7 +56,7 @@ In the rulebook's order (pp. 3–4):
 
 ## Alga cylinders
 
-- **Buying one (action 7).** A consumed polyp of any colour buys a cylinder of any colour, which must be played at once (rulebook pp. 5 and 10). The rulebook doesn't say where the consumed polyp goes; this implementation puts it into the bag, as action 6 does, filling an empty bonus space first. A colour with no cylinder left in the supply cannot be chosen. Five cylinders of each colour.
+- **Buying one (action 7).** A consumed polyp of any colour buys a cylinder of any colour, which must be played at once (rulebook pp. 5 and 10). The consumed polyp goes into the bag, as in action 6 (the rulebook doesn't say; confirmed by the user), filling an empty bonus space first. A colour with no cylinder left in the supply cannot be chosen. Five cylinders of each colour.
 - **On the open-sea space.** Any number a turn. A cylinder already there goes back to the supply. Every coral tile without a cylinder whose face shows that colour as its large alga flips over (rulebook p. 10).
 - **On a coral tile (a lock).** Once a turn, and only once the player's parrotfish has eaten a shrimp and put it on the open-sea board. The cylinder must match the tile's large alga, and the tile must have no cylinder. The tile stays as it is for the rest of the game; every other uncovered tile with that large alga flips (rulebook p. 10).
 - **The last uncovered tile** may be locked only by a player whose parrotfish holds at least two polyps, the one fed at setup included (rulebook p. 11; restated deliberately, designer).
@@ -68,6 +68,14 @@ In the rulebook's order (pp. 3–4):
 - **Which coral.** One of at least five polyps guarded by the player's own shrimp. Never a coral guarded by another player's shrimp, or an unguarded one (rulebook p. 11).
 - **Where it goes.** Four polyps go back into the bag, which is reshuffled; the rest go into the parrotfish (rulebook p. 11). The first shrimp a player's parrotfish eats goes on the open-sea board; later ones go inside the parrotfish.
 - **What others see.** The eaten coral was on the board, so with Concealed off its polyps, and the number of shrimps inside each parrotfish, are shown. With Concealed on they are hidden, as the printed rules forbid looking into another player's parrotfish. The shrimp on the open-sea board is always shown.
+
+## End of the game
+
+- **What ends it** (rulebook p. 11): every coral tile carrying an alga cylinder; a player's parrotfish having eaten all four of their shrimps, the one on the open-sea board included; no rock square left without a polyp; or the open sea not being refillable (see Turns).
+- **At once.** The game ends the moment the condition is met: the player does nothing more that turn, not even action 10 (designer ruling, for the fourth shrimp; applied to every condition, since the rulebook says each ends the game immediately).
+- **Final turns.** After the first two conditions, every other player, in turn order from the next, has one more turn in which they may only eat a coral or pass. Eating then returns five polyps to the bag instead of four, so a coral of five feeds the parrotfish nothing. Nothing more happens if a final turn eats a player's fourth shrimp. The last two conditions give no final turns.
+- **No rock left** is read as every rock square of every board holding a polyp. It is checked after each polyp is placed, since nothing else fills a square.
+- **Undo** cannot step back past the end of the game, which reveals everything hidden.
 
 ## Scoring
 

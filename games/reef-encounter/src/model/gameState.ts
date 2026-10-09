@@ -52,15 +52,29 @@ import {
 } from './reef.js'
 import { LarvaCubesPerTurn, ScreenPolypsPerLarvaCube, TurnRecord } from './turn.js'
 import { compareScores, coralValues, scoreBreakdown, type ScoreBreakdown } from './scoring.js'
-import { HydratedReefEncounterPlayerState, ReefEncounterPlayerState } from './playerState.js'
+import {
+    HydratedReefEncounterPlayerState,
+    ReefEncounterPlayerState,
+    ShrimpsPerPlayer
+} from './playerState.js'
 
 export const LarvaCubesChosenAtSetup = 2
+
+// What ended the game (rulebook p. 11). The first two give every other player a final turn.
+export enum GameEndReason {
+    AllTilesLocked = 'allTilesLocked',
+    FourShrimpsEaten = 'fourShrimpsEaten',
+    NoRockLeft = 'noRockLeft',
+    Shortage = 'shortage'
+}
 // A player may never have more than two of their own shrimps on one board (rulebook p. 9).
 export const ShrimpsPerPlayerPerBoard = 2
 // A parrotfish eats only a coral of at least five polyps; the first four go back into the bag
 // (rulebook p. 11).
 export const SmallestEdibleCoral = 5
 export const PolypsReturnedWhenEating = 4
+// In the final turns, five go back instead (rulebook p. 11).
+export const PolypsReturnedWhenEatingInFinalTurns = 5
 export const AlgaCylindersPerColor = 5
 // The last uncovered coral tile may be locked only by a player whose parrotfish holds at
 // least two polyps, the one fed at setup included (rulebook p. 10).
@@ -83,6 +97,9 @@ export const ReefEncounterGameState = Type.Intersect([
         // Once the bag runs out, the bonus polyps join it for good (rulebook p. 11).
         bonusPolypsInBag: Type.Boolean(),
         algaSupply: AlgaCounts,
+        endReason: Type.Optional(Type.Enum(GameEndReason)),
+        // The player whose turn ended the game, when the others get final turns.
+        endingPlayerId: Type.Optional(Type.String()),
         // The alga cylinder space on the open-sea board holds at most one cylinder.
         openSeaAlga: Type.Optional(Type.Enum(AlgaColor)),
         polypBag: PolypBag
@@ -119,6 +136,8 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare bonusPolyps: CoralCounts
     declare bonusPolypsInBag: boolean
     declare algaSupply: AlgaCounts
+    declare endReason?: GameEndReason
+    declare endingPlayerId?: string
     declare openSeaAlga?: AlgaColor
     declare polypBag: HydratedPolypBag
 
@@ -518,7 +537,12 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
                 !coral.some((polyp) => sameCoordinates(polyp.coords, shrimp.coords))
         )
 
-        const returnedToBag = Math.min(PolypsReturnedWhenEating, coral.length)
+        const returnedToBag = Math.min(
+            this.machineState === MachineState.FinalTurns
+                ? PolypsReturnedWhenEatingInFinalTurns
+                : PolypsReturnedWhenEating,
+            coral.length
+        )
         this.returnPolyps(color, returnedToBag)
 
         const player = this.getPlayerState(playerId)
@@ -632,6 +656,30 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             return 'That coral already has a shrimp'
         }
         return undefined
+    }
+
+    // An end condition the acting player's last action has met, if any (rulebook p. 11).
+    gameEndReachedBy(playerId: string): GameEndReason | undefined {
+        if (this.coralTiles.every((tile) => tile.cylinder !== undefined)) {
+            return GameEndReason.AllTilesLocked
+        }
+        const player = this.getPlayerState(playerId)
+        if (
+            (player.shrimpOnOpenSea ? 1 : 0) + player.getShrimpsInParrotfish() >=
+            ShrimpsPerPlayer
+        ) {
+            return GameEndReason.FourShrimpsEaten
+        }
+        const rockLeft = this.reefs.some((reef) =>
+            ReefBoards[reef.boardId].rock.some((coords) => !polypAt(reef, coords))
+        )
+        return rockLeft ? undefined : GameEndReason.NoRockLeft
+    }
+
+    // The player after this one in turn order.
+    nextInTurnOrder(playerId: string): string {
+        const order = this.turnManager.turnOrder
+        return order[(order.indexOf(playerId) + 1) % order.length]
     }
 
     scores(): Record<string, ScoreBreakdown> {

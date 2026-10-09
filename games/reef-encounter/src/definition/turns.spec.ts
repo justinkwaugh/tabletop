@@ -4,6 +4,7 @@ import { CoralColor, CoralColors, coralCounts, totalCount } from '../components/
 import { isRefillOpenSea } from '../actions/refillOpenSea.js'
 import { coralValues } from '../model/scoring.js'
 import {
+    GameEndReason,
     ReefEncounterGameStateValidator,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
@@ -128,6 +129,7 @@ describe('running the bag dry', () => {
         session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.White)
 
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
+        expect(session.state.endReason).toBe(GameEndReason.Shortage)
         expect(session.state.activePlayerIds).toEqual([])
         const white = space(session.state, CoralColor.White)
         expect(white.hasLarvaCube).toBe(false)

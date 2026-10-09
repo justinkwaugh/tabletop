@@ -10,5 +10,7 @@ export enum ActionType {
     ExchangeLarvaCube = 'exchangeLarvaCube',
     PlayAlgaCylinder = 'playAlgaCylinder',
     TakeOpenSeaSpace = 'takeOpenSeaSpace',
-    RefillOpenSea = 'refillOpenSea'
+    PassFinalTurn = 'passFinalTurn',
+    RefillOpenSea = 'refillOpenSea',
+    EndGame = 'endGame'
 }

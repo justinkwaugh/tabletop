@@ -1,7 +1,9 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedReefEncounterGameState } from '../model/gameState.js'
+import { GameEndReason, HydratedReefEncounterGameState } from '../model/gameState.js'
+import { EndGame } from '../actions/endGame.js'
+import { newTurnRecord } from '../model/turn.js'
 import { HydratedTakeOpenSeaSpace, isTakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
 import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube.js'
 import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
@@ -134,10 +136,27 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         action: TakingTurnAction,
         context: MachineContext<HydratedReefEncounterGameState>
     ): MachineState {
+        const gameState = context.gameState
         if (isTakeOpenSeaSpace(action)) {
             context.addSystemAction(RefillOpenSea, { revealsInfo: true })
             return MachineState.RefillingOpenSea
         }
-        return MachineState.TakingTurn
+        if (!isEatCoral(action) && !isPlayAlgaCylinder(action) && !isPlacePolyp(action)) {
+            return MachineState.TakingTurn
+        }
+        const endReason = gameState.gameEndReachedBy(action.playerId)
+        if (!endReason) {
+            return MachineState.TakingTurn
+        }
+        // The game ends at once; the player does nothing more, not even action 10.
+        gameState.endReason = endReason
+        if (endReason === GameEndReason.NoRockLeft) {
+            context.addSystemAction(EndGame, { revealsInfo: true })
+            return MachineState.EndingGame
+        }
+        gameState.endingPlayerId = action.playerId
+        gameState.turnManager.endTurn(gameState.actionCount)
+        gameState.turn = newTurnRecord()
+        return MachineState.FinalTurns
     }
 }
