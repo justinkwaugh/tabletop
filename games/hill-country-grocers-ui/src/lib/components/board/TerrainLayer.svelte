@@ -15,6 +15,14 @@
         coordsSeed,
         type ContourHill
     } from '$lib/utils/mapStyle.js'
+    import {
+        CROWN_LAYERS_BOTTOM_UP,
+        OAKS,
+        crownHighlights,
+        crownLobes,
+        groundShadow,
+        trunkPath
+    } from '$lib/utils/liveOak.js'
 
     type Decoration = 'oaks' | 'bluebonnets' | 'limestone' | 'cactus' | 'none'
 
@@ -24,28 +32,6 @@
         if (seed < 0.64) return 'limestone'
         if (seed < 0.76) return 'cactus'
         return 'none'
-    }
-
-    const OAKS = [
-        { x: -30, y: -34, r: 9 },
-        { x: -12, y: -42, r: 11 },
-        { x: 8, y: -36, r: 8 }
-    ]
-    const CROWN_LOBES = [
-        { dx: -0.75, dy: 0.1, rx: 0.55, ry: 0.42 },
-        { dx: -0.35, dy: -0.3, rx: 0.6, ry: 0.5 },
-        { dx: 0.25, dy: -0.38, rx: 0.62, ry: 0.5 },
-        { dx: 0.75, dy: 0.05, rx: 0.55, ry: 0.42 },
-        { dx: 0, dy: 0.12, rx: 1.05, ry: 0.38 }
-    ]
-
-    function trunkPath({ x, y, r }: { x: number; y: number; r: number }): string {
-        const fork = y + r * 0.3
-        return [
-            `M${x - 1.6} ${y + r * 0.95} L${x - 1} ${fork} L${x - r * 0.45} ${y - r * 0.05}`,
-            `M${x - 1} ${fork} L${x + 1} ${fork} L${x + r * 0.5} ${y - r * 0.02}`,
-            `M${x + 1} ${fork} L${x + 1.6} ${y + r * 0.95}`
-        ].join(' ')
     }
 
     const tiles = HILL_COUNTRY_MAP.hexes().map((place) => {
@@ -167,41 +153,18 @@
             {#if tile.decoration === 'oaks'}
                 <g transform="scale({tile.flip} 1)">
                     {#each OAKS as oak (oak.x)}
-                        <ellipse
-                            cx={oak.x + 1}
-                            cy={oak.y + oak.r * 0.95}
-                            rx={oak.r * 1.15}
-                            ry={oak.r * 0.22}
-                            class="oak-shadow"
-                        />
+                        <ellipse {...groundShadow(oak)} class="oak-shadow" />
                         <path d={trunkPath(oak)} class="trunk" />
-                        <!-- Stroked lobes go first and filled ones over them, so only the crown's outer edge shows. -->
-                        {#each [true, false] as edge (edge)}
-                            <g class={edge ? 'canopy-edge' : 'canopy'}>
-                                {#each CROWN_LOBES as lobe, index (index)}
-                                    <ellipse
-                                        cx={oak.x + lobe.dx * oak.r}
-                                        cy={oak.y + lobe.dy * oak.r}
-                                        rx={lobe.rx * oak.r}
-                                        ry={lobe.ry * oak.r}
-                                    />
+                        {#each CROWN_LAYERS_BOTTOM_UP as layer (layer)}
+                            <g class={layer}>
+                                {#each crownLobes(oak) as lobe, index (index)}
+                                    <ellipse {...lobe} />
                                 {/each}
                             </g>
                         {/each}
-                        <ellipse
-                            cx={oak.x - oak.r * 0.35}
-                            cy={oak.y - oak.r * 0.45}
-                            rx={oak.r * 0.35}
-                            ry={oak.r * 0.22}
-                            class="canopy-light"
-                        />
-                        <ellipse
-                            cx={oak.x + oak.r * 0.3}
-                            cy={oak.y - oak.r * 0.5}
-                            rx={oak.r * 0.28}
-                            ry={oak.r * 0.18}
-                            class="canopy-light"
-                        />
+                        {#each crownHighlights(oak) as highlight, index (index)}
+                            <ellipse {...highlight} class="canopy-light" />
+                        {/each}
                     {/each}
                 </g>
             {:else if tile.decoration === 'bluebonnets'}
