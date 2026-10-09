@@ -17,6 +17,7 @@
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, siteName } from '$lib/model/names.js'
 
@@ -25,6 +26,8 @@
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
+    // A facedown adviser's plays share one width.
+    const playWidth = new ChoiceWidth()
 
     let advisers = $derived(
         action === ActionType.PlayFacedownAdviser ? gameSession.facedownAdviserOptions : []
@@ -163,6 +166,7 @@
                             <MenuChoice
                                 label="{option.label}: {cardName(adviser.cardId)}"
                                 disabled={busy}
+                                width={playWidth}
                                 onclick={() =>
                                     gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
                             >

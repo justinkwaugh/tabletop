@@ -43,7 +43,7 @@
         class="w-56 min-w-0 shrink-0 text-[15px] font-bold max-sm:w-auto max-sm:basis-[calc(100%-3rem)]"
         >{name}</span
     >
-    <span class="flex gap-1.5 max-sm:basis-full">
+    <span class="flex flex-wrap gap-1.5 max-sm:basis-full">
         {@render children()}
     </span>
 </div>

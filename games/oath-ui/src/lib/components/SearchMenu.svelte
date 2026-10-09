@@ -5,6 +5,7 @@
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { regionName } from '$lib/model/names.js'
     import type { SearchRow } from '$lib/model/searchRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -14,6 +15,7 @@
     let gameState = $derived(gameSession.gameState)
     let rows = $derived(gameSession.searchRows)
     let busy = $derived(gameSession.busy)
+    const choiceWidth = new ChoiceWidth()
 
     const sourceOf = (row: SearchRow) =>
         row.region ? `the ${regionName(row.region)} discard pile` : 'the world deck'
@@ -68,6 +70,7 @@
             <MenuChoice
                 label={spoken(row)}
                 disabled={busy}
+                width={choiceWidth}
                 onclick={() => gameSession.searchFrom(row)}
             >
                 {@const payees = payeesOf(row)}

@@ -5,6 +5,7 @@
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName, plural, suitName } from '$lib/model/names.js'
     import type { MusterRow } from '$lib/model/musterRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -14,6 +15,7 @@
     let rows = $derived(gameSession.musterRows)
     let owner = $derived(gameSession.musterWarbandOwner)
     let busy = $derived(gameSession.busy)
+    const choiceWidth = new ChoiceWidth()
 
     function spoken(row: MusterRow): string {
         const placed = row.paysSecret ? 'a secret' : '1 favor'
@@ -32,6 +34,7 @@
             <MenuChoice
                 label={spoken(row)}
                 disabled={busy}
+                width={choiceWidth}
                 onclick={() => gameSession.chooseCard(row.cardId)}
             >
                 <span class="flex items-center gap-1.5">

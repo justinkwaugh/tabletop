@@ -7,6 +7,7 @@
     import type { SizedImage } from '$lib/images/manifestIndex.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { bannerImage, favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { bannerName, bannerTokenKind, cardName, siteName, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -15,6 +16,8 @@
     let gameState = $derived(gameSession.gameState)
     let rows = $derived(gameSession.recoverRows)
     let busy = $derived(gameSession.busy)
+    // The relics and the banners are one menu, so their buttons share one width.
+    const choiceWidth = new ChoiceWidth()
     let siteId = $derived(gameSession.myPlayerState?.siteId)
     let slots = $derived(siteId ? gameState.relicSlotsAt(siteId).map((slot) => slot.slotId) : [])
 
@@ -60,6 +63,7 @@
                 <MenuChoice
                     label="Recover {relicName(row.slotId)}: {costWords(row.cost)}"
                     disabled={busy}
+                    width={choiceWidth}
                     onclick={() => gameSession.chooseRelicSlot(row.slotId)}
                 >
                     <span class="flex items-center gap-1.5 whitespace-nowrap text-oath-accent">
@@ -109,6 +113,7 @@
                           ? 'secret'
                           : 'secrets'}{more ? ' or more' : ''}"
                     disabled={busy}
+                    width={choiceWidth}
                     onclick={() => gameSession.pickBanner(bid.banner)}
                 >
                     <span class="flex items-center gap-1.5 whitespace-nowrap">

@@ -5,6 +5,7 @@
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName, plural, suitName } from '$lib/model/names.js'
     import type { TradeChoice, TradeRow } from '$lib/model/tradeRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -13,6 +14,7 @@
     let gameSession = getGameSession()
     let rows = $derived(gameSession.tradeRows)
     let busy = $derived(gameSession.busy)
+    const choiceWidth = new ChoiceWidth()
 
     function spoken(row: TradeRow, choice: TradeChoice): string {
         const card = cardName(row.cardId)
@@ -35,6 +37,7 @@
                 <MenuChoice
                     label={spoken(row, choice)}
                     disabled={busy}
+                    width={choiceWidth}
                     onclick={() => gameSession.chooseTrade(row.cardId, choice.option)}
                 >
                     <span class="flex items-center gap-1.5">
