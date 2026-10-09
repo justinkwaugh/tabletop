@@ -25,12 +25,12 @@
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "LayTile": "249fc9b4fcffcbb7a93a12b1cdef9ef8b42628162e7801ea1e7b41d89d9c3378",
-    "OfferPurchase": "136ac8c1fe9d5b9aac31aa987b3a719fc65e9d2d9437b15775613e8b37bfea41",
+    "OfferPurchase": "6090246b4cdb8f0e60a4c6022ac910654e0669f7976e2a78af7d393eab4f2432",
     "PassFinalCompany": "a6f0317e8e075e7aeef871f74fbf4d9c89a7c57acb03b514ec6677647c98b7c5",
     "PassOpeningPurchase": "d0193d73e05c66e172af5abd13d4490a92f26a78783301e00b3c76199c3d6e5f",
     "PlaceCWIStation": "c76cd1af598092af248d81a827e347777da4b0a2cee7c44760ae48fe2d99ad16",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
-    "RespondToPurchaseOffer": "bb8b740526e40cb58233307832ce7d879791fb047787ffabd4421790e6586b97",
+    "RespondToPurchaseOffer": "ce4cd7c9a53e8ed3ac8d38d840475fbf0a489838a792f023de72a6c7f1712a94",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "8fd9faa1d84014dff7c81664568218514d3b6b7e566cbb5740f2685d2e4d0281",
     "RunTrains": "a00f6e3a70d2a6cc2c43e4ca917328530cbeaa7ccaae56993080a0c37791424a",
@@ -2232,113 +2232,21 @@
                   }
                 ]
               },
-              "buyerPlayerId": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "companyId": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "id": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "price": {
-                "minimum": 1,
-                "type": "integer"
-              },
-              "seller": {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "player",
-                            "type": "string"
-                          },
-                          "playerId": {
-                            "minLength": 1,
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "kind",
-                          "playerId"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "properties": {
-                          "companyId": {
-                            "minLength": 1,
-                            "type": "string"
-                          },
-                          "kind": {
-                            "const": "company",
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "companyId",
-                          "kind"
-                        ],
-                        "type": "object"
-                      }
-                    ]
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "bank",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "kind"
-                    ],
-                    "type": "object"
-                  }
-                ]
-              },
-              "sellerPlayerId": {
-                "minLength": 1,
-                "type": "string"
-              }
-            },
-            "required": [
-              "asset",
-              "buyerPlayerId",
-              "companyId",
-              "id",
-              "price",
-              "seller",
-              "sellerPlayerId"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "asset": {
+              "buyer": {
                 "additionalProperties": false,
                 "properties": {
-                  "kind": {
-                    "const": "private",
+                  "companyId": {
+                    "minLength": 1,
                     "type": "string"
                   },
-                  "privateCompanyId": {
-                    "minLength": 1,
+                  "kind": {
+                    "const": "company",
                     "type": "string"
                   }
                 },
                 "required": [
-                  "kind",
-                  "privateCompanyId"
+                  "companyId",
+                  "kind"
                 ],
                 "type": "object"
               },
@@ -2418,6 +2326,131 @@
             },
             "required": [
               "asset",
+              "buyer",
+              "buyerPlayerId",
+              "id",
+              "price",
+              "seller",
+              "sellerPlayerId"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "private",
+                    "type": "string"
+                  },
+                  "privateCompanyId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "privateCompanyId"
+                ],
+                "type": "object"
+              },
+              "buyer": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "player",
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "playerId"
+                ],
+                "type": "object"
+              },
+              "buyerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "price": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "seller": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "player",
+                            "type": "string"
+                          },
+                          "playerId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "playerId"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "companyId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "company",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "companyId",
+                          "kind"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "bank",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "sellerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "buyer",
               "buyerPlayerId",
               "id",
               "price",

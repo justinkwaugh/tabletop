@@ -39,12 +39,22 @@ export const PurchaseOfferRequest = Type.Object(
     { additionalProperties: false }
 )
 export type PurchaseOfferRequest = Type.Static<typeof PurchaseOfferRequest>
+const OfferParties = {
+    id: Id,
+    seller: Owner,
+    price: Type.Integer({ minimum: 1 }),
+    /** The player answering for the buyer: the buying company's president, or the buyer. */
+    buyerPlayerId: Id,
+    sellerPlayerId: Id
+}
 export const PurchaseOffer = Type.Object(
     {
-        ...PurchaseOfferRequest.properties,
-        id: Id,
-        buyerPlayerId: Id,
-        sellerPlayerId: Id
+        ...OfferParties,
+        buyer: Type.Object(
+            { kind: Type.Literal('company'), companyId: Id },
+            { additionalProperties: false }
+        ),
+        asset: PurchaseAsset
     },
     { additionalProperties: false }
 )
@@ -52,15 +62,15 @@ export type PurchaseOffer = Type.Static<typeof PurchaseOffer>
 /** A player's offer, during their stock turn, for a private another player owns. */
 export const PlayerPurchaseOffer = Type.Object(
     {
-        id: Id,
+        ...OfferParties,
+        buyer: Type.Object(
+            { kind: Type.Literal('player'), playerId: Id },
+            { additionalProperties: false }
+        ),
         asset: Type.Object(
             { kind: Type.Literal('private'), privateCompanyId: Id },
             { additionalProperties: false }
-        ),
-        seller: Owner,
-        price: Type.Integer({ minimum: 1 }),
-        buyerPlayerId: Id,
-        sellerPlayerId: Id
+        )
     },
     { additionalProperties: false }
 )
@@ -81,8 +91,17 @@ export const PurchaseEffects = Type.Object(
     { additionalProperties: false }
 )
 export type PurchaseEffects = Type.Static<typeof PurchaseEffects>
+/** The request a company's offer was made with, for re-evaluating it when it is answered. */
+export function companyOfferRequest(offer: PurchaseOffer): PurchaseOfferRequest {
+    return {
+        companyId: offer.buyer.companyId,
+        asset: offer.asset,
+        seller: offer.seller,
+        price: offer.price
+    }
+}
 export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is PurchaseOffer {
-    return 'companyId' in offer
+    return offer.buyer.kind === 'company'
 }
 export interface TransferRules {
     operatingCompany(state: CompanyDecisionState): string | undefined
@@ -191,15 +210,16 @@ export function settlePurchaseOffer(
     rules: TransferRules,
     trains: TrainRules
 ): { payments: CashPayment[]; effects?: PurchaseEffects } {
-    const evaluation = evaluatePurchaseOffer(state, offer, rules, trains)
+    const request = companyOfferRequest(offer)
+    const evaluation = evaluatePurchaseOffer(state, request, rules, trains)
     assert(
         evaluation.buyerPlayerId === offer.buyerPlayerId &&
             evaluation.sellerPlayerId === offer.sellerPlayerId,
         evaluation.reason ?? 'Decision authority has changed'
     )
-    const owner = { kind: 'company', companyId: offer.companyId } as const
+    const owner = offer.buyer
     settleCashPayments(state, [
-        ...fundingContributions(state, offer, rules),
+        ...fundingContributions(state, request, rules),
         { from: owner, to: offer.seller, amount: offer.price }
     ])
     const asset = offer.asset
@@ -218,7 +238,7 @@ export function settlePurchaseOffer(
             ])
         )
         train.owner = owner
-        closePrivatesOnTrainPurchase(state, trains, offer.companyId)
+        closePrivatesOnTrainPurchase(state, trains, offer.buyer.companyId)
     } else if (asset.kind === 'private') {
         const certificate = state.certificates.find(
             (item) => item.kind === 'private' && item.companyId === asset.privateCompanyId

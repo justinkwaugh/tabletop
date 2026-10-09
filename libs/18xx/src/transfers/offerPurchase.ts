@@ -30,6 +30,7 @@ import {
     OrdinaryPurchaseOffer,
     OrdinaryPendingPurchaseOffer,
     isCompanyPurchaseOffer,
+    companyOfferRequest,
     evaluatePurchaseOffer,
     settlePurchaseOffer,
     type TransferRules
@@ -113,7 +114,7 @@ export class HydratedOfferPurchase
         assert(result.buyerPlayerId && result.sellerPlayerId, 'Offer requires both players')
         const offer: PurchaseOffer = {
             id: this.id,
-            companyId: this.companyId,
+            buyer: { kind: 'company', companyId: this.companyId },
             asset: this.asset,
             seller: this.seller,
             price: this.price,
@@ -206,7 +207,12 @@ export class HydratedRespondToPurchaseOffer
         if (!this.accept) return true
         if (!isCompanyPurchaseOffer(offer))
             return privateSaleReason(state, this.#stocks, offerSaleRequest(offer)) === undefined
-        const result = evaluatePurchaseOffer(state, offer, this.#rules, this.#trains)
+        const result = evaluatePurchaseOffer(
+            state,
+            companyOfferRequest(offer),
+            this.#rules,
+            this.#trains
+        )
         return (
             result.buyerPlayerId === offer.buyerPlayerId &&
             result.sellerPlayerId === offer.sellerPlayerId

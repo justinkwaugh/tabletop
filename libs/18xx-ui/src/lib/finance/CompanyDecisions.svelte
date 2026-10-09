@@ -87,12 +87,12 @@
                 onDecline={() => session.decisions.respondToPurchaseOffer(false)}
             >
                 {#if isCompanyPurchaseOffer(offer)}<CompanyToken
-                        appearance={session.mapView.stations[offer.companyId]}
+                        appearance={session.mapView.stations[offer.buyer.companyId]}
                         size={24}
                     />{/if}
                 <span
                     >{isCompanyPurchaseOffer(offer)
-                        ? session.companyName(offer.companyId)
+                        ? session.companyName(offer.buyer.companyId)
                         : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
                     {offer.asset.kind === 'private'
                         ? session.companyName(offer.asset.privateCompanyId)

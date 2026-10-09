@@ -145,9 +145,13 @@ mechanism below, plus the six implemented titles.
    the title's names. Recorded metadata stops repeating names: earnings distributions drop
    `companyName`, and operating-round snapshots record `companyIds` instead of
    `companyNames`. The UI names through the session (`companyName`, `poolName`, `names`).
-6. **One buyer field for purchase offers.** `buyer: Owner` replaces both a company
-   offer's `companyId` and a player offer's `buyerPlayerId`, in the State union and in
-   `RespondToPurchaseOffer` metadata. `OfferPurchase` input stays a company buyer.
+6. **One buyer field for purchase offers.** Both offer shapes record `buyer: Owner`; it
+   replaces a company offer's `companyId`, and `isCompanyPurchaseOffer` checks
+   `buyer.kind` instead of whether a field is present. Both keep `buyerPlayerId`, the
+   player answering for the buyer (a company's president or the buying player), which a
+   company offer needs to check that decision authority has not changed.
+   `companyOfferRequest` recovers a company offer's request for re-evaluation;
+   `OfferPurchase` input is unchanged.
 
 Measured after change 4, replaying each recorded finished game: TOP 75.1 → 58.8 KB, 1889
 48.9 → 34.0, 1830 58.7 → 39.4, 1846 37.1 → 29.0, 1817 92.4 → 66.2, 1832 76.0 → 44.4 (22–42%).

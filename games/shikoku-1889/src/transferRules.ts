@@ -25,7 +25,7 @@ export const Shikoku1889TransferRules: TransferRules = {
         )
             state.privateTrackLay = {
                 privateCompanyId: 'ER',
-                companyId: offer.companyId,
+                companyId: offer.buyer.companyId,
                 playerId: offer.sellerPlayerId
             }
     }

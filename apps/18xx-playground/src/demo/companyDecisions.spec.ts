@@ -63,7 +63,11 @@ it.each(Titles)(
             state,
             action: action(state, 'OfferPurchase', request)
         })
-        expect(offered.updatedState.purchaseOffer).toMatchObject(request)
+        const { companyId, ...terms } = request
+        expect(offered.updatedState.purchaseOffer).toMatchObject({
+            ...terms,
+            buyer: { kind: 'company', companyId }
+        })
         expect(offered.updatedState.activePlayerIds).toEqual([
             offered.updatedState.purchaseOffer!.sellerPlayerId
         ])

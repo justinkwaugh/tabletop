@@ -27,6 +27,6 @@ export const EighteenThirtyTwoTransferRules: TransferRules = {
     },
     afterPurchase(state, offer) {
         if (offer.asset.kind === 'private' && offer.asset.privateCompanyId === CoalFieldsPrivateId)
-            grantCoalRightsToBuyer(requireEighteenThirtyTwoState(state), offer.companyId)
+            grantCoalRightsToBuyer(requireEighteenThirtyTwoState(state), offer.buyer.companyId)
     }
 }

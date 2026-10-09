@@ -157,6 +157,7 @@ export class HydratedOfferPrivatePurchase
         assert(owner?.kind === 'player', 'The seller is a player')
         state.purchaseOffer = {
             id: this.id,
+            buyer: { kind: 'player', playerId: this.playerId },
             asset: { kind: 'private', privateCompanyId: this.privateCompanyId },
             seller: owner,
             price: this.price,

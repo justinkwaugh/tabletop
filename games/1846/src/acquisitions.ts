@@ -91,7 +91,7 @@ export const TransferRules1846: TransferRules = {
             if (isRevenuePrivate(offer.asset.privateCompanyId))
                 state.pendingRevenueMarker = {
                     privateCompanyId: offer.asset.privateCompanyId,
-                    companyId: offer.companyId
+                    companyId: offer.buyer.companyId
                 }
             return
         }
@@ -99,7 +99,7 @@ export const TransferRules1846: TransferRules = {
         const id = offer.asset.companyId
         const set = state.operatingSet
         assertExists(set, 'An independent is acquired during operations')
-        const assets = transferCompanyAssets(state, id, offer.companyId, { loans: false })
+        const assets = transferCompanyAssets(state, id, offer.buyer.companyId, { loans: false })
         assert(assets.trainIds.length === 1, 'An independent brings its single 2-train')
         state.independentAcquisitions.push({
             companyId: id,
@@ -115,12 +115,12 @@ export const TransferRules1846: TransferRules = {
         if (
             !state.stations.some(
                 (own) =>
-                    own.companyId === offer.companyId &&
+                    own.companyId === offer.buyer.companyId &&
                     own.status === 'placed' &&
                     own.position.locationId === station.position.locationId
             )
         ) {
-            addCompanyStations(state, offer.companyId, 1)
+            addCompanyStations(state, offer.buyer.companyId, 1)
             const extra = state.stations.at(-1)
             assertExists(extra, 'Absorption provides an extra station')
             replaceStation(state, station.id, extra.id)

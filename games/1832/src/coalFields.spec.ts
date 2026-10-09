@@ -70,7 +70,7 @@ describe('West Virginia Coal Fields', () => {
         const state = structuredClone(play.state)
         EighteenThirtyTwoTransferRules.afterPurchase(state, {
             id: 'offer',
-            companyId: 'CG',
+            buyer: { kind: 'company', companyId: 'CG' },
             asset: { kind: 'private', privateCompanyId: 'P5' },
             seller: { kind: 'player', playerId: 'casey' },
             sellerPlayerId: 'casey',

@@ -44,7 +44,7 @@ function operating(overrides: Partial<State>, valid: string[], availability = {}
 }
 const purchaseOffer: NonNullable<State['purchaseOffer']> = {
     id: 'offer',
-    companyId: TestCompanyId,
+    buyer: { kind: 'company', companyId: TestCompanyId },
     asset: { kind: 'private', privateCompanyId: 'P' },
     seller: { kind: 'player', playerId: 'blake' },
     price: 10,

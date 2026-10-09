@@ -183,7 +183,7 @@ describe('B&O private closure by an intercompany train purchase', () => {
             state,
             {
                 id: 'offer',
-                companyId: 'BO',
+                buyer: { kind: 'company', companyId: 'BO' },
                 asset: { kind: 'train', trainId: train.id },
                 seller: { kind: 'company', companyId: 'PRR' },
                 price: 50,

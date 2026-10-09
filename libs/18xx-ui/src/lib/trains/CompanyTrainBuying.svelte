@@ -52,8 +52,11 @@
             onAccept={() => session.decisions.respondToPurchaseOffer(true)}
             onDecline={() => session.decisions.respondToPurchaseOffer(false)}
         >
-            <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
-            <strong>{session.companyName(response.companyId)}</strong>
+            <CompanyToken
+                appearance={session.mapView.stations[response.buyer.companyId]}
+                size={24}
+            />
+            <strong>{session.companyName(response.buyer.companyId)}</strong>
             <span>offers {money(response.price)} for</span>
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
             <span>from</span>
