@@ -1,19 +1,16 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
-import { isFieldSquare, type BoardSquare, type PlantingTile } from '@tabletop/santiago'
+import { isFieldSquare } from '@tabletop/santiago'
 import { intersectionKey } from '$lib/utils/canalGeometry.js'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 const POP = 0.45
 const POP_LAYER = 5
 
-// The board and the tile strip show a planting step's squares and remaining tiles through
-// `squares` and `tiles` (Pattern C), so the new field exists to pop before the state publishes,
-// and its tile has left the strip as it lands; like the other overrides they hold until then.
+// The board and the tile strip show a planting step's squares and remaining tiles through the
+// session's board preview, so the new field exists to pop before the state publishes, and its
+// tile has left the strip as it lands.
 export class FieldPopAnimator extends StateAnimator {
-    squares: BoardSquare[][] | undefined = $state.raw(undefined)
-    tiles: PlantingTile[] | undefined = $state.raw(undefined)
-
     private readonly fields = new Map<string, HTMLElement>()
     private popped: HTMLElement[] = []
 
@@ -28,8 +25,6 @@ export class FieldPopAnimator extends StateAnimator {
     }
 
     clearPreview() {
-        this.squares = undefined
-        this.tiles = undefined
         const cells = this.popped.flatMap((field) => field.parentElement ?? [])
         gsap.killTweensOf(this.popped)
         gsap.set(this.popped, { clearProps: 'transform' })
@@ -49,8 +44,8 @@ export class FieldPopAnimator extends StateAnimator {
         )
         if (planted.length === 0) return
 
-        this.squares = to.board.squares
-        this.tiles = to.revealedTiles
+        this.gameSession.boardPreview.showSquares(to.board.squares)
+        this.gameSession.boardPreview.showTiles(to.revealedTiles, false)
         await tick()
         const nodes = planted.flatMap((key) => this.fields.get(key) ?? [])
         if (nodes.length === 0) return

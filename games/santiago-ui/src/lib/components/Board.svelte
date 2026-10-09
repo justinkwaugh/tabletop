@@ -145,6 +145,23 @@
 
     let hoveredLabelKey = $state<string | null>(null)
 
+    // A finger has no hover, so on touch the first tap on an unbribed spot reveals its cost to the
+    // bank, and building there takes a tap on that cost. Any change of state forgets the reveal.
+    let lastSegmentPointer = 'mouse'
+    let revealedBankKey: string | null = $derived.by(() => {
+        void session.gameState
+        return null
+    })
+
+    function tapSegment(seg: CanalSegment, buildsForBankCost: boolean) {
+        const key = segmentKey(seg)
+        if (buildsForBankCost && lastSegmentPointer === 'touch' && revealedBankKey !== key) {
+            revealedBankKey = key
+            return
+        }
+        handleSegmentClick(seg)
+    }
+
     // Grid nodes touched by ≥2 canal segments — those ends get a square (not rounded)
     // cap, so adjoining segments' rectangles tile together with no gap and no patch needed.
     const canalJunctionKeys = $derived.by(() => {
@@ -374,10 +391,13 @@
 <style>
 .board-shell :global(.survey .bank-pill) {
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.15s ease-out;
 }
-.board-shell :global(.survey:hover .bank-pill) {
+.board-shell :global(.survey:hover .bank-pill),
+.board-shell :global(.survey .bank-pill.revealed) {
     opacity: 1;
+    pointer-events: all;
 }
 @keyframes palm-sway {
     0%, 100% { transform: rotate(-1.5deg) skewX(0.6deg); }
@@ -473,7 +493,7 @@
          style="left: {BORDER_X}px; top: {BORDER_Y}px; width: {FIELD_W}px; height: {FIELD_H}px; grid-template-columns: {GRID_TEMPLATE_COLUMNS}; grid-template-rows: {GRID_TEMPLATE_ROWS}">
         {#each Array(6) as _, row (row)}
             {#each Array(8) as _, col (col)}
-                {@const sq = (fieldPop.squares ?? session.gameState.board.squares)[col][row]}
+                {@const sq = (session.boardPreview.squares ?? session.gameState.board.squares)[col][row]}
                 {@const highlight = fieldHighlight(col, row)}
                 {@const neutralOk = isValidNeutralPlacement(col, row)}
                 <button
@@ -719,13 +739,16 @@
                          double-tap zoom is coming. -->
                     <line {...c} stroke="transparent" stroke-width="34"
                           style="pointer-events: all; cursor: pointer; touch-action: manipulation"
-                          onclick={() => handleSegmentClick(seg)} />
+                          onpointerdown={(event) => (lastSegmentPointer = event.pointerType)}
+                          onclick={() => tapSegment(seg, isOverseerDeciding && !bribeColors)} />
                 {/if}
                 {#if isOverseerDeciding && !bribeColors}
                     {@const { cx, cy } = pillCenter(seg, 0, 1, BANK_PILL_HALF_WIDTH)}
-                    <!-- Shown only while this spot is hovered: the action bar already states the
-                         cost of rejecting every bribe and building here. -->
-                    <g class="bank-pill" style="pointer-events: all; cursor: pointer; touch-action: manipulation"
+                    <!-- Shown only while this spot is hovered, or on touch after a first tap on its
+                         twine: the action bar already states the cost of rejecting every bribe and
+                         building here. -->
+                    <g class="bank-pill" class:revealed={revealedBankKey === segmentKey(seg)}
+                       style="cursor: pointer; touch-action: manipulation"
                        onclick={() => session.rejectAndBuild(seg)}>
                         <rect x={cx - BANK_PILL_HALF_WIDTH} y={cy - 14} width={BANK_PILL_HALF_WIDTH * 2} height="28" rx="6"
                               fill="#666666" stroke="black" stroke-width="1" opacity="0.85" />

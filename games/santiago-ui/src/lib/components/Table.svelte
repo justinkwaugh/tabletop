@@ -44,6 +44,7 @@
     setGameSession(session)
 
     const deal = session.tileDeal
+    const preview = session.boardPreview
     const state = $derived(session.gameState)
     const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
     const isBidding = $derived(state.machineState === MachineState.Bidding)
@@ -51,7 +52,7 @@
     const isMyPlantTurn = $derived(isPlantTurn(state, session.myPlayer?.id))
     const isNeutralPlacementMode = $derived(isNeutralPlacementStage(state))
     const revealedTiles = $derived(
-        deal.dealingTiles ?? session.fieldPop.tiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
+        preview.tiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
     )
 
     const displayTiles = $derived(
@@ -188,16 +189,18 @@
                                         <div
                                             class="shrink-0"
                                             style="transform-style: preserve-3d"
-                                            {@attach (el) => {
-                                                deal.setTileNode(i, el)
-                                                return () => deal.setTileNode(i, undefined)
-                                            }}
                                         >
-                                            {#if deal.dealingTiles}
+                                            {#if preview.dealing}
                                                 <!-- Two faces for the deal: the pile's back design
                                                      and the tile's face, which the animator turns
-                                                     over once the pile has come to rest on it. -->
-                                                <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d">
+                                                     over once the pile has come to rest on it. The
+                                                     deal's styles live on this card, so they go
+                                                     with it when the deal ends. -->
+                                                <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d"
+                                                     {@attach (el: HTMLElement) => {
+                                                         deal.setTileNode(i, el)
+                                                         return () => deal.setTileNode(i, undefined)
+                                                     }}>
                                                     <img src={desertUrl} alt=""
                                                          class="absolute inset-0 w-full h-full rounded-md object-cover"
                                                          style="backface-visibility: hidden" />
