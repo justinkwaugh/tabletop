@@ -16,7 +16,6 @@ import {
     ForgoFreeAction,
     ExileCitizen,
     HydratedAnswerConsent,
-    HydratedResolveOathkeeper,
     HydratedResolveWake,
     HydratedMuster,
     HydratedPlayFacedownAdviser,
@@ -339,16 +338,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.gameState.machineState === MachineState.WakePhase &&
             playerId !== undefined &&
             !HydratedResolveWake.nothingToDecide(this.gameState, playerId)
-        )
-    }
-
-    reasonCannotChooseOathkeeper(candidateId: string): string | undefined {
-        const playerId = this.myPlayer?.id
-        assertExists(playerId, 'The Oathkeeper title is passed on from a seat')
-        return HydratedResolveOathkeeper.reasonCannotResolveOathkeeper(
-            this.gameState,
-            playerId,
-            candidateId
         )
     }
 

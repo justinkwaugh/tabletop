@@ -3353,6 +3353,30 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 
     })
 }
 
+/** R-2.11.b — the outgoing holder gives the title to one of the tied players, shown as their chips. */
+test('the Oathkeeper title: the holder is asked who takes it, the tied players are chips of one width, and a tap gives it', async ({ page }) => {
+    await openTable(page, 'oathkeeperTie')
+    await expect(grid(page).getByRole('heading', { name: 'Oathkeeper', exact: true })).toBeVisible()
+    await expect(grid(page).getByText('Who takes the title?', { exact: true })).toBeVisible()
+    await expect(grid(page)).not.toContainText('You no longer')
+    await expect(grid(page)).not.toContainText('veto')
+    const chips = grid(page).getByRole('button', { name: /^Give it to / })
+    await expect(chips).toHaveCount(2)
+    await expect(chips.nth(0)).toHaveText('cole')
+    await expect(chips.nth(1)).toHaveText('ann')
+    const widths = await chips.evaluateAll((buttons) => buttons.map((button) => button instanceof HTMLElement ? button.offsetWidth : 0))
+    expect(new Set(widths).size).toBe(1)
+
+    await grid(page).getByRole('img', { name: 'the Oathkeeper title' }).click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+
+    await grid(page).getByRole('button', { name: 'Give it to ann', exact: true }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+    await expect(grid(page).getByText('Who takes the title?', { exact: true })).toHaveCount(0)
+})
+
 type PanelFrame = { scale: number; box: number; drawn: number }
 type PanelRecord = { frames: PanelFrame[]; errors: string[] }
 
