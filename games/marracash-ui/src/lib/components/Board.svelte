@@ -61,13 +61,13 @@
             liftedFountainIds.includes(fountain.fountainId)
         )
     )
-    let groundFountains = $derived(
-        gameSession.visibleFountains.filter(
-            (fountain) => !liftedFountainIds.includes(fountain.fountainId)
-        )
-    )
     let dimmed = $derived(spotlightShop !== undefined || liftedFountains.length > 0)
-    let fountainsAboveDimming = $derived(spotlightShop !== undefined)
+    // During an auction every fountain stays above the overlay.
+    let raisedFountainIds: FountainId[] = $derived(
+        spotlightShop !== undefined
+            ? gameSession.visibleFountains.map((fountain) => fountain.fountainId)
+            : liftedFountainIds
+    )
 
     let hoveredRoute = $derived.by<Route | undefined>(() => {
         gameSession.updatingVisibleState
@@ -139,14 +139,16 @@
     }
 </script>
 
-{#snippet fountainSpot(fountain: FountainState)}
+<!-- A hidden copy is never a control, so it has no role, label or tab stop. -->
+{#snippet fountainSpot(fountain: FountainState, shown: boolean)}
     {@const isSource = gameSession.selectedFountainId === fountain.fountainId}
     {@const isDestination = gameSession.destinationFountainIds.includes(fountain.fountainId)}
     {@const selectable =
-        isSource ||
-        isDestination ||
-        gameSession.movableFountainIds.includes(fountain.fountainId) ||
-        gameSession.fillableEntranceIds.includes(fountain.fountainId)}
+        shown &&
+        (isSource ||
+            isDestination ||
+            gameSession.movableFountainIds.includes(fountain.fountainId) ||
+            gameSession.fillableEntranceIds.includes(fountain.fountainId))}
     <FountainSpot
         {fountain}
         {selectable}
@@ -212,82 +214,98 @@
          one bitmap; only its controls take the pointer. -->
         <g pointer-events="none">
             <g transform="translate({QueueMargin} {QueueMargin})">
-                {#each choosableShops as shop (shop.shopId)}
-                    {@const rect = shopRect(shop.shopId, ShopTileInset)}
-                    {@const outline = stallOutline(shop.shopId, rect.width, rect.height)}
-                    <g
-                        role="button"
-                        tabindex="0"
-                        aria-label="Auction shop {shop.shopId}"
-                        class="cursor-pointer"
-                        pointer-events="auto"
-                        transform="translate({rect.x} {rect.y})"
-                        onclick={() => gameSession.startAuction(shop.shopId)}
-                        onkeydown={(event) =>
-                            event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
-                    >
-                        <HaloRing
-                            id="marracash-shop-halo-{shop.shopId}"
-                            {outline}
-                            bounds={{ x: 0, y: 0, width: rect.width, height: rect.height }}
-                        />
-                        <path d={outline} fill="transparent"></path>
-                    </g>
-                {/each}
-                {#each choosableFountains as fountain (fountain.fountainId)}
-                    {@const definition = getFountain(fountain.fountainId)}
-                    {@const center = cellCenter(definition.coords)}
-                    <g
-                        role="button"
-                        tabindex="0"
-                        aria-label="Fountain {fountain.fountainId}"
-                        class="cursor-pointer"
-                        pointer-events="auto"
-                        onclick={() => chooseFountain(fountain.fountainId)}
-                        onkeydown={(event) =>
-                            event.key === 'Enter' && chooseFountain(fountain.fountainId)}
-                    >
-                        <HaloRing
-                            id="marracash-fountain-halo-{fountain.fountainId}"
-                            outline={fountainOutline(center, definition.entrance)}
-                            bounds={fountainBounds(center, definition.entrance)}
-                        />
-                        <rect
-                            x={center.x - CellSize / 2}
-                            y={center.y - CellSize / 2}
-                            width={CellSize}
-                            height={CellSize}
-                            fill="transparent"
-                        ></rect>
-                    </g>
-                {/each}
+                <!-- Each block that mounts or unmounts pieces has a group of its own: in WebKit a
+                 piece mounted among many siblings is slower to restyle and lay out. -->
+                <g>
+                    {#each choosableShops as shop (shop.shopId)}
+                        {@const rect = shopRect(shop.shopId, ShopTileInset)}
+                        {@const outline = stallOutline(shop.shopId, rect.width, rect.height)}
+                        <g
+                            role="button"
+                            tabindex="0"
+                            aria-label="Auction shop {shop.shopId}"
+                            class="cursor-pointer"
+                            pointer-events="auto"
+                            transform="translate({rect.x} {rect.y})"
+                            onclick={() => gameSession.startAuction(shop.shopId)}
+                            onkeydown={(event) =>
+                                event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
+                        >
+                            <HaloRing
+                                id="marracash-shop-halo-{shop.shopId}"
+                                {outline}
+                                bounds={{ x: 0, y: 0, width: rect.width, height: rect.height }}
+                            />
+                            <path d={outline} fill="transparent"></path>
+                        </g>
+                    {/each}
+                </g>
+                <g>
+                    {#each choosableFountains as fountain (fountain.fountainId)}
+                        {@const definition = getFountain(fountain.fountainId)}
+                        {@const center = cellCenter(definition.coords)}
+                        <g
+                            role="button"
+                            tabindex="0"
+                            aria-label="Fountain {fountain.fountainId}"
+                            class="cursor-pointer"
+                            pointer-events="auto"
+                            onclick={() => chooseFountain(fountain.fountainId)}
+                            onkeydown={(event) =>
+                                event.key === 'Enter' && chooseFountain(fountain.fountainId)}
+                        >
+                            <HaloRing
+                                id="marracash-fountain-halo-{fountain.fountainId}"
+                                outline={fountainOutline(center, definition.entrance)}
+                                bounds={fountainBounds(center, definition.entrance)}
+                            />
+                            <rect
+                                x={center.x - CellSize / 2}
+                                y={center.y - CellSize / 2}
+                                width={CellSize}
+                                height={CellSize}
+                                fill="transparent"
+                            ></rect>
+                        </g>
+                    {/each}
+                </g>
 
-                {#if dimmed}
-                    <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
-                    <g opacity="0.25" pointer-events="auto">
-                        <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
-                        {#each Towers as pillar (`${pillar.x},${pillar.y}`)}
-                            {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
-                                <rect
-                                    x={pillar.x + offset.x}
-                                    y={pillar.y + offset.y}
-                                    width={pillar.width}
-                                    height={pillar.height}
-                                    rx="2"
-                                    fill="#000000"
-                                ></rect>
+                <g>
+                    {#if dimmed}
+                        <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
+                        <g opacity="0.25" pointer-events="auto">
+                            <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
+                            {#each Towers as pillar (`${pillar.x},${pillar.y}`)}
+                                {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
+                                    <rect
+                                        x={pillar.x + offset.x}
+                                        y={pillar.y + offset.y}
+                                        width={pillar.width}
+                                        height={pillar.height}
+                                        rx="2"
+                                        fill="#000000"
+                                    ></rect>
+                                {/each}
                             {/each}
-                        {/each}
-                    </g>
-                {/if}
+                        </g>
+                    {/if}
+                </g>
 
-                {#each groundShops as shop (shop.shopId)}
-                    <ShopTile {shop} layer="sign" />
-                {/each}
-                {#each groundFountains as fountain (fountain.fountainId)}
-                    {#if fountainsAboveDimming}
-                        <g pointer-events="auto">{@render fountainSpot(fountain)}</g>
-                    {:else}
+                <g>
+                    {#each groundShops as shop (shop.shopId)}
+                        <ShopTile {shop} layer="sign" />
+                    {/each}
+                </g>
+                <!-- Every fountain is drawn both here and raised above the overlay, and raising one
+                 only swaps which is visible: in WebKit mounting a fountain's basin into the board
+                 restyles and repaints it, about ten times as slow as the swap. A hidden copy cannot
+                 be focused or clicked and is left out of the accessibility tree. -->
+                {#each gameSession.visibleFountains as fountain (fountain.fountainId)}
+                    <g
+                        visibility={raisedFountainIds.includes(fountain.fountainId)
+                            ? 'hidden'
+                            : undefined}
+                    >
                         <FountainSpot
                             {fountain}
                             selectable={false}
@@ -295,33 +313,44 @@
                             onselect={() => {}}
                             layer="visitors"
                         />
-                    {/if}
+                    </g>
                 {/each}
 
                 <g pointer-events="auto">
-                    {#if spotlightShop}
-                        <ShopTile shop={spotlightShop} spotlit />
-                    {/if}
+                    <g>
+                        {#if spotlightShop}
+                            <ShopTile shop={spotlightShop} spotlit />
+                        {/if}
+                    </g>
 
-                    {#each enteredShops as shop (shop.shopId)}
-                        <ShopTile {shop} />
-                    {/each}
+                    <g>
+                        {#each enteredShops as shop (shop.shopId)}
+                            <ShopTile {shop} />
+                        {/each}
+                    </g>
 
-                    {#each liftedFountains as fountain (fountain.fountainId)}
-                        {@render fountainSpot(fountain)}
+                    {#each gameSession.visibleFountains as fountain (fountain.fountainId)}
+                        {@const shown = raisedFountainIds.includes(fountain.fountainId)}
+                        <g visibility={shown ? undefined : 'hidden'}>
+                            {@render fountainSpot(fountain, shown)}
+                        </g>
                     {/each}
                 </g>
 
-                {#if previewRoute}
-                    <!-- Remount per route so its dashes start in step with the destination's pulse. -->
-                    {#key previewRoute}
-                        <RoutePreview route={previewRoute} visits={previewVisits} />
-                    {/key}
-                {/if}
+                <g>
+                    {#if previewRoute}
+                        <!-- Remount per route so its dashes start in step with the destination's pulse. -->
+                        {#key previewRoute}
+                            <RoutePreview route={previewRoute} visits={previewVisits} />
+                        {/key}
+                    {/if}
+                </g>
 
-                {#if gameSession.historyHighlight}
-                    <HistoryHighlight highlight={gameSession.historyHighlight} />
-                {/if}
+                <g>
+                    {#if gameSession.historyHighlight}
+                        <HistoryHighlight highlight={gameSession.historyHighlight} />
+                    {/if}
+                </g>
             </g>
             <g pointer-events="auto"><VisitorQueue /></g>
         </g>
