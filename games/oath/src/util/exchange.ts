@@ -1,11 +1,12 @@
 import { bannerHolder } from './oathkeeper.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
     type ExchangeAllowance,
     type ExchangeTerms,
-    type ExchangeTransfer
+    type ExchangeTransfer,
+    type SiteTransfer
 } from '../model/question.js'
 import { rulesSite, rulingWarbandOwners, actsAsIfBanditsAreWarbands, warbandsAt } from './rule.js'
 import { reasonCannotMoveCardTo } from './locked.js'
@@ -19,7 +20,7 @@ import {
 import { giveRelic } from './relics.js'
 import type { CitizenshipTransfer } from '../model/citizenship.js'
 import { countOf } from './warbands.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
 import { handedOver } from '../model/playerState.js'
 
@@ -111,7 +112,10 @@ export function reasonTransferInvalid(
         if (bannerHolder(state, banner) !== fromId)
             return `${fromId} promised the ${banner} without holding it`
     }
-    for (const site of transfer.sites ?? []) {
+    const sites = transfer.sites ?? []
+    // R-X.4 — a game created before this revision checked each site alone against the whole board.
+    const summed = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+    for (const site of sites) {
         if (!rulesSite(state, fromId, site.siteId))
             return `${fromId} promised ${site.siteId} without ruling it`
         // Deed Writer's Q&A: a Citizen and the Chancellor cannot exchange sites, "since you both rule them already".
@@ -128,9 +132,19 @@ export function reasonTransferInvalid(
                 ? 'a promised amount cannot be negative'
                 : `${toId} must move at least one warband to ${site.siteId}`
         }
+        if (summed) continue
         const owner = boardWarbandOwnerOf(state, toId)
         if (!owner || countOf(to.warbandsOnBoard, owner) < site.warbands) {
             return `${toId}'s board has fewer than ${site.warbands} warbands to move to ${site.siteId}`
+        }
+    }
+    if (summed) {
+        const moves = movesFromBoard(state, toId, sites)
+        if (moves.length < sites.length) {
+            const covered = sites.slice(0, moves.length + 1)
+            const needed = covered.reduce((sum, site) => sum + site.warbands, 0)
+            const siteIds = covered.map((site) => site.siteId).join(', ')
+            return `${toId}'s board has fewer than ${needed} warbands to move to ${siteIds}`
         }
     }
     // R-9.4 — read from the public rows alone, so an answer never tells what a facedown card is.
@@ -166,11 +180,45 @@ export function boardWarbandOwnerOf(
     state: HydratedOathGameState,
     playerId: string
 ): WarbandOwner | undefined {
-    const player = state.getPlayerState(playerId)
-    const owners = rulingWarbandOwners(state, playerId)
-    return owners.sort(
-        (a, b) => countOf(player.warbandsOnBoard, b) - countOf(player.warbandsOnBoard, a)
-    )[0]
+    return mostHeld(
+        rulingWarbandOwners(state, playerId),
+        state.getPlayerState(playerId).warbandsOnBoard
+    )
+}
+
+function mostHeld(
+    owners: readonly WarbandOwner[],
+    counts: Readonly<WarbandCounts>
+): WarbandOwner | undefined {
+    return [...owners].sort((a, b) => countOf(counts, b) - countOf(counts, a))[0]
+}
+
+interface BoardMove {
+    siteId: string
+    owner: WarbandOwner
+    warbands: number
+}
+
+/**
+ * R-10.8 — "new ruler moves warbands from board": one board pays for every site, in the order the
+ * terms list them, each site taking whichever of the new ruler's warbands the board then holds
+ * most of. Stops at the first site the board cannot fill, so a shorter list means it runs short.
+ */
+function movesFromBoard(
+    state: HydratedOathGameState,
+    toId: string,
+    sites: readonly SiteTransfer[]
+): BoardMove[] {
+    const owners = rulingWarbandOwners(state, toId)
+    const left: WarbandCounts = { ...state.getPlayerState(toId).warbandsOnBoard }
+    const moves: BoardMove[] = []
+    for (const site of sites) {
+        const owner = mostHeld(owners, left)
+        if (!owner || countOf(left, owner) < site.warbands) break
+        left[owner] = countOf(left, owner) - site.warbands
+        moves.push({ siteId: site.siteId, owner, warbands: site.warbands })
+    }
+    return moves
 }
 
 /** R-10.8 — the caller validates first; true when a facedown adviser changed hands. */
@@ -204,20 +252,21 @@ function applyTransfer(
     from.secrets -= secrets
     to.secrets += secrets
     for (const cardId of transfer.relicCardIds ?? []) giveRelic(state, fromId, toId, cardId)
-    for (const site of transfer.sites ?? []) {
+    const sites = transfer.sites ?? []
+    const moves = movesFromBoard(state, toId, sites)
+    assert(moves.length === sites.length, `${toId}'s board cannot fill every site promised`)
+    for (const move of moves) {
         // R-10.8 — "old ruler moves warbands to board": all of theirs there.
-        const onSite = warbandsAt(state, site.siteId)
+        const onSite = warbandsAt(state, move.siteId)
         for (const owner of rulingWarbandOwners(state, fromId)) {
             const n = countOf(onSite, owner)
             if (n <= 0) continue
-            removeWarbandsFrom(state, { kind: 'site', siteId: site.siteId }, owner, n)
+            removeWarbandsFrom(state, { kind: 'site', siteId: move.siteId }, owner, n)
             addWarbandsToBoard(state, fromId, owner, n)
         }
         // R-10.8 — "…and new ruler moves warbands from board".
-        const owner = boardWarbandOwnerOf(state, toId)
-        assertExists(owner, `${toId} has no warbands to move in`)
-        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, owner, site.warbands)
-        addWarbandsToSite(state, site.siteId, owner, site.warbands)
+        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, move.owner, move.warbands)
+        addWarbandsToSite(state, move.siteId, move.owner, move.warbands)
     }
     // Resolved by the host, which alone knows what a facedown row holds.
     const moving = (transfer.adviserRows ?? []).map((row) => {

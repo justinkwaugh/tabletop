@@ -40,6 +40,9 @@ const exchange = (withPlayerId: string, terms: ExchangeTerms): PowerChoice => ({
 
 const head = (s: ReturnType<typeof rulerTable>) => s.pendingQuestions?.queue[0]
 
+const atRevision = OathRevision.EngineFixes2
+const before = OathRevision.CardFixes1
+
 describe('Revelation — a round of burns in turn order', () => {
     it('asks every player who has favor, from the player of the card round the table', () => {
         const s = rulerTable([])
@@ -246,6 +249,89 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
         expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toMatch(/at least one warband/)
         expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBe("other's board has fewer than 3 warbands to move to c2")
         expect(probe({ fromProposer: { relicCardIds: [CUP] } })).toMatch(/cannot include relics/)
+    })
+})
+
+describe('Deed Writer — one board pays for every site handed over (R-10.8)', () => {
+    const twoSites = (c1: number, c2: number): ExchangeTerms => ({ fromProposer: { sites: [{ siteId: 'c1', warbands: c1 }, { siteId: 'c2', warbands: c2 }] } })
+    /** 'ruler' rules c1 and c2; 'other' has `onBoard` warbands to move in. */
+    const table = (oathRevision: number, onBoard: Record<string, number> = { other: 4 }, over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) =>
+        rulerTable([DEED_WRITER], [], { ...over, other: { warbandsOnBoard: onBoard, ...over['other'] } }, { oathRevision, ...state })
+    const probe = (s: ReturnType<typeof rulerTable>, terms: ExchangeTerms) =>
+        HydratedUseActionPower.reasonCannotUse(s, 'ruler', DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange('other', terms)])
+    const propose = (s: ReturnType<typeof rulerTable>, terms: ExchangeTerms) =>
+        actionPowerUse('ruler', DEED_WRITER, [exchange('other', terms)]).apply(s)
+
+    it('refuses three warbands to each of two sites from a board of four, which each site alone would pass', () => {
+        const s = table(atRevision)
+        expect(probe(s, { fromProposer: { sites: [{ siteId: 'c1', warbands: 3 }] } })).toBeUndefined()
+        expect(probe(s, { fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBeUndefined()
+        expect(probe(s, twoSites(3, 3))).toBe("other's board has fewer than 6 warbands to move to c1, c2")
+    })
+
+    it('a board that covers every site moves them all in on acceptance', () => {
+        const s = table(atRevision)
+        expect(probe(s, twoSites(3, 1))).toBeUndefined()
+        propose(s, twoSites(3, 1))
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(warbandsAt(s, 'c1')).toMatchObject({ ruler: 0, other: 3 })
+        expect(warbandsAt(s, 'c2')).toMatchObject({ ruler: 0, other: 1 })
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(0)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(7)
+    })
+
+    it('a Bandit Crown holder may still name no warbands for a site (its Q&A, R-7.6.5): the sum counts it as nothing', () => {
+        const s = table(atRevision, { other: 2 }, { other: { relicIds: [BANDIT_CROWN] } })
+        expect(probe(s, twoSites(0, 2))).toBeUndefined()
+        expect(probe(s, twoSites(0, 3))).toBe("other's board has fewer than 3 warbands to move to c1, c2")
+        propose(s, twoSites(0, 2))
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(totalWarbandsAt(s, 'c1')).toBe(0)
+        expect(warbandsAt(s, 'c2')).toMatchObject({ ruler: 0, other: 2 })
+        expect(rulesSite(s, 'other', 'c1')).toBe(true)
+        expect(rulesSite(s, 'other', 'c2')).toBe(true)
+    })
+
+    it('an acceptance is re-checked against the sum, so it is refused rather than half-applied', () => {
+        const s = table(atRevision)
+        propose(s, twoSites(3, 1))
+        s.getPlayerState('other').warbandsOnBoard['other'] = 3
+        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow("other's board has fewer than 4 warbands to move to c1, c2")
+        expect(warbandsAt(s, 'c1')).toEqual({ ruler: 1 })
+        expect(warbandsAt(s, 'c2')).toEqual({ ruler: 2 })
+    })
+
+    it('counts each kind of warband on the board as the move takes them: whichever the board holds most of, site by site', () => {
+        const citizen = (onBoard: Record<string, number>) =>
+            table(atRevision, onBoard, { other: { status: PlayerStatus.Citizen }, away: { status: PlayerStatus.Chancellor } }, { chancellorPlayerId: 'away' })
+        expect(probe(citizen({ other: 2, [IMPERIAL_WARBANDS]: 2 }), twoSites(3, 1))).toBe("other's board has fewer than 3 warbands to move to c1")
+        const s = citizen({ other: 2, [IMPERIAL_WARBANDS]: 2 })
+        propose(s, twoSites(2, 2))
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(warbandsAt(s, 'c1')).toMatchObject({ other: 2 })
+        expect(warbandsAt(s, 'c1')[IMPERIAL_WARBANDS] ?? 0).toBe(0)
+        expect(warbandsAt(s, 'c2')).toMatchObject({ [IMPERIAL_WARBANDS]: 2 })
+        expect(warbandsAt(s, 'c2')['other'] ?? 0).toBe(0)
+    })
+
+    it('R-X.4 — a game created before the revision keeps the per-site check its recorded proposals passed', () => {
+        const s = table(before)
+        expect(probe(s, twoSites(3, 3))).toBeUndefined()
+        propose(s, twoSites(3, 3))
+        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow("other's board cannot fill every site promised")
+    })
+
+    it("no other exchange can carry a site: Tinker's Fair, The Tribunal and The Gathering refuse one", () => {
+        const fair = rulerTable([TINKERS_FAIR], [], {}, { oathRevision: atRevision })
+        expect(HydratedUseActionPower.reasonCannotUse(fair, 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', twoSites(1, 1))])).toBe('this exchange cannot include sites')
+        const tribunal = rulerTable([], [], {}, { oathRevision: atRevision, siteCards: { c1: TRIBUNAL_ID, c2: 'site.river', p1: 'site.plains', h1: 'site.wastes' } })
+        expect(HydratedUseActionPower.reasonCannotUse(tribunal, 'ruler', TRIBUNAL_ID, 0, [exchange('other', twoSites(1, 1))])).toBe('this exchange cannot include sites')
+        // The Gathering's rounds go from the Chancellor at this revision (its Q&A).
+        const gathering = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: atRevision })
+        playDrawnCard(gathering, GATHERING, SearchPlay.Site)
+        answerQuestion(gathering, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
+        settleQueue(gathering)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(gathering, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: twoSites(1, 1) } })).toBe('this exchange cannot include sites')
     })
 })
 

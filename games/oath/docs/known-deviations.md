@@ -8,6 +8,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 
 - **Battle-plan costs:** in a game created before revision 3 (R-X.4) each plan's cost is checked alone against the untouched holding, so a side can declare plans it cannot pay in full: the payment throws, or Gleaming Armor's added secret leaves its payer below zero.
 - **Vow of Renewal:** in a game created before revision 5 (R-X.4) its holder takes the two favor a Seize burns off the People's Favor; R-10.4-H1 burns them to the shared bank.
+- **Deed Writer's warbands:** in a game created before revision 5 (R-X.4) each site's warbands are checked alone against the new ruler's board, so terms can promise more warbands than the board holds in all: accepting them throws.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
 - **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets; the Vow's Q&A withholds it.
 - **Vow of Poverty with Secret Signal:** on a Trade for secrets under Careless, the Vow's holder still gains Secret Signal's one more favor; the Vow ("You cannot gain favor from Trade") withholds it, as it withholds Careless's from revision 5.
@@ -30,6 +31,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Warning Signals:** warbands moved from the board all go to one site per use.
 - **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse).
+- **Ring of Devotion:** its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
 
 ## Rules
 
