@@ -1,6 +1,7 @@
 import { assert, assertExists, shuffle } from '@tabletop/common'
 import { settleCashPayments, getCompany, finiteCashOwnedBy } from '@tabletop/18xx'
 import { draftCompany, isBlank } from './catalog.js'
+import { independentTrainId } from './trains.js'
 import type { EighteenFortySixProjectedState, HydratedEighteenFortySixState } from './state.js'
 
 type State = HydratedEighteenFortySixState
@@ -144,7 +145,7 @@ export function purchaseOpeningCompany(
             }
         ])
         state.trainInventory.trains.push({
-            id: `${company.id}:2`,
+            id: independentTrainId(company.id),
             definitionId: '2',
             status: 'owned',
             owner: { kind: 'company', companyId: company.id }

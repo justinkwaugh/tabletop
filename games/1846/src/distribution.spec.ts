@@ -4,7 +4,7 @@ import { ActionSource, Visibility, assert, assertExists } from '@tabletop/common
 import { Runtime } from './definition/gameDefinition.js'
 import {
     CanonicalValidator,
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
 import { BankSize, DraftCompanies, isBlank } from './catalog.js'
@@ -60,12 +60,12 @@ describe('1846 setup and distribution', () => {
         const copy = structuredClone(state)
         delete hiddenDistribution(copy).deck
         expect(CanonicalValidator.Check(copy)).toBe(false)
-        expect(hiddenDistribution(new HydratedEighteenFortySixState(copy)).deck).toBeUndefined()
+        expect(hiddenDistribution(hydrateEighteenFortySixState(copy)).deck).toBeUndefined()
     })
     it('rejects wrong actors, unavailable cards, forged system actions and invalid action flags', () => {
         const { game, state, engine } = start()
         const cardId = choicesFor(
-            new HydratedEighteenFortySixState(state),
+            hydrateEighteenFortySixState(state),
             state.activePlayerIds[0]
         )[0]
         for (const invalid of [
@@ -213,7 +213,7 @@ describe('1846 setup and distribution', () => {
         expect(engine.getValidActionTypesForPlayer(game, view, playerId, { perspective })).toEqual([
             'ChooseDraftCard'
         ])
-        const cardId = choicesFor(new HydratedEighteenFortySixState(view), playerId)[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(view), playerId)[0]
         expect(() =>
             engine.executeAction({ game, state: view, action: action(view, cardId), perspective })
         ).toThrow()
@@ -251,7 +251,7 @@ describe('1846 setup and distribution', () => {
     it('re-executes choices deterministically from identical canonical state', () => {
         const { game, state, engine } = start()
         const cardId = choicesFor(
-            new HydratedEighteenFortySixState(state),
+            hydrateEighteenFortySixState(state),
             state.activePlayerIds[0]
         )[0]
         const choice = action(state, cardId)
@@ -275,7 +275,7 @@ describe('1846 setup and distribution', () => {
                 expect(p.packet !== undefined).toBe(mine)
                 expect(p.selections !== undefined).toBe(mine)
             }
-            expect(new HydratedEighteenFortySixState(projected).dehydrate()).toEqual(projected)
+            expect(hydrateEighteenFortySixState(projected).dehydrate()).toEqual(projected)
             const history = Visibility.projectActionHistory({
                 currentState: state,
                 actions,

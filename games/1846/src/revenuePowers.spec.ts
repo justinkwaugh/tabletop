@@ -16,6 +16,7 @@ import { stockGame, finish } from './testSupport.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrainDepot1846, TrainRules1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'
+import { EighteenFortySixStateDefinition } from './state.js'
 import { TrackRules1846 } from './track.js'
 import { revenueMarkerChoices, type RevenuePrivateId } from './revenueMarkers.js'
 
@@ -254,6 +255,7 @@ function mailRun(finalTrain = false) {
     })
     const tileSet = new TileSet({ id: 'mail-tiles', entries: [] }, [])
     table.state.tileInventory = tileSet.createInventory()
+    table.state.stationReservations = []
     table.state.stations = [1, firstLength].map((i) => ({
         id: `station:${i}`,
         companyId: 'NYC',
@@ -285,12 +287,14 @@ function mailRun(finalTrain = false) {
     table.state.machineState = 'RunningTrains'
     table.state.routeStep = { companyId: 'NYC' }
     const rules: RouteRules = { ...RouteRules1846, map, tileSet }
-    return { table, routes, rules }
+    const hydrated = () =>
+        EighteenFortySixStateDefinition.hydrate(table.state, map, tileSet, TrainDepot1846)
+    return { table, routes, rules, hydrated }
 }
 describe('1846 Mail Contract run scoring', () => {
     it('pays Mail on all eight 7/8 visits while counting seven stops and preserving East–West revenue', () => {
-        const { table, routes, rules } = mailRun(true)
-        const result = new RouteEvaluation(table.hydrated, rules).evaluate('NYC', routes).result
+        const { table, routes, rules, hydrated } = mailRun(true)
+        const result = new RouteEvaluation(hydrated(), rules).evaluate('NYC', routes).result
         assertExists(result)
         expect(result.routes[0].visits).toHaveLength(8)
         expect(result.routes[0].payments).toHaveLength(7)
@@ -306,7 +310,7 @@ describe('1846 Mail Contract run scoring', () => {
         assertExists(train)
         train.definitionId = '6'
         expect(
-            new RouteEvaluation(table.hydrated, rules).evaluate('NYC', routes).result
+            new RouteEvaluation(hydrated(), rules).evaluate('NYC', routes).result
         ).toBeUndefined()
     })
 
@@ -368,7 +372,7 @@ describe('1846 Mail Contract run scoring', () => {
         expect(replay).toEqual(before)
     })
     it('pays every visit on one longest train, including unpaid 3/5 stops, and preserves counted marker bonuses', () => {
-        const { table, routes, rules } = mailRun()
+        const { table, routes, rules, hydrated } = mailRun()
         table.state.revenueMarkers = [
             {
                 privateCompanyId: 'MPC',
@@ -385,7 +389,7 @@ describe('1846 Mail Contract run scoring', () => {
                 roundNumber: 1
             }
         ]
-        const evaluation = new RouteEvaluation(table.hydrated, rules)
+        const evaluation = new RouteEvaluation(hydrated(), rules)
         const result = evaluation.evaluate('NYC', routes).result
         assertExists(result)
         expect(result.routes[0].visits).toHaveLength(5)
@@ -414,8 +418,8 @@ describe('1846 Mail Contract run scoring', () => {
         assert(mail && !mail.retired)
         mail.owner = { kind: 'player', playerId: table.state.activePlayerIds[0] }
         expect(privateOwner(table.state, 'MAIL')?.kind).toBe('player')
-        expect(
-            new RouteEvaluation(table.hydrated, rules).evaluate('NYC', routes).result?.revenue
-        ).toBe(290)
+        expect(new RouteEvaluation(hydrated(), rules).evaluate('NYC', routes).result?.revenue).toBe(
+            290
+        )
     })
 })

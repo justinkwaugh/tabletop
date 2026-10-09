@@ -16,7 +16,11 @@ import {
 import { ScenarioConfigurator, type ScenarioPosition } from '@tabletop/18xx/scenarios'
 import { Initializer } from '../setup.js'
 import { Definition, Runtime } from '../definition/gameDefinition.js'
-import { HydratedEighteenFortySixState, type EighteenFortySixProjectedState } from '../state.js'
+import {
+    hydrateEighteenFortySixState,
+    type HydratedEighteenFortySixState,
+    type EighteenFortySixProjectedState
+} from '../state.js'
 import { choicesFor, hiddenDistribution } from '../distribution.js'
 import { openingPurchaseChoices } from '../publicDistribution.js'
 import { draftCompany, isBlank } from '../catalog.js'
@@ -62,7 +66,7 @@ function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
 /** Lays a yellow tile in each city, so an upgrade has something to replace. */
 function cityTiles(state: ScenarioState, companyId: string, locationIds: string[]) {
     const construction = privateTrackConstruction(
-        new HydratedEighteenFortySixState(state),
+        hydrateEighteenFortySixState(state),
         {
             companyId,
             locationIds,
@@ -112,7 +116,7 @@ class ScenarioInitializer1846 extends Initializer {
         const requested = game.config?.examplePosition ?? 'opening'
         const position = ScenarioPositions1846.find((item) => item === requested)
         assertExists(position, 'Unsupported 1846 scenario')
-        if (position === 'opening') return new HydratedEighteenFortySixState(state)
+        if (position === 'opening') return hydrateEighteenFortySixState(state)
         const engine = new GameEngine(Runtime)
         const act = (type: string, fields: object = {}) => {
             state = engine.executeCanonicalAction({
@@ -129,7 +133,7 @@ class ScenarioInitializer1846 extends Initializer {
             }).updatedState
         }
         for (let i = 0; i < 100 && state.machineState !== 'StockRound'; i++) {
-            const hydrated = new HydratedEighteenFortySixState(state)
+            const hydrated = hydrateEighteenFortySixState(state)
             if (state.draft.kind === 'public') {
                 const choice = openingPurchaseChoices(hydrated, state.activePlayerIds[0])[0]
                 assertExists(choice, 'Opening scenario requires an affordable company')
@@ -145,12 +149,12 @@ class ScenarioInitializer1846 extends Initializer {
             }
         }
         assert(
-            new HydratedEighteenFortySixState(state).machineState === 'StockRound',
+            hydrateEighteenFortySixState(state).machineState === 'StockRound',
             'Scenario distribution must finish'
         )
         if (position !== 'starting') {
             const choices = stockChoices(
-                new HydratedEighteenFortySixState(state),
+                hydrateEighteenFortySixState(state),
                 state.activePlayerIds[0]
             )
             const start =
@@ -226,7 +230,7 @@ class ScenarioInitializer1846 extends Initializer {
                         act('FinishTrack', { companyId: start.companyId })
                         if (position === 'routes') {
                             const choice = trainBuyingChoices1846(
-                                new HydratedEighteenFortySixState(state)
+                                hydrateEighteenFortySixState(state)
                             )?.offers[0]
                             assertExists(choice)
                             const { price, ...request } = choice
@@ -294,7 +298,7 @@ class ScenarioInitializer1846 extends Initializer {
         state.actionChecksum = 0
         const actor = state.activePlayerIds[0]
         state.turnManager.series = [{ type: 'turn', playerId: actor, start: 0 }]
-        return new HydratedEighteenFortySixState(state)
+        return hydrateEighteenFortySixState(state)
     }
 }
 

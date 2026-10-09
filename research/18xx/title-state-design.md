@@ -30,6 +30,12 @@ Additional selections are title-owned:
 | 1830  | Waterfall auction, private-power usage, pending private station, par after award, multiple stock-turn purchases, its brown-zone option                                                       |
 | 1817  | Selection auction, company auction, borrowing, cash crises and player elimination, shorts, private-power usage, location markers, its options, private lay records, mergers and acquisitions |
 
+1846 composes its own fields without `RailwayFields`: a hidden or public private
+distribution, independents, receivership, emergency funding, revenue markers and the
+steamboat. It hydrates through its projection schema so a player's projected view loads,
+and keeps its own runtime and visibility projector (since 2026-10-09; see
+[state shape](state-shape-backlog.md)).
+
 Nested company and certificate schemas are selected too. Ordinary companies do not
 acquire loan or role properties; ordinary certificates do not acquire short positions
 or numbered shares. Shared finance invariants validate financial fields and references

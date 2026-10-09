@@ -20,7 +20,8 @@ import {
 } from '@tabletop/18xx'
 import { BankSize, Corporations, DraftCompanies } from './catalog.js'
 import {
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
+    type HydratedEighteenFortySixState,
     type EighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
@@ -111,7 +112,7 @@ export class Initializer extends BaseGameInitializer<
                         : { id: `${companyId}:blocking`, companyId, status: 'available' }
                 )
         const order = players.map((player) => player.playerId)
-        const state = new HydratedEighteenFortySixState({
+        const state = hydrateEighteenFortySixState({
             ...base,
             players,
             activePlayerIds: [order[order.length - 1]],

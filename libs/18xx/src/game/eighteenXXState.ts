@@ -220,10 +220,20 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
 
 export type StateValidation<State> = (state: State, components: TitleComponents) => void
 
-export const validateRailwayState: StateValidation<EighteenXXState> = (
+export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
     { map, tileSet, depot }
 ) => {
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    const companyIds = state.companies.map((company) => company.id)
+    const playerIds = state.players.map((player) => player.playerId)
+    depot.validateInventory(state.trainInventory, companyIds, playerIds)
+    validateStations(state, companyIds)
+    validateStockMarket(state.stockMarket, companyIds)
+    validateFinances(state, playerIds)
+}
+
+export const validateRailwayState: StateValidation<EighteenXXState> = (state, components) => {
     validateStockRound(state)
     validateOperatingSet(state)
     validateTrackStep(state)
@@ -235,19 +245,7 @@ export const validateRailwayState: StateValidation<EighteenXXState> = (
     validatePhaseChange(state)
     validateEarningsDistribution(state)
     validateTrainPurchaseStep(state)
-    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
-    const companyIds = state.companies.map((company) => company.id)
-    depot.validateInventory(
-        state.trainInventory,
-        companyIds,
-        state.players.map((player) => player.playerId)
-    )
-    validateStations(state, companyIds)
-    validateStockMarket(state.stockMarket, companyIds)
-    validateFinances(
-        state,
-        state.players.map((player) => player.playerId)
-    )
+    validateRailwayComponents(state, components)
 }
 
 export function inKnownPhase<State extends HydratedEighteenXXState>(

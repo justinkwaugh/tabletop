@@ -307,11 +307,11 @@ describe('1846 complete two-player rules', () => {
                 trainId: sellerTrain.id
             })
         ).toBe(true)
-        table.state.trainInventory.trains.push({
-            id: 'returned:5',
-            definitionId: '5',
-            status: 'market'
-        })
+        const returned = table.state.trainInventory.trains.find(
+            (train) => train.definitionId === '5' && train.status === 'removed'
+        )
+        assertExists(returned)
+        returned.status = 'market'
         expect(finalDepotEmpty(table.hydrated)).toBe(false)
         expect(TrainRules1846.requiresTrain(table.hydrated, 'IC')).toBe(true)
         expect(

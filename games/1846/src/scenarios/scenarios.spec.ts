@@ -9,7 +9,7 @@ import { earningsChoices1846 } from '../earnings.js'
 import { PrivateConstruction } from '../privateConstruction.js'
 import { revenueMarkerChoices } from '../revenueMarkers.js'
 import { stockChoices } from '../stock.js'
-import { HydratedEighteenFortySixState, CanonicalValidator } from '../state.js'
+import { hydrateEighteenFortySixState, CanonicalValidator } from '../state.js'
 
 describe('1846 playground scenarios', () => {
     for (const count of [2, 3, 4, 5]) {
@@ -35,7 +35,7 @@ it.each([2, 3, 4, 5])(
     (count) => {
         const { state } = exampleGame(Scenarios1846, 'trading', count, 1889)
         const choices = stockChoices(
-            new HydratedEighteenFortySixState(state),
+            hydrateEighteenFortySixState(state),
             state.activePlayerIds[0]
         )
         expect(choices.buys.length).toBeGreaterThan(0)
@@ -89,7 +89,7 @@ it('route scenarios can proceed through payout after running trains', () => {
             ]
         }
     })
-    expect(earningsChoices1846(new HydratedEighteenFortySixState(updatedState))).toHaveLength(3)
+    expect(earningsChoices1846(hydrateEighteenFortySixState(updatedState))).toHaveLength(3)
 })
 
 describe('1846 private power scenarios', () => {
@@ -97,7 +97,7 @@ describe('1846 private power scenarios', () => {
         it(`gives the operating railroad usable private powers with ${count} players`, () => {
             const position = (name: 'private-tiles' | 'private-upgrade' | 'private-marker') => {
                 const { state } = exampleGame(Scenarios1846, name, count, 1889)
-                return { hydrated: new HydratedEighteenFortySixState(state), state }
+                return { hydrated: hydrateEighteenFortySixState(state), state }
             }
             const tiles = position('private-tiles')
             const president = tiles.state.activePlayerIds[0]

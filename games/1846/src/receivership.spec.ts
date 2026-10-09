@@ -294,6 +294,9 @@ describe('1846 bankruptcy and receivership', () => {
         const { table } = funding(40, 20)
         table.state.bankruptPlayerIds = ['p3']
         table.state.turnManager.turnOrder = ['p1', 'p2']
+        table.state.stockRound.passedPlayerIds = table.state.stockRound.passedPlayerIds.filter(
+            (id) => id !== 'p3'
+        )
         table.state.gameEnding = { reason: 'Bank broken', finalOperatingSet: 2 }
         table.act('StartEmergencyFunding', { companyId: 'IC' })
         const result = declare(table)

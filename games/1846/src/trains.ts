@@ -12,6 +12,11 @@ import {
     type TrainRules
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
+import { DraftCompanies } from './catalog.js'
+
+export function independentTrainId(companyId: string): string {
+    return `${companyId}:2`
+}
 export const TrainDepot1846 = new TrainDepot({
     id: '1846',
     trains: [
@@ -34,6 +39,9 @@ export const TrainDepot1846 = new TrainDepot({
         { id: '7/8', name: '7/8', price: 900, distance: { measure: 'revenue-centers', maximum: 8 } }
     ],
     supplyVariants: { '1846:two-player': { '2': 5, '4': 5, '5': 3, '6': 4 } },
+    assignedTrains: DraftCompanies.filter((company) => company.kind === 'independent').map(
+        (company) => ({ id: independentTrainId(company.id), definitionId: '2' })
+    ),
     supply: [
         { definitionId: '2', count: 7 },
         { definitionId: '4', variantDefinitionIds: ['3/5'], count: 6 },

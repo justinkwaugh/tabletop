@@ -83,8 +83,15 @@ mechanism below, plus the six implemented titles.
 1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
    class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own
    runtime, handlers and visibility projector, and add its runtime-contract snapshot.
-   Later changes then land once for all titles. Its State has not been checked by the
-   shared validations before; failures they find are fixed here.
+   Later changes then land once for all titles. The family validation splits into
+   `validateRailwayComponents` (map stations, depot, stations, market, finances), which
+   every title runs, and the operating-sequence checks of `validateRailwayState`. 1846
+   runs the components and the sequence checks its own sequence satisfies; it leaves out
+   the track-step, train-funding and earnings checks, because it keeps track construction
+   open while shares can still be issued or redeemed, funds trains through its own
+   emergency funding, and continues receivers' earnings through its own states. Its
+   independents' 2-trains are declared depot `assignedTrains`: owned from purchase,
+   never in the depot, and outside its supply numbering.
 2. **Market spaces become a title definition.** State keeps `stacks`. The definition is
    chosen from the resolved configuration, carried on `StockRules` and given to
    validation; the movement graph is a default the title's rules may override. Readers

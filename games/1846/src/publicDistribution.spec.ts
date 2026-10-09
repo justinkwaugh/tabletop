@@ -12,7 +12,7 @@ import { TrackRules1846 } from './track.js'
 import { openingPurchaseChoices, unboughtOpeningCompanies } from './publicDistribution.js'
 import { DraftCompanies } from './catalog.js'
 import { Runtime } from './definition/gameDefinition.js'
-import { HydratedEighteenFortySixState, type EighteenFortySixProjectedState } from './state.js'
+import { hydrateEighteenFortySixState, type EighteenFortySixProjectedState } from './state.js'
 import { TrainDepot1846 } from './trains.js'
 
 type Table = ReturnType<typeof openingGame>
@@ -276,7 +276,7 @@ describe('1846 two-player opening', () => {
             const projected = Runtime.visibility.state.project(before, perspective)
             expect(projected.draft).toEqual(before.draft)
             expect(
-                unboughtOpeningCompanies(new HydratedEighteenFortySixState(projected))
+                unboughtOpeningCompanies(hydrateEighteenFortySixState(projected))
             ).toHaveLength(8)
             const after = Runtime.visibility.state.project(table.state, perspective)
             expect(after.purchases).toEqual(table.state.purchases)

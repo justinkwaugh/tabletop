@@ -1,4 +1,4 @@
-import { CanonicalValidator as Validator1846, HydratedEighteenFortySixState } from '@tabletop/1846'
+import { CanonicalValidator as Validator1846, hydrateEighteenFortySixState } from '@tabletop/1846'
 import { HistoricalMaps } from '../../../../libs/18xx-ui/src/lib/maps/historicalMap.js'
 import { mapState1846 } from '../../../../games/1846-ui/src/lib/mapState.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
@@ -41,7 +41,7 @@ it('replays the finished 1846 game and restores its opening and final state', as
         () => MapView1846,
         (snapshot: typeof state) => {
             if (!Validator1846.Check(snapshot)) throw Error('Expected canonical 1846 state')
-            return mapState1846(new HydratedEighteenFortySixState(snapshot))
+            return mapState1846(hydrateEighteenFortySixState(snapshot))
         }
     )
     const markerRun = actions.find((action) => action.id === 'recorded:80')

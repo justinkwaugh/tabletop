@@ -1,8 +1,7 @@
-import { assert } from '@tabletop/common'
 import {
-    EighteenFortySixProjectedState,
-    ProjectedValidator,
-    HydratedEighteenFortySixState,
+    type EighteenFortySixProjectedState,
+    EighteenFortySixStateDefinition,
+    type HydratedEighteenFortySixState,
     StockRules1846,
     CompanyRules1846,
     OperatingRules1846,
@@ -23,14 +22,7 @@ export const SessionRules1846: EighteenXXSessionRules<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
 > = {
-    state: {
-        schema: EighteenFortySixProjectedState,
-        read: (data) => data,
-        hydrate(data) {
-            assert(ProjectedValidator.Check(data), 'Expected a projected 1846 state')
-            return new HydratedEighteenFortySixState(data)
-        }
-    },
+    state: EighteenFortySixStateDefinition,
     stockRules: StockRules1846,
     companyRules: CompanyRules1846,
     operatingRules: OperatingRules1846,

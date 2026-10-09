@@ -15,6 +15,10 @@ const SupplyEntry = Type.Object(
     },
     { additionalProperties: false }
 )
+const AssignedTrain = Type.Object(
+    { id: Type.String({ minLength: 1 }), definitionId: Type.String({ minLength: 1 }) },
+    { additionalProperties: false }
+)
 export const TrainDepotDefinition = Type.Object(
     {
         id: Type.String({ minLength: 1 }),
@@ -25,7 +29,8 @@ export const TrainDepotDefinition = Type.Object(
                 Type.String({ minLength: 1 }),
                 Type.Record(Type.String({ minLength: 1 }), SupplyCount)
             )
-        )
+        ),
+        assignedTrains: Type.Optional(Type.Array(AssignedTrain))
     },
     { additionalProperties: false }
 )
@@ -65,6 +70,17 @@ export class TrainDepot {
                 'Unknown supply variant entry'
             )
         }
+        const assigned = definition.assignedTrains ?? []
+        assert(
+            new Set(assigned.map((train) => train.id)).size === assigned.length,
+            'Duplicate assigned train'
+        )
+        assert(
+            assigned.every((train) =>
+                definition.trains.some((entry) => entry.id === train.definitionId)
+            ),
+            'Unknown assigned train definition'
+        )
         this.definition = Clone(definition)
         deepFreeze(this.definition)
     }
@@ -188,32 +204,14 @@ export class TrainDepot {
         )
         for (const train of inventory.trains) {
             this.trainDefinition(train.definitionId)
-            const entry = this.supplyEntry(train.definitionId, inventory.depotId)
-            assertExists(entry, 'Train has no supply entry')
-            assert(
-                train.status !== 'depot' || train.definitionId === entry.definitionId,
-                'Depot stock must retain its supply definition'
-            )
-            if (entry.count !== 'unlimited') {
+            const assigned = this.definition.assignedTrains?.find((entry) => entry.id === train.id)
+            if (assigned) {
                 assert(
-                    initial.trains.some(
-                        (entry) =>
-                            entry.id === train.id &&
-                            this.supplyEntry(entry.definitionId)?.definitionId ===
-                                this.supplyEntry(train.definitionId)?.definitionId
-                    ),
-                    'Invalid finite train identity'
+                    train.definitionId === assigned.definitionId && train.status !== 'depot',
+                    'An assigned train keeps its definition and never enters the depot'
                 )
             } else {
-                const number = Number(train.id.slice(train.id.lastIndexOf('/') + 1))
-                assert(
-                    Number.isInteger(number) &&
-                        number >= initial.nextTrainNumber &&
-                        number < inventory.nextTrainNumber &&
-                        train.id === this.trainId(entry.definitionId, number, inventory.depotId) &&
-                        train.status !== 'depot',
-                    'Invalid unlimited train identity'
-                )
+                this.validateSuppliedTrain(train, inventory, initial)
             }
             if (train.status === 'owned') {
                 assert(
@@ -232,6 +230,39 @@ export class TrainDepot {
             ),
             'Missing finite train'
         )
+    }
+    private validateSuppliedTrain(
+        train: Train,
+        inventory: TrainInventory,
+        initial: TrainInventory
+    ) {
+        const entry = this.supplyEntry(train.definitionId, inventory.depotId)
+        assertExists(entry, 'Train has no supply entry')
+        assert(
+            train.status !== 'depot' || train.definitionId === entry.definitionId,
+            'Depot stock must retain its supply definition'
+        )
+        if (entry.count !== 'unlimited') {
+            assert(
+                initial.trains.some(
+                    (entry) =>
+                        entry.id === train.id &&
+                        this.supplyEntry(entry.definitionId)?.definitionId ===
+                            this.supplyEntry(train.definitionId)?.definitionId
+                ),
+                'Invalid finite train identity'
+            )
+        } else {
+            const number = Number(train.id.slice(train.id.lastIndexOf('/') + 1))
+            assert(
+                Number.isInteger(number) &&
+                    number >= initial.nextTrainNumber &&
+                    number < inventory.nextTrainNumber &&
+                    train.id === this.trainId(entry.definitionId, number, inventory.depotId) &&
+                    train.status !== 'depot',
+                'Invalid unlimited train identity'
+            )
+        }
     }
     private trainId(definitionId: string, number: number, depotId = this.definition.id): string {
         return `${depotId}/${definitionId}/${number}`

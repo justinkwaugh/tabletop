@@ -178,7 +178,8 @@ import {
 import {
     EighteenFortySixState,
     EighteenFortySixProjectedState,
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
+    type HydratedEighteenFortySixState,
     CanonicalValidator
 } from '../state.js'
 import { Initializer, PlayerColors } from '../setup.js'
@@ -362,10 +363,7 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
     canonicalStateValidator: CanonicalValidator,
     scoring: FinalWealthScoring,
     hydrator: {
-        hydrateState: (data) =>
-            new HydratedEighteenFortySixState(
-                data instanceof HydratedEighteenFortySixState ? data.dehydrate() : data
-            ),
+        hydrateState: hydrateEighteenFortySixState,
         hydrateAction(data) {
             const action = actionRegistry.hydrate(data)
             if (action) return action
