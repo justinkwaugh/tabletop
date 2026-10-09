@@ -130,7 +130,7 @@
                     <div class="flex flex-col items-center gap-1 shrink-0">
                         {#if !view.bribeSpotChosen}
                             <div class="flex items-center gap-2">
-                                <span class="shrink sm:shrink-0 sm:whitespace-nowrap text-amber-300">Click a canal location to place a bribe, or</span>
+                                <span class="shrink sm:shrink-0 sm:whitespace-nowrap text-amber-300">Click a flagged canal location to bribe, or</span>
                                 <button class="shrink-0 whitespace-nowrap px-[14px] py-[7px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[18px] transition-colors"
                                     onclick={() => session.passProposal()}>Pass</button>
                             </div>
