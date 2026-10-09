@@ -94,9 +94,7 @@
                 {/each}
             </div>
         {:else if state.turnDevelopments.length === 0}
-            <p class="prompt">
-                Place a development.
-            </p>
+            <p class="prompt">Place a development.</p>
         {:else}
             <p class="prompt">
                 {#if gameSession.cityTargets.length > 0}

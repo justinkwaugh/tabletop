@@ -59,7 +59,7 @@
         disabled={Number.isInteger(amount) && amount >= maximum}>+</button
     >
     <button type="button" class="primary" disabled={!valid} onclick={bid}
-        >{label} {valid ? `$${amount}` : ''}</button
+        >{valid ? `${label} $${amount}` : label}</button
     >
 </div>
 
