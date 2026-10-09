@@ -153,9 +153,23 @@ const deleteVersions = async (
                 )
             ],
             cwd: context.repoRoot,
-            logPath: `/tmp/prune-${logLabel}.log`
+            logPath: `/tmp/prune-${logLabel}-${start / DELETE_BATCH + 1}.log`
         }
-        await runCommand(spec)
+        try {
+            await runCommand(spec)
+        } catch (error) {
+            // gcloud can queue a directory placeholder twice and fail the second delete with a
+            // 404, so a failed run counts as done once nothing remains under its versions.
+            const deleted = new Set(batch.map((version) => version.version))
+            const remaining = planTarget(
+                plan.target,
+                await listObjects(bucket, plan.target.prefix),
+                new Date(),
+                0
+            ).versions.filter((version) => deleted.has(version.version))
+            if (remaining.length > 0) throw error
+            context.log(`${spec.label}: gcloud reported errors but every version is gone`)
+        }
     }
 }
 

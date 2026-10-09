@@ -112,7 +112,8 @@ the manifest backups. `switch` can only select versions that are still in the bu
 Every successful game or frontend deploy (`release-game`, `deploy-game`, `deploy-ui`,
 `deploy-logic`, `release-frontend`, `deploy-frontend`) then prunes its own target with
 `--apply` and the default grace. A prune failure is logged as `prune FAILED (the deploy itself
-succeeded)` and does not fail the command. Pass `--no-prune` to skip it.
+succeeded)` and does not fail the command. Pass `--no-prune` to skip it. Delete logs are
+`/tmp/prune-<target>-<batch>.log`.
 
 Backend history comes from Cloud Run. `list --backend` marks revisions receiving
 traffic and shows readiness; `switch --backend --version=1.5.1` switches both services
