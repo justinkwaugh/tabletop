@@ -137,6 +137,7 @@ export type TableName =
     | 'oathkeeperTie'
     | 'tavernSongs'
     | 'usurperWins'
+    | 'deedWriter'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1639,6 +1640,36 @@ function tavernSongsTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-10.8: Deed Writer at the seat's site, which the seat rules, opens an exchange with Ann. */
+function deedWriterTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const away = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7, favor: 2 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: away,
+                favor: 2
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.hearth.deed-writer'] },
+            warbandsBySite: { [home]: { me: 2 }, [away]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 /** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
 function travelCardsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -2235,7 +2266,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,
-    usurperWins: usurperWinsTable
+    usurperWins: usurperWinsTable,
+    deedWriter: deedWriterTable
 }
 
 /** Every table a scenario can open. */

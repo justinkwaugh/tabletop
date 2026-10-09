@@ -2153,6 +2153,22 @@ test('scenario 15: a peek shows its actor the notice, "Only you see this." over 
     await expect(notice).toHaveCount(0)
 })
 
+/** R-10.8 — an exchange's terms head each side by its giver, "You give" for the seat's own. */
+test('an exchange editor heads the seat’s side "You give" and the other "<chip> gives"; a site given says who moves in', async ({ page }) => {
+    await openTable(page, 'deedWriter')
+    await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+    const heads = grid(page).locator('.border-t > div:first-child')
+    await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
+    await expect(heads.filter({ hasText: /gives$/ })).toHaveText(['ann gives'])
+    await expect(grid(page)).not.toContainText('me gives')
+
+    await grid(page).getByRole('checkbox', { name: 'c1' }).check()
+    await expect(grid(page).getByText('ann moves in', { exact: true })).toBeVisible()
+    await grid(page).getByRole('checkbox', { name: 'p1' }).check()
+    await expect(grid(page).getByText('You move in', { exact: true })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: 'ann gives 1 favor', exact: true })).toBeVisible()
+})
+
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
     await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
