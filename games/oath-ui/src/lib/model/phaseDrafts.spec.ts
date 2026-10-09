@@ -221,12 +221,18 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
     })
 
-    it('a kind or a bank not offered is never picked', async () => {
-        const { wake, sent } = waking({ value: 1, mobSide: true }, {}, { favor: 1 })
+    it('while a bank is asked, a bank not tied for the least and a kind are never picked', async () => {
+        const { wake, sent } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
         await wake.chooseKind('return')
+        const asked = { kind: 'returnBank', index: 0, banks: [Suit.Discord, Suit.Order] }
         await wake.chooseBank(Suit.Arcane)
-        expect(wake.hasManualSelection()).toBe(false)
+        expect(wake.question).toEqual(asked)
+        await wake.chooseKind('place')
+        expect(wake.question).toEqual(asked)
         expect(sent).not.toHaveBeenCalled()
+        expect(wake.hasManualSelection()).toBe(true)
+        expect(wake.back()).toBe(true)
+        expect(wake.hasManualSelection()).toBe(false)
     })
 })
 
