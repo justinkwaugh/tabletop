@@ -50,11 +50,11 @@
             </div>
         {:else}
             <p class="prompt">
-                Build for <CompanyBadge companyId={gameSession.buildCompany} /> (treasury ${state.company(
+                Build for <CompanyBadge companyId={gameSession.buildCompany} /> (${state.company(
                     gameSession.buildCompany
                 ).treasury}):
                 {#if gameSession.chosenHexes.length === 0}
-                    choose a highlighted hex for up to {gameSession.maxCubes} stores.
+                    choose up to {gameSession.maxCubes} hexes.
                 {:else if gameSession.hexTargets.length > 0}
                     {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
                     now.
