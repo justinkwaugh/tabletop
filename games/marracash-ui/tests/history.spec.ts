@@ -94,7 +94,7 @@ test('stepping back and forward over a move glides pawns and hides staged choice
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
     await expect(latestEntry(page)).not.toContainText('Moved')
     await expect(actionPanel(page)).toContainText('placed a sealed bid.')
-    await expect(board(page).locator('path[filter*="candidate-halo"]')).toHaveCount(1)
+    await expect(board(page).locator('path.candidate-halo')).toHaveCount(1)
 
     await watchWalkers(page)
     await stepForwards(page).click()

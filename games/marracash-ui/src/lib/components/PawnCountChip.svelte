@@ -3,7 +3,6 @@
     import Pawn from '$lib/components/Pawn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PawnCountChip, pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
-    import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
 
     let {
         color,
@@ -39,7 +38,7 @@
             fill="none"
             stroke="#ffffff"
             stroke-width="9"
-            filter="url(#{CandidateHaloFilterId})"
+            class="candidate-halo"
         ></rect>
     {/if}
     <rect

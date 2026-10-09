@@ -2,12 +2,7 @@
     import type { Point } from '@tabletop/common'
     import { getFountain, getShop, type MarketColor } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        cellCenter,
-        LineHaloFilterId,
-        CandidateHaloFilterId
-    } from '$lib/utils/boardGeometry.js'
-    import { shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
+    import { cellCenter, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
     import { routeLine, shopBranch } from '$lib/utils/routePreview.js'
     import { stallOutline } from '$lib/utils/stalls.js'
     import {
@@ -79,7 +74,6 @@
                 stroke-width={BranchWidth}
                 stroke-linecap="round"
                 marker-end="url(#{arrowId(branch.color)})"
-                filter="url(#{LineHaloFilterId})"
             ></polyline>
         {/each}
         <polyline
@@ -90,7 +84,6 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             marker-end="url(#{arrowId('route')})"
-            filter="url(#{LineHaloFilterId})"
         ></polyline>
     {:else if highlight.kind === 'fountain'}
         {@const fountain = getFountain(highlight.fountainId)}
@@ -103,7 +96,7 @@
             stroke={White}
             stroke-width="5"
             stroke-linejoin="round"
-            filter="url(#{CandidateHaloFilterId})"
+            class="candidate-halo"
         ></path>
     {:else}
         {@const rect = shopRect(highlight.shopId, ShopTileInset)}
@@ -114,7 +107,7 @@
             stroke={White}
             stroke-width="5"
             stroke-linejoin="round"
-            filter="url(#{CandidateHaloFilterId})"
+            class="candidate-halo"
         ></path>
     {/if}
 </g>

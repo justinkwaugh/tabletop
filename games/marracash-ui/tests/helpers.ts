@@ -68,5 +68,5 @@ export async function playOpeningRound(page: Page, players = 4) {
 }
 
 export function incomingVisitors(page: Page): Locator {
-    return page.locator('g[aria-label="Visitor queue"] path[filter*="candidate-halo"]')
+    return page.locator('g[aria-label="Visitor queue"] path.candidate-halo')
 }

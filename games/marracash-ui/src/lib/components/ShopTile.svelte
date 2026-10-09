@@ -4,7 +4,7 @@
     import ShopSign from '$lib/components/ShopSign.svelte'
     import RugStall from '$lib/components/RugStall.svelte'
     import TentStall from '$lib/components/TentStall.svelte'
-    import { CandidateHaloFilterId, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
+    import { shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
     import { stallKind, stallOutline } from '$lib/utils/stalls.js'
 
     let {
@@ -39,7 +39,7 @@
                 stroke="#ffffff"
                 stroke-width="8"
                 stroke-linejoin="round"
-                filter="url(#{CandidateHaloFilterId})"
+                class="candidate-halo"
             ></path>
         {/if}
         {#if stallKind(shop.shopId) === 'rug'}

@@ -1,7 +1,6 @@
 <script lang="ts">
     import { getShop, type Route, type ShopVisit } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { LineHaloFilterId } from '$lib/utils/boardGeometry.js'
     import PawnCountChip from '$lib/components/PawnCountChip.svelte'
     import {
         BranchDash,
@@ -42,7 +41,6 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         opacity="0.35"
-        filter="url(#{LineHaloFilterId})"
     ></polyline>
     <polyline
         class="flow"
@@ -55,7 +53,6 @@
         stroke-dasharray="{pattern.dash} {pattern.gap}"
         style:--flow-period="{pattern.dash + pattern.gap}px"
         style:--flow-seconds="{flowSeconds(pattern)}s"
-        filter="url(#{LineHaloFilterId})"
     ></polyline>
 {/snippet}
 

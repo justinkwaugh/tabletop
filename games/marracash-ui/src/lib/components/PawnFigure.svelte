@@ -17,7 +17,6 @@
         PawnWaistShadeId,
         PawnWaistY
     } from '$lib/utils/pawnShape.js'
-    import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
 
     const HaloWidth = 3
     const HaloOpacity = 0.55
@@ -36,7 +35,7 @@
         stroke-width={HaloWidth}
         stroke-opacity={HaloOpacity}
         stroke-linejoin="round"
-        filter="url(#{CandidateHaloFilterId})"
+        class="candidate-halo"
     ></path>
 {/if}
 <ellipse cx="2" cy={PawnBaseY + 0.6} rx="9" ry="3" fill="url(#{PawnGroundShadowId})"></ellipse>

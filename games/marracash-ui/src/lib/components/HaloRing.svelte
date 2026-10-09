@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CandidateHaloFilterId, type Rect } from '$lib/utils/boardGeometry.js'
+    import { type Rect } from '$lib/utils/boardGeometry.js'
 
     const GlowReach = 16
 
@@ -33,6 +33,6 @@
     stroke="#ffffff"
     stroke-width="8"
     stroke-linejoin="round"
-    filter="url(#{CandidateHaloFilterId})"
+    class="candidate-halo"
     mask="url(#{id})"
 ></path>

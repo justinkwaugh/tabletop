@@ -17,12 +17,6 @@ export const BoardHeight = BoardRows * CellSize + 2 * WallThickness
 
 export const ShopTileInset = 6
 
-export const CandidateHaloFilterId = 'marracash-candidate-halo'
-// Sized in board space: a straight line has an empty bounding box, which
-// would give a bounding-box filter no area to draw in.
-export const LineHaloFilterId = 'marracash-line-halo'
-export const CastShadowFilterId = 'marracash-cast-shadow'
-
 export type Rect = Point & { width: number; height: number }
 
 export enum WallSide {

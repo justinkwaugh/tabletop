@@ -31,9 +31,6 @@
         shopRect,
         ShopTileInset,
         QueueMargin,
-        CandidateHaloFilterId,
-        CastShadowFilterId,
-        LineHaloFilterId,
         TableHeight,
         TableWidth,
         WallThickness
@@ -170,32 +167,6 @@
 >
     <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
         <defs>
-            <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
-                <feMerge>
-                    <feMergeNode in="glow"></feMergeNode>
-                    <feMergeNode in="glow"></feMergeNode>
-                    <feMergeNode in="SourceGraphic"></feMergeNode>
-                </feMerge>
-            </filter>
-            <filter
-                id={LineHaloFilterId}
-                filterUnits="userSpaceOnUse"
-                x="0"
-                y="0"
-                width={BoardWidth}
-                height={BoardHeight}
-            >
-                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
-                <feMerge>
-                    <feMergeNode in="glow"></feMergeNode>
-                    <feMergeNode in="glow"></feMergeNode>
-                    <feMergeNode in="SourceGraphic"></feMergeNode>
-                </feMerge>
-            </filter>
-            <filter id={CastShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
-            </filter>
             <StallDefs />
             <PawnDefs />
             <FountainDefs />

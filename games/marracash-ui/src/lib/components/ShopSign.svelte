@@ -5,7 +5,6 @@
     import SignFace from '$lib/components/SignFace.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { signEdgeColor, signFrameColor } from '$lib/utils/playerColors.js'
-    import { CastShadowFilterId } from '$lib/utils/boardGeometry.js'
     import {
         playerStandeeOutline,
         shopSignLayout,
@@ -46,7 +45,6 @@
         transform="translate({SignShadowOffset.x} {SignShadowOffset.y})"
         fill="#000000"
         opacity="0.35"
-        filter="url(#{CastShadowFilterId})"
     ></path>
     <SignFace {outline} {fill} {edge} {frame}>
         <text x="0" y="-27" class="sign-initial marracash-initial" fill={ink}
