@@ -21,6 +21,7 @@ import {
     PlayerStatus,
     PowerQuestionKind,
     Region,
+    RerolledRollKind,
     Search,
     SearchPlay,
     SearchSource,
@@ -120,6 +121,7 @@ export type TableName =
     | 'sacrificeMixed'
     | 'wonOutright'
     | 'spoils'
+    | QuestionTableName
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -167,6 +169,268 @@ function prophetsTable(): PlayedTable {
     state.vault = testVaultWithRelics({})
     return tableOf(state)
 }
+
+type Seat = Parameters<typeof testPlayer>[0]
+
+const RING = 'relic.ring-of-devotion'
+const CUP = 'relic.cup-of-plenty'
+const faceup = (cardId: string) => ({ cardId, faceUp: true })
+
+/**
+ * R-X.1 — a power's question put to this seat, asked by the Chancellor, both pawns at the top
+ * Cradle site of a dealt board. `me` holds 4 favor and 2 secrets.
+ */
+function questionTable(
+    question: PowerQuestion,
+    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {}
+): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                ...seats.me
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 3,
+                ...seats.ann
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            pendingQuestions: {
+                queue: [question],
+                askingPlayerId: 'ann',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+const asked = { askedPlayerId: 'me' } as const
+
+/** R-7.3.3 — a Search kept Fabled Feast, whose When Played power asks for one favor bank of several. */
+function fabledFeastTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                favor: 2,
+                handIds: [
+                    'denizen.hearth.fabled-feast',
+                    'denizen.arcane.tutor',
+                    'denizen.order.scouts'
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.Searching,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** Each power question, as the asked seat sees it. */
+const QUESTION_TABLES = {
+    askRevelation: () =>
+        questionTable({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            cardId: 'denizen.arcane.revelation',
+            ...asked
+        }),
+    askBlackmail: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.PayOrLoseRelic,
+                cardId: 'denizen.discord.blackmail',
+                ...asked,
+                takerPlayerId: 'ann',
+                relicCardId: RING,
+                price: 3
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askHerald: () =>
+        questionTable({
+            kind: PowerQuestionKind.PickFavorBank,
+            cardId: 'denizen.hearth.herald',
+            ...asked,
+            amount: 1
+        }),
+    askTinkersFair: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.Exchange,
+                cardId: 'denizen.hearth.tinkers-fair',
+                ...asked,
+                proposerPlayerId: 'ann',
+                terms: { fromProposer: { favor: 2 }, fromCounterparty: { relicCardIds: [RING] } }
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askGatheringJoin: () =>
+        questionTable({
+            kind: PowerQuestionKind.JoinSite,
+            cardId: 'denizen.nomad.the-gathering',
+            ...asked,
+            siteId: mapSlotsFor(Region.Provinces)[0]
+        }),
+    askGatheringFloor: () =>
+        questionTable({
+            kind: PowerQuestionKind.GatheringFloor,
+            cardId: 'denizen.nomad.the-gathering',
+            ...asked,
+            siteId: mapSlotsFor(Region.Cradle)[0]
+        }),
+    askHeirloom: () =>
+        questionTable({
+            kind: PowerQuestionKind.KeepOrBottomRelic,
+            cardId: 'denizen.hearth.family-heirloom',
+            ...asked,
+            relicCardId: CUP
+        }),
+    askFaeMerchant: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.BottomRelic,
+                cardId: 'denizen.beast.fae-merchant',
+                ...asked,
+                relicCardId: CUP
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askSkeletonKey: () =>
+        questionTable({
+            kind: PowerQuestionKind.TakeOrLeaveRelic,
+            cardId: 'relic.skeleton-key',
+            ...asked,
+            slotId: 'reliquary.1',
+            relicCardId: RING
+        }),
+    askJinx: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.RerollDice,
+                cardId: 'denizen.arcane.jinx',
+                ...asked,
+                powerIndex: 0,
+                roll: { kind: RerolledRollKind.GamblingHall, bank: Suit.Arcane, shields: 2 }
+            },
+            { me: { advisers: [faceup('denizen.arcane.jinx')] } }
+        ),
+    askRelicThief: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.RelicThiefRoll,
+                cardId: 'denizen.discord.relic-thief',
+                ...asked,
+                powerIndex: 0,
+                takerPlayerId: 'ann',
+                relicCardIds: [RING]
+            },
+            { me: { advisers: [faceup('denizen.discord.relic-thief')] }, ann: { relicIds: [RING] } }
+        ),
+    askBrassHorse: () =>
+        questionTable({
+            kind: PowerQuestionKind.TravelFreeTo,
+            cardId: 'relic.brass-horse',
+            ...asked,
+            siteIds: [
+                ...mapSlotsFor(Region.Provinces).slice(0, 2),
+                mapSlotsFor(Region.Hinterland)[0]
+            ]
+        }),
+    askSneakAttack: () =>
+        questionTable({
+            kind: PowerQuestionKind.SneakAttack,
+            cardId: 'denizen.discord.sneak-attack',
+            ...asked,
+            defenderPlayerId: 'ann'
+        }),
+    askInquisitor: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                cardId: 'denizen.arcane.inquisitor',
+                ...asked,
+                holderPlayerId: 'ann',
+                index: 0
+            },
+            {
+                me: { advisers: ['denizen.arcane.jinx', 'denizen.arcane.tutor'].map(faceup) },
+                ann: {
+                    advisers: [
+                        { cardId: 'vision.conspiracy', faceUp: false },
+                        faceup('denizen.arcane.alchemist')
+                    ],
+                    relicIds: [RING]
+                }
+            }
+        ),
+    askWildMounts: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.DiscardInstead,
+                cardId: 'denizen.nomad.wild-mounts',
+                ...asked,
+                planCardIds: ['denizen.nomad.horse-archers', 'denizen.nomad.lancers'],
+                insteadCardIds: ['denizen.beast.war-tortoise', 'denizen.beast.wolves'],
+                actingPlayerId: 'me'
+            },
+            { me: { advisers: ['denizen.beast.war-tortoise', 'denizen.beast.wolves'].map(faceup) } }
+        ),
+    askPilgrimage: () =>
+        questionTable({
+            kind: PowerQuestionKind.OrderDrawnCards,
+            cardId: 'denizen.nomad.pilgrimage',
+            ...asked,
+            region: Region.Provinces,
+            cardCount: 3,
+            cardIds: [
+                'denizen.arcane.alchemist',
+                'denizen.discord.assassin',
+                'denizen.hearth.book-binders'
+            ]
+        }),
+    askFalseProphet: () =>
+        questionTable(prophet('vision.conquest'), {
+            me: { advisers: PROPHET_ADVISERS.map((cardId) => ({ cardId, faceUp: false })) }
+        }),
+    fabledFeast: fabledFeastTable
+} satisfies Record<string, () => PlayedTable>
+
+export type QuestionTableName = keyof typeof QUESTION_TABLES
 
 /** The let-peek coexistence rule off the clock: another seat's Act Phase, this seat holding a facedown adviser. */
 function offTurnTable(): PlayedTable {
@@ -1638,7 +1902,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     sacrifice: () => battleTable('sacrifice'),
     sacrificeMixed: () => battleTable('sacrificeMixed'),
     wonOutright: () => battleTable('wonOutright'),
-    spoils: () => battleTable('spoils')
+    spoils: () => battleTable('spoils'),
+    ...QUESTION_TABLES
 }
 
 /** Every table a scenario can open. */
@@ -1742,6 +2007,11 @@ export function questionPicks(): {
         stacked: table.question.stackTapped,
         queued: table.gameState.pendingQuestions?.queue.length ?? 0
     }
+}
+
+/** The kind of the question open on the table, if any. */
+export function openQuestionKind(): PowerQuestionKind | undefined {
+    return current().gameState.pendingQuestions?.queue[0]?.kind
 }
 
 export function viewOffTheClock(): string | undefined {

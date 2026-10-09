@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { humanizeReason, nameSeats, reasonParts, type Seats } from './names.js'
+import { humanizeReason, listed, nameSeats, reasonParts, type Seats } from './names.js'
 
 const ALICE = 'p1'
 const BOB = 'Qx7_pL2mWb9-Rk4tYc1nZ'
@@ -109,5 +109,13 @@ describe('a summary as its reader sees it', () => {
         expect(nameSeats(`moved ${ALICE}'s and ${BOB}'s pawns`, seats, undefined, ALICE)).toBe(
             "moved Alice's and Bob's pawns"
         )
+    })
+})
+
+describe('listed — names in a sentence', () => {
+    it('joins the last with "and", the rest with commas', () => {
+        expect(listed(['Lancers'])).toBe('Lancers')
+        expect(listed(['Horse Archers', 'Lancers'])).toBe('Horse Archers and Lancers')
+        expect(listed(['A', 'B', 'C'])).toBe('A, B and C')
     })
 })

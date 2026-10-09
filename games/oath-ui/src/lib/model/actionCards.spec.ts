@@ -3,7 +3,7 @@ import { Color } from '@tabletop/common'
 import { ActionType, CardKind, HydratedMuster, HydratedSearch, HydratedTravel, MachineState, PowerTiming, cardIdsOfKind, legalChoices, powersWithTiming } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { allowsSeveral } from './powerChoices.js'
-import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenuRows, cardCostLine, cardsMakingPossible, printedPowerWords, soleDeclarations, type ActionCard } from './actionCards.js'
+import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenuRows, answerCostText, cardCostLine, cardsMakingPossible, printedPowerWords, soleDeclarations, type ActionCard } from './actionCards.js'
 
 const MUSHROOMS = 'denizen.beast.mushrooms'
 const TENTS = 'denizen.nomad.tents'
@@ -161,6 +161,14 @@ describe('the words of a card’s row and of the grey tile', () => {
         expect(cardCostLine(none)).toBe('free')
         expect(cardCostLine({ ...none, placeSecret: 1 })).toBe('put 1 secret on it')
         expect(cardCostLine({ ...none, placeFavor: 2, burnSecret: 2 })).toBe('put 2 favor on it, burn 2 secrets')
+    })
+
+    it('a question’s yes shows what the card costs as counts, nothing when free', () => {
+        const none = { placeFavor: 0, burnFavor: 0, placeSecret: 0, burnSecret: 0 }
+        expect(answerCostText(none)).toBeUndefined()
+        expect(answerCostText({ ...none, placeSecret: 1 })).toBe('1 secret')
+        expect(answerCostText({ ...none, placeFavor: 1, placeSecret: 1 })).toBe('1 favor + 1 secret')
+        expect(answerCostText({ ...none, burnFavor: 1, placeFavor: 1, burnSecret: 2 })).toBe('2 favor + 2 secrets')
     })
 
     it('turns the printed marks into words the tokens are drawn from', () => {

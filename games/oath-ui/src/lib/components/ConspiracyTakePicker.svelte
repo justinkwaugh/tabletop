@@ -10,12 +10,15 @@
         targets,
         prizesOf,
         pick,
-        onchange
+        onchange,
+        ask
     }: {
         targets: string[]
         prizesOf: (targetPlayerId: string) => TakePrizeOption[]
         pick: ConspiracyPick
         onchange: (pick: Omit<ConspiracyPick, 'confirmed'>) => void
+        /** A question's few words before the players, where the panel has not asked it already. */
+        ask?: string
     } = $props()
 
     let gameSession = getGameSession()
@@ -38,6 +41,7 @@
 
 <!-- A player is their chip: a tap picks them, a second tap drops them; none picked takes nothing. -->
 <div class="mb-1 flex flex-wrap items-center gap-2 text-xs">
+    {#if ask}<span class="text-oath-text-muted">{ask}</span>{/if}
     <span class="text-oath-text-muted">From:</span>
     {#each targets as id (id)}
         <button

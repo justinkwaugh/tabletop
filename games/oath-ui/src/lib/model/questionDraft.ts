@@ -6,6 +6,7 @@ import {
     SearchPlay,
     Suit,
     banksWithFavor,
+    cardPower,
     currentQuestion,
     heldRelicsToBottom,
     playersAt,
@@ -18,7 +19,9 @@ import {
     type ProjectedPowerQuestion,
     type QuestionAnswer
 } from '@tabletop/oath'
+import { answerCostText } from './actionCards.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
+import { namesAnything } from './exchangeTerms.js'
 import {
     advisersToDiscardForVision,
     playVisionAnswer,
@@ -53,6 +56,9 @@ const QUESTION_STAGE_ORDER = [
 const _questionStagesAreCovered: StagesCover<QuestionValueByStage, typeof QUESTION_STAGE_ORDER> =
     true
 void _questionStagesAreCovered
+
+// R-5.1.4 — False Prophet's plays, in the order the Search offers them.
+const VISION_PLAYS = [SearchPlay.RevealedVision, SearchPlay.Adviser, SearchPlay.Discard] as const
 
 /** R-X.1 — the asked player's picks for the open question, before the answer is sent. */
 export class QuestionDraft implements PanelDraft {
@@ -97,8 +103,9 @@ export class QuestionDraft implements PanelDraft {
         return banksWithFavor(this.session.gameState)
     }
 
-    get burn() {
-        return this.question ? (this.flow.value('burn') ?? 0) : 0
+    /** Revelation's count, from 1; none until the player picks one ("None" sends 0). */
+    get burn(): number | undefined {
+        return this.question ? this.flow.value('burn') : undefined
     }
 
     get floorCandidates(): string[] {
@@ -117,6 +124,11 @@ export class QuestionDraft implements PanelDraft {
 
     get floorTerms() {
         return this.floorWith ? (this.flow.value('floorTerms') ?? {}) : {}
+    }
+
+    /** The Gathering — a proposal is a player and some terms. */
+    get floorProposed(): boolean {
+        return this.floorWith !== undefined && namesAnything(this.floorTerms)
     }
 
     get takeTargets(): string[] {
@@ -151,6 +163,11 @@ export class QuestionDraft implements PanelDraft {
         const target = this.takeTarget
         const take = this.takePrize
         return target && take ? { targetPlayerId: target, take } : undefined
+    }
+
+    /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
+    get conspiracyComplete(): boolean {
+        return this.takeTarget === undefined || this.conspiracy !== undefined
     }
 
     // R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser.
@@ -208,29 +225,57 @@ export class QuestionDraft implements PanelDraft {
             : undefined
     }
 
-    get acceptBlockedBecause(): string | undefined {
+    /** The yes answer has every pick it needs; until then it is not offered. */
+    get acceptComplete(): boolean {
         const question = this.mine
         assertExists(question, 'A question is answered only by the seat it is put to')
         switch (question.kind) {
-            case PowerQuestionKind.SneakAttack:
-                return this.session.validActionTypes.includes(ActionType.Campaign)
-                    ? undefined
-                    : 'a Campaign is not open to you now'
+            case PowerQuestionKind.BurnFavorForSecrets:
+                return this.burn !== undefined
             case PowerQuestionKind.DiscardInstead:
-                return this.instead
-                    ? this.reasonCannot(this.answer(question, true))
-                    : 'choose a card'
+                return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
-                return this.floorWith
-                    ? this.reasonCannot(this.answer(question, true))
-                    : 'choose a player'
+                return this.floorProposed
+            case PowerQuestionKind.PlayOrDiscardConspiracy:
+                return this.conspiracyComplete
             default:
-                return this.reasonCannot(this.answer(question, true))
+                return true
         }
+    }
+
+    /** Why the engine refuses the yes answer as picked, read only once it is complete. */
+    get acceptRefusedBecause(): string | undefined {
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
+        if (!this.acceptComplete) return undefined
+        if (question.kind === PowerQuestionKind.SneakAttack) {
+            return this.session.validActionTypes.includes(ActionType.Campaign)
+                ? undefined
+                : 'a Campaign is not open to you now'
+        }
+        return this.reasonCannot(this.answer(question, true))
+    }
+
+    /** Jinx, Relic Thief — the card's printed cost, paid by the yes answer whatever the roll. */
+    get acceptCost(): string | undefined {
+        const question = this.mine
+        if (
+            question?.kind !== PowerQuestionKind.RerollDice &&
+            question?.kind !== PowerQuestionKind.RelicThiefRoll
+        )
+            return undefined
+        const power = cardPower(question.cardId, question.powerIndex)
+        assertExists(power, `${question.cardId} prints no power ${question.powerIndex}`)
+        return answerCostText(power.cost)
     }
 
     visionBlockedBecause(play: SearchPlay): string | undefined {
         return this.reasonCannot(this.visionAnswer(play))
+    }
+
+    /** False Prophet — the plays the engine accepts as picked; a refused one is not offered. */
+    get visionPlays(): SearchPlay[] {
+        return VISION_PLAYS.filter((play) => this.visionBlockedBecause(play) === undefined)
     }
 
     async accept(): Promise<void> {
@@ -296,8 +341,12 @@ export class QuestionDraft implements PanelDraft {
 
     private answer(question: PowerQuestion, yes: boolean): QuestionAnswer {
         switch (question.kind) {
-            case PowerQuestionKind.BurnFavorForSecrets:
-                return { kind: question.kind, favor: yes ? this.burn : 0 }
+            case PowerQuestionKind.BurnFavorForSecrets: {
+                if (!yes) return { kind: question.kind, favor: 0 }
+                const favor = this.burn
+                assertExists(favor, 'Burning needs the count picked')
+                return { kind: question.kind, favor }
+            }
             case PowerQuestionKind.PayOrLoseRelic:
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
@@ -349,7 +398,7 @@ export class QuestionDraft implements PanelDraft {
 
     setBurn(favor: number): void {
         if (this.question?.kind === PowerQuestionKind.BurnFavorForSecrets) {
-            this.flow.set('burn', Math.max(0, favor))
+            this.flow.set('burn', Math.max(1, favor))
         }
     }
 

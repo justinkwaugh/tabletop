@@ -244,6 +244,13 @@ export function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/** Names in a sentence: "A", "A and B", "A, B and C". */
+export function listed(names: readonly string[]): string {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+        : names.join('')
+}
+
 export function plural(count: number, noun: string): string {
     return `${count} ${noun}${count === 1 ? '' : 's'}`
 }

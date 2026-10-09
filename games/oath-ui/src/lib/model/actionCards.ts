@@ -162,6 +162,17 @@ export function cardCostLine(cost: PowerCost): string {
     return clauses.length > 0 ? clauses.join(', ') : 'free'
 }
 
+/** A power's cost as the answer that pays it shows it: "1 favor + 1 secret"; nothing when free. */
+export function answerCostText(cost: PowerCost): string | undefined {
+    const favor = cost.placeFavor + cost.burnFavor
+    const secrets = cost.placeSecret + cost.burnSecret
+    const parts = [
+        ...(favor > 0 ? [`${favor} favor`] : []),
+        ...(secrets > 0 ? [`${secrets} ${secrets === 1 ? 'secret' : 'secrets'}`] : [])
+    ]
+    return parts.length > 0 ? parts.join(' + ') : undefined
+}
+
 /** A card's printed power in words the panel's tokens can be drawn from. */
 export function printedPowerWords(text: string): string {
     return text

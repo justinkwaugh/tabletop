@@ -265,13 +265,13 @@ test('scenario 16: after one False Prophet question is answered, the next offers
     page
 }) => {
     await openTable(page, 'prophets')
-    const row = page.getByText('tap the adviser to discard', { exact: false }).locator('..')
+    const row = page.getByText('discard 1 first', { exact: false }).locator('..')
     await row.getByRole('button').first().click()
     const picked = await call(page, 'questionPicks')
     expect(picked.visionDiscard).toBeDefined()
     expect(picked.queued).toBe(2)
 
-    await page.getByRole('button', { name: 'Discard it', exact: true }).click()
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
     await expect.poll(async () => (await call(page, 'questionPicks')).queued).toBe(1)
     const next = await call(page, 'questionPicks')
     expect(next.visionDiscard).toBeUndefined()
@@ -3239,5 +3239,262 @@ test.describe('Undo is the one reversal control', () => {
         await button.click()
         expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: true })
         await expect(button).toHaveAttribute('aria-expanded', 'false')
+    })
+})
+
+
+/** A power's question: its card small beside one short line, short answers, the yes once its picks are made. */
+test.describe('power questions', () => {
+    const line = (page: Page) => grid(page).locator('.question-line')
+    const smallCard = (page: Page, name: string) => grid(page).locator(`.question-form img[alt="${name}"]`)
+    const asked = async (page: Page) => (await call(page, 'openQuestionKind')) !== undefined
+    const red = (page: Page) => grid(page).locator('.text-oath-danger')
+
+    test('Blackmail: "Pay <chip> 3 [favor] to keep Ring of Devotion?", Pay and Refuse, the relic beside the line', async ({ page }) => {
+        await openTable(page, 'askBlackmail')
+        await expect(line(page)).toHaveText(/^Pay\s+ann\s+3\s+to keep Ring of Devotion\?$/i)
+        await expect(line(page).locator('img[alt="favor"]')).toHaveCount(1)
+        await expect(smallCard(page, 'Ring of Devotion')).toBeVisible()
+        await expect(answer(page, 'Pay')).toBeVisible()
+        await expect(answer(page, 'Refuse')).toBeVisible()
+        await expect(grid(page)).not.toContainText('You have')
+        await answer(page, 'Pay').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
+    test('Revelation: the count runs from 1 with none picked; "None" alone until a count is picked, then "Burn"', async ({ page }) => {
+        await openTable(page, 'askRevelation')
+        await expect(line(page)).toHaveText(/^Burn how many\s+for as many\s*\?$/)
+        await expect(line(page).locator('img[alt="favor"]')).toHaveCount(1)
+        await expect(line(page).locator('img[alt="secrets"]')).toHaveCount(1)
+        await expect(smallCard(page, 'Revelation')).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /^burn \d favor$/ })).toHaveText(['1', '2', '3', '4'])
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(answer(page, 'Burn')).toHaveCount(0)
+        await expect(answer(page, 'None')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
+
+        await grid(page).getByRole('button', { name: 'burn 2 favor', exact: true }).click()
+        await expect(answer(page, 'Burn')).toBeVisible()
+        await answer(page, 'Burn').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
+    test('Herald: "Gain 1 [favor] from which bank?", no bank ringed', async ({ page }) => {
+        await openTable(page, 'askHerald')
+        await expect(line(page)).toHaveText(/^Gain 1\s+from which bank\?$/)
+        await expect(smallCard(page, 'Herald')).toBeVisible()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+    })
+
+    test('Tinker’s Fair: "Exchange with <chip>?", what you get and give, Accept and Refuse', async ({ page }) => {
+        await openTable(page, 'askTinkersFair')
+        await expect(line(page)).toHaveText(/^Exchange with\s+ann\s*\?$/i)
+        await expect(grid(page)).toContainText('You get')
+        await expect(grid(page)).toContainText(/You give\s*Ring of Devotion/)
+        await expect(grid(page)).not.toContainText('binding')
+        await expect(answer(page, 'Accept')).toBeVisible()
+        await expect(answer(page, 'Refuse')).toBeVisible()
+    })
+
+    test('The Gathering: "Go to <site>?", Go and Stay', async ({ page }) => {
+        await openTable(page, 'askGatheringJoin')
+        await expect(line(page)).toHaveText(/^Go to .+\?$/)
+        await expect(smallCard(page, 'The Gathering')).toBeVisible()
+        await expect(answer(page, 'Go')).toBeVisible()
+        await expect(answer(page, 'Stay')).toBeVisible()
+    })
+
+    test('The Gathering’s round: "Propose an exchange?", a player by chip; "Propose" once a player and terms are picked', async ({ page }) => {
+        await openTable(page, 'askGatheringFloor')
+        await expect(line(page)).toHaveText('Propose an exchange?')
+        await expect(grid(page).locator('select')).toHaveCount(0)
+        await expect(answer(page, 'Propose')).toHaveCount(0)
+        await expect(answer(page, 'Pass')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
+
+        await grid(page).getByRole('button', { name: 'ann', exact: true }).click()
+        await expect(answer(page, 'Propose')).toHaveCount(0)
+        await grid(page).getByRole('button', { name: 'me gives 1 favor', exact: true }).click()
+        await expect(answer(page, 'Propose')).toBeVisible()
+    })
+
+    test('Family Heirloom: "Take Cup of Plenty?", Take and To the bottom, the relic beside the line', async ({ page }) => {
+        await openTable(page, 'askHeirloom')
+        await expect(line(page)).toHaveText('Take Cup of Plenty?')
+        await expect(smallCard(page, 'Cup of Plenty')).toBeVisible()
+        await expect(answer(page, 'Take')).toBeVisible()
+        await expect(answer(page, 'To the bottom')).toBeVisible()
+    })
+
+    test('Fae Merchant: "Which relic goes to the bottom?", the relics captioned drawn and yours', async ({ page }) => {
+        await openTable(page, 'askFaeMerchant')
+        await expect(line(page)).toHaveText('Which relic goes to the bottom?')
+        await expect(grid(page)).toContainText('drawn')
+        await expect(grid(page)).toContainText('yours')
+        await expect(grid(page)).not.toContainText('the one drawn')
+    })
+
+    test('Skeleton Key: "Take Ring of Devotion?", Take and Leave', async ({ page }) => {
+        await openTable(page, 'askSkeletonKey')
+        await expect(line(page)).toHaveText('Take Ring of Devotion?')
+        await expect(smallCard(page, 'Ring of Devotion')).toBeVisible()
+        await expect(answer(page, 'Take')).toBeVisible()
+        await expect(answer(page, 'Leave')).toBeVisible()
+    })
+
+    test('Jinx: "Reroll …? Now …", the card’s cost in gold on Reroll, and Keep', async ({ page }) => {
+        await openTable(page, 'askJinx')
+        await expect(line(page)).toHaveText('Reroll the Gambling Hall dice? Now 2 shields.')
+        await expect(smallCard(page, 'Jinx')).toBeVisible()
+        const reroll = answer(page, 'Reroll, paying 1 secret')
+        await expect(reroll).toHaveText(/^Reroll\s*·\s*1$/)
+        await expect(reroll.locator('.text-oath-accent img[alt="secret"]')).toHaveCount(1)
+        await expect(answer(page, 'Keep')).toBeVisible()
+        await expect(grid(page)).not.toContainText('cost')
+    })
+
+    test('Relic Thief: "Roll 1 defense die for …? No shields takes it.", the cost in gold on Roll, and Pass', async ({ page }) => {
+        await openTable(page, 'askRelicThief')
+        await expect(line(page)).toHaveText('Roll 1 defense die for Ring of Devotion? No shields takes it.')
+        await expect(smallCard(page, 'Ring of Devotion')).toBeVisible()
+        const roll = answer(page, 'Roll, paying 1 favor + 1 secret')
+        await expect(roll).toHaveText(/^Roll\s*·\s*1\s*\+\s*1$/)
+        await expect(roll.locator('.text-oath-accent img')).toHaveCount(2)
+        await expect(answer(page, 'Pass')).toBeVisible()
+    })
+
+    test('Brass Horse: "Travel where? Free.", each site an equal choice of one width', async ({ page }) => {
+        await openTable(page, 'askBrassHorse')
+        await expect(line(page)).toHaveText('Travel where? Free.')
+        const sites = grid(page).getByRole('button', { name: /^Travel to / })
+        await expect(sites).toHaveCount(3)
+        const widths = await sites.evaluateAll((buttons) => buttons.map((b) => b.getBoundingClientRect().width))
+        expect(new Set(widths.map(Math.round)).size).toBe(1)
+    })
+
+    test('Sneak Attack: "Campaign against <chip> now? Free.", and Pass', async ({ page }) => {
+        await openTable(page, 'askSneakAttack')
+        await expect(line(page)).toHaveText(/^Campaign against\s+ann\s+now\?\s+Free\.$/i)
+        await expect(smallCard(page, 'Sneak Attack')).toBeVisible()
+        await expect(answer(page, 'Pass')).toBeVisible()
+    })
+
+    test('Inquisitor: "The Conspiracy: play it, or discard it?"; a player picked with no prize hides "Play it"', async ({ page }) => {
+        await openTable(page, 'askInquisitor')
+        await expect(line(page)).toHaveText('The Conspiracy: play it, or discard it?')
+        await expect(smallCard(page, 'Conspiracy')).toBeVisible()
+        await expect(grid(page)).toContainText('Take a relic or banner? From:')
+        await expect(answer(page, 'Play it')).toBeVisible()
+        await expect(answer(page, 'Discard')).toBeVisible()
+
+        await grid(page).getByRole('button', { name: 'ann', exact: true }).click()
+        await expect(answer(page, 'Play it')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+        await grid(page).getByRole('button', { name: 'Ring of Devotion', exact: true }).click()
+        await expect(answer(page, 'Play it')).toBeVisible()
+    })
+
+    test('Wild Mounts: "Discard one [beast] card instead of …?"; "Discard instead" once a card is picked, no red line before', async ({ page }) => {
+        await openTable(page, 'askWildMounts')
+        await expect(line(page)).toHaveText(/^Discard one\s+card instead of Horse Archers and Lancers\?$/)
+        await expect(line(page).locator('img[alt="Beast"]')).toHaveCount(1)
+        await expect(answer(page, 'Discard instead')).toHaveCount(0)
+        await expect(answer(page, 'Discard plans')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
+
+        await grid(page).getByRole('button', { name: 'War Tortoise', exact: true }).click()
+        await expect(answer(page, 'Discard instead')).toBeVisible()
+    })
+
+    test('False Prophet: "Play Conquest, or discard it?"; a refused play is not listed; "Adviser, facedown" once the adviser to discard is picked', async ({ page }) => {
+        await openTable(page, 'askFalseProphet')
+        await expect(line(page)).toHaveText('Play Vision of Conquest, or discard it?')
+        await expect(smallCard(page, 'Vision of Conquest')).toBeVisible()
+        await expect(grid(page)).toContainText('Adviser, facedown: discard 1 first.')
+        await expect(answer(page, 'Adviser, facedown')).toHaveCount(0)
+        await expect(answer(page, 'Discard')).toBeVisible()
+        await expect(grid(page).locator('button:disabled')).toHaveCount(0)
+
+        await grid(page).getByRole('button', { name: 'Messenger', exact: true }).click()
+        await expect(answer(page, 'Adviser, facedown')).toBeVisible()
+    })
+
+    test('Pilgrimage: "Tap to discard; the last goes on top."; "Discard" once the order is fixed', async ({ page }) => {
+        await openTable(page, 'askPilgrimage')
+        await expect(line(page)).toHaveText('Tap to discard; the last goes on top.')
+        await expect(answer(page, 'Discard')).toHaveCount(0)
+        await expect(stepBacks(page)).toHaveCount(0)
+        await grid(page).getByRole('button', { name: 'Alchemist', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Assassin', exact: true }).click()
+        await expect(answer(page, 'Discard')).toBeVisible()
+        await answer(page, 'Discard').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
+    test('a When Played bank starts with none ringed; "Play" shows once one is tapped (Fabled Feast)', async ({ page }) => {
+        await openTable(page, 'fabledFeast')
+        await grid(page).getByRole('button', { name: 'Fabled Feast', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Adviser, faceup', exact: true }).click()
+        const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
+        await expect(banks.first()).toBeVisible()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'Play', exact: true })).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+
+        await banks.nth(1).click()
+        await expect(banks.nth(1)).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByRole('button', { name: 'Play', exact: true })).toBeVisible()
+    })
+
+    test.describe('at phone width', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        for (const [table, names] of [
+            ['askBlackmail', ['Pay', 'Refuse']],
+            ['askHeirloom', ['Take', 'To the bottom']],
+            ['askJinx', ['Reroll, paying 1 secret', 'Keep']],
+            ['askRelicThief', ['Roll, paying 1 favor + 1 secret', 'Pass']],
+            ['askTinkersFair', ['Accept', 'Refuse']],
+            ['askGatheringJoin', ['Go', 'Stay']],
+            ['askInquisitor', ['Play it', 'Discard']],
+            ['askFalseProphet', ['As your Vision', 'Discard']],
+            ['askBrassHorse', [/^Travel to /]]
+        ] as const) {
+            test(`${table}: no label is wider than its button; the answers share one width, at least 44 px tall`, async ({ page }) => {
+                await openTable(page, table)
+                await expect(line(page)).toBeVisible()
+                const buttons = names.flatMap((name) =>
+                    typeof name === 'string' ? [answer(page, name)] : [grid(page).getByRole('button', { name })]
+                )
+                const sizes = []
+                for (const button of buttons) {
+                    await expect(button.first()).toBeVisible()
+                    sizes.push(
+                        ...(await button.evaluateAll((elements) => elements.map((element) => {
+                            const style = getComputedStyle(element)
+                            return {
+                                overflow: element.scrollWidth - element.clientWidth,
+                                width: parseFloat(style.width),
+                                height: parseFloat(style.height),
+                                inside: [...element.querySelectorAll('*')].every((child) => {
+                                    const outer = element.getBoundingClientRect()
+                                    const inner = child.getBoundingClientRect()
+                                    return inner.left >= outer.left - 0.5 && inner.right <= outer.right + 0.5
+                                }),
+                                name: element.getAttribute('aria-label') ?? element.textContent ?? ''
+                            }
+                        })))
+                    )
+                }
+                expect(sizes.length).toBeGreaterThan(1)
+                for (const size of sizes) {
+                    expect(size.overflow, size.name).toBeLessThanOrEqual(0)
+                    expect(size.inside, size.name).toBe(true)
+                    expect(size.height, size.name).toBeGreaterThanOrEqual(44)
+                }
+                expect(new Set(sizes.map((size) => Math.round(size.width))).size).toBe(1)
+            })
+        }
     })
 })
