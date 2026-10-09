@@ -93,6 +93,14 @@
 /* Lora as Santiago's default body font, set on this game's own root and inherited by its
    subtree, rather than overriding Tailwind's shared --font-sans token, which would leak into
    the host page and harness chrome around it. */
+/* Short screens, such as a phone held sideways: the board keeps a usable height, and the game
+   column scrolls to reach it rather than squeezing it to nothing. */
+@media (max-height: 500px) {
+    .board-area {
+        min-height: 260px;
+    }
+}
+
 /* Phones: everything above the board, text and controls alike, at a smaller scale. */
 @media (max-width: 639px), (max-height: 500px) {
     .above-board {
@@ -176,7 +184,7 @@
             </div>
             <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size -->
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="board-area grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper justify="left" controls="bottom-right">
                     <div class="w-fit">
                         <!-- ScalingWrapper (a shared library component) clips to its own
