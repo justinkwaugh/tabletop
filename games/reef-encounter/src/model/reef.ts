@@ -35,6 +35,14 @@ export const ReefSquare = Type.Object({
     coords: OffsetCoordinates
 })
 
+export type CoralEaten = Type.Static<typeof CoralEaten>
+export const CoralEaten = Type.Object({
+    color: Type.Enum(CoralColor),
+    polyps: Type.Number(),
+    returnedToBag: Type.Number(),
+    shrimpToOpenSea: Type.Boolean()
+})
+
 export type PolypPlacement = Type.Static<typeof PolypPlacement>
 export const PolypPlacement = Type.Object({
     color: Type.Enum(CoralColor),

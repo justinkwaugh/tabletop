@@ -15,9 +15,11 @@ export type TurnRecord = Type.Static<typeof TurnRecord>
 export const TurnRecord = Type.Object({
     larvaCubesPlayed: Type.Number(),
     shrimpIntroduced: Type.Boolean(),
+    // Eating (action 1) must come before every other action of the turn.
+    acted: Type.Boolean(),
     placing: Type.Optional(PlacingPolyps)
 })
 
 export function newTurnRecord(): TurnRecord {
-    return { larvaCubesPlayed: 0, shrimpIntroduced: false }
+    return { larvaCubesPlayed: 0, shrimpIntroduced: false, acted: false }
 }

@@ -32,6 +32,7 @@ import { HydratedPolypBag, PolypBag } from '../components/polypBag.js'
 import { isRock, ReefBoards, type ReefBoardId } from '../components/reefBoards.js'
 import {
     coralAt,
+    type CoralEaten,
     isGuarded,
     isProtected,
     isStronger,
@@ -52,6 +53,10 @@ import { HydratedReefEncounterPlayerState, ReefEncounterPlayerState } from './pl
 export const LarvaCubesChosenAtSetup = 2
 // A player may never have more than two of their own shrimps on one board (rulebook p. 9).
 export const ShrimpsPerPlayerPerBoard = 2
+// A parrotfish eats only a coral of at least five polyps; the first four go back into the bag
+// (rulebook p. 11).
+export const SmallestEdibleCoral = 5
+export const PolypsReturnedWhenEating = 4
 
 export type ReefEncounterGameState = Type.Static<typeof ReefEncounterGameState>
 // Left unevaluated, like the player state, so hidden player fields stay optional when projected.
@@ -207,6 +212,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.getPlayerState(playerId).spendLarvaCube(color)
         this.larvaCubeSupply[color] += 1
         this.turn.larvaCubesPlayed += 1
+        this.turn.acted = true
         this.turn.placing = { color, screenPolypsLeft: ScreenPolypsPerLarvaCube }
     }
 
@@ -316,6 +322,48 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return placement
     }
 
+    // Action 1, only before anything else this turn: a coral of five or more guarded by the
+    // player's own shrimp, named by any of its squares.
+    canEatCoral(playerId: string, square: ReefSquare): boolean {
+        return !this.turn.acted && this.edibleCoral(playerId, square) !== undefined
+    }
+
+    hasEdibleCoral(playerId: string): boolean {
+        return (
+            !this.turn.acted &&
+            this.shrimps.some(
+                (shrimp) =>
+                    shrimp.playerId === playerId && this.edibleCoral(playerId, shrimp) !== undefined
+            )
+        )
+    }
+
+    // The first four polyps go back into the bag, which is shaken, and the rest into the
+    // parrotfish with the guarding shrimp (rulebook p. 11).
+    eatCoral(playerId: string, square: ReefSquare): CoralEaten {
+        assert(this.canEatCoral(playerId, square), `Player ${playerId} cannot eat that coral`)
+        const coral = this.edibleCoral(playerId, square)
+        assertExists(coral, 'That coral cannot be eaten')
+        const reef = this.reefOn(square.boardId)
+        const color = coral[0].color
+        reef.polyps = reef.polyps.filter((polyp) => !coral.includes(polyp))
+        this.shrimps = this.shrimps.filter(
+            (shrimp) =>
+                shrimp.boardId !== square.boardId ||
+                !coral.some((polyp) => sameCoordinates(polyp.coords, shrimp.coords))
+        )
+
+        const returnedToBag = Math.min(PolypsReturnedWhenEating, coral.length)
+        this.polypBag.addItems(Array.from({ length: returnedToBag }, () => color))
+        this.polypBag.shuffle(this.getProtectedPrng().random)
+
+        const player = this.getPlayerState(playerId)
+        const shrimpToOpenSea = !player.shrimpOnOpenSea
+        player.eat(color, coral.length - returnedToBag)
+        this.turn.acted = true
+        return { color, polyps: coral.length, returnedToBag, shrimpToOpenSea }
+    }
+
     canIntroduceShrimp(playerId: string, square: ReefSquare): boolean {
         return (
             this.mayIntroduceShrimp(playerId) && this.shrimpBlocker(playerId, square) === undefined
@@ -351,6 +399,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             coords: structuredClone(square.coords)
         })
         this.turn.shrimpIntroduced = true
+        this.turn.acted = true
         this.turn.placing = undefined
     }
 
@@ -371,6 +420,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         assert(this.canMoveShrimp(playerId, from, to), `Player ${playerId} cannot move that shrimp`)
         const shrimp = this.ownShrimpAt(playerId, from)
         assertExists(shrimp, `Player ${playerId} has no shrimp there`)
+        this.turn.acted = true
         if (to) {
             shrimp.boardId = to.boardId
             shrimp.coords = structuredClone(to.coords)
@@ -424,7 +474,10 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     scores(): Record<string, ScoreBreakdown> {
         const values = coralValues(this.coralTiles)
         return Object.fromEntries(
-            this.players.map((player) => [player.playerId, scoreBreakdown(player, values)])
+            this.players.map((player) => [
+                player.playerId,
+                scoreBreakdown(player, values, this.guardedPolyps(player.playerId))
+            ])
         )
     }
 
@@ -447,6 +500,30 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return fromConsumed
             ? player.consumedPolyps[placing.color] > 0
             : placing.screenPolypsLeft > 0 && player.hasScreenPolyp(placing.color)
+    }
+
+    // Polyps in corals the player's shrimps sit on; a coral never has two shrimps.
+    private guardedPolyps(playerId: string): number {
+        return this.shrimps
+            .filter((shrimp) => shrimp.playerId === playerId)
+            .reduce(
+                (sum, shrimp) => sum + coralAt(this.reefOn(shrimp.boardId), shrimp.coords).length,
+                0
+            )
+    }
+
+    private edibleCoral(playerId: string, square: ReefSquare) {
+        const reef = this.reefs.find((candidate) => candidate.boardId === square.boardId)
+        if (!reef) {
+            return undefined
+        }
+        const coral = coralAt(reef, square.coords)
+        const ownShrimps = this.shrimpsOn(square.boardId).filter(
+            (shrimp) => shrimp.playerId === playerId
+        )
+        return coral.length >= SmallestEdibleCoral && isGuarded(coral, ownShrimps)
+            ? coral
+            : undefined
     }
 
     private mayIntroduceShrimp(playerId: string): boolean {

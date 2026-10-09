@@ -7,11 +7,13 @@ import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube
 import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
 import { HydratedIntroduceShrimp, isIntroduceShrimp } from '../actions/introduceShrimp.js'
 import { HydratedMoveShrimp, isMoveShrimp } from '../actions/moveShrimp.js'
+import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { CoralColors } from '../components/colors.js'
 import { activateTurnPlayer } from '../util/turns.js'
 
 type TakingTurnAction =
+    | HydratedEatCoral
     | HydratedPlayLarvaCube
     | HydratedPlacePolyp
     | HydratedIntroduceShrimp
@@ -29,6 +31,12 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         if (!gameState.activePlayerIds.includes(action.playerId ?? '')) {
             return false
+        }
+        if (isEatCoral(action)) {
+            return gameState.canEatCoral(action.playerId, {
+                boardId: action.boardId,
+                coords: action.coords
+            })
         }
         if (isPlayLarvaCube(action)) {
             return gameState.canPlayLarvaCube(action.playerId, action.color)
@@ -65,6 +73,9 @@ export class TakingTurnStateHandler implements MachineStateHandler<
             return []
         }
         const actions: ActionType[] = []
+        if (gameState.hasEdibleCoral(playerId)) {
+            actions.push(ActionType.EatCoral)
+        }
         if (CoralColors.some((color) => gameState.canPlayLarvaCube(playerId, color))) {
             actions.push(ActionType.PlayLarvaCube)
         }

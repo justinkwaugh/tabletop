@@ -1,7 +1,13 @@
 import { assert, assertExists, Color, Hydratable, PlayerState, Visibility } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { CoralColor, CoralCounts, coralCounts, totalCount } from '../components/colors.js'
+import {
+    CoralColor,
+    CoralColors,
+    CoralCounts,
+    coralCounts,
+    totalCount
+} from '../components/colors.js'
 import { MachineState } from '../definition/states.js'
 
 export const ShrimpsPerPlayer = 4
@@ -27,8 +33,13 @@ export const ReefEncounterPlayerState = Type.Intersect([
         knownScreenPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         secretScreenPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         secretParrotfishPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
+        knownParrotfishPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         larvaCubes: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         shrimpsBehindScreen: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
+        // The first shrimp a parrotfish eats goes on the open-sea board for all to see;
+        // later ones go inside the parrotfish.
+        shrimpOnOpenSea: Type.Boolean(),
+        shrimpsInParrotfish: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
         consumedPolyps: CoralCounts
     })
 ])
@@ -53,8 +64,11 @@ export function newPlayerState(
         knownScreenPolyps: coralCounts(),
         secretScreenPolyps: dealtPolyps,
         secretParrotfishPolyps: coralCounts(),
+        knownParrotfishPolyps: coralCounts(),
         larvaCubes: coralCounts(),
         shrimpsBehindScreen: ShrimpsPerPlayer,
+        shrimpOnOpenSea: false,
+        shrimpsInParrotfish: 0,
         consumedPolyps: coralCounts()
     }
 }
@@ -68,8 +82,11 @@ export class HydratedReefEncounterPlayerState
     declare knownScreenPolyps?: CoralCounts
     declare secretScreenPolyps?: CoralCounts
     declare secretParrotfishPolyps?: CoralCounts
+    declare knownParrotfishPolyps?: CoralCounts
     declare larvaCubes?: CoralCounts
     declare shrimpsBehindScreen?: number
+    declare shrimpOnOpenSea: boolean
+    declare shrimpsInParrotfish?: number
     declare consumedPolyps: CoralCounts
 
     constructor(data: ReefEncounterProjectedPlayerState) {
@@ -156,12 +173,44 @@ export class HydratedReefEncounterPlayerState
         this.shrimpsBehindScreen = this.getShrimpsBehindScreen() + 1
     }
 
+    // Action 1: what is left of the eaten coral, and its shrimp, go into the parrotfish.
+    eat(color: CoralColor, polyps: number) {
+        this.getKnownParrotfishPolyps()[color] += polyps
+        if (this.shrimpOnOpenSea) {
+            this.shrimpsInParrotfish = this.getShrimpsInParrotfish() + 1
+        } else {
+            this.shrimpOnOpenSea = true
+        }
+    }
+
     screenPolypCount(): number {
         return totalCount(this.getKnownScreenPolyps()) + totalCount(this.getSecretScreenPolyps())
     }
 
     getParrotfishPolyps(): CoralCounts {
-        return { ...this.getSecretParrotfishPolyps() }
+        const secret = this.getSecretParrotfishPolyps()
+        const known = this.getKnownParrotfishPolyps()
+        const total = coralCounts()
+        for (const color of CoralColors) {
+            total[color] = secret[color] + known[color]
+        }
+        return total
+    }
+
+    getKnownParrotfishPolyps(): CoralCounts {
+        assertExists(
+            this.knownParrotfishPolyps,
+            'Known parrotfish polyps are unavailable in this representation'
+        )
+        return this.knownParrotfishPolyps
+    }
+
+    getShrimpsInParrotfish(): number {
+        assertExists(
+            this.shrimpsInParrotfish,
+            'Shrimps in the parrotfish are unavailable in this representation'
+        )
+        return this.shrimpsInParrotfish
     }
 
     getKnownScreenPolyps(): CoralCounts {

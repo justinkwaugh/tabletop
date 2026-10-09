@@ -5,8 +5,10 @@ import type { HydratedReefEncounterPlayerState } from './playerState.js'
 export type ScoreBreakdown = {
     parrotfishPolyps: CoralCounts
     total: number
+    consumedPolyps: number
     larvaCubes: number
     screenPolyps: number
+    guardedPolyps: number
 }
 
 // Each colour is worth 1, plus 1 for every coral tile showing it as the stronger coral.
@@ -20,19 +22,28 @@ export function coralValues(coralTiles: readonly CoralTileState[]): CoralCounts 
 
 export function scoreBreakdown(
     player: HydratedReefEncounterPlayerState,
-    values: CoralCounts
+    values: CoralCounts,
+    guardedPolyps: number
 ): ScoreBreakdown {
     const parrotfishPolyps = player.getParrotfishPolyps()
     return {
         parrotfishPolyps,
         total: CoralColors.reduce((sum, color) => sum + parrotfishPolyps[color] * values[color], 0),
+        consumedPolyps: totalCount(player.consumedPolyps),
         larvaCubes: totalCount(player.getLarvaCubes()),
-        screenPolyps: player.screenPolypCount()
+        screenPolyps: player.screenPolypCount(),
+        guardedPolyps
     }
 }
 
 // Rulebook p. 12 breaks ties by consumed polyps, unplayed larva cubes, unplayed screen polyps,
-// then polyps under the player's shrimps; consumed polyps and shrimps join as they are built.
+// then polyps in corals the player's shrimps protect.
 export function compareScores(a: ScoreBreakdown, b: ScoreBreakdown): number {
-    return a.total - b.total || a.larvaCubes - b.larvaCubes || a.screenPolyps - b.screenPolyps
+    return (
+        a.total - b.total ||
+        a.consumedPolyps - b.consumedPolyps ||
+        a.larvaCubes - b.larvaCubes ||
+        a.screenPolyps - b.screenPolyps ||
+        a.guardedPolyps - b.guardedPolyps
+    )
 }

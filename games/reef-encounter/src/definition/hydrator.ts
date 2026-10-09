@@ -10,6 +10,7 @@ import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube
 import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
 import { HydratedIntroduceShrimp, isIntroduceShrimp } from '../actions/introduceShrimp.js'
 import { HydratedMoveShrimp, isMoveShrimp } from '../actions/moveShrimp.js'
+import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
 
 export class ReefEncounterHydrator implements GameHydrator<
@@ -23,6 +24,9 @@ export class ReefEncounterHydrator implements GameHydrator<
             }
             case isChooseLarvaCubes(data): {
                 return new HydratedChooseLarvaCubes(data)
+            }
+            case isEatCoral(data): {
+                return new HydratedEatCoral(data)
             }
             case isPlayLarvaCube(data): {
                 return new HydratedPlayLarvaCube(data)

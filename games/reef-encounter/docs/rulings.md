@@ -43,14 +43,21 @@ In the rulebook's order (pp. 3–4):
 ## Shrimps
 
 - **Introducing (action 4).** Once a turn, a player may put a shrimp from behind the screen onto any polyp of a coral that has no shrimp. A new shrimp never goes onto bare rock (rulebook p. 5).
-- **Order of actions.** Every action except moving shrimps must be finished before another starts (rulebook p. 4). Introducing a shrimp therefore ends the larva cube being played: no more polyps of its colour may follow, though a second cube may still be played.
+- **Order of actions.** Every action except moving shrimps must be finished before another starts (rulebook p. 4). Introducing a shrimp therefore ends the larva cube being played: no more polyps of its colour may follow, though a second cube may still be played (confirmed by the user).
 - **Moving (action 5).** Any number of times a turn, and in the middle of placing polyps, a player may move one of their own shrimps to another polyp of the same coral, to a polyp of another coral, to bare rock, or back behind the screen (rulebook p. 5). A shrimp left on bare rock must move on before the turn ends, so the turn cannot end while one is there (rulebook p. 5).
 - **Limits.** Two shrimps are never on the same coral, and a player never has more than two of their own shrimps on one board (rulebook p. 9). Both hold for introducing and moving.
+
+## Eating
+
+- **When (action 1).** Only before every other action of the turn, moving a shrimp included, and once a turn (rulebook pp. 4 and 11).
+- **Which coral.** One of at least five polyps guarded by the player's own shrimp. Never a coral guarded by another player's shrimp, or an unguarded one (rulebook p. 11).
+- **Where it goes.** Four polyps go back into the bag, which is reshuffled; the rest go into the parrotfish (rulebook p. 11). The first shrimp a player's parrotfish eats goes on the open-sea board; later ones go inside the parrotfish.
+- **What others see.** The eaten coral was on the board, so with Concealed off its polyps, and the number of shrimps inside each parrotfish, are shown. With Concealed on they are hidden, as the printed rules forbid looking into another player's parrotfish. The shrimp on the open-sea board is always shown.
 
 ## Scoring
 
 - Each polyp in a player's parrotfish scores its colour's value: 1, plus 1 for every coral tile currently showing that colour as the stronger coral. The values always total 15 (rulebook p. 12).
-- Ties are broken, in order, by consumed polyps in front of the screen, unplayed larva cubes, unplayed screen polyps, then polyps on the boards in corals protected by the player's shrimps. Players still level share the place (rulebook p. 12). Until consumed polyps and shrimps on the reef exist in this implementation, ties use the two in between.
+- Ties are broken, in order, by consumed polyps in front of the screen, unplayed larva cubes, unplayed screen polyps, then polyps on the boards in corals protected by the player's shrimps. Players still level share the place (rulebook p. 12).
 
 ## Hidden information
 

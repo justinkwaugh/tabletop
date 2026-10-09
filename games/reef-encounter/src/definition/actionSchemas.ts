@@ -1,5 +1,6 @@
 import type * as Type from 'typebox'
 import { ChooseLarvaCubes } from '../actions/chooseLarvaCubes.js'
+import { EatCoral } from '../actions/eatCoral.js'
 import { FeedParrotfish } from '../actions/feedParrotfish.js'
 import { IntroduceShrimp } from '../actions/introduceShrimp.js'
 import { MoveShrimp } from '../actions/moveShrimp.js'
@@ -12,6 +13,7 @@ import { ActionType } from './actions.js'
 export const ReefEncounterActionSchemas = {
     [ActionType.FeedParrotfish]: FeedParrotfish,
     [ActionType.ChooseLarvaCubes]: ChooseLarvaCubes,
+    [ActionType.EatCoral]: EatCoral,
     [ActionType.PlayLarvaCube]: PlayLarvaCube,
     [ActionType.PlacePolyp]: PlacePolyp,
     [ActionType.IntroduceShrimp]: IntroduceShrimp,
