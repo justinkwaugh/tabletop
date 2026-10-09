@@ -25,7 +25,10 @@ const COLS = 8
 const ROWS = 6
 
 function santiagoState(state: HydratedGameState): HydratedSantiagoGameState {
-    assert(state instanceof HydratedSantiagoGameState, 'Santiago scenarios need Santiago game state')
+    assert(
+        state instanceof HydratedSantiagoGameState,
+        'Santiago scenarios need Santiago game state'
+    )
     return state
 }
 
@@ -72,7 +75,10 @@ function nearestWater(square: Square, connected: Set<string>): number {
     return nearest
 }
 
-function chooseFieldSquare(state: HydratedSantiagoGameState, policy: WaterPolicy): Square | undefined {
+function chooseFieldSquare(
+    state: HydratedSantiagoGameState,
+    policy: WaterPolicy
+): Square | undefined {
     const connected = connectedSpringIntersections(state.board)
     const empty: Square[] = []
     for (let col = 0; col < COLS; col++) {
@@ -81,7 +87,8 @@ function chooseFieldSquare(state: HydratedSantiagoGameState, policy: WaterPolicy
         }
     }
     const closeness = (square: Square) =>
-        (isIrrigated(state.board, square.col, square.row, connected) ? -100 : 0) + nearestWater(square, connected)
+        (isIrrigated(state.board, square.col, square.row, connected) ? -100 : 0) +
+        nearestWater(square, connected)
     const ranked = empty.toSorted((a, b) => closeness(a) - closeness(b))
     return policy === 'irrigate' ? ranked[0] : ranked.at(-1)
 }
@@ -129,7 +136,11 @@ function nextMove(state: HydratedSantiagoGameState, policy: WaterPolicy): Harnes
     switch (state.machineState) {
         case MachineState.SpringPlacement: {
             const spots = validSpringPlacements()
-            return { type: ActionType.PlaceSpring, playerId, ...spots[Math.floor(spots.length / 2)] }
+            return {
+                type: ActionType.PlaceSpring,
+                playerId,
+                ...spots[Math.floor(spots.length / 2)]
+            }
         }
         case MachineState.TileReveal:
             return { type: ActionType.RevealTiles, playerId }
@@ -141,7 +152,8 @@ function nextMove(state: HydratedSantiagoGameState, policy: WaterPolicy): Harnes
                 assert(neutral !== undefined, 'The neutral field requires a placement')
                 return { type: ActionType.PlaceNeutralTile, playerId, ...neutral }
             }
-            const square = state.revealedTiles.length > 0 ? chooseFieldSquare(state, policy) : undefined
+            const square =
+                state.revealedTiles.length > 0 ? chooseFieldSquare(state, policy) : undefined
             return square
                 ? { type: ActionType.PlaceField, playerId, tileIndex: 0, ...square }
                 : { type: ActionType.Pass, playerId }
@@ -150,7 +162,12 @@ function nextMove(state: HydratedSantiagoGameState, policy: WaterPolicy): Harnes
             if (state.canalProposalIndex < state.canalProposalOrder.length) {
                 return { type: ActionType.Pass, playerId }
             }
-            return { type: ActionType.OverseerDecision, playerId, segment: chooseCanal(state, policy), accepting: false }
+            return {
+                type: ActionType.OverseerDecision,
+                playerId,
+                segment: chooseCanal(state, policy),
+                accepting: false
+            }
         case MachineState.ExtraIrrigation: {
             const hasPersonalCanal = state.getPlayerState(playerId).hasPersonalCanal
             return policy === 'irrigate' && hasPersonalCanal
@@ -173,10 +190,7 @@ function scenario(
         ...rest,
         playerCount: 4,
         nextMove: (state) => nextMove(santiagoState(state), policy),
-        isComplete: (state) => {
-            const santiago = santiagoState(state)
-            return santiago.machineState === MachineState.EndOfGame || isComplete(santiago)
-        }
+        isComplete: (state) => isComplete(santiagoState(state))
     }
 }
 
@@ -209,7 +223,8 @@ export const santiagoHarnessScenarios: HarnessScenario[] = [
     scenario({
         id: 'before-drought',
         label: 'Just before a drought',
-        description: 'Last personal-canal decision of a round; pass it to watch unwatered fields dry.',
+        description:
+            'Last personal-canal decision of a round; pass it to watch unwatered fields dry.',
         policy: 'neglect',
         isComplete: (state) =>
             state.machineState === MachineState.ExtraIrrigation &&

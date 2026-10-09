@@ -11,12 +11,13 @@ import {
     type Game,
     type GameAction,
     type GameConfig,
-    type GameState,
+    type GameInfo,
+    type GameRuntime,
     type HydratedGameState,
     type Player
 } from '@tabletop/common'
-import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 import type { GameService } from '$lib/services/gameService.js'
+import { updatedGameRecord } from './harnessGameRecord.js'
 
 // What to play next; the runner supplies the action's identity, game, source and time.
 export type HarnessScenarioMove = { type: string; playerId?: string } & Record<string, unknown>
@@ -37,6 +38,11 @@ const MAX_MOVES = 5000
 
 export type HarnessScenarioOwner = { id: string; name: string }
 
+export type HarnessScenarioTitle = {
+    info: Pick<GameInfo, 'id' | 'configurator'>
+    runtime(): Promise<GameRuntime>
+}
+
 export async function runHarnessScenario({
     scenario,
     definition,
@@ -44,7 +50,7 @@ export async function runHarnessScenario({
     owner
 }: {
     scenario: HarnessScenario
-    definition: GameUiDefinition<GameState, HydratedGameState>
+    definition: HarnessScenarioTitle
     gameService: Pick<GameService, 'createGame' | 'loadGame' | 'saveGameLocally'>
     owner: HarnessScenarioOwner
 }): Promise<Game> {
@@ -73,6 +79,7 @@ export async function runHarnessScenario({
     for (let move = 0; ; move++) {
         const hydrated = runtime.hydrator.hydrateState(state)
         if (scenario.isComplete(hydrated, game)) break
+        assert(!state.result, `Scenario ${scenario.id} ended the game before reaching its state`)
         assert(move < MAX_MOVES, `Scenario ${scenario.id} did not finish within ${MAX_MOVES} moves`)
         const action: GameAction = {
             ...scenario.nextMove(hydrated, game),
@@ -92,8 +99,9 @@ export async function runHarnessScenario({
         action.createdAt = new Date(startedAt + i)
     })
 
-    await gameService.saveGameLocally({ game, state, actions })
-    return game
+    const played = updatedGameRecord(game, state, actions.at(-1))
+    await gameService.saveGameLocally({ game: played, state, actions })
+    return played
 }
 
 function scenarioPlayers(count: number, owner: HarnessScenarioOwner): Player[] {
