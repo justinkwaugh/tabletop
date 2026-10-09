@@ -329,3 +329,14 @@ test('content drawn at its view scale is laid out at that scale once the view se
     await board.click()
     await expect(page.locator('output')).toHaveText('1')
 })
+
+test('a small board rests at full size unless it may fit larger, and still zooms to the max', async ({ page }) => {
+    await mountWrapper(page, { maxScale: 2, boardWidth: 100, boardHeight: 80 })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(100)
+    await page.reload()
+    await mountWrapper(page, { maxScale: 2, maxFitScale: 1.5, boardWidth: 100, boardHeight: 80 })
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(150)
+    await board.dispatchEvent('wheel', { deltaY: -400, clientX: 200, clientY: 150 })
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(200)
+})

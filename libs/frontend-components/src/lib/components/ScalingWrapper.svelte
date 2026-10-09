@@ -77,6 +77,7 @@
         expandable = false,
         allowFullscreenShortcut,
         maxScale = 1,
+        maxFitScale = 1,
         insetTop = 0,
         overpan = 'none',
         gestureOverpanReach = 0,
@@ -90,6 +91,8 @@
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         maxScale?: number
+        /** The largest scale the content rests at when fitted, up to maxScale; zooming can still reach maxScale. */
+        maxFitScale?: number
         /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
         insetTop?: number
         overpan?: 'none' | 'focus' | 'x' | 'y' | 'both'
@@ -259,8 +262,12 @@
         return insetTop + availableHeight() / 2
     }
 
+    function fitCap() {
+        return Math.min(maxFitScale, maxScale)
+    }
+
     function computeContainScale() {
-        return Math.min(wrapperWidth / contentWidth, availableHeight() / contentHeight, 1)
+        return Math.min(wrapperWidth / contentWidth, availableHeight() / contentHeight, fitCap())
     }
 
     function computeRestScale(containScale: number) {
@@ -268,7 +275,7 @@
             return containScale
         }
 
-        return Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), 1)
+        return Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), fitCap())
     }
 
     function updateDiscreteLevels(lowestScale: number) {

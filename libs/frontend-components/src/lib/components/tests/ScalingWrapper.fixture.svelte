@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount, type ComponentProps } from 'svelte'
     import ScalingWrapper from '../ScalingWrapper.svelte'
-    let { maxScale = 1, scrollable = false, modal = false, expandable = false, overpan = 'none', gestureOverpanReach, coverBelowScale, renderAtViewScale = false,
+    let { maxScale = 1, maxFitScale, scrollable = false, modal = false, expandable = false, overpan = 'none', gestureOverpanReach, coverBelowScale, renderAtViewScale = false,
         boardWidth = 1000, boardHeight = 800, focus }:
-        Pick<ComponentProps<typeof ScalingWrapper>, 'maxScale' | 'expandable' | 'overpan' | 'gestureOverpanReach' | 'coverBelowScale' | 'renderAtViewScale'> & {
+        Pick<ComponentProps<typeof ScalingWrapper>, 'maxScale' | 'maxFitScale' | 'expandable' | 'overpan' | 'gestureOverpanReach' | 'coverBelowScale' | 'renderAtViewScale'> & {
             boardWidth?: number
             boardHeight?: number
             scrollable?: boolean
@@ -24,7 +24,7 @@
 <dialog bind:this={dialog} open={!modal} style="margin:0;padding:0;border:0"><div data-testid="table-scroll" style="width:400px;overflow:auto">
 <div style={scrollable ? 'width:800px;padding-left:400px' : ''}>
 <div style="width:400px;height:300px">
-    <ScalingWrapper bind:this={wrapper} controls="none" {maxScale} {expandable} {overpan} {gestureOverpanReach} {coverBelowScale} {renderAtViewScale}>
+    <ScalingWrapper bind:this={wrapper} controls="none" {maxScale} {maxFitScale} {expandable} {overpan} {gestureOverpanReach} {coverBelowScale} {renderAtViewScale}>
         <button data-testid="board" style="display:block;width:{boardWidth}px;height:{boardHeight}px" onclick={() => clicks++}>Board</button>
     </ScalingWrapper>
 </div>
