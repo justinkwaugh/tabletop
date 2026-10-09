@@ -12,9 +12,6 @@ export const WallMortar = '#8c4b2e'
 export const RammedEarthPatternId = 'marracash-rammed-earth'
 export const PillarShadowOffset = { x: 3, y: 4 }
 
-export const WallWalkway = '#c47b58'
-export const MerlonColor = '#dc9a72'
-
 const MerlonDepth = 11
 const MerlonLength = 15
 const CrenelGap = 6

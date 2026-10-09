@@ -1,51 +1,31 @@
 <script lang="ts">
     import Battlements from '$lib/components/Battlements.svelte'
     import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
-    import {
-        MerlonColor,
-        RammedEarthPatternId,
-        WallBattlements,
-        WallWalkway
-    } from '$lib/utils/cityWall.js'
+    import { RammedEarthPatternId, WallBattlements } from '$lib/utils/cityWall.js'
+    import { BoardTextures } from '$lib/utils/boardTextures.js'
+    import RammedEarthTexture from '$lib/textures/rammed-earth.webp'
+    import RammedEarthRaisedTexture from '$lib/textures/rammed-earth-raised.webp'
 
-    const EarthTileSize = 180
     const Earths = [
-        { id: RammedEarthPatternId, base: WallWalkway, seed: 4 },
-        { id: `${RammedEarthPatternId}-raised`, base: MerlonColor, seed: 9 }
+        { id: RammedEarthPatternId, spec: BoardTextures.rammedEarth, image: RammedEarthTexture },
+        {
+            id: `${RammedEarthPatternId}-raised`,
+            spec: BoardTextures.rammedEarthRaised,
+            image: RammedEarthRaisedTexture
+        }
     ]
 </script>
 
 <defs>
     {#each Earths as earth (earth.id)}
-        <filter
-            id="{earth.id}-grain"
-            filterUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={EarthTileSize}
-            height={EarthTileSize}
-        >
-            <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.035 0.11"
-                numOctaves="4"
-                seed={earth.seed}
-                stitchTiles="stitch"
-            ></feTurbulence>
-            <feColorMatrix
-                type="matrix"
-                values="0 0 0 0 0.36  0 0 0 0 0.16  0 0 0 0 0.08  1.1 0 0 0 -0.42"
-            ></feColorMatrix>
-        </filter>
         <pattern
             id={earth.id}
-            width={EarthTileSize}
-            height={EarthTileSize}
+            width={earth.spec.size}
+            height={earth.spec.size}
             patternUnits="userSpaceOnUse"
         >
-            <rect width={EarthTileSize} height={EarthTileSize} fill={earth.base}></rect>
-            <rect width={EarthTileSize} height={EarthTileSize} filter="url(#{earth.id}-grain)"
-            ></rect>
+            <rect width={earth.spec.size} height={earth.spec.size} fill={earth.spec.base}></rect>
+            <image href={earth.image} width={earth.spec.size} height={earth.spec.size}></image>
         </pattern>
     {/each}
 </defs>

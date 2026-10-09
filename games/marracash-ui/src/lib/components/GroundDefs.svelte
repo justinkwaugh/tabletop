@@ -1,94 +1,27 @@
 <script lang="ts">
-    import {
-        PackedEarthColor,
-        PackedEarthPatternId,
-        PackedEarthTileSize,
-        StreetDustPatternId,
-        StreetDustTileSize
-    } from '$lib/utils/ground.js'
+    import { PackedEarthPatternId, StreetDustPatternId } from '$lib/utils/ground.js'
+    import { BoardTextures } from '$lib/utils/boardTextures.js'
+    import PackedEarthTexture from '$lib/textures/packed-earth.webp'
+    import StreetDustTexture from '$lib/textures/street-dust.webp'
+
+    const earth = BoardTextures.packedEarth
+    const dust = BoardTextures.streetDust
 </script>
 
-<filter
-    id="{PackedEarthPatternId}-mottle"
-    filterUnits="userSpaceOnUse"
-    x="0"
-    y="0"
-    width={PackedEarthTileSize}
-    height={PackedEarthTileSize}
->
-    <feTurbulence
-        type="fractalNoise"
-        baseFrequency="0.012"
-        numOctaves="3"
-        seed="21"
-        stitchTiles="stitch"
-    ></feTurbulence>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.62  0 0 0 0 0.42  0 0 0 0 0.28  0.9 0 0 0 -0.32"
-    ></feColorMatrix>
-</filter>
-<filter
-    id="{PackedEarthPatternId}-grit"
-    filterUnits="userSpaceOnUse"
-    x="0"
-    y="0"
-    width={PackedEarthTileSize}
-    height={PackedEarthTileSize}
->
-    <feTurbulence
-        type="fractalNoise"
-        baseFrequency="0.55"
-        numOctaves="2"
-        seed="2"
-        stitchTiles="stitch"
-    ></feTurbulence>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.22  0.7 0 0 0 -0.3"
-    ></feColorMatrix>
-</filter>
 <pattern
     id={PackedEarthPatternId}
-    width={PackedEarthTileSize}
-    height={PackedEarthTileSize}
+    width={earth.size}
+    height={earth.size}
     patternUnits="userSpaceOnUse"
 >
-    <rect width={PackedEarthTileSize} height={PackedEarthTileSize} fill={PackedEarthColor}></rect>
-    <rect
-        width={PackedEarthTileSize}
-        height={PackedEarthTileSize}
-        filter="url(#{PackedEarthPatternId}-mottle)"
-    ></rect>
-    <rect
-        width={PackedEarthTileSize}
-        height={PackedEarthTileSize}
-        filter="url(#{PackedEarthPatternId}-grit)"
-    ></rect>
+    <rect width={earth.size} height={earth.size} fill={earth.base}></rect>
+    <image href={PackedEarthTexture} width={earth.size} height={earth.size}></image>
 </pattern>
-<filter
-    id="{StreetDustPatternId}-noise"
-    filterUnits="userSpaceOnUse"
-    x="0"
-    y="0"
-    width={StreetDustTileSize}
-    height={StreetDustTileSize}
->
-    <feTurbulence
-        type="fractalNoise"
-        baseFrequency="0.0075"
-        numOctaves="4"
-        seed="8"
-        stitchTiles="stitch"
-    ></feTurbulence>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.36  0 0 0 0 0.22  0.8 0 0 0 -0.42"
-    ></feColorMatrix>
-</filter>
 <pattern
     id={StreetDustPatternId}
-    width={StreetDustTileSize}
-    height={StreetDustTileSize}
+    width={dust.size}
+    height={dust.size}
     patternUnits="userSpaceOnUse"
 >
-    <rect
-        width={StreetDustTileSize}
-        height={StreetDustTileSize}
-        filter="url(#{StreetDustPatternId}-noise)"
-    ></rect>
+    <image href={StreetDustTexture} width={dust.size} height={dust.size}></image>
 </pattern>

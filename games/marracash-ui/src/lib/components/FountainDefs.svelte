@@ -1,42 +1,22 @@
 <script lang="ts">
     import {
         FountainGlintsPatternId,
-        FountainGlintsTileSize,
         FountainRimShadeId,
-        FountainWaterFilterId,
         FountainWaterShadeId
     } from '$lib/utils/fountainShape.js'
+    import { BoardTextures } from '$lib/utils/boardTextures.js'
+    import FountainGlintsTexture from '$lib/textures/fountain-glints.webp'
+
+    const glints = BoardTextures.fountainGlints
 </script>
 
-<filter
-    id={FountainWaterFilterId}
-    filterUnits="userSpaceOnUse"
-    x="0"
-    y="0"
-    width={FountainGlintsTileSize}
-    height={FountainGlintsTileSize}
->
-    <feTurbulence
-        type="fractalNoise"
-        baseFrequency="0.06"
-        numOctaves="3"
-        seed="8"
-        stitchTiles="stitch"
-    ></feTurbulence>
-    <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 -0.35"
-    ></feColorMatrix>
-</filter>
 <pattern
     id={FountainGlintsPatternId}
-    width={FountainGlintsTileSize}
-    height={FountainGlintsTileSize}
+    width={glints.size}
+    height={glints.size}
     patternUnits="userSpaceOnUse"
 >
-    <rect
-        width={FountainGlintsTileSize}
-        height={FountainGlintsTileSize}
-        filter="url(#{FountainWaterFilterId})"
-    ></rect>
+    <image href={FountainGlintsTexture} width={glints.size} height={glints.size}></image>
 </pattern>
 <linearGradient id={FountainRimShadeId} x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#f1d6cc"></stop>

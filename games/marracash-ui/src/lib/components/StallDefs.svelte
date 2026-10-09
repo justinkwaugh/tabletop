@@ -5,15 +5,16 @@
         canvasStripesId,
         kilimId,
         StallShadowFilterId,
-        WeaveFilterId,
         WeavePatternId
     } from '$lib/utils/stalls.js'
+    import { BoardTextures } from '$lib/utils/boardTextures.js'
+    import StallWeaveTexture from '$lib/textures/stall-weave.webp'
 
     const gameSession = getGameSession()
 
     const StripeRepeat = 22
     const KilimRepeat = 26
-    const WeaveTileSize = 400
+    const WeaveTileSize = BoardTextures.stallWeave.size
     const KilimCream = '#f3e6c8'
 
     function diamond(inset: number): string {
@@ -29,31 +30,13 @@
     ].join(' ')
 </script>
 
-<filter
-    id={WeaveFilterId}
-    filterUnits="userSpaceOnUse"
-    x="0"
-    y="0"
-    width={WeaveTileSize}
-    height={WeaveTileSize}
->
-    <feTurbulence
-        type="fractalNoise"
-        baseFrequency="0.9 0.22"
-        numOctaves="2"
-        seed="4"
-        stitchTiles="stitch"
-    ></feTurbulence>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.2  0 0 0 0 0.12  0 0 0 0 0.05  0.9 0 0 0 -0.35"
-    ></feColorMatrix>
-</filter>
 <pattern
     id={WeavePatternId}
     width={WeaveTileSize}
     height={WeaveTileSize}
     patternUnits="userSpaceOnUse"
 >
-    <rect width={WeaveTileSize} height={WeaveTileSize} filter="url(#{WeaveFilterId})"></rect>
+    <image href={StallWeaveTexture} width={WeaveTileSize} height={WeaveTileSize}></image>
 </pattern>
 <filter id={StallShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
     <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
