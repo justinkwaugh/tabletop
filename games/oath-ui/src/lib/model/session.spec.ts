@@ -141,7 +141,7 @@ describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Pla
         return { session, sent }
     }
 
-    it('Salad Days turned faceup waits for three different banks, then sends them', async () => {
+    it('Salad Days turned faceup starts with no bank picked, waits for three different banks, then sends them', async () => {
         const { session, sent } = flipping()
         const faceup = session.facedownAdviserOptions[0].placements.find((p) => p.play === SearchPlay.Adviser)
         expect(faceup).toBeDefined()
@@ -150,6 +150,12 @@ describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Pla
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserPlay).toBe(SearchPlay.Adviser)
         expect(session.adviserPlayChoices).toHaveLength(3)
+        expect(session.adviserPlayComplete).toBe(false)
+        await session.confirmAdviserPlay()
+        expect(sent).not.toHaveBeenCalled()
+
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 1, 1: 1, 2: 1 } })
+        expect(session.adviserPlayComplete).toBe(true)
         expect(session.adviserPlayReason).toMatch(/different/)
 
         session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0, 1: 1, 2: 2 } })

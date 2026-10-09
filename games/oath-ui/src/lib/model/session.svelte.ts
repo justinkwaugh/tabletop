@@ -141,7 +141,12 @@ import { actionCards, type ActionCard } from './actionCards.js'
 import { powerUseKey } from './powerUse.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
-import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
+import {
+    emptyPicks,
+    picksComplete,
+    powerChoicesFrom,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { whenPlayedChoices } from './whenPlayed.js'
 import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
@@ -701,6 +706,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     get adviserPlayPicks(): PowerChoicePicks {
         return this.selection.value('whenPlayed') ?? emptyPicks()
+    }
+
+    /** "Play" waits until every When Played choice has its picks. */
+    get adviserPlayComplete(): boolean {
+        return picksComplete(this.adviserPlayChoices, this.adviserPlayPicks)
     }
 
     setAdviserPlayPicks(picks: PowerChoicePicks): void {

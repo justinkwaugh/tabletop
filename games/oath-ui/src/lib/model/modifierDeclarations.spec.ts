@@ -54,9 +54,11 @@ function pickRegion(session: OathGameSession, cardId: string, region: Region) {
 }
 
 describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
-    it('lists the pawn’s pile once when the only region named is where the discards go (Bracken)', () => {
+    it('lists no source until Bracken’s region is picked, then the pawn’s pile once (Bracken names where the discards go)', () => {
         const { session } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
+        expect(session.searchRows).toEqual([])
+        pickRegion(session, BRACKEN, Region.Hinterland)
         expect(piles(session)).toEqual([Region.Cradle])
     })
 

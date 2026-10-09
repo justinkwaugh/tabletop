@@ -130,14 +130,16 @@
                         <span class="grow">
                             <span class="font-semibold">{cardName(p.cardId)}</span>
                         </span>
-                        <button
-                            class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
-                            disabled={busy || !!reason}
-                            title={gameSession.humanizeReason(reason) ?? ''}
-                            onclick={() => draft.use(p)}
-                        >
-                            Use
-                        </button>
+                        {#if draft.bankPicked(p)}
+                            <button
+                                class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5"
+                                disabled={busy || !!reason}
+                                title={gameSession.humanizeReason(reason) ?? ''}
+                                onclick={() => draft.use(p)}
+                            >
+                                Use
+                            </button>
+                        {/if}
                     </div>
                     {#if banks.length > 0}
                         {@const picked = draft.pickedSuit(p)}
@@ -150,7 +152,7 @@
                             />
                         </div>
                     {/if}
-                    {#if reason}
+                    {#if reason && draft.bankPicked(p)}
                         <p class="mb-1 text-[11px] text-oath-danger">
                             <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                         </p>

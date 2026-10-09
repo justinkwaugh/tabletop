@@ -133,15 +133,23 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
 })
 
 describe('a faceup Search play asks its When Played choices (R-7.3.3)', () => {
-    it('Salad Days is sent only with three different banks', async () => {
+    it('Salad Days starts with no bank picked, and is sent only with three different banks', async () => {
         const { draft, sent } = searchingWith([SALAD_DAYS, TUTOR])
         draft.keep(SALAD_DAYS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         expect(draft.needsWhenPlayed).toBe(true)
         expect(draft.whenPlayed).toHaveLength(3)
 
+        expect(draft.whenPlayedComplete).toBe(false)
         await draft.confirmWhenPlayed()
+        expect(sent).not.toHaveBeenCalled()
+
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0, 1: 0 } })
+        expect(draft.whenPlayedComplete).toBe(false)
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0, 1: 0, 2: 0 } })
+        expect(draft.whenPlayedComplete).toBe(true)
         expect(draft.whenPlayedReason).toMatch(/different/)
+        await draft.confirmWhenPlayed()
         expect(sent).not.toHaveBeenCalled()
 
         draft.setPicks({ ...emptyPicks(), option: { 0: 0, 1: 1, 2: 2 } })
@@ -388,6 +396,10 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         draft.setDiscardFirst(FULL[2])
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(draft.needsWhenPlayed).toBe(true)
+        // Its bank starts unpicked, so its Play waits for the pick.
+        expect(draft.whenPlayedComplete).toBe(false)
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(draft.whenPlayedComplete).toBe(true)
         expect(draft.whenPlayedReason).toBeUndefined()
         await draft.confirmWhenPlayed()
         expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: FABLED_FEAST, play: SearchPlay.Site, discardFirstCardId: FULL[2] }))

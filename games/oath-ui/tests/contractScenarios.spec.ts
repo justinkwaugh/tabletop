@@ -2373,12 +2373,13 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
 
-test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
+test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, none ringed until picked, and the pick is what is sent', async ({ page }) => {
     await openTable(page, 'restBanks')
     const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
     await expect(banks.first()).toBeVisible()
     await expect(grid(page).locator('select')).toHaveCount(0)
-    await expect(banks.first()).toHaveAttribute('aria-pressed', 'true')
+    await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+    await expect(grid(page).getByRole('button', { name: 'Use', exact: true })).toHaveCount(0)
 
     const arcane = grid(page).getByRole('button', { name: /^Arcane bank, \d+ favor$/ })
     await arcane.click()

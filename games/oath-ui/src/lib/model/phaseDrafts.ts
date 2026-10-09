@@ -48,6 +48,7 @@ import {
 import {
     emptyPicks,
     favorBankSuits,
+    picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
@@ -243,10 +244,17 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
         return favorBankSuits(bank?.options ?? [])
     }
 
+    // No default where the player has a choice: a single bank offered is taken as picked.
     pickedSuit(power: LegalPowerUse): Suit | undefined {
         const options = this.bankOptions(power)
         const chosen = this.stored?.[powerKey(power.cardId, power.powerIndex)]
-        return chosen !== undefined && options.includes(chosen) ? chosen : options[0]
+        if (chosen !== undefined && options.includes(chosen)) return chosen
+        return options.length === 1 ? options[0] : undefined
+    }
+
+    /** "Use" waits for the bank, when the power offers a choice of them. */
+    bankPicked(power: LegalPowerUse): boolean {
+        return this.bankOptions(power).length === 0 || this.pickedSuit(power) !== undefined
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {
@@ -337,6 +345,11 @@ export class ActionPowersDraft extends OneStepDraft<Record<string, PowerChoicePi
             return
         }
         this.store({ ...this.stored, [powerKey(use.cardId, use.powerIndex)]: picks })
+    }
+
+    /** "Use" waits until every choice the power opens has its picks. */
+    picksComplete(power: LegalPowerUse): boolean {
+        return picksComplete(power.choices, this.picksOf(power))
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {

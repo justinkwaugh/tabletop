@@ -244,6 +244,8 @@
                     >
                         {#if legal.spec.min === 0}
                             <option value={NO_OPTION}>none</option>
+                        {:else if pick === NO_OPTION}
+                            <option value={NO_OPTION} disabled></option>
                         {/if}
                         {#each legal.options as choice, j (j)}
                             <option value={j}>{label(choice)}</option>

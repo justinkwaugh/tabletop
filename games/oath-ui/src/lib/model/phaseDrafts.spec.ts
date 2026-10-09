@@ -199,10 +199,15 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         expect(rest.back()).toBe(false)
     })
 
-    it('the first bank offered is the default, not a pick', () => {
+    it('no bank is picked until one is tapped, and "Use" waits for it', () => {
         const rest = resting()
-        expect(rest.pickedSuit(power(rest, OBEDIENCE))).toBeDefined()
+        const obedience = power(rest, OBEDIENCE)
+        expect(rest.bankOptions(obedience).length).toBeGreaterThan(1)
+        expect(rest.pickedSuit(obedience)).toBeUndefined()
+        expect(rest.bankPicked(obedience)).toBe(false)
         expect(rest.hasManualSelection()).toBe(false)
+        rest.pickBank(obedience, Suit.Arcane)
+        expect(rest.bankPicked(obedience)).toBe(true)
     })
 
     it('a bank the power does not offer is never picked', () => {
@@ -311,6 +316,17 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
         expect(session.humanizeReason(session.actionPowers.reasonCannotUse(power))).toBe(
             'Steve has 0 favor, not the 2 you would take'
         )
+    })
+
+    it('a power’s choice of several banks starts with none picked; "Use" waits for the pick', () => {
+        const draft = using()
+        const snare = required(draft.powers.find((p) => p.cardId === SNARE), 'Spirit Snare is offered')
+        expect(draft.picksComplete(snare)).toBe(false)
+        expect(draft.choicesFor(snare)).toEqual([])
+        draft.setPicks(SNARE_USE, { ...emptyPicks(), option: { 0: 2 } })
+        expect(draft.picksComplete(snare)).toBe(true)
+        expect(draft.choicesFor(snare)).toEqual([snare.choices[0].options[2]])
+        expect(draft.reasonCannotUse(snare)).toBeUndefined()
     })
 
     it('choosing another action ends its picks', () => {
