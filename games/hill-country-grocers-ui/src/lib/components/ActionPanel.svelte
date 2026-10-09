@@ -44,12 +44,13 @@
             <p class="prompt">Choose which of your grocers builds:</p>
             <div class="row">
                 {#each gameSession.buildCompanyOptions as companyId (companyId)}
-                    <button
-                        type="button"
-                        class="secondary"
-                        onclick={() => gameSession.selectBuildCompany(companyId)}
-                        ><CompanyBadge {companyId} /></button
-                    >
+                    <BigShareCertificate
+                        {companyId}
+                        choice={{
+                            label: `Build with ${companyDefinition(companyId).name}`,
+                            onclick: () => gameSession.selectBuildCompany(companyId)
+                        }}
+                    />
                 {/each}
             </div>
         {:else}
