@@ -2138,6 +2138,21 @@ test('scenario 50: Peek lists only the relics not yet seen, Look sends', async (
     await expect(peek).toHaveCount(0)
 })
 
+test('scenario 15: a peek shows its actor the notice, "Only you see this." over the cards seen', async ({ page }) => {
+    await openTable(page, 'tavernSongs')
+    await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Use', exact: true }).click()
+    const notice = grid(page).getByText('Only you see this.', { exact: true })
+    await expect(notice).toBeVisible()
+    expect(await notice.evaluate((line) => line.previousElementSibling === null)).toBe(true)
+    await expect(notice.locator('xpath=..').getByRole('img')).toHaveCount(2)
+    await expect(grid(page)).not.toContainText('showed you')
+    await expect(grid(page)).not.toContainText('You were shown')
+
+    expect(await call(page, 'viewOffTheClock')).toBe('ann')
+    await expect(notice).toHaveCount(0)
+})
+
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
     await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
