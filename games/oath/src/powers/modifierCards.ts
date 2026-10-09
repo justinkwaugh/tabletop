@@ -9,6 +9,7 @@ import { totalWarbands } from '../util/warbands.js'
 import { registerModifier, type EffectContext } from './registry.js'
 import {
     gainFavorFromBank,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     killWarbandsAtSite,
     killWarbandsOnBoard,
@@ -329,8 +330,10 @@ registerModifier(
             after: (ctx) => {
                 if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
-                const warbands = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
-                return { summary: `Wild Cry: gained ${supply} Supply and ${warbands} warbands` }
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+                return { summary: `Wild Cry: gained ${supply} Supply and ${words}` }
             }
         }
     }

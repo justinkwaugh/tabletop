@@ -24,6 +24,7 @@ import {
     burnSecretsFromPlayer,
     denizensOnMap,
     gainFavorFromBank,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     killWarbandGroup,
     killWarbandsOnBoard,
@@ -500,10 +501,14 @@ registerBattlePlan(
     powerIndexOf('denizen.order.field-promotion', PowerTiming.BattlePlan),
     {
         hooks: {
-            onOutcome: (ctx, victorious) =>
-                victorious
-                    ? `Field Promotion: gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 3)} warbands`
-                    : undefined
+            onOutcome: (ctx, victorious) => {
+                if (!victorious) return undefined
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 3)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
+                    `${gained} warbands`
+                return `Field Promotion: gained ${words}`
+            }
         }
     }
 )

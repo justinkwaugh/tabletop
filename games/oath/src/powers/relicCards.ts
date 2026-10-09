@@ -26,6 +26,7 @@ import {
     type PlayerPlanContext
 } from './registry.js'
 import {
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     pawnSiteId,
     swapPlayedCardWithSiteCard,
@@ -60,9 +61,12 @@ registerModifier(
     powerIndexOf('relic.dragonskin-drum', PowerTiming.Modifier),
     {
         hooks: {
-            after: (ctx) => ({
-                summary: `Dragonskin Drum: gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 1)} warband`
-            })
+            after: (ctx) => {
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warband`
+                return { summary: `Dragonskin Drum: gained ${words}` }
+            }
         }
     }
 )
@@ -327,7 +331,10 @@ registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.Ba
                 ? enemyWarbandsKilledFor(ctx.state, campaign, ctx.campaign.side)
                 : (campaign.defeatKilled ?? 0)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, killed)
-            return `Cursed Cauldron: gained ${gained} warbands, one per enemy warband killed`
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
+                `${gained} warbands`
+            return `Cursed Cauldron: gained ${words}, one per enemy warband killed`
         }
     }
 })

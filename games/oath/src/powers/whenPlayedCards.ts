@@ -13,6 +13,7 @@ import {
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     gainFavorFromBank,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     moveWarbandsBoardToSite,
     regionOfPawn,
@@ -103,7 +104,9 @@ registerEffect(
             // Played as an adviser it is not "at a site"; the card still counts itself.
             const x = onMap.includes('denizen.beast.animal-host') ? onMap.length : onMap.length + 1
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, x)
-            return { summary: `gained ${gained} warbands (${x} beast cards at sites)` }
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+            return { summary: `gained ${words} (${x} beast cards at sites)` }
         }
     }
 )
@@ -137,9 +140,12 @@ registerEffect(
     powerIndexOf('denizen.discord.a-small-favor', PowerTiming.WhenPlayed),
     {
         choices: [],
-        resolve: (ctx) => ({
-            summary: `gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 4)} warbands`
-        })
+        resolve: (ctx) => {
+            const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 4)
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+            return { summary: `gained ${words}` }
+        }
     }
 )
 
@@ -207,10 +213,12 @@ registerEffect(
             const ruled = sitesRuledBy(ctx.state, ctx.playerId)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, ruled.length)
             const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
             // Ring of Devotion: "You cannot place warbands at sites" (R-9.2).
             if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
                 return {
-                    summary: `gained ${gained} warbands; placed none — ${ctx.playerId} cannot place warbands at sites`
+                    summary: `gained ${words}; placed none — ${ctx.playerId} cannot place warbands at sites`
                 }
             }
             let placed = 0
@@ -218,7 +226,7 @@ registerEffect(
                 placed += moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, siteId, 1)
             }
             return {
-                summary: `gained ${gained} warbands and placed ${placed} across ${ruled.length} ruled sites`
+                summary: `gained ${words} and placed ${placed} across ${ruled.length} ruled sites`
             }
         }
     }

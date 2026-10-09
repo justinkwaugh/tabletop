@@ -12,6 +12,7 @@ import { PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { campaignRecords, openTurn, testPlayer, testState } from '../testing/fixture.js'
 import { required } from '../testing/required.js'
+import { pawnSiteId } from '../util/pawn.js'
 import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { OathRevision } from '../util/revision.js'
 import { homelandPayout } from '../util/sitePowers.js'
@@ -66,40 +67,44 @@ function table(revision: OathRevision | undefined, imperial = 10) {
 }
 type Table = ReturnType<typeof table>
 
-function contextFor(s: Table, cardId: string, timing: PowerTiming, choices: PowerChoice[] = []): EffectContext {
+function contextFor(s: Table, cardId: string, timing: PowerTiming, choices: PowerChoice[] = [], playerId = CIT): EffectContext {
     const power = required(powersWithTiming(cardId, timing)[0], `${cardId} has a ${timing} power`)
-    return { state: s, playerId: CIT, power, choices }
+    return { state: s, playerId, power, choices }
 }
 
-function resolve(cardId: string, timing: PowerTiming, choices: PowerChoice[] = []) {
-    return (s: Table) => {
-        const ctx = contextFor(s, cardId, timing, choices)
-        required(effectFor(ctx.power), `${cardId} is registered`).resolve(ctx)
+/** Each runner returns the summary its power recorded. */
+type Run = (s: Table, playerId?: string) => string | undefined
+
+function resolve(cardId: string, timing: PowerTiming, choices: PowerChoice[] = []): Run {
+    return (s, playerId) => {
+        const ctx = contextFor(s, cardId, timing, choices, playerId)
+        return required(effectFor(ctx.power), `${cardId} is registered`).resolve(ctx).summary
     }
 }
 
-function after(cardId: string, particulars: EffectContext['particulars'] = {}) {
-    return (s: Table) => {
-        const ctx = { ...contextFor(s, cardId, PowerTiming.Modifier), particulars }
-        required(effectFor(ctx.power)?.modifier?.after, `${cardId} acts after its action`)(ctx)
+function after(cardId: string, particulars: EffectContext['particulars'] = {}): Run {
+    return (s, playerId) => {
+        const ctx = { ...contextFor(s, cardId, PowerTiming.Modifier, [], playerId), particulars }
+        return required(effectFor(ctx.power)?.modifier?.after, `${cardId} acts after its action`)(ctx)?.summary
     }
 }
 
-function victorious(cardId: string) {
-    return (s: Table) => {
+function victorious(cardId: string): Run {
+    return (s, playerId = CIT) => {
         const ctx: PlayerPlanContext = {
-            ...contextFor(s, cardId, PowerTiming.BattlePlan),
+            ...contextFor(s, cardId, PowerTiming.BattlePlan, [], playerId),
             campaign: {
-                parties: { attackerPlayerId: CIT, defenderPlayerId: FOE, allyPlayerIds: [], nonImperialPlayerIds: [], targets: [], attackerSiteId: 'c1', forceSiteIds: [] },
+                parties: { attackerPlayerId: playerId, defenderPlayerId: playerId === FOE ? CIT : FOE, allyPlayerIds: [], nonImperialPlayerIds: [], targets: [], attackerSiteId: pawnSiteId(s, playerId), forceSiteIds: [] },
                 side: BattlePlanSide.Attacker,
                 pools: { attackPool: 0, defensePool: 0 }
             }
         }
-        required(effectFor(ctx.power)?.battlePlan?.onOutcome, `${cardId} pays on victory`)(ctx, true)
+        const outcome = required(effectFor(ctx.power)?.battlePlan?.onOutcome, `${cardId} pays on victory`)(ctx, true)
+        return typeof outcome === 'string' ? outcome : outcome?.note
     }
 }
 
-type Gain = { name: string; run: (s: Table) => void; gained: number; placedAt?: string }
+type Gain = { name: string; run: Run; gained: number; placedAt?: string }
 
 /** R-10.10 — every power that says "gain warbands" goes through one helper; the Homeland reward too. */
 const GAINS: Gain[] = [
@@ -113,7 +118,7 @@ const GAINS: Gain[] = [
     { name: 'Garrison', run: resolve(GARRISON, PowerTiming.WhenPlayed), gained: 1, placedAt: 'c1' },
     { name: 'Relic Breaker', run: resolve('denizen.hearth.relic-breaker', PowerTiming.Action, [{ kind: PowerChoiceKind.RelicSlot, slotId: 'slot-1' }]), gained: 3 },
     { name: 'Wild Cry', run: after('denizen.beast.wild-cry', { playedCardId: 'denizen.beast.animal-host', playedTo: 'site' }), gained: 2 },
-    { name: 'the Homeland reward', run: (s) => void homelandPayout(s, CIT, 'c1', 'denizen.order.battle-honors'), gained: 2 }
+    { name: 'the Homeland reward', run: (s, playerId = CIT) => homelandPayout(s, playerId, 'c1', 'denizen.order.battle-honors'), gained: 2 }
 ]
 
 const onSite = (s: Table, siteId: string | undefined, owner: string) => (siteId ? (s.warbandsBySite[siteId]?.[owner] ?? 0) : 0)
@@ -223,5 +228,65 @@ describe('R-X.4 — in a game created before revision 5 a Citizen’s power gain
 
     it('at revision 5 the same power gives the Empire’s warband, so the move of the Citizen’s own is refused', () => {
         expect(() => recordedGame(OathRevision.EngineFixes2)).toThrow(/Cannot move warbands: cannot move 1 of cit's/)
+    })
+})
+
+describe('R-10.13 — from revision 5 a gain’s summary names whose warbands it gave, so the History draws them in that colour', () => {
+    /** The words recorded before the revision, which a game created then keeps. */
+    const RECORDED: Record<string, string> = {
+        'Field Promotion': 'Field Promotion: gained 3 warbands',
+        'Second Chance': "killed a warband on foe's board and gained 1",
+        'Key to the City': 'Key to the City: killed 1 at c2, gained 1 and placed 1 there',
+        'Dragonskin Drum': 'Dragonskin Drum: gained 1 warband',
+        'Cursed Cauldron': 'Cursed Cauldron: gained 2 warbands, one per enemy warband killed',
+        'Animal Host': 'gained 1 warbands (1 beast cards at sites)',
+        'A Small Favor': 'gained 4 warbands',
+        Garrison: 'gained 1 warbands and placed 1 across 1 ruled sites',
+        'Relic Breaker': 'Relic Breaker: the relic went to the bottom of the relic deck; gained 3 warbands',
+        'Wild Cry': 'Wild Cry: gained 0 Supply and 2 warbands',
+        'the Homeland reward': 'Ancient City (Homeland): gained 2 warbands'
+    }
+
+    /** A Citizen's gain is the Empire's. Relic Breaker records its owner on its row, so its words stay. */
+    const CITIZEN: Record<string, string> = {
+        'Field Promotion': 'Field Promotion: gained 3 Imperial warbands',
+        'Second Chance': "killed a warband on foe's board and gained 1 Imperial warband",
+        'Key to the City': 'Key to the City: killed 1 at c2, gained 1 Imperial warband and placed 1 there',
+        'Dragonskin Drum': 'Dragonskin Drum: gained 1 Imperial warband',
+        'Cursed Cauldron': 'Cursed Cauldron: gained 2 Imperial warbands, one per enemy warband killed',
+        'Animal Host': 'gained 1 Imperial warband (1 beast cards at sites)',
+        'A Small Favor': 'gained 4 Imperial warbands',
+        Garrison: 'gained 1 Imperial warband and placed 1 across 1 ruled sites',
+        'Relic Breaker': 'Relic Breaker: the relic went to the bottom of the relic deck; gained 3 warbands',
+        'Wild Cry': 'Wild Cry: gained 0 Supply and 2 Imperial warbands',
+        'the Homeland reward': 'Ancient City (Homeland): gained 2 Imperial warbands'
+    }
+
+    it.each(GAINS)('$name, a Citizen at revision 5', ({ name, run }) => {
+        expect(run(table(OathRevision.EngineFixes2))).toBe(CITIZEN[name])
+    })
+
+    const legacy = [undefined, OathRevision.TurnFlow, OathRevision.CostsAndFacedownModifiers, OathRevision.PlanCostsAndSearchPlays, OathRevision.CardFixes1].flatMap((revision) => GAINS.map(({ name, run }) => ({ revision, name, run })))
+
+    it.each(legacy)('revision $revision, $name: the words recorded then', ({ revision, name, run }) => {
+        expect(run(table(revision))).toBe(RECORDED[name])
+    })
+
+    it('the Chancellor’s gain names the Empire’s warbands too', () => {
+        const s = table(OathRevision.EngineFixes2)
+        expect(resolve('denizen.discord.a-small-favor', PowerTiming.WhenPlayed)(s, CHAN)).toBe('gained 4 Imperial warbands')
+    })
+
+    it('an Exile’s own are a bare count, on a row that counts the actor’s own', () => {
+        const s = table(OathRevision.EngineFixes2)
+        expect(resolve('denizen.discord.a-small-favor', PowerTiming.WhenPlayed)(s, FOE)).toBe('gained 4 warbands')
+        expect(after('relic.dragonskin-drum')(s, FOE)).toBe('Dragonskin Drum: gained 1 warband')
+    })
+
+    it('named by their owner where the row counts another’s: Second Chance’s kill, a battle plan read on the other side’s row', () => {
+        const s = table(OathRevision.EngineFixes2)
+        expect(resolve('denizen.beast.second-chance', PowerTiming.Action, [{ kind: PowerChoiceKind.Player, playerId: FOE }])(s, FOE)).toBe("killed a warband on foe's board and gained 1 of foe's warbands")
+        expect(victorious('denizen.order.field-promotion')(s, FOE)).toBe("Field Promotion: gained 3 of foe's warbands")
+        expect(victorious('relic.cursed-cauldron')(s, FOE)).toBe("Cursed Cauldron: gained 2 of foe's warbands, one per enemy warband killed")
     })
 })
