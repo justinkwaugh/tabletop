@@ -72,8 +72,8 @@ locally. The image tag is immutable: a version already in Artifact Registry is r
 
 Every manifest change appends to a publication history: per game a list of logic and UI
 version pairs, for the frontend a list of versions, newest first with the deploy time, commit,
-and tags. Only the five most recent are kept, which is also how far `rollback` can reach; the
-artifacts themselves stay in the bucket. A manifest written before history existed is seeded
+and tags. Only the five most recent are kept, which is also how far `rollback` can reach; older
+artifacts stay in the bucket until `prune` deletes them. A manifest written before history existed is seeded
 with its current publication.
 
 ```bash
@@ -94,6 +94,25 @@ compatibility. A UI's `catalog.json` identifies its embedded logic through
 the UI published with the following logic version cannot. Both game switch and
 rollback validate this metadata before writing the manifest. Missing metadata or
 an incompatible pair leaves the publication unchanged, even if both bundles exist.
+
+### Pruning old artifacts
+
+```bash
+node tools/deploy/esm/cli.js prune (--game=<id> | --frontend | --all) [--apply] [--grace-days=<n>]
+```
+
+`prune` deletes version directories the manifest no longer references. Per game it treats logic
+and UI separately, and keeps the current version, every version in the publication history, and
+any version uploaded in the last 7 days (`--grace-days`), because a browser that loaded a UI before
+a newer deploy can still fetch its lazy chunks. Without `--apply` it only prints the plan.
+It reads the manifest fresh, refuses a target whose current version is missing from the listing,
+leaves names that are not versions alone, and never touches games absent from the manifest or
+the manifest backups. `switch` can only select versions that are still in the bucket.
+
+Every successful game or frontend deploy (`release-game`, `deploy-game`, `deploy-ui`,
+`deploy-logic`, `release-frontend`, `deploy-frontend`) then prunes its own target with
+`--apply` and the default grace. A prune failure is logged as `prune FAILED (the deploy itself
+succeeded)` and does not fail the command. Pass `--no-prune` to skip it.
 
 Backend history comes from Cloud Run. `list --backend` marks revisions receiving
 traffic and shows readiness; `switch --backend --version=1.5.1` switches both services
@@ -138,6 +157,8 @@ rollback (--game=<id> | --frontend | --backend)
                              Select the publication that served before the current one
 switch --game=<id> --ui-version=<v> [--logic-version=<v>] | --frontend --version=<v>
                              Select specific published versions
+prune (--game=<id> | --frontend | --all) [--apply] [--grace-days=<n>]
+                             Delete artifact versions the manifest no longer references
 preflight (--game=<id> | --frontend | --backend) [--json]
                              Report serving/local versions and changes since the last release
 release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]

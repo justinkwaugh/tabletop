@@ -126,6 +126,17 @@ that changes logic is a Logic Rollback: relay the caution the tool prints and ge
 confirmation before running it, since games whose state was written by the newer logic may not
 load. The backend rolls back by Cloud Run revision with `rollback-backend <revision>`.
 
+## Pruning old versions
+
+`prune (--game=<id> | --frontend | --all)` deletes artifact versions the manifest no longer
+references, keeping the current selection, the rollback history, and uploads from the last 7
+days. It prints the plan only; deleting needs `--apply`, so show the user the dry run and get
+confirmation first. After pruning, `switch` can no longer select the deleted versions.
+
+Game and frontend deploys prune their own target automatically after success and print
+`prune SUCCEEDED: deleted ...`; mention the count in the report. A `prune FAILED` line leaves
+the deploy's result unchanged: report it separately.
+
 ## Boundaries
 
 The release commands are the only paths that change package versions. A shared Game Client
