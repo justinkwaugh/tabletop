@@ -1,20 +1,34 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { suitName } from '$lib/model/names.js'
-    import { tokenParts } from '$lib/model/tokenText.js'
+    import { tokenParts, type TokenOptions } from '$lib/model/tokenText.js'
 
     // A panel names favor, secrets and suits by their tokens and symbols; the word is the image's alt.
     // R-10.13 — given colours, warbands are their token in their owner's colour, the Empire's in its own.
-    let { text, warbandColors }: { text: string; warbandColors?: { own: Color; imperial: Color } } =
-        $props()
-    let parts = $derived(tokenParts(text, { warbands: warbandColors !== undefined }))
+    // Given the seats, text that names them by id draws each as its colour chip.
+    let {
+        text,
+        warbandColors,
+        seats
+    }: {
+        text: string
+        warbandColors?: { own: Color; imperial: Color }
+        seats?: TokenOptions['seats']
+    } = $props()
+    let parts = $derived(tokenParts(text, { warbands: warbandColors !== undefined, seats }))
 </script>
 
+<!-- `PlayerName` reads "you" and "your" for the viewer; inside a line, in lower case. -->
 {#each parts as part, i (i)}
-    {#if part.kind === 'text'}{part.text}{:else if part.kind === 'suit'}<img
+    {#if part.kind === 'text'}{part.text}{:else if part.kind === 'seat'}<PlayerName
+            playerId={part.playerId}
+            possessive={part.possessive}
+            capitalization={part.playerId === seats?.viewerId ? 'none' : 'capitalize'}
+        />{:else if part.kind === 'suit'}<img
             class="token-text__mark"
             src={suitImage(part.suit)}
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}

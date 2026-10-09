@@ -1,9 +1,9 @@
 import { RELIQUARY_MODIFIERS, Suit, cardDefinitions } from '@tabletop/oath'
-import { escapeRegExp } from '$lib/model/names.js'
+import { escapeRegExp, nameSeats, seatParts, type SeatPart, type Seats } from '$lib/model/names.js'
 
-/** A run of panel text: words, a favor, secret or warband token with its count, or a suit's symbol. */
+/** A run of panel text: words, a seat, a favor, secret or warband token with its count, or a suit's symbol. */
 export type TextPart =
-    | { kind: 'text'; text: string }
+    | SeatPart
     | { kind: 'favor'; count?: number }
     | { kind: 'secret'; count?: number }
     | { kind: 'suit'; suit: Suit; bank: boolean }
@@ -11,6 +11,8 @@ export type TextPart =
 
 export interface TokenOptions {
     warbands?: boolean
+    /** Text naming seats by id: each seat apart for its chip, a counted warband's owner in its token's words. */
+    seats?: { names: Seats; viewerId: string | undefined }
 }
 
 const SUITS = Object.values(Suit)
@@ -28,6 +30,7 @@ const ALTERNATIVES = [
 const WARBANDS = String.raw`\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|of [^,;:—]+?['’]s )?(?<warbandNoun>warbands?)\b`
 
 const PATTERN = new RegExp(ALTERNATIVES.join('|'), 'gi')
+const COUNTED_WARBANDS = new RegExp(WARBANDS, 'gi')
 const PATTERN_WITH_WARBANDS = new RegExp([WARBANDS, ...ALTERNATIVES].join('|'), 'gi')
 
 const CARD_NAMES = [
@@ -49,18 +52,29 @@ function suitNamed(name: string): Suit {
 
 /** Panel text with favor, secrets and suits as their tokens and symbols, the rest as words. */
 export function tokenParts(text: string, options: TokenOptions = {}): TextPart[] {
+    const { seats } = options
     const pattern = options.warbands ? PATTERN_WITH_WARBANDS : PATTERN
-    const runs = text
+    const owned = seats && options.warbands ? ownersInWords(text, seats.names) : text
+    const runs = owned
         .split(CARD_NAME)
         .flatMap((run, i): TextPart[] =>
             i % 2 === 1 ? [{ kind: 'text', text: run }] : tokenRun(run, pattern)
         )
-    return runs.reduce<TextPart[]>((parts, part) => {
-        const last = parts.at(-1)
+    const parts = runs.reduce<TextPart[]>((merged, part) => {
+        const last = merged.at(-1)
         if (part.kind === 'text' && last?.kind === 'text') last.text += part.text
-        else parts.push(part)
-        return parts
+        else merged.push(part)
+        return merged
     }, [])
+    if (!seats) return parts
+    return parts.flatMap((part): TextPart[] =>
+        part.kind === 'text' ? seatParts(part.text, seats.names.seats, seats.viewerId) : [part]
+    )
+}
+
+// R-10.13 — a counted warband's token swallows its owner, drawn by colour, so the name stays in its words.
+function ownersInWords(text: string, names: Seats): string {
+    return text.replace(COUNTED_WARBANDS, (phrase) => nameSeats(phrase, names, undefined))
 }
 
 function tokenRun(text: string, pattern: RegExp): TextPart[] {

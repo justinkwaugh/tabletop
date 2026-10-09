@@ -3171,6 +3171,38 @@ test('scenario 58: a Vision drawn and the title changing hands are framed Histor
     await expect(drawn.getByRole('img', { name: 'Conquest' })).toHaveCount(0)
 })
 
+/** A History row's seat chips, the actor's first, read as the words they show. */
+async function rowChips(page: Page, hasText: string): Promise<string[]> {
+    const row = page.locator('.history p').filter({ hasText })
+    await expect(row).toHaveCount(1)
+    return row.locator('span[style*="background-color"]').allInnerTexts()
+}
+
+test('scenario 63: a seat named inside a History line is its colour chip, for every reader; the reader’s own chip reads “you”', async ({ page }) => {
+    const asked = await openTable(page, 'joinDefenceAsked')
+    expect(asked.seatId).toBe('cit')
+    await page.getByRole('tab', { name: 'History' }).click()
+    const campaign = 'campaigned against'
+    expect(await rowChips(page, campaign)).toEqual(['Att', 'Chan'])
+    await expect(page.locator('.history p').filter({ hasText: campaign })).toContainText(
+        'campaigned against chan for their pawn and'
+    )
+
+    expect(await call(page, 'viewOffTheClock')).toBe('att')
+    expect(await rowChips(page, campaign)).toEqual(['You', 'Chan'])
+
+    const defeated = await openTable(page, 'exileDefeated')
+    expect(defeated.seatId).toBe('def')
+    await page.getByRole('tab', { name: 'History' }).click()
+    const sacrificed = page.locator('.history p').filter({ hasText: 'sacrificed' })
+    expect(await rowChips(page, 'sacrificed')).toEqual(['Att', 'you'])
+    await expect(sacrificed).toContainText("you choose the defending side's losses")
+
+    expect(await call(page, 'viewOffTheClock')).toBe('att')
+    expect(await rowChips(page, 'sacrificed')).toEqual(['You', 'Def'])
+    await expect(sacrificed).toContainText("def chooses the defending side's losses")
+})
+
 test('scenario 59: every seat is told a Vision was seen, the drawer too; each clears it for itself, and it stays cleared on reopening', async ({ page }) => {
     await openTable(page, 'majorEvents')
     const seen = page.getByRole('dialog', { name: 'A Vision was seen' })
