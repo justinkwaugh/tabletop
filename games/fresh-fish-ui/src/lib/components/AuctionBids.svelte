@@ -1,10 +1,16 @@
 <script lang="ts">
     import type { EndAuction } from '@tabletop/fresh-fish'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { losingBids } from '$lib/utils/auctionBids.js'
+    import { PLAIN_PLAYER_NAME } from '$lib/utils/playerNames.js'
     import Disk from './Disk.svelte'
 
-    let { action, discSize = 22 }: { action: EndAuction; discSize?: number } = $props()
+    let {
+        action,
+        discSize = 22,
+        showNames = false
+    }: { action: EndAuction; discSize?: number; showNames?: boolean } = $props()
 
     const gameSession = getGameSession()
 
@@ -21,8 +27,13 @@
             <Disk
                 color={gameSession.colors.getPlayerUiColor(participant.playerId)}
                 size={discSize}
-                class="-mr-[3px]"
+                class={showNames ? '' : '-mr-[3px]'}
             />
+            {#if showNames}
+                <span class="ml-0.5 mr-1"
+                    ><PlayerName playerId={participant.playerId} {...PLAIN_PLAYER_NAME} /></span
+                >
+            {/if}
             ${participant.bid ?? 0}
         </span>
     {/each}

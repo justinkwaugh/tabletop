@@ -114,7 +114,9 @@
                             {/if}
                             for ${action.highBid}
                             {#if losingBids(action).length > 0}
-                                <div class="bids"><AuctionBids {action} discSize={18} /></div>
+                                <div class="bids">
+                                    <AuctionBids {action} discSize={18} showNames />
+                                </div>
                             {/if}
                         {:else}
                             {#if action.playerId}

@@ -16,6 +16,9 @@
 
     let isWin = $derived(gameSession.gameState.result === GameResult.Win)
     let winners = $derived(new Set(gameSession.gameState.winningPlayerIds))
+    let myPlayerId = $derived(gameSession.myPlayer?.id)
+    // PlayerName renders the viewer as "you", which takes the plural verb.
+    let verb = $derived(isWin ? (winners.has(myPlayerId ?? '') ? 'win' : 'wins') : 'tie')
     let winningScore = $derived(
         gameSession.gameState.getPlayerState(gameSession.gameState.winningPlayerIds[0] ?? '')?.score
     )
@@ -39,9 +42,13 @@
             {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
                 {#if i > 0}<span>and</span>{/if}
                 <Disk color={gameSession.colors.getPlayerUiColor(winner)} size={22} />
-                <PlayerName playerId={winner} {...PLAIN_PLAYER_NAME} />
+                <PlayerName
+                    playerId={winner}
+                    capitalization={i > 0 && winner === myPlayerId ? 'none' : 'capitalize'}
+                    {...PLAIN_PLAYER_NAME}
+                />
             {/each}
-            <span>{isWin ? 'wins' : 'tie'} with {winningScore}</span>
+            <span>{verb} with {winningScore}</span>
         </p>
     </div>
 

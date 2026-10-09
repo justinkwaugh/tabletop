@@ -8,7 +8,7 @@
         HydratedPlaceMarket,
         isDiskCell
     } from '@tabletop/fresh-fish'
-    import emptyTileImg from '$lib/images/tile-empty.png'
+    import { GRASS_DARK, GRASS_LIGHT } from '$lib/utils/pieceColors.js'
     import roadImg from '$lib/images/tile-road.png'
     import Disk from '$lib/components/Disk.svelte'
     import WoodMarket from '$lib/components/WoodMarket.svelte'
@@ -44,17 +44,26 @@
         return `inset(-1px round ${tl}px ${tr}px ${br}px ${bl}px)`
     })
 
+    // A mown-lawn checker of two close greens marks out the lots without drawing lines,
+    // under a fine grain so the grass reads as matte rather than flat colour.
+    const GRASS_GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E")`
+    let grass = $derived.by(() => {
+        const [x, y] = coords
+        const green = (x + y) % 2 ? GRASS_DARK : GRASS_LIGHT
+        return `${GRASS_GRAIN}, linear-gradient(${green}, ${green})`
+    })
+
     let backgroundImage = $derived.by(() => {
         switch (cell.type) {
             case CellType.Disk:
             case CellType.Empty:
-                return `url(${emptyTileImg})`
+                return grass
             // Under a piece the lot still shows grass, so nothing dark shows through while a
             // placed piece replaces the disc that reserved its lot.
             case CellType.Stall:
             case CellType.Truck:
             case CellType.Market:
-                return `url(${emptyTileImg})`
+                return grass
             case CellType.Road:
                 return `url(${roadImg})`
             case CellType.OffBoard:
@@ -159,7 +168,7 @@
     }
 
     let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
-    let pulse = $derived(interacting && interactable && !showBorder)
+    let available = $derived(interacting && interactable && !showBorder)
 
     // Note that tabindex has to be used or interactable is not evaluated... why?
 </script>
@@ -177,7 +186,8 @@
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
     class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
-        {interactable && interacting ? 'cursor-pointer' : ''}"
+        {interactable && interacting ? 'cursor-pointer' : ''}
+        {disabled ? 'dimmed' : ''}"
     style="--cell-bg: {backgroundImage}"
     style:clip-path={cornerClip}
 >
@@ -225,13 +235,11 @@
         {#if gameSession.chosenAction === ActionType.PlaceDisk}
             <div class="target hover z-20"></div>
         {/if}
-    {:else if pulse}
-        <div class="target pulse z-20"></div>
+    {:else if available}
+        <div class="target available z-20"></div>
     {:else if highlighted}
         <div class="target hover z-20"></div>
     {/if}
-
-    <div class="dim z-20 absolute inset-0 {disabled ? '' : 'hidden'}"></div>
 </div>
 
 <style>
@@ -260,33 +268,18 @@
         border-radius: 8px;
         pointer-events: none;
     }
-    .target.pulse {
-        box-shadow:
-            inset 0 0 0 2px rgba(255, 236, 170, 0.85),
-            inset 0 0 18px rgba(255, 220, 120, 0.35);
-        animation: lot-pulse 1.6s ease-in-out infinite;
+    .target.available {
+        box-shadow: inset 0 0 0 2px rgba(255, 236, 170, 0.85);
+        opacity: 0.75;
     }
     .target.hover {
         box-shadow:
             inset 0 0 0 3px #ffd36b,
             inset 0 0 24px rgba(255, 211, 107, 0.5);
     }
-    .dim {
-        background: rgba(8, 22, 30, 0.4);
-    }
-    @keyframes lot-pulse {
-        0%,
-        100% {
-            opacity: 0.45;
-        }
-        50% {
-            opacity: 1;
-        }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .target.pulse {
-            animation: none;
-            opacity: 0.8;
-        }
+    /* Dimming darkens the square itself rather than laying a translucent sheet over it;
+       neighbouring sheets leave a lighter seam where they meet on a scaled board. */
+    .cell.dimmed {
+        filter: brightness(0.62);
     }
 </style>

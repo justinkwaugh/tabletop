@@ -2,13 +2,13 @@
     import { GoodsType } from '@tabletop/fresh-fish'
     import GoodsIcon from './GoodsIcon.svelte'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import { fitGoodsIcon } from '$lib/utils/goodsIconBounds.js'
     import {
-        isLightColor,
         LABEL_DARK,
         LABEL_LIGHT,
+        CHALKBOARD,
         luminance,
         PAINT_DARK,
-        PAINT_LIGHT,
         rgbOf
     } from '$lib/utils/pieceColors.js'
 
@@ -27,68 +27,42 @@
 
     const SHADE = 0.75
 
+    // A sidewalk A-frame sign board, seen from the front, with the back leaf's rail leaning
+    // away behind its right edge.
+    const FRONT = { left: 8, right: 82, top: 6, bottom: 70 }
+    const FOOT = 80
+    const RAIL = 5
+    const BACK_FOOT_X = 93
+    const HEADER = 11
+    const SLOT = { width: 18, height: 4, inset: 3 }
+    const BOARD = {
+        x: FRONT.left + RAIL,
+        y: FRONT.top + HEADER,
+        width: FRONT.right - FRONT.left - 2 * RAIL,
+        height: FRONT.bottom - RAIL - FRONT.top - HEADER
+    }
+    const ICON_AREA = {
+        x: BOARD.x + 2,
+        y: BOARD.y + 2,
+        width: BOARD.width - 4,
+        height: BOARD.height - 4
+    }
+
     const id = `stall-${Math.random().toString(36).slice(2)}`
     const seed = Math.floor(Math.random() * 1000)
     const grainAngle = Math.floor(Math.random() * 40) - 20
 
     let name = $derived(goodsType ? getGoodsName(goodsType).toUpperCase() : '')
-    let light = $derived(isLightColor(color))
-    let paint = $derived(light ? PAINT_DARK : PAINT_LIGHT)
     let groundRgb = $derived(rgbOf(color).map((channel) => Math.round(channel * SHADE)))
     let ground = $derived(`rgb(${groundRgb.join(' ')})`)
     let nameColor = $derived(luminance(groundRgb) > 150 ? LABEL_DARK : LABEL_LIGHT)
 
-    // The goods icon centred on the counter front. Fish and cheese are wide and flat, so they
-    // draw larger; the cheese wedge and gelato cone sit low in their boxes, so they move up.
-    let counterIcon = $derived.by(() => {
-        const scale = goodsType === GoodsType.Fish || goodsType === GoodsType.Cheese ? 1.85 : 1.5
-        const dy = goodsType === GoodsType.Cheese ? -3 : goodsType === GoodsType.IceCream ? -2 : 0
-        return `translate(50 ${65 + dy}) scale(${scale}) translate(-10 -10)`
-    })
+    let boardIcon = $derived(
+        goodsType ? fitGoodsIcon(goodsType, ICON_AREA, { fill: 0.86 }) : undefined
+    )
 
-    // Alternate awning stripes: a pale tint of the player's colour, or on light colours
-    // (yellow), a deeper shade, since a paler stripe would wash out.
-    let softStripe = $derived.by(() => {
-        const [r, g, b] = rgbOf(color)
-        if (light)
-            return `rgb(${Math.round(r * 0.78)} ${Math.round(g * 0.72)} ${Math.round(b * 0.6)})`
-        const [cr, cg, cb] = rgbOf(PAINT_LIGHT)
-        const mix = (a: number, c: number) => Math.round(a * 0.45 + c * 0.55)
-        return `rgb(${mix(r, cr)} ${mix(g, cg)} ${mix(b, cb)})`
-    })
-
-    const DEPTH = { x: 7, y: -5 }
-    const COUNTER = { left: 22, right: 78, top: 48, bottom: 80 }
-    const POST = 3.5
-    const CANOPY = { left: 19, right: 81, front: 25, back: 17, valance: 5 }
-    const STRIPES = 7
-    const stripeWidth = (CANOPY.right - CANOPY.left) / STRIPES
-    const stripes = Array.from({ length: STRIPES }, (_, k) => {
-        const x0 = CANOPY.left + k * stripeWidth
-        const x1 = x0 + stripeWidth
-        const bottom = CANOPY.front + CANOPY.valance
-        return {
-            k,
-            roof: `${x0},${CANOPY.front} ${x1},${CANOPY.front} ${x1 + DEPTH.x},${CANOPY.back + DEPTH.y} ${x0 + DEPTH.x},${CANOPY.back + DEPTH.y}`,
-            valance: `M${x0} ${CANOPY.front} H${x1} V${bottom} A${stripeWidth / 2} ${stripeWidth / 2.6} 0 0 1 ${x0} ${bottom} Z`
-        }
-    })
-    const canopyRoof = `${CANOPY.left},${CANOPY.front} ${CANOPY.right},${CANOPY.front} ${CANOPY.right + DEPTH.x},${CANOPY.back + DEPTH.y} ${CANOPY.left + DEPTH.x},${CANOPY.back + DEPTH.y}`
-    const canopySide = `${CANOPY.right},${CANOPY.front} ${CANOPY.right + DEPTH.x},${CANOPY.back + DEPTH.y} ${CANOPY.right + DEPTH.x},${CANOPY.back + DEPTH.y + CANOPY.valance} ${CANOPY.right},${CANOPY.front + CANOPY.valance}`
-    const counterFront = `${COUNTER.left},${COUNTER.top} ${COUNTER.right},${COUNTER.top} ${COUNTER.right},${COUNTER.bottom} ${COUNTER.left},${COUNTER.bottom}`
-    const counterTop = `${COUNTER.left},${COUNTER.top} ${COUNTER.right},${COUNTER.top} ${COUNTER.right + DEPTH.x},${COUNTER.top + DEPTH.y} ${COUNTER.left + DEPTH.x},${COUNTER.top + DEPTH.y}`
-    const counterSide = `${COUNTER.right},${COUNTER.top} ${COUNTER.right + DEPTH.x},${COUNTER.top + DEPTH.y} ${COUNTER.right + DEPTH.x},${COUNTER.bottom + DEPTH.y} ${COUNTER.right},${COUNTER.bottom}`
-    const frontPosts = [COUNTER.left, COUNTER.right - POST].map((x) => ({
-        x,
-        y: CANOPY.front,
-        h: COUNTER.top - CANOPY.front
-    }))
-    const backPosts = [COUNTER.left, COUNTER.right - POST].map((x) => ({
-        x: x + DEPTH.x,
-        y: CANOPY.back + DEPTH.y,
-        h: COUNTER.top - CANOPY.back
-    }))
-    const backBoard = `${COUNTER.left + DEPTH.x},${CANOPY.back + DEPTH.y} ${COUNTER.right + DEPTH.x},${CANOPY.back + DEPTH.y} ${COUNTER.right + DEPTH.x},${COUNTER.top + DEPTH.y} ${COUNTER.left + DEPTH.x},${COUNTER.top + DEPTH.y}`
+    const front = `${FRONT.left},${FRONT.top} ${FRONT.right},${FRONT.top} ${FRONT.right},${FOOT} ${FRONT.right - RAIL},${FOOT} ${FRONT.right - RAIL},${FRONT.bottom} ${FRONT.left + RAIL},${FRONT.bottom} ${FRONT.left + RAIL},${FOOT} ${FRONT.left},${FOOT}`
+    const backRail = `${FRONT.right - RAIL},${FRONT.top + 1} ${FRONT.right},${FRONT.top + 1} ${BACK_FOOT_X},${FOOT - 3} ${BACK_FOOT_X - RAIL},${FOOT - 3}`
 </script>
 
 <svg
@@ -105,66 +79,20 @@
             ></feTurbulence>
             <feColorMatrix type="saturate" values="0"></feColorMatrix>
         </filter>
-        <filter id="{id}-soft" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3"></feGaussianBlur>
-        </filter>
-        <clipPath id="{id}-booth">
-            <polygon points={canopyRoof}></polygon>
-            <polygon points={canopySide}></polygon>
-            <polygon points={counterFront}></polygon>
-            <polygon points={counterTop}></polygon>
-            <polygon points={counterSide}></polygon>
-            {#each [...frontPosts, ...backPosts] as post (post.x)}
-                <rect x={post.x} y={post.y} width={POST} height={post.h}></rect>
-            {/each}
+        <clipPath id="{id}-sign">
+            <polygon points={front}></polygon>
         </clipPath>
     </defs>
 
     <!-- The ground bleeds past the square so scaled boards show no seams. -->
     <rect x="-1" y="-1" width="102" height="102" fill={ground}></rect>
 
-    <g transform={showName ? 'translate(-3 -7)' : 'translate(-3 3)'}>
-        <g filter="url(#{id}-soft)" opacity="0.45">
-            <polygon points="22,80 78,80 90,73 88,60 34,60" fill="#000"></polygon>
-        </g>
+    <g transform={showName ? 'translate(2 0)' : 'translate(2 8)'}>
+        <polygon points={backRail} fill={color}></polygon>
+        <polygon points={backRail} fill="#000" opacity="0.45"></polygon>
 
-        <polygon points={backBoard} fill={color}></polygon>
-        <polygon points={backBoard} fill="#000" opacity="0.5"></polygon>
-        {#each backPosts as post (post.x)}
-            <rect x={post.x} y={post.y} width={POST} height={post.h} fill={color}></rect>
-            <rect x={post.x} y={post.y} width={POST} height={post.h} fill="#000" opacity="0.35"
-            ></rect>
-        {/each}
-
-        <polygon points={counterSide} fill={color}></polygon>
-        <polygon points={counterSide} fill="#000" opacity="0.38"></polygon>
-        <polygon points={counterTop} fill={color}></polygon>
-        <polygon points={counterTop} fill="#fff" opacity="0.12"></polygon>
-        <polygon points={counterFront} fill={color}></polygon>
-
-        {#each frontPosts as post (post.x)}
-            <rect x={post.x} y={post.y} width={POST} height={post.h} fill={color}></rect>
-            <rect
-                x={post.x + POST - 1}
-                y={post.y}
-                width="1"
-                height={post.h}
-                fill="#000"
-                opacity="0.3"
-            ></rect>
-        {/each}
-
-        <polygon points={canopySide} fill={color}></polygon>
-        <polygon points={canopySide} fill="#000" opacity="0.4"></polygon>
-        {#each stripes as stripe (stripe.k)}
-            <polygon points={stripe.roof} fill={stripe.k % 2 ? softStripe : color}></polygon>
-        {/each}
-        <polygon points={canopyRoof} fill="#fff" opacity="0.1"></polygon>
-        {#each stripes as stripe (stripe.k)}
-            <path d={stripe.valance} fill={stripe.k % 2 ? softStripe : color}></path>
-        {/each}
-
-        <g clip-path="url(#{id}-booth)">
+        <polygon points={front} fill={color}></polygon>
+        <g clip-path="url(#{id}-sign)">
             <rect
                 width="100"
                 height="100"
@@ -174,21 +102,39 @@
                 transform="rotate({grainAngle} 50 50)"
             ></rect>
         </g>
-        <g
+        <rect
+            x={(FRONT.left + FRONT.right - SLOT.width) / 2}
+            y={FRONT.top + SLOT.inset}
+            width={SLOT.width}
+            height={SLOT.height}
+            rx={SLOT.height / 2}
+            fill={ground}
+        ></rect>
+        <rect x={BOARD.x} y={BOARD.y} width={BOARD.width} height={BOARD.height} fill={CHALKBOARD}
+        ></rect>
+        <rect
+            x={BOARD.x}
+            y={BOARD.y}
+            width={BOARD.width}
+            height={BOARD.height}
+            filter="url(#{id}-grain)"
+            opacity="0.08"
+            style="mix-blend-mode: screen"
+        ></rect>
+        <polygon
+            points={front}
             fill="none"
             stroke="#000"
-            stroke-opacity="0.28"
+            stroke-opacity="0.25"
             stroke-width="0.7"
             stroke-linejoin="round"
-        >
-            <polygon points={counterFront}></polygon>
-            <polygon points={counterSide}></polygon>
-            <polygon points={canopyRoof}></polygon>
-        </g>
+        ></polygon>
 
-        <g transform={counterIcon} opacity="0.92">
-            <GoodsIcon {goodsType} color={paint} />
-        </g>
+        {#if boardIcon}
+            <g transform={boardIcon}>
+                <GoodsIcon {goodsType} color={PAINT_DARK} painted />
+            </g>
+        {/if}
     </g>
 
     {#if showName}

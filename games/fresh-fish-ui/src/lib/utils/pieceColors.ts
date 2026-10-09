@@ -1,5 +1,8 @@
 export const UNCLAIMED_STALL = '#8f9397'
 
+export const GRASS_LIGHT = '#78ac53'
+export const GRASS_DARK = '#6ba247'
+
 export const MARKET_GROUND = '#a9a9a9'
 export const MARKET_TABLE = '#55595d'
 
@@ -10,6 +13,7 @@ export const LABEL_LIGHT = '#ecebe6'
 export const LABEL_DARK = '#2a1d0b'
 
 export const TRAY = '#0d1014'
+export const CHALKBOARD = '#33383b'
 
 export const PAINT_LIGHT = '#f3ead2'
 export const PAINT_DARK = '#4a3216'
@@ -28,3 +32,10 @@ export function luminance([r, g, b]: readonly number[]): number {
 export function isLightColor(hex: string): boolean {
     return luminance(rgbOf(hex)) > 170
 }
+
+export const GOODS_PAINT = {
+    fish: { body: '#5aa845', tail: '#4b9139' },
+    cheese: { front: '#efb238', top: '#f6cd6e', holes: '#b9761c' },
+    gelato: { scoop: '#dc84cc', cup: '#efe6d0' },
+    soda: { cup: '#38b4aa', lid: '#2a8f87', straw: '#e0609a' }
+} as const
