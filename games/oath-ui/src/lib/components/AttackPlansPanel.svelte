@@ -7,11 +7,13 @@
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.2.a then R-5.5.3 — the Citizens asked to join have answered; the attacker's plans come next.
     let gameSession = getGameSession()
     let draft = $derived(gameSession.attackPlans)
     let busy = $derived(gameSession.busy)
+    const plansWidth = new ChoiceWidth()
     let mine = $derived(
         draft.attackerId !== undefined && draft.attackerId === gameSession.myPlayer?.id
     )
@@ -67,26 +69,28 @@
                 <TokenText text={gameSession.humanizeReason(noneRefusedBecause) ?? ''} />
             </p>
         {/if}
-        <!-- One width for the two, the wider one's; the confirm is the panel's primary. -->
-        <div class="inline-grid auto-cols-fr grid-flow-col gap-2">
+        <!-- One width for the two, the wider one's; one per line when they do not fit. The confirm is the primary. -->
+        <div class="flex flex-wrap gap-2">
             {#if draft.plansComplete && !useRefusedBecause}
                 <button
-                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                           px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    style:min-width="{plansWidth.widest}px"
                     disabled={busy}
                     onclick={() => draft.declare(true)}
                 >
-                    Use plans
+                    <span class="inline-block w-max" {@attach plansWidth.measure}>Use plans</span>
                 </button>
             {/if}
             {#if !noneRefusedBecause}
                 <button
-                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
                            max-sm:min-h-11"
+                    style:min-width="{plansWidth.widest}px"
                     disabled={busy}
                     onclick={() => draft.declare(false)}
                 >
-                    No plans
+                    <span class="inline-block w-max" {@attach plansWidth.measure}>No plans</span>
                 </button>
             {/if}
         </div>

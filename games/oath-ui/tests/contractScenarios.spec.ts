@@ -835,10 +835,44 @@ async function clippedLabels(page: Page) {
         )
 }
 
+/** The panel's buttons whose label runs onto a second line, by their text. */
+async function wrappedLabels(page: Page) {
+    return grid(page)
+        .locator('button')
+        .evaluateAll((buttons) =>
+            buttons
+                .filter((button) => {
+                    // The top of every line the label's text sits on; one line, one top.
+                    const tops: number[] = []
+                    const texts = document.createTreeWalker(button, NodeFilter.SHOW_TEXT)
+                    for (let text = texts.nextNode(); text; text = texts.nextNode()) {
+                        const range = document.createRange()
+                        range.selectNodeContents(text)
+                        for (const rect of range.getClientRects()) {
+                            if (rect.width > 0) tops.push(rect.top)
+                        }
+                    }
+                    const lineHeight = parseFloat(getComputedStyle(button).lineHeight)
+                    return tops.length > 0 && Math.max(...tops) - Math.min(...tops) >= lineHeight / 2
+                })
+                .map((button) => button.textContent?.trim() ?? '')
+        )
+}
+
 async function widthOf(locator: ReturnType<Page['locator']>) {
-    const box = await locator.boundingBox()
-    if (!box) throw Error('The button is on screen')
-    return Math.round(box.width)
+    return Math.round((await boxOf(locator)).width)
+}
+
+/** How a pair of buttons sits: side by side, or one per line (the second under the first). */
+async function pairLayout(
+    first: ReturnType<Page['locator']>,
+    second: ReturnType<Page['locator']>
+): Promise<'side by side' | 'one per line' | 'apart'> {
+    const a = await boxOf(first)
+    const b = await boxOf(second)
+    if (Math.abs(a.y - b.y) < 1) return 'side by side'
+    if (b.y >= a.y + a.height && Math.abs(a.x - b.x) < 1) return 'one per line'
+    return 'apart'
 }
 
 /** The background a primary button wears, read from a probe so the token's value is not repeated. */
@@ -911,6 +945,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(use).toBeVisible()
         expect(await backgroundOf(use)).toBe(await primaryBackground(page))
         expect(await widthOf(use)).toBe(await widthOf(none))
+        expect(await pairLayout(use, none)).toBe('side by side')
 
         await none.click()
         await expect
@@ -935,6 +970,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(use).toBeVisible()
         expect(await backgroundOf(use)).toBe(await primaryBackground(page))
         expect(await widthOf(use)).toBe(await widthOf(none))
+        expect(await pairLayout(use, none)).toBe('side by side')
     })
 
     test('the battle: the two choices at one width, with no rule restated', async ({ page }) => {
@@ -948,6 +984,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(win).toBeVisible()
         await expect(lose).toBeVisible()
         expect(await widthOf(win)).toBe(await widthOf(lose))
+        expect(await pairLayout(win, lose)).toBe('side by side')
     })
 
     test('the battle with a force of two groups: each choice shows once its own picks are complete', async ({
@@ -996,6 +1033,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(take).toBeVisible()
         await expect(burn).toBeVisible()
         expect(await widthOf(take)).toBe(await widthOf(burn))
+        expect(await pairLayout(take, burn)).toBe('side by side')
     })
 })
 
@@ -1040,14 +1078,45 @@ async function completeCampaignStep(page: Page, name: (typeof CAMPAIGN_STEPS)[nu
     }
 }
 
-test.describe('scenario 62 on a phone: every label inside its button', () => {
+/** The steps whose two confirms share one width, by their names, and how the two sit at 375 px. */
+const CONFIRM_PAIRS: Partial<
+    Record<(typeof CAMPAIGN_STEPS)[number], [string, RegExp, 'side by side' | 'one per line']>
+> = {
+    battleDefenderPlans: ['Use plans', /^No plans$/, 'side by side'],
+    attackerPlans: ['Use plans', /^No plans$/, 'side by side'],
+    sacrifice: ['Sacrifice 3 and win', /^Sacrifice nothing$/, 'one per line'],
+    spoils: ['Take spoils', /^Take and burn 2/, 'one per line']
+}
+
+test.describe('scenario 62 on a phone: every label inside its button, on one line', () => {
     test.use({ viewport: { width: 375, height: 812 } })
 
     for (const name of CAMPAIGN_STEPS) {
-        test(`${name}: no label is wider than its button`, async ({ page }) => {
+        test(`${name}: no label is wider than its button or runs onto a second line`, async ({
+            page
+        }) => {
             await openTable(page, name)
             await completeCampaignStep(page, name)
             expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+
+            const pair = CONFIRM_PAIRS[name]
+            if (!pair) return
+            // Side by side when the two fit, one per line when they do not; one width and 44 px either
+            // way, read from the layout, since a tall step's panel is scaled to fit.
+            const first = answer(page, pair[0])
+            const second = grid(page).getByRole('button', { name: pair[1] })
+            await expect(first).toBeVisible()
+            await expect(second).toBeVisible()
+            expect(await widthOf(first)).toBe(await widthOf(second))
+            expect(await pairLayout(first, second)).toBe(pair[2])
+            for (const button of [first, second]) {
+                expect(
+                    await button.evaluate((element) =>
+                        element instanceof HTMLElement ? element.offsetHeight : 0
+                    )
+                ).toBe(44)
+            }
         })
     }
 })
