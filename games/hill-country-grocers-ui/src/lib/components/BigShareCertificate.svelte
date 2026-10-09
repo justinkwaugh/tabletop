@@ -36,7 +36,6 @@
 {/if}
 
 <style>
-    /* A share certificate from the sidebar, enlarged, with a stock certificate's inner frame. */
     .certificate {
         display: inline-flex;
         flex-direction: column;

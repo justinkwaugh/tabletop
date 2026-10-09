@@ -1,4 +1,4 @@
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { assertExists, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     BuildNetwork,
@@ -108,9 +108,7 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
 
     placementCost(coords: AxialCoordinates): number {
         const companyId = this.buildCompany
-        if (!companyId) {
-            return 0
-        }
+        assertExists(companyId, 'Store prices need a building company')
         const withHex = this.gameState.buildCost(companyId, [...this.chosenHexes, coords])
         return withHex.total - (this.chosenCost?.total ?? 0)
     }

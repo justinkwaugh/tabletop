@@ -1,10 +1,9 @@
 <script lang="ts">
+    import type { AuctionParticipant } from '@tabletop/common'
     import { AuctionKind, seatOrderFrom } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
     import BigShareCertificate from './BigShareCertificate.svelte'
-
-    type Seat = { playerId: string; passed: boolean; bid?: number }
 
     const gameSession = getGameSession()
 
@@ -13,7 +12,7 @@
     const opening = $derived(!auction && gameSession.auctionCompany !== undefined)
     const companyId = $derived(auction?.companyId ?? gameSession.auctionCompany)
     const kind = $derived(auction?.kind ?? AuctionKind.Share)
-    const seats: Seat[] = $derived(
+    const seats: AuctionParticipant[] = $derived(
         auction
             ? auction.bidding.participants
             : gameSession.myPlayerId
