@@ -37,6 +37,13 @@
             ),
             linear-gradient(rgba(255, 236, 185, 0.35), rgba(255, 236, 185, 0.35));
     }
+    /* The light still follows the land, but snaps to it rather than fading over the board. The
+       inline duration would otherwise win. */
+    @media (prefers-reduced-motion: reduce) {
+        .light {
+            transition-duration: 0s !important;
+        }
+    }
     /* Thriving land: a richer, golden warmth. */
     .lush {
         mix-blend-mode: soft-light;
