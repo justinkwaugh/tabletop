@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { BoardTextures } from './boardTextures.js'
+import { BoardTextures, textureFingerprint } from './boardTextures.js'
+import fingerprints from '../textures/fingerprints.json'
 
 // A WebP's canvas size, from its extended (VP8X) or simple lossy (VP8) header.
 function webpSize(bytes: Buffer): { width: number; height: number } {
@@ -23,4 +24,8 @@ describe('board textures', () => {
             expect(webpSize(bytes)).toEqual({ width: side, height: side })
         }
     )
+
+    it.each(Object.values(BoardTextures))('draws $file from its current settings', (texture) => {
+        expect(fingerprints).toHaveProperty(texture.file, textureFingerprint(texture))
+    })
 })

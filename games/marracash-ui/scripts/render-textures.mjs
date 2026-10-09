@@ -1,10 +1,10 @@
 // Renders the board textures in src/lib/utils/boardTextures.ts to WebP images in
 // src/lib/textures, with Chromium's own noise filters, so the images match what the filters drew.
 //
-// Run from games/marracash-ui: node scripts/render-textures.mjs
+// Run from games/marracash-ui: pnpm run textures
 import { chromium } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
-import { BoardTextures } from '../src/lib/utils/boardTextures.ts'
+import { BoardTextures, textureFingerprint } from '../src/lib/utils/boardTextures.ts'
 
 const Quality = 0.82
 
@@ -16,8 +16,10 @@ const noise = ({ size, baseFrequency, numOctaves, seed, matrix }, index) => `
     </filter>
     <rect width="${size}" height="${size}" filter="url(#noise-${index})" fill="none"/>`
 
+const fingerprints = {}
 const browser = await chromium.launch()
-for (const { file, size, resolution, base, layers } of Object.values(BoardTextures)) {
+for (const texture of Object.values(BoardTextures)) {
+    const { file, size, resolution, base, layers } = texture
     const page = await browser.newPage({ deviceScaleFactor: resolution })
     await page.setViewportSize({ width: size, height: size })
     await page.setContent(
@@ -46,6 +48,11 @@ for (const { file, size, resolution, base, layers } of Object.values(BoardTextur
     await page.close()
     const bytes = Buffer.from(webp, 'base64')
     await writeFile(new URL(`../src/lib/textures/${file}.webp`, import.meta.url), bytes)
+    fingerprints[file] = textureFingerprint(texture)
     console.log(`${file}.webp: ${size * resolution}px, ${Math.round(bytes.length / 1024)} KB`)
 }
 await browser.close()
+await writeFile(
+    new URL('../src/lib/textures/fingerprints.json', import.meta.url),
+    `${JSON.stringify(fingerprints, null, 4)}\n`
+)

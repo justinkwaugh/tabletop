@@ -1,7 +1,7 @@
 // The board's textures are fractal noise, drawn once to WebP images in src/lib/textures by
 // scripts/render-textures.mjs rather than by SVG filters in the browser: iOS WebKit sometimes
 // can't run those filters on a phone and paints the filtered shapes black. This module has no
-// imports so that script can read it too; rerun the script after changing a texture here.
+// imports so that script can read it too; run `pnpm run textures` after changing a texture here.
 
 export type NoiseLayer = {
     baseFrequency: string
@@ -109,3 +109,13 @@ export const BoardTextures = {
         ]
     }
 } satisfies Record<string, BoardTexture>
+
+// A short fingerprint of a texture's settings. The script records it beside each image, so a test
+// can tell when an image no longer matches its settings.
+export function textureFingerprint(texture: BoardTexture): string {
+    let hash = 0x811c9dc5
+    for (const char of JSON.stringify(texture)) {
+        hash = Math.imul(hash ^ char.charCodeAt(0), 0x01000193) >>> 0
+    }
+    return hash.toString(16).padStart(8, '0')
+}
