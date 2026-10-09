@@ -14,7 +14,6 @@
     import {
         eightPointedStar,
         EntranceRadii,
-        FountainGlintsPatternId,
         FountainRadii,
         FountainRimShadeId,
         FountainRippleRadii,
@@ -148,7 +147,6 @@
         stroke="#8f6c66"
         stroke-width="1"
     ></path>
-    <path d={outline(center, radii.water)} fill="url(#{FountainGlintsPatternId})"></path>
     {#each FountainRippleRadii as radius (radius)}
         <circle
             cx={center.x}

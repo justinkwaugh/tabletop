@@ -1,14 +1,7 @@
 <script lang="ts">
     import type { MarketColor, ShopId } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        kilimId,
-        rugFringe,
-        rugOutline,
-        StallShadowFilterId,
-        StallShadowOffset,
-        WeavePatternId
-    } from '$lib/utils/stalls.js'
+    import { kilimId, rugFringe, rugOutline, StallShadowOffset } from '$lib/utils/stalls.js'
 
     const FringeColor = '#efe1c4'
 
@@ -40,10 +33,8 @@
     transform="translate({StallShadowOffset.x} {StallShadowOffset.y})"
     fill="#3a2410"
     opacity="0.28"
-    filter="url(#{StallShadowFilterId})"
 ></path>
 <path d={outline} fill="url(#{kilimId(color, vertical)})"></path>
-<path d={outline} fill="url(#{WeavePatternId})"></path>
 <g clip-path="url(#{clipId})" fill="none">
     <path d={outline} stroke={palette.awning.band} stroke-width="14"></path>
     <path d={outline} stroke={palette.awning.outline} stroke-width="6"></path>

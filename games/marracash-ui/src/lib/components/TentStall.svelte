@@ -3,11 +3,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         canvasStripesId,
-        StallShadowFilterId,
         StallShadowOffset,
         tentOutline,
-        tentRidge,
-        WeavePatternId
+        tentRidge
     } from '$lib/utils/stalls.js'
 
     const PoleRadius = 3.2
@@ -45,7 +43,6 @@
     transform="translate({StallShadowOffset.x} {StallShadowOffset.y})"
     fill="#3a2410"
     opacity="0.28"
-    filter="url(#{StallShadowFilterId})"
 ></path>
 <path
     d={outline}
@@ -54,7 +51,6 @@
     stroke-width="1.5"
     stroke-linejoin="round"
 ></path>
-<path d={outline} fill="url(#{WeavePatternId})"></path>
 <rect
     x={shadedSide.x}
     y={shadedSide.y}

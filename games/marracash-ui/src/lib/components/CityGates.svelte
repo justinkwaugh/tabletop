@@ -1,12 +1,11 @@
 <script lang="ts">
-    import { CastShadowFilterId } from '$lib/utils/boardGeometry.js'
     import {
         GateFloors,
         PillarShadowOffset,
-        RammedEarthPatternId,
         Towers,
         TowerBattlements,
-        WallMortar
+        WallMortar,
+        WallWalkway
     } from '$lib/utils/cityWall.js'
     import Battlements from '$lib/components/Battlements.svelte'
 
@@ -35,7 +34,6 @@
         height={tower.height}
         fill="#000000"
         opacity="0.3"
-        filter="url(#{CastShadowFilterId})"
     ></rect>
     <rect
         x={tower.x}
@@ -43,7 +41,7 @@
         width={tower.width}
         height={tower.height}
         rx="1.5"
-        fill="url(#{RammedEarthPatternId})"
+        fill={WallWalkway}
         stroke={WallMortar}
         stroke-width="1"
     ></rect>

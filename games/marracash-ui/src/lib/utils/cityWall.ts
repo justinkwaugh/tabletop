@@ -9,7 +9,6 @@ import {
 } from '$lib/utils/boardGeometry.js'
 
 export const WallMortar = '#8c4b2e'
-export const RammedEarthPatternId = 'marracash-rammed-earth'
 export const PillarShadowOffset = { x: 3, y: 4 }
 
 export const WallWalkway = '#c47b58'

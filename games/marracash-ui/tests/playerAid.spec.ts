@@ -65,7 +65,7 @@ test('an auction dims the board but keeps fountains and shop signs above the ove
             ).length
         return {
             overlay: overlay !== null,
-            fountainsAbove: follows('path[fill*="fountain-glints"]'),
+            fountainsAbove: follows('path[fill*="fountain-water-shade"]'),
             signsAbove: follows('g.pointer-events-none[aria-hidden="true"]')
         }
     })

@@ -5,7 +5,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
     import StallDefs from '$lib/components/StallDefs.svelte'
-    import GroundDefs from '$lib/components/GroundDefs.svelte'
     import PawnDefs from '$lib/components/PawnDefs.svelte'
     import FountainDefs from '$lib/components/FountainDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
@@ -39,7 +38,7 @@
         TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
-    import { PackedEarthPatternId } from '$lib/utils/ground.js'
+    import { PackedEarthColor } from '$lib/utils/ground.js'
 
     const gameSession = getGameSession()
 
@@ -198,7 +197,6 @@
                 <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
             </filter>
             <StallDefs />
-            <GroundDefs />
             <PawnDefs />
             <FountainDefs />
         </defs>
@@ -209,11 +207,11 @@
                 y={WallThickness}
                 width={BoardColumns * CellSize}
                 height={BoardRows * CellSize}
-                fill="url(#{PackedEarthPatternId})"
+                fill={PackedEarthColor}
             ></rect>
             <StreetWear />
 
-            <CityGates groundFill="url(#{PackedEarthPatternId})" />
+            <CityGates groundFill={PackedEarthColor} />
 
             {#each Palms as palm (`${palm.row},${palm.col}`)}
                 <PalmTree coords={palm} />
