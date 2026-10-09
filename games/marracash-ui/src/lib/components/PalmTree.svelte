@@ -12,7 +12,15 @@
 </script>
 
 <g transform="translate({center.x} {center.y})" aria-hidden="true">
-    <g transform="translate({ShadowOffset.x} {ShadowOffset.y})" fill="#3a2a10" opacity="0.22">
+    <g
+        transform="translate({ShadowOffset.x} {ShadowOffset.y})"
+        fill="#3a2a10"
+        stroke="#3a2a10"
+        stroke-width="3"
+        stroke-opacity="0.45"
+        stroke-linejoin="round"
+        opacity="0.22"
+    >
         {#each fronds as frond, index (index)}
             <path d={frond.path} transform="rotate({frond.angle})"></path>
         {/each}

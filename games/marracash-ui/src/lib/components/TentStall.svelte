@@ -42,6 +42,10 @@
     d={outline}
     transform="translate({StallShadowOffset.x} {StallShadowOffset.y})"
     fill="#3a2410"
+    stroke="#3a2410"
+    stroke-width="5"
+    stroke-opacity="0.45"
+    stroke-linejoin="round"
     opacity="0.28"
 ></path>
 <path

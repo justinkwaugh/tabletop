@@ -47,6 +47,10 @@
         d={outline}
         transform="translate({SignShadowOffset.x} {SignShadowOffset.y})"
         fill="#000000"
+        stroke="#000000"
+        stroke-width="3"
+        stroke-opacity="0.45"
+        stroke-linejoin="round"
         opacity="0.35"
     ></path>
     <SignFace {outline} {fill} {edge} {frame}>
