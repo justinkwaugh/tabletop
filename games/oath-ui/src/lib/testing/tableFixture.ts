@@ -77,6 +77,7 @@ export type TableName =
     | 'trade'
     | 'peek'
     | 'relics'
+    | 'searchToll'
     | 'advisers'
     | 'moves'
     | 'campaign'
@@ -782,6 +783,33 @@ function relicsTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.1.4: Forced Labor at the seat's site, which the Chancellor rules, so a Search gives her 1 favor. */
+function searchTollTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.order.forced-labor'] },
+            warbandsBySite: { [home]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-7.4: the seat stands with the Observatory, the Cradle's pile empty and the others not. */
 function observatoryTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -905,6 +933,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     trade: tradeTable,
     peek: peekTable,
     relics: relicsTable,
+    searchToll: searchTollTable,
     advisers: advisersTable,
     moves: movesTable,
     campaign: campaignTable,

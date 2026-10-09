@@ -716,6 +716,19 @@ test.describe('palette: every cost in the action panel is accent', () => {
         ])
     })
 
+    test('Search with a toll: the Supply, the "+" and the favor given are all accent', async ({ page }) => {
+        await openTable(page, 'searchToll')
+        await tile(page, 'Search').click()
+        const deck = grid(page).getByRole('button', {
+            name: /^Search the world deck: spend 2 Supply, give 1 favor to ann, draw 3$/
+        })
+        await expect(deck.locator('img')).toHaveCount(1)
+        expect(await tokenRuns(deck)).toEqual([
+            ['2 Supply + 1', 'accent'],
+            ['draw 3', 'text-muted']
+        ])
+    })
+
     test('Trade: what is paid is accent, the arrow muted, the gain text and the bank note muted', async ({ page }) => {
         await openTable(page, 'trade')
         await tile(page, 'Trade').click()
