@@ -2373,13 +2373,16 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
 
-test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, none ringed until picked, and the pick is what is sent', async ({ page }) => {
+test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, none until a tap, ringed when picked, and the pick is what is sent', async ({ page }) => {
     await openTable(page, 'restBanks')
     const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
     await expect(banks.first()).toBeVisible()
     await expect(grid(page).locator('select')).toHaveCount(0)
     await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
     await expect(grid(page).getByRole('button', { name: 'Use', exact: true })).toHaveCount(0)
+    await expect(grid(page)).not.toContainText('Your Supply refreshes')
+    await expect(grid(page)).not.toContainText('once each')
+    await expect(grid(page).getByRole('button', { name: 'End Rest Phase' })).toBeVisible()
 
     const arcane = grid(page).getByRole('button', { name: /^Arcane bank, \d+ favor$/ })
     await arcane.click()
@@ -2901,34 +2904,139 @@ test('scenario 59: every seat is told a Vision was seen, the drawer too; each cl
     await expect(seen).toHaveCount(0)
 })
 
-test('scenario 35: at Rest every bank a power names is a button of one size; a tap on one uses the power; an empty bank is not tappable', async ({ page }) => {
+test('scenario 35: at Rest a row is the card and its buttons, one width; a tap on a bank uses the power; an empty bank is tapped for its 0; a used power is not listed', async ({ page }) => {
     await openTable(page, 'restTurnFlow')
     const powers = page.getByRole('list', { name: 'Rest powers' })
     await expect(powers).toBeVisible()
-    await expect(grid(page)).toContainText('Your Supply has refreshed. Rest powers, once each:')
+    await expect(grid(page)).not.toContainText('Your Supply has refreshed')
+    await expect(grid(page)).not.toContainText('in bank')
+    await expect(grid(page)).not.toContainText('take 1 favor from any bank')
     const banks = powers.getByRole('button', { name: /bank: take 1 favor/ })
     await expect(banks).toHaveCount(5)
-    await expect(powers.getByRole('button', { name: 'Discord bank: take 0 favor, 0 in bank' })).toBeVisible()
+    await expect(powers.getByRole('button', { name: 'Discord bank: take 0 favor, 0 in bank' })).toBeEnabled()
     await expect(powers.getByRole('listitem')).toHaveCount(2)
     await expect(powers).toContainText('Vow of Obedience')
     await expect(powers).toContainText('Insomnia')
-    await expect(powers.getByRole('button', { name: /^Discord bank/ })).toBeDisabled()
     const sizes = await powers.locator('.rest-button').evaluateAll((buttons) =>
         buttons.map((button) => `${Math.round(button.getBoundingClientRect().width)}x${Math.round(button.getBoundingClientRect().height)}`)
     )
-    expect(new Set(sizes)).toEqual(new Set(['80x48']))
-    await expect(grid(page).getByRole('button', { name: 'End your turn' })).toBeVisible()
+    expect(sizes).toHaveLength(7)
+    expect(new Set(sizes).size).toBe(1)
+    expect(sizes[0]).toMatch(/x48$/)
+    await expect(grid(page).getByRole('button', { name: 'End Rest Phase' })).toBeVisible()
 
     const before = await call(page, 'tableFacts')
     await powers.getByRole('button', { name: /^Arcane bank/ }).click()
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
     expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
-    const used = powers.locator('.rest-row--used')
-    await expect(used).toHaveCount(1)
-    await expect(used).toContainText('Vow of Obedience')
-    await expect(used).toContainText('used: took 1')
-    await expect(used.getByRole('button', { name: /bank: take/ })).toHaveCount(0)
+    await expect(powers.getByRole('listitem')).toHaveCount(1)
+    await expect(powers).not.toContainText('Vow of Obedience')
+    await expect(powers.getByRole('button', { name: /bank: take/ })).toHaveCount(0)
     await expect(powers.getByRole('listitem').filter({ hasText: 'Insomnia' }).getByRole('button', { name: /^1/ })).toBeEnabled()
+})
+
+test('scenario 35: at Rest a tap on the empty bank uses the power and takes 0 (R-9.3)', async ({ page }) => {
+    await openTable(page, 'restTurnFlow')
+    const powers = page.getByRole('list', { name: 'Rest powers' })
+    const before = await call(page, 'tableFacts')
+    await powers.getByRole('button', { name: /^Discord bank/ }).click()
+    await expect(powers).not.toContainText('Vow of Obedience')
+    const after = await call(page, 'tableFacts')
+    expect(after.favorOf.me).toBe(before.favorOf.me)
+    expect(after.favorBank).toEqual(before.favorBank)
+    await expect(powers).toContainText('Insomnia')
+})
+
+/** The Wake (R-4.1): one choice at a time; every tap acts, and the last one sends the Wake. */
+test.describe('the Wake', () => {
+    const choices = (page: Page) => grid(page).getByRole('group', { name: 'Wake choices' })
+    const choice = (page: Page, name: string) => choices(page).getByRole('button', { name, exact: true })
+
+    test('on the Mob side the People’s Favor asks twice, each pick a line above; Return to tied banks acts on the bank; the site’s take sends the Wake', async ({ page }) => {
+        await openTable(page, 'wakeMob')
+        await expect(grid(page)).toContainText('People’s Favor (1 of 2)')
+        await expect(grid(page)).not.toContainText('Wake Phase')
+        await expect(grid(page).getByRole('button', { name: /Resolve the Wake|End Wake Phase/ })).toHaveCount(0)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        const widths = await choices(page).getByRole('button').evaluateAll((buttons) =>
+            buttons.map((button) => Math.round(button.getBoundingClientRect().width))
+        )
+        expect(widths).toHaveLength(2)
+        expect(new Set(widths).size).toBe(1)
+
+        await choice(page, 'Place a favor').click()
+        await expect(grid(page)).toContainText('People’s Favor (2 of 2)')
+        await expect(grid(page)).toContainText('Placed 1')
+        expect((await call(page, 'tableFacts')).machineState).toBe('WakePhase')
+
+        await choice(page, 'Return a favor').click()
+        await expect(choices(page).getByRole('button', { name: /bank, 1 favor$/ })).toHaveCount(2)
+        await choices(page).getByRole('button', { name: /^Order bank/ }).click()
+        await expect(grid(page)).toContainText('Drowned City')
+        await expect(grid(page)).toContainText('Returned 1')
+        await expect(choice(page, 'Take a favor')).toHaveCount(0)
+        await expect(choice(page, 'Take nothing')).toBeVisible()
+        expect((await call(page, 'tableFacts')).machineState).toBe('WakePhase')
+
+        const before = await call(page, 'tableFacts')
+        await choice(page, 'Take a secret').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+        const after = await call(page, 'tableFacts')
+        expect(after.favorOf.me).toBe(before.favorOf.me - 1)
+        expect(after.favorBank.order).toBe(before.favorBank.order + 1)
+        expect(await call(page, 'cardTokens', 'site.drowned-city')).toEqual({ favor: 0, secrets: 0 })
+
+        await page.getByRole('tab', { name: 'History' }).click()
+        const row = page.locator('.history').getByText(/began the turn; placed 1/)
+        await expect(row).toBeVisible()
+        await expect(row).toContainText('on the People’s Favor; returned 1')
+        await expect(row).toContainText('from their site')
+    })
+
+    test('Undo before the send takes back the last pick and sends nothing', async ({ page }) => {
+        await openTable(page, 'wakeMob')
+        await choice(page, 'Place a favor').click()
+        await expect(grid(page)).toContainText('People’s Favor (2 of 2)')
+        await page.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(grid(page)).toContainText('People’s Favor (1 of 2)')
+        await expect(grid(page)).not.toContainText('Placed 1')
+        expect((await call(page, 'tableFacts')).machineState).toBe('WakePhase')
+    })
+
+    test('at the site alone, Take nothing sends the Wake and takes nothing', async ({ page }) => {
+        await openTable(page, 'wakeSite')
+        await expect(grid(page)).toContainText('Drowned City')
+        await expect(grid(page)).not.toContainText('People’s Favor')
+        await choice(page, 'Take nothing').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+        expect(await call(page, 'cardTokens', 'site.drowned-city')).toEqual({ favor: 0, secrets: 1 })
+    })
+
+    test('with nothing to choose, End Wake Phase stands alone under the forced step’s line, and sends it', async ({ page }) => {
+        await openTable(page, 'wakeForced')
+        await expect(choices(page)).toHaveCount(0)
+        await expect(grid(page)).toContainText('Placed 1')
+        const before = await call(page, 'tableFacts')
+        await grid(page).getByRole('button', { name: 'End Wake Phase' }).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+        expect((await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me - 1)
+    })
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the choices keep one width, at least 44 px tall, never stretched across the panel', async ({ page }) => {
+            await openTable(page, 'wakeSite')
+            const boxes = await choices(page).getByRole('button').evaluateAll((buttons) =>
+                buttons.map((button) => button.getBoundingClientRect()).map((box) => ({ width: Math.round(box.width), height: box.height }))
+            )
+            expect(boxes).toHaveLength(2)
+            expect(new Set(boxes.map((box) => box.width)).size).toBe(1)
+            for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44)
+            const panel = await grid(page).boundingBox()
+            expect(boxes[0].width).toBeLessThan((panel?.width ?? 0) / 2)
+        })
+    })
 })
 
 test('scenario 60: between rounds the Chancellor rolls the end die; the last seat’s Undo stays until the roll; each seat reads the stakes', async ({ page }) => {

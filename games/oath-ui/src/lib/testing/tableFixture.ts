@@ -80,6 +80,9 @@ export type TableName =
     | 'visionBacks'
     | 'restBanks'
     | 'restTurnFlow'
+    | 'wakeMob'
+    | 'wakeSite'
+    | 'wakeForced'
     | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
@@ -544,6 +547,47 @@ function restTurnFlowTable(): PlayedTable {
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
     state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+type WakeScene = 'mob' | 'site' | 'forced'
+
+/**
+ * R-4.1.1 to R-4.1.4: this seat's Wake at the Drowned City, which holds a secret. On the Mob side
+ * it holds the People's Favor with the Discord and Order banks tied for least; at the site alone
+ * it holds no banner; forced, the People's Favor holds 1 favor, so the one step is a Place, and
+ * the site holds nothing to take.
+ */
+function wakeTable(scene: WakeScene): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const peoplesFavor = {
+        mob: { value: 3, mobSide: true, holderPlayerId: 'me' },
+        site: { value: 3, mobSide: false, holderPlayerId: 'ann' },
+        forced: { value: 1, mobSide: false, holderPlayerId: 'me' }
+    }[scene]
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 4 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.WakePhase,
+            chancellorPlayerId: 'ann',
+            oathRevision: OathRevision.TurnFlow,
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.drowned-city' },
+            cardTokens: { 'site.drowned-city': { favor: 0, secrets: scene === 'forced' ? 0 : 1 } },
+            banners: { ...testBanners(), [Banner.PeoplesFavor]: peoplesFavor },
+            favorBank: { arcane: 2, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 1 }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
     return tableOf(state)
 }
 
@@ -1869,6 +1913,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restTurnFlow: restTurnFlowTable,
+    wakeMob: () => wakeTable('mob'),
+    wakeSite: () => wakeTable('site'),
+    wakeForced: () => wakeTable('forced'),
     endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),

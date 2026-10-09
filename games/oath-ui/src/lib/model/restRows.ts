@@ -2,39 +2,20 @@ import {
     FAVOR_BANK_ORDER,
     HydratedUseRestPower,
     PowerChoiceKind,
-    isUseRestPower,
-    powerKey,
     type HydratedOathGameState,
     type LegalPowerUse,
     type PowerChoice,
     type Suit
 } from '@tabletop/oath'
-import { assertExists, type GameAction } from '@tabletop/common'
-import { withoutCardName } from '$lib/model/actionDescription.js'
+import { assertExists } from '@tabletop/common'
 
-/** R-4.3.5 — what each Rest power does, as its row says it, and what one use gains. */
-const REST_POWERS: Record<string, { does: string; gain: number; token: 'favor' | 'secret' }> = {
-    'denizen.beast.vow-of-poverty': {
-        does: 'you have no favor: take 2 favor from any bank',
-        gain: 2,
-        token: 'favor'
-    },
-    'denizen.order.vow-of-obedience': {
-        does: 'take 1 favor from any bank',
-        gain: 1,
-        token: 'favor'
-    },
-    'denizen.discord.insomnia': { does: 'gain a secret', gain: 1, token: 'secret' },
-    'denizen.discord.silver-tongue': {
-        does: 'take 1 favor from a bank matching a card at your site',
-        gain: 1,
-        token: 'favor'
-    },
-    'denizen.discord.naysayers': {
-        does: 'an Exile holds the title: take 1 favor from the Chancellor',
-        gain: 1,
-        token: 'favor'
-    }
+/** R-4.3.5 — what one use of each Rest power the panel offers gains. */
+const REST_POWERS: Record<string, { gain: number; token: 'favor' | 'secret' }> = {
+    'denizen.beast.vow-of-poverty': { gain: 2, token: 'favor' },
+    'denizen.order.vow-of-obedience': { gain: 1, token: 'favor' },
+    'denizen.discord.insomnia': { gain: 1, token: 'secret' },
+    'denizen.discord.silver-tongue': { gain: 1, token: 'favor' },
+    'denizen.discord.naysayers': { gain: 1, token: 'favor' }
 }
 
 export interface RestBankButton {
@@ -47,13 +28,11 @@ export interface RestBankButton {
 export interface RestRow {
     cardId: string
     powerIndex: number
-    does: string
     gain: { count: number; token: 'favor' | 'secret' }
     banks?: RestBankButton[]
     /** Naysayers — whom the favor comes from. */
     fromPlayerId?: string
     enabled: boolean
-    used?: string
 }
 
 function describedPower(cardId: string) {
@@ -73,23 +52,11 @@ function suitOf(choice: PowerChoice): Suit | undefined {
     return choice.kind === PowerChoiceKind.FavorBank ? choice.suit : undefined
 }
 
-function usedLine(action: GameAction, cardId: string): string | undefined {
-    if (!isUseRestPower(action) || action.cardId !== cardId) return undefined
-    const summary = action.metadata?.summary
-    if (!summary) return 'used'
-    return `used: ${withoutCardName(summary, cardId)}`
-}
-
-/** R-4.3.5, R-7.3.4 — the Rest panel's rows: each usable power once, and each one already used, dimmed. */
-export function restRows(
-    state: HydratedOathGameState,
-    playerId: string,
-    actions: readonly GameAction[]
-): RestRow[] {
-    const turn = state.turnManager.currentTurn()
-    const thisTurn = actions.filter(
-        (action) => turn !== undefined && (action.index ?? 0) >= turn.start
-    )
+/**
+ * R-4.3.5, R-7.3.4 — the Rest panel's rows: each power still usable this Rest, in the advisers'
+ * order. R-9.3 — an empty bank is a legal pick that takes 0, so it stays a button.
+ */
+export function restRows(state: HydratedOathGameState, playerId: string): RestRow[] {
     const usable = HydratedUseRestPower.usableRestPowers(state, playerId).map((power): RestRow => {
         const described = describedPower(power.cardId)
         const banks = bankChoices(power)
@@ -104,7 +71,6 @@ export function restRows(
         return {
             cardId: power.cardId,
             powerIndex: power.powerIndex,
-            does: described.does,
             gain: { count: described.gain, token: described.token },
             banks:
                 banks.length === 0
@@ -118,7 +84,7 @@ export function restRows(
                                   suit,
                                   inBank,
                                   takes: Math.min(described.gain, inBank),
-                                  enabled: inBank > 0 && accepts([choice])
+                                  enabled: accepts([choice])
                               }
                           ]
                       }),
@@ -127,28 +93,9 @@ export function restRows(
             enabled: banks.length === 0 && accepts([])
         }
     })
-    const used = state.getPlayerState(playerId).restPowersUsedThisTurn.flatMap((key): RestRow[] => {
-        const action = thisTurn.findLast((candidate) =>
-            isUseRestPower(candidate)
-                ? powerKey(candidate.cardId, candidate.powerIndex) === key
-                : false
-        )
-        if (!action || !isUseRestPower(action)) return []
-        const described = describedPower(action.cardId)
-        return [
-            {
-                cardId: action.cardId,
-                powerIndex: action.powerIndex,
-                does: described.does,
-                gain: { count: described.gain, token: described.token },
-                enabled: false,
-                used: usedLine(action, action.cardId)
-            }
-        ]
-    })
     const adviserOrder = state.getPlayerState(playerId).advisers.map((row) => row.cardId)
     const position = (row: RestRow) => adviserOrder.indexOf(row.cardId)
-    return [...usable, ...used].sort((a, b) => position(a) - position(b))
+    return usable.sort((a, b) => position(a) - position(b))
 }
 
 export function restBankChoice(suit: Suit): PowerChoice[] {

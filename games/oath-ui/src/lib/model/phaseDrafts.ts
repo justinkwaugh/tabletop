@@ -1,7 +1,6 @@
 import {
     HydratedOathGameState,
     applyPeoplesFavorStep,
-    reasonCannotTakePeoplesFavorStep,
     ActionType,
     Banner,
     bannerHolder,
@@ -56,6 +55,7 @@ import { samePowerUse } from './powerUse.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
+import { suitName } from './names.js'
 
 /** The panel drafts with one step: Undo clears the draft, and the derived default returns. */
 abstract class OneStepDraft<V> implements PanelDraft {
@@ -85,10 +85,54 @@ abstract class OneStepDraft<V> implements PanelDraft {
 }
 
 export type FavorStepKind = 'place' | 'return'
-type WakeChoices = { kinds?: FavorStepKind[]; suits?: (Suit | undefined)[]; take?: OpportunityTake }
+type SiteTake = OpportunityTake | 'nothing'
+type WakeValueByStage = {
+    firstKind: FavorStepKind
+    firstBank: Suit
+    secondKind: FavorStepKind
+    secondBank: Suit
+    siteTake: SiteTake
+}
 
-/** R-4.1.1 to R-4.1.4 — the People's Favor steps and the site power's take, before the Wake resolves. */
-export class WakeDraft extends OneStepDraft<WakeChoices> {
+const WAKE_STAGE_ORDER = ['firstKind', 'firstBank', 'secondKind', 'secondBank', 'siteTake'] as const
+const _wakeStagesAreCovered: StagesCover<WakeValueByStage, typeof WAKE_STAGE_ORDER> = true
+void _wakeStagesAreCovered
+
+/** R-4.1.1.II — "repeat R-4.1.1.I once": the People's Favor resolves at most twice. */
+const FAVOR_STEP_STAGES = [
+    { kind: 'firstKind', bank: 'firstBank' },
+    { kind: 'secondKind', bank: 'secondBank' }
+] as const
+
+/** The one Wake choice on screen: a People's Favor step, the bank of its return, or the site's take. */
+export type WakeQuestion =
+    | { kind: 'favorStep'; index: number; options: FavorStepKind[] }
+    | { kind: 'returnBank'; index: number; banks: Suit[] }
+    | { kind: 'siteTake'; takes: OpportunityTake[] }
+
+type FavorStepView = {
+    options: FavorStepKind[]
+    leastBanks: Suit[]
+    kind?: FavorStepKind
+    step?: WakeFavorStep
+}
+
+function favorStepLine(step: WakeFavorStep): string {
+    return step.kind === 'place'
+        ? 'Placed 1 favor.'
+        : `Returned 1 favor to the ${suitName(step.toSuit)} bank.`
+}
+
+/**
+ * R-4.1.1 to R-4.1.4 — the Wake asks one choice at a time: each People's Favor step, then the
+ * site power's take. Each tap is its own pick, and the tap that answers the last choice sends
+ * the Wake; a choice with one legal answer is taken without a tap.
+ */
+export class WakeDraft implements PanelDraft {
+    private flow = new StagedFlow<WakeValueByStage>(WAKE_STAGE_ORDER)
+
+    constructor(private readonly session: OathGameSession) {}
+
     private get playerId(): string | undefined {
         return this.session.gameState.machineState === MachineState.WakePhase
             ? this.session.liveTurnSeatId
@@ -97,131 +141,173 @@ export class WakeDraft extends OneStepDraft<WakeChoices> {
 
     // R-4.1.1 is mandatory for the holder alone; `requiredFavorSteps` counts the steps the
     // holder is able to take (R-9.2.a) without asking who holds it.
-    get holdsPeoplesFavor() {
-        return (
-            this.playerId !== undefined &&
-            bannerHolder(this.session.gameState, Banner.PeoplesFavor) === this.playerId
-        )
-    }
-
-    get stepCount() {
-        return this.holdsPeoplesFavor && this.playerId
-            ? requiredFavorSteps(this.session.gameState, this.playerId)
+    get stepCount(): number {
+        const playerId = this.playerId
+        return playerId !== undefined &&
+            bannerHolder(this.session.gameState, Banner.PeoplesFavor) === playerId
+            ? requiredFavorSteps(this.session.gameState, playerId)
             : 0
     }
 
-    // R-4.1.1-H1 — each step is judged on the banks as the steps before it leave them.
-    private get steps(): {
-        options: FavorStepKind[]
-        leastBanks: Suit[]
-        kind: FavorStepKind
-        suit?: Suit
-    }[] {
+    private stagesOf(index: number) {
+        const stages = FAVOR_STEP_STAGES[index]
+        assertExists(stages, 'R-4.1.1.II — the People’s Favor resolves at most twice')
+        return stages
+    }
+
+    // R-4.1.1-H1 — each step is judged on the banks as the steps before it leave them; a step
+    // with neither option open is skipped (R-9.2.a).
+    private get steps(): FavorStepView[] {
         const playerId = this.playerId
         if (!playerId) return []
         const rehearsal = new HydratedOathGameState(this.session.gameState.dehydrate())
-        return range(0, this.stepCount).map((index) => {
+        const views: FavorStepView[] = []
+        for (const index of range(0, this.stepCount)) {
             const options = availablePeoplesFavorOptions(rehearsal, playerId)
+            if (options.length === 0) break
             const leastBanks = banksWithLeastFavor(rehearsal)
-            const storedKind = this.stored?.kinds?.[index]
+            const stages = this.stagesOf(index)
+            const pickedKind = this.flow.value(stages.kind)
             const kind =
-                storedKind !== undefined && options.includes(storedKind)
-                    ? storedKind
+                pickedKind !== undefined && options.includes(pickedKind)
+                    ? pickedKind
                     : options.length === 1
                       ? options[0]
-                      : 'place'
-            const storedSuit = this.stored?.suits?.[index]
-            const suit =
-                storedSuit !== undefined && leastBanks.includes(storedSuit)
-                    ? storedSuit
+                      : undefined
+            const pickedBank = this.flow.value(stages.bank)
+            const bank =
+                pickedBank !== undefined && leastBanks.includes(pickedBank)
+                    ? pickedBank
                     : leastBanks.length === 1
                       ? leastBanks[0]
                       : undefined
             const step: WakeFavorStep | undefined =
-                kind === 'place' ? { kind } : suit ? { kind, toSuit: suit } : undefined
-            if (step && reasonCannotTakePeoplesFavorStep(rehearsal, playerId, step) === undefined) {
-                applyPeoplesFavorStep(rehearsal, playerId, step)
-            }
-            return { options, leastBanks, kind, suit }
-        })
-    }
-
-    optionsAt(index: number): FavorStepKind[] {
-        return this.steps[index]?.options ?? []
-    }
-
-    leastBanksAt(index: number): Suit[] {
-        return this.steps[index]?.leastBanks ?? []
+                kind === 'place'
+                    ? { kind }
+                    : kind === 'return' && bank !== undefined
+                      ? { kind, toSuit: bank }
+                      : undefined
+            views.push({ options, leastBanks, kind, step })
+            if (!step) break
+            applyPeoplesFavorStep(rehearsal, playerId, step)
+        }
+        return views
     }
 
     // R-4.1.4-H1 — the engine knows what the site prints and what is on it.
-    get sitePowerTakes() {
+    get sitePowerTakes(): OpportunityTake[] {
         return this.playerId ? availableSitePowerTakes(this.session.gameState, this.playerId) : []
-    }
-
-    // One option, or one bank tied for least, is not a choice.
-    get kinds(): FavorStepKind[] {
-        return this.steps.map((step) => step.kind)
-    }
-
-    get suits(): (Suit | undefined)[] {
-        return this.steps.map((step) => step.suit)
-    }
-
-    get sitePowerTake(): OpportunityTake | undefined {
-        const take = this.stored?.take
-        return take !== undefined && this.sitePowerTakes.includes(take) ? take : undefined
-    }
-
-    get favorSteps(): WakeFavorStep[] | undefined {
-        const steps: WakeFavorStep[] = []
-        for (const [index, kind] of this.kinds.entries()) {
-            if (kind === 'place') {
-                steps.push({ kind: 'place' })
-                continue
-            }
-            const toSuit = this.suits[index]
-            if (toSuit === undefined) return undefined
-            steps.push({ kind: 'return', toSuit })
-        }
-        return steps
-    }
-
-    setKind(index: number, kind: FavorStepKind): void {
-        if (!this.optionsAt(index).includes(kind)) return
-        this.store({ ...this.stored, kinds: this.kinds.with(index, kind), suits: this.suits })
-    }
-
-    setSuit(index: number, suit: Suit): void {
-        if (!this.leastBanksAt(index).includes(suit)) return
-        this.store({ ...this.stored, kinds: this.kinds, suits: this.suits.with(index, suit) })
-    }
-
-    setSitePowerTake(take: OpportunityTake | undefined): void {
-        this.store({ ...this.stored, take })
     }
 
     get sitePowerOffered(): boolean {
         return this.playerId !== undefined && canUseSitePower(this.session.gameState, this.playerId)
     }
 
-    get blockedBecause(): string | undefined {
-        const playerId = this.session.myPlayer?.id
-        assertExists(playerId, 'The Wake is resolved from a seat')
-        const favorSteps = this.favorSteps
-        if (!favorSteps) return 'Choose which bank the favor returns to.'
+    get siteCardId(): string | undefined {
+        const playerId = this.playerId
+        if (!playerId) return undefined
+        const state = this.session.gameState
+        return state.siteCardAt(state.getPlayerState(playerId).siteId)
+    }
+
+    private get siteTake(): SiteTake | undefined {
+        const take = this.flow.value('siteTake')
+        return take === 'nothing' || (take !== undefined && this.sitePowerTakes.includes(take))
+            ? take
+            : undefined
+    }
+
+    get question(): WakeQuestion | undefined {
+        const steps = this.steps
+        const open = steps.findIndex((view) => view.step === undefined)
+        const view = steps[open]
+        if (view) {
+            return view.kind === 'return'
+                ? { kind: 'returnBank', index: open, banks: view.leastBanks }
+                : { kind: 'favorStep', index: open, options: view.options }
+        }
+        if (this.sitePowerOffered && this.siteTake === undefined) {
+            return { kind: 'siteTake', takes: this.sitePowerTakes }
+        }
+        return undefined
+    }
+
+    /** Each People's Favor step already answered, by a tap or because it had one answer. */
+    get answeredLines(): string[] {
+        return this.favorSteps.map(favorStepLine)
+    }
+
+    /** "End Wake Phase" is offered only when the Wake asks nothing: every step had one answer. */
+    get readyToEnd(): boolean {
+        return (
+            this.playerId !== undefined && this.question === undefined && !this.hasManualSelection()
+        )
+    }
+
+    private get favorSteps(): WakeFavorStep[] {
+        return this.steps.flatMap(({ step }) => (step ? [step] : []))
+    }
+
+    private get sitePowerTake(): OpportunityTake | undefined {
+        const take = this.siteTake
+        return take === 'nothing' ? undefined : take
+    }
+
+    /** The engine's refusal of the answered Wake, shown if a send would be refused. */
+    get refusedBecause(): string | undefined {
+        const playerId = this.playerId
+        if (!playerId || this.question !== undefined) return undefined
         return HydratedResolveWake.reasonCannotResolveWake(
             this.session.gameState,
             playerId,
-            favorSteps,
+            this.favorSteps,
             this.sitePowerTake
         )
     }
 
-    async resolve(): Promise<void> {
-        const steps = this.favorSteps
-        if (!this.playerId || !steps) return
-        await this.session.resolveWake(steps, this.sitePowerTake)
+    async chooseKind(kind: FavorStepKind): Promise<void> {
+        const question = this.question
+        if (question?.kind !== 'favorStep' || !question.options.includes(kind)) return
+        this.flow.set(this.stagesOf(question.index).kind, kind)
+        await this.sendWhenAnswered()
+    }
+
+    async chooseBank(suit: Suit): Promise<void> {
+        const question = this.question
+        if (question?.kind !== 'returnBank' || !question.banks.includes(suit)) return
+        this.flow.set(this.stagesOf(question.index).bank, suit)
+        await this.sendWhenAnswered()
+    }
+
+    async chooseSiteTake(take: OpportunityTake | undefined): Promise<void> {
+        const question = this.question
+        if (question?.kind !== 'siteTake') return
+        if (take !== undefined && !question.takes.includes(take)) return
+        this.flow.set('siteTake', take ?? 'nothing')
+        await this.sendWhenAnswered()
+    }
+
+    async end(): Promise<void> {
+        if (this.readyToEnd) await this.sendWhenAnswered()
+    }
+
+    private async sendWhenAnswered(): Promise<void> {
+        if (!this.playerId || this.question !== undefined || this.refusedBecause !== undefined) {
+            return
+        }
+        await this.session.resolveWake(this.favorSteps, this.sitePowerTake)
+    }
+
+    hasManualSelection(): boolean {
+        return this.flow.hasManualSelection()
+    }
+
+    back(): boolean {
+        return this.flow.back() !== undefined
+    }
+
+    reset(): void {
+        this.flow.reset()
     }
 }
 
@@ -306,9 +392,7 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
     }
 
     get rows(): RestRow[] {
-        return this.playerId
-            ? restRows(this.session.gameState, this.playerId, this.session.actions)
-            : []
+        return this.playerId ? restRows(this.session.gameState, this.playerId) : []
     }
 
     async useWithBank(row: RestRow, suit: Suit): Promise<void> {

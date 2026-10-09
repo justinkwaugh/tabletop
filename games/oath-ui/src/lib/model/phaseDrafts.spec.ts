@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ActionSource, Color } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import {
     ActionType,
     Banner,
@@ -17,16 +17,20 @@ import {
     legalChoices,
     one,
     type HydratedOathGameState,
-    type LegalPowerUse,
-    type UseRestPower
+    HydratedUseRestPower,
+    type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
-import { restRows } from './restRows.js'
+import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
+import { GameSession } from '@tabletop/frontend-components'
 
-afterEach(disposeSessions)
+afterEach(() => {
+    disposeSessions()
+    vi.restoreAllMocks()
+})
 
 const ME = 'me'
 const CHANCELLOR = 'chancellor'
@@ -86,86 +90,143 @@ function opened(state: HydratedOathGameState) {
     return openSessionOn(tableOf(state))
 }
 
-/** R-4.1.1 — the People's Favor steps and the site power's take are one entry. */
+/** R-4.1.1 to R-4.1.4 — one Wake choice at a time; every tap acts, and the last one sends the Wake. */
 describe('the Wake draft (docs/user-interactions.md)', () => {
-    const waking = () =>
-        opened(
-            table(MachineState.WakePhase, {}, { banners: testBanners({ [Banner.PeoplesFavor]: ME }, 3) })
-        ).wake
+    const BANKS = { arcane: 2, beast: 2, discord: 1, hearth: 2, nomad: 2, order: 2 }
+    const waking = (
+        peoplesFavor: { value: number; mobSide: boolean } | undefined,
+        over: Record<string, unknown> = {},
+        me: Parameters<typeof testPlayer>[0] = {}
+    ) => {
+        const session = opened(
+            table(MachineState.WakePhase, me, {
+                banners: {
+                    ...testBanners(),
+                    ...(peoplesFavor
+                        ? { [Banner.PeoplesFavor]: { ...peoplesFavor, holderPlayerId: ME } }
+                        : {})
+                },
+                favorBank: BANKS,
+                ...over
+            })
+        )
+        const sent = vi.spyOn(session, 'resolveWake').mockResolvedValue()
+        return { session, wake: session.wake, sent }
+    }
+    const SITE_TOKENS = { cardTokens: { 'site.mine': { favor: 1, secrets: 0 } } }
 
-    it('a step’s kind and its bank are kept together, and changing the kind keeps the other steps', () => {
-        const wake = waking()
-        expect(wake.stepCount).toBeGreaterThan(0)
-        wake.setKind(0, 'return')
-        const [bank] = wake.leastBanksAt(0)
-        wake.setSuit(0, bank)
-        expect(wake.kinds[0]).toBe('return')
-        expect(wake.suits[0]).toBe(bank)
-    })
-
-    it('Undo clears every step at once, and the defaults return', () => {
-        const wake = waking()
-        wake.setKind(0, 'return')
-        expect(wake.back()).toBe(true)
-        expect(wake.kinds[0]).toBe('place')
-        expect(wake.back()).toBe(false)
-    })
-
-    it('the defaults are not picks: before any tap there is nothing for Undo to take', () => {
-        const wake = waking()
-        expect(wake.kinds[0]).toBe('place')
+    it('nothing is picked before a tap: the step asks Place or Return', () => {
+        const { wake, sent } = waking({ value: 3, mobSide: false })
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+        expect(wake.answeredLines).toEqual([])
         expect(wake.hasManualSelection()).toBe(false)
+        expect(wake.readyToEnd).toBe(false)
+        expect(sent).not.toHaveBeenCalled()
     })
 
-    it('a step beyond the count, or a kind not offered, is never chosen', () => {
-        const wake = waking()
-        wake.setKind(wake.stepCount, 'return')
-        expect(wake.hasManualSelection()).toBe(false)
+    it('one step: a tap on Place sends the Wake at once', async () => {
+        const { wake, sent } = waking({ value: 3, mobSide: false })
+        await wake.chooseKind('place')
+        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'place' }], undefined)
     })
 
-    it('choosing the kind again keeps the bank chosen for it', () => {
-        const wake = waking()
-        wake.setKind(0, 'return')
-        const [bank] = wake.leastBanksAt(0)
-        wake.setSuit(0, bank)
-        wake.setKind(0, 'return')
-        expect(wake.suits[0]).toBe(bank)
-    })
-})
-
-/** R-4.1.1.I, R-4.1.1-H1 — on the Mob side the second step is judged after the first. */
-describe('the Mob-side Wake', () => {
-    it("the second return's tied banks follow the first return", () => {
-        const wake = opened(
-            table(
-                MachineState.WakePhase,
-                {},
-                {
-                    banners: {
-                        [Banner.PeoplesFavor]: { value: 4, mobSide: true, holderPlayerId: ME },
-                        [Banner.DarkestSecret]: { value: 1 }
-                    },
-                    favorBank: {
-                        [Suit.Discord]: 0,
-                        [Suit.Arcane]: 1,
-                        [Suit.Order]: 2,
-                        [Suit.Hearth]: 2,
-                        [Suit.Beast]: 2,
-                        [Suit.Nomad]: 2
-                    }
-                }
-            )
-        ).wake
+    it('two steps on the Mob side: the first tap moves to step 2 of 2 and sends nothing; the second sends both', async () => {
+        const { wake, sent } = waking({ value: 3, mobSide: true })
         expect(wake.stepCount).toBe(2)
-        wake.setKind(0, 'return')
-        wake.setKind(1, 'return')
-        expect(wake.leastBanksAt(0)).toEqual([Suit.Discord])
-        expect(wake.leastBanksAt(1).sort()).toEqual([Suit.Arcane, Suit.Discord].sort())
-        wake.setSuit(1, Suit.Arcane)
-        expect(wake.favorSteps).toEqual([
-            { kind: 'return', toSuit: Suit.Discord },
-            { kind: 'return', toSuit: Suit.Arcane }
-        ])
+        await wake.chooseKind('place')
+        expect(sent).not.toHaveBeenCalled()
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'return'] })
+        expect(wake.answeredLines).toEqual(['Placed 1 favor.'])
+        await wake.chooseKind('return')
+        expect(sent).toHaveBeenCalledExactlyOnceWith(
+            [{ kind: 'place' }, { kind: 'return', toSuit: Suit.Discord }],
+            undefined
+        )
+    })
+
+    it('Return with banks tied for the least favor waits for the bank’s tap, which acts', async () => {
+        const { wake, sent } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+        await wake.chooseKind('return')
+        expect(sent).not.toHaveBeenCalled()
+        expect(wake.question).toEqual({ kind: 'returnBank', index: 0, banks: [Suit.Discord, Suit.Order] })
+        await wake.chooseBank(Suit.Order)
+        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'return', toSuit: Suit.Order }], undefined)
+    })
+
+    it("R-4.1.1-H1 — the second return's tied banks follow the first return", async () => {
+        const { wake, sent } = waking(
+            { value: 4, mobSide: true },
+            { favorBank: { discord: 0, arcane: 1, order: 2, hearth: 2, beast: 2, nomad: 2 } }
+        )
+        await wake.chooseKind('return')
+        expect(wake.answeredLines).toEqual(['Returned 1 favor to the Discord bank.'])
+        await wake.chooseKind('return')
+        expect(wake.question).toEqual({ kind: 'returnBank', index: 1, banks: [Suit.Discord, Suit.Arcane] })
+        await wake.chooseBank(Suit.Arcane)
+        expect(sent).toHaveBeenCalledExactlyOnceWith(
+            [
+                { kind: 'return', toSuit: Suit.Discord },
+                { kind: 'return', toSuit: Suit.Arcane }
+            ],
+            undefined
+        )
+    })
+
+    it('after the People’s Favor, the site asks its take, and that tap sends the Wake with it', async () => {
+        const { wake, sent } = waking({ value: 3, mobSide: false }, SITE_TOKENS)
+        await wake.chooseKind('place')
+        expect(sent).not.toHaveBeenCalled()
+        expect(wake.question).toEqual({ kind: 'siteTake', takes: ['favor'] })
+        await wake.chooseSiteTake('favor')
+        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'place' }], 'favor')
+    })
+
+    it('the site only: Take nothing sends the Wake without a take', async () => {
+        const { wake, sent } = waking(undefined, SITE_TOKENS)
+        expect(wake.question).toEqual({ kind: 'siteTake', takes: ['favor'] })
+        await wake.chooseSiteTake(undefined)
+        expect(sent).toHaveBeenCalledExactlyOnceWith([], undefined)
+    })
+
+    it('nothing to choose: a forced step is its line, and End Wake Phase sends it', async () => {
+        const { wake, sent } = waking({ value: 1, mobSide: false })
+        expect(wake.question).toBeUndefined()
+        expect(wake.answeredLines).toEqual(['Placed 1 favor.'])
+        expect(wake.readyToEnd).toBe(true)
+        expect(wake.hasManualSelection()).toBe(false)
+        await wake.end()
+        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'place' }], undefined)
+    })
+
+    it('Undo before the send takes back the last pick only, and no action', async () => {
+        const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
+        const { session, wake, sent } = waking({ value: 3, mobSide: true }, SITE_TOKENS)
+        await wake.chooseKind('place')
+        await wake.chooseKind('place')
+        expect(wake.question).toEqual({ kind: 'siteTake', takes: ['favor'] })
+        await session.undo()
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'return'] })
+        expect(wake.answeredLines).toEqual(['Placed 1 favor.'])
+        await session.undo()
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+        expect(wake.hasManualSelection()).toBe(false)
+        expect(historyUndo).not.toHaveBeenCalled()
+        expect(sent).not.toHaveBeenCalled()
+    })
+
+    it('Undo after Return takes back the Return before its bank', async () => {
+        const { session, wake } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+        await wake.chooseKind('return')
+        await session.undo()
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+    })
+
+    it('a kind or a bank not offered is never picked', async () => {
+        const { wake, sent } = waking({ value: 1, mobSide: true }, {}, { favor: 1 })
+        await wake.chooseKind('return')
+        await wake.chooseBank(Suit.Arcane)
+        expect(wake.hasManualSelection()).toBe(false)
+        expect(sent).not.toHaveBeenCalled()
     })
 })
 
@@ -199,15 +260,13 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         expect(rest.back()).toBe(false)
     })
 
-    it('no bank is picked until one is tapped, and "Use" waits for it', () => {
+    it('no bank is picked before a tap, so Use waits for one', () => {
         const rest = resting()
-        const obedience = power(rest, OBEDIENCE)
-        expect(rest.bankOptions(obedience).length).toBeGreaterThan(1)
-        expect(rest.pickedSuit(obedience)).toBeUndefined()
-        expect(rest.bankPicked(obedience)).toBe(false)
+        expect(rest.pickedSuit(power(rest, OBEDIENCE))).toBeUndefined()
+        expect(rest.bankPicked(power(rest, OBEDIENCE))).toBe(false)
         expect(rest.hasManualSelection()).toBe(false)
-        rest.pickBank(obedience, Suit.Arcane)
-        expect(rest.bankPicked(obedience)).toBe(true)
+        rest.pickBank(power(rest, OBEDIENCE), Suit.Arcane)
+        expect(rest.bankPicked(power(rest, OBEDIENCE))).toBe(true)
     })
 
     it('a bank the power does not offer is never picked', () => {
@@ -580,13 +639,28 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
     const row = (session: ReturnType<typeof resting>, cardId: string) =>
         required(session.rest.rows.find((r) => r.cardId === cardId), `${cardId} has a row`)
 
-    it('lists every bank a power can name in the board’s order, an empty one not tappable', () => {
+    it('lists every bank a power can name in the board’s order, an empty one tappable with its 0 (R-9.3)', () => {
         const session = resting()
         expect(session.rest.turnFlow).toBe(true)
         const banks = required(row(session, OBEDIENCE).banks, 'Vow of Obedience names banks')
         expect(banks.map((bank) => bank.suit)).toEqual([...FAVOR_BANK_ORDER])
-        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, takes: 0, enabled: false })
-        expect(banks.filter((bank) => bank.enabled)).toHaveLength(5)
+        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, takes: 0, enabled: true })
+        expect(banks.filter((bank) => bank.enabled)).toHaveLength(6)
+    })
+
+    it('a tap on the empty bank uses the power with it, and the engine takes the 0', async () => {
+        const session = resting()
+        const obedience = row(session, OBEDIENCE)
+        const sent = vi.spyOn(session, 'useRestPower').mockResolvedValue()
+        await session.rest.useWithBank(obedience, Suit.Discord)
+        expect(sent).toHaveBeenCalledWith(OBEDIENCE, obedience.powerIndex, restBankChoice(Suit.Discord))
+        expect(HydratedUseRestPower.reasonCannotUse(session.gameState, ME, OBEDIENCE, obedience.powerIndex, restBankChoice(Suit.Discord))).toBeUndefined()
+    })
+
+    it('a row is the card and its buttons: it carries no description of the power', () => {
+        const obedience = row(resting(), OBEDIENCE)
+        expect(obedience).not.toHaveProperty('does')
+        expect(obedience).not.toHaveProperty('used')
     })
 
     it('names no more favor on a bank’s button than the bank holds (Vow of Poverty)', () => {
@@ -608,12 +682,10 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
         expect(sent).toHaveBeenCalledWith(OBEDIENCE, row(session, OBEDIENCE).powerIndex, [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }])
     })
 
-    it('a power used this turn stays as a dimmed line saying what it did', () => {
+    it('R-4.3.5 — a power used this turn is not listed: the History says what it did', () => {
         const state = table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }, { cardId: INSOMNIA, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow })
         state.getPlayerState(ME).restPowersUsedThisTurn = [powerKey(INSOMNIA, powerIndexOf(INSOMNIA, PowerTiming.Rest))]
-        const used: UseRestPower = { id: 'a0', gameId: state.gameId, source: ActionSource.User, type: ActionType.UseRestPower, playerId: ME, index: 0, cardId: INSOMNIA, powerIndex: powerIndexOf(INSOMNIA, PowerTiming.Rest), metadata: { summary: 'Insomnia: gained 1 secret' } }
-        const rows = restRows(state, ME, [used])
-        expect(rows.map((r) => [r.cardId, r.used])).toEqual([[OBEDIENCE, undefined], [INSOMNIA, 'used: gained 1 secret']])
+        expect(restRows(state, ME).map((r) => r.cardId)).toEqual([OBEDIENCE])
     })
 
     it('keeps today’s panel in a game created before the revision', () => {
