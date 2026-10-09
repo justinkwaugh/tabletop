@@ -33,6 +33,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Warning Signals:** warbands moved from the board all go to one site per use.
 - **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse).
 - **Ring of Devotion:** its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
+- **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
 ## Rules
 
