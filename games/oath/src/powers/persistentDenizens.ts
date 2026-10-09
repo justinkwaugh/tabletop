@@ -23,6 +23,7 @@ import {
     pawnSiteId
 } from './vocabulary.js'
 import { partySideOf } from '../util/battlePlans.js'
+import { cannotRecoverForbids } from '../util/seize.js'
 
 /** "Against you" */
 function againstOwner(
@@ -119,7 +120,8 @@ function lostTongue(
         : "Lost Tongue: its holder's relics and banners cannot be taken without ruling a nomad card"
 }
 registerPersistent(LOST_TONGUE, powerIndexOf(LOST_TONGUE, PowerTiming.Persistent), {
-    forbidsBannerTake: (ctx, actorId, _banner, holderId) => lostTongue(ctx, actorId, holderId),
+    forbidsBannerTake: (ctx, actorId, _banner, _how, holderId) =>
+        lostTongue(ctx, actorId, holderId),
     forbidsRelicTake: (ctx, actorId, holderId) => lostTongue(ctx, actorId, holderId)
 })
 
@@ -166,21 +168,23 @@ registerPersistent(
     'denizen.arcane.vow-of-silence',
     powerIndexOf('denizen.arcane.vow-of-silence', PowerTiming.Persistent),
     {
-        forbidsBannerTake: (ctx, actorId, banner) =>
-            banner === Banner.DarkestSecret && ctx.ownerIds.includes(actorId)
+        forbidsBannerTake: (ctx, actorId, banner, how) =>
+            banner === Banner.DarkestSecret &&
+            ctx.ownerIds.includes(actorId) &&
+            cannotRecoverForbids(ctx.state, how)
                 ? 'Vow of Silence: you cannot recover the Darkest Secret'
                 : undefined,
         forbidsGivingSecrets: (ctx, actorId) =>
             ctx.ownerIds.includes(actorId)
                 ? 'Vow of Silence: you cannot give anyone secrets'
                 : undefined,
-        afterBannerRecovered: (ctx, actorId, banner, paid) => {
+        afterBannerRecovered: (ctx, actorId, banner, placed) => {
             if (banner !== Banner.DarkestSecret) return undefined
             const notes: string[] = []
             for (const owner of ctx.ownerIds) {
                 if (owner === actorId) continue
                 notes.push(
-                    `Vow of Silence: ${owner} gained ${gainSecrets(ctx.state, owner, paid)} secrets`
+                    `Vow of Silence: ${owner} gained ${gainSecrets(ctx.state, owner, placed)} secrets`
                 )
             }
             return notes.length > 0 ? notes.join('; ') : undefined

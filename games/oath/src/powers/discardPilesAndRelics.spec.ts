@@ -21,10 +21,14 @@ import { INN, FILLER } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { served, servedJson, spectator } from '../testing/projection.js'
 import { OathVisibility } from '../definition/runtime.js'
+import { OathRevision } from '../util/revision.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
 
 const FAE = 'denizen.beast.fae-merchant'
 const BREAKER = 'denizen.hearth.relic-breaker'
 const MUSHROOMS = 'denizen.beast.mushrooms'
+const AUGURY = 'denizen.arcane.augury'
 const SONGS = 'denizen.hearth.tavern-songs'
 const SCRYER = 'denizen.discord.scryer'
 const BRACKEN = 'denizen.beast.bracken'
@@ -164,6 +168,43 @@ describe('discard piles', () => {
         expect(vault.discardPiles.cradle).toEqual([PILE_C1, PILE_C2])
         expect(s.getPlayerState('ruler').supply).toBe(5)
         expect(s.discardPileCounts.cradle).toBe(2)
+    })
+
+    describe('Mushrooms with Augury — the one card Mushrooms sets is what Augury adds to (their Q&As)', () => {
+        const atRevision = OathRevision.CardFixes1
+        const before = OathRevision.PlanCostsAndSearchPlays
+        const declared = (cardIds: string[]) => cardIds.map((cardId) => modifierUse(cardId))
+        const table = (oathRevision: number) => board({ c1: [MUSHROOMS, AUGURY] }, {}, {}, { oathRevision })
+
+        it('draws two from the bottom of the pile, in either declaration order', () => {
+            for (const order of [[MUSHROOMS, AUGURY], [AUGURY, MUSHROOMS]]) {
+                expect(HydratedSearch.drawCount(table(atRevision), 'ruler', declared(order), SearchSource.Discard)).toBe(2)
+                const s = table(atRevision)
+                const vault = vaultFor()
+                expect(serverSearch(s, vault, declared(order)).metadata?.draw.drawnCardIds).toEqual([PILE_C3, PILE_C2])
+                expect(vault.discardPiles.cradle).toEqual([PILE_C1])
+            }
+        })
+
+        it('R-X.4 — in a game created before revision 4 the order declared decides: Augury first draws one', () => {
+            expect(HydratedSearch.drawCount(table(before), 'ruler', declared([MUSHROOMS, AUGURY]), SearchSource.Discard)).toBe(2)
+            expect(HydratedSearch.drawCount(table(before), 'ruler', declared([AUGURY, MUSHROOMS]), SearchSource.Discard)).toBe(1)
+        })
+
+        it('R-X.4 — each revision’s Search with Augury declared first replays unchanged', () => {
+            for (const [revision, drawn] of [[before, 1], [atRevision, 2]]) {
+                const s = table(revision)
+                s.vault = vaultFor()
+                const start = s.dehydrate()
+                const game = testGame(['ruler', 'chancellor'])
+                const recorded = engine.runNext(buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.Discard, revealsInfo: true, modifiers: declared([AUGURY, MUSHROOMS]) }), structuredClone(start), game)
+                expect(recorded.updatedState.players.find((p) => p.playerId === 'ruler')?.handIds).toHaveLength(drawn)
+
+                let replayed = structuredClone(start)
+                for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+                expect(replayed).toEqual(recorded.updatedState)
+            }
+        })
     })
 
     it('Tavern Songs and Scryer — a peek, recorded for the peeker and nothing moved', () => {

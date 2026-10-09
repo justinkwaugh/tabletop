@@ -21,7 +21,7 @@ function player(ctx: EffectContext) {
     return ctx.state.getPlayerState(ctx.playerId)
 }
 
-const waive = () => 0
+const spendNoSupply = () => true
 
 // "Spend no Supply if you're traveling to a site in your region." Cost: place 1 favor.
 registerModifier('denizen.nomad.tents', powerIndexOf('denizen.nomad.tents', PowerTiming.Modifier), {
@@ -33,7 +33,7 @@ registerModifier('denizen.nomad.tents', powerIndexOf('denizen.nomad.tents', Powe
                 ? undefined
                 : `${to} is not in your region`
         },
-        supplyCost: waive
+        spendsNoSupply: spendNoSupply
     }
 })
 
@@ -47,7 +47,7 @@ registerModifier(
                 const n = warbandsOnBoardOf(ctx.state, ctx.playerId)
                 return n <= 3 ? undefined : `you have ${n} warbands on your board, more than three`
             },
-            supplyCost: waive
+            spendsNoSupply: spendNoSupply
         }
     }
 )
@@ -58,7 +58,7 @@ registerModifier(
     powerIndexOf('denizen.nomad.special-envoy', PowerTiming.Modifier),
     {
         hooks: {
-            supplyCost: waive,
+            spendsNoSupply: spendNoSupply,
             after: (ctx) => ({
                 summary: `Special Envoy ends ${ctx.playerId}'s Act Phase`,
                 endsActPhase: true
@@ -83,7 +83,7 @@ registerModifier(
                     ? undefined
                     : `you are travelling neither to nor from ${here}, where Portal sits`
             },
-            supplyCost: waive,
+            spendsNoSupply: spendNoSupply,
             ignoresSitePowers: true
         }
     }
@@ -139,7 +139,7 @@ registerModifier(
                 suitOf(ctx.particulars?.cardId ?? '') === Suit.Beast
                     ? undefined
                     : `${ctx.particulars?.cardId} is not a beast card`,
-            supplyCost: waive
+            spendsNoSupply: spendNoSupply
         }
     }
 )
@@ -186,7 +186,7 @@ registerModifier(
                 warbandsOnBoardOf(ctx.state, ctx.playerId) >= 1
                     ? undefined
                     : 'you have no warband on your board to sacrifice',
-            supplyCost: waive,
+            spendsNoSupply: spendNoSupply,
             before: (ctx) => {
                 killWarbandsOnBoard(ctx.state, ctx.playerId, 1)
                 return 'sacrificed a warband from your board (Awaited Return)'
@@ -207,7 +207,7 @@ registerModifier(
                     ? undefined
                     : `${ctx.particulars?.cardId} is neither a beast nor a nomad card`
             },
-            supplyCost: waive
+            spendsNoSupply: spendNoSupply
         }
     }
 )

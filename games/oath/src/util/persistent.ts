@@ -5,6 +5,7 @@ import type { CampaignParties } from './campaign.js'
 import { areEnemies, rulersOfSite, rulesSite } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentHooks } from '../powers/registry.js'
+import type { BannerTake } from './seize.js'
 
 // R-5.5.1.a — the suspension belongs to the Campaign's parties, not to this lookup.
 
@@ -119,10 +120,11 @@ export function reasonPersistentForbidsBannerTake(
     state: HydratedOathGameState,
     actorId: string,
     banner: Banner,
+    how: BannerTake,
     holderId?: string
 ) {
     return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsBannerTake?.(ctx, actorId, banner, holderId)
+        h.forbidsBannerTake?.(ctx, actorId, banner, how, holderId)
     )
 }
 export function reasonPersistentForbidsRelicTake(
@@ -274,7 +276,7 @@ export function afterBannerRecoveredPersistent(
     state: HydratedOathGameState,
     actorId: string,
     banner: Banner,
-    paid: number
+    placed: number
 ): string[] {
-    return runPersistent(state, (h, ctx) => h.afterBannerRecovered?.(ctx, actorId, banner, paid))
+    return runPersistent(state, (h, ctx) => h.afterBannerRecovered?.(ctx, actorId, banner, placed))
 }

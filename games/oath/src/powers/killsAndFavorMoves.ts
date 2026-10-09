@@ -121,7 +121,7 @@ registerModifier(
                 const beast = siteHasCardOfSuit(ctx.state, to, Suit.Beast)
                 return beast ? undefined : `${to} holds no beast card`
             },
-            supplyCost: () => 0,
+            spendsNoSupply: () => true,
             ignoresSitePowers: true
         }
     }
@@ -401,7 +401,7 @@ registerModifier(
     'denizen.hearth.news-from-afar',
     powerIndexOf('denizen.hearth.news-from-afar', PowerTiming.Modifier),
     {
-        hooks: { supplyCost: () => 0 }
+        hooks: { spendsNoSupply: () => true }
     }
 )
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, Color } from '@tabletop/common'
+import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
 import { HydratedCampaignDefend, CampaignDefend } from '../actions/campaignDefend.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
@@ -8,10 +8,10 @@ import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestio
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { OathRuntime } from '../definition/runtime.js'
-import { OathTestEngine } from '../testing/engine.js'
+import { OathTestEngine, RunMode } from '../testing/engine.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { Region, Suit } from '../model/oathEnums.js'
-import { HydratedOathGameState } from '../model/gameState.js'
+import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { BattlePlanSide, isFree, powersWithTiming, PowerTiming } from '../data/cardPowers.js'
 import { usableBattlePlans } from '../util/battlePlans.js'
@@ -25,6 +25,7 @@ import { testGame } from '../testing/game.js'
 import { discardInListedOrder, answerQuestion } from '../testing/steps.js'
 import { INN } from '../testing/cards.js'
 import { adviser } from '../testing/tables.js'
+import { OathRevision } from '../util/revision.js'
 
 /** R-5.5.8, R-X.1 — its "may" is asked once the Campaign ends. */
 const WILD_MOUNTS = 'denizen.nomad.wild-mounts'
@@ -281,6 +282,148 @@ describe('Wild Mounts — when it does nothing', () => {
         expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS, WOLVES])
         expect(s.discardPileCounts[Region.Cradle]).toBe(1)
         expect(s.pendingQuestions).toBeUndefined()
+    })
+})
+
+describe('Wild Mounts — the bandits, by its Q&A (revision 4)', () => {
+    const MOUNTED = OathRevision.CardFixes1
+    /** The attacker campaigns at h1 against the bandits, who rule every site without warbands. */
+    function bandits(denizensBySite: Record<string, string[]>, oathRevision: number = MOUNTED, warbandsBySite: Record<string, Record<string, number>> = {}) {
+        const s = board({ [ME]: { siteId: 'h1', advisers: [] } }, { oathRevision, denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], ...denizensBySite }, warbandsBySite })
+        new HydratedCampaign(buildAction(Campaign, { playerId: ME, defender: { kind: 'bandits' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], attackDice: 3 })).apply(s)
+        return s
+    }
+    const pile = (s: Board) => ({ ...s.discardPileCounts })
+
+    it('two nomad battle plans: they discard the first beast card they rule from the top of the Cradle instead, and nobody is asked', () => {
+        const s = bandits({ c2: [WOLVES], p1: [ERRAND_BOY], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] })
+        expect(s.campaign?.plansUsedBy).toEqual({ bandits: [HORSE_ARCHERS, WILD_MOUNTS, STORM_CALLER] })
+        const sacrifice = lose(s)
+        expect(sacrifice.metadata?.attackerVictorious).toBe(false)
+        expect(s.campaign).toBeUndefined()
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS, STORM_CALLER])
+        expect(s.denizensBySite.p2).toEqual([HORSE_ARCHERS])
+        // R-10.5 — the beast card leaves the Cradle for the Provinces' pile.
+        expect(s.denizensBySite.c2).toEqual([])
+        expect(s.denizensBySite.p1).toEqual([ERRAND_BOY])
+        expect(pile(s)).toEqual({ [Region.Cradle]: 0, [Region.Provinces]: 1, [Region.Hinterland]: 0 })
+        expect(s.vault?.discardPiles[Region.Provinces][0]).toBe(WOLVES)
+    })
+
+    it('a victory or a defeat alike: the end discard is the same', () => {
+        const s = bandits({ c2: [WOLVES], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] })
+        win(s)
+        expect(s.campaign).toBeUndefined()
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(s.denizensBySite.c2).toEqual([])
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS, STORM_CALLER])
+        expect(s.denizensBySite.p2).toEqual([HORSE_ARCHERS])
+    })
+
+    it('the first one they rule: a beast card at a site a player rules is passed over', () => {
+        const s = bandits({ c1: [WOLVES], p1: [ERRAND_BOY], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] }, MOUNTED, { c1: { [FOE]: 1 } })
+        lose(s)
+        expect(s.denizensBySite.c1).toEqual([WOLVES])
+        expect(s.denizensBySite.p1).toEqual([])
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS, STORM_CALLER])
+        expect(pile(s)).toEqual({ [Region.Cradle]: 0, [Region.Provinces]: 0, [Region.Hinterland]: 1 })
+    })
+
+    it('a locked beast card cannot be the one (R-7.2.2): the search goes on past it', () => {
+        const s = bandits({ c1: [FOREST_COUNCIL], c2: [WOLVES], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] })
+        lose(s)
+        expect(s.denizensBySite.c1).toEqual([FOREST_COUNCIL])
+        expect(s.denizensBySite.c2).toEqual([])
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS, STORM_CALLER])
+    })
+
+    it('two or more: a single nomad battle plan goes as printed', () => {
+        const s = bandits({ c2: [WOLVES], h1: [WILD_MOUNTS, STORM_CALLER] })
+        lose(s)
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS])
+        expect(s.denizensBySite.c2).toEqual([WOLVES])
+        expect(pile(s)).toEqual({ [Region.Cradle]: 1, [Region.Provinces]: 0, [Region.Hinterland]: 0 })
+    })
+
+    it('with no unlocked beast card ruled, the plans go as printed', () => {
+        const s = bandits({ c1: [FOREST_COUNCIL], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] })
+        lose(s)
+        expect(s.denizensBySite.c1).toEqual([FOREST_COUNCIL])
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS])
+        expect(s.denizensBySite.p2).toEqual([])
+    })
+
+    it('Wild Mounts at a site a player rules is no plan of theirs: the plans go as printed', () => {
+        const s = bandits({ c1: [WILD_MOUNTS], c2: [WOLVES], h1: [STORM_CALLER], p2: [HORSE_ARCHERS] }, MOUNTED, { c1: { [FOE]: 1 } })
+        expect(s.campaign?.plansUsedBy).toEqual({ bandits: [HORSE_ARCHERS, STORM_CALLER] })
+        lose(s)
+        expect(s.denizensBySite.c2).toEqual([WOLVES])
+        expect(s.denizensBySite.h1).toEqual([])
+        expect(s.denizensBySite.p2).toEqual([])
+    })
+
+    it('R-X.4 — before revision 4 the bandits discard as printed', () => {
+        const s = bandits({ c2: [WOLVES], h1: [WILD_MOUNTS, STORM_CALLER], p2: [HORSE_ARCHERS] }, OathRevision.PlanCostsAndSearchPlays)
+        lose(s)
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(s.denizensBySite.c2).toEqual([WOLVES])
+        expect(s.denizensBySite.h1).toEqual([WILD_MOUNTS])
+        expect(s.denizensBySite.p2).toEqual([])
+        expect(pile(s)).toEqual({ [Region.Cradle]: 1, [Region.Provinces]: 0, [Region.Hinterland]: 1 })
+    })
+})
+
+describe('R-X.4 — a Campaign against the bandits with Wild Mounts replays as it was recorded', () => {
+    const engine = new OathTestEngine(OathRuntime)
+    const game = testGame([ME, FOE])
+    const denizensBySite = { c1: [], c2: [WOLVES], p1: [], p2: [HORSE_ARCHERS], h1: [WILD_MOUNTS, STORM_CALLER] }
+
+    function record(oathRevision: number, seed: number) {
+        const start = board({ [ME]: { siteId: 'h1', advisers: [] } }, { oathRevision, denizensBySite, warbandsBySite: {}, prng: { seed, invocations: 0 } }).dehydrate()
+        let state: OathProjectedState = structuredClone(start)
+        const processed: GameAction[] = []
+        const run = (action: GameAction) => {
+            const result = engine.runNext(action, state, game)
+            processed.push(...result.processedActions)
+            state = result.updatedState
+        }
+        run(buildAction(Campaign, { playerId: ME, defender: { kind: 'bandits' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], attackDice: 3 }))
+        const rolled = state.campaign
+        if (!rolled || rolled.swords > rolled.defense) return undefined
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0)
+        run(buildAction(CampaignSacrifice, { playerId: ME, sacrifice: 0, defeatKills }))
+        return { start, processed, recorded: state }
+    }
+
+    function recordedWhereBanditsWin(oathRevision: number) {
+        for (let seed = 1; seed < 400; seed++) {
+            const found = record(oathRevision, seed)
+            if (found) return found
+        }
+        throw new Error('no seed gave the bandits the win')
+    }
+
+    function replay(start: OathProjectedState, processed: readonly GameAction[]) {
+        let replayed = structuredClone(start)
+        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        return replayed
+    }
+
+    it.each([
+        ['revision 3', OathRevision.PlanCostsAndSearchPlays],
+        ['revision 4', OathRevision.CardFixes1]
+    ])('%s: every action replayed alone reaches the recorded state', (_name, oathRevision) => {
+        const { start, processed, recorded } = recordedWhereBanditsWin(oathRevision)
+        expect(recorded.campaign).toBeUndefined()
+        expect(replay(start, processed)).toEqual(recorded)
+    })
+
+    it('revision 3 discarded the two nomad plans; revision 4 discarded the beast card instead', () => {
+        const old = recordedWhereBanditsWin(OathRevision.PlanCostsAndSearchPlays).recorded
+        expect(old.denizensBySite).toMatchObject({ c2: [WOLVES], p2: [], h1: [WILD_MOUNTS] })
+        const now = recordedWhereBanditsWin(OathRevision.CardFixes1).recorded
+        expect(now.denizensBySite).toMatchObject({ c2: [], p2: [HORSE_ARCHERS], h1: [WILD_MOUNTS, STORM_CALLER] })
     })
 })
 

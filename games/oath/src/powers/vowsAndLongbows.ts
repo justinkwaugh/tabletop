@@ -2,6 +2,7 @@ import { Banner } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { rulesSite, sitesRuledBy } from '../util/rule.js'
 import { warbandsOnBoardOf } from '../util/force.js'
+import { cannotRecoverForbids } from '../util/seize.js'
 import { registerBattlePlan, registerModifier, registerPersistent } from './registry.js'
 
 // "[plusMinus][attackDie]" — Longbows prints nothing but the icons. Either side.
@@ -32,8 +33,10 @@ registerPersistent(VOW_OF_UNION, powerIndexOf(VOW_OF_UNION, PowerTiming.Persiste
 // "You cannot recover the People's Favor. Whenever any player burns [favor], you take the [favor] instead." Adviser, locked.
 const VOW_OF_RENEWAL = 'denizen.discord.vow-of-renewal'
 registerPersistent(VOW_OF_RENEWAL, powerIndexOf(VOW_OF_RENEWAL, PowerTiming.Persistent), {
-    forbidsBannerTake: (ctx, actorId, banner) =>
-        banner === Banner.PeoplesFavor && ctx.ownerIds.includes(actorId)
+    forbidsBannerTake: (ctx, actorId, banner, how) =>
+        banner === Banner.PeoplesFavor &&
+        ctx.ownerIds.includes(actorId) &&
+        cannotRecoverForbids(ctx.state, how)
             ? "Vow of Renewal: you cannot recover the People's Favor"
             : undefined,
     takesBurnedFavor: (ctx) => ctx.ownerIds[0]

@@ -26,7 +26,8 @@ import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/acti
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
     firstForbid,
-    foldNumber,
+    foldDrawCount,
+    foldSupplyCost,
     modifierContext,
     modifierSummary,
     ModifierUse,
@@ -307,7 +308,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             particulars
         )
         if (resolved.reason) return base
-        return foldNumber('drawCount', base, state, playerId, resolved.active, particulars)
+        return foldDrawCount(base, state, playerId, resolved.active, particulars)
     }
 
     static plan(
@@ -330,7 +331,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         )
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
-        const cost = foldNumber('supplyCost', base, state, playerId, active, particulars)
+        const cost = foldSupplyCost(base, state, playerId, active, particulars)
         // R-6.6.2.a — Greedy's "cannot search if you would spend more than 2".
         const forbidden = firstForbid(state, playerId, active, { ...particulars, supplyCost: cost })
         if (forbidden) return { cost, active, reason: forbidden }

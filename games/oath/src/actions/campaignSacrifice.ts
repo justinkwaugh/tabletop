@@ -6,6 +6,7 @@ import { PileDeposit } from '../model/hidden.js'
 import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.js'
 import { tableWitnesses } from '../util/knowledge.js'
 import {
+    banditPlanContext,
     killOrRedirect,
     partiesOf,
     usedPlanContext,
@@ -225,7 +226,14 @@ export class HydratedCampaignSacrifice
             return killFromAttackingForce(state, campaign, this.sacrifice)
         }
         for (const group of this.sacrificeKills) {
-            killOrRedirect(state, campaign, group.at, group.owner, group.count)
+            killOrRedirect(
+                state,
+                campaign,
+                BattlePlanSide.Attacker,
+                group.at,
+                group.owner,
+                group.count
+            )
         }
         return this.sacrificeKills
     }
@@ -237,12 +245,13 @@ export class HydratedCampaignSacrifice
         kills: readonly WarbandGroup[],
         attackerVictorious: boolean
     ): { defeatKilled: number; survivorsNote?: string } {
+        const victorSide = attackerVictorious ? BattlePlanSide.Attacker : BattlePlanSide.Defender
+        const defeatedSide = attackerVictorious ? BattlePlanSide.Defender : BattlePlanSide.Attacker
         for (const group of kills) {
-            killOrRedirect(state, campaign, group.at, group.owner, group.count)
+            killOrRedirect(state, campaign, defeatedSide, group.at, group.owner, group.count)
         }
 
         const survivors = HydratedCampaignSacrifice.subtractSelection(force, kills)
-        const victorSide = attackerVictorious ? BattlePlanSide.Attacker : BattlePlanSide.Defender
         const survivorsNote = HydratedCampaignSacrifice.victorTakesSurvivors(
             state,
             campaign,
@@ -463,7 +472,17 @@ export class HydratedCampaignSacrifice
         const notes: string[] = []
         const pileDeposits: PileDeposit[] = []
         for (const playerId of Object.keys(campaign.plansUsedBy)) {
-            if (playerId === BANDITS_PLAN_USER) continue
+            if (playerId === BANDITS_PLAN_USER) {
+                notes.push(
+                    ...HydratedCampaignSacrifice.banditOutcomes(
+                        state,
+                        campaign,
+                        !attackerVictorious,
+                        sides
+                    )
+                )
+                continue
+            }
             const victorious =
                 sideOf(campaign, playerId) === BattlePlanSide.Attacker
                     ? attackerVictorious
@@ -484,6 +503,26 @@ export class HydratedCampaignSacrifice
             }
         }
         return { notes, pileDeposits }
+    }
+
+    /** R-5.5.3-H1, R-5.5.6, R-10.3-H1 — the bandits' compelled plans whose outcome is ruled for them. */
+    private static banditOutcomes(
+        state: HydratedOathGameState,
+        campaign: CampaignState,
+        victorious: boolean,
+        sides: (victorious: boolean) => boolean
+    ): string[] {
+        if (!isAtLeastOathRevision(state, OathRevision.CardFixes1)) return []
+        if (!sides(victorious)) return []
+        const notes: string[] = []
+        for (const plan of plansUsedBy(state, campaign, BANDITS_PLAN_USER)) {
+            const note = plan.hooks.onBanditOutcome?.(
+                banditPlanContext(state, campaign, plan),
+                victorious
+            )
+            if (note) notes.push(note)
+        }
+        return notes
     }
 
     // R-5.5.5-H1 — the attacker names the sacrificed warbands whenever the force holds more than one kind.

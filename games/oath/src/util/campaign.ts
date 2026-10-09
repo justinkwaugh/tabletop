@@ -403,6 +403,7 @@ function reasonCannotTarget(
                 state,
                 parties.attackerPlayerId,
                 target.banner,
+                'seize',
                 defender.playerId
             )
         case CampaignTargetKind.PawnAndFavor:

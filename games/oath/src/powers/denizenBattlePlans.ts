@@ -1,7 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import { bannerHolder } from '../util/oathkeeper.js'
 import { removeFavorFromBoard } from '../util/favor.js'
-import { burnFavor } from '../util/burn.js'
+import { burnFavor, burnFavorFromBank } from '../util/burn.js'
+import { countKilled } from '../util/campaignRoll.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -83,6 +84,24 @@ function holdsDarkestSecretWide(ctx: BattlePlanContext): boolean {
     if (!holder) return false
     if (holder === user) return true
     return isImperialPlayer(ctx.state, user) && isImperialPlayer(ctx.state, holder)
+}
+
+/**
+ * Cursed Cauldron — a plan's own kill, of `dying`'s force. The bandits' plans resolve while the
+ * Campaign is mustered, before its state exists, and no player stands on their side to count one.
+ */
+function countPlanKill(ctx: BattlePlanContext, dying: BattlePlanSide, count: number): void {
+    if (ctx.playerId === undefined) return
+    const campaign = ctx.state.campaign
+    assertExists(campaign, "a player's defending plan is used inside a Campaign")
+    countKilled(ctx.state, campaign, dying, count)
+}
+
+/** R-10.3-H1 — favor a bank would pay the bandits is burned. */
+function gainFavorFromBankFor(ctx: BattlePlanContext, suit: Suit, wanted: number): number {
+    return ctx.playerId === undefined
+        ? burnFavorFromBank(ctx.state, suit, wanted)
+        : gainFavorFromBank(ctx.state, ctx.playerId, suit, wanted)
 }
 
 function discardAtOutcome(ctx: BattlePlanContext, cardId: string): void {
@@ -302,16 +321,17 @@ registerBattlePlan(
 )
 
 // "If you're defeated, kill no warbands in your force and discard Traveling Doctor. Ignore powers that kill all of your force."
+// R-5.5.6: defeated bandits resolve it too. Their force holds no warbands, so only the discard does anything.
 const DOCTOR = 'denizen.hearth.traveling-doctor'
+function travelingDoctor(ctx: BattlePlanContext, victorious: boolean): string | undefined {
+    if (victorious) return undefined
+    discardAtOutcome(ctx, DOCTOR)
+    return ctx.playerId === undefined
+        ? 'Traveling Doctor: discarded, the bandits being defeated'
+        : 'Traveling Doctor: defeated, no warbands killed, and it is discarded'
+}
 registerBattlePlan(DOCTOR, powerIndexOf(DOCTOR, PowerTiming.BattlePlan), {
-    hooks: {
-        defeatKills: 'none',
-        onOutcome: (ctx, victorious) => {
-            if (victorious) return undefined
-            discardAtOutcome(ctx, DOCTOR)
-            return 'Traveling Doctor: defeated, no warbands killed, and it is discarded'
-        }
-    }
+    hooks: { defeatKills: 'none', onOutcome: travelingDoctor, onBanditOutcome: travelingDoctor }
 })
 
 // "±3 attack dice and ignore all skulls you roll, unless your enemy has the People's Favor." Cost: place 2 favor.
@@ -411,17 +431,19 @@ registerBattlePlan(
     }
 )
 
-// "If you're victorious, gain two favor from the order bank."
+// "If you're victorious, gain two favor from the order bank." Its Q&A: the bandits burn it.
+function battleHonors(ctx: BattlePlanContext, victorious: boolean): string | undefined {
+    if (!victorious) return undefined
+    const gained = gainFavorFromBankFor(ctx, Suit.Order, 2)
+    return ctx.playerId === undefined
+        ? `Battle Honors: burned ${gained} favor from the order bank, the bandits being victorious`
+        : `Battle Honors: gained ${gained} favor from the order bank`
+}
 registerBattlePlan(
     'denizen.order.battle-honors',
     powerIndexOf('denizen.order.battle-honors', PowerTiming.BattlePlan),
     {
-        hooks: {
-            onOutcome: (ctx, victorious) =>
-                victorious
-                    ? `Battle Honors: gained ${gainFavorFromBank(ctx.state, ctx.playerId, Suit.Order, 2)} favor from the order bank`
-                    : undefined
-        }
+        hooks: { onOutcome: battleHonors, onBanditOutcome: battleHonors }
     }
 )
 
@@ -435,6 +457,7 @@ registerBattlePlan(
             onUse: (ctx) => {
                 const attackerId = ctx.campaign.parties.attackerPlayerId
                 const { killed } = killWarbandsOnBoard(ctx.state, attackerId, 1)
+                countPlanKill(ctx, BattlePlanSide.Attacker, killed)
                 return killed
                     ? `Bear Traps: killed a warband on ${attackerId}'s board`
                     : "Bear Traps: no warband on the attacker's board to kill"
@@ -458,23 +481,25 @@ registerBattlePlan(
 )
 
 // "If you're victorious, gain favor from the favor banks matching each adviser of your enemy (including Imperial Allies)."
+// Its Q&A: the bandits burn it.
+function militaryParade(ctx: BattlePlanContext, victorious: boolean): string | undefined {
+    if (!victorious) return undefined
+    let gained = 0
+    for (const id of enemies(ctx)) {
+        for (const cardId of ctx.state.getPlayerState(id).faceupAdviserIds()) {
+            const suit = suitOf(cardId)
+            if (suit) gained += gainFavorFromBankFor(ctx, suit, 1)
+        }
+    }
+    return ctx.playerId === undefined
+        ? `Military Parade: burned ${gained} favor from the banks matching the attacker's advisers, the bandits being victorious`
+        : `Military Parade: gained ${gained} favor from the banks matching your enemy's advisers`
+}
 registerBattlePlan(
     'denizen.order.military-parade',
     powerIndexOf('denizen.order.military-parade', PowerTiming.BattlePlan),
     {
-        hooks: {
-            onOutcome: (ctx, victorious) => {
-                if (!victorious) return undefined
-                let gained = 0
-                for (const id of enemies(ctx)) {
-                    for (const cardId of ctx.state.getPlayerState(id).faceupAdviserIds()) {
-                        const suit = suitOf(cardId)
-                        if (suit) gained += gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
-                    }
-                }
-                return `Military Parade: gained ${gained} favor from the banks matching your enemy's advisers`
-            }
-        }
+        hooks: { onOutcome: militaryParade, onBanditOutcome: militaryParade }
     }
 )
 
@@ -512,9 +537,9 @@ registerBattlePlan(
                 )
                 const group = force.find((g) => g.at.kind === 'board') ?? force[0]
                 if (!group) return undefined
-                return killWarbandGroup(ctx.state, { ...group, count: 1 }) > 0
-                    ? { defense: 1 }
-                    : undefined
+                const killed = killWarbandGroup(ctx.state, { ...group, count: 1 })
+                countPlanKill(ctx, BattlePlanSide.Defender, killed)
+                return killed > 0 ? { defense: 1 } : undefined
             }
         }
     }
