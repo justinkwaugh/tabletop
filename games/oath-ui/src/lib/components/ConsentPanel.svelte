@@ -5,6 +5,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { ConsentRequestKind, IMPERIAL_WARBANDS } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { WarbandWhose } from '$lib/model/tokenText.js'
     import { consentQuestion } from '$lib/model/consentRequests.js'
 
     // R-X.1 — another player's permission is explicit action input,
@@ -21,15 +22,13 @@
     let question = $derived(
         asked && consentQuestion(gameState, asked, (id) => gameSession.getPlayerName(id))
     )
-    // R-10.13 — the warbands asked about are their owner's pieces, the Empire's in its colour.
-    let warbandColors = $derived(
-        asked?.request.kind === ConsentRequestKind.WarbandMove
-            ? {
-                  own: gameSession.warbandColor(asked.request.owner),
-                  imperial: gameSession.warbandColor(IMPERIAL_WARBANDS)
-              }
-            : undefined
-    )
+    // R-10.13 — the warbands asked about are their owner's pieces, an Imperial phrase the Empire's.
+    let warbandColor = $derived.by(() => {
+        if (asked?.request.kind !== ConsentRequestKind.WarbandMove) return undefined
+        const own = gameSession.warbandColor(asked.request.owner)
+        const imperial = gameSession.warbandColor(IMPERIAL_WARBANDS)
+        return (whose: WarbandWhose) => (whose.kind === 'imperial' ? imperial : own)
+    })
 
     let request = $derived(
         pending?.request.kind === ConsentRequestKind.CitizenshipOffer ? pending.request : undefined
@@ -57,7 +56,7 @@
         <p class="text-sm mb-2">
             {#each question.parts as part, i (i)}{#if part.kind === 'seat'}<PlayerName
                         playerId={part.playerId}
-                    />{:else}<TokenText text={part.text} {warbandColors} />{/if}{/each}
+                    />{:else}<TokenText text={part.text} {warbandColor} />{/if}{/each}
         </p>
         <!-- Rule 1 — a move the board no longer allows has no Allow; the engine's reason says why. -->
         {#if grantBlockedBecause}

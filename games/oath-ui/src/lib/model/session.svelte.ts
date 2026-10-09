@@ -100,7 +100,8 @@ import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { VisionsSeen } from './visionsSeen.svelte.js'
 import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
-import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
+import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
+import type { WarbandWhose } from './tokenText.js'
 import {
     endingRule,
     gameEndEvent,
@@ -1094,13 +1095,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
-    /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */
-    historyWarbandColors(action: GameAction): { own: Color; imperial: Color } {
-        const imperial = this.warbandColor(IMPERIAL_WARBANDS)
-        const owner = rowWarbandOwner(action, (playerId) =>
-            ownWarbandOwner(this.gameState, playerId)
-        )
-        return { own: owner === undefined ? imperial : this.warbandColor(owner), imperial }
+    /** R-10.13 — each of a History row's warbands in its owner's colour, the Empire's in the Chancellor's. */
+    historyWarbandColor(action: GameAction): (whose: WarbandWhose) => Color {
+        const reader = { names: this.historyNames, viewerId: this.myPlayer?.id }
+        return (whose) => {
+            const owner = phraseWarbandOwner(whose, action, reader, (playerId) =>
+                ownWarbandOwner(this.gameState, playerId)
+            )
+            return this.warbandColor(owner ?? IMPERIAL_WARBANDS)
+        }
     }
 
     warbandOwnerName(owner: WarbandOwner): string {

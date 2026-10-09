@@ -95,7 +95,7 @@ describe('a History row names every seat inside it by its chip', () => {
                 text('asked '),
                 chip(BOB, true),
                 text(' permission to move '),
-                { kind: 'warband', count: 2, imperial: true, words: 'Imperial warbands' },
+                { kind: 'warband', count: 2, whose: { kind: 'imperial' }, words: 'Imperial warbands' },
                 text(' to '),
                 chip(BOB)
             ])
@@ -133,7 +133,7 @@ describe('a History row names every seat inside it by its chip', () => {
         for (const reader of READERS) {
             expect(row(moved, reader)).toEqual([
                 text('moved '),
-                { kind: 'warband', count: 2, imperial: false, words: "of Bob's warbands" },
+                { kind: 'warband', count: 2, whose: { kind: 'seat', name: 'Bob' }, words: "of Bob's warbands" },
                 text(' from board to site')
             ])
         }
@@ -150,7 +150,7 @@ describe("the reader's own seat is their chip, which reads “you”", () => {
         }
         const won = [
             text('sacrificed '),
-            { kind: 'warband', count: 2, imperial: false, words: 'warbands' },
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
             text(' and won the battle — '),
             chip(BOB)
         ]
@@ -175,14 +175,14 @@ describe("the reader's own seat is their chip, which reads “you”", () => {
         const killed = used(`killed 2 warbands on ${ALICE}'s board`)
         expect(row(killed, ALICE)).toEqual([
             text('used Deed Writer: killed '),
-            { kind: 'warband', count: 2, imperial: false, words: 'warbands' },
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
             text(' on '),
             chip(ALICE, true),
             text(' own board')
         ])
         expect(row(killed, BOB)).toEqual([
             text('used Deed Writer: killed '),
-            { kind: 'warband', count: 2, imperial: false, words: 'warbands' },
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
             text(' on their own board')
         ])
     })

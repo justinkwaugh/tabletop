@@ -43,6 +43,7 @@ import {
     IMPERIAL_WARBANDS,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
+    type CampaignPlacement,
     type CampaignTarget,
     Suit,
     type LetPeek,
@@ -74,6 +75,7 @@ import {
     pileDepositsOf,
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
+import type { WarbandWhose } from '$lib/model/tokenText.js'
 
 // Past tense with no leading capital or possessive about the actor: `PlayerName` renders "You" first.
 // R-9.4 — a card is named only where the game showed it, recorded as `playedCardId`.
@@ -126,6 +128,37 @@ export function rowWarbandOwner(
     return seat === undefined ? undefined : ownWarbandsOf(seat)
 }
 
+/**
+ * R-10.13 — a counted phrase's warbands: the owner its own words name ("Imperial", a seat, the
+ * viewer's "your", the actor's "their own"), else the row's. A seat this reader cannot name
+ * leaves them the row's, as every phrase was before.
+ */
+export function phraseWarbandOwner(
+    whose: WarbandWhose,
+    action: GameAction,
+    reader: { names: Seats; viewerId: string | undefined },
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    switch (whose.kind) {
+        case 'imperial':
+            return IMPERIAL_WARBANDS
+        case 'viewer':
+            assertExists(reader.viewerId, 'only a seated viewer reads "your" in a History row')
+            return reader.viewerId
+        case 'actor':
+            assertExists(action.playerId, 'only an actor’s row reads "their own"')
+            return action.playerId
+        case 'seat':
+            return (
+                reader.names.seats.find(
+                    (playerId) => reader.names.player(playerId) === whose.name
+                ) ?? rowWarbandOwner(action, ownWarbandsOf)
+            )
+        case 'row':
+            return rowWarbandOwner(action, ownWarbandsOf)
+    }
+}
+
 function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
     if (isMoveWarbands(action)) return action.owner
     if (isMuster(action)) return action.metadata?.warbandOwner
@@ -140,9 +173,88 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
     return nameIds(
-        stripRules(describeActionCited(action, names, viewerId) + outcomeClauses(action, viewerId)),
+        stripRules(
+            describeActionCited(action, names, viewerId) +
+                recordedNoteClauses(action, names, viewerId) +
+                outcomeClauses(action, viewerId)
+        ),
         names.site
     )
+}
+
+function recordedNoteClauses(
+    action: GameAction,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    return recordedNotes(action)
+        .map((note) => `; ${namedNote(note, action.playerId, names, viewerId)}`)
+        .join('')
+}
+
+/**
+ * R-7.3.3, R-7.1.4, R-11.2, R-7.4, R-5.5.8 — what a second When Played card, a triggered power, a
+ * Homeland, a modifier or a battle plan did, as the row that set it off recorded it.
+ */
+function recordedNotes(action: GameAction): readonly string[] {
+    if (isSearchResolve(action)) {
+        const meta = action.metadata
+        const second = meta?.secondWhenPlayed
+        return [
+            ...(second ? [secondWhenPlayedNote(second, meta?.secondPlayedCardId)] : []),
+            ...(meta?.triggered ?? []),
+            ...(meta?.sitePower ? [meta.sitePower] : []),
+            ...(meta?.modifierNotes ?? [])
+        ]
+    }
+    if (isPlayFacedownAdviser(action)) {
+        const meta = action.metadata
+        return [...(meta?.sitePower ? [meta.sitePower] : []), ...(meta?.modifierNotes ?? [])]
+    }
+    if (isTravel(action) || isMuster(action) || isTrade(action) || isRecover(action)) {
+        return action.metadata?.modifierNotes ?? []
+    }
+    if (isCampaign(action) || isCampaignAttackPlans(action) || isAnswerConsent(action)) {
+        return action.metadata?.battle?.planNotes ?? []
+    }
+    if (isCampaignDefend(action) || isCampaignSacrifice(action) || isCampaignDefeatKills(action)) {
+        return action.metadata?.planNotes ?? []
+    }
+    if (isCampaignResolveVictory(action)) return action.metadata?.triggered ?? []
+    return []
+}
+
+/** Land Warden — the second card's When Played, under that card's name once. */
+function secondWhenPlayedNote(summary: string, cardId: string | undefined): string {
+    return cardId ? `${cardName(cardId)}: ${withoutCardName(summary, cardId)}` : summary
+}
+
+/** R-7.3.3 — the kept card's When Played follows it: "…: gained 4 Imperial warbands". */
+function whenPlayedClause(
+    whenPlayed: string | undefined,
+    cardId: string | undefined,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    if (!whenPlayed) return ''
+    const shown = cardId ? withoutCardName(whenPlayed, cardId) : whenPlayed
+    return `: ${namedNote(shown, actorId, names, viewerId)}`
+}
+
+/** R-5.5.7.I — each placement names its owner, so its piece takes that owner's colour. */
+function placementsClause(
+    placements: readonly CampaignPlacement[],
+    actorId: string,
+    names: HistoryNames
+): string {
+    const placed = placements
+        .filter((placement) => placement.count > 0)
+        .map(
+            (placement) =>
+                `${warbandsOf(placement.count, placement.owner, names.player, actorId)} at ${names.site(placement.siteId)}`
+        )
+    return placed.length > 0 ? `; placed ${placed.join(' and ')}` : ''
 }
 
 // R-9.4 — a pile's region is public; the cards and what was seen are the actor's alone.
@@ -266,7 +378,8 @@ function describeActionCited(
         const secrets = action.metadata?.secretsGained ?? 0
         return (
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
-            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '')
+            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '') +
+            whenPlayedClause(action.metadata?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
     if (isRecover(action)) {
@@ -324,7 +437,8 @@ function describeActionCited(
         return (
             'took the spoils' +
             (gains.length > 0 ? `, ${gains.join(' and ')}` : '') +
-            ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '')
+            ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '') +
+            placementsClause(action.placements, action.playerId, names)
         )
     }
     if (isPlayFacedownAdviser(action)) {
@@ -342,7 +456,8 @@ function describeActionCited(
         return (
             describeAdviserPlay(action.play, shownCard(meta?.playedCardId)) +
             gained +
-            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '')
+            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '') +
+            whenPlayedClause(meta?.whenPlayed, meta?.playedCardId, action.playerId, names, viewerId)
         )
     }
     if (isUseActionPower(action)) {
@@ -494,7 +609,16 @@ function namedSummary(
     names: HistoryNames,
     viewerId: string | undefined
 ): string {
-    return namedBanks(nameSeats(withoutCardName(summary, cardId), names, viewerId, actorId))
+    return namedNote(withoutCardName(summary, cardId), actorId, names, viewerId)
+}
+
+function namedNote(
+    note: string,
+    actorId: string | undefined,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    return namedBanks(nameSeats(note, names, viewerId, actorId))
 }
 
 /** R-4.1.1, R-4.1.4 — the People's Favor steps and the site's take; R-4.1.2's win ends the Wake before the take. */

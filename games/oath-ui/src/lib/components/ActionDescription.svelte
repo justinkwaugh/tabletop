@@ -17,10 +17,10 @@
     )
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
     let seen = $derived(actorOnlyCards(action, gameSession.myPlayer?.id))
-    let warbandColors = $derived(gameSession.historyWarbandColors(action))
+    let warbandColor = $derived(gameSession.historyWarbandColor(action))
 </script>
 
-<span><TokenText {text} {warbandColors} {seats} /></span>
+<span><TokenText {text} {warbandColor} {seats} /></span>
 {#if seen.length > 0}
     <span class="mt-1 block"><ShownCards cardIds={seen} height={48} /></span>
 {/if}

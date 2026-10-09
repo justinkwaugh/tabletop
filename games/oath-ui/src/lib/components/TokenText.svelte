@@ -5,21 +5,21 @@
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { suitName } from '$lib/model/names.js'
-    import { tokenParts, type TokenOptions } from '$lib/model/tokenText.js'
+    import { tokenParts, type TokenOptions, type WarbandWhose } from '$lib/model/tokenText.js'
 
     // A panel names favor, secrets and suits by their tokens and symbols; the word is the image's alt.
-    // R-10.13 — given colours, warbands are their token in their owner's colour, the Empire's in its own.
+    // R-10.13 — given each phrase's colour, warbands are their token in the colour of the owner it names.
     // Given the seats, text that names them by id draws each as its colour chip.
     let {
         text,
-        warbandColors,
+        warbandColor,
         seats
     }: {
         text: string
-        warbandColors?: { own: Color; imperial: Color }
+        warbandColor?: (whose: WarbandWhose) => Color
         seats?: TokenOptions['seats']
     } = $props()
-    let parts = $derived(tokenParts(text, { warbands: warbandColors !== undefined, seats }))
+    let parts = $derived(tokenParts(text, { warbands: warbandColor !== undefined, seats }))
 </script>
 
 <!-- `PlayerName` reads "you" and "your" for the viewer; inside a line, in lower case. -->
@@ -34,8 +34,8 @@
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
             title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
         />{:else if part.kind === 'warband'}<span class="token-text__count"
-            >{part.count}{#if warbandColors}{@const figure = warbandFigure(
-                    part.imperial ? warbandColors.imperial : warbandColors.own
+            >{part.count}{#if warbandColor}{@const figure = warbandFigure(
+                    warbandColor(part.whose)
                 )}<img
                     class="token-text__token"
                     src={figure.src}
