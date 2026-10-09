@@ -1,92 +1,129 @@
-# State shape changes deferred until the deployed game finishes
+# State shape: definition data out of the 18xx State
 
 The title-state composition and removal of unused mechanism fields were implemented on
-2026-10-03; see [composed title state](title-state-design.md) for readers and release
-compatibility for the single existing TOP save. The remaining definition-data reductions
-below are separate work.
+2026-10-03; see [composed title state](title-state-design.md). This note covers the
+remaining definition-data reductions tracked in issue #87. It was first written for TOP
+alone and revised on 2026-10-09 across TOP, 1889, 1830, 1846, 1817 and 1832.
 
-When this backlog was measured, one Hosted Game of The Old Prince was in progress.
-Hosted Games follow the current Publication. Its schema is closed
-(`additionalProperties: false`), so the changes below affect what an already-loaded
-client accepts. Any further reduction needs an explicit saved-state reader, deliberate
-runtime-contract snapshot updates, deployed-game replay verification, and a matching
-major Logic/UI release so clients reload. The composition change above provides readers
-for TOP's removed empty field; it does not implement these definition-data reductions.
+## Release constraints (2026-10-09)
 
-Measured on the deployed game's latest State at action 181: 52,360 bytes as compact JSON
-(the exported file is 87 KB pretty-printed). Definition data restated in every State is
-about 45% of it.
+The Old Prince is the only published 18xx title (alpha visibility). It has one hosted
+game that matters, `cPP23MM5f4tdggTpOAz3L`, in its final operating set after the
+first-diesel trigger; a second TOP game started on 2026-10-08 will be deleted. The owner
+decided that the finished game may become unviewable. So:
 
-Additive optional fields that the deployed game never writes are outside this freeze:
-its states are unchanged, so loaded clients keep accepting them, and the new schema
-accepts a superset. 1830's slice 3 added two (`stockTurnPurchases`, and a player-buyer
-variant of `purchaseOffer`) and regenerated the TOP and 1889 contract snapshots.
+- No saved-state reader or undo-patch migration is written. TOP's existing reader for its
+  empty `usedPrivatePowerIds` placeholder is deleted, and the deployed-game replay spec
+  and its fixture are retired.
+- The change ships as TOP Logic and UI `2.0.0`, published only after that game ends. The
+  branch may merge to main before then; TOP is not released from it until the game ends.
+- 1889, 1830, 1846 and 1817 have no published artifacts or hosted games; their shape
+  changes freely. 1832 merges to main before this work, so the changes cover it.
 
-## 1. Certificates carry their definition (about 12 KB)
+## Measurements
 
-`certificates` is 22,985 bytes for 134 records. Of each record only `owner`, `poolId`
-and `retired` change during play. `kind`, `shares`, `president` and
-`certificateLimitCount` (3,618 bytes; it is 1 on every record) are fixed facts, and
-`companyId` is derivable from the id. `number` is TOP's and is derivable from the id too.
+Final State of each title's recorded finished game, compact JSON, in KB. Measured by
+replaying the playground's finished-game fixtures (`apps/18xx-playground/src/demo/fixtures`)
+and comparing every state path between the opening and each later State.
 
-Change: keep the variable fields in State and take the fixed ones from a certificate
-definition owned by the title (the family's `createOrdinaryShareCertificates` already
-knows the shape). `Portfolio`, `OpenShare` and the queries in `finance.ts` become joins
-against the definition. The UI reads certificates through the session, so it follows.
+| Field                                   | TOP  | 1889 | 1830 | 1846 | 1817 | 1832 |
+| --------------------------------------- | ---- | ---- | ---- | ---- | ---- | ---- |
+| Whole State                             | 75.1 | 48.9 | 58.7 | 37.1 | 92.4 | 76.0 |
+| `stockMarket.spaces`                    | 6.6  | 10.3 | 13.9 | 3.8  | 3.9  | 18.7 |
+| Fixed certificate fields                | 11.7 | 5.9  | 6.7  | 4.4  | 17.3 | 11.1 |
+| of which `certificateLimitCount`        | 3.5  | 1.8  | 2.0  | 1.3  | 5.4  | 3.3  |
+| Retired certificates                    | 1.6  | 0.7  | 0.6  | 0.5  | 13.8 | 9.3  |
+| Removed stations and rusted trains      | 2.3  | 0.5  | 1.1  | 1.2  | 6.0  | 2.6  |
+| Company and pool names                  | 1.0  | 0.4  | 0.5  | 0.3  | 1.4  | 0.6  |
+| `finalWealth` (game end only)           | 5.1  | 5.2  | 5.4  | 2.8  | 6.3  | 2.2  |
+| `turnManager.series` (one entry a turn) | 16.4 | 10.2 | 13.5 | 8.5  | 23.2 | 17.4 |
 
-## 2. Certificates and stations for companies not yet in play (about 11 KB)
+TOP's deployed game at action 181 was 52.4 KB, 45% of it definition data; 11.4 KB of
+that was its six unsplit branches' certificates and stations.
 
-TOP creates its six branches' 9 certificates and 4 station markers each at setup (54
-certificates, 24 stations) for companies that exist only after a split, and every
-company's unplaced stations are `{ id, companyId, status: 'available' }`, derivable from
-the title's station counts.
+## Evidence surveyed
 
-Change: create a branch's certificates and stations when the split creates the company
-(`addTheOldPrinceBranches` moves from the opening to `TheOldPrinceBranchSplit.apply`), and
-represent stations as placed positions plus a count, with `createCompanyStations` and
-`homeStationId` becoming the definition side. `validateStations` and `StationPlacement`
-change from "find the available marker" to "count placed against the allowance".
+`research/18xx-2026-09-08/data/title-traits.json` and the research source, for each
+mechanism below, plus the six implemented titles.
 
-## 3. Stock market spaces are serialized (6.6 KB)
+- **Certificates.** Once a certificate exists, only its owner, pool and retirement change,
+  in every implemented title and nearly every researched one. The set of certificates is
+  not fixed: 1817 issues shares on start and conversion and opens shorts; 1832 issues a
+  System's certificates at formation, including two-share certificates exchanged from a
+  component; 1856's CGR and 1828's systems do likewise; company resets (1817, 1849, 1858,
+  18Norway, 18EU, 18VA, 18Neb) retire and reissue under the same company id. The set also
+  depends on setup: TOP's PEIR roster is shuffled, IB exists only with four players, and
+  1846 removes corporations and privates at random. Faces that genuinely change (1856
+  CGR weights, 1880's president size at par) fit a rule of retiring and reissuing.
+  Certificate-limit weight already belongs to `StockRules.certificateWeight` and market
+  zones, not to the record.
+- **Stock market.** No researched title changes spaces during play. Markets do vary by
+  option, player count or map package (1825, 1861, 1867, 1870, 18Mag, 18Tokaido,
+  System18), and movement is sometimes a rule over phase or company type (1849, 1844,
+  1867, 1856) rather than a fixed graph. 1817 and 1846 are one-row markets; space colour
+  carries rules (1817 liquidation, par colours, zone limits).
+- **Trains.** The depot depends on options and player count (1830 extra 6-train, 1846,
+  1832 diesels) and some titles insert or create trains during play (1882, 18EU, 1873,
+  1846's independents). Depot order matters.
+- **Names and existence.** Printed names are definition data. Which companies exist is
+  not: setup removes them (1846, TOP), play creates them (1832, 1828, 1866), and resets
+  revive them.
+- **Stations.** Allowances change during play (1817 purchases and conversions, 1846
+  absorptions and C&WI, 1832 Systems, mergers, resets), and actions and other State refer
+  to station ids (`PlaceStation`, TOP's split allocation, merger transfers).
 
-`stockMarket.spaces` holds the 59 spaces' price, row, column, colour and `moves` graph;
-the State part is `stacks`, 76 bytes. The map, tile set and depot are already static
-definitions outside the State.
+## Changes
 
-Change: `createMarket` becomes a title definition alongside `phases`, carried on
-`EighteenXXTitleRules` and given to hydration like the map; the State keeps `stacks`
-only. `companyMarketSpace`, `stockMarketSpace`, `moveMarketSpace` and the UI's market
-board take the definition. `research/18xx/opening-contract-design.md` already notes that
-the market travels in the opening position only because of this.
+0. **Preparation.** Delete TOP's saved-state reader and retire the deployed-game replay.
+   Change `openingPosition.spec.ts` to hash only setup's random outcomes, so its digests
+   stay the check that setup randomness is untouched while the shape changes.
+1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
+   class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own
+   runtime, handlers and visibility projector, and add its runtime-contract snapshot.
+   Later changes then land once for all titles. Its State has not been checked by the
+   shared validations before; failures they find are fixed here.
+2. **Market spaces become a title definition.** State keeps `stacks`. The definition is
+   chosen from the resolved configuration, carried on `StockRules` and given to
+   validation; the movement graph is a default the title's rules may override. Readers
+   of `state.stockMarket.spaces`, the market functions and the UI market board take the
+   definition.
+3. **Certificate faces come from the id.** Records keep `id`, `owner`, `poolId` and
+   `retired`; `kind`, `shares`, `president`, `companyId` and TOP's `number` follow from
+   the id through a title-owned rule. `certificateLimitCount` is removed; the limit uses
+   `certificateWeight`. A face never changes; a different face is a new certificate.
+   1846's `:charter` id, which now means either an independent's share or a private, and
+   1832's two-share System certificates get ids that state their face.
+4. **Retired and removed records are dropped.** Retired certificates, removed stations
+   and rusted trains leave State; new ids come from a counter instead of scanning
+   existing records (`nextCertificateNumber`, `addCompanyStations`). History and the UI
+   resolve an absent id's face from the id.
+5. **Names, depot and final wealth.** Company and pool names move to the definition. The
+   depot's roster comes from the resolved configuration, with State keeping what remains
+   in order and any trains created during play. `finalWealth` labels are built by the
+   UI instead of stored.
+6. **One buyer field for purchase offers.** `buyer: Owner` replaces both a company
+   offer's `companyId` and a player offer's `buyerPlayerId`, in the State union and in
+   `RespondToPurchaseOffer` metadata. `OfferPurchase` input stays a company buyer.
 
-## 4. Names and unbought trains (about 2 KB)
+Changes 2 to 4 reduce a finished game's State by roughly 27% (1846) to 48% (1832);
+estimated, not yet measured.
 
-Company names and pool names are definition data; `trainInventory.trains` lists the
-depot's unbought trains as records with `status: 'depot'`. Small; fold into 1–3 if the
-same migration is being written, otherwise leave.
+## Deferred
 
-## 5. One buyer field for purchase offers
-
-Since 1830's private sales between players, `purchaseOffer` is a union: a company's
-offer names its buyer with `companyId`, and a player's offer is told apart by that
-field's absence (`isCompanyPurchaseOffer`).
-
-Change: replace `companyId` with `buyer: Owner` in both, so one offer shape covers
-either buyer and the presence check goes. The `OfferPurchase` action and the offer
-recorded in `OfferPurchase` and `RespondToPurchaseOffer` metadata change with it, as do
-the stored deployed-game actions; migrate them with the State or keep reading the old
-field during hydration. Do this with whichever migration is open.
+- **Stations as placed positions plus a count**, and creating TOP's branches at the
+  split. Both change station identity in action inputs and other State, and the saving
+  outside TOP is under 1.5 KB per game.
+- **1846 on the shared runtime factory.** The factory builds the family's operating
+  sequence and has no visibility projector; 1846's sequence differs.
 
 ## Not a change
 
-`turnManager.series` (6.3 KB, growing one record per turn) stays: it is the index of the
-game's turns. Round and phase managers recording their own starts and ends are wanted
-later for the same reason, and 18xx's `operatingSet` and `phaseEvents` are candidates to
-be written through them.
+`turnManager.series` stays. It is the index of the game's turns. Round and phase managers
+recording their own starts and ends are wanted later for the same reason, and 18xx's
+`operatingSet` and `phaseEvents` are candidates to be written through them.
 
-## Order
+## Verification
 
-3 first: smallest surface, and the market definition is wanted for the UI anyway. Then 1
-and 2 together, since both change what a certificate and a station are. 4 with whichever
-migration is open. Regenerate the guards after each, and keep `openingPosition.spec.ts`
-digests as the check that setup randomness is untouched.
+After each change: regenerate the runtime-contract snapshots deliberately, keep the
+opening digests passing, and replay every title's finished-game and bankruptcy fixtures
+to the same final wealth. Re-measure the table above when done.
