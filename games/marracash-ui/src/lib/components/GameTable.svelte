@@ -158,6 +158,7 @@
                         justify="center"
                         controls="bottom-left"
                         coverBelowScale={0.45}
+                        renderAtViewScale
                         expandable
                     >
                         <div class="px-2 pt-3 pb-11" inert={marracashSession.playerAidOpen}>
