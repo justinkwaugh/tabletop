@@ -3312,13 +3312,15 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
     const info = page.locator('.info')
     await expect(info).toContainText('Your roll')
     await expect(info).toContainText('End of round 6')
-    await expect(grid(page)).toContainText('End of round 6 of 8')
-    await expect(grid(page)).toContainText('The Empire holds the Oathkeeper title, so you roll the end die.')
+    await expect(grid(page).getByRole('heading', { name: 'End die', exact: true })).toBeVisible()
+    await expect(grid(page)).not.toContainText('of 8')
+    await expect(grid(page)).not.toContainText('The Empire holds')
     await expect(grid(page)).toContainText('A 5 or higher ends the game: you win as the Chancellor.')
-    await expect(grid(page)).toContainText("The roll can't be undone.")
+    await expect(grid(page)).not.toContainText("can't be undone")
 
     expect(await call(page, 'viewOffTheClock')).toBe('dev')
     await expect(info).toContainText("'s roll")
+    await expect(grid(page).getByRole('heading', { name: 'End die', exact: true })).toBeVisible()
     await expectWaitingOn(page, ['ann'])
     await expect(grid(page)).toContainText('A 5 or higher ends the game:')
     await expect(grid(page).getByRole('button', { name: 'Roll the end die' })).toHaveCount(0)
@@ -3333,6 +3335,23 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
     expect(await call(page, 'viewOffTheClock')).toBe('dev')
     await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0)
 })
+
+/** The roll button is as wide as its label, on a desktop and on a phone, and a phone tap's height. */
+for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+    test(`scenario 60: "Roll the end die" fits its label at ${viewport.width}`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'endOfRound')
+        const roll = grid(page).getByRole('button', { name: 'Roll the end die', exact: true })
+        await expect(roll).toBeVisible()
+        const { width, height, room } = await roll.evaluate((button) => ({
+            width: button instanceof HTMLElement ? button.offsetWidth : 0,
+            height: button instanceof HTMLElement ? button.offsetHeight : 0,
+            room: button.parentElement?.clientWidth ?? 0
+        }))
+        expect(width).toBeLessThan(room / 2)
+        if (viewport.width < 640) expect(height).toBeGreaterThanOrEqual(44)
+    })
+}
 
 type PanelFrame = { scale: number; box: number; drawn: number }
 type PanelRecord = { frames: PanelFrame[]; errors: string[] }
