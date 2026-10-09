@@ -51,12 +51,6 @@
                         />
                     {/if}
                 </span>
-                {#if row.bankShort}
-                    <!-- R-9.3 — the bank gives what it holds. -->
-                    <span class="text-xs font-normal text-oath-text-muted"
-                        >{row.gain === 0 ? 'bank empty' : 'bank runs short'}</span
-                    >
-                {/if}
             </MenuChoice>
         </MenuRow>
     {/each}

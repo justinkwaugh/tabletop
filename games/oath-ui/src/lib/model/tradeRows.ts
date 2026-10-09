@@ -14,14 +14,12 @@ export const TRADE_PRICE: Record<TradeOption, number> = {
     [TradeOption.ForSecrets]: 2
 }
 
-/** One trade the engine accepts: what it places and what it gains. */
+/** One trade the engine accepts: what it places, what it gains, and the favor it gains beside that. */
 export type TradeChoice = {
     option: TradeOption
     pay: number
     gain: number
-    /** R-9.3 — the card's favor bank holds less than the trade asks for. */
-    bankShort: boolean
-    matchingAdvisers: number
+    sideFavor: number
 }
 
 /** A card at the player's site with the trades it allows, in the strip's order. */
@@ -51,15 +49,15 @@ export function tradeRows(
                 plan.active,
                 matching
             )
-            const gain =
-                option === TradeOption.ForFavor ? Math.min(wanted, state.favorBank[suit]) : wanted
             return [
                 {
                     option,
                     pay: TRADE_PRICE[option],
-                    gain,
-                    bankShort: gain < wanted,
-                    matchingAdvisers: matching
+                    gain:
+                        option === TradeOption.ForFavor
+                            ? Math.min(wanted, state.favorBank[suit])
+                            : wanted,
+                    sideFavor: HydratedTrade.sideFavor(state, playerId, cardId, option, plan.active)
                 }
             ]
         })

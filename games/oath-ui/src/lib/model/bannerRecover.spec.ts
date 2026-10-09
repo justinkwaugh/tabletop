@@ -64,6 +64,18 @@ describe('recovering a banner', () => {
         expect(sentRecover(sent).redistributeFrom).toBe(Suit.Hearth)
     })
 
+    it('the Darkest Secret’s picks are complete with its bid, the least picked at once', () => {
+        const { session } = recovering(Banner.DarkestSecret)
+        expect(session.bannerPicksComplete).toBe(true)
+    })
+
+    it('the People’s Favor’s picks are complete once its start bank is picked too', () => {
+        const { session } = recovering(Banner.PeoplesFavor)
+        expect(session.bannerPicksComplete).toBe(false)
+        session.setFavorStart(Suit.Hearth)
+        expect(session.bannerPicksComplete).toBe(true)
+    })
+
     it('Undo from the bid returns to the lit banners', async () => {
         const { session } = recovering(Banner.DarkestSecret)
         session.setBannerAmount(4)

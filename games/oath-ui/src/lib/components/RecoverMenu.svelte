@@ -8,7 +8,7 @@
     import { suitImage } from '$lib/images/suitImages.js'
     import { bannerImage, favorToken, secretToken } from '$lib/images/tileImages.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
-    import { bannerName, bannerTokenKind, cardName, siteName, suitName } from '$lib/model/names.js'
+    import { bannerName, bannerTokenKind, cardName, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-5.4 — the relics at the site at their printed price, then the banners at their least bid.
@@ -49,7 +49,7 @@
 
 {#if rows.relics.length > 0 && siteId}
     <h3 class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading">
-        Relics at {siteName(gameState, siteId)}
+        Relics
     </h3>
     <div class="mb-1.5 flex flex-col gap-1.5" role="list" aria-label="Relics to recover">
         {#each rows.relics as row (row.slotId)}
@@ -117,8 +117,7 @@
                     onclick={() => gameSession.pickBanner(bid.banner)}
                 >
                     <span class="flex items-center gap-1.5 whitespace-nowrap">
-                        <MenuCount count={least} image={tokenOf(bid.banner)} cost />
-                        {#if more}<span class="text-sm font-normal">or more</span>{/if}
+                        <MenuCount count={least} image={tokenOf(bid.banner)} cost orMore={more} />
                     </span>
                 </MenuChoice>
             </MenuRow>

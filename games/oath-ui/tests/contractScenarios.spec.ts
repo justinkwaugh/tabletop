@@ -1031,7 +1031,7 @@ test.describe('palette: every cost in the action panel is accent', () => {
         ])
     })
 
-    test('Trade: what is paid is accent, the arrow muted, the gain text and the bank note muted', async ({ page }) => {
+    test('Trade: what is paid is accent, the arrow muted, the gain text, and an empty bank’s 0 muted', async ({ page }) => {
         await openTable(page, 'trade')
         await tile(page, 'Trade').click()
         const forFavor = grid(page).getByRole('button', {
@@ -1051,7 +1051,7 @@ test.describe('palette: every cost in the action panel is accent', () => {
         const bankEmpty = grid(page).getByRole('button', { name: /^Trade with Assassin: pay 1 secret, get 0 favor/ })
         expect(await tokenRuns(bankEmpty)).toEqual([
             ['1', 'accent'],
-            ['→ 0 bank empty', 'text-muted']
+            ['→ 0', 'text-muted']
         ])
     })
 
@@ -1066,16 +1066,13 @@ test.describe('palette: every cost in the action panel is accent', () => {
         ])
     })
 
-    test('Recover: a banner’s least bid is accent and "or more" is not', async ({ page }) => {
+    test('Recover: a banner’s least bid and its "+" are accent', async ({ page }) => {
         await openTable(page, 'trade')
         await tile(page, 'Recover').click()
         const peoples = grid(page)
             .getByRole('list', { name: 'Banners to recover' })
             .getByRole('button', { name: /^Recover the People’s Favor: pay \d+ favor or more$/ })
-        expect(await tokenRuns(peoples)).toEqual([
-            [expect.stringMatching(/^\d+$/), 'accent'],
-            ['or more', 'text']
-        ])
+        expect(await tokenRuns(peoples)).toEqual([[expect.stringMatching(/^\d+\+$/), 'accent']])
     })
 
     test('Recover: a relic’s whole price is accent, its joiners with it', async ({ page }) => {
@@ -1129,8 +1126,12 @@ test('scenario 39: Trade lists every trade at the site, a strip tap only enlarge
         page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' })
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })).toBeVisible()
-    await expect(rows.nth(1)).toContainText('bank empty')
-    await expect(rows.nth(1)).toContainText('no faceup')
+    await expect(
+        page.getByRole('button', { name: 'Trade with Assassin: pay 1 secret, get 0 favor from the Discord bank' })
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Trade with Assassin: pay 2 favor, get 0 secrets' })).toBeVisible()
+    await expect(rows.nth(1)).not.toContainText('bank')
+    await expect(rows.nth(1)).not.toContainText('faceup')
     const name = await rows.nth(0).getByText('Book Binders', { exact: true }).boundingBox()
     const firstButton = await rows.nth(0).getByRole('button').first().boundingBox()
     if (!name || !firstButton) throw Error('The row is on screen')
@@ -1145,6 +1146,35 @@ test('scenario 39: Trade lists every trade at the site, a strip tap only enlarge
     await page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' }).click()
     await expect.poll(() => call(page, 'cardTokens', 'denizen.hearth.book-binders')).toEqual({ favor: 0, secrets: 1 })
     await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
+})
+
+test('scenario 39: a trade that gains nothing shows its 0 and no note under it, and is sent like any other', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Trade').click()
+    const forNothing = page.getByRole('button', { name: 'Trade with Assassin: pay 2 favor, get 0 secrets' })
+    await expect(forNothing).toHaveText(/^\s*2\s*→\s*0\s*$/)
+    await expect(
+        page.getByRole('button', { name: 'Trade with Assassin: pay 1 secret, get 0 favor from the Discord bank' })
+    ).toHaveText(/^\s*1\s*→\s*0\s*$/)
+    await forNothing.click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 2, secrets: 0 })
+})
+
+test('scenario 39: under Careless a Trade for secrets shows the favor it also gives, its 0 secrets explicit', async ({ page }) => {
+    await openTable(page, 'careless')
+    const before = (await call(page, 'tableFacts')).favorOf.me ?? 0
+    await tile(page, 'Trade').click()
+    const assassin = page.getByRole('button', { name: 'Trade with Assassin: pay 2 favor, get 0 secrets and 1 favor' })
+    await expect(assassin).toHaveText(/^\s*2\s*→\s*0\s*\+\s*1\s*$/)
+    await expect(assassin.locator('img')).toHaveCount(3)
+    await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 1 secret and 1 favor' })).toHaveText(
+        /^\s*2\s*→\s*1\s*\+\s*1\s*$/
+    )
+    await expect(
+        page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' })
+    ).toHaveText(/^\s*1\s*→\s*3\s*$/)
+    await assassin.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - 2 + 1)
 })
 
 test('scenario 4: Travel lists every affordable destination under its region, a button travels', async ({ page }) => {
@@ -1545,6 +1575,42 @@ test('scenario 20: Recover lists the banners to outbid, the price is a row of nu
     await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
     await grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true }).click()
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - paid)
+})
+
+test('scenario 20: Recover heads the relics "Relics" and gives a banner’s least bid as "N+"', async ({ page }) => {
+    await openTable(page, 'recover')
+    await tile(page, 'Recover').click()
+    await expect(grid(page).getByRole('heading', { name: 'Relics', exact: true })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Relics to recover' }).getByRole('listitem')).toHaveCount(1)
+    const banners = page.getByRole('list', { name: 'Banners to recover' })
+    const peoples = banners.getByRole('button', { name: /^Recover the People’s Favor: pay \d+ favor or more$/ })
+    await expect(peoples).toHaveText(/^\s*\d+\+\s*$/)
+    await expect(banners).not.toContainText('or more')
+})
+
+test('scenario 20: a picked banner’s line asks its price; "Recover" shows once the picks are complete, with no red line before', async ({
+    page
+}) => {
+    await openTable(page, 'recover')
+    await tile(page, 'Recover').click()
+    await page.getByRole('button', { name: /^Recover the People’s Favor: pay/ }).click()
+    const line = grid(page).getByText(/^People’s Favor: pay how many\s*\?$/)
+    await expect(line).toBeVisible()
+    await expect(line.getByRole('img', { name: 'favor' })).toBeVisible()
+    const recover = grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true })
+    await expect(recover).toHaveCount(0)
+    await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
+    await expect(grid(page).getByText('Return its', { exact: false })).toHaveText(/^Return its\s*, starting at:$/)
+
+    await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
+    await expect(recover).toHaveText('Recover')
+    await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
+
+    await openTable(page, 'recover')
+    await tile(page, 'Recover').click()
+    await page.getByRole('button', { name: /^Recover the Darkest Secret: pay/ }).click()
+    await expect(grid(page).getByText(/^Darkest Secret: pay how many\s*\?$/)).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: 'Recover the Darkest Secret', exact: true })).toHaveText('Recover')
 })
 
 test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {
@@ -1968,6 +2034,18 @@ test('scenario 19: Muster lists every card a favor can go on, a button sends', a
     await expect(list).toHaveCount(0)
 })
 
+test('scenario 19: with the warband bank empty, each Muster shows → 0 and no note, and still sends', async ({ page }) => {
+    await openTable(page, 'musterEmptyBank')
+    await tile(page, 'Muster').click()
+    const list = page.getByRole('list', { name: 'Musters at your site' })
+    await expect(list.getByRole('listitem')).toHaveCount(2)
+    const muster = page.getByRole('button', { name: 'Muster at Assassin: place 1 favor, get 0 warbands' })
+    await expect(muster).toHaveText(/^\s*1\s*→\s*0\s*$/)
+    await expect(list).not.toContainText('bank')
+    await muster.click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 1, secrets: 0 })
+})
+
 test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {
     await openTable(page, 'visionBacks')
     const backsOf = (label: string) =>
@@ -2227,6 +2305,46 @@ test.describe('at phone width', () => {
             expect(width).toBeLessThanOrEqual(Math.max(standard, widestContent) + 1)
         })
     }
+
+    test('the Careless Trade menu: every label fits inside its button, one width, and a row too narrow for two goes one per line', async ({
+        page
+    }) => {
+        await openTable(page, 'careless')
+        await tile(page, 'Trade').click()
+        const list = 'Trades at your site'
+        await expect(page.getByRole('button', { name: 'Trade with Assassin: pay 2 favor, get 0 secrets and 1 favor' })).toHaveText(
+            /\+\s*1/
+        )
+        const sizes = await menuButtonSizes(page, list)
+        expect(sizes).toHaveLength(4)
+        expect(new Set(sizes.map((size) => size.width)).size).toBe(1)
+        for (const size of sizes) {
+            expect(size.content).toBeLessThanOrEqual(size.width + 0.5)
+            expect(size.height).toBeGreaterThanOrEqual(44)
+        }
+        const placed = await page
+            .getByRole('list', { name: list })
+            .getByRole('listitem')
+            .evaluateAll((rows) =>
+                rows.map((row) => {
+                    const buttons = [...row.querySelectorAll('button')]
+                    const edge = row.getBoundingClientRect().right - parseFloat(getComputedStyle(row).paddingRight)
+                    return {
+                        inside: buttons.every(
+                            (button) =>
+                                button.scrollWidth <= button.clientWidth &&
+                                button.getBoundingClientRect().right <= edge + 0.5
+                        ),
+                        tops: buttons.map((button) => Math.round(button.getBoundingClientRect().top)),
+                        sideBySide: buttons.length * buttons[0].getBoundingClientRect().width <= edge - row.getBoundingClientRect().left
+                    }
+                })
+            )
+        for (const row of placed) {
+            expect(row.inside).toBe(true)
+            if (!row.sideBySide) expect(new Set(row.tops).size).toBe(row.tops.length)
+        }
+    })
 })
 
 test('scenario 23: the Conspiracy takes from a player’s chip; "Play" shows with nobody picked or a prize, never a player alone', async ({ page }) => {

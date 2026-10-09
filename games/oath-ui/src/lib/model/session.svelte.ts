@@ -1014,6 +1014,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.needsFavorStart) this.selection.set('favorStart', suit)
     }
 
+    /** The bid and, for the People's Favor, the bank its old favor starts returning to. */
+    get bannerPicksComplete(): boolean {
+        return (
+            this.bannerAmount !== undefined && (!this.needsFavorStart || this.favorStart !== undefined)
+        )
+    }
+
     get bannerRecoverReason(): string | undefined {
         const playerId = this.liveTurnSeatId
         const banner = this.stagedBanner

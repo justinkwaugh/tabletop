@@ -34,6 +34,8 @@ import {
     mapSlotsFor,
     reliquarySlotId,
     type CitizenshipTransfer,
+    type OathPlayerState,
+    type OathProjectedState,
     type PowerQuestion,
     type WarbandCounts,
     type WarbandGroup
@@ -83,6 +85,9 @@ export type TableName =
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'careless'
+    | 'musterEmptyBank'
+    | 'recover'
     | 'peek'
     | 'relics'
     | 'searchToll'
@@ -464,32 +469,50 @@ function majorEventsTable(): PlayedTable {
     ])
 }
 
-/** R-5.3.2: three denizens at the seat's site, one carrying favor, two Hearth advisers and an empty Discord bank. */
-function tradeTable(): PlayedTable {
+const TRADE_BANKS: Record<Suit, number> = {
+    [Suit.Discord]: 0,
+    [Suit.Arcane]: 3,
+    [Suit.Order]: 3,
+    [Suit.Hearth]: 3,
+    [Suit.Beast]: 3,
+    [Suit.Nomad]: 3
+}
+
+/** Three denizens at the seat's site, one carrying favor, and two Hearth advisers. */
+function tradeSiteTable(
+    me: Partial<OathPlayerState> = {},
+    over: Partial<OathProjectedState> = {},
+    chancellor: 'me' | 'ann' = 'ann'
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
+    // The Chancellor's pieces are purple; an Exile has no purple avatar.
+    const seat = (playerId: 'me' | 'ann', exileColor: Color) =>
+        playerId === chancellor
+            ? { status: PlayerStatus.Chancellor, color: Color.Purple }
+            : { status: PlayerStatus.Exile, color: exileColor }
     const state = testState(
         [
             testPlayer({
                 playerId: 'me',
-                color: Color.Red,
+                ...seat('me', Color.Red),
                 siteId: home,
                 secrets: 1,
                 favor: 3,
                 advisers: [
                     { cardId: 'denizen.hearth.a-round-of-ale', faceUp: true },
                     { cardId: 'denizen.hearth.armed-mob', faceUp: true }
-                ]
+                ],
+                ...me
             }),
             testPlayer({
                 playerId: 'ann',
-                color: Color.Purple,
-                status: PlayerStatus.Chancellor,
+                ...seat('ann', Color.Blue),
                 siteId: mapSlotId(Region.Provinces, 0)
             })
         ],
         {
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'ann',
+            chancellorPlayerId: chancellor,
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: {
@@ -500,19 +523,49 @@ function tradeTable(): PlayedTable {
                 ]
             },
             cardTokens: { 'denizen.order.council-seat': { favor: 1, secrets: 0 } },
-            favorBank: {
-                [Suit.Discord]: 0,
-                [Suit.Arcane]: 3,
-                [Suit.Order]: 3,
-                [Suit.Hearth]: 3,
-                [Suit.Beast]: 3,
-                [Suit.Nomad]: 3
-            }
+            favorBank: TRADE_BANKS,
+            ...over
         }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
     return tableOf(state)
+}
+
+/** R-5.3.2: the Discord bank empty. */
+function tradeTable(): PlayedTable {
+    return tradeSiteTable()
+}
+
+/** R-6.6.2.a: the seat is the Chancellor with Careless's Reliquary space uncovered, every bank holding favor. */
+function carelessTable(): PlayedTable {
+    return tradeSiteTable(
+        {},
+        {
+            favorBank: { ...TRADE_BANKS, [Suit.Discord]: 3 },
+            reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) }))
+        },
+        'me'
+    )
+}
+
+/** R-5.2, R-9.3: the seat's warband bank is empty. */
+function musterEmptyBankTable(): PlayedTable {
+    return tradeSiteTable({ warbandsInPersonalBank: { me: 0 } })
+}
+
+/** R-5.4: a relic at the Ancient City, priced in favor, and both banners on the rail. */
+function recoverTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const slotId = `${home}.relic.0`
+    return tradeSiteTable(
+        { favor: 4, secrets: 3 },
+        {
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
+            relicsBySite: { [home]: [{ slotId }] },
+            vault: testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' })
+        }
+    )
 }
 
 /** R-6.5.a — the Citizen asks to move two Imperial warbands off their site, so the Chancellor is asked. */
@@ -1418,6 +1471,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
+    careless: carelessTable,
+    musterEmptyBank: musterEmptyBankTable,
+    recover: recoverTable,
     peek: peekTable,
     relics: relicsTable,
     searchToll: searchTollTable,

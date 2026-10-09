@@ -18,8 +18,8 @@
 {#if banner}
     <div class="flex flex-col gap-1.5 text-xs">
         <div class="flex flex-wrap items-center gap-2">
-            <span class="text-oath-text-muted"
-                ><TokenText text="Pay for the {bannerName(banner)} in {token}:" /></span
+            <span class="text-sm font-semibold"
+                ><TokenText text="{bannerName(banner)}: pay how many {token}?" /></span
             >
             <CountPicker
                 values={amounts}
@@ -30,8 +30,8 @@
             />
         </div>
         {#if gameSession.needsFavorStart}
-            <div class="text-oath-text-muted">
-                <TokenText text="Return the favor on it starting at:" />
+            <div class="text-sm">
+                <TokenText text="Return its favor, starting at:" />
             </div>
             {@const start = gameSession.favorStart}
             <SuitPicker
@@ -41,17 +41,21 @@
                 {busy}
             />
         {/if}
-        {#if reason}
+        {#if reason && gameSession.bannerPicksComplete}
             <p class="text-[11px] text-oath-danger">
                 <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
             </p>
         {/if}
-        <button
-            class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 self-start"
-            disabled={busy || !!reason}
-            onclick={() => gameSession.recoverBanner()}
-        >
-            Recover the {bannerName(banner)}
-        </button>
+        {#if !reason}
+            <button
+                class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 self-start"
+                disabled={busy}
+                title="Recover the {bannerName(banner)}"
+                aria-label="Recover the {bannerName(banner)}"
+                onclick={() => gameSession.recoverBanner()}
+            >
+                Recover
+            </button>
+        {/if}
     </div>
 {/if}
