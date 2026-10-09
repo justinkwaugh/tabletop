@@ -22,6 +22,7 @@ import {
     PowerQuestionKind,
     Region,
     RerolledRollKind,
+    ResolveWake,
     Search,
     SearchPlay,
     SearchSource,
@@ -135,6 +136,7 @@ export type TableName =
     | 'selfExile'
     | 'oathkeeperTie'
     | 'tavernSongs'
+    | 'usurperWins'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -672,6 +674,37 @@ function oathkeeperTieTable(): PlayedTable {
     state.activePlayerIds = ['me']
     state.vault = testVaultWithRelics({})
     return tableOf(state)
+}
+
+/** R-3.1 — an Exile wakes holding the Oathkeeper title on its Usurper side, and wins. */
+function usurperWinsTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            })
+        ],
+        {
+            machineState: MachineState.WakePhase,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'me',
+            oathkeeperIsUsurper: true,
+            round: 4,
+            warbandsBySite: { c1: { me: 1 }, c2: { me: 1 }, p1: { [IMPERIAL_WARBANDS]: 1 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    return played(table, [
+        createAction(ResolveWake, { ...envelope(table), playerId: 'me', favorSteps: [] })
+    ])
 }
 
 /** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
@@ -2201,7 +2234,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     spoils: () => battleTable('spoils'),
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
-    tavernSongs: tavernSongsTable
+    tavernSongs: tavernSongsTable,
+    usurperWins: usurperWinsTable
 }
 
 /** Every table a scenario can open. */

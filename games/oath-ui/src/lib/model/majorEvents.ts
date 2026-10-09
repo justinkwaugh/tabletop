@@ -33,7 +33,7 @@ import {
 import type { GameAction } from '@tabletop/common'
 import { bannerName, cardName, goalText, oathName, type NameOf } from '$lib/model/names.js'
 import { searchStoppedOnVision } from '$lib/model/actionDescription.js'
-import { ENDINGS, isWinRule } from '$lib/model/endings.js'
+import { endingParts, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'
 
@@ -325,7 +325,7 @@ export function gameEndEvent(
     const picture: EventPicture = visionId
         ? { kind: 'card', cardId: visionId }
         : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
-    const [how, why] = ENDINGS[rule].split(' — ')
+    const { how, why } = endingParts(rule)
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',

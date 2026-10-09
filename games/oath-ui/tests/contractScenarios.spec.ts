@@ -3392,6 +3392,16 @@ test('the Oathkeeper title: the holder is asked who takes it, the tied players a
     await expect(grid(page).getByText('Who takes the title?', { exact: true })).toHaveCount(0)
 })
 
+/** R-3.1 — the game-end panel names the winner and how they won; the History's top row says why. */
+test('the game end: "<winner> won as Usurper", without the reason', async ({ page }) => {
+    await openTable(page, 'usurperWins')
+    const end = page.getByRole('heading', { name: 'The game is over', exact: true }).locator('xpath=..')
+    await expect(end).toBeVisible()
+    await expect(end).toContainText('won as Usurper')
+    await expect(end).not.toContainText('—')
+    await expect(end).not.toContainText('an Exile holding')
+})
+
 type PanelFrame = { scale: number; box: number; drawn: number }
 type PanelRecord = { frames: PanelFrame[]; errors: string[] }
 
