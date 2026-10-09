@@ -370,7 +370,13 @@ export const QuestionAnswer = Type.Union([
         kind: Type.Literal(PowerQuestionKind.PlayOrDiscardConspiracy),
         play: Type.Boolean(),
         /** R-5.1.4.IV — the optional take, when playing it. */
-        conspiracy: Type.Optional(ConspiracyPlay)
+        conspiracy: Type.Optional(ConspiracyPlay),
+        /** R-5.1.4-H1 — played facedown to the finder's advisers; absent, the play is faceup. */
+        facedown: Type.Optional(Type.Literal(true)),
+        /** R-5.1.4.II — the adviser discarded to make room for the Conspiracy played facedown. */
+        discardedAdviserCardId: Type.Optional(
+            Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor })
+        )
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.TravelFreeTo), siteId: Type.String() }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),

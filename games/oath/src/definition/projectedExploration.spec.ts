@@ -10,7 +10,7 @@ import { ActionType } from './actions.js'
 import { HydratedOathGameState, OathGameStateValidator, type OathGameState } from '../model/gameState.js'
 import type { TablePositions } from '../model/playerState.js'
 import { CardKind, Region, SetupVariant } from '../model/oathEnums.js'
-import { PowerQuestionKind } from '../model/question.js'
+import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { cardDefinition, kindOf } from '../data/cardRegistry.js'
 import { CARDS_IN_PLAY } from '../data/worldDeck.js'
 import { RELIC_DECK_IDS } from '../data/relics.js'
@@ -675,6 +675,34 @@ describe('Inquisitor\'s public facts about a facedown row', () => {
         for (const perspective of perspectives(found))
             for (const seed of [1, 2, 3])
                 expect(explore(game, canonical(found), perspective, seed).players.find((player) => player.playerId === holder)?.adviserIds[0]).toBe(CONSPIRACY)
+    })
+
+    // R-5.1.4-H1 — played facedown, it is seen: the finder's new row names it to everyone.
+    it('the Conspiracy its finder plays facedown is dealt to the finder\'s new row in every projection', () => {
+        const { game, state, chancellor } = started()
+        const holder = state.players.find((player) => player.playerId !== chancellor)?.playerId
+        assert(holder !== undefined, 'another player sits at the table')
+        const found = conspiracyHeldBy(state, holder)
+        found.machineState = MachineState.PowerQuestion
+        found.pendingQuestions = {
+            queue: [{ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: 'denizen.arcane.inquisitor', askedPlayerId: chancellor, holderPlayerId: holder, index: 0 }],
+            askingPlayerId: chancellor,
+            resumeMachineState: MachineState.ActPhase
+        }
+        const answer: QuestionAnswer = { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true }
+        const played = canonical(engine.runNext(buildAction(AnswerQuestion, { playerId: chancellor, answer }), canonical(found), game).updatedState)
+        const finder = played.players.find((player) => player.playerId === chancellor)
+        assert(finder !== undefined, 'the finder sits at the table')
+        const row = finder.advisers.length - 1
+        expect(finder.adviserIds[row]).toBe(CONSPIRACY)
+        expect(played.pendingQuestions).toBeUndefined()
+        expectExplorable(game, played)
+        for (const perspective of perspectives(played))
+            for (const seed of [1, 2, 3]) {
+                const branch = explore(game, played, perspective, seed)
+                expect(branch.players.find((player) => player.playerId === chancellor)?.adviserIds[row]).toBe(CONSPIRACY)
+                expect(branch.players.find((player) => player.playerId === holder)?.adviserIds).not.toContain(CONSPIRACY)
+            }
     })
 
     it('a Vision row Inquisitor found was not the Conspiracy is never dealt it', () => {

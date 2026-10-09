@@ -248,16 +248,52 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.PlayOrDiscardConspiracy]: {
         reasonCannotAnswer: (state, playerId, matched) => {
-            if (!matched.answer.play) return undefined
+            const { play, conspiracy, facedown, discardedAdviserCardId } = matched.answer
+            if (facedown) {
+                if (!play) return 'played facedown, the Conspiracy is played, not discarded'
+                if (conspiracy)
+                    return 'the take comes only with the Conspiracy played faceup (R-5.1.4.IV)'
+                // R-5.1.4-H1 — a facedown adviser, judged as a Search's kept card would be.
+                return reasonCannotPlayCard(state, playerId, CONSPIRACY_ID, SearchPlay.Adviser, {
+                    faceUp: false,
+                    discardedAdviserCardIds: listOf(discardedAdviserCardId)
+                })
+            }
+            if (discardedAdviserCardId !== undefined)
+                return 'an adviser is discarded only to play the Conspiracy facedown'
+            if (!play) return undefined
             return reasonCannotPlayConspiracy(state, playerId, {
                 keptCardId: CONSPIRACY_ID,
-                conspiracy: matched.answer.conspiracy
+                conspiracy
             })
         },
         apply: (state, playerId, matched) => {
-            const { play, conspiracy } = matched.answer
+            const { play, conspiracy, facedown, discardedAdviserCardId } = matched.answer
             const holder = state.getPlayerState(matched.question.holderPlayerId)
             holder.removeAdviser(CONSPIRACY_ID)
+            if (facedown) {
+                // R-5.1.4-H1 — to the finder's advisers, facedown; the table saw which card it is.
+                const region = regionOfPawn(state, playerId)
+                const played = playCard(
+                    state,
+                    playerId,
+                    CONSPIRACY_ID,
+                    SearchPlay.Adviser,
+                    region,
+                    {
+                        faceUp: false,
+                        seen: true,
+                        discardedAdviserCardIds: listOf(discardedAdviserCardId)
+                    }
+                )
+                const summary = 'played the Conspiracy as an adviser, facedown'
+                if (played.discarded.length === 0) return summary
+                return {
+                    summary,
+                    discardedCardIds: played.discarded,
+                    discardPileRegion: discardRegionFor(region)
+                }
+            }
             if (play) {
                 // R-5.1.4.IV — played faceup by the finder, then to the box.
                 playConspiracy(state, playerId, CONSPIRACY_ID, conspiracy)
