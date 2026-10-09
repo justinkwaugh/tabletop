@@ -1,13 +1,28 @@
 <script lang="ts">
-    import { AuctionKind } from '@tabletop/hill-country-grocers'
+    import { AuctionKind, seatOrderFrom } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
-    import CompanyBadge from './CompanyBadge.svelte'
+    import BigShareCertificate from './BigShareCertificate.svelte'
+
+    type Seat = { playerId: string; passed: boolean; bid?: number }
 
     const gameSession = getGameSession()
 
     const auction = $derived(gameSession.gameState.auction)
     const bidding = $derived(auction ? gameSession.gameState.bidding() : undefined)
+    const opening = $derived(!auction && gameSession.auctionCompany !== undefined)
+    const companyId = $derived(auction?.companyId ?? gameSession.auctionCompany)
+    const kind = $derived(auction?.kind ?? AuctionKind.Share)
+    const seats: Seat[] = $derived(
+        auction
+            ? auction.bidding.participants
+            : gameSession.myPlayerId
+              ? seatOrderFrom(gameSession.gameState.turnManager.turnOrder, gameSession.myPlayerId).map(
+                    (playerId) => ({ playerId, passed: false })
+                )
+              : []
+    )
+    const currentBidderId = $derived(bidding ? bidding.currentBidderId : gameSession.myPlayerId)
     const smallest = $derived(auction ? gameSession.gameState.smallestBid() : 0)
     const cash = $derived(
         gameSession.myPlayerId ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash : 0
@@ -15,39 +30,45 @@
     const myBid = $derived(gameSession.bidding && bidding?.currentBidderId === gameSession.myPlayerId)
 </script>
 
-{#if auction && bidding}
+{#if companyId && (bidding || opening)}
     <div class="auction">
-        <div class="heading">
-            <span>{auction.kind === AuctionKind.Initial ? 'Initial auction:' : 'Share auction:'}</span>
-            <CompanyBadge companyId={auction.companyId} full />
-        </div>
-        <div class="seats">
-            {#each auction.bidding.participants as participant (participant.playerId)}
-                {@const current = participant.playerId === bidding.currentBidderId}
-                <div
-                    class="seat"
-                    class:passed={participant.passed}
-                    class:current
-                    style:--player={gameSession.colors.getPlayerUiColor(participant.playerId)}
-                >
-                    <span class="name"
-                        >{participant.playerId === gameSession.myPlayerId
-                            ? 'You'
-                            : gameSession.getPlayerName(participant.playerId)}</span
+        <div class="heading">{kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}</div>
+        <div class="table">
+            <BigShareCertificate {companyId} />
+            <div class="seats">
+                {#each seats as seat (seat.playerId)}
+                    {@const current = seat.playerId === currentBidderId}
+                    <div
+                        class="seat"
+                        class:passed={seat.passed}
+                        class:current
+                        style:--player={gameSession.colors.getPlayerUiColor(seat.playerId)}
                     >
-                    <span class="amount"
-                        >{participant.bid !== undefined
-                            ? `$${participant.bid}`
-                            : current
-                              ? '?'
-                              : '—'}</span
-                    >
-                    {#if participant.passed}
-                        <span class="stamp">Passed</span>
-                    {/if}
-                </div>
-            {/each}
+                        <span class="name"
+                            >{seat.playerId === gameSession.myPlayerId
+                                ? 'You'
+                                : gameSession.getPlayerName(seat.playerId)}</span
+                        >
+                        <span class="amount"
+                            >{seat.bid !== undefined ? `$${seat.bid}` : current ? '?' : '—'}</span
+                        >
+                        {#if seat.passed}
+                            <span class="stamp">Passed</span>
+                        {/if}
+                    </div>
+                {/each}
+            </div>
         </div>
+        {#if opening}
+            <div class="controls">
+                <BidStepper
+                    minimum={0}
+                    maximum={cash}
+                    label="Bid"
+                    onbid={(amount) => gameSession.openAuction(amount)}
+                />
+            </div>
+        {/if}
         {#if myBid}
             <div class="controls">
                 <BidStepper
@@ -56,7 +77,7 @@
                     label="Bid"
                     onbid={(amount) => gameSession.placeBid(amount)}
                 />
-                {#if bidding.hasBid}
+                {#if bidding?.hasBid}
                     <button type="button" class="secondary" onclick={() => gameSession.passBid()}
                         >Pass</button
                     >
@@ -75,13 +96,16 @@
     }
 
     .heading {
-        display: inline-flex;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .table {
+        display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        font-size: 18px;
-        font-weight: 700;
+        gap: 16px;
     }
 
     .seats {

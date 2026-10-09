@@ -75,7 +75,7 @@ async function playInitialAuctions(page: Page) {
 
 test('plays the initial auctions and builds a network on the map', async ({ page }) => {
     await createGame(page)
-    await expect(page.getByText('Initial auction:')).toBeVisible()
+    await expect(page.locator('.auction .heading', { hasText: 'Initial auction' })).toBeVisible()
     await screenshot(page, '01-initial-auction')
 
     await playInitialAuctions(page)
@@ -179,7 +179,7 @@ test('develops towns and auctions a share', async ({ page }) => {
     await page.getByRole('button', { name: 'Choose Auction Share' }).click()
     await page.getByRole('button', { name: 'Auction a Verbena share' }).click()
     await screenshot(page, '07-opening-auction')
-    await page.getByRole('button', { name: /^Open at \$/ }).click()
+    await page.getByRole('button', { name: /^Bid \$/ }).click()
     await expect.poll(() => machineState(page)).toBe('Bidding')
     await screenshot(page, '08-share-auction')
 })
