@@ -123,4 +123,24 @@
     .step:disabled {
         opacity: 0.35;
     }
+
+    @media (max-width: 639px) {
+        .stepper {
+            gap: 6px;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+        }
+
+        .value {
+            font-size: 17px;
+        }
+
+        .primary {
+            padding: 0.25rem 0.7rem;
+        }
+    }
 </style>

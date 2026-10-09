@@ -17,11 +17,11 @@
 
 {#if view}
     <div class="auction">
-        <div class="heading">
-            {view.kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}
-        </div>
         <div class="table">
-            <BigShareCertificate companyId={view.companyId} />
+            <div class="heading">
+                {view.kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}
+            </div>
+            <BigShareCertificate companyId={view.companyId} shrinkOnPhone />
             <div class="seats">
                 {#each view.seats as seat (seat.playerId)}
                     {@const current = seat.playerId === view.currentBidderId}
@@ -79,8 +79,10 @@
     }
 
     .heading {
+        flex-basis: 100%;
         font-size: 18px;
         font-weight: 700;
+        text-align: center;
     }
 
     .table {
@@ -88,7 +90,7 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
-        gap: 16px;
+        gap: 6px 16px;
     }
 
     .seats {
@@ -163,5 +165,49 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+    }
+
+    @media (max-width: 639px) {
+        .table {
+            column-gap: 8px;
+        }
+
+        .heading {
+            flex-basis: auto;
+            font-size: 16px;
+        }
+
+        .seats {
+            flex-basis: 100%;
+            gap: 4px;
+        }
+
+        .seat,
+        .seat.current {
+            min-width: 0;
+            border-left-width: 8px;
+            padding: 2px 5px 3px;
+        }
+
+        .name {
+            font-size: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .amount {
+            font-size: 16px;
+        }
+
+        .stamp {
+            font-size: 11px;
+        }
+
+        .controls {
+            gap: 6px;
+        }
+
+        .secondary {
+            padding: 0.25rem 0.7rem;
+        }
     }
 </style>

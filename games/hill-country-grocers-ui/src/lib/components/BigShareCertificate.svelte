@@ -4,8 +4,13 @@
 
     let {
         companyId,
-        choice
-    }: { companyId: CompanyId; choice?: { label: string; onclick: () => void } } = $props()
+        choice,
+        shrinkOnPhone = false
+    }: {
+        companyId: CompanyId
+        choice?: { label: string; onclick: () => void }
+        shrinkOnPhone?: boolean
+    } = $props()
 
     const style = $derived(COMPANY_STYLE[companyId])
     const definition = $derived(companyDefinition(companyId))
@@ -26,6 +31,7 @@
 {:else}
     <div
         class="certificate"
+        class:shrink-on-phone={shrinkOnPhone}
         style:--company={style.fill}
         style:--company-text={style.text}
         title="{definition.name} share"
@@ -83,5 +89,20 @@
             inset 0 0 0 4px rgba(255, 255, 255, 0.65),
             0 0 0 2px #c8961a,
             0 3px 6px rgba(43, 26, 16, 0.3);
+    }
+
+    @media (max-width: 639px) {
+        .shrink-on-phone {
+            width: 56px;
+            height: 30px;
+        }
+
+        .shrink-on-phone .code {
+            font-size: 14px;
+        }
+
+        .shrink-on-phone .name {
+            display: none;
+        }
     }
 </style>
