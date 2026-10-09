@@ -4,6 +4,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
     import Disk from '$lib/components/Disk.svelte'
+    import WoodStall from '$lib/components/WoodStall.svelte'
     import { isLightColor, LABEL_DARK, LABEL_LIGHT } from '$lib/utils/pieceColors.js'
 
     let gameSession = getGameSession()
@@ -20,19 +21,17 @@
     }
 </script>
 
-{#snippet stallMarks(size: 'small' | 'large')}
-    {#each playerState.stalls as stall (stall.goodsType)}
-        <div
-            class="stall {size} {stall.placed ? 'placed' : ''}"
-            style:--stall-color={color}
-            style:--stall-ink={stallInk}
-            title={stall.placed
-                ? `${getGoodsName(stall.goodsType)} stall placed`
-                : `Unplaced ${getGoodsName(stall.goodsType)} stall`}
-        >
-            {stallInitial(stall.goodsType)}
-        </div>
-    {/each}
+{#snippet stallMark(stall: FreshFishPlayerState['stalls'][number], size: 'small' | 'large')}
+    <div
+        class="stall {size} {stall.placed ? 'placed' : ''}"
+        style:--stall-color={color}
+        style:--stall-ink={stallInk}
+        title={stall.placed
+            ? `${getGoodsName(stall.goodsType)} stall placed`
+            : `Unplaced ${getGoodsName(stall.goodsType)} stall`}
+    >
+        {stallInitial(stall.goodsType)}
+    </div>
 {/snippet}
 
 <div class="rounded-md px-1.5 pb-1.5 {bgColor} {isTurn ? 'turn' : ''}">
@@ -56,12 +55,22 @@
                 {/each}
             </div>
             <div class="flex flex-row gap-[3px] sm:hidden">
-                {@render stallMarks('small')}
+                {#each playerState.stalls as stall (stall.goodsType)}
+                    {@render stallMark(stall, 'small')}
+                {/each}
             </div>
             <span class="money" title="Money">${playerState.money}</span>
         </div>
         <div class="flex flex-row gap-1.5 max-sm:hidden">
-            {@render stallMarks('large')}
+            {#each playerState.stalls as stall (stall.goodsType)}
+                {#if stall.placed}
+                    {@render stallMark(stall, 'large')}
+                {:else}
+                    <div class="tile" title="Unplaced {getGoodsName(stall.goodsType)} stall">
+                        <WoodStall size={56} {color} goodsType={stall.goodsType} />
+                    </div>
+                {/if}
+            {/each}
         </div>
     </div>
 </div>
@@ -131,10 +140,15 @@
         padding-top: 1px;
     }
     .stall.large {
-        width: 46px;
-        height: 46px;
+        width: 56px;
+        height: 56px;
         font-size: 1.6rem;
         padding-top: 2px;
+    }
+    .tile {
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
     .stall.placed {
         --stall-faded: color-mix(in srgb, var(--stall-color) 50%, #ffffff);
