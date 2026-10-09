@@ -6,6 +6,8 @@ export enum ActionType {
     PlacePolyp = 'placePolyp',
     IntroduceShrimp = 'introduceShrimp',
     MoveShrimp = 'moveShrimp',
+    ExchangeConsumedPolyp = 'exchangeConsumedPolyp',
+    ExchangeLarvaCube = 'exchangeLarvaCube',
     TakeOpenSeaSpace = 'takeOpenSeaSpace',
     RefillOpenSea = 'refillOpenSea'
 }

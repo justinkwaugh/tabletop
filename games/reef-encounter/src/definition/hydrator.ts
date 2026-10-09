@@ -11,6 +11,11 @@ import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
 import { HydratedIntroduceShrimp, isIntroduceShrimp } from '../actions/introduceShrimp.js'
 import { HydratedMoveShrimp, isMoveShrimp } from '../actions/moveShrimp.js'
 import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
+import {
+    HydratedExchangeConsumedPolyp,
+    isExchangeConsumedPolyp
+} from '../actions/exchangeConsumedPolyp.js'
+import { HydratedExchangeLarvaCube, isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
 
 export class ReefEncounterHydrator implements GameHydrator<
@@ -39,6 +44,12 @@ export class ReefEncounterHydrator implements GameHydrator<
             }
             case isMoveShrimp(data): {
                 return new HydratedMoveShrimp(data)
+            }
+            case isExchangeConsumedPolyp(data): {
+                return new HydratedExchangeConsumedPolyp(data)
+            }
+            case isExchangeLarvaCube(data): {
+                return new HydratedExchangeLarvaCube(data)
             }
             case isTakeOpenSeaSpace(data): {
                 return new HydratedTakeOpenSeaSpace(data)

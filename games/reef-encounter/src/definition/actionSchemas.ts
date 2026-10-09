@@ -1,6 +1,8 @@
 import type * as Type from 'typebox'
 import { ChooseLarvaCubes } from '../actions/chooseLarvaCubes.js'
 import { EatCoral } from '../actions/eatCoral.js'
+import { ExchangeConsumedPolyp } from '../actions/exchangeConsumedPolyp.js'
+import { ExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
 import { FeedParrotfish } from '../actions/feedParrotfish.js'
 import { IntroduceShrimp } from '../actions/introduceShrimp.js'
 import { MoveShrimp } from '../actions/moveShrimp.js'
@@ -18,6 +20,8 @@ export const ReefEncounterActionSchemas = {
     [ActionType.PlacePolyp]: PlacePolyp,
     [ActionType.IntroduceShrimp]: IntroduceShrimp,
     [ActionType.MoveShrimp]: MoveShrimp,
+    [ActionType.ExchangeConsumedPolyp]: ExchangeConsumedPolyp,
+    [ActionType.ExchangeLarvaCube]: ExchangeLarvaCube,
     [ActionType.TakeOpenSeaSpace]: TakeOpenSeaSpace,
     [ActionType.RefillOpenSea]: RefillOpenSea
 } satisfies Record<ActionType, Type.TSchema>

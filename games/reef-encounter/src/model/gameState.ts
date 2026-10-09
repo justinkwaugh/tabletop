@@ -150,7 +150,11 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     // A shrimp may not end the turn on bare rock (rulebook p. 5).
     canTakeOpenSeaSpace(playerId: string, larvaColor: CoralColor): boolean {
-        return this.openSeaSpace(larvaColor).hasLarvaCube && !this.hasShrimpOnBareRock(playerId)
+        return (
+            this.openSeaSpace(larvaColor).hasLarvaCube &&
+            !this.hasShrimpOnBareRock(playerId) &&
+            this.turn.cubeToPlay === undefined
+        )
     }
 
     // Action 10: the larva cube and every polyp on its space go behind the player's screen.
@@ -198,6 +202,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     canPlayLarvaCube(playerId: string, color: CoralColor): boolean {
         return (
+            this.mayPlayCube(color) &&
             this.turn.larvaCubesPlayed < LarvaCubesPerTurn &&
             this.getPlayerState(playerId).getLarvaCubes()[color] > 0
         )
@@ -213,6 +218,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.larvaCubeSupply[color] += 1
         this.turn.larvaCubesPlayed += 1
         this.turn.acted = true
+        this.turn.cubeToPlay = undefined
         this.turn.placing = { color, screenPolypsLeft: ScreenPolypsPerLarvaCube }
     }
 
@@ -324,6 +330,56 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     // Action 1, only before anything else this turn: a coral of five or more guarded by the
     // player's own shrimp, named by any of its squares.
+    // Action 6, only when the cube can then be played, as action 2, 3 or 8.
+    canExchangeConsumedPolyp(playerId: string, color: CoralColor): boolean {
+        return (
+            this.turn.cubeToPlay === undefined &&
+            this.getPlayerState(playerId).consumedPolyps[color] > 0 &&
+            this.larvaCubeSupply[color] > 0 &&
+            (this.turn.larvaCubesPlayed < LarvaCubesPerTurn || this.bonusPolyps[color] > 0)
+        )
+    }
+
+    // The consumed polyp goes into the bag, which is shaken (rulebook p. 5).
+    exchangeConsumedPolyp(playerId: string, color: CoralColor) {
+        assert(
+            this.canExchangeConsumedPolyp(playerId, color),
+            `Player ${playerId} cannot exchange a consumed ${color} polyp`
+        )
+        const player = this.getPlayerState(playerId)
+        player.spendConsumedPolyp(color)
+        this.polypBag.addItem(color)
+        this.polypBag.shuffle(this.getProtectedPrng().random)
+        this.larvaCubeSupply[color] -= 1
+        player.addLarvaCube(color)
+        this.turn.cubeToPlay = color
+        this.endAction()
+    }
+
+    // Action 8. The polyp is taken from the bonus polyps, which are refilled from the bag, as
+    // the rulebook suggests (p. 6), so whether it can be done never depends on the hidden bag.
+    canExchangeLarvaCube(playerId: string, color: CoralColor): boolean {
+        return (
+            this.mayPlayCube(color) &&
+            this.getPlayerState(playerId).getLarvaCubes()[color] > 0 &&
+            this.bonusPolyps[color] > 0
+        )
+    }
+
+    exchangeLarvaCube(playerId: string, color: CoralColor) {
+        assert(
+            this.canExchangeLarvaCube(playerId, color),
+            `Player ${playerId} cannot exchange a ${color} larva cube`
+        )
+        const player = this.getPlayerState(playerId)
+        player.spendLarvaCube(color)
+        this.larvaCubeSupply[color] += 1
+        player.addKnownScreenPolyps([color])
+        this.takeBonusPolyp(color)
+        this.turn.cubeToPlay = undefined
+        this.endAction()
+    }
+
     canEatCoral(playerId: string, square: ReefSquare): boolean {
         return !this.turn.acted && this.edibleCoral(playerId, square) !== undefined
     }
@@ -399,8 +455,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             coords: structuredClone(square.coords)
         })
         this.turn.shrimpIntroduced = true
-        this.turn.acted = true
-        this.turn.placing = undefined
+        this.endAction()
     }
 
     // Action 5: to another square, or back behind the screen when no square is given.
@@ -529,6 +584,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     private mayIntroduceShrimp(playerId: string): boolean {
         return (
             !this.turn.shrimpIntroduced &&
+            this.turn.cubeToPlay === undefined &&
             this.getPlayerState(playerId).getShrimpsBehindScreen() > 0
         )
     }
@@ -567,11 +623,27 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             return undefined
         }
         reef.polyps.push({ coords: structuredClone(square), color })
+        this.takeBonusPolyp(color)
+        return structuredClone(square)
+    }
+
+    // A bonus polyp is replaced by picking one of its colour out of the bag, when there is one.
+    private takeBonusPolyp(color: CoralColor) {
         this.bonusPolyps[color] -= 1
         if (this.polypBag.takeColor(color)) {
             this.bonusPolyps[color] += 1
         }
-        return structuredClone(square)
+    }
+
+    // Every action but moving shrimps finishes the one before it (rulebook p. 4).
+    private endAction() {
+        this.turn.acted = true
+        this.turn.placing = undefined
+    }
+
+    // While a bought cube waits to be played, no other cube may be.
+    private mayPlayCube(color: CoralColor): boolean {
+        return this.turn.cubeToPlay === undefined || this.turn.cubeToPlay === color
     }
 
     // When the bag runs out, the bonus polyps join it for ordinary play (rulebook p. 11).

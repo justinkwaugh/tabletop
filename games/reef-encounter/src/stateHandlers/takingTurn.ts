@@ -8,6 +8,11 @@ import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
 import { HydratedIntroduceShrimp, isIntroduceShrimp } from '../actions/introduceShrimp.js'
 import { HydratedMoveShrimp, isMoveShrimp } from '../actions/moveShrimp.js'
 import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
+import {
+    HydratedExchangeConsumedPolyp,
+    isExchangeConsumedPolyp
+} from '../actions/exchangeConsumedPolyp.js'
+import { HydratedExchangeLarvaCube, isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { CoralColors } from '../components/colors.js'
 import { activateTurnPlayer } from '../util/turns.js'
@@ -18,6 +23,8 @@ type TakingTurnAction =
     | HydratedPlacePolyp
     | HydratedIntroduceShrimp
     | HydratedMoveShrimp
+    | HydratedExchangeConsumedPolyp
+    | HydratedExchangeLarvaCube
     | HydratedTakeOpenSeaSpace
 
 export class TakingTurnStateHandler implements MachineStateHandler<
@@ -58,6 +65,12 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         if (isMoveShrimp(action)) {
             return gameState.canMoveShrimp(action.playerId, action.from, action.to)
         }
+        if (isExchangeConsumedPolyp(action)) {
+            return gameState.canExchangeConsumedPolyp(action.playerId, action.color)
+        }
+        if (isExchangeLarvaCube(action)) {
+            return gameState.canExchangeLarvaCube(action.playerId, action.color)
+        }
         return (
             isTakeOpenSeaSpace(action) &&
             gameState.canTakeOpenSeaSpace(action.playerId, action.larvaColor)
@@ -87,6 +100,12 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         }
         if (gameState.hasShrimpOnBoard(playerId)) {
             actions.push(ActionType.MoveShrimp)
+        }
+        if (CoralColors.some((color) => gameState.canExchangeConsumedPolyp(playerId, color))) {
+            actions.push(ActionType.ExchangeConsumedPolyp)
+        }
+        if (CoralColors.some((color) => gameState.canExchangeLarvaCube(playerId, color))) {
+            actions.push(ActionType.ExchangeLarvaCube)
         }
         if (CoralColors.some((color) => gameState.canTakeOpenSeaSpace(playerId, color))) {
             actions.push(ActionType.TakeOpenSeaSpace)

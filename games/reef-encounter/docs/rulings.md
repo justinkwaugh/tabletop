@@ -47,6 +47,12 @@ In the rulebook's order (pp. 3–4):
 - **Moving (action 5).** Any number of times a turn, and in the middle of placing polyps, a player may move one of their own shrimps to another polyp of the same coral, to a polyp of another coral, to bare rock, or back behind the screen (rulebook p. 5). A shrimp left on bare rock must move on before the turn ends, so the turn cannot end while one is there (rulebook p. 5).
 - **Limits.** Two shrimps are never on the same coral, and a player never has more than two of their own shrimps on one board (rulebook p. 9). Both hold for introducing and moving.
 
+## Exchanges
+
+- **Consumed polyp for a larva cube (action 6).** The polyp goes into the bag, which is reshuffled, and a cube of its colour comes from the supply (rulebook p. 5). Following the designer's 2007 change, the cube must be played next, as action 2, 3 or 8; until then the player may only move shrimps. So the exchange is offered only when the cube could then be played: the supply has one, and either fewer than two cubes have been played this turn or a bonus polyp of its colour is available for action 8.
+- **Larva cube for a polyp (action 8).** The cube returns to the supply and a polyp of its colour goes behind the screen, where everyone saw it arrive. It is taken from the bonus polyps, which are refilled from the bag, as the rulebook suggests (p. 6). Whether the exchange is possible therefore never depends on the hidden bag: it needs a bonus polyp of that colour. If the bag has none of the colour, the bonus polyp is not replaced.
+- Neither exchange counts as playing a larva cube, and each finishes the cube being played. Both may be done any number of times a turn.
+
 ## Eating
 
 - **When (action 1).** Only before every other action of the turn, moving a shrimp included, and once a turn (rulebook pp. 4 and 11).
