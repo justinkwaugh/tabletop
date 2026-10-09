@@ -1,8 +1,7 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
     dividendEntitlements,
-    dividendMarketMove,
-    companyMarketSpace,
     getCompany,
     trainsOwnedBy,
     type DistributionState,
@@ -35,14 +34,14 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
         if (companyId === 'PEIR' || !getCompany(state, companyId).floated)
             return { bonusPerShare: 0 }
         return {
-            move: dividendMarketMove(
+            move: TheOldPrinceMarket.dividendMove(
                 state.stockMarket,
                 companyId,
                 distribution.baseDividendPerShare > 0
             ),
             bonusPerShare:
                 distribution.baseDividendPerShare > 0 &&
-                companyMarketSpace(state.stockMarket, companyId).price === 400
+                TheOldPrinceMarket.companySpace(state.stockMarket, companyId).price === 400
                     ? 40
                     : 0
         }

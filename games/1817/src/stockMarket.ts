@@ -1,6 +1,6 @@
 import {
-    createRectangularStockMarket,
-    type StockMarket,
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
     type StockMarketSpace
 } from '@tabletop/18xx'
 
@@ -62,23 +62,19 @@ export function isAcquisitionSpace(space: StockMarketSpace): boolean {
 
 // The market is one row: up is right and down is left. Ordinary moves never reach the
 // liquidation space; only liquidation places a company there.
-export function createEighteenSeventeenStockMarket(): StockMarket {
-    const market = createRectangularStockMarket(
+export const EighteenSeventeenMarket = new StockMarketChart(
+    createRectangularStockMarketSpaces(
         [Market.map((cell) => Number.parseInt(cell))],
         (_row, column) => Zones[Market[column].replace(/\d/g, '')] ?? MarketZoneColors.ordinary
-    )
-    return {
-        ...market,
-        spaces: market.spaces.map((space) => {
-            const { left, right } = space.moves
-            const down = space.column > 1 ? left : undefined
-            return {
-                ...space,
-                moves: {
-                    ...(right ? { right, up: right } : {}),
-                    ...(down ? { left: down, down } : {})
-                }
+    ).map((space) => {
+        const { left, right } = space.moves
+        const down = space.column > 1 ? left : undefined
+        return {
+            ...space,
+            moves: {
+                ...(right ? { right, up: right } : {}),
+                ...(down ? { left: down, down } : {})
             }
-        })
-    }
-}
+        }
+    })
+)

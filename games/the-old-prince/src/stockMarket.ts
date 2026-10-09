@@ -1,7 +1,7 @@
-import { createRectangularStockMarket } from '@tabletop/18xx'
+import { createRectangularStockMarketSpaces, StockMarketChart } from '@tabletop/18xx'
 
-export function createTheOldPrinceStockMarket() {
-    const market = createRectangularStockMarket(
+export const TheOldPrinceMarket = new StockMarketChart(
+    createRectangularStockMarketSpaces(
         [
             [null, null, 111, 122, 136, 152, 170, 190, 215, 240, 270, 300, 330, 360, 400],
             [88, 92, 100, 110, 121, 133, 146, 160, 180, 200, 225, 250, 280],
@@ -25,5 +25,4 @@ export function createTheOldPrinceStockMarket() {
                       : 'white'
         }
     )
-    return market
-}
+)

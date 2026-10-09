@@ -1,10 +1,10 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     addShort,
     applyPresidencyChange,
     cancelShorts,
-    companyMarketSpace,
     controllingOwner,
     evaluatePresidency,
     finiteCashOwnedBy,
@@ -19,7 +19,6 @@ import {
     sameOwner,
     settleCashPayments,
     sharesOwned,
-    stockMarketOrder,
     transferCompanyAssets,
     trainsOwnedBy,
     type AssetTransfer,
@@ -46,7 +45,7 @@ const SizeAfter: Readonly<Record<number, number>> = { 2: 5, 5: 10 }
 
 /** The companies that take part in a merger round, in operating order. */
 export function mergerRoundCompanyIds(state: EighteenSeventeenState): string[] {
-    return stockMarketOrder(state.stockMarket).filter((companyId) => {
+    return EighteenSeventeenMarket.order(state.stockMarket).filter((companyId) => {
         const company = getCompany(state, companyId)
         return company.floated && !inClosingZone(state.stockMarket, companyId)
     })
@@ -154,8 +153,8 @@ export function mergerPrice(
     companyId: string,
     targetId: string
 ): number {
-    const a = companyMarketSpace(state.stockMarket, companyId).price
-    const b = companyMarketSpace(state.stockMarket, targetId).price
+    const a = EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
+    const b = EighteenSeventeenMarket.companySpace(state.stockMarket, targetId).price
     const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
     return mergerSpace(state, value).price
 }
@@ -199,7 +198,7 @@ export function mergerPreview(
 }
 
 function mergerSpace(state: EighteenSeventeenState, value: number): StockMarketSpace {
-    const space = state.stockMarket.spaces
+    const space = EighteenSeventeenMarket.spaces
         .filter((space) => space.price > 0 && space.price <= value)
         .reduce<StockMarketSpace | undefined>(
             (best, space) => (!best || space.price > best.price ? space : best),

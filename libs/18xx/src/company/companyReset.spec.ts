@@ -1,13 +1,13 @@
 import { expect, it } from 'vitest'
-import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import { placeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import type { FinancialState } from '../finance/finance.js'
 import type { StationState } from '../map/station.js'
 import { resetCompany } from './companyReset.js'
 
 it('returns a company to an unstarted charter with its president’s certificate in the bank', () => {
-    const stockMarket = createRectangularStockMarket([[50, 60]], () => 'white')
+    const stockMarket: StockMarket = { stacks: [] }
     placeStockMarker(stockMarket, 'A', '0:1')
-    const state: FinancialState & StationState & { stockMarket: typeof stockMarket } = {
+    const state: FinancialState & StationState & { stockMarket: StockMarket } = {
         bank: { name: 'Bank' },
         companies: [
             {

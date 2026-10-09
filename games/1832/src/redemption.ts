@@ -14,7 +14,6 @@ import {
     CashPayment,
     CorporateStockActionsHandler,
     Owner,
-    companyMarketSpace,
     corporateTurnOpen,
     finiteCashOwnedBy,
     getCompany,
@@ -34,7 +33,7 @@ import {
 import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { MaximumReissuePar, ReissueParPrices } from './stockMarket.js'
+import { MaximumReissuePar, ReissueParPrices, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { isSystem } from './systems.js'
 import { ConsentingRedemptionState, RedemptionRequest } from './titleState.js'
 
@@ -125,7 +124,7 @@ export function redemptionChoices(
         const shareCount = shareCountOf(state, company.id)
         const held = sharesOwned(state, company.id, companyOwner(company.id))
         const outside = outsideShares(state, company.id)
-        const price = companyMarketSpace(state.stockMarket, company.id).price
+        const price = EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id).price
         const candidates = state.certificates.flatMap((certificate) =>
             !certificate.retired &&
             certificate.kind === 'share' &&
@@ -405,7 +404,8 @@ export type ReissueChoice = { companyId: string; certificateIds: string[]; parPr
  * nearest 75% of its market price, a tie rounding up (§5.11).
  */
 export function reissueParPrice(state: EighteenThirtyTwoState, companyId: string): number {
-    const target = (companyMarketSpace(state.stockMarket, companyId).price * 3) / 4
+    const target =
+        (EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId).price * 3) / 4
     const nearest = ReissueParPrices.reduce((best, price) =>
         Math.abs(price - target) <= Math.abs(best - target) ? price : best
     )

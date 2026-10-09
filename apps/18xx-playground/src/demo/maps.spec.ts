@@ -1,16 +1,16 @@
 import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
-import { createMarket as create1846Market } from '../../../../games/1846/src/stock.js'
+import { Market1846 } from '../../../../games/1846/src/stock.js'
 import { describe, expect, it } from 'vitest'
 import { createMapDrawing, mapSelectionPoint, assertMapOverlays } from '@tabletop/18xx-ui'
 import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
 import { MapExamples } from './maps.js'
 import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
-import { createEighteenThirtyStockMarket } from '@tabletop/1830'
+import { EighteenThirtyMarket } from '@tabletop/1830'
 import { EighteenThirtyMapView } from '@tabletop/1830-ui'
-import { createEighteenSeventeenStockMarket } from '@tabletop/1817'
+import { EighteenSeventeenMarket } from '@tabletop/1817'
 import { EighteenSeventeenMapView } from '@tabletop/1817-ui'
-import { createEighteenThirtyTwoStockMarket } from '@tabletop/1832'
+import { EighteenThirtyTwoMarket } from '@tabletop/1832'
 import { EighteenThirtyTwoMapView } from '@tabletop/1832-ui/playground'
 import {
     MarketCellHeight,
@@ -146,22 +146,22 @@ describe.each([
     {
         name: '1846',
         view: MapView1846,
-        createMarket: create1846Market,
+        market: Market1846,
         cell: Presentation1846.marketCell,
         zones: Presentation1846.marketZones
     },
-    { name: '1830', view: EighteenThirtyMapView, createMarket: createEighteenThirtyStockMarket },
+    { name: '1830', view: EighteenThirtyMapView, market: EighteenThirtyMarket },
     {
         name: '1817',
         view: EighteenSeventeenMapView,
-        createMarket: createEighteenSeventeenStockMarket
+        market: EighteenSeventeenMarket
     },
     {
         name: '1832',
         view: EighteenThirtyTwoMapView,
-        createMarket: createEighteenThirtyTwoStockMarket
+        market: EighteenThirtyTwoMarket
     }
-])('$name board', ({ view, createMarket, cell, zones }) => {
+])('$name board', ({ view, market, cell, zones }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
         const areas = view.boardAreas
         expect(areas?.market && areas.depot).toBeTruthy()
@@ -180,7 +180,6 @@ describe.each([
                     y + height < hex.y - 62 ||
                     y > hex.y + 62
             )
-        const market = createMarket()
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
         const columns = Math.max(...cells.map(([, column]) => column)) + 1
         const rows = Math.max(...cells.map(([row]) => row)) + 1

@@ -1,12 +1,7 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import {
-    cashOwnedBy,
-    companyMarketSpace,
-    getCompany,
-    unownedTrain,
-    type EighteenXXState
-} from '@tabletop/18xx'
+import { cashOwnedBy, getCompany, unownedTrain, type EighteenXXState } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenSeventeenLoanRules,
@@ -19,7 +14,7 @@ import { passUntil } from '../test/passTurns.js'
 const treasury = (state: EighteenXXState, companyId: string) =>
     cashOwnedBy(state, { kind: 'company', companyId })
 const price = (state: EighteenXXState, companyId: string) =>
-    companyMarketSpace(state.stockMarket, companyId).price
+    EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
 
 function setCash(state: EighteenXXState, companyId: string, amount: number) {
     const cash = state.cash.find(
@@ -243,8 +238,9 @@ describe('the stock-round corporate action', () => {
                 }
             setCash(state, 'BA', 1000)
         })
-        const price = play.state.stockMarket.spaces.find(
-            (space) => space.id === companyMarketSpace(play.state.stockMarket, 'BA').id
+        const price = EighteenSeventeenMarket.spaces.find(
+            (space) =>
+                space.id === EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id
         )?.price
         assertExists(price, 'BA has a price')
         play.act('BuyBackShares', {

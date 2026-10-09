@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type {
     HydratedEighteenSeventeenState,
     EighteenSeventeenStateHandler,
@@ -33,7 +34,6 @@ import {
     addCompanyStations,
     applyShareTransfer,
     canTakeLoan,
-    companyMarketSpace,
     evaluateShareTransfer,
     isTakeLoan,
     nextOperatingCompany,
@@ -293,7 +293,7 @@ export class HydratedConvertCompany
         const stationsOwed = stationsForConversion(state, this.companyId)
         beginConversion(state, {
             companyId: this.companyId,
-            price: companyMarketSpace(state.stockMarket, this.companyId).price,
+            price: EighteenSeventeenMarket.companySpace(state.stockMarket, this.companyId).price,
             stationsOwed
         })
         this.metadata = { shareIds, shareCount, stationsOwed }
@@ -542,6 +542,7 @@ export function convertedShareSales(
             seller,
             [{ companyId: conversion.companyId, shares }],
             {
+                market: EighteenSeventeenMarket,
                 saleTerms: marketSale,
                 presidencyCandidates: EighteenSeventeenStockRules.presidencyCandidates
             }

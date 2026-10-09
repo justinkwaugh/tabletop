@@ -3,10 +3,12 @@ import {
     minimalRailwayMap,
     minimalRouteRules,
     minimalStationRules,
+    minimalStockRules,
     minimalTileSet,
     minimalTrackRules,
     minimalTrackTileSet,
-    minimalTrainRules
+    minimalTrainRules,
+    TestMarket
 } from '../testing/index.js'
 import { titleComponents } from './titleComponents.js'
 
@@ -15,14 +17,16 @@ const rules = {
     trackRules: track,
     stationRules: minimalStationRules,
     routeRules: minimalRouteRules,
-    trainRules: minimalTrainRules
+    trainRules: minimalTrainRules,
+    stockRules: minimalStockRules
 }
 
-it('takes a title’s map, tile set and depot from its mechanism rules', () => {
+it('takes a title’s map, tile set, depot and market from its mechanism rules', () => {
     expect(titleComponents(rules)).toEqual({
         map: minimalRailwayMap,
         tileSet: minimalTileSet,
-        depot: minimalTrainRules.depot
+        depot: minimalTrainRules.depot,
+        market: TestMarket
     })
 })
 

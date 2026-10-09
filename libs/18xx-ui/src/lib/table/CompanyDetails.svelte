@@ -85,7 +85,9 @@
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(companySharePrice(gameState.stockMarket, company.id))
+    const marketPrice = $derived(
+        companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
+    )
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)

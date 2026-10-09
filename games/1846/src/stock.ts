@@ -5,15 +5,14 @@ import {
     evaluateShareSale,
     mustSellShares,
     allSharesHeld,
-    companyMarketSpace,
-    createRectangularStockMarket,
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
     getCompany,
     marketSaleTerms,
     playersAfterPresident,
     priorityOrder,
     sameOwner,
     sharesOwned,
-    stockMarketSpace,
     type CompanyRules,
     type StockRules
 } from '@tabletop/18xx'
@@ -35,18 +34,21 @@ function marketZoneColor(price: number) {
     return MarketZoneColors1846.ordinary
 }
 
-export function createMarket() {
-    const market = createRectangularStockMarket([MarketPrices], (_, column) =>
+export const Market1846 = new StockMarketChart(
+    createRectangularStockMarketSpaces([MarketPrices], (_, column) =>
         marketZoneColor(MarketPrices[column])
-    )
-    for (const space of market.spaces) {
-        if (space.moves.right) space.moves.up = space.moves.right
-        if (space.moves.left) space.moves.down = space.moves.left
-    }
-    return market
-}
+    ).map((space) => ({
+        ...space,
+        moves: {
+            ...space.moves,
+            ...(space.moves.right ? { up: space.moves.right } : {}),
+            ...(space.moves.left ? { down: space.moves.left } : {})
+        }
+    }))
+)
 
 export const StockRules1846: StockRules = {
+    market: Market1846,
     round: {
         passing: 'consecutive',
         nextPlayerOrder: (state) => priorityOrder(state, StockRules1846.round),
@@ -73,7 +75,8 @@ export const StockRules1846: StockRules = {
         )
             return 'This share is not in the treasury or market.'
         return {
-            price: companyMarketSpace(state.stockMarket, company.id).price * certificate.shares,
+            price:
+                Market1846.companySpace(state.stockMarket, company.id).price * certificate.shares,
             recipient: certificate.owner,
             payers: [buyer]
         }
@@ -85,7 +88,7 @@ export const StockRules1846: StockRules = {
         const president = sameOwner(company.president, seller)
         if (!company.operated && !president)
             return 'Only the president may sell before the corporation operates.'
-        return marketSaleTerms(state, companyId, {
+        return marketSaleTerms(Market1846, state, companyId, {
             destinationPoolId: 'open-market',
             marketLimit: 50,
             maximumShares: 10,
@@ -112,12 +115,12 @@ export const StockRules1846: StockRules = {
 export const CompanyRules1846: CompanyRules = {
     startMarketSpaces: (state, id) =>
         getCompany(state, id).kind === 'major'
-            ? state.stockMarket.spaces
+            ? Market1846.spaces
                   .filter((space) => space.color === MarketZoneColors1846.par)
                   .map((space) => space.id)
             : [],
     startTerms: (state, companyId, buyer, spaceId) => ({
-        price: stockMarketSpace(state.stockMarket, spaceId).price * 2,
+        price: Market1846.space(spaceId).price * 2,
         recipient: { kind: 'company', companyId },
         payers: [buyer]
     }),

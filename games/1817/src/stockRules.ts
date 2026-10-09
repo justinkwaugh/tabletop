@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
     StationPlacement,
@@ -5,7 +6,6 @@ import {
     closePrivate,
     privateOwningCompany,
     finiteCashOwnedBy,
-    companyMarketSpace,
     getCompany,
     issueShareCertificates,
     marketSaleTerms,
@@ -220,7 +220,7 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
     // The company starts on the highest space at or below half the winning bid.
     startSpace(state, price) {
         const half = Math.floor(price / 2)
-        const space = state.stockMarket.spaces
+        const space = EighteenSeventeenMarket.spaces
             .filter((space) => space.price > 0 && space.price <= half)
             .reduce((best, space) => (space.price > best.price ? space : best))
         return space.id
@@ -254,7 +254,7 @@ export function marketSale(
         return 'This company has no saleable shares.'
     if (inClosingZone(state.stockMarket, companyId))
         return 'Shares in the acquisition or liquidation zone cannot be sold.'
-    return marketSaleTerms(state, companyId, {
+    return marketSaleTerms(EighteenSeventeenMarket, state, companyId, {
         destinationPoolId: MarketPoolId,
         marketLimit: 1000,
         maximumShares: shares,
@@ -263,6 +263,7 @@ export function marketSale(
 }
 
 export const EighteenSeventeenStockRules: StockRules = {
+    market: EighteenSeventeenMarket,
     round: EighteenSeventeenStockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -279,7 +280,9 @@ export const EighteenSeventeenStockRules: StockRules = {
             certificate.poolId === treasuryPoolId(company.id)
         if (!market && !treasury) return 'This certificate is not available for purchase.'
         return {
-            price: companyMarketSpace(state.stockMarket, company.id).price * certificate.shares,
+            price:
+                EighteenSeventeenMarket.companySpace(state.stockMarket, company.id).price *
+                certificate.shares,
             recipient: certificate.owner,
             payers: [buyer]
         }

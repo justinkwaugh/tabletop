@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { marketDiscardOrder, type PhaseRules, type TrainPurchaseState } from '@tabletop/18xx'
 import type { TheOldPrinceState } from './state.js'
 import { TheOldPrincePhases } from './trains.js'
@@ -18,6 +19,7 @@ export const TheOldPrincePhaseRules: PhaseRules = {
             return 'after-operation'
         return timing
     },
-    discardOrder: (state, companyId) => marketDiscardOrder(state, companyId, ['PEIR']),
+    discardOrder: (state, companyId) =>
+        marketDiscardOrder(TheOldPrinceMarket, state, companyId, ['PEIR']),
     discardDestination: 'removed'
 }

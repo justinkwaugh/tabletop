@@ -1,4 +1,4 @@
-import { stockMarketSpace, type StockMarket } from '@tabletop/18xx'
+import type { StockMarket, StockMarketChart } from '@tabletop/18xx'
 import type { BoundingBox, Point } from '@tabletop/common'
 
 export const MarketCellWidth = 62
@@ -19,15 +19,15 @@ const MarketStackInset = 4
  * undefined when the bottom row reaches the last column.
  */
 export function marketLowerRightSpace(
-    market: StockMarket,
+    chart: StockMarketChart,
     cell = DefaultMarketCell
 ): BoundingBox | undefined {
-    const columns = Math.max(...market.spaces.map((space) => space.column)) + 1
-    const rows = Math.max(...market.spaces.map((space) => space.row)) + 1
+    const columns = Math.max(...chart.spaces.map((space) => space.column)) + 1
+    const rows = Math.max(...chart.spaces.map((space) => space.row)) + 1
     let firstEmptyColumn = 0
     let largest: BoundingBox | undefined
     for (let top = rows - 1; top >= 0; top--) {
-        const occupied = market.spaces.filter((space) => space.row === top)
+        const occupied = chart.spaces.filter((space) => space.row === top)
         firstEmptyColumn = Math.max(firstEmptyColumn, ...occupied.map((space) => space.column + 1))
         if (firstEmptyColumn >= columns) break
         const space = {
@@ -47,11 +47,15 @@ function stackOffsetX(count: number, cell: MarketCellDimensions) {
         : cell.width / 2
 }
 
-export function marketTokenLayout(market: StockMarket, cell = DefaultMarketCell) {
+export function marketTokenLayout(
+    chart: StockMarketChart,
+    market: StockMarket,
+    cell = DefaultMarketCell
+) {
     const topInset = cell.width < 50 ? 20 : MarketStackInset
     const tokenHeight = cell.height - topInset - MarketStackInset
     return market.stacks.flatMap((stack) => {
-        const space = stockMarketSpace(market, stack.spaceId)
+        const space = chart.space(stack.spaceId)
         const step =
             stack.companyIds.length > 1
                 ? Math.min(
@@ -80,14 +84,15 @@ export function marketTokenLayout(market: StockMarket, cell = DefaultMarketCell)
  * taller than the market starts at its top and extends below it.
  */
 export function expandedMarketStack(
+    chart: StockMarketChart,
     market: StockMarket,
     spaceId: string,
     cell = DefaultMarketCell
 ): Point[] {
     const count = market.stacks.find((stack) => stack.spaceId === spaceId)?.companyIds.length ?? 0
-    const space = stockMarketSpace(market, spaceId)
-    const width = (Math.max(...market.spaces.map((item) => item.column)) + 1) * cell.width
-    const height = (Math.max(...market.spaces.map((item) => item.row)) + 1) * cell.height
+    const space = chart.space(spaceId)
+    const width = (Math.max(...chart.spaces.map((item) => item.column)) + 1) * cell.width
+    const height = (Math.max(...chart.spaces.map((item) => item.row)) + 1) * cell.height
     const step = MarketTokenSize + 4
     const span = Math.max(0, count - 1) * step
     const radius = MarketTokenSize / 2

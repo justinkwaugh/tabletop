@@ -1,3 +1,4 @@
+import { Shikoku1889Market } from './stockMarket.js'
 import {
     bankExhaustionAtSetEnd,
     certificateWealthItem,
@@ -17,7 +18,7 @@ export const Shikoku1889EndingRules: EndingRules = {
         if (!company.closed) {
             value =
                 certificate.kind === 'share'
-                    ? marketShareValue(state, certificate)
+                    ? marketShareValue(Shikoku1889Market, state, certificate)
                     : Shikoku1889PrivateCatalog.faceValue(company.id)
         }
         return [certificateWealthItem(state, certificate, value)]

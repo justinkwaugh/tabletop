@@ -24,7 +24,7 @@
                     {details}
                     label={names[choice]}
                     companyId={result.companyId}
-                    stockMarket={session.gameState.stockMarket}
+                    chart={session.stockMarketChart}
                     ownerName={(owner) => session.ownerName(owner)}
                     reason={evaluation.reason}
                     disabled={!session.earnings.canDistribute || !details}

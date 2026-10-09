@@ -5,15 +5,17 @@ import {
     type EarningsRules
 } from './earningsDistribution.js'
 import {
-    companyMarketSpace,
-    createRectangularStockMarket,
-    moveMarketSpace,
-    placeStockMarker
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
+    type StockMarket
 } from '../stock/stockMarket.js'
 
 it('passes the chosen payout and calculated dividend to market policy without mutating the state', () => {
-    const market = createRectangularStockMarket([[100, 110, 120]], () => 'white')
-    placeStockMarker(market, 'R', '0:0')
+    const chart = new StockMarketChart(
+        createRectangularStockMarketSpaces([[100, 110, 120]], () => 'white')
+    )
+    const market: StockMarket = { stacks: [] }
+    chart.placeMarker(market, 'R', '0:0')
     const state: DistributionState = {
         companies: [{ id: 'R', name: 'Railway', kind: 'major', shareCount: 10 }],
         bank: { name: 'Bank' },
@@ -39,9 +41,8 @@ it('passes the chosen payout and calculated dividend to market policy without mu
             expect(distribution.baseDividendPerShare).toBe(
                 (distribution.revenue - distribution.retained) / 10
             )
-            const from = companyMarketSpace(current.stockMarket, companyId)
-            const to = moveMarketSpace(
-                current.stockMarket,
+            const from = chart.companySpace(current.stockMarket, companyId)
+            const to = chart.move(
                 from.id,
                 'right',
                 Math.floor((distribution.revenue - distribution.retained) / from.price)

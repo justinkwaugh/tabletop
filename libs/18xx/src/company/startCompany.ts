@@ -61,7 +61,13 @@ export class HydratedStartCompany
         assert(result.details, result.reason ?? 'Invalid company start')
         assert(result.details.price === this.expectedPrice, 'Starting price has changed')
         assert(result.details.buyer.kind !== 'bank', 'A company requires a president')
-        startCompanyAtPar(state, this.companyId, this.marketSpaceId, result.details.buyer)
+        startCompanyAtPar(
+            state,
+            this.#stockRules.market,
+            this.companyId,
+            this.marketSpaceId,
+            result.details.buyer
+        )
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)

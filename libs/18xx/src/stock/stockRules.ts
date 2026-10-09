@@ -13,7 +13,7 @@ import type { CompanyAuctionRules } from './companyAuction.js'
 import type { PrivateSaleRules } from './privateSale.js'
 import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
-import { companyMarketSpace } from './stockMarket.js'
+import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
 import type { ShareSaleDetails } from './shareSale.js'
 import type { StockState } from './stockState.js'
@@ -29,6 +29,7 @@ export type ShareSaleTerms = {
     direction: string
 }
 export interface StockRules {
+    market: StockMarketChart
     round: StockRoundRules
     instructions?: StockInstructionRules
     sellers(state: StockState, playerId: string): Owner[]
@@ -146,13 +147,14 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
 }
 
 export function marketSaleTerms(
+    market: StockMarketChart,
     state: Pick<StockState, 'stockMarket'>,
     companyId: string,
     terms: Pick<ShareSaleTerms, 'destinationPoolId' | 'marketLimit' | 'maximumShares' | 'movement'>
 ): ShareSaleTerms {
     return {
         payer: { kind: 'bank' },
-        price: companyMarketSpace(state.stockMarket, companyId).price,
+        price: market.companySpace(state.stockMarket, companyId).price,
         direction: 'down',
         ...terms
     }

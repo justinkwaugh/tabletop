@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { EighteenSeventeenMarket } from '@tabletop/1817'
+    import { getCompany } from '@tabletop/18xx'
     import { takeLoanAction } from './cardActions.js'
     import { CompanyActionCard, type CardAction } from '@tabletop/18xx-ui'
     import { plural } from './plural.js'
@@ -115,7 +116,12 @@
                 <CompanyActionCard
                     {session}
                     companyId={target.companyId}
-                    value={money(companyMarketSpace(gameState.stockMarket, target.companyId).price)}
+                    value={money(
+                        EighteenSeventeenMarket.companySpace(
+                            gameState.stockMarket,
+                            target.companyId
+                        ).price
+                    )}
                     facts={[
                         ...companyFinanceFacts(gameState, target.companyId, money),
                         ...companyAssetFacts(gameState, target.companyId)

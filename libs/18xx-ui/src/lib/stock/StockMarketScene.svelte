@@ -4,6 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import {
         type StockMarket as StockMarketModel,
+        type StockMarketChart,
         type StockMarketSpace,
         type Company
     } from '@tabletop/18xx'
@@ -23,6 +24,7 @@
     } from './marketTokenLayout.js'
 
     let {
+        chart,
         market,
         companies,
         appearances,
@@ -32,6 +34,7 @@
         cell = DefaultMarketCell,
         renderScale = 1
     }: {
+        chart: StockMarketChart
         market: StockMarketModel
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
@@ -41,9 +44,9 @@
         cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
-    const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
-    const rows = $derived(Math.max(...market.spaces.map((space) => space.row)) + 1)
-    const spaceRows = $derived(new Map(market.spaces.map((space) => [space.id, space.row])))
+    const columns = $derived(Math.max(...chart.spaces.map((space) => space.column)) + 1)
+    const rows = $derived(Math.max(...chart.spaces.map((space) => space.row)) + 1)
+    const spaceRows = $derived(new Map(chart.spaces.map((space) => [space.id, space.row])))
     // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
     function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
         const target = space.moves[move]
@@ -51,7 +54,7 @@
     }
     const banners = $derived(
         zones.flatMap(({ color, banner }) => {
-            const zoneColumns = market.spaces
+            const zoneColumns = chart.spaces
                 .filter((space) => space.color === color)
                 .map((space) => space.column)
             return banner && zoneColumns.length
@@ -66,13 +69,15 @@
                 : []
         })
     )
-    let tokens = $derived(marketTokenLayout(market, cell))
+    let tokens = $derived(marketTokenLayout(chart, market, cell))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
         animation?.updatingVisibleState
         return undefined
     })
-    const expanded = $derived(hoveredSpace ? expandedMarketStack(market, hoveredSpace, cell) : [])
+    const expanded = $derived(
+        hoveredSpace ? expandedMarketStack(chart, market, hoveredSpace, cell) : []
+    )
     const expandedIds = $derived(
         market.stacks.find((stack) => stack.spaceId === hoveredSpace)?.companyIds ?? []
     )
@@ -111,8 +116,8 @@
         if (!activeSession) return
         const listener = async ({ to, from, action, animationContext }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
-            const before = marketTokenLayout(from, cell)
-            const after = marketTokenLayout(to, cell)
+            const before = marketTokenLayout(chart, from, cell)
+            const after = marketTokenLayout(chart, to, cell)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
             const beforeById = new Map(before.map((item) => [item.companyId, item]))
@@ -227,7 +232,7 @@
         style:grid-template-columns={`repeat(${columns}, ${cell.width * renderScale}px)`}
         style:grid-template-rows={`repeat(${rows}, ${cell.height * renderScale}px)`}
     >
-        {#each market.spaces as space (space.id)}
+        {#each chart.spaces as space (space.id)}
             {@const crowded = tokens.some(
                 (token) => token.spaceId === space.id && token.overlapped
             )}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
@@ -38,15 +38,11 @@
             <div class="buttons" aria-label="Starting prices">
                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                     <button
-                        data-start-price={stockMarketSpace(
-                            gameState.stockMarket,
-                            price.marketSpaceId
-                        ).price}
+                        data-start-price={session.stockMarketChart.space(price.marketSpaceId).price}
                         disabled={session.busy || !price.result.details}
                         title={price.result.reason}
                         onclick={() => session.stock.selectStartPrice(price.marketSpaceId)}
-                        >{stockMarketSpace(gameState.stockMarket, price.marketSpaceId)
-                            .price}</button
+                        >{session.stockMarketChart.space(price.marketSpaceId).price}</button
                     >
                 {/each}
             </div>

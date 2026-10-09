@@ -1,9 +1,9 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import {
     bankExhaustionAtSetEnd,
     certificateWealthItem,
     getCompany,
     marketShareValue,
-    stockMarketSpace,
     type EndingRules,
     type EndingState
 } from '@tabletop/18xx'
@@ -21,7 +21,7 @@ function reachedFinishPrice(state: EndingState) {
         requireEighteenThirtyTwoState(state).variants.finish400 &&
         ['OperatingSet', 'StartingOperatingSet'].includes(state.machineState) &&
         state.stockMarket.stacks.some(
-            (stack) => stockMarketSpace(state.stockMarket, stack.spaceId).price >= FinishPrice
+            (stack) => EighteenThirtyTwoMarket.space(stack.spaceId).price >= FinishPrice
         )
     )
 }
@@ -39,7 +39,7 @@ export const EighteenThirtyTwoEndingRules: EndingRules = {
         const value = company.closed
             ? 0
             : certificate.kind === 'share'
-              ? marketShareValue(state, certificate)
+              ? marketShareValue(EighteenThirtyTwoMarket, state, certificate)
               : EighteenThirtyTwoPrivateCatalog.faceValue(company.id)
         return [certificateWealthItem(state, certificate, value)]
     }

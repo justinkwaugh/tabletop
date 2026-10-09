@@ -1,9 +1,10 @@
 import { presidentCertificate } from '../finance/finance.js'
-import { stockMarketSpace } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import { fullCapitalizationPayments, sharesStillToFloat } from './companyFlotation.js'
 import type { CompanyRules } from './companyRules.js'
 
 export function fullCapitalizationCompanyRules(options: {
+    market: StockMarketChart
     ipoPoolId: string
     parSpaceColor: string
     floatPercent: number
@@ -16,8 +17,8 @@ export function fullCapitalizationCompanyRules(options: {
             (certificate) => certificate.poolId === options.ipoPoolId
         )
     return {
-        startMarketSpaces: (state) =>
-            state.stockMarket.spaces
+        startMarketSpaces: () =>
+            options.market.spaces
                 .filter((space) => space.color === options.parSpaceColor)
                 .map((space) => space.id),
         startTerms(state, companyId, buyer, marketSpaceId) {
@@ -29,8 +30,7 @@ export function fullCapitalizationCompanyRules(options: {
             )
                 return 'The president’s certificate must be available in the IPO.'
             return {
-                price:
-                    stockMarketSpace(state.stockMarket, marketSpaceId).price * certificate.shares,
+                price: options.market.space(marketSpaceId).price * certificate.shares,
                 recipient: { kind: 'bank' },
                 payers: [buyer]
             }

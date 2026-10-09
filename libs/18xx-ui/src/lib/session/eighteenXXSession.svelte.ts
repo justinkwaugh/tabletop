@@ -9,7 +9,6 @@ import {
     priorityOrder,
     shareSaleValue,
     stockCertificateCount,
-    stockMarketOrder,
     titleComponents,
     trainsOwnedBy,
     type EighteenXXPreferences,
@@ -434,14 +433,7 @@ export class EighteenXXSession<
         this.historicalMaps = new HistoricalMaps(
             () => this.mapView,
             (state) =>
-                this.projectMapState(
-                    this.rules.state.hydrate(
-                        state,
-                        this.rules.trackRules.map,
-                        this.rules.trackRules.tileSet,
-                        this.rules.trainRules.depot
-                    )
-                )
+                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules)))
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -553,8 +545,8 @@ export class EighteenXXSession<
     )
     companySoldOut(companyId: string): boolean {
         return (
-            companySharePrice(this.gameState.stockMarket, companyId) !== undefined &&
-            this.rules.stockRules.round.soldOut(this.gameState, companyId)
+            companySharePrice(this.stockMarketChart, this.gameState.stockMarket, companyId) !==
+                undefined && this.rules.stockRules.round.soldOut(this.gameState, companyId)
         )
     }
     playerLiquidity(playerId: string): number {
@@ -630,8 +622,11 @@ export class EighteenXXSession<
     stockCompanyName(companyId: string) {
         return getCompany(this.gameState, companyId).name
     }
+    get stockMarketChart() {
+        return this.rules.stockRules.market
+    }
     get stockCompanies() {
-        const order = stockMarketOrder(this.gameState.stockMarket)
+        const order = this.stockMarketChart.order(this.gameState.stockMarket)
         const rank = new Map(order.map((id, index) => [id, index]))
         return this.gameState.companies
             .filter((company) => company.started)

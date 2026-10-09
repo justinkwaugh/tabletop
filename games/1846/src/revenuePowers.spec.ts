@@ -1,3 +1,4 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, HexOrientation, assert, assertExists } from '@tabletop/common'
 import {
@@ -207,7 +208,7 @@ describe('1846 revenue marker powers', () => {
         buy(table, 'SC')
         assign(table, 'SC', 'D14')
         const markers = structuredClone(table.state.revenueMarkers)
-        const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
+        const space = Market1846.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'NYC', space.id)
         const before = structuredClone(table.state)
@@ -288,7 +289,12 @@ function mailRun(finalTrain = false) {
     table.state.routeStep = { companyId: 'NYC' }
     const rules: RouteRules = { ...RouteRules1846, map, tileSet }
     const hydrated = () =>
-        EighteenFortySixStateDefinition.hydrate(table.state, map, tileSet, TrainDepot1846)
+        EighteenFortySixStateDefinition.hydrate(table.state, {
+            map,
+            tileSet,
+            depot: TrainDepot1846,
+            market: Market1846
+        })
     return { table, routes, rules, hydrated }
 }
 describe('1846 Mail Contract run scoring', () => {

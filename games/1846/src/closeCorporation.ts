@@ -1,3 +1,4 @@
+import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -8,7 +9,7 @@ import {
     assertExists,
     type MachineStateHandler
 } from '@tabletop/common'
-import { CompanyClosure, closeShareCompany, companyMarketSpace } from '@tabletop/18xx'
+import { CompanyClosure, closeShareCompany } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { RevenueMarker } from './revenueMarkers.js'
 
@@ -20,7 +21,7 @@ export function corporationAwaitingClosure(
             company.kind === 'major' &&
             company.started &&
             !company.closed &&
-            companyMarketSpace(state.stockMarket, company.id).price === 0
+            Market1846.companySpace(state.stockMarket, company.id).price === 0
     )?.id
 }
 

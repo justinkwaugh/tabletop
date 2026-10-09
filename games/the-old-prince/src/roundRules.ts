@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrincePhases } from './trains.js'
 import {
     allSharesHeld,
@@ -23,7 +24,7 @@ export const TheOldPrinceStockRoundRules: StockRoundRules = {
 export const TheOldPrinceOperatingRules: OperatingRules = {
     roundCount: (state) => TheOldPrincePhases.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
-        const companies = floatedCompaniesInMarketOrder(state)
+        const companies = floatedCompaniesInMarketOrder(TheOldPrinceMarket, state)
         if (!getCompany(state, 'PEIR').closed) companies.push('PEIR')
         return companies
     }

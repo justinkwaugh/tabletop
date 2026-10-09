@@ -30,7 +30,6 @@ import { CashCrisisFields } from '../funding/cashCrisis.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
-import type { RailwayMap } from '../map/map.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
 import { OperatingSet, validateOperatingSet } from '../operating/operatingSet.js'
@@ -45,12 +44,10 @@ import {
 import { RouteFields, validateRouteStep } from '../routes/route.js'
 import { StationStep, validateStationStep } from '../stations/stationPlacement.js'
 import { CompanyAuctionFields } from '../stock/companyAuction.js'
-import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
+import { StockMarket } from '../stock/stockMarket.js'
 import { StockRound, validateStockRound } from '../stock/stockRound.js'
 import { StockTurnPurchaseFields } from '../stock/turnPurchases.js'
-import type { TileSet } from '../tiles/inventory.js'
 import { TrainFields, validateTrainPurchaseStep } from '../trains/train.js'
-import type { TrainDepot } from '../trains/trainDepot.js'
 
 export const RailwayMachineStates = [
     'StockRound',
@@ -188,7 +185,7 @@ export type EighteenXXStateDefinition<
 > = {
     schema: Schema
     read(data: unknown): unknown
-    hydrate(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot): State
+    hydrate(data: unknown, components: TitleComponents): State
 }
 
 export function defineEighteenXXState<Schema extends TitleStateSchema>(
@@ -202,7 +199,7 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
     return {
         schema,
         read,
-        hydrate(data, map, tileSet, depot) {
+        hydrate(data, components) {
             const stored = read(data)
             if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
             const core = new StateHydrator(stored, validator)
@@ -212,7 +209,7 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
                     state.players.length,
                 'Duplicate player identity'
             )
-            for (const validate of validations) validate(state, { map, tileSet, depot })
+            for (const validate of validations) validate(state, components)
             return state
         }
     }
@@ -222,14 +219,14 @@ export type StateValidation<State> = (state: State, components: TitleComponents)
 
 export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
-    { map, tileSet, depot }
+    { map, tileSet, depot, market }
 ) => {
     new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
     const companyIds = state.companies.map((company) => company.id)
     const playerIds = state.players.map((player) => player.playerId)
     depot.validateInventory(state.trainInventory, companyIds, playerIds)
     validateStations(state, companyIds)
-    validateStockMarket(state.stockMarket, companyIds)
+    market.validate(state.stockMarket, companyIds)
     validateFinances(state, playerIds)
 }
 

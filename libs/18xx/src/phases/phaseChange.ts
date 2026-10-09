@@ -4,7 +4,7 @@ import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { controllingOwner, getCompany } from '../finance/finance.js'
-import { stockMarketOrder } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import {
     unownedTrain,
     type Train,
@@ -62,6 +62,7 @@ export interface PhaseRules {
     discardDestination: 'market' | 'removed'
 }
 export function marketDiscardOrder(
+    market: StockMarketChart,
     state: PhaseChangeState,
     companyId: string | undefined,
     after: readonly string[] = []
@@ -69,7 +70,7 @@ export function marketDiscardOrder(
     return [
         ...new Set([
             ...(companyId ? [companyId] : []),
-            ...stockMarketOrder(state.stockMarket),
+            ...market.order(state.stockMarket),
             ...after
         ])
     ].filter((id) => !getCompany(state, id).closed)

@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenStateHandler, EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -13,7 +14,6 @@ import {
     CashPayment,
     CorporateStockActionsHandler,
     canTakeLoan,
-    companyMarketSpace,
     controllingOwner,
     corporateTurnOpen,
     finiteCashOwnedBy,
@@ -88,7 +88,7 @@ function buyBackPrice(
                 (!certificate.retired && certificate.kind === 'share' ? certificate.shares : 0),
             0
         )
-    return companyMarketSpace(state.stockMarket, companyId).price * shares
+    return EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price * shares
 }
 
 export type CorporateActionOption = {

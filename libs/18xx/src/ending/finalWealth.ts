@@ -8,7 +8,7 @@ import {
     type Owner,
     type Portfolio
 } from '../finance/finance.js'
-import { companyMarketSpace } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const WealthItem = Type.Object(
@@ -42,10 +42,14 @@ export function certificateValue(
 ): number {
     return rules.certificateItems(state, certificate).reduce((sum, item) => sum + item.value, 0)
 }
-export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
+export function marketShareValue(
+    market: StockMarketChart,
+    state: StockState,
+    certificate: Portfolio[number]
+): number {
     const company = getCompany(state, certificate.companyId)
     return company.started && !company.closed
-        ? signedShares(certificate) * companyMarketSpace(state.stockMarket, company.id).price
+        ? signedShares(certificate) * market.companySpace(state.stockMarket, company.id).price
         : 0
 }
 export function portfolioWealth(

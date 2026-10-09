@@ -8,7 +8,7 @@ import {
 } from '../finance/finance.js'
 import { StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
-import { companyMarketSpace, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
+import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import { trainsOwnedBy, unownedTrain, type TrainState } from '../trains/train.js'
 
 export const CompanyClosure = Type.Object(
@@ -73,7 +73,7 @@ export function closeShareCompany(
             state.stationReservations.filter((reservation) => reservation.companyId === companyId)
         ),
         ...(company.kind === 'major'
-            ? { removedMarketSpaceId: companyMarketSpace(state.stockMarket, companyId).id }
+            ? { removedMarketSpaceId: companyMarketSpaceId(state.stockMarket, companyId) }
             : {})
     }
     settleCashPayments(state, payments)

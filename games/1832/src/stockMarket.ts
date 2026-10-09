@@ -1,7 +1,7 @@
+import { assertExists } from '@tabletop/common'
 import {
-    createRectangularStockMarket,
-    stockMarketSpace,
-    type StockMarket,
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
     type StockMarketSpace
 } from '@tabletop/18xx'
 
@@ -61,13 +61,13 @@ export function isClosingSpace(space: StockMarketSpace): boolean {
  * A token moving down onto the soft ledge with exactly one more space to fall stops on the
  * ledge (§5.8.1); otherwise it falls one space per share until the lower ledge.
  */
-export function saleDescent(market: StockMarket, spaceId: string, shares: number): number {
-    let space = stockMarketSpace(market, spaceId)
+export function saleDescent(spaceId: string, shares: number): number {
+    let space = EighteenThirtyTwoMarket.space(spaceId)
     let spaces = 0
     for (let remaining = shares; remaining > 0; remaining--) {
         const below = space.moves.down
         if (!below) break
-        const next = stockMarketSpace(market, below)
+        const next = EighteenThirtyTwoMarket.space(below)
         if (remaining === 1 && !isLowerArea(space) && isLowerArea(next)) break
         space = next
         spaces++
@@ -84,13 +84,19 @@ export const ReissueParPrices: readonly number[] = Market[0]
     .map((cell) => Number.parseInt(cell))
     .filter((price) => price >= MinimumReissuePar && price <= MaximumReissuePar)
 
-export function createEighteenThirtyTwoStockMarket(): StockMarket {
-    const market = createRectangularStockMarket(
+function createMarketSpaces(): StockMarketSpace[] {
+    const spaces = createRectangularStockMarketSpaces(
         Market.map((row) => row.map((cell) => Number.parseInt(cell))),
         (row, column) => Zones[Market[row][column].replace(/[\di]/g, '')] ?? 'white'
     )
-    for (const space of market.spaces) {
-        const right = space.moves.right && stockMarketSpace(market, space.moves.right)
+    const spacesById = new Map(spaces.map((space) => [space.id, space]))
+    const spaceById = (id: string) => {
+        const space = spacesById.get(id)
+        assertExists(space, `Unknown stock market space: ${id}`)
+        return space
+    }
+    for (const space of spaces) {
+        const right = space.moves.right && spaceById(space.moves.right)
         // The soft ledge also stops rightward moves, which go up instead (§5.8.3).
         if (right && !isLowerArea(space) && isLowerArea(right)) {
             if (space.moves.up) space.moves.right = space.moves.up
@@ -98,9 +104,10 @@ export function createEighteenThirtyTwoStockMarket(): StockMarket {
         }
         // A token at the top moves right and down instead of up (§5.8.1).
         if (space.row === 0 && space.moves.right) {
-            const diagonal = stockMarketSpace(market, space.moves.right).moves.down
+            const diagonal = spaceById(space.moves.right).moves.down
             if (diagonal) space.moves.up = diagonal
         }
     }
-    return market
+    return spaces
 }
+export const EighteenThirtyTwoMarket = new StockMarketChart(createMarketSpaces())

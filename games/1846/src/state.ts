@@ -7,6 +7,7 @@ import { FinanceStep } from './corporateFinance.js'
 import { EighteenFortySixMap } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { TrainDepot1846 } from './trains.js'
+import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
@@ -179,10 +180,10 @@ function validate1846State(state: HydratedEighteenFortySixState, components: Tit
 }
 
 export function hydrateEighteenFortySixState(data: unknown): HydratedEighteenFortySixState {
-    return EighteenFortySixStateDefinition.hydrate(
-        data,
-        EighteenFortySixMap,
-        EighteenFortySixTileSet,
-        TrainDepot1846
-    )
+    return EighteenFortySixStateDefinition.hydrate(data, {
+        map: EighteenFortySixMap,
+        tileSet: EighteenFortySixTileSet,
+        depot: TrainDepot1846,
+        market: Market1846
+    })
 }

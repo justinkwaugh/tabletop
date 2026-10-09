@@ -1,9 +1,9 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists, ActionSource } from '@tabletop/common'
 import {
     addCompanyStations,
     cashOwnedBy,
-    companyMarketSpace,
     getCompany,
     issueShareCertificates,
     retireCertificates,
@@ -30,7 +30,7 @@ import { passUntil } from '../test/passTurns.js'
 
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const price = (state: EighteenXXState, companyId: string) =>
-    companyMarketSpace(state.stockMarket, companyId).price
+    EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
 const treasury = (state: EighteenXXState, companyId: string) =>
     Number(cashOwnedBy(state, { kind: 'company', companyId }))
 const stations = (state: EighteenXXState, companyId: string) =>

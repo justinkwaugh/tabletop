@@ -797,16 +797,14 @@
             area={viewportRect(boardViewport, boardAreas.market)}
         >
             {@const corner = boardInformation
-                ? marketLowerRightSpace(
-                      session.gameState.stockMarket,
-                      session.presentation.marketCell
-                  )
+                ? marketLowerRightSpace(session.stockMarketChart, session.presentation.marketCell)
                 : undefined}
             <div class="board-market">
                 <StockMarketScene
                     cell={session.presentation.marketCell}
                     animation={session.marketAnimation}
                     appearances={session.mapView.stations}
+                    chart={session.stockMarketChart}
                     market={session.gameState.stockMarket}
                     companies={session.gameState.companies}
                     zones={session.presentation.marketZones}
@@ -1241,6 +1239,7 @@
                                             animation={session.marketAnimation}
                                             appearances={session.mapView.stations}
                                             renderScale={2}
+                                            chart={session.stockMarketChart}
                                             market={session.gameState.stockMarket}
                                             companies={session.gameState.companies}
                                             zones={session.presentation.marketZones}

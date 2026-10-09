@@ -1,10 +1,6 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
-import {
-    dividendEntitlements,
-    dividendMarketMove,
-    getCompany,
-    type EarningsRules
-} from '@tabletop/18xx'
+import { dividendEntitlements, getCompany, type EarningsRules } from '@tabletop/18xx'
 import { requireEighteenThirtyTwoState } from './state.js'
 import { SystemShareCount, isSystem } from './systems.js'
 
@@ -48,7 +44,7 @@ export const EighteenThirtyTwoEarningsRules: EarningsRules = {
         ...(distribution.choice === 'half-pay'
             ? {}
             : {
-                  move: dividendMarketMove(
+                  move: EighteenThirtyTwoMarket.dividendMove(
                       state.stockMarket,
                       companyId,
                       distribution.revenue > distribution.retained

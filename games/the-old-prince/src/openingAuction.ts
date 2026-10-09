@@ -6,7 +6,7 @@ import {
     createOrdinaryShareCertificates,
     drawFirstPlayer,
     getCompany,
-    placeStockMarker,
+    type StockMarket,
     privateIncomePayments,
     settleCashPayments,
     type InitialPosition,
@@ -22,7 +22,7 @@ import { TheOldPrinceMap } from './map.js'
 import { peirPresident } from './peir.js'
 import { TheOldPrincePrivateCatalog, TheOldPrincePrivates } from './privates.js'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from './state.js'
-import { createTheOldPrinceStockMarket } from './stockMarket.js'
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
 export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
@@ -109,9 +109,9 @@ export function createTheOldPrinceOpening({
         prng,
         startingPositions
     )
-    const stockMarket = createTheOldPrinceStockMarket()
-    placeStockMarker(stockMarket, mainline.companyId, '1:1')
-    placeStockMarker(stockMarket, shortline.companyId, '2:1')
+    const stockMarket: StockMarket = { stacks: [] }
+    TheOldPrinceMarket.placeMarker(stockMarket, mainline.companyId, '1:1')
+    TheOldPrinceMarket.placeMarker(stockMarket, shortline.companyId, '2:1')
     const stations: MapStateData['stations'] = []
     const stationReservations: MapStateData['stationReservations'] = []
     for (const company of TheOldPrinceCompanies) {

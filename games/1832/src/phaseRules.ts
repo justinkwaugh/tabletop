@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { marketDiscardOrder, type PhaseRules } from '@tabletop/18xx'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { requireEighteenThirtyTwoState } from './state.js'
@@ -8,6 +9,7 @@ export const EighteenThirtyTwoPhaseRules: PhaseRules = {
         requireEighteenThirtyTwoState(state).variants.diesels && train.definitionId === '5'
             ? undefined
             : EighteenThirtyTwoPhases.rustTiming(state.phaseId, train.definitionId),
-    discardOrder: marketDiscardOrder,
+    discardOrder: (state, companyId) =>
+        marketDiscardOrder(EighteenThirtyTwoMarket, state, companyId),
     discardDestination: 'market'
 }

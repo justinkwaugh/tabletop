@@ -6,7 +6,11 @@ import {
     openShares,
     presidentCertificate
 } from '../finance/finance.js'
-import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import {
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
+    type StockMarket
+} from '../stock/stockMarket.js'
 import { createStockRound } from '../stock/stockRound.js'
 import { purchaseOwnershipCeiling } from '../stock/stockRules.js'
 import { ipoMarketTrading } from '../stock/ipoMarketTrading.js'
@@ -22,11 +26,22 @@ const player = { kind: 'player', playerId: 'alex' } as const
 const other = { kind: 'player', playerId: 'blair' } as const
 const company = { kind: 'company', companyId: 'A' } as const
 const ipo = { owner: bank, poolId: 'ipo' }
-const trading = ipoMarketTrading({ ipoPoolId: 'ipo', marketPoolId: 'market', marketLimit: 50 })
+function chart(color: (column: number) => string = () => 'pink'): StockMarketChart {
+    return new StockMarketChart(
+        createRectangularStockMarketSpaces([[60, 70, 80]], (_row, column) => color(column))
+    )
+}
+const market = chart()
+const trading = ipoMarketTrading({
+    market,
+    ipoPoolId: 'ipo',
+    marketPoolId: 'market',
+    marketLimit: 50
+})
 
 function position(): FundingState & DistributionState {
-    const stockMarket = createRectangularStockMarket([[60, 70, 80]], () => 'pink')
-    placeStockMarker(stockMarket, 'A', '0:1')
+    const stockMarket: StockMarket = { stacks: [] }
+    market.placeMarker(stockMarket, 'A', '0:1')
     return {
         bank: { name: 'Bank' },
         companies: [
@@ -149,6 +164,7 @@ describe('full capitalization from IPO sales', () => {
     it('prices the actual president denomination and offers only the configured par spaces', () => {
         const state = position()
         const rules = fullCapitalizationCompanyRules({
+            market: chart((column) => (column === 0 ? 'white' : 'pink')),
             ipoPoolId: 'ipo',
             parSpaceColor: 'pink',
             floatPercent: 60
@@ -161,7 +177,6 @@ describe('full capitalization from IPO sales', () => {
         const president = presidentCertificate(state, 'A')
         assertExists(president, 'Company has a president certificate')
         president.shares = 3
-        state.stockMarket.spaces[0].color = 'white'
         expect(rules.startMarketSpaces(state, 'A')).toEqual(['0:1', '0:2'])
         expect(rules.startTerms(state, 'A', player, '0:1')).toEqual({
             price: 210,
@@ -175,6 +190,7 @@ describe('full capitalization from IPO sales', () => {
         (floatPercent) => {
             const state = position()
             const rules = fullCapitalizationCompanyRules({
+                market,
                 ipoPoolId: 'ipo',
                 parSpaceColor: 'pink',
                 floatPercent
@@ -221,7 +237,7 @@ describe('full capitalization from IPO sales', () => {
 describe('pay or withhold distributions', () => {
     it('pays market holdings to the company, leaves IPO dividends in the bank, and moves only floated shares', () => {
         const state = position()
-        const rules = payOrWithholdEarningsRules({
+        const rules = payOrWithholdEarningsRules(market, {
             unpaidPoolIds: ['ipo'],
             companyPoolIds: ['market']
         })
@@ -251,30 +267,33 @@ describe('pay or withhold distributions', () => {
 describe('ownership policy shared with emergency funding', () => {
     it('uses the supplied ownership percentage and exemptions rather than another 60-percent calculation', () => {
         const state = position()
-        const limits = marketZoneHoldingLimits({
-            certificateFreeColors: ['yellow', 'orange'],
-            ownershipFreeColors: ['orange'],
-            ownershipPercent: 50
-        })
-        const rules = presidentTrainFundingRules({
-            sellInBlocks: false,
-            companyOrder: () => ['A'],
-            saleTerms: trading.emergencySaleTerms,
-            stockRules: limits,
-            protectsPresidency: () => true
-        })
-        expect(purchaseOwnershipCeiling(state, 'A', player, limits)).toBe(5)
-        expect(rules.requiredSaleShares(state, player, 'A')).toBe(1)
-        const marker = state.stockMarket.spaces[1]
+        function policies(markerColor: string) {
+            const limits = marketZoneHoldingLimits({
+                market: chart((column) => (column === 1 ? markerColor : 'pink')),
+                certificateFreeColors: ['yellow', 'orange'],
+                ownershipFreeColors: ['orange'],
+                ownershipPercent: 50
+            })
+            const rules = presidentTrainFundingRules({
+                sellInBlocks: false,
+                companyOrder: () => ['A'],
+                saleTerms: trading.emergencySaleTerms,
+                stockRules: limits,
+                protectsPresidency: () => true
+            })
+            return { limits, rules }
+        }
+        const pink = policies('pink')
+        expect(purchaseOwnershipCeiling(state, 'A', player, pink.limits)).toBe(5)
+        expect(pink.rules.requiredSaleShares(state, player, 'A')).toBe(1)
         const share = openShares(state, 'A')[0]
-        marker.color = 'yellow'
-        expect(limits.certificateWeight(state, share)).toBe(0)
-        expect(rules.requiredSaleShares(state, player, 'A')).toBe(1)
-        marker.color = 'orange'
-        expect(purchaseOwnershipCeiling(state, 'A', player, limits)).toBe(10)
-        expect(rules.requiredSaleShares(state, player, 'A')).toBe(0)
-        marker.color = 'pink'
+        const yellow = policies('yellow')
+        expect(yellow.limits.certificateWeight(state, share)).toBe(0)
+        expect(yellow.rules.requiredSaleShares(state, player, 'A')).toBe(1)
+        const orange = policies('orange')
+        expect(purchaseOwnershipCeiling(state, 'A', player, orange.limits)).toBe(10)
+        expect(orange.rules.requiredSaleShares(state, player, 'A')).toBe(0)
         getCompany(state, 'A').closed = true
-        expect(rules.requiredSaleShares(state, player, 'A')).toBe(0)
+        expect(pink.rules.requiredSaleShares(state, player, 'A')).toBe(0)
     })
 })

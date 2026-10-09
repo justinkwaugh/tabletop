@@ -6,7 +6,7 @@ import {
     cashOwnedBy,
     getCompany,
     sharesOwned,
-    companyMarketSpace,
+    companyMarketSpaceId,
     placeStockMarker,
     evaluateCompanyStart,
     evaluateCompanyFlotation,
@@ -26,7 +26,8 @@ import {
     TheOldPrinceCompanyRules,
     availableTheOldPrinceTranche,
     peirShares,
-    TheOldPrinceTrainDepot
+    TheOldPrinceTrainDepot,
+    TheOldPrinceMarket
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -89,9 +90,7 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
         expect(cashOwnedBy(result.updatedState, alex)).toBe(240 - parPrice * 2)
         expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId })).toBe(0)
         expect(sharesOwned(result.updatedState, companyId, alex)).toBe(2)
-        expect(companyMarketSpace(result.updatedState.stockMarket, companyId).id).toBe(
-            marketSpaceId
-        )
+        expect(companyMarketSpaceId(result.updatedState.stockMarket, companyId)).toBe(marketSpaceId)
         expect(
             result.updatedState.stations.find((station) => station.id === `${companyId}:home`)
                 ?.status
@@ -235,7 +234,7 @@ it('applies TOP phase prices and tranche completion independently of flotation',
         state.phaseId = phase
         expect(
             TheOldPrinceCompanyRules.startMarketSpaces(state, 'A').map(
-                (id) => state.stockMarket.spaces.find((space) => space.id === id)!.price
+                (id) => TheOldPrinceMarket.space(id).price
             )
         ).toEqual(expected)
     }
@@ -460,6 +459,7 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     const description = historyDescription(
         flotation,
         result.updatedState,
+        TheOldPrinceMarket,
         (id) => id,
         (id) => id,
         changes.get(flotation.id)

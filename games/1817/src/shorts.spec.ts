@@ -1,11 +1,10 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
-    companyMarketSpace,
     getCompany,
     issueShareCertificates,
-    moveMarketSpace,
     openShort,
     openShorts,
     retireCertificates,
@@ -25,7 +24,8 @@ import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
 
 const casey = { kind: 'player' as const, playerId: 'casey' }
-const price = (state: EighteenXXState) => companyMarketSpace(state.stockMarket, 'BA').price
+const price = (state: EighteenXXState) =>
+    EighteenSeventeenMarket.companySpace(state.stockMarket, 'BA').price
 const cash = (state: EighteenXXState, playerId: string) =>
     cashOwnedBy(state, { kind: 'player', playerId })
 
@@ -218,11 +218,11 @@ describe('the end of the stock round', () => {
 
     it('drops a shorted company once more for the extra market share', () => {
         const play = caseysTurn()
-        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        const before = EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA')
         play.act('ShortShare', { companyId: 'BA', expectedPrice: price(play.state) })
         finishRound(play)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
-            moveMarketSpace(play.state.stockMarket, before.id, 'down', 2).id
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe(
+            EighteenSeventeenMarket.move(before.id, 'down', 2).id
         )
     })
 
@@ -243,10 +243,10 @@ describe('the end of the stock round', () => {
                     delete certificate.poolId
                 }
         })
-        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        const before = EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA')
         finishRound(play)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
-            moveMarketSpace(play.state.stockMarket, before.id, 'up', 2).id
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe(
+            EighteenSeventeenMarket.move(before.id, 'up', 2).id
         )
     })
 })

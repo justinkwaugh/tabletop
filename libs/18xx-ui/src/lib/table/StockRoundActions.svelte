@@ -2,15 +2,7 @@
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketColors } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
-    import {
-        cashOwnedBy,
-        getCompany,
-        sharesOwned,
-        companyMarketSpace,
-        stockMarketSpace,
-        sameOwner,
-        type Owner
-    } from '@tabletop/18xx'
+    import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
@@ -284,8 +276,7 @@
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
-                                        {@const space = stockMarketSpace(
-                                            session.gameState.stockMarket,
+                                        {@const space = session.stockMarketChart.space(
                                             price.marketSpaceId
                                         )}
                                         <button
@@ -366,7 +357,7 @@
                                                     block.seller.kind === 'player' &&
                                                     block.seller.playerId === session.myPlayer?.id
                                             )?.price ??
-                                                companyMarketSpace(
+                                                session.stockMarketChart.companySpace(
                                                     session.gameState.stockMarket,
                                                     company.id
                                                 ).price

@@ -1,9 +1,9 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     placeStockMarker,
     cashOwnedBy,
-    companyMarketSpace,
     getCompany,
     sharesOwned,
     stockMarkerStackIndex
@@ -83,7 +83,7 @@ describe('System formation', () => {
         )
         expect(total).toBe(20)
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'AMTK' })).toBe(1200)
-        expect(companyMarketSpace(play.state.stockMarket, 'AMTK').id).toBe('4:10')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'AMTK').id).toBe('4:10')
         expect(stockMarkerStackIndex(play.state.stockMarket, 'AMTK')).toBe(0)
         expect(play.state.systems).toEqual({ AMTK: ['ACL', 'CG'] })
         expect(

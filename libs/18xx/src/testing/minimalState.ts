@@ -4,13 +4,20 @@ import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { PhaseChangeState } from '../phases/phaseChange.js'
 import type { PrivateState } from '../privates/privateRules.js'
 import { createStockRound } from '../stock/stockRound.js'
-import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import {
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
+    type StockMarket
+} from '../stock/stockMarket.js'
 
 export const TestCompanyId = 'R'
+export const TestMarket = new StockMarketChart(
+    createRectangularStockMarketSpaces([[100, 110, 120]], () => 'white')
+)
 
 export function minimalRailwayState(): DistributionState {
-    const stockMarket = createRectangularStockMarket([[100, 110, 120]], () => 'white')
-    placeStockMarker(stockMarket, TestCompanyId, '0:0')
+    const stockMarket: StockMarket = { stacks: [] }
+    TestMarket.placeMarker(stockMarket, TestCompanyId, '0:0')
     return {
         companies: [{ id: TestCompanyId, name: 'Railway', kind: 'major', shareCount: 10 }],
         bank: { name: 'Bank' },

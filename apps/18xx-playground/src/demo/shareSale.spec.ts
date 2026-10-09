@@ -4,7 +4,6 @@ import {
     cashOwnedBy,
     getCompany,
     sharesOwned,
-    companyMarketSpace,
     placeStockMarker,
     evaluateShareSale,
     evaluateSharePurchase,
@@ -20,6 +19,9 @@ import {
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
+
+const marketOf = (definition: typeof Top | typeof Shikoku) =>
+    definition === Top ? TheOldPrinceStockRules.market : Shikoku1889StockRules.market
 import { example, purchase } from './stockTestUtils.js'
 
 const alex = { kind: 'player', playerId: 'alex' } as const
@@ -77,7 +79,9 @@ it.each([
                 (certificate) => certificate.id === `${companyId}:president`
             )
         ).toMatchObject({ owner: blair })
-        expect(companyMarketSpace(result.updatedState.stockMarket, companyId).price).toBe(nextPrice)
+        expect(
+            marketOf(definition).companySpace(result.updatedState.stockMarket, companyId).price
+        ).toBe(nextPrice)
         const action = result.processedActions[0]
         if (!isSellShares(action)) throw new Error('Missing sale action')
         expect(action.metadata?.sales[0].presidency?.exchangedCertificateIds).toHaveLength(2)
@@ -99,7 +103,7 @@ it.each([Shikoku, Top])('retains the incumbent on a tied holding in $info.id', (
     const { game, engine, state } = example(definition)
     const companyId = definition === Top ? 'ML' : 'AR'
     if (definition === Shikoku) give(state, 'AR:share:3', blair)
-    const price = companyMarketSpace(state.stockMarket, companyId).price
+    const price = marketOf(definition).companySpace(state.stockMarket, companyId).price
     const result = engine.executeCanonicalAction({
         game,
         state,

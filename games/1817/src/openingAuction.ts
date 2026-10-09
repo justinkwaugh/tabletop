@@ -18,7 +18,6 @@ import {
     VolatilityPrivateIds
 } from './privates.js'
 import { eighteenSeventeenOptions, pyramidOf, seedMoneyLeft, type Pyramid } from './state.js'
-import { createEighteenSeventeenStockMarket } from './stockMarket.js'
 import { createEighteenSeventeenPosition } from './position.js'
 
 type OpeningState = SelectionAuctionState &
@@ -148,7 +147,7 @@ export function createEighteenSeventeenOpening({
             players.map((player) => ({ playerId: player.playerId, amount: capital })),
             volatility?.privateIds ?? BasePrivateIds
         ),
-        stockMarket: createEighteenSeventeenStockMarket()
+        stockMarket: { stacks: [] }
     }
     return {
         position,

@@ -1,6 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     getCompany,
     ipoMarketTrading,
     marketZoneHoldingLimits,
@@ -8,7 +7,7 @@ import {
     type StockRules
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { isClosingSpace, saleDescent } from './stockMarket.js'
+import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
 import {
@@ -23,6 +22,7 @@ import { systemOf } from './systems.js'
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 
 const Trading = ipoMarketTrading({
+    market: EighteenThirtyTwoMarket,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
@@ -33,9 +33,9 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
     return (state, companyId, shares, seller) => {
         const terms = saleTerms(state, companyId, shares, seller)
         if (typeof terms === 'string') return terms
-        const from = companyMarketSpace(state.stockMarket, companyId)
+        const from = EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId)
         if (isClosingSpace(from)) return 'This company is closing.'
-        return { ...terms, movement: saleDescent(state.stockMarket, from.id, shares) }
+        return { ...terms, movement: saleDescent(from.id, shares) }
     }
 }
 
@@ -88,7 +88,10 @@ export function certificateLimitColumn(
         const company = getCompany(state, companyId)
         return (
             !company.closed &&
-            !(company.started && isClosingSpace(companyMarketSpace(state.stockMarket, companyId)))
+            !(
+                company.started &&
+                isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId))
+            )
         )
     }
     const remaining = state.companies.filter((company) => {
@@ -100,6 +103,7 @@ export function certificateLimitColumn(
 }
 
 export const EighteenThirtyTwoStockRules: StockRules = {
+    market: EighteenThirtyTwoMarket,
     round: EighteenThirtyTwoStockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -115,6 +119,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     },
     // A closing company's certificates are about to leave play (§5.3.5).
     ...marketZoneHoldingLimits({
+        market: EighteenThirtyTwoMarket,
         certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
         ownershipFreeColors: ['green', 'brown'],
         ownershipPercent: OwnershipPercent
@@ -143,6 +148,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         allowsAnother: (state, certificate, earlier) =>
             certificate.poolId === 'open-market' &&
             earlier.every((purchase) => purchase.poolId === 'open-market') &&
-            companyMarketSpace(state.stockMarket, certificate.companyId).color === 'brown'
+            EighteenThirtyTwoMarket.companySpace(state.stockMarket, certificate.companyId).color ===
+                'brown'
     }
 }

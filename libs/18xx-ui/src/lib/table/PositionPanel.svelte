@@ -112,6 +112,7 @@
             historyDescription(
                 action,
                 gameState,
+                session.stockMarketChart,
                 companyName,
                 (id) => session.getPlayerName(id),
                 undefined,
@@ -259,7 +260,7 @@
                     details={latest.payout.metadata}
                     label={latest.description.text}
                     companyId={latest.payout.companyId}
-                    stockMarket={gameState.stockMarket}
+                    chart={session.stockMarketChart}
                     ownerName={(owner) =>
                         owner.kind === 'player'
                             ? session.getPlayerName(owner.playerId)

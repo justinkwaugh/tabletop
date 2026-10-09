@@ -6,12 +6,14 @@ import {
 } from '../ending/finalWealth.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
+import { TestMarket } from './minimalState.js'
 import type { TrainFundingRules } from '../funding/trainFunding.js'
 import { TrainDepot } from '../trains/trainDepot.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { TransferRules } from '../transfers/purchaseOffer.js'
 
 export const minimalStockRules: StockRules = {
+    market: TestMarket,
     round: {
         passing: 'consecutive',
         nextPlayerOrder: (state) => [...state.turnManager.turnOrder],
@@ -81,6 +83,6 @@ export const minimalTransferRules: TransferRules = {
 
 export const minimalValuationRules: ValuationRules = {
     certificateItems: (state, certificate) => [
-        certificateWealthItem(state, certificate, marketShareValue(state, certificate))
+        certificateWealthItem(state, certificate, marketShareValue(TestMarket, state, certificate))
     ]
 }

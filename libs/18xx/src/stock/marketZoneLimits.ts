@@ -1,8 +1,9 @@
 import { getCompany } from '../finance/finance.js'
-import { companyMarketSpace } from './stockMarket.js'
+import type { StockMarketChart } from './stockMarket.js'
 import type { StockRules } from './stockRules.js'
 
 export function marketZoneHoldingLimits(options: {
+    market: StockMarketChart
     certificateFreeColors: readonly string[]
     ownershipFreeColors: readonly string[]
     ownershipPercent: number
@@ -13,7 +14,7 @@ export function marketZoneHoldingLimits(options: {
                 certificate.kind === 'share' &&
                 getCompany(state, certificate.companyId).started &&
                 options.certificateFreeColors.includes(
-                    companyMarketSpace(state.stockMarket, certificate.companyId).color
+                    options.market.companySpace(state.stockMarket, certificate.companyId).color
                 )
             )
                 return 0
@@ -23,7 +24,7 @@ export function marketZoneHoldingLimits(options: {
             const company = getCompany(state, companyId)
             if (!company.shareCount || !company.started || company.closed) return 100
             return options.ownershipFreeColors.includes(
-                companyMarketSpace(state.stockMarket, companyId).color
+                options.market.companySpace(state.stockMarket, companyId).color
             )
                 ? 100
                 : options.ownershipPercent

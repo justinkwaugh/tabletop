@@ -10,6 +10,8 @@ import {
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
+import { TheOldPrinceMarket } from './stockMarket.js'
+import type { StockMarketSpace } from '@tabletop/18xx'
 
 function readFixture(name: string) {
     return JSON.parse(
@@ -20,11 +22,18 @@ function readFixture(name: string) {
     )
 }
 
-type RecordedState = TheOldPrinceState & { usedPrivatePowerIds: string[] }
+type RecordedState = Omit<TheOldPrinceState, 'stockMarket'> & {
+    usedPrivatePowerIds: string[]
+    stockMarket: TheOldPrinceState['stockMarket'] & { spaces: StockMarketSpace[] }
+}
 
-function currentShape({ usedPrivatePowerIds, ...state }: RecordedState): TheOldPrinceState {
+function currentShape({
+    usedPrivatePowerIds,
+    stockMarket: { stacks },
+    ...state
+}: RecordedState): TheOldPrinceState {
     assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
-    return state
+    return { ...state, stockMarket: { stacks } }
 }
 
 const recordedLatestState: RecordedState = readFixture('state')
@@ -64,6 +73,10 @@ const recordedReservedShareOverpayments = new Map([
 describe('the deployed game', () => {
     it('no longer loads in its recorded shape', () => {
         expect(Definition.runtime.canonicalStateValidator?.Check(recordedLatestState)).toBe(false)
+    })
+
+    it('recorded the market TOP now defines', () => {
+        expect(recordedLatestState.stockMarket.spaces).toEqual(TheOldPrinceMarket.spaces)
     })
 
     it('loads its latest state in the current shape', () => {

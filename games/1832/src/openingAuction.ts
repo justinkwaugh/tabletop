@@ -17,7 +17,6 @@ import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoPrivateCatalog, EighteenThirtyTwoPrivates } from './privates.js'
 import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoStationCounts } from './stationRules.js'
-import { createEighteenThirtyTwoStockMarket } from './stockMarket.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { createEighteenThirtyTwoTrainInventory } from './trains.js'
 import { EighteenThirtyTwoGameConfig } from './definition/gameConfig.js'
@@ -72,7 +71,7 @@ export function createEighteenThirtyTwoOpening({
     const capital = EighteenThirtyTwoStartingCash[players.length]
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
-        stockMarket: createEighteenThirtyTwoStockMarket(),
+        stockMarket: { stacks: [] },
         bank: { name: 'Bank', unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({

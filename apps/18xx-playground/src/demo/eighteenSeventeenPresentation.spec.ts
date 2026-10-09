@@ -6,7 +6,8 @@ import {
     type AcquireCompany,
     type CloseCompanySale,
     type PassMerger,
-    type SellConvertedShares
+    type SellConvertedShares,
+    EighteenSeventeenMarket
 } from '@tabletop/1817'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
@@ -100,7 +101,7 @@ it('names who the bank paid as a train departed, and for which private', () => {
             ]
         }
     }
-    expect(historyDescription(action, play.state).detail).toBe(
+    expect(historyDescription(action, play.state, EighteenSeventeenMarket).detail).toBe(
         `${InventorId} paid PLE $30 · BA received $10`
     )
 })

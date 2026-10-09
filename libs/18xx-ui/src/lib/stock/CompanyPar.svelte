@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { marketColors } from './marketColors.js'
     let { session }: { session: EighteenXXSessionView } = $props()
@@ -16,7 +16,7 @@
         {#if session.stock.canPar}
             <div class="choices" aria-label="Par prices">
                 {#each session.stock.parSpaceIds as spaceId (spaceId)}
-                    {@const space = stockMarketSpace(session.gameState.stockMarket, spaceId)}
+                    {@const space = session.stockMarketChart.space(spaceId)}
                     <button
                         class="par-choice"
                         disabled={session.busy}

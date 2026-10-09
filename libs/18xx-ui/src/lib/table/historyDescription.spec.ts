@@ -3,6 +3,7 @@ import { ActionSource } from '@tabletop/common'
 import type { AuctionAwardDetails, BuyAuctionLot, ResolveAuction, RunTrains } from '@tabletop/18xx'
 import { historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
+import { TestMarket } from '@tabletop/18xx/testing'
 
 it('describes purchased and auctioned bonus shares without current certificates or reversal data', () => {
     const state = historyStateFixture()
@@ -32,17 +33,17 @@ it('describes purchased and auctioned bonus shares without current certificates 
         type: 'ResolveAuction',
         metadata: { kind: 'award', award }
     }
-    expect(historyDescription(buy, state).text).toBe(
+    expect(historyDescription(buy, state, TestMarket).text).toBe(
         'Bought private, with the R president’s certificate and 1 S'
     )
-    expect(historyDescription(resolve, state).detail).toBe(
+    expect(historyDescription(resolve, state, TestMarket).detail).toBe(
         'alex won private for $100, with the R president’s certificate and 1 S'
     )
-    const expected = historyDescription(resolve, state)
+    const expected = historyDescription(resolve, state, TestMarket)
     resolve.undoPatch = [{ op: 'replace', path: '', value: {} }]
-    expect(historyDescription(resolve, state)).toEqual(expected)
+    expect(historyDescription(resolve, state, TestMarket)).toEqual(expected)
     delete resolve.metadata
-    expect(historyDescription(resolve, state).text).toBe('Auction resolved')
+    expect(historyDescription(resolve, state, TestMarket).text).toBe('Auction resolved')
 })
 
 it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
@@ -78,7 +79,7 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
             ]
         }
     }
-    expect(historyDescription(run, state).detail).toBe(
+    expect(historyDescription(run, state, TestMarket).detail).toBe(
         'East–West +$80 · Steamboat +$40 · +$20 at G9'
     )
 })

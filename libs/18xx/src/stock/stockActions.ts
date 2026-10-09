@@ -43,7 +43,7 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
         defineAction(
             CompleteStockRound,
             isCompleteStockRound,
-            (action) => new HydratedCompleteStockRound(action, rules.round)
+            (action) => new HydratedCompleteStockRound(action, rules.round, rules.market)
         ),
         defineAction(BuyShares, isBuyShares, (action) => new HydratedBuyShares(action, rules)),
         defineAction(SellShares, isSellShares, (action) => new HydratedSellShares(action, rules)),

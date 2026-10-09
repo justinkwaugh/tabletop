@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     applyPresidencyChange,
     applyStationPlacement,
@@ -13,7 +14,6 @@ import {
     replaceStation,
     sameOwner,
     sharesStillToFloat,
-    stockMarketSpace,
     unownedTrain,
     type CompanyRules,
     type FormationState,
@@ -46,7 +46,7 @@ export function availableTheOldPrinceTranche(state: FormationState) {
 export function theOldPrinceStartMarketSpaces(state: StockState): string[] {
     const reached = (phaseId: string) => TheOldPrincePhases.isAtLeast(state.phaseId, phaseId)
     const minimumRow = reached('7') ? 6 : reached('3+') ? 5 : reached('5H') ? 4 : 3
-    return state.stockMarket.spaces
+    return TheOldPrinceMarket.spaces
         .filter((space) => space.column === 1 && space.row >= minimumRow)
         .map((space) => space.id)
 }
@@ -68,7 +68,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         if (!certificate || certificate.owner.kind !== 'bank' || certificate.poolId !== 'market')
             return 'The president’s certificate must be available from the Bank.'
         return {
-            price: stockMarketSpace(state.stockMarket, marketSpaceId).price * 2,
+            price: TheOldPrinceMarket.space(marketSpaceId).price * 2,
             recipient: { kind: 'bank' },
             payers: theOldPrincePurchasePayers(state, buyer)
         }

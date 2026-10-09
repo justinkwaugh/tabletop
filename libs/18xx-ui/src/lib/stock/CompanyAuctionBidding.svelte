@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -25,10 +25,8 @@
         session.mapView.map.location(auction.home.locationId).name ?? auction.home.locationId
     )
     const startPrice = $derived(
-        stockMarketSpace(
-            session.gameState.stockMarket,
-            model.terms.startSpace(session.gameState, bidding.highBid)
-        ).price
+        session.stockMarketChart.space(model.terms.startSpace(session.gameState, bidding.highBid))
+            .price
     )
     const amount = $derived(module.bidAmount ?? model.minimumBid)
 </script>

@@ -1,3 +1,4 @@
+import { Shikoku1889Market } from './stockMarket.js'
 import { ReserveBidAuction, cashOwnedBy } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { ActionSource, type GameAction } from '@tabletop/common'
@@ -220,9 +221,7 @@ it('starts and floats a company from the real first stock round, placing its hom
     const run = opening()
     while (run.state.machineState !== 'StockRound') run.buy()
     const playerId = run.state.turnManager.turnOrder[0]
-    const marketSpace = run.state.stockMarket.spaces.find(
-        (s) => s.color === 'pink' && s.price === 65
-    )!
+    const marketSpace = Shikoku1889Market.spaces.find((s) => s.color === 'pink' && s.price === 65)!
     const buyer = { kind: 'player', playerId } as const
     run.act('StartCompany', {
         playerId,

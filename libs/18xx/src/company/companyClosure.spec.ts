@@ -1,9 +1,9 @@
 import { expect, it } from 'vitest'
-import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import { placeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import { closeShareCompany } from './companyClosure.js'
 
 function closingState() {
-    const stockMarket = createRectangularStockMarket([[0, 60]], () => 'white')
+    const stockMarket: StockMarket = { stacks: [] }
     placeStockMarker(stockMarket, 'A', '0:0')
     const owner = { kind: 'company' as const, companyId: 'A' }
     return {

@@ -1,3 +1,4 @@
+import { EighteenThirtyMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assert } from '@tabletop/common'
 import {
@@ -90,7 +91,7 @@ describe('auction awards', () => {
         expect(() => game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:0' })).toThrow()
 
         const before = cash(game.state, { kind: 'player', playerId: owner })
-        const space = game.state.stockMarket.spaces.find(
+        const space = EighteenThirtyMarket.spaces.find(
             (space) => space.color === 'pink' && space.price === 100
         )
         assert(space, '1830 has a $100 par')

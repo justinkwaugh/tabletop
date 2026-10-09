@@ -8,7 +8,8 @@ import {
     TheOldPrinceTrainRules,
     TheOldPrinceTrackRules,
     TheOldPrincePrivateRules,
-    TheOldPrinceStockRules
+    TheOldPrinceStockRules,
+    TheOldPrinceMarket
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -622,10 +623,12 @@ it.each([true, false])(
         const recordedResponse = result.processedActions.find(
             (item) => item.type === 'RespondToTrackConsent'
         )!
-        expect(historyDescription(recordedRequest, result.updatedState).text).toBe(
-            'Requested permission to lay track at N18'
-        )
-        expect(historyDescription(recordedResponse, result.updatedState)).toEqual(
+        expect(
+            historyDescription(recordedRequest, result.updatedState, TheOldPrinceMarket).text
+        ).toBe('Requested permission to lay track at N18')
+        expect(
+            historyDescription(recordedResponse, result.updatedState, TheOldPrinceMarket)
+        ).toEqual(
             accept
                 ? { text: 'Allowed track at N18; track laid', value: cost ? `$${cost}` : undefined }
                 : { text: 'Declined permission to lay track at N18' }

@@ -6,7 +6,6 @@ import {
     CashPayment,
     CompanyClosure,
     closeShareCompany,
-    companyMarketSpace,
     endOperatingTurn,
     finiteCashOwnedBy,
     getCompany,
@@ -21,7 +20,7 @@ import type {
     HydratedEighteenThirtyTwoState
 } from './state.js'
 import { protectable } from './priceProtection.js'
-import { isClosingSpace } from './stockMarket.js'
+import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
 
 /**
  * The next company whose price has entered the black area, unless its president may yet protect
@@ -33,7 +32,7 @@ export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | 
             company.kind !== 'private' &&
             company.started &&
             !company.closed &&
-            isClosingSpace(companyMarketSpace(state.stockMarket, company.id)) &&
+            isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id)) &&
             !state.priceProtection?.sales.some(
                 (sale) => sale.companyId === company.id && protectable(state, sale)
             )

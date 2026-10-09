@@ -7,7 +7,7 @@ import {
 } from '@tabletop/18xx'
 import { TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
-import { stockChoices } from './stock.js'
+import { stockChoices, Market1846 } from './stock.js'
 import {
     GameEngine,
     PlayerStatus,
@@ -220,7 +220,7 @@ export function emergencyBuyingGame(cash = 10, price = 100) {
     )
     assertExists(presidentCash)
     presidentCash.amount = 500
-    const space = table.state.stockMarket.spaces.find((s) => s.price === price)
+    const space = Market1846.spaces.find((s) => s.price === price)
     assertExists(space)
     placeStockMarker(table.state.stockMarket, 'IC', space.id)
     return table

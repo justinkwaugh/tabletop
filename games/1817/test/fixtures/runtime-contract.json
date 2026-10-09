@@ -3416,49 +3416,6 @@
       "stockMarket": {
         "additionalProperties": false,
         "properties": {
-          "spaces": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "color": {
-                  "type": "string"
-                },
-                "column": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "id": {
-                  "type": "string"
-                },
-                "moves": {
-                  "patternProperties": {
-                    "^.*$": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                },
-                "price": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "row": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "color",
-                "column",
-                "id",
-                "moves",
-                "price",
-                "row"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
           "stacks": {
             "items": {
               "additionalProperties": false,
@@ -3483,7 +3440,6 @@
           }
         },
         "required": [
-          "spaces",
           "stacks"
         ],
         "type": "object"

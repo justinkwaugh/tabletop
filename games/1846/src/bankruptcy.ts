@@ -1,3 +1,4 @@
+import { Market1846 } from './stock.js'
 import { releasePrivateReservations } from './stations.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -18,7 +19,6 @@ import {
     applyPresidencyChange,
     certificatesOwnedBy,
     closePrivate,
-    companyMarketSpace,
     controllingOwner,
     evaluatePresidency,
     reorderPendingOperatingCompanies,
@@ -154,7 +154,7 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
             const certificates = certificatesOwnedBy(state, player).filter(
                 (certificate) => certificate.companyId === company.id
             )
-            const price = companyMarketSpace(state.stockMarket, company.id).price
+            const price = Market1846.companySpace(state.stockMarket, company.id).price
             forcedSales.push({
                 companyId: company.id,
                 shares,

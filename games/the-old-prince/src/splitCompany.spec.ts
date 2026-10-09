@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { expect, it } from 'vitest'
 import { ActionSource, MachineContext, createAction } from '@tabletop/common'
 import {
@@ -14,7 +15,6 @@ import {
     getCompany,
     sameOwner,
     sharesOwned,
-    companyMarketSpace,
     type EighteenXXState,
     createEighteenXXRuntime
 } from '@tabletop/18xx'
@@ -135,10 +135,10 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
         parPrice: 80
     })
     expect(after.tranches[1].companyIds).toEqual(['branch:BB'])
-    expect(companyMarketSpace(after.stockMarket, 'So')).toEqual(
-        companyMarketSpace(state.stockMarket, 'So')
+    expect(TheOldPrinceMarket.companySpace(after.stockMarket, 'So')).toEqual(
+        TheOldPrinceMarket.companySpace(state.stockMarket, 'So')
     )
-    expect(companyMarketSpace(after.stockMarket, 'branch:BB').price).toBe(80)
+    expect(TheOldPrinceMarket.companySpace(after.stockMarket, 'branch:BB').price).toBe(80)
     expect(after.stockRound.turn.bought).toBe(false)
     expect(after.stockRound.turn.acted).toBe(false)
     expect(after.activePlayerIds[0]).toBe('blair')

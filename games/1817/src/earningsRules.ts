@@ -1,14 +1,12 @@
 import {
-    companyMarketSpace,
     dividendEntitlements,
     getCompany,
-    moveMarketSpace,
     type EarningsRules,
     type StockMarket
 } from '@tabletop/18xx'
 import { MarketPoolId } from './roundRules.js'
 import { corporationShareCount } from './corporations.js'
-import { isAcquisitionSpace } from './stockMarket.js'
+import { isAcquisitionSpace, EighteenSeventeenMarket } from './stockMarket.js'
 
 const AcquisitionZoneComparisonPrice = 40
 
@@ -17,11 +15,11 @@ const AcquisitionZoneComparisonPrice = 40
 const dividendUnits = (shares: number, count: number) => (count === 2 ? shares / 2 : shares)
 
 function marketMove(market: StockMarket, companyId: string, distributed: number) {
-    const from = companyMarketSpace(market, companyId)
+    const from = EighteenSeventeenMarket.companySpace(market, companyId)
     const price = isAcquisitionSpace(from) ? AcquisitionZoneComparisonPrice : from.price
     const steps = distributed >= price * 2 ? 2 : distributed >= price ? 1 : 0
     const direction = distributed === 0 ? 'left' : 'right'
-    const to = moveMarketSpace(market, from.id, direction, distributed === 0 ? 1 : steps)
+    const to = EighteenSeventeenMarket.move(from.id, direction, distributed === 0 ? 1 : steps)
     return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
 }
 

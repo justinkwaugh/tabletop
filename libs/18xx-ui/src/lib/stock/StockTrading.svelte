@@ -11,7 +11,6 @@
         isCompleteStockRound,
         isStartOperatingSet,
         isSellShares,
-        stockMarketSpace,
         type PresidencyChange
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -118,8 +117,7 @@
                     {#each details.sales as sale (sale.companyId)}
                         <p>
                             {getCompany(gameState, sale.companyId).name}: {sale.shares} × {sale.price}
-                            = {sale.proceeds}. Market price: {sale.price} → {stockMarketSpace(
-                                gameState.stockMarket,
+                            = {sale.proceeds}. Market price: {sale.price} → {session.stockMarketChart.space(
                                 sale.toMarketSpaceId
                             ).price}.
                         </p>
@@ -209,13 +207,10 @@
                         Stock round complete.
                         {#each trade.metadata.marketMoves as move (move.companyId)}
                             <span
-                                >{getCompany(gameState, move.companyId).name} sold out: {stockMarketSpace(
-                                    gameState.stockMarket,
+                                >{getCompany(gameState, move.companyId).name} sold out: {session.stockMarketChart.space(
                                     move.fromMarketSpaceId
-                                ).price} → {stockMarketSpace(
-                                    gameState.stockMarket,
-                                    move.toMarketSpaceId
-                                ).price}.</span
+                                ).price} → {session.stockMarketChart.space(move.toMarketSpaceId)
+                                    .price}.</span
                             >
                         {/each}
                     </li>
@@ -261,8 +256,7 @@
                         {session.ownerName(details.seller)} sold shares for {details.proceeds}.
                         {#each details.sales as sale (sale.companyId)}<span
                                 >{getCompany(gameState, sale.companyId).name}: {sale.shares} shares at
-                                {sale.price}; market price {stockMarketSpace(
-                                    gameState.stockMarket,
+                                {sale.price}; market price {session.stockMarketChart.space(
                                     sale.toMarketSpaceId
                                 ).price}.</span
                             >

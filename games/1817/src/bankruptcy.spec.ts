@@ -1,12 +1,11 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
-    companyMarketSpace,
     crisisSales,
     evaluateCrisisSale,
     getCompany,
-    stockMarketOrder,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
@@ -66,7 +65,7 @@ describe('a cash crisis', () => {
 
     it('is settled by selling only as many shares as needed, at no price drop', () => {
         const play = pleDefaults()
-        const price = companyMarketSpace(play.state.stockMarket, 'BA').price
+        const price = EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').price
         expect(() =>
             play.act('SellSharesToPay', {
                 sale: { companyId: 'BA', shares: 2 },
@@ -79,7 +78,7 @@ describe('a cash crisis', () => {
         })
         expect(play.state.cashCrisis).toBeUndefined()
         expect(cash(play, 'alex')).toBe(price - 20)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').price).toBe(price)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').price).toBe(price)
         expect(play.state.machineState).not.toBe('RaisingCash')
     })
 })
@@ -90,7 +89,9 @@ describe('crisis sales', () => {
         getCompany(state, 'BA').operated = false
         expect(EighteenSeventeenStockRules.saleTerms(state, 'BA', 1, alex)).toBeTypeOf('string')
         expect(EighteenSeventeenCashCrisisRules.saleTerms(state, 'BA', 1, alex)).toEqual(
-            expect.objectContaining({ price: companyMarketSpace(state.stockMarket, 'BA').price })
+            expect.objectContaining({
+                price: EighteenSeventeenMarket.companySpace(state.stockMarket, 'BA').price
+            })
         )
     })
 
@@ -170,8 +171,8 @@ describe('a bankrupt president’s companies', () => {
             getCompany(state, 'PLE').president = { kind: 'player', playerId: 'blair' }
         })
         const state = structuredClone(play.state)
-        expect(stockMarketOrder(state.stockMarket).indexOf('BA')).toBeLessThan(
-            stockMarketOrder(state.stockMarket).indexOf('PLE')
+        expect(EighteenSeventeenMarket.order(state.stockMarket).indexOf('BA')).toBeLessThan(
+            EighteenSeventeenMarket.order(state.stockMarket).indexOf('PLE')
         )
         const record = EighteenSeventeenCashCrisisRules.bankrupt(state, 'blair')
         expect(record.liquidatedCompanyIds).toEqual(['BA', 'PLE'])

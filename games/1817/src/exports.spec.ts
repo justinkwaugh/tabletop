@@ -1,12 +1,7 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import {
-    placeStockMarker,
-    stockMarketOrder,
-    unownedTrain,
-    type EighteenXXState,
-    type Train
-} from '@tabletop/18xx'
+import { placeStockMarker, unownedTrain, type EighteenXXState, type Train } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenTrainDepot, acquisitionRoundOf } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -87,7 +82,10 @@ describe('train exports', () => {
             give(state, 'BA', '3')
             for (const definitionId of ['2', '2+', '3']) removeFromDepot(state, definitionId)
         })
-        expect(stockMarketOrder(play.state.stockMarket).slice(0, 2)).toEqual(['PLE', 'BA'])
+        expect(EighteenSeventeenMarket.order(play.state.stockMarket).slice(0, 2)).toEqual([
+            'PLE',
+            'BA'
+        ])
         passUntil(play, (state) => state.machineState === 'DiscardingTrains')
         expect(play.state.phaseId).toBe('4')
         expect(removed(play.state).filter((id) => id === '4')).toHaveLength(1)

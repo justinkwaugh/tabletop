@@ -18,7 +18,6 @@
         sameOwner,
         playersWithBankruptLast,
         sharesOwned,
-        stockMarketOrder,
         trainsOwnedBy,
         type Company,
         type Owner,
@@ -415,7 +414,11 @@
     const companyRows = $derived(
         companies.map((company) => ({
             company,
-            value: companySharePrice(session.gameState.stockMarket, company.id),
+            value: companySharePrice(
+                session.stockMarketChart,
+                session.gameState.stockMarket,
+                company.id
+            ),
             stations: session.gameState.stations.filter(
                 (station) => station.companyId === company.id
             ),
@@ -434,7 +437,9 @@
     type CompanyRow = (typeof companyRows)[number]
     const companySortColumns = $derived.by(
         (): Record<CompanyStatistic, SpreadsheetSortColumn<CompanyRow>> => {
-            const operatingOrder = orderedAs(stockMarketOrder(session.gameState.stockMarket))
+            const operatingOrder = orderedAs(
+                session.stockMarketChart.order(session.gameState.stockMarket)
+            )
             return {
                 value: {
                     value: (row) => row.value,

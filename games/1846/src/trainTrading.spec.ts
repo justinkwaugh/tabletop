@@ -1,10 +1,10 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import {
     finiteCashOwnedBy,
     getCompany,
     placeStockMarker,
-    companyMarketSpace,
     purchaseChoices,
     trainsOwnedBy
 } from '@tabletop/18xx'
@@ -25,7 +25,7 @@ function tradingGame(sharedPresident = false) {
     placeStockMarker(
         table.state.stockMarket,
         'NYC',
-        companyMarketSpace(table.state.stockMarket, 'IC').id
+        Market1846.companySpace(table.state.stockMarket, 'IC').id
     )
     seller.president = {
         kind: 'player',

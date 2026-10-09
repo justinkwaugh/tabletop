@@ -33,6 +33,7 @@
     <StockMarket
         animation={session.marketAnimation}
         appearances={session.mapView.stations}
+        chart={session.stockMarketChart}
         market={gameState.stockMarket}
         companies={gameState.companies}
     />

@@ -1,3 +1,4 @@
+import { playgroundTitleForType } from '../titles.js'
 import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { expect, it } from 'vitest'
@@ -374,6 +375,7 @@ it.each([
         const description = historyDescription(
             advancement,
             updated,
+            playgroundTitleForType(definition.info.id).rules.stockRules.market,
             (id) => id,
             (id) => id,
             changes.get(advancement.id)

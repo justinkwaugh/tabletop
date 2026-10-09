@@ -171,9 +171,9 @@ describe('a title that defines its own state', () => {
         const { charterVotes, ...missing } = state
         expect(charterVotes).toEqual([])
         const hydrate = CharterRules.state.hydrate
-        const { map, tileSet, depot } = titleComponents(CharterRules)
-        expect(() => hydrate(missing, map, tileSet, depot)).toThrow()
-        expect(() => hydrate({ ...state, charterVotes: [17] }, map, tileSet, depot)).toThrow()
+        const components = titleComponents(CharterRules)
+        expect(() => hydrate(missing, components)).toThrow()
+        expect(() => hydrate({ ...state, charterVotes: [17] }, components)).toThrow()
     })
 
     it('keeps its fields and machine states through hydration', () => {
@@ -234,9 +234,7 @@ describe('a title that defines its own state', () => {
         expect(() =>
             Shikoku1889TitleRules.state.hydrate(
                 { ...state, machineState: 'CharterRound' },
-                Shikoku1889TitleRules.trackRules.map,
-                Shikoku1889TitleRules.trackRules.tileSet,
-                Shikoku1889TitleRules.trainRules.depot
+                titleComponents(Shikoku1889TitleRules)
             )
         ).toThrow()
     })
@@ -265,8 +263,7 @@ it('composes a state without railway, finance, or auction mechanisms', () => {
     const core = coreValidator.Clean(state)
     assert(coreValidator.Check(core), 'The common state envelope is valid')
     const stored = { ...core, machineState: 'Bidding', bids: [10] }
-    const { map, tileSet, depot } = titleComponents(Shikoku1889TitleRules)
-    const hydrated = definition.hydrate(stored, map, tileSet, depot)
+    const hydrated = definition.hydrate(stored, titleComponents(Shikoku1889TitleRules))
     expect(hydrated.dehydrate()).toEqual(stored)
     expectTypeOf(hydrated).not.toHaveProperty('stockRound')
     expectTypeOf(hydrated).not.toHaveProperty('companies')

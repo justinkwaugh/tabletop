@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
-import { stockMarketOrder } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 import type { TrainState } from '../trains/train.js'
 
@@ -87,9 +87,10 @@ export function validateOperatingSet(state: {
 }
 
 export function floatedCompaniesInMarketOrder(
+    market: StockMarketChart,
     state: Pick<StockState, 'companies' | 'stockMarket'>
 ): string[] {
-    return stockMarketOrder(state.stockMarket).filter((id) => {
+    return market.order(state.stockMarket).filter((id) => {
         const company = getCompany(state, id)
         return company.floated && !company.closed
     })

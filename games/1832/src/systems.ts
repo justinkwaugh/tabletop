@@ -3,7 +3,6 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     PresidencyChange,
     applyPresidencyChange,
-    companyMarketSpace,
     evaluatePresidency,
     placeStockMarker,
     playersAfterPresident,
@@ -13,7 +12,7 @@ import {
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
 import { refreshOwnershipExcess } from './ownershipExcess.js'
-import { isLowerArea } from './stockMarket.js'
+import { isLowerArea, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 
 /** Systems A–E, named for the modern railroads that grew from these lines. */
@@ -102,8 +101,10 @@ function nearestPrice(prices: readonly number[], target: number): number {
     )
 }
 
-function spaceAt(market: StockMarket, row: number, column: number) {
-    return market.spaces.find((space) => space.row === row && space.column === column)
+function spaceAt(row: number, column: number) {
+    return EighteenThirtyTwoMarket.spaces.find(
+        (space) => space.row === row && space.column === column
+    )
 }
 
 /**
@@ -116,12 +117,14 @@ export function systemMarketSpace(
     market: StockMarket,
     companyIds: readonly string[]
 ): StockMarketSpace {
-    const [first, second] = companyIds.map((companyId) => companyMarketSpace(market, companyId))
+    const [first, second] = companyIds.map((companyId) =>
+        EighteenThirtyTwoMarket.companySpace(market, companyId)
+    )
     const leftmost =
         first.column < second.column || (first.column === second.column && first.row > second.row)
             ? first
             : second
-    const row = market.spaces.filter((entry) => entry.row === leftmost.row)
+    const row = EighteenThirtyTwoMarket.spaces.filter((entry) => entry.row === leftmost.row)
     const price = nearestPrice(
         row.map((entry) => entry.price),
         (first.price + second.price) / 2
@@ -129,7 +132,7 @@ export function systemMarketSpace(
     let space = row.find((entry) => entry.price === price)
     assertExists(space, 'The row holds its own price')
     for (;;) {
-        const next = spaceAt(market, space.row + 1, space.column + 1)
+        const next = spaceAt(space.row + 1, space.column + 1)
         if (!next || next.price !== price || isLowerArea(next) !== isLowerArea(space)) break
         space = next
     }

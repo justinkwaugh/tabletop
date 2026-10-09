@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import {
     certificateWealthItem,
     getCompany,
@@ -35,7 +36,7 @@ export const EighteenSeventeenEndingRules: EndingRules = {
             value =
                 certificate.kind === 'private'
                     ? EighteenSeventeenPrivateCatalog.faceValue(company.id)
-                    : marketShareValue(state, certificate)
+                    : marketShareValue(EighteenSeventeenMarket, state, certificate)
         }
         return [certificateWealthItem(state, certificate, value)]
     }

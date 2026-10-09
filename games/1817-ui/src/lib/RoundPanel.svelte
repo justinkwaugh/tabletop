@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { EighteenSeventeenMarket } from '@tabletop/1817'
     import type { Snippet } from 'svelte'
-    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import { CompanyActionCard, StockPanelHeading, type CardAction } from '@tabletop/18xx-ui'
     import { companyRoundFacts } from './roundFacts.js'
     import type { EighteenSeventeenSession } from './session.svelte.js'
@@ -31,7 +32,9 @@
             {session}
             {companyId}
             title={getCompany(gameState, companyId).name}
-            value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
+            value={money(
+                EighteenSeventeenMarket.companySpace(gameState.stockMarket, companyId).price
+            )}
             facts={companyRoundFacts(gameState, companyId, money)}
             {actions}
         />

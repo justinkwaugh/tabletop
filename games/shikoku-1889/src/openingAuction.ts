@@ -16,7 +16,6 @@ import { Shikoku1889Map } from './map.js'
 import { Shikoku1889PrivateCatalog, Shikoku1889Privates } from './privates.js'
 import type { HydratedShikoku1889State, Shikoku1889State } from './state.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
-import { createShikoku1889StockMarket } from './stockMarket.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889TrainDepot } from './trains.js'
 export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
@@ -41,7 +40,7 @@ export function createShikoku1889Opening({
     const capital = players.length <= 4 ? 420 : 390
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
-        stockMarket: createShikoku1889StockMarket(),
+        stockMarket: { stacks: [] },
         bank: { name: 'Bank', unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({

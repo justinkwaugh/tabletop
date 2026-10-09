@@ -1,3 +1,4 @@
+import { Shikoku1889Market } from './stockMarket.js'
 import { Shikoku1889Phases } from './trains.js'
 import {
     allSharesHeld,
@@ -15,5 +16,5 @@ export const Shikoku1889StockRoundRules: StockRoundRules = {
 }
 export const Shikoku1889OperatingRules: OperatingRules = {
     roundCount: (state) => Shikoku1889Phases.phase(state.phaseId).operatingRounds,
-    companyOrder: floatedCompaniesInMarketOrder
+    companyOrder: (state) => floatedCompaniesInMarketOrder(Shikoku1889Market, state)
 }

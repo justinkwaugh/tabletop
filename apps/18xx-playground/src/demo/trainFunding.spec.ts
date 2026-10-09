@@ -18,7 +18,7 @@ import {
     type Owner,
     cashOwnedBy,
     getCompany,
-    companyMarketSpace,
+    companyMarketSpaceId,
     type EighteenXXState,
     type FundingChoice
 } from '@tabletop/18xx'
@@ -299,7 +299,7 @@ it('uses company, Union Bank, and player balances in order, contributing only th
     expect(cashOwnedBy(current, union)).toBe(0)
     expect(cashOwnedBy(current, { kind: 'company', companyId: 'ML' })).toBe(0)
     expect(payments.reduce((sum, payment) => sum + payment.amount, 0)).toBe(
-        purchase.price - companyMarketSpace(state.stockMarket, 'ML').price
+        purchase.price - TheOldPrinceStockRules.market.companySpace(state.stockMarket, 'ML').price
     )
 })
 it('selects the cheapest available 1889 market train and does not permit a more expensive diesel', () => {
@@ -408,7 +408,7 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
     }).updatedState
     expect(model(issued).next().kind).toBe('buy')
     expect(cashOwnedBy(issued, { kind: 'player', playerId: 'alex' })).toBe(40)
-    expect(companyMarketSpace(issued.stockMarket, 'ML').id).toBe(
+    expect(companyMarketSpaceId(issued.stockMarket, 'ML')).toBe(
         next.details.sales[0].toMarketSpaceId
     )
 })

@@ -76,6 +76,7 @@
         return historyDescription(
             action,
             gameState,
+            session.stockMarketChart,
             companyName,
             (id) => session.getPlayerName(id),
             companyChanges.get(action.id),

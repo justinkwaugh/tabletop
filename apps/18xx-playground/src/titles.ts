@@ -59,7 +59,7 @@ export type PlaygroundTitle = {
     /** Short label used by the harness selectors. */
     key: string
     name: string
-    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules'>
+    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules' | 'stockRules'>
     scenarios: ScenarioDefinition
     host: Component<ScenarioHostProps>
     map: RailwayMap

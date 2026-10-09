@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
@@ -19,10 +19,7 @@
     const choice = $derived(module.formationChoice)
     const reason = $derived(choice ? module.formationReason(choice) : 'Choose a size.')
     const startPrice = $derived(
-        stockMarketSpace(
-            session.gameState.stockMarket,
-            terms.startSpace(session.gameState, pending.price)
-        ).price
+        session.stockMarketChart.space(terms.startSpace(session.gameState, pending.price)).price
     )
 </script>
 

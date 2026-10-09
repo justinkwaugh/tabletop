@@ -1,10 +1,12 @@
+import { playgroundTitleForType } from '../titles.js'
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceEarningsRules,
     TheOldPrinceTrainRules,
-    peirShares
+    peirShares,
+    TheOldPrinceMarket
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -155,7 +157,7 @@ it('PEIR uses surviving shares, rounds each dividend up and retains the rounded-
 it('TOP adds forty per share only when paying from the market ceiling', () => {
     const { state } = example(Top, 'routes')
     earnings(state, 'ML', 100)
-    const ceiling = state.stockMarket.spaces.find((s) => s.price === 400)!
+    const ceiling = TheOldPrinceMarket.spaces.find((s) => s.price === 400)!
     placeStockMarker(state.stockMarket, 'ML', ceiling.id)
     const distribution = new EarningsDistribution(state, TheOldPrinceEarningsRules)
     expect(distribution.evaluate('ML', 'pay').details).toMatchObject({
@@ -168,13 +170,16 @@ it('TOP adds forty per share only when paying from the market ceiling', () => {
         retained: 100,
         dividendPerShare: 0
     })
-    const before = state.stockMarket.spaces.find((s) => s.moves.right === ceiling.id)!
+    const before = TheOldPrinceMarket.spaces.find((s) => s.moves.right === ceiling.id)!
     placeStockMarker(state.stockMarket, 'ML', before.id)
     expect(distribution.evaluate('ML', 'pay').details).toMatchObject({
         bonusPerShare: 0,
         marketMove: { toMarketSpaceId: ceiling.id }
     })
 })
+const marketOf = (definition: { info: { id: string } }) =>
+    playgroundTitleForType(definition.info.id).rules.stockRules.market
+
 it.each(Titles)(
     'settles $companyId earnings once, validates actors, and restores cash/market through replay and undo',
     ({ definition, rules, companyId }) => {
@@ -318,7 +323,9 @@ it.each(Titles)(
         earnings(state, companyId, 0)
         const distribution = new EarningsDistribution(state, rules)
         const move = distribution.evaluate(companyId, 'pay').details!.marketMove!
-        const from = state.stockMarket.spaces.find((space) => space.id === move.fromMarketSpaceId)!
+        const from = marketOf(definition).spaces.find(
+            (space) => space.id === move.fromMarketSpaceId
+        )!
         expect(move.toMarketSpaceId).toBe(from.moves.left ?? from.moves.down ?? from.id)
         getCompany(state, companyId).floated = false
         expect(distribution.evaluate(companyId, 'withhold').details!.marketMove).toBeUndefined()
@@ -332,7 +339,7 @@ it.each(Titles)('uses dividend edge arrows for $companyId', ({ definition, rules
         ['pay', 'right', 'up'],
         ['withhold', 'left', 'down']
     ] as const) {
-        const from = state.stockMarket.spaces.find(
+        const from = marketOf(definition).spaces.find(
             (space) => !space.moves[direction] && space.moves[edge]
         )!
         placeStockMarker(state.stockMarket, companyId, from.id)
@@ -353,7 +360,7 @@ it.each(Titles)(
         placeStockMarker(
             state.stockMarket,
             last,
-            state.stockMarket.spaces.find((space) => space.price === 200)!.id
+            marketOf(definition).spaces.find((space) => space.price === 200)!.id
         )
         state.phaseId = definition === Top ? '7' : '5'
         const count = state.operatingSet!.roundCount

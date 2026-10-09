@@ -1,10 +1,8 @@
 import { inReceivership } from './receivership.js'
-import { MarketZoneColors1846 } from './stock.js'
+import { MarketZoneColors1846, Market1846 } from './stock.js'
 import {
     dividendEntitlements,
     trainsOwnedBy,
-    companyMarketSpace,
-    moveMarketSpace,
     EarningsDistribution,
     type EarningsRules,
     type DistributionState
@@ -20,7 +18,7 @@ export const EarningsRules1846: EarningsRules = {
         choice === 'withhold' ? revenue : choice === 'half-pay' ? Math.floor(revenue / 20) * 10 : 0,
     roundDividend: (_state, _companyId, amount) => amount,
     marketEffect(state, companyId, { revenue, retained }) {
-        const from = companyMarketSpace(state.stockMarket, companyId)
+        const from = Market1846.companySpace(state.stockMarket, companyId)
         const payout = revenue - retained
         const steps =
             inReceivership(state, companyId) &&
@@ -42,8 +40,7 @@ export const EarningsRules1846: EarningsRules = {
                       move: {
                           companyId,
                           fromMarketSpaceId: from.id,
-                          toMarketSpaceId: moveMarketSpace(
-                              state.stockMarket,
+                          toMarketSpaceId: Market1846.move(
                               from.id,
                               steps < 0 ? 'left' : 'right',
                               Math.abs(steps)

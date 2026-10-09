@@ -17,13 +17,12 @@ import {
     finiteCashOwnedBy,
     reorderPendingOperatingCompanies,
     sharesOwned,
-    stockMarketSpace,
     type ShareSaleResult
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { emergencyFundingChoices } from './emergencyTrain.js'
 import { OperatingRules1846 } from './operating.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 
 export const EmergencyFundingFields = {
     emergencyFunding: Type.Optional(
@@ -54,8 +53,7 @@ export function evaluateEmergencyShareSale(
     const settlement = result.details.sales[0]
     if (
         sale.companyId === funding.companyId &&
-        (settlement.presidency ||
-            stockMarketSpace(state.stockMarket, settlement.toMarketSpaceId).price === 0)
+        (settlement.presidency || Market1846.space(settlement.toMarketSpaceId).price === 0)
     )
         return { reason: 'The operating corporation must keep its president and remain open.' }
     const cash =

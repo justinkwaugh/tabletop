@@ -3,7 +3,6 @@ import { EighteenFortySixMap, AdditionalReservations } from './map.js'
 import { createInitialTrainInventory } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { createStockRound } from '@tabletop/18xx'
-import { createMarket } from './stock.js'
 import {
     BaseGameInitializer,
     Color,
@@ -124,7 +123,7 @@ export class Initializer extends BaseGameInitializer<
             revenueMarkers: [],
             usedPrivatePowerIds: [],
             tileInventory: EighteenFortySixTileSet.createInventory(),
-            stockMarket: createMarket(),
+            stockMarket: { stacks: [] },
             stockRound: createStockRound(1),
             turnManager: {
                 series: [],

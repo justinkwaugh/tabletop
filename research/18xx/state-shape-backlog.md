@@ -92,11 +92,17 @@ mechanism below, plus the six implemented titles.
    emergency funding, and continues receivers' earnings through its own states. Its
    independents' 2-trains are declared depot `assignedTrains`: owned from purchase,
    never in the depot, and outside its supply numbering.
-2. **Market spaces become a title definition.** State keeps `stacks`. The definition is
-   chosen from the resolved configuration, carried on `StockRules` and given to
-   validation; the movement graph is a default the title's rules may override. Readers
-   of `state.stockMarket.spaces`, the market functions and the UI market board take the
-   definition.
+2. **Market spaces become a title definition.** State keeps `stacks`. Each title defines a
+   `StockMarketChart` (its spaces, colours and move graph), carried on `StockRules.market`
+   and in `TitleComponents`, so hydration validates the stacks against it. Chart methods
+   read spaces, moves, company positions and market order and validate a placement;
+   `placeStockMarker` and `restoreStockMarker` stay chart-free for recorded moves whose
+   spaces the chart already produced. Family helpers that need prices or order take the
+   chart; the UI reads it from the session (`stockMarketChart`), title UIs from their
+   title. Movement remains the chart's graph, which title rules may bypass (1832's sale
+   descent, 1817's liquidation). **Intentional limit:** one chart per title. No current
+   title's market depends on options or player count; a title that needs that would
+   select its chart from its configuration when its rules are built.
 3. **Certificate faces come from the id.** Records keep `id`, `owner`, `poolId` and
    `retired`; `kind`, `shares`, `president`, `companyId` and TOP's `number` follow from
    the id through a title-owned rule. `certificateLimitCount` is removed; the limit uses
@@ -110,7 +116,12 @@ mechanism below, plus the six implemented titles.
 5. **Names, depot and final wealth.** Company and pool names move to the definition. The
    depot's roster comes from the resolved configuration, with State keeping what remains
    in order and any trains created during play. `finalWealth` labels are built by the
-   UI instead of stored.
+   UI instead of stored. 1846's independents' 2-trains move into the supply, as upstream
+   models them: players plus four 2-trains (seven in the two-player variant), with setup
+   assigning the first two to MS and Big 4. Both independents are in every game and
+   are always bought, but in the two-player game possibly only after preliminary
+   operating rounds, so assigning at setup keeps the depot's count unchanged until then.
+   `assignedTrains` is then removed.
 6. **One buyer field for purchase offers.** `buyer: Owner` replaces both a company
    offer's `companyId` and a player offer's `buyerPlayerId`, in the State union and in
    `RespondToPurchaseOffer` metadata. `OfferPurchase` input stays a company buyer.

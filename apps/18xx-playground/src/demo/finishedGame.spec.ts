@@ -18,6 +18,9 @@ import { describe1832Action } from '../../../../games/1832-ui/src/lib/history.js
 import { moneyFormat } from '../../../../libs/18xx-ui/src/lib/presentation/money.js'
 import { finishedGame, replayFinishedGame, replayRecordedGame } from './finishedGame.js'
 import { playgroundTitle } from '../titles.js'
+
+const topMarket = playgroundTitle('TOP').rules.stockRules.market
+const thirtyMarket = playgroundTitle('1830').rules.stockRules.market
 import {
     finalWealth,
     reorderPendingOperatingCompanies,
@@ -86,7 +89,7 @@ it('replays the finished game and restores every history step in both directions
     const orders = historyOperatingOrder(actions, snapshots)
     expect(orders.size).toBeGreaterThan(0)
     const fundingSale = actions.find((action) => action.type === 'SellFundingShares')!
-    expect(historyDescription(fundingSale, state).beforeText).toBe(
+    expect(historyDescription(fundingSale, state, topMarket).beforeText).toBe(
         'President owes $400 and is short $135'
     )
     expect(orders.get(fundingSale.id)?.after).toEqual([
@@ -99,7 +102,7 @@ it('replays the finished game and restores every history step in both directions
         'MR',
         'Gt'
     ])
-    expect(historyDescription(fundingSale, state).detail).toContain('Market')
+    expect(historyDescription(fundingSale, state, topMarket).detail).toContain('Market')
     const rounds = historyRounds(actions, state)
     const operatingRounds = rounds.filter((round) => round.label.startsWith('OR '))
     expect(operatingRounds.every((round) => round.operatingOrder?.after.length)).toBe(true)
@@ -147,7 +150,7 @@ it('replays the finished game and restores every history step in both directions
     const visibleIds = new Set(rounds.flatMap((round) => round.entries.map((entry) => entry.id)))
     for (const action of trainlessActions) {
         expect(visibleIds.has(action.id)).toBe(true)
-        const description = historyDescription(action, state)
+        const description = historyDescription(action, state, topMarket)
         expect(description.text).toBe(
             action.type === 'RunTrains' ? 'Did not run trains' : 'Did not pay out'
         )
@@ -201,7 +204,8 @@ it('replays the finished game and restores every history step in both directions
         rounds.flatMap((round) => round.entries.filter((entry) => entry.kind === 'action')).length
     )
     expect(groups.filter((group) => group.kind === 'operation')).toHaveLength(91)
-    for (const action of groupedActions) expect(historyDescription(action, state).text).toBeTruthy()
+    for (const action of groupedActions)
+        expect(historyDescription(action, state, topMarket).text).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())
         restored = engine.undoProcessedAction({ state: restored, action })
@@ -248,7 +252,10 @@ it('replays the finished 1889 game to its bank-break ending and back', async () 
     const rounds = historyRounds(actions, state)
     expect(rounds.at(-1)?.label).toBe('Auction')
     expect(rounds.some((round) => round.label.startsWith('OR '))).toBe(true)
-    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    for (const action of actions)
+        expect(
+            historyDescription(action, state, playgroundTitle('1889').rules.stockRules.market).text
+        ).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())
         restored = engine.undoProcessedAction({ state: restored, action })
@@ -276,8 +283,10 @@ it('replays the finished 1832 game, its Systems and closures, to its ending and 
     }
     for (const action of actions)
         expect(
-            (describe1832Action(action, names, moneyFormat('$')) ?? historyDescription(action, state))
-                .text
+            (
+                describe1832Action(action, names, moneyFormat('$')) ??
+                historyDescription(action, state, playgroundTitle('1832').rules.stockRules.market)
+            ).text
         ).toBeTruthy()
     const rounds = historyRounds(actions, state, undefined, undefined, undefined, {
         rounds: EighteenThirtyTwoPresentation.titleRounds
@@ -300,6 +309,7 @@ it('describes 1830’s awards and the B&O closure in the finished game’s histo
         const description = historyDescription(
             action,
             state,
+            thirtyMarket,
             undefined,
             undefined,
             changes.get(action.id)
@@ -324,7 +334,7 @@ it('describes 1830’s awards and the B&O closure in the finished game’s histo
         locationId: 'E11',
         nodeId: 'city-1'
     }
-    expect(historyDescription(homeChoice, state).text).toBe('Home station at E11')
+    expect(historyDescription(homeChoice, state, thirtyMarket).text).toBe('Home station at E11')
 }, 120000)
 
 it('replays the finished 1830 game to its bank-break ending and back', async () => {
@@ -340,7 +350,8 @@ it('replays the finished 1830 game to its bank-break ending and back', async () 
         '15688': 12109
     })
     expect(state.winningPlayerIds).toEqual(['13430'])
-    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    for (const action of actions)
+        expect(historyDescription(action, state, thirtyMarket).text).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())
         restored = engine.undoProcessedAction({ state: restored, action })
@@ -399,7 +410,10 @@ it('replays the finished 1817 game to its ending and back', async () => {
         'AR 7.1'
     ])
     expect(new Set(rounds.map((round) => round.id)).size).toBe(rounds.length)
-    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    for (const action of actions)
+        expect(
+            historyDescription(action, state, playgroundTitle('1817').rules.stockRules.market).text
+        ).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())
         restored = engine.undoProcessedAction({ state: restored, action })

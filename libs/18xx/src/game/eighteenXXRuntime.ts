@@ -119,7 +119,7 @@ export function createEighteenXXRuntime<
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 >(options: EighteenXXTitleRules<Schema, State>): GameRuntime<Type.Static<Schema>, State> {
     const { stockRules: rules, companyRules, operatingRules } = options
-    const { map, tileSet, depot } = titleComponents(options)
+    const components = titleComponents(options)
     type Handler = EighteenXXStateHandler<State>
     const stateDefinition = options.state
     const decides = (machineState: EighteenXXMachineState, family: Handler): Handler =>
@@ -383,7 +383,7 @@ export function createEighteenXXRuntime<
         initializer: new EighteenXXInitializer(options),
         hydrator: {
             hydrateState: (state) =>
-                inKnownPhase(stateDefinition.hydrate(state, map, tileSet, depot), options.phases),
+                inKnownPhase(stateDefinition.hydrate(state, components), options.phases),
             hydrateAction: (action) => {
                 const hydrated = actions.hydrate(action)
                 if (!hydrated) throw new Error(`Unknown 18xx action: ${action.type}`)
@@ -395,11 +395,11 @@ export function createEighteenXXRuntime<
         randomnessVersion: 1,
         scoring: {
             finalScores: (state) =>
-                FinalWealthScoring.finalScores(stateDefinition.hydrate(state, map, tileSet, depot))
+                FinalWealthScoring.finalScores(stateDefinition.hydrate(state, components))
         },
         apiActions: actions.schemas,
         exploration: new EighteenXXGameExploration<Type.Static<Schema>>((state) =>
-            stateDefinition.hydrate(state, map, tileSet, depot)
+            stateDefinition.hydrate(state, components)
         ),
         stateHandlers
     }

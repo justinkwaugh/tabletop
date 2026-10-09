@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
 import {
@@ -11,7 +12,6 @@ import {
     closePrivate,
     companyLoans,
     controllingOwner,
-    moveCompanyMarker,
     moveCompanyStations,
     repayLoan,
     resetCompany,
@@ -165,7 +165,12 @@ export function moveBuyerForUnpaidLoans(
 ): StockMarketMove[] {
     const marketMoves: StockMarketMove[] = []
     for (let loan = acquisition.repaidLoans; loan < acquisition.inheritedLoans; loan++) {
-        const move = moveCompanyMarker(state.stockMarket, acquisition.buyerId, 'left', 1)
+        const move = EighteenSeventeenMarket.moveCompanyMarker(
+            state.stockMarket,
+            acquisition.buyerId,
+            'left',
+            1
+        )
         if (move) marketMoves.push(move)
     }
     return marketMoves

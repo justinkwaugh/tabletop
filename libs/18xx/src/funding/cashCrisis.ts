@@ -39,7 +39,10 @@ export const BankruptcyRecord = Type.Object(
 export type BankruptcyRecord = Type.Static<typeof BankruptcyRecord>
 
 /** A sale to raise cash is refused if it would pass a presidency to another player. */
-export interface CashCrisisRules extends Pick<StockRules, 'presidencyCandidates' | 'afterSale'> {
+export interface CashCrisisRules extends Pick<
+    StockRules,
+    'market' | 'presidencyCandidates' | 'afterSale'
+> {
     saleTerms(
         state: StockState,
         companyId: string,

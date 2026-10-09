@@ -8,7 +8,7 @@ import {
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
 import {
     allPlayersPassed,
-    companyMarketSpace,
+    companyMarketSpaceId,
     getCompany,
     isCompleteStockRound,
     isFinishStockTurn,
@@ -339,7 +339,7 @@ it('moves sold-out companies in market order, preserves an existing top marker, 
     const result = engine.executeCanonicalAction({ game, state: current, action: finish(current) })
     const completion = result.processedActions.find(isCompleteStockRound)
     expect(completion?.metadata?.marketMoves.map((move) => move.companyId)).toEqual(['AR', 'IR'])
-    expect(companyMarketSpace(result.updatedState.stockMarket, 'IR').id).toBe('0:2')
+    expect(companyMarketSpaceId(result.updatedState.stockMarket, 'IR')).toBe('0:2')
     expect(
         result.updatedState.stockMarket.stacks.find((stack) => stack.spaceId === '0:2')?.companyIds
     ).toEqual(['AR', 'IR'])

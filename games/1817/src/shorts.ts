@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type {
     HydratedEighteenSeventeenState,
     EighteenSeventeenStateHandler,
@@ -20,7 +21,6 @@ import {
     CashPayment,
     canStartStockRound,
     cancelShorts,
-    companyMarketSpace,
     ordinaryShares,
     getCompany,
     openShort,
@@ -89,7 +89,7 @@ export function shortOptions(
         )
         .map((company) => ({
             companyId: company.id,
-            price: companyMarketSpace(state.stockMarket, company.id).price
+            price: EighteenSeventeenMarket.companySpace(state.stockMarket, company.id).price
         }))
 }
 
@@ -129,7 +129,8 @@ export class HydratedShortShare extends HydratableAction<typeof ShortShare> impl
     isValidFor(state: EighteenSeventeenState): boolean {
         return (
             !shortReason(state, this.playerId, this.companyId) &&
-            companyMarketSpace(state.stockMarket, this.companyId).price === this.expectedPrice
+            EighteenSeventeenMarket.companySpace(state.stockMarket, this.companyId).price ===
+                this.expectedPrice
         )
     }
     apply(state: HydratedGameState & EighteenSeventeenState): void {
@@ -248,7 +249,7 @@ export class HydratedCloseMarketShorts
         )
         const market = marketPool(state)
         const shorts = openShorts(state, this.companyId, market.owner).length
-        const price = companyMarketSpace(state.stockMarket, this.companyId).price
+        const price = EighteenSeventeenMarket.companySpace(state.stockMarket, this.companyId).price
         const bought = treasuryShares(state, this.companyId).slice(0, shorts)
         const payments = bought.map(() => ({
             from: { kind: 'bank' as const },

@@ -1,9 +1,9 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     trainsOwnedBy,
-    companyMarketSpace,
     controllingOwner,
     finiteCashOwnedBy,
     nextOperatingCompany,
@@ -100,8 +100,8 @@ describe('1846 stock and operating sequence', () => {
             completedCompanyIds: [],
             companyOrder: ['MS', 'BIG4', 'NYC', 'IC']
         })
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
-        expect(companyMarketSpace(table.state.stockMarket, 'NYC').price).toBe(90)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(90)
         expect(() => table.act('StartOperatingRound')).toThrow()
         table.act('AssignSteamboat')
         table.act('FinishTrack', { companyId: 'MS' })
@@ -184,7 +184,7 @@ describe('1846 stock and operating sequence', () => {
     })
     it('continues to the next corporation after a zero-price closure', () => {
         const table = twoMajors()
-        const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
+        const space = Market1846.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'IC', space.id)
         const result = table.act('FinishTrack', { companyId: 'IC' })

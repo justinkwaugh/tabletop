@@ -59,13 +59,13 @@ import {
     isTakeLoan,
     isSellSharesToPay,
     isGoBankrupt,
-    stockMarketSpace,
     isDiscardTrain,
     isRustTrains,
     type DeparturePayment,
     type Owner,
     type PresidencyChange,
-    type EighteenXXState
+    type EighteenXXState,
+    type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
@@ -165,6 +165,7 @@ function runBonusesDetail(
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
+    chart: StockMarketChart,
     companyName: (id: string) => string = (id) => id,
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges,
@@ -173,6 +174,7 @@ export function historyDescription(
     const description = describeShared(
         action,
         state,
+        chart,
         companyName,
         playerName,
         companyChanges,
@@ -189,6 +191,7 @@ export function historyDescription(
 function describeShared(
     action: GameAction,
     state: EighteenXXState,
+    chart: StockMarketChart,
     companyName: (id: string) => string,
     playerName: (id: string) => string,
     companyChanges: HistoryCompanyChanges | undefined,
@@ -226,7 +229,7 @@ function describeShared(
         return `${certificate.shares} ${companyName(certificate.companyId)}`
     }
     function marketPrice(id: string) {
-        return stockMarketSpace(state.stockMarket, id).price
+        return chart.space(id).price
     }
     function shares(certificateId: string) {
         const certificate = state.certificates.find((item) => item.id === certificateId)

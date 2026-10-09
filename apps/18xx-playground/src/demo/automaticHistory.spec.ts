@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { Definition as Shikoku } from '@tabletop/shikoku-1889'
+import { Definition as Shikoku, Shikoku1889Market } from '@tabletop/shikoku-1889'
 import { isCompleteStockRound, placeStockMarker } from '@tabletop/18xx'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
@@ -55,9 +55,8 @@ it.each([true, false])('shows meaningful sold-out market movements only: %s', (c
             )?.kind
         ).toBe('event')
         const movement = completed.metadata!.marketMoves.find((move) => move.companyId === 'IR')!
-        const price = (id: string) =>
-            state.stockMarket.spaces.find((space) => space.id === id)!.price
-        const description = historyDescription(completed, state)
+        const price = (id: string) => Shikoku1889Market.space(id).price
+        const description = historyDescription(completed, state, Shikoku1889Market)
         expect(description.detail).toContain(
             `IR market ${price(movement.fromMarketSpaceId)} → ${price(movement.toMarketSpaceId)}`
         )

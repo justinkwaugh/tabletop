@@ -1,8 +1,8 @@
+import { EighteenThirtyMarket } from './stockMarket.js'
 import type { EighteenThirtyState } from './state.js'
 import { EighteenThirtyStockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     ipoMarketTrading,
     marketZoneHoldingLimits,
     playersAfterPresident,
@@ -11,12 +11,14 @@ import {
 } from '@tabletop/18xx'
 
 export const EighteenThirtyShareTrading = ipoMarketTrading({
+    market: EighteenThirtyMarket,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
 })
 
 export const EighteenThirtyStockRules: StockRules = {
+    market: EighteenThirtyMarket,
     round: EighteenThirtyStockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -28,6 +30,7 @@ export const EighteenThirtyStockRules: StockRules = {
         return limit
     },
     ...marketZoneHoldingLimits({
+        market: EighteenThirtyMarket,
         certificateFreeColors: ['yellow', 'orange', 'brown'],
         ownershipFreeColors: ['orange', 'brown'],
         ownershipPercent: 60
@@ -50,7 +53,10 @@ export const EighteenThirtyStockRules: StockRules = {
             certificate,
             earlier
         ) {
-            if (companyMarketSpace(state.stockMarket, certificate.companyId).color !== 'brown')
+            if (
+                EighteenThirtyMarket.companySpace(state.stockMarket, certificate.companyId)
+                    .color !== 'brown'
+            )
                 return false
             if (state.multipleBrownFromIpo === true) return true
             return (

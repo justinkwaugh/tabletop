@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import {
-    companyMarketSpace,
-    finiteCashOwnedBy,
-    getCompany,
-    placeStockMarker,
-    sharesOwned
-} from '@tabletop/18xx'
+import { finiteCashOwnedBy, getCompany, placeStockMarker, sharesOwned } from '@tabletop/18xx'
 import { stockGame } from './testSupport.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 
 describe('1846 first stock round', () => {
     it('launches immediately, pays incremental capital and the IC bonus, and places its home', () => {
@@ -79,7 +73,7 @@ describe('1846 first stock round', () => {
                 expectedProceeds: 30
             })
         ).toThrow()
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
         expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId: president })).toBe(
             before + 80
         )
@@ -117,7 +111,7 @@ describe('1846 first stock round', () => {
         table.finishTurn()
         table.finishTurn()
         expect(table.state.priorityDealPlayerId).toBe(priority)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(20)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
     })
     it('transfers presidency on a larger holding, keeping the incumbent on ties', () => {
         const table = stockGame()
@@ -205,7 +199,7 @@ describe('1846 first stock round', () => {
             playerId: successor
         })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: seller })).toBe(0)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
     })
     it('records round-end closure before starting operations and reverses the entire cascade', () => {
         const table = stockGame()

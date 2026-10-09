@@ -1,12 +1,15 @@
 import { assertExists } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
-import { dividendMarketMove } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import { dividendEntitlements, type EarningsRules } from './earningsDistribution.js'
 
-export function payOrWithholdEarningsRules(pools: {
-    unpaidPoolIds: readonly string[]
-    companyPoolIds: readonly string[]
-}): EarningsRules {
+export function payOrWithholdEarningsRules(
+    market: StockMarketChart,
+    pools: {
+        unpaidPoolIds: readonly string[]
+        companyPoolIds: readonly string[]
+    }
+): EarningsRules {
     return {
         choices: () => ['pay', 'withhold'],
         shareCount(state, companyId) {
@@ -28,7 +31,7 @@ export function payOrWithholdEarningsRules(pools: {
         marketEffect: (state, companyId, distribution) => ({
             ...(getCompany(state, companyId).floated
                 ? {
-                      move: dividendMarketMove(
+                      move: market.dividendMove(
                           state.stockMarket,
                           companyId,
                           distribution.baseDividendPerShare > 0

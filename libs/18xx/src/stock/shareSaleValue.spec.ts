@@ -3,9 +3,10 @@ import { Color } from '@tabletop/common'
 import { createOrdinaryShareCertificates } from '../finance/finance.js'
 import { createStockRound } from './stockRound.js'
 import {
-    createRectangularStockMarket,
+    createRectangularStockMarketSpaces,
     placeStockMarker,
-    companyMarketSpace
+    StockMarketChart,
+    type StockMarket
 } from './stockMarket.js'
 import { evaluateShareSale, evaluateShareDisposal, applyShareSale } from './shareSale.js'
 import { shareSaleValue } from './shareSaleValue.js'
@@ -16,9 +17,12 @@ import type { StockRules } from './stockRules.js'
 const seller = { kind: 'player', playerId: 'a' } as const
 const other = { kind: 'player', playerId: 'b' } as const
 const bank = { kind: 'bank' } as const
+const market = new StockMarketChart(
+    createRectangularStockMarketSpaces([[100], [90], [80], [70]], () => 'white')
+)
 function example(): StockState {
-    const stockMarket = createRectangularStockMarket([[100], [90], [80], [70]], () => 'white')
-    placeStockMarker(stockMarket, 'R', '0:0')
+    const stockMarket: StockMarket = { stacks: [] }
+    market.placeMarker(stockMarket, 'R', '0:0')
     return {
         bank: { name: 'Bank' },
         companies: [
@@ -68,6 +72,7 @@ function example(): StockState {
     }
 }
 const rules: StockRules = {
+    market,
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     buyers: () => [],
     purchaseTerms: () => 'Unavailable',
@@ -171,7 +176,7 @@ it.each([false, true])(
             repeatSales: 'extend-block',
             saleTerms: (current, companyId, shares) => ({
                 payer: bank,
-                price: companyMarketSpace(current.stockMarket, companyId).price,
+                price: market.companySpace(current.stockMarket, companyId).price,
                 destinationPoolId: 'market',
                 marketLimit: 80,
                 maximumShares: 3,
@@ -234,10 +239,14 @@ it.each([false, true])(
 
 it('uses the actual asset owner for directional sales, independently of the active player', () => {
     const state = example()
-    state.stockMarket = createRectangularStockMarket([[80, 90, 100]], () => 'white')
-    placeStockMarker(state.stockMarket, 'R', '0:2')
+    const row = new StockMarketChart(
+        createRectangularStockMarketSpaces([[80, 90, 100]], () => 'white')
+    )
+    state.stockMarket = { stacks: [] }
+    row.placeMarker(state.stockMarket, 'R', '0:2')
     const directional: StockRules = {
         ...rules,
+        market: row,
         saleTerms(current, companyId, shares, owner) {
             const president = current.companies.find(
                 (company) => company.id === companyId

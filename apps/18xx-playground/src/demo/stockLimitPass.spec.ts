@@ -30,7 +30,7 @@ it.each([
         const companies = state.companies
             .filter((company) => company.kind !== 'private')
             .slice(0, 5)
-        const space = state.stockMarket.spaces.find((space) => space.color === 'pink')
+        const space = rules.market.spaces.find((space) => space.color === 'pink')
         assertExists(space, 'The market has an ordinary space')
         for (const certificate of state.certificates.filter(
             (certificate) => !certificate.retired
@@ -79,7 +79,7 @@ it.each([
             playerId: state.players.find((player) => player.playerId !== playerId)!.playerId
         }
         const exemptCompany = state.companies.filter((company) => company.kind !== 'private')[5]
-        const yellow = state.stockMarket.spaces.find((space) => space.color === 'yellow')
+        const yellow = rules.market.spaces.find((space) => space.color === 'yellow')
         assertExists(yellow, 'The market has an exempt space')
         Object.assign(exemptCompany, {
             started: true,

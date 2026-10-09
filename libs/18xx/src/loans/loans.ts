@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, getCompany } from '../finance/finance.js'
-import { StockMarketMove, moveCompanyMarker } from '../stock/stockMarket.js'
+import { StockMarketMove, type StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const LoanStep = Type.Object(
@@ -33,6 +33,7 @@ export const InterestDefault = Type.Object(
 export type InterestDefault = Type.Static<typeof InterestDefault>
 
 export interface LoanRules {
+    market: StockMarketChart
     /** What a company receives for a loan and pays to repay one. */
     value: number
     /** Loans in the bank at the start of the game. */
@@ -104,7 +105,7 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
     settleCashPayments(state, [payment])
     const company = getCompany(state, companyId)
     company.loans = (company.loans ?? 0) + 1
-    return withMarketMove(state, companyId, payment, rules.takeMove)
+    return withMarketMove(state, rules.market, companyId, payment, rules.takeMove)
 }
 
 export function repayLoan(state: LoanState, rules: LoanRules, companyId: string): LoanRecord {
@@ -119,17 +120,18 @@ export function repayLoan(state: LoanState, rules: LoanRules, companyId: string)
     const company = getCompany(state, companyId)
     if (company.loans === 1) delete company.loans
     else company.loans = companyLoans(state, companyId) - 1
-    return withMarketMove(state, companyId, payment, rules.repayMove)
+    return withMarketMove(state, rules.market, companyId, payment, rules.repayMove)
 }
 
 function withMarketMove(
     state: LoanState,
+    market: StockMarketChart,
     companyId: string,
     payment: CashPayment,
     move: LoanMarketMove | undefined
 ): LoanRecord {
     const marketMove =
-        move && moveCompanyMarker(state.stockMarket, companyId, move.direction, move.steps)
+        move && market.moveCompanyMarker(state.stockMarket, companyId, move.direction, move.steps)
     return marketMove ? { payment, marketMove } : { payment }
 }
 
