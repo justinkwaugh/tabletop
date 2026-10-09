@@ -23,6 +23,7 @@ export class DroughtDustAnimator extends StateAnimator {
     flipping: string[] = $state.raw([])
 
     private readonly particles = new Map<string, SVGElement>()
+    private previewTimeline: gsap.core.Timeline | undefined
     private readonly flipCards = new Map<string, HTMLElement>()
 
     flipCard(col: number, row: number) {
@@ -45,6 +46,7 @@ export class DroughtDustAnimator extends StateAnimator {
     }
 
     clearPreview() {
+        this.stopPreview()
         gsap.killTweensOf([...this.particles.values(), ...this.flipCards.values()])
         this.puffs = []
         this.flipping = []
@@ -62,6 +64,7 @@ export class DroughtDustAnimator extends StateAnimator {
             })
         )
         if (dried.length === 0) return
+        this.stopPreview()
 
         this.flipping = dried.map(({ col, row }) => intersectionKey(col, row))
         await this.showPuffs(dried)
@@ -87,11 +90,21 @@ export class DroughtDustAnimator extends StateAnimator {
     // For the developer harness's mood tuner: plays the dust on any squares without touching the
     // game; it clears itself when done.
     async preview(squares: Square[]) {
+        this.stopPreview()
         await this.showPuffs(squares)
         const timeline = this.dustTimeline((fieldIndex) => fieldIndex * FIELD_STAGGER)
         timeline.call(() => {
+            this.previewTimeline = undefined
             this.puffs = []
         }, [], timeline.duration())
+        this.previewTimeline = timeline
+    }
+
+    stopPreview() {
+        if (!this.previewTimeline) return
+        this.previewTimeline.kill()
+        this.previewTimeline = undefined
+        this.puffs = []
     }
 
     private async showPuffs(squares: Square[]) {

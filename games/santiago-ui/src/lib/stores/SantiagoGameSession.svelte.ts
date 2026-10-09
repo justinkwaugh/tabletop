@@ -1,4 +1,3 @@
-import { tick } from 'svelte'
 import { AnimationContext, GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
@@ -80,7 +79,8 @@ export class SantiagoGameSession extends GameSession<
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
     // Ambient changes that follow a transition the animators ran, such as the land's mood or newly
-    // offered canal spots, ease in; a silent restoration runs no animators, so they snap.
+    // offered canal spots, ease in; a silent restoration runs no animators, so they snap. Each
+    // change of visible state starts with it off, and running the animators turns it on.
     easesAmbientChanges = $state(false)
     // Set from the developer harness's mood tuner to preview the light on any board.
     moodOverride: LandMood | undefined = $state(undefined)
@@ -113,9 +113,6 @@ export class SantiagoGameSession extends GameSession<
         super.beforeNewState()
         this.selectedBribeSegment = undefined
         this.clearAnimationPreviews()
-        void tick().then(() => {
-            this.easesAmbientChanges = false
-        })
     }
 
     // A failed transition never reaches beforeNewState, which would leave the previews, and the
@@ -124,6 +121,7 @@ export class SantiagoGameSession extends GameSession<
         newState: HydratedSantiagoGameState,
         oldState?: HydratedSantiagoGameState
     ) {
+        this.easesAmbientChanges = false
         try {
             await super.notifyStateChangeListeners(newState, oldState)
         } catch (error) {
