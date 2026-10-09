@@ -39,6 +39,9 @@
 
     const gameSession = getGameSession()
 
+    // A walking pawn's box, centred on where it stands, holds the figure and its ground shadow.
+    const WalkerBox = 32
+
     const visitorMoveAnimator = new VisitorMoveAnimator(gameSession)
     visitorMoveAnimator.register()
     onDestroy(() => visitorMoveAnimator.unregister())
@@ -329,29 +332,35 @@
         </g>
         <g pointer-events="auto"><VisitorQueue /></g>
     </svg>
-    <!-- Walking pawns get their own composited layer, so moving them never repaints the
-     filter-heavy board beneath. -->
-    <svg
-        class="walker-layer pointer-events-none absolute top-0 left-0"
-        width={TableWidth}
-        height={TableHeight}
-        viewBox="0 0 {TableWidth} {TableHeight}"
+    <!-- Each walking pawn is its own small composited element, moved by a CSS transform, so a walk
+     repaints nothing; the elements exist only while a move animates. -->
+    <div
+        class="walker-layer pointer-events-none absolute"
+        style:left="{QueueMargin}px"
+        style:top="{QueueMargin}px"
         aria-hidden="true"
     >
-        <g transform="translate({QueueMargin} {QueueMargin})">
-            {#each gameSession.movingVisitors as walker (walker.id)}
-                <g opacity="0" use:animateWalker={{ animator: visitorMoveAnimator, id: walker.id }}>
-                    <Pawn color={walker.color} x={0} y={0} size={FountainPawnSize} />
-                </g>
-            {/each}
-        </g>
-    </svg>
+        {#each gameSession.movingVisitors as walker (walker.id)}
+            <svg
+                class="walker absolute"
+                style:left="{-WalkerBox / 2}px"
+                style:top="{-WalkerBox / 2}px"
+                style:opacity="0"
+                width={WalkerBox}
+                height={WalkerBox}
+                viewBox="{-WalkerBox / 2} {-WalkerBox / 2} {WalkerBox} {WalkerBox}"
+                use:animateWalker={{ animator: visitorMoveAnimator, id: walker.id }}
+            >
+                <Pawn color={walker.color} x={0} y={0} size={FountainPawnSize} />
+            </svg>
+        {/each}
+    </div>
     <EarningsPopupLayer earnings={visitorMoveAnimator.earnings} />
 </div>
 
 <style>
     .raised-layer,
-    .walker-layer {
+    .walker {
         will-change: transform;
     }
 </style>

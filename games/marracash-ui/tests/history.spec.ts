@@ -19,7 +19,7 @@ test.afterEach(() => {
     expect(pageErrors).toEqual([])
 })
 
-const walkers = (page: Page) => page.locator('svg.walker-layer g[opacity]')
+const walkers = (page: Page) => page.locator('.walker-layer svg.walker')
 const stepBackwards = (page: Page) => page.getByRole('button', { name: 'step backwards' })
 const stepForwards = (page: Page) => page.getByRole('button', { name: 'step forwards' })
 const goToCurrent = (page: Page) => page.getByRole('button', { name: 'go to current' })
@@ -38,12 +38,12 @@ async function moveIntoOwnedShops(page: Page) {
 // Records how long walker pawns are on screen, from the first one mounting to the last leaving.
 async function watchWalkers(page: Page) {
     await page.evaluate(() => {
-        const layer = document.querySelector('svg.walker-layer')
+        const layer = document.querySelector('.walker-layer')
         if (!layer) throw Error('No walker layer')
         const record: { firstAdded?: number; lastRemoved?: number } = {}
         Object.assign(window, { walkerRecord: record })
         new MutationObserver(() => {
-            const count = layer.querySelectorAll('g[opacity]').length
+            const count = layer.querySelectorAll('svg.walker').length
             if (count > 0 && record.firstAdded === undefined) record.firstAdded = performance.now()
             if (count === 0 && record.firstAdded !== undefined)
                 record.lastRemoved = performance.now()
