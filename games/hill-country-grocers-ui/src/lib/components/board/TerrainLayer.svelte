@@ -26,6 +26,28 @@
         return 'none'
     }
 
+    const OAKS = [
+        { x: -30, y: -34, r: 9 },
+        { x: -12, y: -42, r: 11 },
+        { x: 8, y: -36, r: 8 }
+    ]
+    const CROWN_LOBES = [
+        { dx: -0.75, dy: 0.1, rx: 0.55, ry: 0.42 },
+        { dx: -0.35, dy: -0.3, rx: 0.6, ry: 0.5 },
+        { dx: 0.25, dy: -0.38, rx: 0.62, ry: 0.5 },
+        { dx: 0.75, dy: 0.05, rx: 0.55, ry: 0.42 },
+        { dx: 0, dy: 0.12, rx: 1.05, ry: 0.38 }
+    ]
+
+    function trunkPath({ x, y, r }: { x: number; y: number; r: number }): string {
+        const fork = y + r * 0.3
+        return [
+            `M${x - 1.6} ${y + r * 0.95} L${x - 1} ${fork} L${x - r * 0.45} ${y - r * 0.05}`,
+            `M${x - 1} ${fork} L${x + 1} ${fork} L${x + r * 0.5} ${y - r * 0.02}`,
+            `M${x + 1} ${fork} L${x + 1.6} ${y + r * 0.95}`
+        ].join(' ')
+    }
+
     const tiles = HILL_COUNTRY_MAP.hexes().map((place) => {
         const seed = coordsSeed(place.coords)
         const town = cityAt(place.coords) !== undefined
@@ -144,10 +166,42 @@
         <g transform="translate({tile.center.x} {tile.center.y})">
             {#if tile.decoration === 'oaks'}
                 <g transform="scale({tile.flip} 1)">
-                    {#each [{ x: -30, y: -36, r: 9 }, { x: -12, y: -44, r: 11 }, { x: 8, y: -38, r: 8 }] as oak (oak.x)}
-                        <rect x={oak.x - 1.5} y={oak.y + oak.r - 3} width="3" height="8" class="trunk" />
-                        <circle cx={oak.x} cy={oak.y} r={oak.r} class="canopy" />
-                        <circle cx={oak.x - oak.r * 0.3} cy={oak.y - oak.r * 0.3} r={oak.r * 0.45} class="canopy-light" />
+                    {#each OAKS as oak (oak.x)}
+                        <ellipse
+                            cx={oak.x + 1}
+                            cy={oak.y + oak.r * 0.95}
+                            rx={oak.r * 1.15}
+                            ry={oak.r * 0.22}
+                            class="oak-shadow"
+                        />
+                        <path d={trunkPath(oak)} class="trunk" />
+                        <!-- Stroked lobes go first and filled ones over them, so only the crown's outer edge shows. -->
+                        {#each [true, false] as edge (edge)}
+                            <g class={edge ? 'canopy-edge' : 'canopy'}>
+                                {#each CROWN_LOBES as lobe, index (index)}
+                                    <ellipse
+                                        cx={oak.x + lobe.dx * oak.r}
+                                        cy={oak.y + lobe.dy * oak.r}
+                                        rx={lobe.rx * oak.r}
+                                        ry={lobe.ry * oak.r}
+                                    />
+                                {/each}
+                            </g>
+                        {/each}
+                        <ellipse
+                            cx={oak.x - oak.r * 0.35}
+                            cy={oak.y - oak.r * 0.45}
+                            rx={oak.r * 0.35}
+                            ry={oak.r * 0.22}
+                            class="canopy-light"
+                        />
+                        <ellipse
+                            cx={oak.x + oak.r * 0.3}
+                            cy={oak.y - oak.r * 0.5}
+                            rx={oak.r * 0.28}
+                            ry={oak.r * 0.18}
+                            class="canopy-light"
+                        />
                     {/each}
                 </g>
             {:else if tile.decoration === 'bluebonnets'}
@@ -240,14 +294,26 @@
         stroke-width: 1.6;
     }
 
+    .oak-shadow {
+        fill: #6b6a3c;
+        opacity: 0.35;
+    }
+
     .trunk {
-        fill: #5b4026;
+        fill: none;
+        stroke: #4a3320;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
+    .canopy-edge {
+        fill: #2f4419;
+        stroke: #2f4419;
+        stroke-width: 2;
     }
 
     .canopy {
-        fill: #4d6a2c;
-        stroke: #2f4419;
-        stroke-width: 1;
+        fill: #4f6b2c;
     }
 
     .canopy-light {
