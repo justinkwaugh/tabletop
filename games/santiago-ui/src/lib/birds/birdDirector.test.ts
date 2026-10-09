@@ -184,60 +184,46 @@ describe('bird director', () => {
     })
 })
 
-describe('bird director over a drying board', () => {
+describe('bird director and dried-out fields', () => {
     beforeEach(() => vi.useFakeTimers())
     afterEach(() => vi.useRealTimers())
 
-    it('sends vultures instead of crows once more than half the fields are desert', () => {
+    it('flies over a desert target without landing, then schedules another visit', () => {
         const squares = emptyBoard()
-        plantField(squares, 1, 1)
-        dryField(squares, 4, 2)
-        dryField(squares, 5, 3)
+        dryField(squares, 3, 2)
         const f = fixture(squares)
         expect(f.director.summon()).toBe(true)
-        expect(f.director.hasKettle).toBe(true)
-        expect(f.director.hasFlock).toBe(false)
-        expect(f.ids).toHaveLength(1)
-    })
-
-    it('sends no birds at all when the only desert lies too near the edge to circle', () => {
-        const squares = emptyBoard()
-        plantField(squares, 3, 2)
-        dryField(squares, 0, 0)
-        dryField(squares, 7, 5)
-        const f = fixture(squares)
-        expect(f.director.summon()).toBe(false)
-        expect(f.director.hasKettle).toBe(false)
+        expect(f.ids.length).toBeGreaterThanOrEqual(3)
+        f.env.ticker.run(40)
         expect(f.director.hasFlock).toBe(false)
         expect(f.ids).toEqual([])
+        expect(vi.getTimerCount()).toBe(1)
     })
 
-    it('still sends crows while desert is half the fields or less', () => {
-        const squares = emptyBoard()
-        plantField(squares, 1, 1)
-        dryField(squares, 4, 2)
-        const f = fixture(squares)
-        expect(f.director.summon()).toBe(true)
-        expect(f.director.hasFlock).toBe(true)
-        expect(f.director.hasKettle).toBe(false)
+    it('sometimes lands and sometimes only flies over when living fields and deserts are mixed', () => {
+        const outcomes = new Set<string>()
+        for (let visit = 0; visit < 30; visit++) {
+            const squares = emptyBoard()
+            plantField(squares, 1, 1)
+            dryField(squares, 5, 3)
+            dryField(squares, 6, 4)
+            const f = fixture(squares)
+            for (let i = 0; i < visit; i++) f.env.random()
+            f.director.summon()
+            outcomes.add(f.director.hasFlyover ? 'flew over' : 'landing')
+            f.detach()
+        }
+        expect(outcomes).toEqual(new Set(['landing', 'flew over']))
     })
 
-    it('sends the vultures away on entering history or when their square is no longer desert', () => {
+    it('scatters the flyover if its field stops being desert, as on Undo', () => {
         const squares = emptyBoard()
         dryField(squares, 2, 2)
         const f = fixture(squares)
         f.director.summon()
-        f.env.ticker.run(4)
-        f.host.isViewingHistory = true
-        f.env.ticker.run(20)
-        expect(f.director.hasKettle).toBe(false)
-        expect(f.ids).toEqual([])
-
-        f.host.isViewingHistory = false
-        f.director.summon()
-        f.env.ticker.run(4)
+        f.env.ticker.run(2)
         squares[2][2] = { type: SquareType.Empty, hasPalmTree: false }
-        f.env.ticker.run(20)
-        expect(f.director.hasKettle).toBe(false)
+        f.env.ticker.run(15)
+        expect(f.director.hasFlock).toBe(false)
     })
 })

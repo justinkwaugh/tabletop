@@ -4,14 +4,15 @@ export function isCandidateField(square: BoardSquare): boolean {
     return isFieldSquare(square) && !square.dried
 }
 
-export function candidateFields(squares: BoardSquare[][]): Intersection[] {
-    const result: Intersection[] = []
-    squares.forEach((column, col) => {
-        column.forEach((square, row) => {
-            if (isCandidateField(square)) result.push({ col, row })
-        })
-    })
-    return result
+export function isDesertField(square: BoardSquare): boolean {
+    return isFieldSquare(square) && square.dried
+}
+
+// Every field the birds might come for, living or dried out.
+export function plantedFields(squares: BoardSquare[][]): Intersection[] {
+    return squares.flatMap((column, col) =>
+        column.flatMap((square, row) => (isFieldSquare(square) ? [{ col, row }] : []))
+    )
 }
 
 export function adjacentCandidates(squares: BoardSquare[][], field: Intersection): Intersection[] {
