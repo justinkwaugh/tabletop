@@ -33,7 +33,7 @@ export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydrata
         this.fixOldBags()
 
         this.items.push(...structuredClone(items))
-        this.remaining += 1
+        this.remaining += items.length
     }
 
     shuffle(random?: RandomFunction) {
