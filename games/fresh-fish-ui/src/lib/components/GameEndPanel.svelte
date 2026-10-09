@@ -60,7 +60,7 @@
                     {#each goodsTypes as goodsType (goodsType)}
                         <th title={getGoodsName(goodsType)}>
                             <svg viewBox="0 0 20 20" width="26" height="26" class="inline-block">
-                                <GoodsIcon {goodsType} color="#d1d5db" />
+                                <GoodsIcon {goodsType} color="#d1d5db" painted />
                             </svg>
                         </th>
                     {/each}
