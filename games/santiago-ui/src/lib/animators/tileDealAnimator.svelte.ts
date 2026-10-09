@@ -1,18 +1,16 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
-import { isRevealTiles, type PlantingTile } from '@tabletop/santiago'
+import { isRevealTiles } from '@tabletop/santiago'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 const MOVE = 0.22
 const PAUSE = 0.025
 const FLIP = 0.3
 
-// The dealt tiles come from the action's `to` state through `dealingTiles` (Pattern C), because
+// The dealt tiles come from the action's `to` state through the session's board preview, because
 // the reactive state still shows the reveal phase until the timelines finish. See the visual
 // contract's "Tile deal animation".
 export class TileDealAnimator extends StateAnimator {
-    dealingTiles: PlantingTile[] | undefined = $state(undefined)
-
     private drawPile: HTMLElement | undefined
     private readonly tileNodes = new Map<number, HTMLElement>()
 
@@ -25,10 +23,7 @@ export class TileDealAnimator extends StateAnimator {
         else this.tileNodes.delete(index)
     }
 
-    // Held until the state publishes, like the other previews, so a later step of the same
-    // transition cannot show the dealt tiles without the faces their flip left them on.
     clearPreview() {
-        this.dealingTiles = undefined
         const nodes = [...this.tileNodes.values()]
         gsap.killTweensOf(nodes)
         gsap.set(nodes, { clearProps: 'opacity,transform' })
@@ -42,13 +37,14 @@ export class TileDealAnimator extends StateAnimator {
         if (!from || from.revealedTiles.length > 0 || to.revealedTiles.length === 0) return
 
         const cinematic = !!action && isRevealTiles(action)
-        this.dealingTiles = to.revealedTiles
+        const preview = this.gameSession.boardPreview
+        preview.showTiles(to.revealedTiles, true)
         await tick()
         const nodes: HTMLElement[] = []
         for (const index of to.revealedTiles.keys()) {
             const node = this.tileNodes.get(index)
             if (!node) {
-                this.dealingTiles = undefined
+                preview.showTiles(to.revealedTiles, false)
                 return
             }
             nodes.push(node)

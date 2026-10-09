@@ -29,6 +29,7 @@ import { ActionBarAnimator } from '$lib/animators/actionBarAnimator.svelte.js'
 import { CanalBuildAnimator } from '$lib/animators/canalBuildAnimator.svelte.js'
 import { BribePopAnimator } from '$lib/animators/bribePopAnimator.svelte.js'
 import { FieldPopAnimator } from '$lib/animators/fieldPopAnimator.svelte.js'
+import { BoardPreview } from '$lib/model/boardPreview.svelte.js'
 import { actionBarView, type ActionBarView } from '$lib/model/actionBarView.js'
 import {
     canalProposals,
@@ -62,6 +63,7 @@ export class SantiagoGameSession extends GameSession<
     readonly canalBuild = new CanalBuildAnimator(this)
     readonly bribePop = new BribePopAnimator(this)
     readonly fieldPop = new FieldPopAnimator(this)
+    readonly boardPreview = new BoardPreview()
     readonly birds = new BirdDirector(this)
 
     chosenAction: string | undefined = $state(undefined)
@@ -113,6 +115,7 @@ export class SantiagoGameSession extends GameSession<
     }
 
     private clearAnimationPreviews() {
+        this.boardPreview.clear()
         this.tileDeal.clearPreview()
         this.actionBar.clearPreview()
         this.canalBuild.clearPreview()
