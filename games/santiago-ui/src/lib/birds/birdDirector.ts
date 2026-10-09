@@ -25,9 +25,14 @@ export interface Ticker {
     remove(callback: TickCallback): void
 }
 
+type BoardHolder = { readonly board: { readonly squares: BoardSquare[][] } }
+
 export type BirdHost = {
     readonly isViewingHistory: boolean
-    readonly gameState: { readonly board: { readonly squares: BoardSquare[][] } }
+    readonly gameState: BoardHolder
+    // The state the visible state is moving to: birds leave as soon as a transition begins to
+    // change their field, rather than once it publishes.
+    readonly incomingGameState: BoardHolder
 }
 
 export type BirdEnvironment = {
@@ -235,7 +240,7 @@ export class BirdDirector {
 
     private shouldStartle(flock: Flock): boolean {
         if (this.host.isViewingHistory) return true
-        const squares = this.host.gameState.board.squares
+        const squares = this.host.incomingGameState.board.squares
         if (!flock.lands) {
             const field = this.fields[0]
             return !isDesertField(squares[field.col][field.row])

@@ -1,8 +1,10 @@
 <script lang="ts">
     import { W, H } from '$lib/utils/boardGeometry.js'
+    import { fade } from 'svelte/transition'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const MAX_MOTES = 24
+    const MOTE_FADE_MS = 2500
 
     const session = getGameSession()
     const count = $derived(Math.round(session.landMood.drought * MAX_MOTES))
@@ -26,8 +28,12 @@
 
 <div class="dust" aria-hidden="true" style="left: 10px; top: 10px; width: {W}px; height: {H}px">
     {#each { length: count } as _, index (index)}
-        <div class="drift" style={moteStyle(index)}>
-            <div class="mote" style="animation-duration: {3 + (index % 5) * 0.7}s"></div>
+        <!-- Motes come and go gradually as the drought changes; the fade sits on its own wrapper
+             because each mote's drift already owns its opacity. -->
+        <div transition:fade={{ duration: session.easesAmbientChanges ? MOTE_FADE_MS : 0 }}>
+            <div class="drift" style={moteStyle(index)}>
+                <div class="mote" style="animation-duration: {3 + (index % 5) * 0.7}s"></div>
+            </div>
         </div>
     {/each}
 </div>

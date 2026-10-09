@@ -2,11 +2,14 @@
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { landMood } from '$lib/model/landMood.js'
     import { isFieldSquare } from '@tabletop/santiago'
+    import { onDestroy } from 'svelte'
 
     const session = getGameSession()
     const boardMood = $derived(landMood(session.gameState))
 
     let open = $state(false)
+
+    onDestroy(() => session.droughtDust.stopPreview())
 
     function setOverride(enabled: boolean) {
         session.moodOverride = enabled ? { ...boardMood } : undefined

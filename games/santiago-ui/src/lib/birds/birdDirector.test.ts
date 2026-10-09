@@ -55,7 +55,13 @@ type Fixture = {
 function fixture(squares = emptyBoard()): Fixture {
     const ticker = new RecordingTicker()
     let visibility: (hidden: boolean) => void = () => {}
-    const host = { isViewingHistory: false, gameState: { board: { squares } } }
+    const host = {
+        isViewingHistory: false,
+        gameState: { board: { squares } },
+        get incomingGameState() {
+            return this.gameState
+        }
+    }
     const env = {
         random: getPrng(9),
         ticker,
@@ -224,6 +230,25 @@ describe('bird director and dried-out fields', () => {
         f.env.ticker.run(2)
         squares[2][2] = { type: SquareType.Empty, hasPalmTree: false }
         f.env.ticker.run(15)
+        expect(f.director.hasFlock).toBe(false)
+    })
+})
+
+describe('bird director during a transition', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('startles a landed flock as soon as the incoming state dries its field', () => {
+        const squares = emptyBoard()
+        plantField(squares, 3, 2)
+        const f = fixture(squares)
+        f.director.summon()
+        f.env.ticker.run(6)
+        expect(f.director.hasFlock).toBe(true)
+        const drying = emptyBoard()
+        dryField(drying, 3, 2)
+        Object.defineProperty(f.host, 'incomingGameState', { get: () => ({ board: { squares: drying } }) })
+        f.env.ticker.run(8)
         expect(f.director.hasFlock).toBe(false)
     })
 })
