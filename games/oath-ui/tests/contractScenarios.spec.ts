@@ -923,7 +923,7 @@ test.describe('exiling', () => {
 test.describe('on a phone, the answers and the exile buttons', () => {
     test.use({ viewport: { width: 375, height: 812 } })
 
-    test('Allow and Refuse stay sized to the wider label, 44 px tall; the exile prices go one per line at one width', async ({
+    test('Allow and Refuse stay sized to the wider label, 44 px tall; the exile prices sit side by side at one width, never stretched', async ({
         page
     }) => {
         await openTable(page, 'warbandMoveAsked')
@@ -933,13 +933,30 @@ test.describe('on a phone, the answers and the exile buttons', () => {
         expect(allow?.width).toBe(refuse?.width)
         expect(allow?.y).toBe(refuse?.y)
 
+        // Rule 3: sized to the wider label, in CSS pixels (the panel may be drawn scaled to fit).
         await openTable(page, 'exileCitizens')
         await minor(page, 'Exile Citizen').click()
-        const cole = await answer(page, '5 favor to cole').boundingBox()
-        const ann = await answer(page, '6 favor to ann').boundingBox()
-        expect(cole?.height).toBeGreaterThanOrEqual(44)
-        expect(cole?.width).toBe(ann?.width)
-        expect((ann?.y ?? 0) - (cole?.y ?? 0)).toBeGreaterThanOrEqual(44)
+        const sizes = await Promise.all(
+            [answer(page, '5 favor to cole'), answer(page, '6 favor to ann')].map((button) =>
+                button.evaluate((element) => {
+                    const style = getComputedStyle(element)
+                    const panel = element.closest('.panel')
+                    return {
+                        width: parseFloat(style.width),
+                        height: parseFloat(style.height),
+                        top: element.getBoundingClientRect().top,
+                        panel: panel ? parseFloat(getComputedStyle(panel).width) : 0
+                    }
+                })
+            )
+        )
+        const [cole, ann] = sizes
+        expect(cole.width).toBe(ann.width)
+        for (const size of sizes) {
+            expect(size.width).toBeLessThan(size.panel * 0.5)
+            expect(size.height).toBeGreaterThanOrEqual(44)
+        }
+        expect(cole.top).toBe(ann.top)
     })
 })
 
