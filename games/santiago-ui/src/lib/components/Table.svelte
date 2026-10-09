@@ -199,11 +199,13 @@
                                      mt-5 gives the top element's hover scale-up clearance
                                      against ScalingWrapper's measured content box; Board is
                                      taller than this column, so it borrows from
-                                     already-reserved height. -->
+                                     already-reserved height. Each slot is a flex box, so a
+                                     tile that becomes a button doesn't gain the descender
+                                     space an inline box reserves below it. -->
                                 <div class="flex flex-col gap-2 shrink-0 mt-5" style="perspective: 900px">
                                     {#each displayTiles as { tile, isSelected }, i (i)}
                                         <div
-                                            class="shrink-0"
+                                            class="flex shrink-0"
                                             style="transform-style: preserve-3d"
                                         >
                                             {#if preview.dealing}
@@ -264,7 +266,7 @@
                                     {/each}
                                     {#if state.getRemainingTileCount() > 0}
                                         <div
-                                            class="relative z-10 shrink-0"
+                                            class="relative z-10 flex shrink-0"
                                             {@attach (el) => {
                                                 deal.setDrawPile(el)
                                                 return () => deal.setDrawPile(undefined)
