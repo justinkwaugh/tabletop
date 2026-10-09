@@ -120,7 +120,7 @@ import {
 } from '../shorts.js'
 import {
     BuyBackShares,
-    CorporateActionsHandler,
+    corporateActionsHandler,
     HydratedBuyBackShares,
     isBuyBackShares
 } from '../corporateActions.js'
@@ -168,7 +168,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
     cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {
         StockRound: (family) =>
-            buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family))),
+            buysOwedStations(new ShortSellingHandler(corporateActionsHandler(family))),
         StartingOperatingSet: (family) =>
             buysOwedStations(liquidatesUnpaidStations(closesTrainStation(family))),
         OperatingSet: (family) =>

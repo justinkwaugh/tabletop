@@ -117,11 +117,14 @@
         poolName,
         trainColors,
         phaseColors,
-        phaseChart,
+        phaseChart: defaultPhaseChart,
         portfolioCompanyIds = [],
         includedPortfolioCompanyIds = [],
         privatePurchaseLabel = 'Buy privates'
     } = $derived(session.presentation)
+    const phaseChart = $derived(
+        session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
+    )
     const operatingRules = $derived(session.operatingRules)
     const valuationRules = $derived(session.valuationRules)
     const phaseTileColors = $derived(
@@ -779,7 +782,10 @@
         onselect={interactive && !consentPreview
             ? (selection) =>
                   locationChoice?.locationIds.includes(selection.locationId)
-                      ? locationChoice.choose(selection.locationId)
+                      ? locationChoice.choose(
+                            selection.locationId,
+                            'nodeId' in selection ? selection.nodeId : undefined
+                        )
                       : session.map.select(selection, false)
             : undefined}
     />
@@ -804,6 +810,7 @@
                     market={session.gameState.stockMarket}
                     companies={session.gameState.companies}
                     zones={session.presentation.marketZones}
+                    ledge={session.presentation.marketLedge}
                 />
                 {#if boardInformation && corner}<div
                         class="market-corner"
@@ -1237,11 +1244,13 @@
                                             market={session.gameState.stockMarket}
                                             companies={session.gameState.companies}
                                             zones={session.presentation.marketZones}
+                                            ledge={session.presentation.marketLedge}
                                         />
                                     </ScalingWrapper>
                                 </div>
-                                {#if session.presentation.marketZones?.length}<MarketLegend
-                                        zones={session.presentation.marketZones}
+                                {#if session.presentation.marketZones?.length || session.presentation.marketLedge}<MarketLegend
+                                        zones={session.presentation.marketZones ?? []}
+                                        ledge={session.presentation.marketLedge}
                                     />{/if}
                             </div>{:else if id === 'Spreadsheet'}<div
                                 class="workspace-view data-area"

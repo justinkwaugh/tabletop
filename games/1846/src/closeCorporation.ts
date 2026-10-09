@@ -8,20 +8,7 @@ import {
     assertExists,
     type MachineStateHandler
 } from '@tabletop/common'
-import {
-    CashPayment,
-    closePrivate,
-    privateOwningCompany,
-    President,
-    StationReservation,
-    companyMarketSpace,
-    finiteCashOwnedBy,
-    getCompany,
-    removeStockMarker,
-    trainsOwnedBy,
-    unownedTrain,
-    settleCashPayments
-} from '@tabletop/18xx'
+import { CompanyClosure, closeShareCompany, companyMarketSpace } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { RevenueMarker } from './revenueMarkers.js'
 
@@ -38,18 +25,7 @@ export function corporationAwaitingClosure(
 }
 
 export const RailroadClosure = Type.Object(
-    {
-        companyId: Type.String(),
-        president: Type.Optional(President),
-        payments: Type.Array(CashPayment),
-        retiredCertificateIds: Type.Array(Type.String()),
-        closedPrivateIds: Type.Array(Type.String()),
-        removedRevenueMarkers: Type.Array(RevenueMarker),
-        removedReservations: Type.Array(StationReservation),
-        removedStationIds: Type.Array(Type.String()),
-        removedTrainIds: Type.Array(Type.String()),
-        removedMarketSpaceId: Type.Optional(Type.String())
-    },
+    { ...CompanyClosure.properties, removedRevenueMarkers: Type.Array(RevenueMarker) },
     { additionalProperties: false }
 )
 export type RailroadClosure = Type.Static<typeof RailroadClosure>
@@ -112,70 +88,11 @@ export function closeRailroad(
     state: HydratedEighteenFortySixState,
     companyId: string
 ): RailroadClosure {
-    const company = getCompany(state, companyId)
-    const owner = { kind: 'company' as const, companyId: company.id }
-    const amount = finiteCashOwnedBy(state, owner)
-    const closedPrivateIds = state.companies
-        .filter(
-            (company) =>
-                company.kind === 'private' && privateOwningCompany(state, company.id) === companyId
-        )
-        .map((company) => company.id)
-    const payments: Type.Static<typeof CashPayment>[] = amount
-        ? [{ from: owner, to: { kind: 'bank' }, amount }]
-        : []
-    const retiredCertificateIds = state.certificates
-        .filter(
-            (certificate) =>
-                !certificate.retired &&
-                (certificate.companyId === company.id ||
-                    closedPrivateIds.includes(certificate.companyId))
-        )
-        .map((certificate) => certificate.id)
-    const removedStationIds = state.stations
-        .filter((station) => station.companyId === company.id && station.status !== 'removed')
-        .map((station) => station.id)
-    const removedTrainIds = trainsOwnedBy(state, owner).map((train) => train.id)
-    const details: RailroadClosure = {
-        companyId,
-        ...(company.president ? { president: structuredClone(company.president) } : {}),
-        payments,
-        closedPrivateIds,
-        removedRevenueMarkers: state.revenueMarkers.filter(
-            (marker) => marker.companyId === company.id
-        ),
-        retiredCertificateIds,
-        removedStationIds,
-        removedTrainIds,
-        removedReservations: structuredClone(
-            state.stationReservations.filter((reservation) => reservation.companyId === company.id)
-        ),
-        ...(company.kind === 'major'
-            ? { removedMarketSpaceId: companyMarketSpace(state.stockMarket, company.id).id }
-            : {})
-    }
-    settleCashPayments(state, payments)
-    for (const id of closedPrivateIds) closePrivate(state, id)
-    if (state.steamboat?.companyId === company.id) delete state.steamboat
-    state.revenueMarkers = state.revenueMarkers.filter((marker) => marker.companyId !== company.id)
-    company.closed = true
-    delete company.president
-    state.certificates = state.certificates.map((certificate) => {
-        if (certificate.retired || certificate.companyId !== company.id) return certificate
-        const { owner: _owner, poolId: _poolId, ...retired } = certificate
-        return { ...retired, retired: true }
-    })
-    state.stations = state.stations.map((station) =>
-        station.companyId === company.id
-            ? { id: station.id, companyId: company.id, status: 'removed' }
-            : station
+    const removedRevenueMarkers = state.revenueMarkers.filter(
+        (marker) => marker.companyId === companyId
     )
-    state.stationReservations = state.stationReservations.filter(
-        (reservation) => reservation.companyId !== company.id
-    )
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        removedTrainIds.includes(train.id) ? unownedTrain(train, 'removed') : train
-    )
-    if (company.kind === 'major') removeStockMarker(state.stockMarket, company.id)
-    return details
+    const closure = closeShareCompany(state, companyId, 'removed')
+    if (state.steamboat?.companyId === companyId) delete state.steamboat
+    state.revenueMarkers = state.revenueMarkers.filter((marker) => marker.companyId !== companyId)
+    return { ...closure, removedRevenueMarkers }
 }

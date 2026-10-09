@@ -3,7 +3,7 @@ import {
     RouteNetwork,
     cityIsBlocked,
     routePathResources,
-    routeRevenue,
+    stopValue,
     RouteEvaluation,
     type RevenueCenter,
     type RoutePath,
@@ -141,7 +141,7 @@ export class EncodedRoutes {
                     node.kind === 'offboard' ||
                     cityIsBlocked(state, companyId, center.locationId, node),
                 endpoint: true,
-                allowed: true,
+                allowed: rules.stopAllowed?.(state, companyId, center) ?? true,
                 groups: [
                     ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
                     ...hexGroup
@@ -157,7 +157,6 @@ export class EncodedRoutes {
                     ? 0
                     : 1
             )
-            const stages = rules.revenueStage(state, definition)
             const policy = rules.revenuePolicy?.(definition)
             return {
                 id: train.id,
@@ -181,7 +180,7 @@ export class EncodedRoutes {
                     const center = this.centers[index]
                     assertExists(center, 'Revenue center requires a location')
                     return (
-                        routeRevenue(node.revenue, stages) +
+                        stopValue(state, rules, companyId, center, node, definition) +
                         (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
                     )
                 }),

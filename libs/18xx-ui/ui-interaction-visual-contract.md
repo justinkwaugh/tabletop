@@ -605,12 +605,22 @@ next round would fix ("5% next 10%"), and the loans the bank has left ("Loans 54
 records borrowing and repayments with their price moves, and interest as a company
 row that is routine unless it needed loans or defaulted.
 
-A title's own stock-round corporate actions (1817's loans and buy-backs) are a stock
-action of their own ("Act for a company") beside Buy and Sell while the player may still act
-for a company they preside. It opens a card for each such company, in the share cards'
-style: its token and price, its treasury and loans, and Take a loan and Buy back a share
-(with its price and the shares the market holds) as immediately committed buttons. Once the player has acted for a company, only its card
-remains open, headed "Acting for" the company. Back clears the choice of panel.
+A title's own stock-round panels (1817's corporate actions and shorts, 1832's redemptions and
+reissues) are stock actions of their own beside Buy and Sell, offered while they have
+something for the player. "Act for a company" opens a card for each company the player may act
+for, in the share cards' style: its token and price, its finances, and its actions as
+immediately committed buttons. In 1817 these are Take a loan and Buy back a share (with its
+price and the shares the market holds); once the player has acted for a company, only its card
+remains open, headed "Acting for" the company. In 1832 the card shows the company's cash (and
+what it may spend when reissue proceeds are locked), its redeemed holding and par, with
+Redeem from the market or from each holder who may be asked (with the price) and Reissue (with
+the share count and new par); acting for a company is the turn's only action. Choosing a panel
+is a local selection that Undo clears; it never adds a Back control.
+
+In 1832 a holder asked to allow a redemption sees a prompt naming the president, the company and
+the price, with Allow and Refuse committed at once; other players see who is deciding. A
+president deciding whether to protect a sale sees the seller, the shares and their proceeds and
+the price the protection restores, with Protect and Decline committed at once.
 
 ### Cash crisis and bankruptcy
 
@@ -652,7 +662,20 @@ A title may name rounds of its own that follow an operating round (1817's merger
 acquisition rounds). The turn header then reads the round's name and the operating
 round's number, such as "Merger round 2.1", shortening to its abbreviation like OR/SR;
 history groups its actions as a round of their own, such as "MR 2.1", from its start to
-its end action.
+its end action. A round that follows a stock round (1832's merger phase) takes the stock
+round's number, "Merger phase 3"; held within an operating round it takes that round's, and
+history then shows the operating round as two sections around it.
+
+1832's merger phase replaces the operating panels for the player deciding. The proposer
+sees a card for each company they may merge with, headed by their company and the partner,
+whose committed buttons form a System (with its price and president) or take over the
+partner (with the price of its shares), as initiator or yielding to the partner's president;
+Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
+A buyer's president short of a takeover's price sees the amount to raise and a card per
+company with each sale they may make, and a buyer over its train limit names the excess and
+discards trains, shown as train badges. Other players see who is deciding. History records
+Systems formed and takeovers as important rows, proposals and answers, funding sales with
+their proceeds, and discards.
 
 1817's merger and acquisition rounds replace the operating panels with a panel headed
 by the round's name and a card for the company being dealt with, in the share cards'

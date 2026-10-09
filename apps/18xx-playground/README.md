@@ -1,7 +1,7 @@
 # 18xx Playground
 
 Standalone development host for shared 18xx tiles, maps, and playable titles.
-This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, 1830, 1817 and 1846. Shared libraries must
+This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, 1830, 1817, 1846 and 1832. Shared libraries must
 not depend on game packages, including through development dependencies or tests.
 Title definitions remain in their game packages; the app supplies them to the
 reusable viewer through its public interface.

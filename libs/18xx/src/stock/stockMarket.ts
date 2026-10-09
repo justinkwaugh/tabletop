@@ -108,6 +108,27 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
 }
 
+/** A company's place in its space's stack, counting from the top. */
+export function stockMarkerStackIndex(market: StockMarket, companyId: string): number {
+    const stack = market.stacks.find((stack) => stack.companyIds.includes(companyId))
+    assertExists(stack, `Company has no stock market marker: ${companyId}`)
+    return stack.companyIds.indexOf(companyId)
+}
+
+/** Returns a company's marker to a space at a given place in its stack. */
+export function restoreStockMarker(
+    market: StockMarket,
+    companyId: string,
+    spaceId: string,
+    index: number
+): void {
+    placeStockMarker(market, companyId, spaceId)
+    const stack = market.stacks.find((stack) => stack.spaceId === spaceId)
+    assertExists(stack, 'A placed marker has a stack')
+    stack.companyIds.splice(stack.companyIds.indexOf(companyId), 1)
+    stack.companyIds.splice(Math.min(index, stack.companyIds.length), 0, companyId)
+}
+
 export function moveCompanyMarker(
     market: StockMarket,
     companyId: string,

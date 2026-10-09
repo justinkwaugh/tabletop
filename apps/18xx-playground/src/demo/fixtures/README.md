@@ -88,3 +88,13 @@ Volatility option, ending when four have gone bankrupt and one solvent player is
 opening takes the recording's city-tile private (Indianapolis Market) and pyramid, which our
 generator does not deal. It is a test fixture only: `finishedGame.spec.ts` replays it to its
 bankruptcy ending and checks the recorded final wealth.
+
+# Finished 1832 game
+
+`1832-finished.json` is the playground's full-game bot playing 1832 for three players at seed 5
+(`CompleteGameRun(FullGameTitles[2], 3)` in `../completeGame.ts`): a canonical opening state, the
+user commands, and the final wealth. The game runs from the waterfall opening to phase 12 and a
+broken bank, with merger phases forming Systems, the last merger phase, closures and a forced
+train purchase. Regenerate it by replaying that run and keeping its user actions without their
+metadata or undo patches whenever 1832's rules change what the run does. It loads as the
+finished game in the 1832 table's Position menu.

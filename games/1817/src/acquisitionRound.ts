@@ -25,7 +25,8 @@ import {
     StockMarketMove,
     canTakeLoan,
     isTakeLoan,
-    type OperatingState
+    type OperatingState,
+    SystemActionFirstHandler
 } from '@tabletop/18xx'
 import {
     acquisitionRoundCompanyIds,
@@ -64,7 +65,6 @@ import {
     type CompanySale,
     type SaleKind
 } from './state.js'
-import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 type State = HydratedGameState & EighteenSeventeenState
 type Context = MachineContext<HydratedEighteenSeventeenState>

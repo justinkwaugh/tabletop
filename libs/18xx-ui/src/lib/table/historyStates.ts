@@ -13,6 +13,7 @@ function selectHistoryState(state: Readonly<EighteenXXState>) {
         phase: state.phaseId,
         stock: state.stockRound.number,
         operating: state.stockRound.completed,
+        setUnderWay: !!state.operatingSet && !state.operatingSet.completed,
         set: state.operatingSet?.number ?? 1,
         round: state.operatingSet?.roundNumber ?? 1,
         order: state.operatingSet?.companyOrder ?? [],

@@ -46,9 +46,8 @@ it.each(FullGameTitles)(
     (title) => {
         const run = new CompleteGameRun(title, 3)
         for (let step = 0; step < 2500 && !run.state.result; step++) run.step()
-        expect(run.state.gameEnding?.reason).toBe(
-            title.definition.info.id === 'the-old-prince' ? 'First diesel' : 'Bank broken'
-        )
+        expect(run.state.gameEnding?.reason).toBe(title.ending)
+        if (title.finalPhaseId) expect(run.state.phaseId).toBe(title.finalPhaseId)
         expect(run.history.some((action) => action.type === 'RunTrains')).toBe(true)
         verifyEnding(run)
     },

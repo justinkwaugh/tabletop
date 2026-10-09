@@ -33,6 +33,11 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
     inProgress(state: State): boolean
     starts: (action: GameAction) => boolean
     ends: (action: GameAction) => boolean
+    /**
+     * Whether, held between stock and operating rounds, it takes the stock round's number; held
+     * during an operating round it takes that round's.
+     */
+    followsStockRound?: boolean
 }
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
@@ -52,6 +57,16 @@ export type MarketZone = {
     banner?: MarketZoneBanner
 }
 
+/**
+ * A line across the market that stops or diverts movement, such as a soft ledge, drawn along the
+ * named side of each space it borders.
+ */
+export type MarketLedge = {
+    name: string
+    description: string
+    edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
+}
+
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
 export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
@@ -65,6 +80,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData
+    /** The phase chart for the game's state, where a variant changes the trains or phases. */
+    phaseChartFor?(state: State): PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
     marketPoolId: string
@@ -108,6 +125,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
+    marketLedge?: MarketLedge
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

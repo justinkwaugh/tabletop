@@ -21,7 +21,7 @@ export function marketZoneHoldingLimits(options: {
         },
         ownershipLimit(state, companyId) {
             const company = getCompany(state, companyId)
-            if (!company.shareCount || !company.started) return 100
+            if (!company.shareCount || !company.started || company.closed) return 100
             return options.ownershipFreeColors.includes(
                 companyMarketSpace(state.stockMarket, companyId).color
             )

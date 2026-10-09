@@ -67,7 +67,13 @@ export class PlacingStationHandler implements MachineStateHandler<
         )
     }
     private mustFinish(state: State): boolean {
-        return !!state.stationStep && !state.stationStep.completed && !this.hasLegalPlacement(state)
+        const step = state.stationStep
+        return (
+            !!step &&
+            !step.completed &&
+            !this.hasLegalPlacement(state) &&
+            !this.rules.holdsStationStep?.(state, step.companyId)
+        )
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState

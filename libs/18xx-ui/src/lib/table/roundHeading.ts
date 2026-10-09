@@ -23,6 +23,11 @@ export function operatingRoundHeading(
     }
 }
 
+/** A title's round held after a stock round, which shares its number. */
+export function titleStockRoundHeading(number: number, titleRound: TitleRound): RoundHeading {
+    return { abbreviation: titleRound.abbreviation, name: titleRound.name, number: `${number}` }
+}
+
 export function roundLabel(heading: RoundHeading): string {
     return heading.number ? `${heading.abbreviation} ${heading.number}` : heading.abbreviation
 }
@@ -36,11 +41,10 @@ export function currentRoundHeading(
     titleRounds: readonly TitleRound[] = []
 ): RoundHeading {
     if (!state.stockRound.completed) return stockRoundHeading(state.stockRound.number)
+    const titleRound = titleRounds.find((round) => round.inProgress(state))
     const set = state.operatingSet
+    if (titleRound?.followsStockRound && (!set || set.completed))
+        return titleStockRoundHeading(state.stockRound.number, titleRound)
     assertExists(set, 'An operating round belongs to a set')
-    return operatingRoundHeading(
-        set.number,
-        set.roundNumber,
-        titleRounds.find((round) => round.inProgress(state))
-    )
+    return operatingRoundHeading(set.number, set.roundNumber, titleRound)
 }

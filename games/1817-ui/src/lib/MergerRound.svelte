@@ -1,7 +1,7 @@
 <script lang="ts">
     import { companyMarketSpace, getCompany } from '@tabletop/18xx'
     import { takeLoanAction } from './cardActions.js'
-    import CompanyActionCard, { type CardAction } from './CompanyActionCard.svelte'
+    import { CompanyActionCard, type CardAction } from '@tabletop/18xx-ui'
     import { plural } from './plural.js'
     import { companyAssetFacts, companyFinanceFacts } from './roundFacts.js'
     import RoundPanel from './RoundPanel.svelte'
