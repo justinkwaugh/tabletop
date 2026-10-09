@@ -17,7 +17,9 @@ export type CanalRole = 'proposer' | 'overseer' | 'observer'
 export type ActionBarView =
     | { kind: 'none' }
     | { kind: 'placeSpring' }
-    | { kind: 'bidding'; canBid: boolean; rows: BidRow[]; overseerId: string | undefined }
+    // A closed table shows the round's final bids; the bidder's controls keep their place, hidden, so
+    // the table does not move.
+    | { kind: 'bidding'; canBid: boolean; closed: boolean; rows: BidRow[]; overseerId: string | undefined }
     | { kind: 'revealTiles' }
     | { kind: 'plant' }
     | { kind: 'placeNeutral' }
@@ -57,7 +59,7 @@ function biddingView(state: HydratedSantiagoGameState, canBid: boolean): ActionB
         return player ? [{ playerId: id, bid: player.bid }] : []
     })
     if (!canBid && rows.length === 0) return NONE
-    return { kind: 'bidding', canBid, rows, overseerId: projectedOverseerId(state) }
+    return { kind: 'bidding', canBid, closed: false, rows, overseerId: projectedOverseerId(state) }
 }
 
 function canalBuildingView(state: HydratedSantiagoGameState, viewer: ActionBarViewer): ActionBarView {
@@ -82,6 +84,7 @@ export function sameActionBarView(a: ActionBarView, b: ActionBarView): boolean {
     if (a.kind === 'bidding' && b.kind === 'bidding') {
         return (
             a.canBid === b.canBid &&
+            a.closed === b.closed &&
             a.overseerId === b.overseerId &&
             sameRows(a.rows, b.rows, (x, y) => x.playerId === y.playerId && x.bid === y.bid)
         )
@@ -107,4 +110,16 @@ export function sameActionBarView(a: ActionBarView, b: ActionBarView): boolean {
 
 function sameRows<T>(a: T[], b: T[], same: (x: T, y: T) => boolean): boolean {
     return a.length === b.length && a.every((row, i) => same(row, b[i]))
+}
+
+// The bidding table as the round's last bid leaves it: the state that bid produces has already
+// moved past bidding, so its own bar no longer shows the bids.
+export function closingBidsView(
+    shown: ActionBarView,
+    bid: { playerId: string; amount: number },
+    overseerId: string | undefined
+): ActionBarView | undefined {
+    if (shown.kind !== 'bidding') return undefined
+    const rows = shown.rows.map((row) => (row.playerId === bid.playerId ? { playerId: row.playerId, bid: bid.amount } : row))
+    return { ...shown, closed: true, rows, overseerId }
 }
