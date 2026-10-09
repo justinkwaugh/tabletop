@@ -25,7 +25,10 @@
         {/if}
         {#each winners as winnerId, index (winnerId)}
             {#if index > 0}<span>and</span>{/if}
-            <PlayerName playerId={winnerId} />
+            <PlayerName
+                playerId={winnerId}
+                capitalization={winnerId === gameSession.myPlayerId ? 'none' : 'capitalize'}
+            />
         {/each}
     </h1>
     <ol class="ranking">

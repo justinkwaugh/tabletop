@@ -42,10 +42,18 @@ function placesDescription(hexes: readonly AxialCoordinates[]): string {
 export function saleDescription(sale: ShareSale): Description {
     return [
         { playerId: sale.buyerId },
-        ' buys the ',
+        ' bought the ',
         { companyId: sale.companyId },
         ` share for $${sale.price}`
     ]
+}
+
+// "You" is plural in form, so a lone winner who is the viewer takes "win".
+export function winVerb(winnerIds: readonly string[], myPlayerId: string | undefined): string {
+    if (winnerIds.length > 1) {
+        return 'share the win'
+    }
+    return winnerIds[0] === myPlayerId ? 'win' : 'wins'
 }
 
 export function describeAction(action: GameAction): Description {
