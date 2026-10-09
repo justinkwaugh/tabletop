@@ -164,7 +164,12 @@
         min-width: 58px;
         padding: 0 8px;
         border-left: 1px solid #e3a0a0;
+        font-size: 16px;
         font-weight: 700;
+    }
+
+    .money.supply {
+        font-size: 14px;
     }
 
     .holdings {
