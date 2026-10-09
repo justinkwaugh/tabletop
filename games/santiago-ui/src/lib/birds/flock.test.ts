@@ -133,3 +133,27 @@ describe('bird flock', () => {
         expect(flock.birds[0].pose).toBe('ground')
     })
 })
+
+describe('bird flyover of a dried-out field', () => {
+    it('circles the field without ever landing, lingers a while, then leaves', () => {
+        for (let seed = 1; seed <= 20; seed++) {
+            const flock = new Flock({ ...params, lands: false }, getPrng(seed))
+            let landed = false
+            let nearField = 0
+            const cell = params.cells[0]
+            run(flock, 40, () => {
+                landed ||= flock.birds.some((bird) => bird.mode === 'landed')
+                const around = flock.birds.some(
+                    (bird) =>
+                        bird.mode === 'arriving' &&
+                        Math.abs(bird.pos.x - (cell.x + cell.width / 2)) < 60 &&
+                        Math.abs(bird.pos.y - (cell.y + cell.height / 2)) < 60
+                )
+                if (around) nearField += DT
+            })
+            expect(landed).toBe(false)
+            expect(nearField).toBeGreaterThan(2.5)
+            expect(flock.isGone).toBe(true)
+        }
+    })
+})
