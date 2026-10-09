@@ -94,6 +94,7 @@ export class ReefEncounterGameInitializer
             larvaCubeSupply: coralCounts(LarvaCubesPerColor - 1),
             bonusPolyps,
             bonusPolypsInBag: false,
+            advanced: game.config?.advanced === true,
             algaSupply: algaCounts(AlgaCylindersPerColor),
             polypBag
         })

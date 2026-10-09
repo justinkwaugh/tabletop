@@ -75,6 +75,8 @@ export const SmallestEdibleCoral = 5
 export const PolypsReturnedWhenEating = 4
 // In the final turns, five go back instead (rulebook p. 11).
 export const PolypsReturnedWhenEatingInFinalTurns = 5
+// The Advanced game returns one more in both cases (rulebook p. 12).
+export const ExtraPolypsReturnedWhenEatingInAdvancedGame = 1
 export const AlgaCylindersPerColor = 5
 // The last uncovered coral tile may be locked only by a player whose parrotfish holds at
 // least two polyps, the one fed at setup included (rulebook p. 10).
@@ -96,6 +98,8 @@ export const ReefEncounterGameState = Type.Intersect([
         bonusPolyps: CoralCounts,
         // Once the bag runs out, the bonus polyps join it for good (rulebook p. 11).
         bonusPolypsInBag: Type.Boolean(),
+        // The Advanced game option (rulebook p. 12): no extra growth, and eating returns more.
+        advanced: Type.Boolean(),
         algaSupply: AlgaCounts,
         endReason: Type.Optional(Type.Enum(GameEndReason)),
         // The player whose turn ended the game, when the others get final turns.
@@ -135,6 +139,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare larvaCubeSupply: CoralCounts
     declare bonusPolyps: CoralCounts
     declare bonusPolypsInBag: boolean
+    declare advanced: boolean
     declare algaSupply: AlgaCounts
     declare endReason?: GameEndReason
     declare endingPlayerId?: string
@@ -537,12 +542,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
                 !coral.some((polyp) => sameCoordinates(polyp.coords, shrimp.coords))
         )
 
-        const returnedToBag = Math.min(
-            this.machineState === MachineState.FinalTurns
-                ? PolypsReturnedWhenEatingInFinalTurns
-                : PolypsReturnedWhenEating,
-            coral.length
-        )
+        const returnedToBag = Math.min(this.polypsReturnedWhenEating(), coral.length)
         this.returnPolyps(color, returnedToBag)
 
         const player = this.getPlayerState(playerId)
@@ -550,6 +550,16 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         player.eat(color, coral.length - returnedToBag)
         this.turn.acted = true
         return { color, polyps: coral.length, returnedToBag, shrimpToOpenSea }
+    }
+
+    // A coral of exactly that many may still be eaten, feeding the parrotfish nothing
+    // (designer ruling, for the Advanced game).
+    private polypsReturnedWhenEating(): number {
+        const returned =
+            this.machineState === MachineState.FinalTurns
+                ? PolypsReturnedWhenEatingInFinalTurns
+                : PolypsReturnedWhenEating
+        return this.advanced ? returned + ExtraPolypsReturnedWhenEatingInAdvancedGame : returned
     }
 
     canIntroduceShrimp(playerId: string, square: ReefSquare): boolean {
@@ -761,7 +771,8 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     }
 
     // A polyp placed next to an empty extra-growth square grows a bonus polyp there at once
-    // (rulebook p. 7). It does not count towards the cube's four polyps.
+    // (rulebook p. 7), except in the Advanced game (p. 12). It does not count towards the
+    // cube's four polyps.
     private growExtraPolyp(
         reef: Reef,
         placedAt: OffsetCoordinates,
@@ -770,6 +781,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         const square = ReefBoards[reef.boardId].extraGrowth
         const shrimps = this.shrimpsOn(reef.boardId)
         const grows =
+            !this.advanced &&
             orthogonalNeighbors(placedAt).some((neighbor) => sameCoordinates(neighbor, square)) &&
             !polypAt(reef, square) &&
             !shrimpAt(shrimps, square) &&

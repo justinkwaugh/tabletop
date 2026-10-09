@@ -70,6 +70,11 @@ describe('setup', () => {
         expect(sides.size).toBe(1)
     })
 
+    it('plays the Advanced game only when the option is chosen', () => {
+        expect(startTestGame(2).state.advanced).toBe(false)
+        expect(startTestGame(2, { advanced: true }).state.advanced).toBe(true)
+    })
+
     it('waits for the start player to feed their parrotfish', () => {
         const state = startTestGame(3).state
         expect(state.machineState).toBe(MachineState.ChoosingParrotfishPolyp)

@@ -282,6 +282,24 @@ describe('extra growth', () => {
     })
 })
 
+describe('extra growth in the Advanced game', () => {
+    it('never happens', () => {
+        const session = startOnBoardOne([])
+        session.edit((draft) => {
+            draft.advanced = true
+        })
+        giveScreenPolyps(session, CoralColor.White, 1)
+        const bonusBefore = session.state.bonusPolyps[CoralColor.White]
+        play(session, CoralColor.White)
+
+        const [placement] = place(session, at(2, 4))
+
+        expect(isPlacePolyp(placement) && placement.metadata?.extraGrowth).toBeUndefined()
+        expect(colorAt(session, at(2, 3))).toBeUndefined()
+        expect(session.state.bonusPolyps[CoralColor.White]).toBe(bonusBefore)
+    })
+})
+
 describe('the end of a turn', () => {
     it('clears the played cubes for the next player', () => {
         const session = startOnBoardOne([])

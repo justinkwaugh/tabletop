@@ -17,9 +17,9 @@ import {
     startOnBoardOne
 } from '../util/reefTestHelpers.js'
 
-// Board 1 (docs/board-map.md): (0,0), (0,1), (1,0), (1,1), (1,2) and (1,3) are rock.
+// Board 1 (docs/board-map.md): (0,0), (0,1), (1,0), (1,1), (1,2), (1,3) and (1,4) are rock.
 const coral = (size: number, color = CoralColor.White): Polyp[] =>
-    [at(0, 0), at(0, 1), at(1, 0), at(1, 1), at(1, 2), at(1, 3)]
+    [at(0, 0), at(0, 1), at(1, 0), at(1, 1), at(1, 2), at(1, 3), at(1, 4)]
         .slice(0, size)
         .map((coords) => polyp(coords.row, coords.col, color))
 
@@ -126,6 +126,24 @@ describe('final turns', () => {
         const eater = session.state.players.find(
             (player) => player.playerId === session.state.turnManager.turnOrder[1]
         )
+        expect(eater?.knownParrotfishPolyps?.[CoralColor.White]).toBe(1)
+    })
+
+    it('returns six polyps in the Advanced game', () => {
+        const session = startOnBoardOne(coral(7))
+        const [, second] = session.state.turnManager.turnOrder
+        session.edit((draft) => {
+            draft.advanced = true
+            draft.shrimps = [{ playerId: second, boardId: 1, coords: at(0, 0) }]
+        })
+        lastTileLeft(session)
+        lockLastTile(session)
+        const bag = session.state.polypBag.remaining
+
+        eat(session)
+
+        expect(session.state.polypBag.remaining).toBe(bag + 6)
+        const eater = session.state.players.find((player) => player.playerId === second)
         expect(eater?.knownParrotfishPolyps?.[CoralColor.White]).toBe(1)
     })
 

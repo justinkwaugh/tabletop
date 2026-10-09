@@ -72,10 +72,19 @@ In the rulebook's order (pp. 3–4):
 ## End of the game
 
 - **What ends it** (rulebook p. 11): every coral tile carrying an alga cylinder; a player's parrotfish having eaten all four of their shrimps, the one on the open-sea board included; no rock square left without a polyp; or the open sea not being refillable (see Turns).
-- **At once.** The game ends the moment the condition is met: the player does nothing more that turn, not even action 10 (designer ruling, for the fourth shrimp; applied to every condition, since the rulebook says each ends the game immediately).
-- **Final turns.** After the first two conditions, every other player, in turn order from the next, has one more turn in which they may only eat a coral or pass. Eating then returns five polyps to the bag instead of four, so a coral of five feeds the parrotfish nothing. Nothing more happens if a final turn eats a player's fourth shrimp. The last two conditions give no final turns.
-- **No rock left** is read as every rock square of every board holding a polyp. It is checked after each polyp is placed, since nothing else fills a square.
+- **At once.** The game ends the moment the condition is met: the player does nothing more that turn, not even action 10 (designer ruling, for the fourth shrimp; applied to every condition, since the rulebook says each ends the game immediately; confirmed by the user).
+- **Final turns.** After the first two conditions, every other player, in turn order from the next, has one more turn in which they may only eat a coral or pass. Eating then returns five polyps to the bag instead of four, so a coral of five feeds the parrotfish nothing. Nothing more happens if a final turn eats a player's fourth shrimp.
+- **What a final turn may eat.** The usual rules for eating hold: a coral of at least five polyps guarded by the player's own shrimp. The rulebook says only "consume one existing coral"; SpielByWeb says "shrimp-protected coral" (confirmed by the user). The last two conditions give no final turns.
+- **No rock left** is read as every rock square of every board holding a polyp. It is checked after each polyp is placed, since nothing else fills a square. Attacks that might still be possible on a full board don't count (confirmed by the user).
 - **Undo** cannot step back past the end of the game, which reveals everything hidden.
+
+## Advanced game
+
+An option, off by default (rulebook p. 12):
+
+- **No extra growth.** Placing a polyp beside a starfish square never grows a bonus polyp. The bonus polyps are still used for action 8.
+- **Eating returns one more polyp** to the bag: five instead of four, and six instead of five in the final turns.
+- **A coral of five may still be eaten**, though it feeds the parrotfish nothing; only the shrimp goes to the parrotfish (designer ruling, BGG thread 35388). The smallest edible coral stays five, in the final turns too.
 
 ## Scoring
 

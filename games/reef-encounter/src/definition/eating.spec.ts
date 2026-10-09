@@ -165,6 +165,41 @@ describe('eating a coral', () => {
     })
 })
 
+describe('eating in the Advanced game', () => {
+    function advanced(session: TestSession) {
+        session.edit((draft) => {
+            draft.advanced = true
+        })
+        return session
+    }
+
+    it('returns five polyps to the bag', () => {
+        const session = advanced(startWithOwnCoral(7))
+        const bag = session.state.polypBag.remaining
+
+        eat(session)
+
+        expect(session.state.polypBag.remaining).toBe(bag + 5)
+        expect(currentPlayer(session).getKnownParrotfishPolyps()[CoralColor.White]).toBe(2)
+    })
+
+    it('still lets a coral of five be eaten, feeding the parrotfish nothing', () => {
+        const session = advanced(startWithOwnCoral(5))
+        const bag = session.state.polypBag.remaining
+
+        eat(session)
+
+        expect(session.state.polypBag.remaining).toBe(bag + 5)
+        expect(currentPlayer(session).getKnownParrotfishPolyps()).toEqual(coralCounts(0))
+        expect(currentPlayer(session).shrimpOnOpenSea).toBe(true)
+    })
+
+    it('still needs a coral of at least five polyps', () => {
+        const session = advanced(startWithOwnCoral(4))
+        expect(() => eat(session)).toThrow()
+    })
+})
+
 describe('breaking ties', () => {
     it('compares consumed polyps first, then polyps in corals the player’s shrimps guard', () => {
         const session = startWithOwnCoral(3)
