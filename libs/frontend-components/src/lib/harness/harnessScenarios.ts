@@ -85,6 +85,12 @@ export async function runHarnessScenario({
         actions.push(...result.processedActions)
         state = result.updatedState
     }
+    // Actions the engine generates take the current clock, which can run ahead of the moves'
+    // synthetic dates, and titles read history order from these dates, so the whole saved
+    // history gets increasing ones.
+    actions.forEach((action, i) => {
+        action.createdAt = new Date(startedAt + i)
+    })
 
     await gameService.saveGameLocally({ game, state, actions })
     return game
