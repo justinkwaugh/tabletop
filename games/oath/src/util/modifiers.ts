@@ -351,6 +351,7 @@ export function foldNumber(
         | 'musterWarbands'
         | 'tradeFavor'
         | 'tradeSecrets'
+        | 'tradeSideFavor'
         | 'drawCount'
         | 'recoverSecrets',
     base: number,

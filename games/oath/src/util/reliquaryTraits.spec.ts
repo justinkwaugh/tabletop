@@ -266,6 +266,37 @@ describe('Careless — Trade (R-6.6.2.a)', () => {
         expect(action.metadata?.favorGained).toBe(3)
         expect(action.metadata?.modifierNotes).toBeUndefined()
     })
+
+    describe('sideFavor: the favor a Trade gains beside its own gain, counted before it is made', () => {
+        const hearthBank = (favor: number) => ({ favorBank: { ...board([]).favorBank, [Suit.Hearth]: favor } })
+        const counted = (s: ReturnType<typeof board>, option: TradeOption) =>
+            HydratedTrade.sideFavor(s, 'ruler', INN, option, HydratedTrade.plan(s, 'ruler', INN, option).active)
+        const gainedBeside = (s: ReturnType<typeof board>, option: TradeOption) => {
+            const placed = option === TradeOption.ForSecrets ? 2 : 0
+            const before = s.getPlayerState('ruler').favor
+            const action = trade(s, option)
+            return s.getPlayerState('ruler').favor - before + placed - (action.metadata?.favorGained ?? 0)
+        }
+
+        it('Careless on a Trade for secrets: one favor, with or without a matching adviser, as the Trade gives it', () => {
+            for (const advisers of [[], [RETURN]]) {
+                expect(counted(board([CARELESS], {}, {}, [INN], advisers), TradeOption.ForSecrets)).toBe(1)
+                expect(gainedBeside(board([CARELESS], {}, {}, [INN], advisers), TradeOption.ForSecrets)).toBe(1)
+            }
+        })
+
+        it('none from an empty bank (R-9.3), as the Trade gives none', () => {
+            expect(counted(board([CARELESS], hearthBank(0)), TradeOption.ForSecrets)).toBe(0)
+            expect(gainedBeside(board([CARELESS], hearthBank(0)), TradeOption.ForSecrets)).toBe(0)
+        })
+
+        it('none on a Trade for favor, which folds Careless into its own gain, and none without Careless', () => {
+            expect(counted(board([CARELESS]), TradeOption.ForFavor)).toBe(0)
+            expect(gainedBeside(board([CARELESS]), TradeOption.ForFavor)).toBe(0)
+            expect(counted(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
+            expect(gainedBeside(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
+        })
+    })
 })
 
 describe('Careless under Vow of Poverty — "You still don’t get the favor from Careless" (its Q&A)', () => {

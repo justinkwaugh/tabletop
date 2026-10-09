@@ -228,6 +228,23 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         )
     }
 
+    /** Favor the Trade gains beside its own gain (Careless on a Trade for secrets), as much as the card's bank holds (R-9.3). */
+    static sideFavor(
+        state: HydratedOathGameState,
+        playerId: string,
+        cardId: string,
+        option: TradeOption,
+        active: readonly ActiveModifier[]
+    ): number {
+        const suit = suitOf(cardId)
+        assertExists(suit, `${cardId} has no suit`)
+        const wanted = foldNumber('tradeSideFavor', 0, state, playerId, active, {
+            cardId,
+            tradeOption: option
+        })
+        return Math.min(wanted, state.favorBank[suit])
+    }
+
     static plan(
         state: HydratedOathGameState,
         playerId: string,

@@ -40,6 +40,12 @@ export const GREEDY = 'reliquary.greedy'
 /** Greedy — "you cannot search if you would spend more than 2 Supply". */
 export const GREEDY_SUPPLY_LIMIT = 2
 
+/** Careless — one favor beside a Trade for secrets: the count shown before the Trade and the favor it gains both read it. */
+function carelessSideFavor(ctx: EffectContext): number {
+    // Spelt out: `actions/trade.ts` imports this file through the modifier framework.
+    return ctx.particulars?.tradeOption === 'forSecrets' ? 1 : 0
+}
+
 const TRAIT_HOOKS: Record<string, { action: ActionType; hooks: ModifierHooks }> = {
     [DECADENT]: {
         action: ActionType.Travel,
@@ -56,11 +62,8 @@ const TRAIT_HOOKS: Record<string, { action: ActionType; hooks: ModifierHooks }> 
             tradeFavor: (base) => base + 1,
             tradeSecrets: (base) => Math.max(0, base - 1),
             // Careless' "(even when trading for secrets)": a secrets trade has no favor to fold into.
-            before: (ctx) => {
-                // Spelt out: `actions/trade.ts` imports this file through the modifier framework.
-                if (ctx.particulars?.tradeOption !== 'forSecrets') return undefined
-                return gainOneFavor(ctx)
-            }
+            tradeSideFavor: (base, ctx) => base + carelessSideFavor(ctx),
+            before: (ctx) => (carelessSideFavor(ctx) > 0 ? gainOneFavor(ctx) : undefined)
         }
     },
     [GREEDY]: {

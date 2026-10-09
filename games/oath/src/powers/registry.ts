@@ -96,6 +96,8 @@ export interface ModifierHooks {
     tradeFavor?: (base: number, ctx: EffectContext) => number
     /** R-5.3.2 */
     tradeSecrets?: (base: number, ctx: EffectContext) => number
+    /** Careless — favor a Trade gains beside its own gain, before the bank cap (R-9.3). */
+    tradeSideFavor?: (base: number, ctx: EffectContext) => number
     /** Magician's Code — beyond those paid. */
     recoverSecrets?: (base: number, ctx: EffectContext) => number
     /** R-5.1.2 — the Vision stop still applies. */
