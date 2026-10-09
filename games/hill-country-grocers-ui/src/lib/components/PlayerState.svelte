@@ -136,7 +136,6 @@
     .amount {
         min-width: 30px;
         font-size: 16px;
-        font-weight: 700;
         text-align: right;
     }
 
