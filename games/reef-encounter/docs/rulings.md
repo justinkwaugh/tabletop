@@ -54,6 +54,14 @@ In the rulebook's order (pp. 3–4):
 - **Empty bonus spaces** (user ruling). When the bag has no polyp of a colour to replace a bonus polyp used for action 8 or extra growth, that colour's space stays empty, and neither is possible for that colour. The next polyp of that colour returned to the bag, by eating or action 6, fills the space instead, and any others go into the bag as usual; action 8 and extra growth are then possible for it again. The bonus polyps join the bag only when the bag runs out completely (rulebook p. 11), and from then on there are no bonus spaces to refill.
 - Neither exchange counts as playing a larva cube, and each finishes the cube being played. Both may be done any number of times a turn.
 
+## Alga cylinders
+
+- **Buying one (action 7).** A consumed polyp of any colour buys a cylinder of any colour, which must be played at once (rulebook pp. 5 and 10). The rulebook doesn't say where the consumed polyp goes; this implementation puts it into the bag, as action 6 does, filling an empty bonus space first. A colour with no cylinder left in the supply cannot be chosen. Five cylinders of each colour.
+- **On the open-sea space.** Any number a turn. A cylinder already there goes back to the supply. Every coral tile without a cylinder whose face shows that colour as its large alga flips over (rulebook p. 10).
+- **On a coral tile (a lock).** Once a turn, and only once the player's parrotfish has eaten a shrimp and put it on the open-sea board. The cylinder must match the tile's large alga, and the tile must have no cylinder. The tile stays as it is for the rest of the game; every other uncovered tile with that large alga flips (rulebook p. 10).
+- **The last uncovered tile** may be locked only by a player whose parrotfish holds at least two polyps, the one fed at setup included (rulebook p. 11; restated deliberately, designer).
+- Like the exchanges, playing a cylinder finishes the larva cube being played, and must wait while a bought cube is still to be played.
+
 ## Eating
 
 - **When (action 1).** Only before every other action of the turn, moving a shrimp included, and once a turn (rulebook pp. 4 and 11).

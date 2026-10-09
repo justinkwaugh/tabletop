@@ -14,6 +14,9 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import {
+    AlgaColor,
+    AlgaColors,
+    AlgaCounts,
     CoralColor,
     CoralColors,
     CoralCounts,
@@ -21,7 +24,7 @@ import {
     containsCounts,
     totalCount
 } from '../components/colors.js'
-import { CoralTileState } from '../components/coralTiles.js'
+import { CoralTileState, faceUp } from '../components/coralTiles.js'
 import {
     type OpenSeaAddition,
     OpenSeaPolypLimit,
@@ -31,6 +34,7 @@ import {
 import { HydratedPolypBag, PolypBag } from '../components/polypBag.js'
 import { isRock, ReefBoards, type ReefBoardId } from '../components/reefBoards.js'
 import {
+    type AlgaPlayed,
     coralAt,
     type CoralEaten,
     isGuarded,
@@ -57,6 +61,10 @@ export const ShrimpsPerPlayerPerBoard = 2
 // (rulebook p. 11).
 export const SmallestEdibleCoral = 5
 export const PolypsReturnedWhenEating = 4
+export const AlgaCylindersPerColor = 5
+// The last uncovered coral tile may be locked only by a player whose parrotfish holds at
+// least two polyps, the one fed at setup included (rulebook p. 10).
+export const ParrotfishPolypsToLockLastTile = 2
 
 export type ReefEncounterGameState = Type.Static<typeof ReefEncounterGameState>
 // Left unevaluated, like the player state, so hidden player fields stay optional when projected.
@@ -74,6 +82,9 @@ export const ReefEncounterGameState = Type.Intersect([
         bonusPolyps: CoralCounts,
         // Once the bag runs out, the bonus polyps join it for good (rulebook p. 11).
         bonusPolypsInBag: Type.Boolean(),
+        algaSupply: AlgaCounts,
+        // The alga cylinder space on the open-sea board holds at most one cylinder.
+        openSeaAlga: Type.Optional(Type.Enum(AlgaColor)),
         polypBag: PolypBag
     })
 ])
@@ -107,6 +118,8 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare larvaCubeSupply: CoralCounts
     declare bonusPolyps: CoralCounts
     declare bonusPolypsInBag: boolean
+    declare algaSupply: AlgaCounts
+    declare openSeaAlga?: AlgaColor
     declare polypBag: HydratedPolypBag
 
     constructor(data: ReefEncounterProjectedState) {
@@ -380,6 +393,100 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.takeBonusPolyp(color)
         this.turn.cubeToPlay = undefined
         this.endAction()
+    }
+
+    // Action 7: a consumed polyp buys an alga cylinder, played at once onto the open-sea space,
+    // or onto the coral tile given, which it locks.
+    canPlayAlgaCylinder(
+        playerId: string,
+        consumedColor: CoralColor,
+        alga: AlgaColor,
+        tileId?: number
+    ): boolean {
+        return (
+            this.turn.cubeToPlay === undefined &&
+            this.getPlayerState(playerId).consumedPolyps[consumedColor] > 0 &&
+            this.algaSupply[alga] > 0 &&
+            (tileId === undefined || this.lockBlocker(playerId, alga, tileId) === undefined)
+        )
+    }
+
+    hasAlgaCylinderPlay(playerId: string): boolean {
+        const consumed = this.getPlayerState(playerId).consumedPolyps
+        return (
+            this.turn.cubeToPlay === undefined &&
+            totalCount(consumed) > 0 &&
+            AlgaColors.some((alga) => this.algaSupply[alga] > 0)
+        )
+    }
+
+    // Why this cylinder may not lock this tile, or undefined when it may.
+    lockBlocker(playerId: string, alga: AlgaColor, tileId: number): string | undefined {
+        const player = this.getPlayerState(playerId)
+        if (!player.shrimpOnOpenSea) {
+            return 'Only a player whose parrotfish has eaten a shrimp may lock coral tiles'
+        }
+        if (this.turn.tileLocked) {
+            return 'Only one coral tile may be locked a turn'
+        }
+        const tile = this.coralTiles.find((candidate) => candidate.tileId === tileId)
+        if (!tile) {
+            return `There is no coral tile ${tileId}`
+        }
+        if (tile.cylinder) {
+            return 'That coral tile is already locked'
+        }
+        if (faceUp(tile).largeAlga !== alga) {
+            return `That coral tile's large alga is not ${alga}`
+        }
+        const uncovered = this.coralTiles.filter((candidate) => !candidate.cylinder)
+        if (
+            uncovered.length === 1 &&
+            totalCount(player.getParrotfishPolyps()) < ParrotfishPolypsToLockLastTile
+        ) {
+            return `The last coral tile needs at least ${ParrotfishPolypsToLockLastTile} polyps in your parrotfish`
+        }
+        return undefined
+    }
+
+    // Every other uncovered tile showing the cylinder's colour as its large alga flips over
+    // (rulebook p. 10). The consumed polyp goes into the bag, as in action 6.
+    playAlgaCylinder(
+        playerId: string,
+        consumedColor: CoralColor,
+        alga: AlgaColor,
+        tileId?: number
+    ): AlgaPlayed {
+        assert(
+            this.canPlayAlgaCylinder(playerId, consumedColor, alga, tileId),
+            `Player ${playerId} cannot play that alga cylinder`
+        )
+        this.getPlayerState(playerId).spendConsumedPolyp(consumedColor)
+        this.returnPolyps(consumedColor, 1)
+        this.algaSupply[alga] -= 1
+
+        const played: AlgaPlayed = { flippedTileIds: [] }
+        if (tileId === undefined) {
+            if (this.openSeaAlga) {
+                played.replacedCylinder = this.openSeaAlga
+                this.algaSupply[this.openSeaAlga] += 1
+            }
+            this.openSeaAlga = alga
+        } else {
+            const locked = this.coralTiles.find((tile) => tile.tileId === tileId)
+            assertExists(locked, `There is no coral tile ${tileId}`)
+            locked.cylinder = alga
+            this.turn.tileLocked = true
+        }
+
+        for (const tile of this.coralTiles) {
+            if (!tile.cylinder && faceUp(tile).largeAlga === alga) {
+                tile.starfishSideUp = !tile.starfishSideUp
+                played.flippedTileIds.push(tile.tileId)
+            }
+        }
+        this.endAction()
+        return played
     }
 
     canEatCoral(playerId: string, square: ReefSquare): boolean {

@@ -16,6 +16,7 @@ import {
     isExchangeConsumedPolyp
 } from '../actions/exchangeConsumedPolyp.js'
 import { HydratedExchangeLarvaCube, isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
+import { HydratedPlayAlgaCylinder, isPlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
 
 export class ReefEncounterHydrator implements GameHydrator<
@@ -50,6 +51,9 @@ export class ReefEncounterHydrator implements GameHydrator<
             }
             case isExchangeLarvaCube(data): {
                 return new HydratedExchangeLarvaCube(data)
+            }
+            case isPlayAlgaCylinder(data): {
+                return new HydratedPlayAlgaCylinder(data)
             }
             case isTakeOpenSeaSpace(data): {
                 return new HydratedTakeOpenSeaSpace(data)

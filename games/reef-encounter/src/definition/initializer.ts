@@ -10,13 +10,20 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import {
+    AlgaCylindersPerColor,
     HydratedReefEncounterGameState,
     type ReefEncounterGameState,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
 import type { Reef } from '../model/reef.js'
 import { newPlayerState, type ReefEncounterPlayerState } from '../model/playerState.js'
-import { CoralColors, type CoralColor, coralCounts, countColors } from '../components/colors.js'
+import {
+    algaCounts,
+    CoralColors,
+    type CoralColor,
+    coralCounts,
+    countColors
+} from '../components/colors.js'
 import { CoralTiles, type CoralTileState } from '../components/coralTiles.js'
 import {
     OpenSeaOrder,
@@ -87,6 +94,7 @@ export class ReefEncounterGameInitializer
             larvaCubeSupply: coralCounts(LarvaCubesPerColor - 1),
             bonusPolyps,
             bonusPolypsInBag: false,
+            algaSupply: algaCounts(AlgaCylindersPerColor),
             polypBag
         })
 

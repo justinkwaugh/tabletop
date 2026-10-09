@@ -13,6 +13,7 @@ import {
     isExchangeConsumedPolyp
 } from '../actions/exchangeConsumedPolyp.js'
 import { HydratedExchangeLarvaCube, isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
+import { HydratedPlayAlgaCylinder, isPlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { CoralColors } from '../components/colors.js'
 import { activateTurnPlayer } from '../util/turns.js'
@@ -25,6 +26,7 @@ type TakingTurnAction =
     | HydratedMoveShrimp
     | HydratedExchangeConsumedPolyp
     | HydratedExchangeLarvaCube
+    | HydratedPlayAlgaCylinder
     | HydratedTakeOpenSeaSpace
 
 export class TakingTurnStateHandler implements MachineStateHandler<
@@ -71,6 +73,14 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         if (isExchangeLarvaCube(action)) {
             return gameState.canExchangeLarvaCube(action.playerId, action.color)
         }
+        if (isPlayAlgaCylinder(action)) {
+            return gameState.canPlayAlgaCylinder(
+                action.playerId,
+                action.consumedColor,
+                action.alga,
+                action.tileId
+            )
+        }
         return (
             isTakeOpenSeaSpace(action) &&
             gameState.canTakeOpenSeaSpace(action.playerId, action.larvaColor)
@@ -106,6 +116,9 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         }
         if (CoralColors.some((color) => gameState.canExchangeLarvaCube(playerId, color))) {
             actions.push(ActionType.ExchangeLarvaCube)
+        }
+        if (gameState.hasAlgaCylinderPlay(playerId)) {
+            actions.push(ActionType.PlayAlgaCylinder)
         }
         if (CoralColors.some((color) => gameState.canTakeOpenSeaSpace(playerId, color))) {
             actions.push(ActionType.TakeOpenSeaSpace)

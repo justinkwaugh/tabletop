@@ -5,7 +5,7 @@ import {
     sameCoordinates
 } from '@tabletop/common'
 import * as Type from 'typebox'
-import { CoralColor } from '../components/colors.js'
+import { AlgaColor, CoralColor } from '../components/colors.js'
 import { faceUp, type CoralTileState } from '../components/coralTiles.js'
 import { ReefBoardIdSchema } from '../components/reefBoards.js'
 
@@ -41,6 +41,12 @@ export const CoralEaten = Type.Object({
     polyps: Type.Number(),
     returnedToBag: Type.Number(),
     shrimpToOpenSea: Type.Boolean()
+})
+
+export type AlgaPlayed = Type.Static<typeof AlgaPlayed>
+export const AlgaPlayed = Type.Object({
+    flippedTileIds: Type.Array(Type.Number()),
+    replacedCylinder: Type.Optional(Type.Enum(AlgaColor))
 })
 
 export type PolypPlacement = Type.Static<typeof PolypPlacement>

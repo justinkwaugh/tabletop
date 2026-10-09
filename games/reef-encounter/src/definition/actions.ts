@@ -8,6 +8,7 @@ export enum ActionType {
     MoveShrimp = 'moveShrimp',
     ExchangeConsumedPolyp = 'exchangeConsumedPolyp',
     ExchangeLarvaCube = 'exchangeLarvaCube',
+    PlayAlgaCylinder = 'playAlgaCylinder',
     TakeOpenSeaSpace = 'takeOpenSeaSpace',
     RefillOpenSea = 'refillOpenSea'
 }

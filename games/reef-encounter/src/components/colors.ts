@@ -17,6 +17,25 @@ export enum AlgaColor {
     Red = 'red'
 }
 
+export const AlgaColors: readonly AlgaColor[] = Object.values(AlgaColor)
+
+export type AlgaCounts = Type.Static<typeof AlgaCounts>
+export const AlgaCounts = Type.Object({
+    [AlgaColor.Blue]: Type.Number(),
+    [AlgaColor.Green]: Type.Number(),
+    [AlgaColor.Purple]: Type.Number(),
+    [AlgaColor.Red]: Type.Number()
+})
+
+export function algaCounts(count: number = 0): AlgaCounts {
+    return {
+        [AlgaColor.Blue]: count,
+        [AlgaColor.Green]: count,
+        [AlgaColor.Purple]: count,
+        [AlgaColor.Red]: count
+    }
+}
+
 export type CoralCounts = Type.Static<typeof CoralCounts>
 export const CoralCounts = Type.Object({
     [CoralColor.Grey]: Type.Number(),

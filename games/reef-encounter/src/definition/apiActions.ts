@@ -7,6 +7,7 @@ import { FeedParrotfish } from '../actions/feedParrotfish.js'
 import { IntroduceShrimp } from '../actions/introduceShrimp.js'
 import { MoveShrimp } from '../actions/moveShrimp.js'
 import { PlacePolyp } from '../actions/placePolyp.js'
+import { PlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
 import { PlayLarvaCube } from '../actions/playLarvaCube.js'
 import { TakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
 
@@ -20,5 +21,6 @@ export const ReefEncounterApiActions = {
     [ActionType.MoveShrimp]: MoveShrimp,
     [ActionType.ExchangeConsumedPolyp]: ExchangeConsumedPolyp,
     [ActionType.ExchangeLarvaCube]: ExchangeLarvaCube,
+    [ActionType.PlayAlgaCylinder]: PlayAlgaCylinder,
     [ActionType.TakeOpenSeaSpace]: TakeOpenSeaSpace
 }

@@ -19,9 +19,11 @@ export const TurnRecord = Type.Object({
     acted: Type.Boolean(),
     // A larva cube bought with a consumed polyp must be played next (designer's 2007 change).
     cubeToPlay: Type.Optional(Type.Enum(CoralColor)),
+    // Only one alga cylinder a turn may lock a coral tile (rulebook p. 10).
+    tileLocked: Type.Boolean(),
     placing: Type.Optional(PlacingPolyps)
 })
 
 export function newTurnRecord(): TurnRecord {
-    return { larvaCubesPlayed: 0, shrimpIntroduced: false, acted: false }
+    return { larvaCubesPlayed: 0, shrimpIntroduced: false, acted: false, tileLocked: false }
 }

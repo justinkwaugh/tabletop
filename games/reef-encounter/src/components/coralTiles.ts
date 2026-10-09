@@ -41,7 +41,9 @@ export const CoralTiles: readonly CoralTileDefinition[] = [
 export type CoralTileState = Type.Static<typeof CoralTileState>
 export const CoralTileState = Type.Object({
     tileId: Type.Number(),
-    starfishSideUp: Type.Boolean()
+    starfishSideUp: Type.Boolean(),
+    // An alga cylinder on a tile locks it on its current side for the rest of the game.
+    cylinder: Type.Optional(Type.Enum(AlgaColor))
 })
 
 // The reverse of every tile swaps both the corals and the algae (rulebook p. 10).
