@@ -93,6 +93,13 @@
 /* Lora as Santiago's default body font, set on this game's own root and inherited by its
    subtree, rather than overriding Tailwind's shared --font-sans token, which would leak into
    the host page and harness chrome around it. */
+/* Phones: everything above the board, text and controls alike, at a smaller scale. */
+@media (max-width: 639px), (max-height: 500px) {
+    .above-board {
+        zoom: 0.85;
+    }
+}
+
 .santiago-root {
     font-family: 'Lora', ui-serif, Georgia, serif;
 }
@@ -161,7 +168,7 @@
 
         {#snippet gameContent()}
             <!-- Top part is not allowed to shrink -->
-            <div class="shrink-0" bind:this={topBarEl}>
+            <div class="above-board shrink-0" bind:this={topBarEl}>
                 <ActionToolbar />
                 <LastActionBanner boardCenterX={boardCenter.value} />
                 <PlayerActionBar boardCenterX={boardCenter.value} />
