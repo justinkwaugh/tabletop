@@ -885,7 +885,8 @@ describe('the history tab describes every action', () => {
         })
 
         it('R-6.7-H1 — an exile’s row keeps today’s words before revision 5 and names the Chancellor’s bank from it', () => {
-            // p1 holds the Grand Scepter; p2's board holds 16 Imperial warbands against 14 of their own.
+            // p1 holds the Grand Scepter, so a self-exile names them; p2's board holds 16 Imperial
+            // warbands against 14 of their own.
             const row = (oathRevision: OathRevision, exile: 'self' | 'exiled') => {
                 const state = testState(
                     [
@@ -902,10 +903,47 @@ describe('the history tab describes every action', () => {
                 return describeAction(applied.dehydrate(), nameOf)
             }
 
-            expect(row(OathRevision.CardFixes1, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, with 2 warbands left Imperial')
-            expect(row(OathRevision.EngineFixes2, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, returning 2 Imperial warbands to the Chancellor’s bank')
+            expect(row(OathRevision.CardFixes1, 'self')).toBe('went into exile, giving 16 favor to Alice, with 2 warbands left Imperial')
+            expect(row(OathRevision.EngineFixes2, 'self')).toBe('went into exile, giving 16 favor to Alice, returning 2 Imperial warbands to the Chancellor’s bank')
             expect(row(OathRevision.CardFixes1, 'exiled')).toBe('exiled Bob, giving them 5 favor, with 2 warbands left Imperial')
             expect(row(OathRevision.EngineFixes2, 'exiled')).toBe('exiled Bob, giving them 5 favor, returning 2 Imperial warbands to the Chancellor’s bank')
+        })
+
+        it('R-9.3 — one warband left Imperial is “1 warband”, on either exile and on a Citizenship', () => {
+            const one = { favorGiven: 2, replacedCount: 1, unreplacedCount: 1 }
+            expect(
+                describeAction(action({ type: ActionType.SelfExile, playerId: 'p1', metadata: one }), nameOf)
+            ).toBe('went into exile, giving 2 favor to the Grand Scepter’s holder, with 1 warband left Imperial')
+            expect(
+                describeAction(
+                    action({ type: ActionType.ExileCitizen, playerId: 'p1', citizenPlayerId: 'p2', metadata: one }),
+                    nameOf
+                )
+            ).toBe('exiled Bob, giving them 2 favor, with 1 warband left Imperial')
+            expect(
+                describeAction(
+                    action({
+                        type: ActionType.ResolveCitizenshipOffer,
+                        playerId: 'p2',
+                        granted: true,
+                        metadata: { outcome: { unreplacedCount: 1 } }
+                    }),
+                    nameOf
+                )
+            ).toBe('accepted Citizenship, removing 1 warband for want of Imperial ones')
+        })
+
+        it('R-6.8, R-10.11 — a self-exile names who got the favor; a record without the holder keeps its words', () => {
+            const paid = { favorGiven: 3, replacedCount: 2, unreplacedCount: 0 }
+            expect(
+                describeAction(
+                    action({ type: ActionType.SelfExile, playerId: 'p1', metadata: { ...paid, scepterHolderId: 'p2' } }),
+                    nameOf
+                )
+            ).toBe('went into exile, giving 3 favor to Bob')
+            expect(
+                describeAction(action({ type: ActionType.SelfExile, playerId: 'p1', metadata: paid }), nameOf)
+            ).toBe('went into exile, giving 3 favor to the Grand Scepter’s holder')
         })
 
         it('R-6.1 — names the card in place, with no dangling "it"', () => {

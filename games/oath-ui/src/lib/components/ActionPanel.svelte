@@ -102,6 +102,7 @@
         </p>
     {:else}
         {#if chosen === ActionType.OfferCitizenship}
+            <!-- Undo backs out of the offer one pick at a time, then puts the action down. -->
             <div class="mb-2">
                 <CitizenshipPanel />
             </div>

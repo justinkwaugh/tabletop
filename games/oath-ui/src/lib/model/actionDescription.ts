@@ -376,7 +376,7 @@ function describeActionCited(
         return action.granted
             ? 'accepted Citizenship' +
                   (unreplaced > 0
-                      ? `, removing ${unreplaced} warbands for want of Imperial ones`
+                      ? `, removing ${plural(unreplaced, 'warband')} for want of Imperial ones`
                       : '')
             : 'refused Citizenship'
     }
@@ -396,11 +396,13 @@ function describeActionCited(
         )
     }
     if (isSelfExile(action)) {
+        // R-6.8, R-10.11 — the favor goes to the Grand Scepter's holder, named once the record keeps them.
         const meta = action.metadata
+        const holderId = meta?.scepterHolderId
         return (
             'went into exile' +
             ((meta?.favorGiven ?? 0) > 0
-                ? `, giving ${meta?.favorGiven} favor to the Grand Scepter’s holder`
+                ? `, giving ${meta?.favorGiven} favor to ${holderId ? nameOf(holderId) : 'the Grand Scepter’s holder'}`
                 : '') +
             unreplacedClause(meta?.unreplacedCount ?? 0, meta?.unreplacedReturned === true)
         )
@@ -526,7 +528,7 @@ function unreplacedClause(count: number, returned: boolean): string {
     if (count <= 0) return ''
     return returned
         ? `, returning ${plural(count, 'Imperial warband')} to the Chancellor’s bank`
-        : `, with ${count} warbands left Imperial`
+        : `, with ${plural(count, 'warband')} left Imperial`
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {

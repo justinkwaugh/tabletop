@@ -95,7 +95,6 @@
 
     function send(type: ActionType) {
         if (type === ActionType.EndActPhase) void gameSession.endActPhase()
-        else if (type === ActionType.SelfExile) void gameSession.selfExile()
     }
 
     // A pressed tile gives way to its panel without a pointer leave, so the line clears here.

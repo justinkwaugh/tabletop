@@ -18,7 +18,6 @@ import {
     HydratedAnswerConsent,
     HydratedResolveOathkeeper,
     HydratedResolveWake,
-    HydratedExileCitizen,
     HydratedMuster,
     HydratedPlayFacedownAdviser,
     HydratedTrade,
@@ -112,6 +111,7 @@ import {
     type MajorEventContext
 } from './majorEvents.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
+import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
 import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
@@ -561,10 +561,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
-    get exileTargets(): string[] {
+    /** R-6.7 — each Citizen this seat may exile, priced. */
+    get exileOffers(): { citizenPlayerId: string; favor: number }[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.ExileCitizen) return []
-        return HydratedExileCitizen.legalTargets(this.gameState, playerId)
+        return exileCitizenOffers(this.gameState, playerId)
+    }
+
+    /** R-6.8 — the staged self-exile's price and payee. */
+    get selfExileOffer(): { favor: number; holderId: string } | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.SelfExile) return undefined
+        return selfExileOffer(this.gameState, playerId)
     }
 
     chooseAdviser(cardId: string): void {

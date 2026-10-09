@@ -462,6 +462,26 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         expect(offer.back()).toBe(false)
     })
 
+    it('Undo takes the terms one pick at a time, the last first; a tap that changes nothing is no pick', () => {
+        const offer = offering()
+        offer.chooseExile(CHANCELLOR)
+        offer.chooseReliquarySlot(SLOT_A)
+        offer.toggleBanner('givenBanners', Banner.DarkestSecret, true)
+        offer.setTerm('givenFavor', 2)
+        offer.setTerm('askedFavor', 0)
+        offer.setTerm('givenFavor', 1)
+
+        expect(offer.back()).toBe(true)
+        expect(offer.offerTerms).toMatchObject({ givenFavor: 2, givenBanners: [Banner.DarkestSecret] })
+        expect(offer.back()).toBe(true)
+        expect(offer.offerTerms).toMatchObject({ givenFavor: 0, givenBanners: [Banner.DarkestSecret] })
+        expect(offer.back()).toBe(true)
+        expect(offer.offerTerms).toEqual(offering().offerTerms)
+        expect(offer.reliquarySlotId).toBe(SLOT_A)
+        expect(offer.back()).toBe(true)
+        expect(offer.reliquarySlotId).toBeUndefined()
+    })
+
     it('before any pick there is nothing for Undo to take', () => {
         const offer = offering()
         expect(offer.exiles).toEqual([CHANCELLOR, 'exile2'])
@@ -473,6 +493,50 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         offer.chooseReliquarySlot(SLOT_A)
         offer.setTerm('givenFavor', 1)
         expect(offer.hasManualSelection()).toBe(false)
+    })
+
+    // A pick with one legal option is not a choice: it starts made, and Undo has nothing of it to take.
+    const offeringTheOnlyExile = (relics: number) => {
+        const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] }, {}, [
+            testPlayer({ playerId: 'exile2', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
+        ])
+        state.getPlayerState(CHANCELLOR).status = PlayerStatus.Citizen
+        state.chancellorPlayerId = ME
+        state.reliquary = state.reliquary
+            .slice(0, relics)
+            .map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
+        const session = opened(state)
+        session.chooseAction(ActionType.OfferCitizenship)
+        return session.citizenship
+    }
+
+    it('the one Exile starts picked, and is no pick for Undo to take', () => {
+        const offer = offeringTheOnlyExile(4)
+        expect(offer.exiles).toEqual(['exile2'])
+        expect(offer.exilePlayerId).toBe('exile2')
+        expect(offer.reliquarySlotId).toBeUndefined()
+        expect(offer.hasManualSelection()).toBe(false)
+
+        offer.chooseReliquarySlot(SLOT_A)
+        expect(offer.reliquarySlotId).toBe(SLOT_A)
+        expect(offer.back()).toBe(true)
+        expect(offer.reliquarySlotId).toBeUndefined()
+        expect(offer.exilePlayerId).toBe('exile2')
+        expect(offer.back()).toBe(false)
+    })
+
+    it('the one relic left starts promised, so the terms open at once', () => {
+        const offer = offeringTheOnlyExile(1)
+        expect(offer.reliquarySlotId).toBe(SLOT_A)
+        expect(offer.hasManualSelection()).toBe(false)
+        expect(offer.blockedBecause).toBeUndefined()
+
+        offer.setTerm('givenFavor', 1)
+        expect(offer.offerTerms.givenFavor).toBe(1)
+        expect(offer.back()).toBe(true)
+        expect(offer.offerTerms.givenFavor).toBe(0)
+        expect(offer.reliquarySlotId).toBe(SLOT_A)
+        expect(offer.back()).toBe(false)
     })
 
     it('choosing another space clears the terms under it', () => {

@@ -31,6 +31,7 @@ import {
     Travel,
     WarbandMoveKind,
     allMapSlots,
+    type WarbandMove,
     mapSlotId,
     mapSlotsFor,
     reliquarySlotId,
@@ -125,6 +126,11 @@ export type TableName =
     | 'wonOutright'
     | 'spoils'
     | QuestionTableName
+    | 'warbandGiveAsked'
+    | 'offerCitizenship'
+    | 'offerCitizenshipToOne'
+    | 'exileCitizens'
+    | 'selfExile'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -892,6 +898,15 @@ function recoverTable(): PlayedTable {
 
 /** R-6.5.a — the Citizen asks to move two Imperial warbands off their site, so the Chancellor is asked. */
 function warbandMoveAskedTable(): PlayedTable {
+    return citizenAsksChancellor({ kind: WarbandMoveKind.SiteToBoard })
+}
+
+/** R-6.5.b — the Citizen asks to give the Chancellor, at the same site, two Imperial warbands. */
+function warbandGiveAskedTable(): PlayedTable {
+    return citizenAsksChancellor({ kind: WarbandMoveKind.GiveToImperial, otherPlayerId: 'chan' })
+}
+
+function citizenAsksChancellor(move: WarbandMove): PlayedTable {
     const state = testState(
         [
             testPlayer({
@@ -924,7 +939,7 @@ function warbandMoveAskedTable(): PlayedTable {
         createAction(MoveWarbands, {
             ...envelope(table),
             playerId: 'cit',
-            move: { kind: WarbandMoveKind.SiteToBoard },
+            move,
             owner: IMPERIAL_WARBANDS,
             count: 2
         })
@@ -1898,7 +1913,161 @@ function searchConspiracyTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-2.3 — the Reliquary's relics are held facedown in the vault; the Scepter's holder knows each (R-6.4-H1). */
+const RELIQUARY: Record<string, string> = {
+    'reliquary.0': 'relic.ring-of-devotion',
+    'reliquary.1': 'relic.cup-of-plenty',
+    'reliquary.2': 'relic.skeleton-key',
+    'reliquary.3': 'relic.brass-horse'
+}
+const RELIQUARY_KNOWN = { peekedRelicSlotIds: Object.keys(RELIQUARY), peekedRelics: RELIQUARY }
+
+/**
+ * R-6.6.1 — the Grand Scepter's holder, holding both banners, in their Act Phase with every
+ * Reliquary relic known to them (R-6.4-H1); Cole is an Exile, and Ann too unless `oneExile`.
+ */
+function offerCitizenshipTable(oneExile: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                secrets: 1,
+                warbandsInPersonalBank: { cole: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: oneExile ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY),
+            banners: testBanners({ [Banner.PeoplesFavor]: 'jacob', [Banner.DarkestSecret]: 'jacob' })
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
+/** R-6.7 — the Grand Scepter's holder may exile Cole (5 favor) or Ann, who holds the People's Favor (6). */
+function exileCitizensTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 12,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { cole: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY),
+            banners: testBanners({ [Banner.PeoplesFavor]: 'ann' })
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
+/** R-6.8 — Cole, a Citizen with one secret and two warbands on his board, may exile himself for 3 favor. */
+function selfExileTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 5,
+                secrets: 1,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { cole: 14 }
+            }),
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                favor: 4,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY)
+        }
+    )
+    openTurn(state, 'cole')
+    state.activePlayerIds = ['cole']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
+    warbandGiveAsked: warbandGiveAskedTable,
+    offerCitizenship: () => offerCitizenshipTable(false),
+    offerCitizenshipToOne: () => offerCitizenshipTable(true),
+    exileCitizens: exileCitizensTable,
+    selfExile: selfExileTable,
     setup: setupTable,
     searching: searchingTable,
     prophets: prophetsTable,
@@ -2170,6 +2339,21 @@ export function legalTravelDestinations(): string[] {
     const seatId = table.myPlayer?.id
     assertExists(seatId, 'A seat is on the clock')
     return HydratedTravel.legalDestinations(table.gameState, seatId, [])
+}
+
+/** Each seat's standing, and the request the game waits on, if any (R-6.6, R-6.7, R-6.8). */
+export function standing(): {
+    statusOf: Record<string, PlayerStatus>
+    asked?: { kind: string; askedPlayerId: string }
+} {
+    const state = current().gameState
+    const pending = state.pendingConsent
+    return {
+        statusOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.status])),
+        ...(pending
+            ? { asked: { kind: pending.request.kind, askedPlayerId: pending.askedPlayerId } }
+            : {})
+    }
 }
 
 export function defeatPicks(): { required: number; picked: number[]; blockedBecause?: string } {

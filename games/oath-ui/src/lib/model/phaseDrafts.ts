@@ -470,7 +470,8 @@ type OfferTerms = {
 }
 type TermCount = 'givenFavor' | 'givenSecrets' | 'askedFavor' | 'askedSecrets'
 type TermList = 'givenRelics' | 'givenBanners' | 'askedRelics' | 'askedBanners'
-type CitizenshipValueByStage = { exile: string; reliquarySlot: string; terms: OfferTerms }
+// The terms stage keeps the terms after each pick, so Back and Undo take one pick at a time.
+type CitizenshipValueByStage = { exile: string; reliquarySlot: string; terms: OfferTerms[] }
 
 const CITIZENSHIP_STAGE_ORDER = ['exile', 'reliquarySlot', 'terms'] as const
 const _citizenshipStagesAreCovered: StagesCover<
@@ -531,22 +532,24 @@ export class CitizenshipDraft implements PanelDraft {
         return this.playerId ? this.session.gameState.reliquarySlots() : []
     }
 
+    // One legal option is not a choice: it is read as picked, and never stored, so Back skips it.
     get exilePlayerId(): string | undefined {
+        const exiles = this.exiles
         const playerId = this.flow.value('exile')
-        return playerId !== undefined && this.exiles.includes(playerId) ? playerId : undefined
+        if (playerId !== undefined && exiles.includes(playerId)) return playerId
+        return exiles.length === 1 ? exiles[0] : undefined
     }
 
     get reliquarySlotId(): string | undefined {
+        if (!this.exilePlayerId) return undefined
+        const spaces = this.spaces
         const slotId = this.flow.value('reliquarySlot')
-        return this.exilePlayerId &&
-            slotId !== undefined &&
-            this.spaces.some((s) => s.slotId === slotId)
-            ? slotId
-            : undefined
+        if (slotId !== undefined && spaces.some((s) => s.slotId === slotId)) return slotId
+        return spaces.length === 1 ? spaces[0].slotId : undefined
     }
 
-    get offerTerms() {
-        return this.reliquarySlotId ? (this.flow.value('terms') ?? NO_TERMS) : NO_TERMS
+    get offerTerms(): OfferTerms {
+        return this.reliquarySlotId ? (this.flow.value('terms')?.at(-1) ?? NO_TERMS) : NO_TERMS
     }
 
     // R-6.6.1 — favor, secrets, banners and non-Reliquary relics, each way. Omitted rather than
@@ -613,7 +616,7 @@ export class CitizenshipDraft implements PanelDraft {
 
     setTerm(term: TermCount, amount: number): void {
         if (this.reliquarySlotId) {
-            this.flow.set('terms', { ...this.offerTerms, [term]: Math.max(0, amount) })
+            this.pickTerms({ ...this.offerTerms, [term]: Math.max(0, amount) })
         }
     }
 
@@ -632,7 +635,13 @@ export class CitizenshipDraft implements PanelDraft {
     private setList<T extends string>(term: TermList, item: T, on: boolean): void {
         const terms = this.offerTerms
         const rest = terms[term].filter((listed) => listed !== item)
-        this.flow.set('terms', { ...terms, [term]: on ? [...rest, item] : rest })
+        this.pickTerms({ ...terms, [term]: on ? [...rest, item] : rest })
+    }
+
+    // A tap that changes nothing is no pick for Undo to take back.
+    private pickTerms(next: OfferTerms): void {
+        if (JSON.stringify(next) === JSON.stringify(this.offerTerms)) return
+        this.flow.set('terms', [...(this.flow.value('terms') ?? []), next])
     }
 
     async offer(): Promise<void> {
@@ -647,6 +656,11 @@ export class CitizenshipDraft implements PanelDraft {
     }
 
     back(): boolean {
+        const picks = this.flow.value('terms')
+        if (picks !== undefined && picks.length > 1) {
+            this.flow.set('terms', picks.slice(0, -1))
+            return true
+        }
         return this.flow.back() !== undefined
     }
 

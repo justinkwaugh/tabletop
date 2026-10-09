@@ -299,6 +299,7 @@ const reasonLine = (page: Page) => grid(page).locator('.strip')
 const boardOffers = (page: Page) => page.locator('.board-card.offered')
 const dimmedSites = (page: Page) => page.locator('.site.dimmed')
 const answer = (page: Page, name: string) => grid(page).getByRole('button', { name, exact: true })
+const question = (page: Page) => grid(page).locator('p').filter({ hasText: '?' })
 
 async function restMouse(page: Page) {
     await page.mouse.move(2, 2)
@@ -548,9 +549,10 @@ test.describe('scenario 30: answering another player’s request', () => {
         const asked = await call(page, 'tableFacts')
         expect(asked.seatId).toBe('chan')
         expect(asked.machineState).toBe('ConsentRequest')
-        await expect(grid(page)).toContainText(
-            'cit asks your permission, as Chancellor, to move 2 Imperial warbands off their site to their board.'
-        )
+        await expect(grid(page).getByRole('heading', { name: 'Move warbands' })).toBeVisible()
+        await expect(grid(page)).not.toContainText('A question for you')
+        await expect(question(page)).toHaveText('Let cit move 2 off their site?')
+        await expect(question(page).getByRole('img', { name: 'Imperial warbands' })).toBeVisible()
         await expect(answer(page, 'Allow')).toBeEnabled()
         await expect(answer(page, 'Refuse')).toBeEnabled()
         expect(asked.warbandsAt.c1).toEqual({ imperial: 3 })
@@ -584,17 +586,32 @@ test.describe('scenario 30: answering another player’s request', () => {
         expect(await call(page, 'viewOffTheClock')).toBe('cit')
         await expectWaitingOn(page, ['chan'])
         await expect(grid(page)).not.toContainText('A question for you')
+        await expect(grid(page)).not.toContainText('Move warbands')
         await expect(answer(page, 'Allow')).toHaveCount(0)
         await expect(answer(page, 'Refuse')).toHaveCount(0)
     })
 
-    test('Allow is dimmed with the engine’s reason when the board no longer allows the move', async ({
+    test('Allow is not shown when the board no longer allows the move; the engine’s reason is the one red line', async ({
         page
     }) => {
         await openTable(page, 'staleWarbandMoveAsked')
-        await expect(answer(page, 'Allow')).toBeDisabled()
-        await expect(grid(page)).toContainText('the last one must stay')
+        await expect(answer(page, 'Allow')).toHaveCount(0)
+        await expect(grid(page).locator('.text-oath-danger')).toHaveCount(1)
+        await expect(grid(page).locator('.text-oath-danger')).toContainText('the last one must stay')
         await expect(answer(page, 'Refuse')).toBeEnabled()
+    })
+
+    test('a gift asks “Let … give you …?”, and the answers are as wide as the wider label', async ({
+        page
+    }) => {
+        await openTable(page, 'warbandGiveAsked')
+        await expect(question(page)).toHaveText('Let cit give you 2?')
+        await expect(question(page).getByRole('img', { name: 'Imperial warbands' })).toBeVisible()
+        const allow = await answer(page, 'Allow').boundingBox()
+        const refuse = await answer(page, 'Refuse').boundingBox()
+        const panel = await grid(page).boundingBox()
+        expect(allow?.width).toBe(refuse?.width)
+        expect((allow?.width ?? 0) * 3).toBeLessThan(panel?.width ?? 0)
     })
 
     test('a Citizen answers Join or Stay out, then the defender Allow or Refuse; nothing is rolled until both answer', async ({
@@ -604,15 +621,15 @@ test.describe('scenario 30: answering another player’s request', () => {
         const joining = await call(page, 'tableFacts')
         expect(joining.seatId).toBe('cit')
         expect(joining.campaignUnderway).toBe(false)
-        await expect(grid(page)).toContainText(
-            'att is campaigning against chan. Your pawn is in the battle: join the defence as an Ally?'
-        )
+        await expect(grid(page).getByRole('heading', { name: 'Campaign' })).toBeVisible()
+        await expect(question(page)).toHaveText('Join chan’s defence?')
         await expect(answer(page, 'Stay out')).toBeEnabled()
         await answer(page, 'Join').click()
 
         await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('chan')
         expect((await call(page, 'tableFacts')).campaignUnderway).toBe(false)
-        await expect(grid(page)).toContainText('cit asks to join your defence as an Ally.')
+        await expect(grid(page).getByRole('heading', { name: 'Campaign' })).toBeVisible()
+        await expect(question(page)).toHaveText('Let cit join your defence?')
         await answer(page, 'Allow').click()
 
         await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(true)
@@ -756,6 +773,173 @@ test.describe('answering an offer of Citizenship', () => {
         expect(Math.abs(accept.width - refuse.width)).toBeLessThan(1)
         expect(refuse.x + refuse.width - accept.x).toBeLessThan(panel.width * 0.6)
         expect(accept.height).toBeGreaterThanOrEqual(44)
+    })
+})
+
+
+const minor = (page: Page, label: string) =>
+    grid(page).locator('.minors button').filter({ hasText: label })
+
+/** The Citizenship offer's builder (R-6.6.1): to whom, which relic, then the terms. */
+test.describe('offering Citizenship', () => {
+    test('“To:” the Exiles’ chips, “Promise <chip> one relic.”, then the terms as rows and “Offer” alone', async ({
+        page
+    }) => {
+        await openTable(page, 'offerCitizenship')
+        await minor(page, 'Offer Citizenship').click()
+        await expect(grid(page)).toContainText('To:')
+        await expect(grid(page)).not.toContainText('Choose an Exile')
+        await expect(grid(page)).not.toContainText('yourself')
+        await expect(answer(page, 'Cancel the offer')).toHaveCount(0)
+
+        await grid(page).getByRole('button', { name: 'cole', exact: true }).click()
+        await expect(grid(page).locator('p').filter({ hasText: 'Promise' })).toHaveText(
+            'Promise cole one relic.'
+        )
+        await expect(grid(page)).not.toContainText('facedown')
+        await panelCards(page).filter({ has: page.getByRole('img', { name: 'Cup of Plenty' }) }).click()
+
+        await expect(grid(page).locator('p').filter({ hasText: /^To/ })).toHaveText('To cole')
+        await expect(grid(page)).not.toContainText('reliquary.')
+        await expect(grid(page)).not.toContainText('hold')
+        await expect(grid(page)).toContainText('You give')
+        await expect(grid(page)).toContainText('You get')
+        await expect(grid(page).getByRole('img', { name: 'Cup of Plenty' })).toBeVisible()
+        await expect(grid(page).locator('input[type="checkbox"]')).toHaveCount(0)
+        await expect(answer(page, 'Back')).toHaveCount(0)
+        await expect(answer(page, 'Offer')).toBeEnabled()
+
+        // The banners are their tiles: a tap adds one and rings it, a second takes it out.
+        const darkest = answer(page, 'the Darkest Secret')
+        await expect(darkest).toHaveAttribute('aria-pressed', 'false')
+        await darkest.click()
+        await expect(darkest).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'the People’s Favor')).toHaveAttribute('aria-pressed', 'false')
+
+        // The counts given are gold once picked; the counts asked stay plain.
+        await answer(page, 'you give 2 favor').click()
+        await expect(answer(page, 'you give 2 favor')).toHaveClass(/text-oath-accent/)
+        await answer(page, 'they give 1 secrets').click()
+        await expect(answer(page, 'they give 1 secrets')).not.toHaveClass(/text-oath-accent/)
+
+        await answer(page, 'Offer').click()
+        await expect.poll(async () => (await call(page, 'standing')).asked).toEqual({
+            kind: 'citizenshipOffer',
+            askedPlayerId: 'cole'
+        })
+    })
+
+    test('Undo backs out one pick per press: a term, the banner, the relic, the Exile, then the action', async ({
+        page
+    }) => {
+        await openTable(page, 'offerCitizenship')
+        await minor(page, 'Offer Citizenship').click()
+        await grid(page).getByRole('button', { name: 'cole', exact: true }).click()
+        await panelCards(page).first().click()
+        await answer(page, 'the Darkest Secret').click()
+        await answer(page, 'you give 1 favor').click()
+
+        await undoButton(page).click()
+        await expect(answer(page, 'you give 0 favor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'the Darkest Secret')).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(answer(page, 'the Darkest Secret')).toHaveAttribute('aria-pressed', 'false')
+        await undoButton(page).click()
+        await expect(grid(page)).toContainText('Promise')
+        await undoButton(page).click()
+        await expect(grid(page)).toContainText('To:')
+        await undoButton(page).click()
+        await expect(grid(page)).toContainText('Act Phase')
+        expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+    })
+
+    test('with one Exile, the offer opens at the relic; Undo then puts the action down', async ({
+        page
+    }) => {
+        await openTable(page, 'offerCitizenshipToOne')
+        await minor(page, 'Offer Citizenship').click()
+        await expect(grid(page).locator('p').filter({ hasText: 'Promise' })).toHaveText(
+            'Promise cole one relic.'
+        )
+        await expect(grid(page)).not.toContainText('To:')
+        await undoButton(page).click()
+        await expect(grid(page)).toContainText('Act Phase')
+        expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+    })
+})
+
+/** Exile (R-6.7, R-6.8): each button is the price and whom it goes to. */
+test.describe('exiling', () => {
+    test('Exile Citizen: one button per Citizen, “5 [favor] to <chip>”, the People’s Favor’s holder 6; a tap exiles', async ({
+        page
+    }) => {
+        await openTable(page, 'exileCitizens')
+        await minor(page, 'Exile Citizen').click()
+        const cole = answer(page, '5 favor to cole')
+        const ann = answer(page, '6 favor to ann')
+        await expect(cole).toHaveText('5 to cole')
+        await expect(ann).toHaveText('6 to ann')
+        await expect(cole.getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect(cole.locator('.text-oath-accent')).toHaveText('5')
+        await expect(grid(page)).not.toContainText('Exile cole')
+        const [coleBox, annBox] = [await cole.boundingBox(), await ann.boundingBox()]
+        expect(coleBox?.width).toBe(annBox?.width)
+
+        await ann.click()
+        await expect.poll(async () => (await call(page, 'standing')).statusOf.ann).toBe('exile')
+        expect((await call(page, 'tableFacts')).favorOf).toMatchObject({ jacob: 6, ann: 8 })
+    })
+
+    test('Exile yourself is staged: the bar names it, one button “3 [favor] to <chip>” sends it, and Undo puts it down', async ({
+        page
+    }) => {
+        await openTable(page, 'selfExile')
+        await minor(page, 'Exile yourself').click()
+        const facts = await call(page, 'tableFacts')
+        expect(facts.staged).toBe('selfExile')
+        expect(facts.favorOf).toEqual({ cole: 5, jacob: 4 })
+        expect((await call(page, 'standing')).statusOf.cole).toBe('citizen')
+        await expect(minor(page, 'Exile yourself')).toHaveCount(0)
+        await expect(grid(page)).toContainText('Exile yourself')
+        const pay = answer(page, '3 favor to jacob')
+        await expect(pay).toHaveText('3 to jacob')
+
+        await undoButton(page).click()
+        expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+        await expect(pay).toHaveCount(0)
+
+        await minor(page, 'Exile yourself').click()
+        await answer(page, '3 favor to jacob').click()
+        await expect.poll(async () => (await call(page, 'standing')).statusOf.cole).toBe('exile')
+        expect((await call(page, 'tableFacts')).favorOf).toEqual({ cole: 2, jacob: 7 })
+
+        // The History names who got the favor.
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history')).toContainText('went into exile, giving 3')
+        await expect(page.locator('.history')).toContainText('to jacob')
+    })
+})
+
+test.describe('on a phone, the answers and the exile buttons', () => {
+    test.use({ viewport: { width: 375, height: 812 } })
+
+    test('Allow and Refuse stay sized to the wider label, 44 px tall; the exile prices go one per line at one width', async ({
+        page
+    }) => {
+        await openTable(page, 'warbandMoveAsked')
+        const allow = await answer(page, 'Allow').boundingBox()
+        const refuse = await answer(page, 'Refuse').boundingBox()
+        expect(allow?.height).toBeGreaterThanOrEqual(44)
+        expect(allow?.width).toBe(refuse?.width)
+        expect(allow?.y).toBe(refuse?.y)
+
+        await openTable(page, 'exileCitizens')
+        await minor(page, 'Exile Citizen').click()
+        const cole = await answer(page, '5 favor to cole').boundingBox()
+        const ann = await answer(page, '6 favor to ann').boundingBox()
+        expect(cole?.height).toBeGreaterThanOrEqual(44)
+        expect(cole?.width).toBe(ann?.width)
+        expect((ann?.y ?? 0) - (cole?.y ?? 0)).toBeGreaterThanOrEqual(44)
     })
 })
 
@@ -3254,13 +3438,13 @@ test.describe('Undo is the one reversal control', () => {
         expect(facts.staged).toBeUndefined()
     })
 
-    test('a Citizenship offer: Undo takes the terms, the space and the Exile one press each, then closes the offer', async ({ page }) => {
+    test('a Citizenship offer to the one Exile: Undo takes a term and the relic one press each, then closes the offer', async ({ page }) => {
         await openTable(page, 'citizenship')
         await grid(page).getByRole('button', { name: 'Offer Citizenship', exact: true }).click()
-        await grid(page).getByRole('button', { name: /^ann$/i }).click()
-        const spaces = grid(page).getByRole('button', { name: /^Facedown relic on / })
-        await spaces.first().click()
-        const offer = grid(page).getByRole('button', { name: /^Put the offer to / })
+        // The one Exile is no pick: the offer opens at the relic.
+        await expect(grid(page)).toContainText('Promise')
+        await panelCards(page).first().click()
+        const offer = answer(page, 'Offer')
         await expect(offer).toBeVisible()
         const giveOne = grid(page).getByRole('button', { name: 'you give 1 favor', exact: true })
         await giveOne.click()
@@ -3272,12 +3456,9 @@ test.describe('Undo is the one reversal control', () => {
         await expect(giveOne).toHaveAttribute('aria-pressed', 'false')
         await undo.click()
         await expect(offer).toHaveCount(0)
-        await expect(spaces.first()).toBeVisible()
-        await undo.click()
-        await expect(grid(page).getByRole('button', { name: /^ann$/i })).toBeVisible()
+        await expect(grid(page)).toContainText('Promise')
         await expect(stepBacks(page)).toHaveCount(0)
         await undo.click()
-        await expect(grid(page).getByRole('button', { name: /^ann$/i })).toHaveCount(0)
         await expect(tile(page, 'Travel')).toBeVisible()
         expect((await call(page, 'tableFacts')).staged).toBeUndefined()
         await expect(undo).toHaveCount(0)

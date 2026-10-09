@@ -135,11 +135,8 @@ export const MINOR_ACTIONS: readonly ActionEntry[] = [
 
 export const ALL_ACTIONS: readonly ActionEntry[] = [...MAJOR_ACTIONS, ...MINOR_ACTIONS]
 
-/** Sent on the tap: nothing to pick first. */
-export const UNTARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
-    ActionType.EndActPhase,
-    ActionType.SelfExile
-])
+/** Sent on the tap: nothing to pick first. R-6.8's self-exile is staged, so its price shows first. */
+export const UNTARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([ActionType.EndActPhase])
 
 /** R-7.4 — the major actions a modifier can be declared on. */
 export const MODIFIABLE_ACTIONS: ReadonlySet<ActionType> = new Set([
@@ -150,13 +147,14 @@ export const MODIFIABLE_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.Search
 ])
 
-/** R-6.1, R-6.3, R-6.5, R-6.6.1, R-6.7 — one choice from a list the engine computes. */
+/** R-6.1, R-6.3, R-6.5, R-6.7, R-6.8 — one choice from a list the engine computes. */
 export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.PlayFacedownAdviser,
     ActionType.Peek,
     ActionType.LetPeek,
     ActionType.MoveWarbands,
-    ActionType.ExileCitizen
+    ActionType.ExileCitizen,
+    ActionType.SelfExile
 ])
 
 /** Travel on a phone, where the lit map is the menu. */
