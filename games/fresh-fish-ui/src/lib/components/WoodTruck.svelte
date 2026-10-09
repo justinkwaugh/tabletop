@@ -14,8 +14,8 @@
     let name = $derived(goodsType ? getGoodsName(goodsType).toUpperCase() : '')
 
     // The printed truck art's own outline is the stencil, so the wooden piece keeps its
-    // rounded cartoon van shape exactly. The printed name below the van is cut off.
-    const DEPTH = 5
+    // rounded cartoon van shape exactly. The printed name below the van is cut off. Like the
+    // discs, it is seen flat from above, so only its shadow shows its height.
     const TRUCK_ICON_EDGE = 'rgb(74 50 22 / 0.55)'
     const CARGO = { x: 28, y: 13, width: 62, height: 50 }
 
@@ -92,16 +92,10 @@
 
     <g transform="translate(-2 0)">
         <g filter="url(#{id}-soft)" opacity="0.5">
-            <g transform="translate(5 3)" mask="url(#{id}-van)">
+            <g transform="translate(2 3)" mask="url(#{id}-van)">
                 <rect width="100" height="100" fill="#000"></rect>
             </g>
         </g>
-        {#each Array.from({ length: DEPTH }, (_, i) => DEPTH - i) as i (i)}
-            <g transform="translate({i} {-i})" mask="url(#{id}-van)">
-                <rect width="100" height="100" fill={TRUCK_WOOD}></rect>
-                <rect width="100" height="100" fill="#000" opacity="0.3"></rect>
-            </g>
-        {/each}
         <g mask="url(#{id}-van)">
             <rect width="100" height="100" fill={TRUCK_WOOD}></rect>
             <rect
