@@ -1,53 +1,37 @@
 <script lang="ts">
-    import type { AuctionParticipant } from '@tabletop/common'
-    import { AuctionKind, seatOrderFrom } from '@tabletop/hill-country-grocers'
+    import { AuctionKind } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
     import BigShareCertificate from './BigShareCertificate.svelte'
 
     const gameSession = getGameSession()
 
-    const auction = $derived(gameSession.gameState.auction)
-    const bidding = $derived(auction ? gameSession.gameState.bidding() : undefined)
-    const opening = $derived(!auction && gameSession.auctionCompany !== undefined)
-    const companyId = $derived(auction?.companyId ?? gameSession.auctionCompany)
-    const kind = $derived(auction?.kind ?? AuctionKind.Share)
-    const seats: AuctionParticipant[] = $derived(
-        auction
-            ? auction.bidding.participants
-            : gameSession.myPlayerId
-              ? seatOrderFrom(gameSession.gameState.turnManager.turnOrder, gameSession.myPlayerId).map(
-                    (playerId) => ({ playerId, passed: false })
-                )
-              : []
-    )
-    const currentBidderId = $derived(bidding ? bidding.currentBidderId : gameSession.myPlayerId)
-    const smallest = $derived(auction ? gameSession.gameState.smallestBid() : 0)
+    const view = $derived(gameSession.auctionView)
     const cash = $derived(
-        gameSession.myPlayerId ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash : 0
+        gameSession.myPlayerId
+            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
+            : 0
     )
-    const myBid = $derived(gameSession.bidding && bidding?.currentBidderId === gameSession.myPlayerId)
+    const myBid = $derived(gameSession.bidding && view?.currentBidderId === gameSession.myPlayerId)
 </script>
 
-{#if companyId && (bidding || opening)}
+{#if view}
     <div class="auction">
-        <div class="heading">{kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}</div>
+        <div class="heading">
+            {view.kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}
+        </div>
         <div class="table">
-            <BigShareCertificate {companyId} />
+            <BigShareCertificate companyId={view.companyId} />
             <div class="seats">
-                {#each seats as seat (seat.playerId)}
-                    {@const current = seat.playerId === currentBidderId}
+                {#each view.seats as seat (seat.playerId)}
+                    {@const current = seat.playerId === view.currentBidderId}
                     <div
                         class="seat"
                         class:passed={seat.passed}
                         class:current
                         style:--player={gameSession.colors.getPlayerUiColor(seat.playerId)}
                     >
-                        <span class="name"
-                            >{seat.playerId === gameSession.myPlayerId
-                                ? 'You'
-                                : gameSession.getPlayerName(seat.playerId)}</span
-                        >
+                        <span class="name">{gameSession.displayName(seat.playerId)}</span>
                         <span class="amount"
                             >{seat.bid !== undefined ? `$${seat.bid}` : current ? '?' : '—'}</span
                         >
@@ -58,10 +42,10 @@
                 {/each}
             </div>
         </div>
-        {#if opening}
+        {#if view.opening}
             <div class="controls">
                 <BidStepper
-                    minimum={0}
+                    minimum={view.minimumBid}
                     maximum={cash}
                     label="Bid"
                     onbid={(amount) => gameSession.openAuction(amount)}
@@ -71,12 +55,12 @@
         {#if myBid}
             <div class="controls">
                 <BidStepper
-                    minimum={smallest}
+                    minimum={view.minimumBid}
                     maximum={cash}
                     label="Bid"
                     onbid={(amount) => gameSession.placeBid(amount)}
                 />
-                {#if bidding?.hasBid}
+                {#if view.hasBid}
                     <button type="button" class="secondary" onclick={() => gameSession.passBid()}
                         >Pass</button
                     >

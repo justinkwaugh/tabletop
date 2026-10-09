@@ -160,6 +160,20 @@ describe('choosing a share to auction', () => {
         await session.undo()
         expect(actionUndo).toHaveBeenCalledTimes(1)
     })
+
+    it('previews the opening bid with every player seated and the opener to bid', () => {
+        const session = openSessionOn(choose(firstTurnTable(), ActionSpace.AuctionShare))
+        expect(session.auctionView).toBeUndefined()
+        session.selectAuctionCompany(CompanyId.Verbena)
+        const view = session.auctionView
+        const openerId = session.myPlayerId
+        expect(view?.opening).toBe(true)
+        expect(view?.companyId).toBe(CompanyId.Verbena)
+        expect(view?.currentBidderId).toBe(openerId)
+        expect(view?.seats[0]).toEqual({ playerId: openerId, passed: false })
+        expect(view?.seats).toHaveLength(session.gameState.players.length)
+        expect(view?.minimumBid).toBe(0)
+    })
 })
 
 describe('the lifetime of staged choices', () => {

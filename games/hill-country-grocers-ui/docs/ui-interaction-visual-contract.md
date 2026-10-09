@@ -15,7 +15,7 @@ Only one of these intents can be live at a time, because each belongs to exactly
 
 ## Shared visual state
 
-The session owns the staged selections: build company and store hexes, develop city and payees, and the auction company. The map, the company cards and the action panel only read them.
+The session owns the staged selections: build company and store hexes, develop city and payees, and the auction company. The map, the company cards and the action panel only read them. The session also derives the auction view, covering both the opening bid it previews from the picked company and a live auction, so the action panel only renders it.
 
 - **Lifetime:** all staged selections clear in `beforeNewState`, so they never outlive the game state they were made in. Undo pops the most recent manual stage first, and an automatic company choice is never popped.
 - **Validity:** a stored company or city applies only while it is still among the current options and the owning machine state is active. History View shows no targets, because `canAct` is false there.
