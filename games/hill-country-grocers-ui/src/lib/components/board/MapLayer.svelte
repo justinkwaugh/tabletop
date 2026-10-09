@@ -25,6 +25,9 @@
     const DOT_GAP = 8
     const CITY_ROW_Y = -34
     const STORE_SIZE = 24
+    const PRICE_Y = 52
+    const PRICE_WIDTH = 36
+    const PRICE_HEIGHT = 20
 
     const chosenKeys = $derived(new Set(gameSession.chosenHexes.map(hexKey)))
     const targetKeys = $derived(new Set(gameSession.hexTargets.map(hexKey)))
@@ -158,6 +161,17 @@
             onkeydown={(event) => onKey(event, () => gameSession.clickHex(place.coords))}
         >
             <polygon points={hexPoints(place.center, HEX_RADIUS - 4)} class="ring" />
+            <rect
+                x={place.center.x - PRICE_WIDTH / 2}
+                y={place.center.y + PRICE_Y - PRICE_HEIGHT / 2}
+                width={PRICE_WIDTH}
+                height={PRICE_HEIGHT}
+                rx="4"
+                class="price-tag"
+            />
+            <text x={place.center.x} y={place.center.y + PRICE_Y} class="price"
+                >${gameSession.placementCost(place.coords)}</text
+            >
             <title>{hexName(place.coords)}</title>
         </g>
     {/if}
@@ -226,6 +240,22 @@
         stroke-width: 5;
         stroke-dasharray: 10 6;
         animation: hcg-ring 1.7s linear infinite;
+    }
+
+    .price-tag {
+        fill: #7a1d22;
+        stroke: #fff8e6;
+        stroke-width: 1.5;
+    }
+
+    .price {
+        fill: #fff8e6;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 14px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
     }
 
     .target:hover .ring,

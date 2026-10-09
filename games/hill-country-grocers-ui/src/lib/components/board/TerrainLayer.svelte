@@ -15,6 +15,14 @@
         coordsSeed,
         type ContourHill
     } from '$lib/utils/mapStyle.js'
+    import {
+        CROWN_LAYERS_BOTTOM_UP,
+        OAKS,
+        crownHighlights,
+        crownLobes,
+        groundShadow,
+        trunkPath
+    } from '$lib/utils/liveOak.js'
 
     type Decoration = 'oaks' | 'bluebonnets' | 'limestone' | 'cactus' | 'none'
 
@@ -144,10 +152,19 @@
         <g transform="translate({tile.center.x} {tile.center.y})">
             {#if tile.decoration === 'oaks'}
                 <g transform="scale({tile.flip} 1)">
-                    {#each [{ x: -30, y: -36, r: 9 }, { x: -12, y: -44, r: 11 }, { x: 8, y: -38, r: 8 }] as oak (oak.x)}
-                        <rect x={oak.x - 1.5} y={oak.y + oak.r - 3} width="3" height="8" class="trunk" />
-                        <circle cx={oak.x} cy={oak.y} r={oak.r} class="canopy" />
-                        <circle cx={oak.x - oak.r * 0.3} cy={oak.y - oak.r * 0.3} r={oak.r * 0.45} class="canopy-light" />
+                    {#each OAKS as oak (oak.x)}
+                        <ellipse {...groundShadow(oak)} class="oak-shadow" />
+                        <path d={trunkPath(oak)} class="trunk" />
+                        {#each CROWN_LAYERS_BOTTOM_UP as layer (layer)}
+                            <g class={layer}>
+                                {#each crownLobes(oak) as lobe, index (index)}
+                                    <ellipse {...lobe} />
+                                {/each}
+                            </g>
+                        {/each}
+                        {#each crownHighlights(oak) as highlight, index (index)}
+                            <ellipse {...highlight} class="canopy-light" />
+                        {/each}
                     {/each}
                 </g>
             {:else if tile.decoration === 'bluebonnets'}
@@ -240,14 +257,26 @@
         stroke-width: 1.6;
     }
 
+    .oak-shadow {
+        fill: #6b6a3c;
+        opacity: 0.35;
+    }
+
     .trunk {
-        fill: #5b4026;
+        fill: none;
+        stroke: #4a3320;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
+    .canopy-edge {
+        fill: #2f4419;
+        stroke: #2f4419;
+        stroke-width: 2;
     }
 
     .canopy {
-        fill: #4d6a2c;
-        stroke: #2f4419;
-        stroke-width: 1;
+        fill: #4f6b2c;
     }
 
     .canopy-light {

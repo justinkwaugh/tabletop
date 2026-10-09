@@ -1,9 +1,14 @@
 <script lang="ts">
-    import { ActionSpace, CompanyId, MachineState } from '@tabletop/hill-country-grocers'
+    import {
+        ActionSpace,
+        CompanyId,
+        MachineState,
+        companyDefinition
+    } from '@tabletop/hill-country-grocers'
     import { ACTION_RULES } from '$lib/utils/actionRules.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AuctionPanel from './AuctionPanel.svelte'
-    import BidStepper from './BidStepper.svelte'
+    import BigShareCertificate from './BigShareCertificate.svelte'
     import CompanyBadge from './CompanyBadge.svelte'
     import WaitingView from './WaitingView.svelte'
 
@@ -11,7 +16,6 @@
 
     const state = $derived(gameSession.gameState)
     const machineState = $derived(state.machineState)
-    const cash = $derived(gameSession.myPlayerId ? state.getPlayerState(gameSession.myPlayerId).cash : 0)
     const remainingCubes = $derived(gameSession.maxCubes - gameSession.chosenHexes.length)
 </script>
 
@@ -40,21 +44,22 @@
             <p class="prompt">Choose which of your grocers builds:</p>
             <div class="row">
                 {#each gameSession.buildCompanyOptions as companyId (companyId)}
-                    <button
-                        type="button"
-                        class="secondary"
-                        onclick={() => gameSession.selectBuildCompany(companyId)}
-                        ><CompanyBadge {companyId} /></button
-                    >
+                    <BigShareCertificate
+                        {companyId}
+                        choice={{
+                            label: `Build with ${companyDefinition(companyId).name}`,
+                            onclick: () => gameSession.selectBuildCompany(companyId)
+                        }}
+                    />
                 {/each}
             </div>
         {:else}
             <p class="prompt">
-                Build for <CompanyBadge companyId={gameSession.buildCompany} /> (treasury ${state.company(
+                Build for <CompanyBadge companyId={gameSession.buildCompany} /> (${state.company(
                     gameSession.buildCompany
                 ).treasury}):
                 {#if gameSession.chosenHexes.length === 0}
-                    choose a highlighted hex for up to {gameSession.maxCubes} stores.
+                    choose up to {gameSession.maxCubes} hexes.
                 {:else if gameSession.hexTargets.length > 0}
                     {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
                     now.
@@ -89,10 +94,7 @@
                 {/each}
             </div>
         {:else if state.turnDevelopments.length === 0}
-            <p class="prompt">
-                Place a development in a highlighted city. Grocers there get $1 each from Balcones
-                Builders.
-            </p>
+            <p class="prompt">Place a development.</p>
         {:else}
             <p class="prompt">
                 {#if gameSession.cityTargets.length > 0}
@@ -107,35 +109,26 @@
                 >
             </div>
         {/if}
-        <p class="rules">{ACTION_RULES[ActionSpace.DevelopTowns]}</p>
+        {#if gameSession.cityTargets.length > 0}
+            <p class="rules">{ACTION_RULES[ActionSpace.DevelopTowns]}</p>
+        {/if}
     {:else if machineState === MachineState.StartingAuction}
         {#if gameSession.auctionCompany}
-            <p class="prompt">
-                Open the auction for a <CompanyBadge companyId={gameSession.auctionCompany} full /> share at any
-                price you can pay.
-            </p>
-            <div class="row">
-                <BidStepper
-                    minimum={0}
-                    maximum={cash}
-                    label="Open at"
-                    onbid={(amount) => gameSession.openAuction(amount)}
-                />
-            </div>
+            <AuctionPanel />
         {:else}
             <p class="prompt">Select the company share for auction:</p>
             <div class="row">
                 {#each gameSession.auctionCompanyOptions as companyId (companyId)}
-                    <button
-                        type="button"
-                        class="secondary"
-                        onclick={() => gameSession.selectAuctionCompany(companyId)}
-                        ><CompanyBadge {companyId} /></button
-                    >
+                    <BigShareCertificate
+                        {companyId}
+                        choice={{
+                            label: `Auction a ${companyDefinition(companyId).name} share`,
+                            onclick: () => gameSession.selectAuctionCompany(companyId)
+                        }}
+                    />
                 {/each}
             </div>
         {/if}
-        <p class="rules">{ACTION_RULES[ActionSpace.AuctionShare]}</p>
     {:else}
         <WaitingView />
     {/if}

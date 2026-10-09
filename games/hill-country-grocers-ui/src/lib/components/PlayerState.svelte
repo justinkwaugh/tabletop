@@ -104,6 +104,7 @@
 
     .cash {
         flex: none;
+        font-size: 16px;
     }
 
     .double-rule {
@@ -134,8 +135,7 @@
 
     .amount {
         min-width: 30px;
-        font-size: 14px;
-        font-weight: 700;
+        font-size: 16px;
         text-align: right;
     }
 
@@ -156,13 +156,12 @@
         align-items: flex-end;
         justify-content: flex-end;
         margin-top: 1px;
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 700;
         letter-spacing: 0.06em;
     }
 
     .total strong {
-        font-size: 16px;
         letter-spacing: 0;
     }
 

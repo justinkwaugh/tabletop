@@ -7,6 +7,7 @@
         actionSale,
         describeAction,
         saleDescription,
+        winVerb,
         withdrawnBidders
     } from '$lib/utils/describeAction.js'
     import { entryActions, historyEntries, type HistoryEntry } from '$lib/utils/history.js'
@@ -61,10 +62,16 @@
         <div class="final">
             <div class="stars">*** Final total ***</div>
             <div class="winners">
-                {#each gameSession.gameState.winningPlayerIds as playerId (playerId)}
-                    <PlayerName {playerId} />
+                {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
+                    {#if index > 0}and{/if}
+                    <PlayerName
+                        {playerId}
+                        capitalization={index > 0 && playerId === gameSession.myPlayerId
+                            ? 'none'
+                            : 'capitalize'}
+                    />
                 {/each}
-                {gameSession.gameState.winningPlayerIds.length > 1 ? 'share the win' : 'wins'}
+                {winVerb(gameSession.gameState.winningPlayerIds, gameSession.myPlayerId)}
             </div>
         </div>
         <div class="double-rule"></div>

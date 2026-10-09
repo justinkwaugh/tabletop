@@ -1,56 +1,66 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import { AuctionKind } from '@tabletop/hill-country-grocers'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
-    import CompanyBadge from './CompanyBadge.svelte'
+    import BigShareCertificate from './BigShareCertificate.svelte'
 
     const gameSession = getGameSession()
 
-    const auction = $derived(gameSession.gameState.auction)
-    const bidding = $derived(auction ? gameSession.gameState.bidding() : undefined)
-    const smallest = $derived(auction ? gameSession.gameState.smallestBid() : 0)
+    const view = $derived(gameSession.auctionView)
     const cash = $derived(
-        gameSession.myPlayerId ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash : 0
+        gameSession.myPlayerId
+            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
+            : 0
     )
-    const myBid = $derived(gameSession.bidding && bidding?.currentBidderId === gameSession.myPlayerId)
+    const myBid = $derived(gameSession.bidding && view?.currentBidderId === gameSession.myPlayerId)
 </script>
 
-{#if auction && bidding}
+{#if view}
     <div class="auction">
-        <div class="heading">
-            <span>{auction.kind === AuctionKind.Initial ? 'Initial auction:' : 'Share auction:'}</span>
-            <CompanyBadge companyId={auction.companyId} full />
+        <div class="table">
+            <div class="heading">
+                {view.kind === AuctionKind.Initial ? 'Initial auction' : 'Share auction'}
+            </div>
+            <BigShareCertificate companyId={view.companyId} shrinkOnPhone />
+            <div class="seats">
+                {#each view.seats as seat (seat.playerId)}
+                    {@const current = seat.playerId === view.currentBidderId}
+                    <div
+                        class="seat"
+                        class:passed={seat.passed}
+                        class:current
+                        style:--player={gameSession.colors.getPlayerUiColor(seat.playerId)}
+                    >
+                        <span class="name">{gameSession.displayName(seat.playerId)}</span>
+                        <span class="amount"
+                            >{seat.bid !== undefined ? `$${seat.bid}` : current ? '?' : '—'}</span
+                        >
+                        {#if seat.passed}
+                            <span class="stamp">Passed</span>
+                        {/if}
+                    </div>
+                {/each}
+            </div>
         </div>
-        <div class="terms">
-            {#if bidding.hasBid}
-                high bid <strong>${bidding.highBid}</strong> by <PlayerName playerId={bidding.highBidderId} />
-            {:else}
-                <PlayerName playerId={auction.bidding.auctioneerId} /> opens the bidding at any price
-            {/if}
-            · the winning bid goes to the company
-        </div>
-        <div class="bidders">
-            {#each auction.bidding.participants as participant (participant.playerId)}
-                <span
-                    class="bidder"
-                    class:passed={participant.passed}
-                    class:current={participant.playerId === bidding.currentBidderId}
-                >
-                    <PlayerName playerId={participant.playerId} />
-                    {#if participant.bid !== undefined}<span class="amount">${participant.bid}</span>{/if}
-                </span>
-            {/each}
-        </div>
+        {#if view.opening}
+            <div class="controls">
+                <BidStepper
+                    minimum={view.minimumBid}
+                    maximum={cash}
+                    label="Bid"
+                    onbid={(amount) => gameSession.openAuction(amount)}
+                />
+            </div>
+        {/if}
         {#if myBid}
             <div class="controls">
                 <BidStepper
-                    minimum={smallest}
+                    minimum={view.minimumBid}
                     maximum={cash}
                     label="Bid"
                     onbid={(amount) => gameSession.placeBid(amount)}
                 />
-                {#if bidding.hasBid}
+                {#if view.hasBid}
                     <button type="button" class="secondary" onclick={() => gameSession.passBid()}
                         >Pass</button
                     >
@@ -69,51 +79,84 @@
     }
 
     .heading {
-        display: inline-flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
+        flex-basis: 100%;
         font-size: 18px;
         font-weight: 700;
-    }
-
-    .terms {
-        font-size: 16px;
-        color: #7a4a2e;
         text-align: center;
     }
 
-    .bidders {
+    .table {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 16px;
+    }
+
+    .seats {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 6px;
+        gap: 10px;
     }
 
-    .bidder {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        border: 1.5px solid #d4b48c;
-        border-radius: 999px;
-        padding: 1px 9px;
-        font-size: 15px;
+    .seat {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 96px;
+        border: 1px solid #d4b48c;
+        border-left: 14px solid var(--player);
+        border-radius: 2px;
+        background: #fffdf7;
+        padding: 5px 8px 6px;
     }
 
-    .bidder.current {
-        border: 2.5px solid #7a1d22;
-        background: #fdf3dc;
-        box-shadow: 0 1px 5px rgba(122, 29, 34, 0.35);
+    .seat.current {
+        border: 2px solid #7a1d22;
+        border-left: 14px solid var(--player);
+        box-shadow: 0 2px 6px rgba(122, 29, 34, 0.3);
+        transform: translateY(-3px);
     }
 
-    .bidder.passed {
-        opacity: 0.45;
-        text-decoration: line-through;
+    .name {
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .amount {
+        font-size: 22px;
         font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .seat.current .amount {
+        color: #7a1d22;
+    }
+
+    .seat.passed > :not(.stamp) {
+        opacity: 0.4;
+    }
+
+    .stamp {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-14deg);
+        border: 2px solid #b0262e;
+        border-radius: 2px;
+        padding: 0 5px;
+        color: #b0262e;
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.85;
     }
 
     .controls {
@@ -122,5 +165,49 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+    }
+
+    @media (max-width: 639px) {
+        .table {
+            column-gap: 8px;
+        }
+
+        .heading {
+            flex-basis: auto;
+            font-size: 16px;
+        }
+
+        .seats {
+            flex-basis: 100%;
+            gap: 4px;
+        }
+
+        .seat,
+        .seat.current {
+            min-width: 0;
+            border-left-width: 8px;
+            padding: 2px 5px 3px;
+        }
+
+        .name {
+            font-size: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .amount {
+            font-size: 16px;
+        }
+
+        .stamp {
+            font-size: 11px;
+        }
+
+        .controls {
+            gap: 6px;
+        }
+
+        .secondary {
+            padding: 0.25rem 0.7rem;
+        }
     }
 </style>

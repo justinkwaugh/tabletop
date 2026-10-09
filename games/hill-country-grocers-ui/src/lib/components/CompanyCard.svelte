@@ -118,7 +118,7 @@
         background: #f4f8ee;
         color: #2b1a10;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 12.5px;
+        font-size: 14px;
         box-shadow: 0 1px 2px rgba(43, 26, 16, 0.2);
     }
 
@@ -164,7 +164,12 @@
         min-width: 58px;
         padding: 0 8px;
         border-left: 1px solid #e3a0a0;
+        font-size: 16px;
         font-weight: 700;
+    }
+
+    .money.supply {
+        font-size: 14px;
     }
 
     .holdings {
