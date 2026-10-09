@@ -25,7 +25,7 @@
         size?: number
     } = $props()
 
-    const SHADE = 0.75
+    const SIGN_TINT = 0.25
 
     // A sidewalk A-frame sign board, seen from the front, with the back leaf's rail leaning
     // away behind its right edge.
@@ -53,9 +53,14 @@
     const grainAngle = Math.floor(Math.random() * 40) - 20
 
     let name = $derived(goodsType ? getGoodsName(goodsType).toUpperCase() : '')
-    let groundRgb = $derived(rgbOf(color).map((channel) => Math.round(channel * SHADE)))
-    let ground = $derived(`rgb(${groundRgb.join(' ')})`)
-    let nameColor = $derived(luminance(groundRgb) > 150 ? LABEL_DARK : LABEL_LIGHT)
+    // The lot is the player's own colour and the sign a lighter tint of it, so neighbouring
+    // players' lots stay distinct and clear of both grass shades.
+    let rgb = $derived(rgbOf(color))
+    let ground = $derived(color)
+    let sign = $derived(
+        `rgb(${rgb.map((channel) => Math.round(channel + (255 - channel) * SIGN_TINT)).join(' ')})`
+    )
+    let nameColor = $derived(luminance(rgb) > 150 ? LABEL_DARK : LABEL_LIGHT)
 
     let boardIcon = $derived(
         goodsType ? fitGoodsIcon(goodsType, ICON_AREA, { fill: 0.86 }) : undefined
@@ -88,10 +93,10 @@
     <rect x="-1" y="-1" width="102" height="102" fill={ground}></rect>
 
     <g transform={showName ? 'translate(2 0)' : 'translate(2 8)'}>
-        <polygon points={backRail} fill={color}></polygon>
+        <polygon points={backRail} fill={sign}></polygon>
         <polygon points={backRail} fill="#000" opacity="0.45"></polygon>
 
-        <polygon points={front} fill={color}></polygon>
+        <polygon points={front} fill={sign}></polygon>
         <g clip-path="url(#{id}-sign)">
             <rect
                 width="100"
