@@ -23,7 +23,9 @@ import { answerCostText } from './actionCards.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { namesAnything } from './exchangeTerms.js'
 import {
+    advisersToDiscardForConspiracy,
     advisersToDiscardForVision,
+    conspiracyFacedownAnswer,
     playVisionAnswer,
     stackOrderAnswer
 } from './questionChoices.js'
@@ -36,8 +38,10 @@ type QuestionValueByStage = {
     burn: number
     floorWith: string
     floorTerms: ExchangeTerms
+    conspiracyPlay: ConspiracyStepPlay
     takeTarget: string
     takePrize: number
+    conspiracyDiscard: string
     visionDiscard: string
     instead: string
     stackOrder: string[]
@@ -47,8 +51,10 @@ const QUESTION_STAGE_ORDER = [
     'burn',
     'floorWith',
     'floorTerms',
+    'conspiracyPlay',
     'takeTarget',
     'takePrize',
+    'conspiracyDiscard',
     'visionDiscard',
     'instead',
     'stackOrder'
@@ -59,6 +65,11 @@ void _questionStagesAreCovered
 
 // R-5.1.4 — False Prophet's plays, in the order the Search offers them.
 const VISION_PLAYS = [SearchPlay.RevealedVision, SearchPlay.Adviser, SearchPlay.Discard] as const
+
+// R-5.1.4-H1 — Inquisitor's plays of the Conspiracy, in the order the Search offers them for it:
+// facedown as an adviser, faceup ("Play it", with the take), or discarded.
+const CONSPIRACY_PLAYS = [SearchPlay.Adviser, SearchPlay.Conspiracy, SearchPlay.Discard] as const
+type ConspiracyStepPlay = SearchPlay.Adviser | SearchPlay.Conspiracy
 
 /** R-X.1 — the asked player's picks for the open question, before the answer is sent. */
 export class QuestionDraft implements PanelDraft {
@@ -131,10 +142,15 @@ export class QuestionDraft implements PanelDraft {
         return this.floorWith !== undefined && namesAnything(this.floorTerms)
     }
 
+    /** The players here the take could match who hold a relic or banner it may take. */
     get takeTargets(): string[] {
         const playerId = this.playerId
-        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return []
-        return playerId ? conspiracyTargets(this.session.gameState, playerId) : []
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
+            return []
+        const state = this.session.gameState
+        return conspiracyTargets(state, playerId).filter(
+            (target) => conspiracyPrizes(state, playerId, target).length > 0
+        )
     }
 
     get takeTarget(): string | undefined {
@@ -168,6 +184,52 @@ export class QuestionDraft implements PanelDraft {
     /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
     get conspiracyComplete(): boolean {
         return this.takeTarget === undefined || this.conspiracy !== undefined
+    }
+
+    /** Inquisitor — the plays the engine accepts with some pick; a refused one is not offered. */
+    get conspiracyPlays(): SearchPlay[] {
+        return CONSPIRACY_PLAYS.filter((play) => {
+            if (play === SearchPlay.Adviser)
+                return (
+                    this.reasonCannot(conspiracyFacedownAnswer()) === undefined ||
+                    this.conspiracyDiscards.length > 0
+                )
+            return this.reasonCannot(this.conspiracyAnswer(play)) === undefined
+        })
+    }
+
+    /** The play chosen whose picks come after it: the take, or the adviser to discard. */
+    get conspiracyStep(): ConspiracyStepPlay | undefined {
+        return this.question?.kind === PowerQuestionKind.PlayOrDiscardConspiracy
+            ? this.flow.value('conspiracyPlay')
+            : undefined
+    }
+
+    // R-5.1.4.II — at the adviser limit the Conspiracy goes facedown only over a discarded adviser.
+    get conspiracyDiscards(): string[] {
+        const playerId = this.playerId
+        return this.question?.kind === PowerQuestionKind.PlayOrDiscardConspiracy && playerId
+            ? advisersToDiscardForConspiracy(this.session.gameState, playerId)
+            : []
+    }
+
+    get conspiracyDiscard(): string | undefined {
+        const cardId = this.flow.value('conspiracyDiscard')
+        return cardId !== undefined && this.conspiracyDiscards.includes(cardId) ? cardId : undefined
+    }
+
+    /** The step's picks are made: the take whole, or the adviser to discard picked. */
+    get conspiracyStepComplete(): boolean {
+        const step = this.conspiracyStep
+        if (step === SearchPlay.Conspiracy) return this.conspiracyComplete
+        return step === SearchPlay.Adviser && this.conspiracyDiscard !== undefined
+    }
+
+    /** Why the engine refuses the step's play as picked, read only once it is complete. */
+    get conspiracyRefusedBecause(): string | undefined {
+        const step = this.conspiracyStep
+        if (step === undefined || !this.conspiracyStepComplete) return undefined
+        return this.reasonCannot(this.conspiracyAnswer(step))
     }
 
     // R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser.
@@ -236,8 +298,6 @@ export class QuestionDraft implements PanelDraft {
                 return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
                 return this.floorProposed
-            case PowerQuestionKind.PlayOrDiscardConspiracy:
-                return this.conspiracyComplete
             default:
                 return true
         }
@@ -331,8 +391,36 @@ export class QuestionDraft implements PanelDraft {
         await this.send(this.visionAnswer(play))
     }
 
+    /** Inquisitor — a play with nothing to pick is sent at once; the take and the room come after. */
+    async chooseConspiracyPlay(play: SearchPlay): Promise<void> {
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return
+        if (play === SearchPlay.Conspiracy && this.takeTargets.length > 0)
+            this.flow.set('conspiracyPlay', play)
+        else if (play === SearchPlay.Adviser && this.conspiracyDiscards.length > 0)
+            this.flow.set('conspiracyPlay', play)
+        else await this.send(this.conspiracyAnswer(play))
+    }
+
+    async playConspiracy(): Promise<void> {
+        const step = this.conspiracyStep
+        if (step === undefined || !this.conspiracyStepComplete) return
+        await this.send(this.conspiracyAnswer(step))
+    }
+
     async stack(): Promise<void> {
         await this.send(stackOrderAnswer(this.stackKind, this.stackCards, this.stackOrder))
+    }
+
+    private conspiracyAnswer(play: SearchPlay): QuestionAnswer {
+        if (play === SearchPlay.Adviser) return conspiracyFacedownAnswer(this.conspiracyDiscard)
+        if (play === SearchPlay.Discard)
+            return { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false }
+        const conspiracy = this.conspiracy
+        return {
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            play: true,
+            ...(conspiracy ? { conspiracy } : {})
+        }
     }
 
     private visionAnswer(play: SearchPlay): QuestionAnswer {
@@ -361,10 +449,6 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, take: yes }
             case PowerQuestionKind.RelicThiefRoll:
                 return { kind: question.kind, roll: yes }
-            case PowerQuestionKind.PlayOrDiscardConspiracy:
-                return yes
-                    ? { kind: question.kind, play: true, conspiracy: this.conspiracy }
-                    : { kind: question.kind, play: false }
             case PowerQuestionKind.DiscardInstead: {
                 if (!yes) return { kind: question.kind }
                 const insteadCardId = this.instead
@@ -419,6 +503,12 @@ export class QuestionDraft implements PanelDraft {
     chooseTakePrize(index: number | undefined): void {
         if (index === undefined) this.flow.clearFrom('takePrize')
         else if (index < this.takePrizes.length) this.flow.set('takePrize', index)
+    }
+
+    chooseConspiracyDiscard(cardId: string | undefined): void {
+        if (cardId === undefined) this.flow.clearFrom('conspiracyDiscard')
+        else if (this.conspiracyDiscards.includes(cardId))
+            this.flow.set('conspiracyDiscard', cardId)
     }
 
     chooseVisionDiscard(cardId: string | undefined): void {

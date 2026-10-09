@@ -11,7 +11,7 @@ import {
     type PowerChoice,
     type SearchSecondPlay
 } from '@tabletop/oath'
-import { PLAY_LABELS } from './adviserPlacements.js'
+import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from './adviserPlacements.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { cardName } from './names.js'
 import {
@@ -73,7 +73,7 @@ void _searchStagesAreCovered
 const PLACEMENTS: (SearchPlacement & { label: string })[] = [
     { play: SearchPlay.Site, label: PLAY_LABELS[SearchPlay.Site] },
     { play: SearchPlay.Adviser, label: 'Adviser, faceup', faceUp: true },
-    { play: SearchPlay.Adviser, label: 'Adviser, facedown', faceUp: false },
+    { play: SearchPlay.Adviser, label: FACEDOWN_ADVISER_LABEL, faceUp: false },
     { play: SearchPlay.RevealedVision, label: PLAY_LABELS[SearchPlay.RevealedVision] },
     { play: SearchPlay.Conspiracy, label: PLAY_LABELS[SearchPlay.Conspiracy] },
     { play: SearchPlay.Discard, label: PLAY_LABELS[SearchPlay.Discard] }

@@ -138,6 +138,29 @@ function prophet(visionCardId: string): PowerQuestion {
     }
 }
 
+/** Inquisitor found the Conspiracy among ann's advisers; ann holds a relic to take. */
+function inquisitorTable(advisers: string[]): PlayedTable {
+    return questionTable(
+        {
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            cardId: 'denizen.arcane.inquisitor',
+            askedPlayerId: 'me',
+            holderPlayerId: 'ann',
+            index: 0
+        },
+        {
+            me: { advisers: advisers.map((cardId) => ({ cardId, faceUp: true })) },
+            ann: {
+                advisers: [
+                    { cardId: 'vision.conspiracy', faceUp: false },
+                    { cardId: 'denizen.arcane.alchemist', faceUp: true }
+                ],
+                relicIds: ['relic.ring-of-devotion']
+            }
+        }
+    )
+}
+
 /** Visual contract scenario 16: two False Prophet questions for one player, at the adviser limit. */
 function prophetsTable(): PlayedTable {
     const state = testState(
@@ -378,26 +401,10 @@ const QUESTION_TABLES = {
             ...asked,
             defenderPlayerId: 'ann'
         }),
-    askInquisitor: () =>
-        questionTable(
-            {
-                kind: PowerQuestionKind.PlayOrDiscardConspiracy,
-                cardId: 'denizen.arcane.inquisitor',
-                ...asked,
-                holderPlayerId: 'ann',
-                index: 0
-            },
-            {
-                me: { advisers: ['denizen.arcane.jinx', 'denizen.arcane.tutor'].map(faceup) },
-                ann: {
-                    advisers: [
-                        { cardId: 'vision.conspiracy', faceUp: false },
-                        faceup('denizen.arcane.alchemist')
-                    ],
-                    relicIds: [RING]
-                }
-            }
-        ),
+    askInquisitor: () => inquisitorTable(['denizen.arcane.jinx', 'denizen.arcane.tutor']),
+    // R-5.1.4.II — the finder already holds three advisers.
+    askInquisitorAtLimit: () =>
+        inquisitorTable(['denizen.hearth.herald', 'denizen.arcane.tutor', 'denizen.arcane.jinx']),
     askWildMounts: () =>
         questionTable(
             {

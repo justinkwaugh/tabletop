@@ -444,6 +444,14 @@ describe('the history tab describes every action', () => {
                 third: 'played the Conspiracy and took from Bob'
             },
             {
+                name: 'the Conspiracy played as an adviser, facedown',
+                card: 'denizen.arcane.inquisitor',
+                summary: () => answered({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: 'denizen.arcane.inquisitor', askedPlayerId: 'p1', holderPlayerId: 'p3', index: 0 }, { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true }, { p3: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }] } }),
+                answerer: 'played the Conspiracy as an adviser, facedown',
+                other: 'played the Conspiracy as an adviser, facedown',
+                third: 'played the Conspiracy as an adviser, facedown'
+            },
+            {
                 name: 'a Relic Thief roll that failed',
                 card: 'denizen.discord.relic-thief',
                 summary: () => `Relic Thief: rolled 1 shields; ${RELIC} stayed with p2`,

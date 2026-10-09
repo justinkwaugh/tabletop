@@ -9,6 +9,9 @@ export const PLAY_LABELS = {
     [SearchPlay.Discard]: 'Discard'
 } as const satisfies Record<Exclude<SearchPlay, SearchPlay.Adviser>, string>
 
+// R-5.1.4.II — a card kept from a Search, or a Vision or the Conspiracy a power asks about, played facedown.
+export const FACEDOWN_ADVISER_LABEL = 'Adviser, facedown'
+
 // R-6.1 — a route into R-5.1.4, played faceup; the action's predicate discounts the slot being vacated.
 export const ADVISER_PLAYS: { play: SearchPlay; label: string }[] = [
     { play: SearchPlay.Site, label: PLAY_LABELS[SearchPlay.Site] },

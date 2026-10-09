@@ -3380,19 +3380,65 @@ test.describe('power questions', () => {
         await expect(answer(page, 'Pass')).toBeVisible()
     })
 
-    test('Inquisitor: "The Conspiracy: play it, or discard it?"; a player picked with no prize hides "Play it"', async ({ page }) => {
+    test('Inquisitor: "The Conspiracy: how do you play it?"; "Adviser, facedown", "Play it" and "Discard", one width, the choice look', async ({ page }) => {
         await openTable(page, 'askInquisitor')
-        await expect(line(page)).toHaveText('The Conspiracy: play it, or discard it?')
+        await expect(line(page)).toHaveText('The Conspiracy: how do you play it?')
         await expect(smallCard(page, 'Conspiracy')).toBeVisible()
-        await expect(grid(page)).toContainText('Take a relic or banner? From:')
-        await expect(answer(page, 'Play it')).toBeVisible()
-        await expect(answer(page, 'Discard')).toBeVisible()
+        await expect(grid(page)).not.toContainText('From:')
+        const plays = ['Adviser, facedown', 'Play it', 'Discard'].map((name) => answer(page, name))
+        const boxes = []
+        for (const play of plays) {
+            await expect(play).toBeVisible()
+            await expect(play).not.toHaveClass(/bg-oath-primary/)
+            boxes.push(await play.boundingBox())
+        }
+        expect(new Set(boxes.map((box) => Math.round(box?.width ?? 0))).size).toBe(1)
+        expect(boxes.map((box) => box?.x ?? 0)).toEqual([...boxes.map((box) => box?.x ?? 0)].sort((a, b) => a - b))
+    })
+
+    test('Inquisitor: "Play it" opens the take; "Play" at once, waiting while a player is picked with no prize; Undo returns', async ({ page }) => {
+        await openTable(page, 'askInquisitor')
+        await answer(page, 'Play it').click()
+        await expect(line(page)).toHaveText('The Conspiracy: take a relic or banner?')
+        await expect(smallCard(page, 'Conspiracy')).toBeVisible()
+        await expect(grid(page)).toContainText('From:')
+        await expect(answer(page, 'Play')).toBeVisible()
+        await expect(answer(page, 'Adviser, facedown')).toHaveCount(0)
 
         await grid(page).getByRole('button', { name: 'ann', exact: true }).click()
-        await expect(answer(page, 'Play it')).toHaveCount(0)
+        await expect(answer(page, 'Play')).toHaveCount(0)
         await expect(red(page)).toHaveCount(0)
         await grid(page).getByRole('button', { name: 'Ring of Devotion', exact: true }).click()
-        await expect(answer(page, 'Play it')).toBeVisible()
+        await expect(answer(page, 'Play')).toBeVisible()
+
+        const undo = page.getByRole('button', { name: 'Undo', exact: true })
+        for (let press = 0; press < 3; press++) await undo.click()
+        await expect(line(page)).toHaveText('The Conspiracy: how do you play it?')
+        await expect(answer(page, 'Adviser, facedown')).toBeVisible()
+        expect(await asked(page)).toBe(true)
+    })
+
+    test('Inquisitor: under the limit "Adviser, facedown" sends at once', async ({ page }) => {
+        await openTable(page, 'askInquisitor')
+        await answer(page, 'Adviser, facedown').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
+    test('Inquisitor at the adviser limit: "Adviser, facedown" opens "Discard 1 adviser.", red on the pick, "Play" once picked', async ({ page }) => {
+        await openTable(page, 'askInquisitorAtLimit')
+        await answer(page, 'Adviser, facedown').click()
+        await expect(line(page)).toHaveText('Discard 1 adviser.')
+        await expect(smallCard(page, 'Conspiracy')).toBeVisible()
+        await expect(answer(page, 'Play')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+
+        const tutor = grid(page).getByRole('button', { name: 'Tutor', exact: true })
+        await tutor.click()
+        await expect(tutor).toHaveAttribute('aria-pressed', 'true')
+        await expect(tutor).toHaveClass(/ring-oath-danger/)
+        await expect(answer(page, 'Play')).toBeVisible()
+        await answer(page, 'Play').click()
+        await expect.poll(() => asked(page)).toBe(false)
     })
 
     test('Wild Mounts: "Discard one [beast] card instead of …?"; "Discard instead" once a card is picked, no red line before', async ({ page }) => {
@@ -3450,6 +3496,21 @@ test.describe('power questions', () => {
     test.describe('at phone width', () => {
         test.use({ viewport: { width: 375, height: 812 } })
 
+        // A Vision's face is printed landscape: the small card shows it whole, as wide as an upright card is tall.
+        test('the Conspiracy beside its question is whole and landscape', async ({ page }) => {
+            await openTable(page, 'askInquisitor')
+            const card = smallCard(page, 'Conspiracy')
+            await expect(card).toBeVisible()
+            const shape = await card.evaluate((element) => {
+                const image = element instanceof HTMLImageElement ? element : undefined
+                const box = element.getBoundingClientRect()
+                return { width: box.width, height: box.height, natural: image ? image.naturalWidth / image.naturalHeight : 0 }
+            })
+            expect(shape.width).toBeGreaterThan(shape.height)
+            expect(shape.width).toBeGreaterThanOrEqual(60)
+            expect(Math.abs(shape.width / shape.height - shape.natural)).toBeLessThan(0.05)
+        })
+
         for (const [table, names] of [
             ['askBlackmail', ['Pay', 'Refuse']],
             ['askHeirloom', ['Take', 'To the bottom']],
@@ -3457,7 +3518,7 @@ test.describe('power questions', () => {
             ['askRelicThief', ['Roll, paying 1 favor + 1 secret', 'Pass']],
             ['askTinkersFair', ['Accept', 'Refuse']],
             ['askGatheringJoin', ['Go', 'Stay']],
-            ['askInquisitor', ['Play it', 'Discard']],
+            ['askInquisitor', ['Adviser, facedown', 'Play it', 'Discard']],
             ['askFalseProphet', ['As your Vision', 'Discard']],
             ['askBrassHorse', [/^Travel to /]]
         ] as const) {

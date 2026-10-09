@@ -3,7 +3,7 @@
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
     import QuestionForm from '$lib/components/QuestionForm.svelte'
-    import { PLAY_LABELS } from '$lib/model/adviserPlacements.js'
+    import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from '$lib/model/adviserPlacements.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -16,7 +16,7 @@
 
     const LABELS: Record<SearchPlay, string> = {
         ...PLAY_LABELS,
-        [SearchPlay.Adviser]: 'Adviser, facedown'
+        [SearchPlay.Adviser]: FACEDOWN_ADVISER_LABEL
     }
 
     let gameSession = getGameSession()
@@ -31,7 +31,7 @@
     {#if draft.visionDiscards.length > 0}
         <!-- R-5.1.4.II — at the adviser limit it goes facedown only over a discarded adviser. -->
         <div class="mb-2 text-sm">
-            <span class="text-oath-text-muted">Adviser, facedown: discard 1 first.</span>
+            <span class="text-oath-text-muted">{FACEDOWN_ADVISER_LABEL}: discard 1 first.</span>
             <CardChoiceRow
                 choices={cardChoices(draft.visionDiscards)}
                 picked={draft.visionDiscard ? [draft.visionDiscard] : []}

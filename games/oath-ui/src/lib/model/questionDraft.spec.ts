@@ -7,7 +7,9 @@ import {
     RerolledRollKind,
     SearchPlay,
     Suit,
-    type PowerQuestion
+    type ConspiracyPlay,
+    type PowerQuestion,
+    type QuestionAnswer
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
@@ -187,34 +189,6 @@ describe('a yes answer waits for its picks, and is refused only once complete', 
         expect(draft.acceptComplete).toBe(true)
     })
 
-    it('Inquisitor — a player picked for the take with no prize leaves "Play it" waiting', () => {
-        const ARCANE = ['denizen.arcane.jinx', 'denizen.arcane.tutor']
-        const faceup = (cardId: string) => ({ cardId, faceUp: true })
-        const { draft } = asked(
-            {
-                kind: PowerQuestionKind.PlayOrDiscardConspiracy,
-                cardId: 'denizen.arcane.inquisitor',
-                askedPlayerId: ME,
-                holderPlayerId: 'ann',
-                index: 0
-            },
-            [],
-            {
-                me: { secrets: 2, advisers: ARCANE.map(faceup) },
-                ann: { advisers: [faceup('denizen.arcane.alchemist')], relicIds: ['relic.ring-of-devotion'] }
-            }
-        )
-        expect(draft.takeTargets).toEqual(['ann'])
-        expect(draft.acceptComplete).toBe(true)
-
-        draft.chooseTakeTarget('ann')
-        expect(draft.acceptComplete).toBe(false)
-        expect(draft.acceptRefusedBecause).toBeUndefined()
-
-        draft.chooseTakePrize(0)
-        expect(draft.acceptComplete).toBe(true)
-    })
-
     it('False Prophet — a refused play is not offered; at the limit "Adviser, facedown" waits for the adviser to discard', () => {
         const HELD = ['denizen.order.messenger', 'denizen.order.longbows', 'denizen.hearth.herald']
         const { draft } = asked(
@@ -266,6 +240,99 @@ describe('a yes answer waits for its picks, and is refused only once complete', 
             relicCardIds: ['relic.ring-of-devotion']
         })
         expect(thief.draft.acceptCost).toBe('1 favor + 1 secret')
+    })
+})
+
+// R-5.1.4-H1 — Inquisitor's finder plays the Conspiracy faceup (with the take), facedown as an adviser, or discards it.
+describe('Inquisitor — the Conspiracy: three answers, each pick after the answer that needs it', () => {
+    const ARCANE = ['denizen.arcane.jinx', 'denizen.arcane.tutor']
+    const FULL = [...ARCANE, 'denizen.hearth.herald']
+    const RING = 'relic.ring-of-devotion'
+    const faceup = (cardId: string) => ({ cardId, faceUp: true })
+    const inquisitor: PowerQuestion = {
+        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+        cardId: 'denizen.arcane.inquisitor',
+        askedPlayerId: ME,
+        holderPlayerId: 'ann',
+        index: 0
+    }
+    const answer = (fields: { play: boolean; facedown?: true; discardedAdviserCardId?: string; conspiracy?: ConspiracyPlay }): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, ...fields })
+    function found(advisers: string[], ann: Seat = {}) {
+        return asked(inquisitor, [], {
+            me: { secrets: 2, advisers: advisers.map(faceup) },
+            ann: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }, faceup('denizen.arcane.alchemist')], ...ann }
+        })
+    }
+
+    it('offers "Adviser, facedown", "Play it" and "Discard", in the Search\'s order; "Discard" sends at once', async () => {
+        const { draft, sent } = found(ARCANE)
+        expect(draft.conspiracyPlays).toEqual([SearchPlay.Adviser, SearchPlay.Conspiracy, SearchPlay.Discard])
+        expect(draft.conspiracyStep).toBeUndefined()
+        await draft.chooseConspiracyPlay(SearchPlay.Discard)
+        expect(sent).toHaveBeenLastCalledWith(answer({ play: false }))
+    })
+
+    it('"Play it" sends at once when nobody here holds a relic or banner, and "Adviser, facedown" under the limit', async () => {
+        const { draft, sent } = found(ARCANE)
+        expect(draft.takeTargets).toEqual([])
+        await draft.chooseConspiracyPlay(SearchPlay.Conspiracy)
+        expect(sent).toHaveBeenLastCalledWith(answer({ play: true }))
+        await draft.chooseConspiracyPlay(SearchPlay.Adviser)
+        expect(sent).toHaveBeenLastCalledWith(answer({ play: true, facedown: true }))
+        expect(draft.hasManualSelection()).toBe(false)
+    })
+
+    it('"Play it" opens the take: nobody picked plays, a player with no prize waits, Undo returns to the answers', async () => {
+        const { session, draft, sent } = found(ARCANE, { relicIds: [RING] })
+        await draft.chooseConspiracyPlay(SearchPlay.Conspiracy)
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.conspiracyStep).toBe(SearchPlay.Conspiracy)
+        expect(draft.conspiracyStepComplete).toBe(true)
+
+        draft.chooseTakeTarget('ann')
+        expect(draft.conspiracyStepComplete).toBe(false)
+        expect(draft.conspiracyRefusedBecause).toBeUndefined()
+        draft.chooseTakePrize(0)
+        expect(draft.conspiracyStepComplete).toBe(true)
+        expect(draft.conspiracyRefusedBecause).toBeUndefined()
+        await draft.playConspiracy()
+        expect(sent).toHaveBeenLastCalledWith(answer({ play: true, conspiracy: { targetPlayerId: 'ann', take: { kind: 'relic', cardId: RING } } }))
+
+        await session.undo()
+        await session.undo()
+        await session.undo()
+        expect(draft.conspiracyStep).toBeUndefined()
+        expect(session.hasManualDraft).toBe(false)
+    })
+
+    it('at the adviser limit "Adviser, facedown" opens the discard; "Play" once one is picked sends it', async () => {
+        const { session, draft, sent } = found(FULL)
+        expect(draft.conspiracyPlays).toContain(SearchPlay.Adviser)
+        await draft.chooseConspiracyPlay(SearchPlay.Adviser)
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.conspiracyStep).toBe(SearchPlay.Adviser)
+        expect(draft.conspiracyDiscards).toEqual(FULL)
+        expect(draft.conspiracyStepComplete).toBe(false)
+
+        draft.chooseConspiracyDiscard(FULL[1])
+        expect(draft.conspiracyStepComplete).toBe(true)
+        expect(draft.conspiracyRefusedBecause).toBeUndefined()
+        await draft.playConspiracy()
+        expect(sent).toHaveBeenLastCalledWith(answer({ play: true, facedown: true, discardedAdviserCardId: FULL[1] }))
+
+        await session.undo()
+        expect(draft.conspiracyDiscard).toBeUndefined()
+        expect(draft.conspiracyStep).toBe(SearchPlay.Adviser)
+        await session.undo()
+        expect(draft.conspiracyStep).toBeUndefined()
+    })
+
+    it('a play the engine refuses is not offered: Gossip hides "Adviser, facedown"', () => {
+        const { draft } = asked(inquisitor, [], {
+            me: { advisers: ARCANE.map(faceup) },
+            ann: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }, faceup('denizen.discord.gossip')] }
+        })
+        expect(draft.conspiracyPlays).toEqual([SearchPlay.Conspiracy, SearchPlay.Discard])
     })
 })
 
