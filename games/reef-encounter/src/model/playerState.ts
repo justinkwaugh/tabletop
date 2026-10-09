@@ -28,7 +28,8 @@ export const ReefEncounterPlayerState = Type.Intersect([
         secretScreenPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         secretParrotfishPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         larvaCubes: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
-        shrimpsBehindScreen: Visibility.protect(Type.Number(), { policy: trackablePolicy })
+        shrimpsBehindScreen: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
+        consumedPolyps: CoralCounts
     })
 ])
 
@@ -53,7 +54,8 @@ export function newPlayerState(
         secretScreenPolyps: dealtPolyps,
         secretParrotfishPolyps: coralCounts(),
         larvaCubes: coralCounts(),
-        shrimpsBehindScreen: ShrimpsPerPlayer
+        shrimpsBehindScreen: ShrimpsPerPlayer,
+        consumedPolyps: coralCounts()
     }
 }
 
@@ -68,6 +70,7 @@ export class HydratedReefEncounterPlayerState
     declare secretParrotfishPolyps?: CoralCounts
     declare larvaCubes?: CoralCounts
     declare shrimpsBehindScreen?: number
+    declare consumedPolyps: CoralCounts
 
     constructor(data: ReefEncounterProjectedPlayerState) {
         super(data, ReefEncounterProjectedPlayerStateValidator)
@@ -101,6 +104,44 @@ export class HydratedReefEncounterPlayerState
         for (const polyp of polyps) {
             known[polyp] += 1
         }
+    }
+
+    hasScreenPolyp(color: CoralColor): boolean {
+        return this.getKnownScreenPolyps()[color] + this.getSecretScreenPolyps()[color] > 0
+    }
+
+    // Polyps others saw arrive are played first, so opponents learn only what they could track.
+    spendScreenPolyp(color: CoralColor) {
+        assert(
+            this.hasScreenPolyp(color),
+            `Player ${this.playerId} has no ${color} polyp behind the screen`
+        )
+        const known = this.getKnownScreenPolyps()
+        if (known[color] > 0) {
+            known[color] -= 1
+        } else {
+            this.getSecretScreenPolyps()[color] -= 1
+        }
+    }
+
+    spendConsumedPolyp(color: CoralColor) {
+        assert(
+            this.consumedPolyps[color] > 0,
+            `Player ${this.playerId} has no consumed ${color} polyp`
+        )
+        this.consumedPolyps[color] -= 1
+    }
+
+    addConsumedPolyp(color: CoralColor) {
+        this.consumedPolyps[color] += 1
+    }
+
+    spendLarvaCube(color: CoralColor) {
+        assert(
+            this.getLarvaCubes()[color] > 0,
+            `Player ${this.playerId} has no ${color} larva cube`
+        )
+        this.getLarvaCubes()[color] -= 1
     }
 
     screenPolypCount(): number {

@@ -1,4 +1,4 @@
-import { assertExists, type OffsetCoordinates } from '@tabletop/common'
+import { assertExists, type OffsetCoordinates, sameCoordinates } from '@tabletop/common'
 import * as Type from 'typebox'
 import { CoralColor } from './colors.js'
 
@@ -76,10 +76,6 @@ export const ReefBoards: Record<ReefBoardId, ReefBoard> = {
     4: parseBoard(4)
 }
 
-export function sameSquare(a: OffsetCoordinates, b: OffsetCoordinates): boolean {
-    return a.row === b.row && a.col === b.col
-}
-
 export function isRock(boardId: ReefBoardId, coords: OffsetCoordinates): boolean {
-    return ReefBoards[boardId].rock.some((square) => sameSquare(square, coords))
+    return ReefBoards[boardId].rock.some((square) => sameCoordinates(square, coords))
 }

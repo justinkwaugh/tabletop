@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CoralColors } from './colors.js'
-import { isRock, ReefBoardIds, ReefBoards, sameSquare } from './reefBoards.js'
+import { sameCoordinates } from '@tabletop/common'
+import { isRock, ReefBoardIds, ReefBoards } from './reefBoards.js'
 
 describe('reef boards', () => {
     it.each(ReefBoardIds)('board %i has 33 rock squares', (boardId) => {
@@ -18,7 +19,9 @@ describe('reef boards', () => {
     it.each(ReefBoardIds)('board %i has its extra-growth square on empty rock', (boardId) => {
         const { extraGrowth, startingPolyps } = ReefBoards[boardId]
         expect(isRock(boardId, extraGrowth)).toBe(true)
-        expect(startingPolyps.some((polyp) => sameSquare(polyp.coords, extraGrowth))).toBe(false)
+        expect(startingPolyps.some((polyp) => sameCoordinates(polyp.coords, extraGrowth))).toBe(
+            false
+        )
     })
 
     it('matches the checked board map', () => {

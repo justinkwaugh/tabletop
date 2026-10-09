@@ -8,6 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
+import { newTurnRecord } from '../model/turn.js'
 
 export class RefillingOpenSeaStateHandler implements MachineStateHandler<
     HydratedRefillOpenSea,
@@ -30,6 +31,7 @@ export class RefillingOpenSeaStateHandler implements MachineStateHandler<
     ): MachineState {
         const gameState = context.gameState
         gameState.turnManager.endTurn(gameState.actionCount)
+        gameState.turn = newTurnRecord()
         return action.metadata?.shortage ? MachineState.EndOfGame : MachineState.TakingTurn
     }
 }

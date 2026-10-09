@@ -11,10 +11,10 @@ import {
 } from '@tabletop/common'
 import {
     HydratedReefEncounterGameState,
-    type Reef,
     type ReefEncounterGameState,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
+import type { Reef } from '../model/reef.js'
 import { newPlayerState, type ReefEncounterPlayerState } from '../model/playerState.js'
 import { CoralColors, type CoralColor, coralCounts, countColors } from '../components/colors.js'
 import { CoralTiles, type CoralTileState } from '../components/coralTiles.js'
@@ -26,6 +26,7 @@ import {
 } from '../components/openSea.js'
 import { HydratedPolypBag } from '../components/polypBag.js'
 import { ReefBoardIds, ReefBoards, type ReefBoardId } from '../components/reefBoards.js'
+import { newTurnRecord } from '../model/turn.js'
 import { MachineState } from './states.js'
 import { ReefEncounterColors } from './colors.js'
 
@@ -79,6 +80,8 @@ export class ReefEncounterGameInitializer
             machineState: MachineState.ChoosingParrotfishPolyp,
             turnManager,
             reefs,
+            shrimps: [],
+            turn: newTurnRecord(),
             coralTiles: this.placeCoralTiles(prng),
             openSea,
             larvaCubeSupply: coralCounts(LarvaCubesPerColor - 1),

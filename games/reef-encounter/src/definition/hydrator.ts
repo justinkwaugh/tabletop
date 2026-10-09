@@ -6,6 +6,8 @@ import {
 import { HydratedFeedParrotfish, isFeedParrotfish } from '../actions/feedParrotfish.js'
 import { HydratedChooseLarvaCubes, isChooseLarvaCubes } from '../actions/chooseLarvaCubes.js'
 import { HydratedTakeOpenSeaSpace, isTakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
+import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube.js'
+import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
 
 export class ReefEncounterHydrator implements GameHydrator<
@@ -19,6 +21,12 @@ export class ReefEncounterHydrator implements GameHydrator<
             }
             case isChooseLarvaCubes(data): {
                 return new HydratedChooseLarvaCubes(data)
+            }
+            case isPlayLarvaCube(data): {
+                return new HydratedPlayLarvaCube(data)
+            }
+            case isPlacePolyp(data): {
+                return new HydratedPlacePolyp(data)
             }
             case isTakeOpenSeaSpace(data): {
                 return new HydratedTakeOpenSeaSpace(data)

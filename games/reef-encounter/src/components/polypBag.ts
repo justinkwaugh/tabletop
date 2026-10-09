@@ -19,4 +19,15 @@ export class HydratedPolypBag
     constructor(data: PolypBag) {
         super(data, PolypBagValidator)
     }
+
+    // Bonus polyps are replenished by picking their colour out of the bag, not by drawing.
+    takeColor(color: CoralColor): boolean {
+        const index = this.items.slice(0, this.remaining).indexOf(color)
+        if (index < 0) {
+            return false
+        }
+        this.items.splice(index, 1)
+        this.remaining -= 1
+        return true
+    }
 }
