@@ -177,7 +177,7 @@ test('develops towns and auctions a share', async ({ page }) => {
         .toBe(1)
 
     await page.getByRole('button', { name: 'Choose Auction Share' }).click()
-    await page.getByRole('button', { name: 'Auction a Verbena share' }).click()
+    await page.locator('.panel').getByRole('button', { name: 'Auction a Verbena share' }).click()
     await screenshot(page, '07-opening-auction')
     const amount = page.getByRole('spinbutton', { name: 'Bid amount' })
     await amount.fill('99')

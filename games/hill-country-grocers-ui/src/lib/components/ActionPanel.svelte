@@ -124,7 +124,7 @@
                     <BigShareCertificate
                         {companyId}
                         choice={{
-                            label: `Auction the ${companyDefinition(companyId).name} share`,
+                            label: `Auction a ${companyDefinition(companyId).name} share`,
                             onclick: () => gameSession.selectAuctionCompany(companyId)
                         }}
                     />
