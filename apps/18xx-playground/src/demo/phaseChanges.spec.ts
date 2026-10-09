@@ -108,9 +108,9 @@ it.each(Titles)(
             actions.push(...result.processedActions)
             discarded.push(train.id)
             current = result.updatedState
-            expect(current.trainInventory.trains.find((t) => t.id === train.id)?.status).toBe(
-                destination
-            )
+            const departed = current.trainInventory.trains.find((t) => t.id === train.id)
+            if (destination === 'removed') expect(departed).toBeUndefined()
+            else expect(departed?.status).toBe(destination)
         }
         expect(discarded).toHaveLength(definition === Top ? 1 : 2)
         expect(current.machineState).toBe(definition === Top ? 'BuyingTrains' : 'LayingTrack')
@@ -210,10 +210,11 @@ it('1889 exchanges a 4 at capacity for an 800 diesel and rusts the traded-in tra
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'IR' })).toBe(
         Number(before) - 800
     )
-    expect(result.updatedState.trainInventory.trains.find((t) => t.id === four.id)?.status).toBe(
-        'removed'
-    )
-    expect(result.updatedState.phaseEvents[0].rustedTrainIds).toContain(four.id)
+    expect(result.updatedState.trainInventory.trains.find((t) => t.id === four.id)).toBeUndefined()
+    expect(result.updatedState.phaseEvents[0].rustedTrains).toContainEqual({
+        trainId: four.id,
+        definitionId: '4'
+    })
     expect(result.updatedState.machineState).toBe('LayingTrack')
 })
 it('1889 preserves a traded 5 in the Market, and Market purchases preserve identity and prior use', () => {
@@ -263,10 +264,8 @@ it('rejects an ordinary 1889 purchase at the old limit even when it would rust o
         const train = rules.depot.nextTrain(inventory, '2')!
         rules.depot.purchase(inventory, train.id, '2', { kind: 'company', companyId: 'IR' })
     }
-    state.trainInventory.trains = inventory.trains.map((t) =>
-        t.status === 'depot' && ['2', '3'].includes(t.definitionId)
-            ? { id: t.id, definitionId: t.definitionId, status: 'removed' }
-            : t
+    state.trainInventory.trains = inventory.trains.filter(
+        (t) => !(t.status === 'depot' && ['2', '3'].includes(t.definitionId))
     )
     const train = rules.depot.nextTrain(inventory, '4')!
     expect(
@@ -288,7 +287,7 @@ it.each([true, false])(
             state,
             action: buy(state, TheOldPrinceTrainRules, 'D')
         }).updatedState
-        expect(current.trainInventory.trains.find((t) => t.id === used.id)?.status).toBe('removed')
+        expect(current.trainInventory.trains.find((t) => t.id === used.id)).toBeUndefined()
         const remaining = current.trainInventory.trains.find((t) => t.id === four.id)!
         expect(remaining).toMatchObject({ status: 'owned', rustsAfterOperation: true })
         expect(trainCanBeTraded(remaining)).toBe(false)
@@ -325,8 +324,8 @@ it.each([true, false])(
         for (const processed of result.processedActions.slice(0, 2))
             afterRust = engine.applyProcessedAction({ game, state: afterRust, action: processed })
         expect(
-            result.updatedState.trainInventory.trains.find((t) => t.id === four.id)?.status
-        ).toBe('removed')
+            result.updatedState.trainInventory.trains.find((t) => t.id === four.id)
+        ).toBeUndefined()
         expect(afterRust.machineState).toBe('DistributingEarnings')
         expect(afterRust.routeStep!.result!.routes).toHaveLength(submitRoute ? 1 : 0)
         let replay = current
@@ -343,13 +342,20 @@ it.each([false, true])(
     (runAnotherTrain) => {
         const { game, engine, state } = example(Top, 'diesel')
         const four = trainsOwnedBy(state, { kind: 'company', companyId: 'ML' })[0]
-        const other = state.trainInventory.trains.find((train) => train.definitionId === '7')!
+        // The diesel example has removed every 7 from play, so restore one from the supply.
+        const other = TheOldPrinceTrainRules.depot
+            .createInventory(state.trainInventory.depotId)
+            .trains.find(
+                (train) =>
+                    train.definitionId === '7' &&
+                    !state.trainInventory.trains.some((entry) => entry.id === train.id)
+            )!
         if (runAnotherTrain)
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.id === other.id
-                    ? { ...train, status: 'owned', owner: { kind: 'company', companyId: 'ML' } }
-                    : train
-            )
+            state.trainInventory.trains.push({
+                ...other,
+                status: 'owned',
+                owner: { kind: 'company', companyId: 'ML' }
+            })
         delete state.trainPurchaseStep
         state.machineState = 'RunningTrains'
         state.routeStep = { companyId: 'ML' }
@@ -408,7 +414,7 @@ it.each([false, true])(
             })
             expect(
                 diesel.updatedState.trainInventory.trains.find((train) => train.id === four.id)
-            ).toMatchObject({ status: 'removed' })
+            ).toBeUndefined()
         }
     }
 )

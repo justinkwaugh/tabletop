@@ -277,17 +277,13 @@ export function discardTrain(table: ReturnType<typeof stockGame>) {
 export function constructionGame(phaseId: 'III' | 'IV' = 'III') {
     const table = emergencyBuyingGame(2000)
     table.state.phaseId = 'II'
-    table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-        train.status === 'depot' && ['2', '4'].includes(train.definitionId)
-            ? { ...train, status: 'removed' }
-            : train
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && ['2', '4'].includes(train.definitionId))
     )
     buyTrain(table, '5')
     if (phaseId === 'IV') {
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && train.definitionId === '5'
-                ? { ...train, status: 'removed' }
-                : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => !(train.status === 'depot' && train.definitionId === '5')
         )
         buyTrain(table, '6')
     }

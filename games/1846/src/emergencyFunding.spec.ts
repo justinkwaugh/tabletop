@@ -87,8 +87,9 @@ function buy(table: Table, definitionId = '2') {
     return table.act('EmergencyBuyTrain', choice)
 }
 function phaseII(table: Table) {
-    for (const train of table.state.trainInventory.trains)
-        if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '2')
+    )
 }
 
 describe('1846 personal emergency train funding', () => {

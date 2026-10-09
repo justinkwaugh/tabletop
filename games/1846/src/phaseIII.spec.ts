@@ -93,7 +93,7 @@ describe('1846 Phase III trains and lifecycle', () => {
                 'BIG4'
             ])
             expect(phase?.metadata?.event.pendingRustTrainIds).toHaveLength(3)
-            expect(phase?.metadata?.event.rustedTrainIds).toHaveLength(2)
+            expect(phase?.metadata?.event.rustedTrains).toHaveLength(2)
             expect(getCompany(table.state, 'MAIL').closed).not.toBe(true)
             expect(
                 table.state.companies
@@ -205,15 +205,13 @@ describe('1846 Phase III trains and lifecycle', () => {
     it('uses the cheapest returned face for emergency and receiver purchases', () => {
         const table = emergencyBuyingGame(100, 20)
         table.state.phaseId = 'III'
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status !== 'depot'
-                ? train
-                : train.definitionId === '2'
-                  ? { ...train, status: 'removed' }
-                  : train.definitionId === '4'
+        table.state.trainInventory.trains = table.state.trainInventory.trains
+            .filter((train) => !(train.status === 'depot' && train.definitionId === '2'))
+            .map((train) =>
+                train.status === 'depot' && train.definitionId === '4'
                     ? { ...train, status: 'market' }
                     : train
-        )
+            )
         expect(Math.min(...emergencyBankOffers(table.hydrated).map((offer) => offer.price))).toBe(
             160
         )

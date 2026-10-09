@@ -278,8 +278,8 @@ describe('the closing zones', () => {
         play.act('PassOnCompany', { companyId: 'PLE' })
         expect(cash(play.state, player('alex'))).toBe(alex - 260)
         expect(
-            play.state.trainInventory.trains.find((entry) => entry.id === train.id)?.status
-        ).toBe('removed')
+            play.state.trainInventory.trains.find((entry) => entry.id === train.id)
+        ).toBeUndefined()
         expect(play.state.stations.find((station) => station.id === 'PLE:home')?.status).toBe(
             'available'
         )

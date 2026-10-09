@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
-import { TrainDefinition, unownedTrain, type Train, type TrainInventory } from './train.js'
+import { TrainDefinition, releaseTrains, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
 const SupplyCount = Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
 const SupplyEntry = Type.Object(
@@ -177,9 +177,9 @@ export class TrainDepot {
     export(inventory: TrainInventory, definitionId: string): Train {
         const train = this.nextTrain(inventory, definitionId)
         assert(train?.status === 'depot', 'No depot train of this kind remains')
-        const exported = unownedTrain(train, 'removed')
-        this.store(inventory, exported)
-        return exported
+        this.store(inventory, train)
+        releaseTrains(inventory, [train.id], 'removed')
+        return train
     }
     private store(inventory: TrainInventory, train: Train): void {
         const index = inventory.trains.findIndex((entry) => entry.id === train.id)
@@ -224,12 +224,6 @@ export class TrainDepot {
                 )
             }
         }
-        assert(
-            initial.trains.every((train) =>
-                inventory.trains.some((entry) => entry.id === train.id)
-            ),
-            'Missing finite train'
-        )
     }
     private validateSuppliedTrain(
         train: Train,

@@ -63,9 +63,9 @@ it('issues unlimited trains only on purchase and preserves deterministic identit
 })
 it('rejects corrupt supply, duplicate identities, unknown owners and reused issuance cursors', () => {
     const inventory = depot.createInventory()
-    const missing = structuredClone(inventory)
-    missing.trains.pop()
-    expect(() => depot.validateInventory(missing, [], [])).toThrow('Missing finite')
+    const leftPlay = structuredClone(inventory)
+    leftPlay.trains.pop()
+    expect(() => depot.validateInventory(leftPlay, [], [])).not.toThrow()
     const duplicate = structuredClone(inventory)
     duplicate.trains.push(duplicate.trains[0])
     expect(() => depot.validateInventory(duplicate, [], [])).toThrow('Duplicate train')

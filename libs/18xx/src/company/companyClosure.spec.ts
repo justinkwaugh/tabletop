@@ -85,7 +85,5 @@ it('closes a share company, its owned privates and its holdings', () => {
 it('removes the trains from play when the title says so', () => {
     const state = closingState()
     closeShareCompany(state, 'A', 'removed')
-    expect(state.trainInventory.trains).toEqual([
-        { id: 't1', definitionId: '2', status: 'removed' }
-    ])
+    expect(state.trainInventory.trains).toEqual([])
 })

@@ -172,10 +172,9 @@ describe('the Scrapper in play', () => {
                 }
             }
             give('3')
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'depot' && ['2', '2+', '3'].includes(train.definitionId)
-                    ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                    : train
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) =>
+                    !(train.status === 'depot' && ['2', '2+', '3'].includes(train.definitionId))
             )
         })
         const twos = play.state.trainInventory.trains.filter(
@@ -350,16 +349,18 @@ describe('a bank liquidation', () => {
             placeStockMarker(state.stockMarket, 'PLE', '0:0')
             for (const privateId of privateIds) addPrivate(state, privateId, company('PLE'))
             Object.assign(state, { inventorPaid: ['2'] })
-            const three = state.trainInventory.trains.findIndex(
+            const three = state.trainInventory.trains.find(
                 (train) => train.status === 'depot' && train.definitionId === '3'
             )
-            state.trainInventory.trains = state.trainInventory.trains.map((train, index) =>
-                index === three
-                    ? { ...train, status: 'owned', owner: company('PLE') }
-                    : train.status === 'owned' && sameOwner(train.owner, company('PLE'))
-                      ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                      : train
-            )
+            state.trainInventory.trains = state.trainInventory.trains
+                .filter(
+                    (train) => !(train.status === 'owned' && sameOwner(train.owner, company('PLE')))
+                )
+                .map((train) =>
+                    train.id === three?.id
+                        ? { ...train, status: 'owned', owner: company('PLE') }
+                        : train
+                )
         })
         passUntil(play, (state) => state.machineState === 'MergerRound')
         while (play.state.machineState === 'MergerRound')

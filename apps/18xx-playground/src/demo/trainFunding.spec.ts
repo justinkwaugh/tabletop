@@ -305,8 +305,15 @@ it('uses company, Union Bank, and player balances in order, contributing only th
 it('selects the cheapest available 1889 market train and does not permit a more expensive diesel', () => {
     const { state } = example(Shikoku, 'funding')
     state.phaseId = '6'
-    const train = state.trainInventory.trains.find((train) => train.definitionId === '3')!
-    train.status = 'market'
+    // The funding example has removed every 3 from play, so return one to the Market.
+    const train = Shikoku1889TrainRules.depot
+        .createInventory(state.trainInventory.depotId)
+        .trains.find(
+            (train) =>
+                train.definitionId === '3' &&
+                !state.trainInventory.trains.some((entry) => entry.id === train.id)
+        )!
+    state.trainInventory.trains.push({ ...train, status: 'market' })
     const offers = new EmergencyTrainFunding(
         state,
         Shikoku1889TrainFundingRules,

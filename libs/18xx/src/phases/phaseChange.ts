@@ -6,7 +6,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { controllingOwner, getCompany } from '../finance/finance.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import {
-    unownedTrain,
+    releaseTrains,
     type Train,
     type TrainState,
     type TrainPurchaseState
@@ -27,7 +27,9 @@ export const PhaseEvent = Type.Object(
     {
         ...PhaseOccurrence.properties,
         privateEffects: Type.Array(PrivateEffect),
-        rustedTrainIds: Type.Array(Id),
+        rustedTrains: Type.Array(
+            Type.Object({ trainId: Id, definitionId: Id }, { additionalProperties: false })
+        ),
         pendingRustTrainIds: Type.Array(Id),
         departurePayments: DeparturePayments
     },
@@ -112,29 +114,32 @@ export function advancePhase(
     const event: PhaseEvent = {
         ...change.event,
         privateEffects: [],
-        rustedTrainIds: [],
+        rustedTrains: [],
         pendingRustTrainIds: []
     }
     const departures: TrainDeparture[] = []
     state.trainInventory.trains = state.trainInventory.trains.map((train) => {
-        if (train.status === 'removed') return train
         const rustTiming = rules.rustTiming(state, train)
         if (rustTiming === 'after-operation' && train.status === 'owned') {
             event.pendingRustTrainIds.push(train.id)
             return { ...train, rustsAfterOperation: true }
         }
         if (rustTiming) {
-            event.rustedTrainIds.push(train.id)
+            event.rustedTrains.push({ trainId: train.id, definitionId: train.definitionId })
             departures.push({
                 trainId: train.id,
                 definitionId: train.definitionId,
                 cause: 'rust',
                 ...(train.status === 'owned' ? { owner: { ...train.owner } } : {})
             })
-            return unownedTrain(train, 'removed')
         }
         return train
     })
+    releaseTrains(
+        state.trainInventory,
+        event.rustedTrains.map((train) => train.trainId),
+        'removed'
+    )
     const payments = settleTrainDepartures(state, trainRules, departures)
     if (payments.length) event.departurePayments = payments
     state.phaseEvents.push(event)

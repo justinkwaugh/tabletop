@@ -23,7 +23,7 @@ import {
     transferCompanyAssets,
     turnOrderFrom,
     trainsOwnedBy,
-    unownedTrain
+    releaseTrains
 } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import {
@@ -260,9 +260,7 @@ export function liquidateByBank(
         }))
     )
     const trainIds = trains.map((train) => train.id)
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        trainIds.includes(train.id) ? unownedTrain(train, 'removed') : train
-    )
+    releaseTrains(state.trainInventory, trainIds, 'removed')
     const privateIds = state.certificates.flatMap((certificate) =>
         certificate.kind === 'private' && sameOwner(certificate.owner, owner)
             ? [certificate.companyId]

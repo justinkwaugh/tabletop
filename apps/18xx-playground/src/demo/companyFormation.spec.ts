@@ -364,11 +364,10 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
         return train.id
     })
     const result = engine.executeCanonicalAction({ game, state, action: purchase('A:share:4', 80) })
-    for (const id of ownedTrainIds) {
-        const train = result.updatedState.trainInventory.trains.find((train) => train.id === id)
-        expect(train).toMatchObject({ status: 'removed' })
-        expect(train).not.toHaveProperty('owner')
-    }
+    for (const id of ownedTrainIds)
+        expect(
+            result.updatedState.trainInventory.trains.find((train) => train.id === id)
+        ).toBeUndefined()
     let replay = state
     for (const action of result.processedActions)
         replay = engine.applyProcessedAction({ game, state: replay, action })

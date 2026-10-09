@@ -484,10 +484,8 @@ it('Hunslet buys before track finishes, advances phase and resumes that step', (
             accept: true
         })
     }).updatedState
-    bought.trainInventory.trains = bought.trainInventory.trains.map((train) =>
-        train.status === 'depot' && train.definitionId === '4H'
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    bought.trainInventory.trains = bought.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '4H')
     )
     const hydrated = Top.runtime.hydrator.hydrateState(bought)
     const details = privateTrainPurchase(hydrated, 'ML', TheOldPrinceTrainRules)
@@ -845,10 +843,9 @@ it('Hunslet resolves compulsory discards before returning to construction', () =
         depot.purchase(state.trainInventory, train.id, rank, { kind: 'company', companyId: 'ML' })
     }
     const ranks = depot.definition.supply.map((entry) => entry.definitionId)
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('2+')
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    state.trainInventory.trains = state.trainInventory.trains.filter(
+        (train) =>
+            !(train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('2+'))
     )
     const train = depot.nextTrain(state.trainInventory, '2+')!
     const bought = engine.executeCanonicalAction({

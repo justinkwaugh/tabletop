@@ -10,7 +10,7 @@ import {
 import { StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
-import { trainsOwnedBy, unownedTrain, type TrainState } from '../trains/train.js'
+import { trainsOwnedBy, releaseTrains, type TrainState } from '../trains/train.js'
 
 export const CompanyClosure = Type.Object(
     {
@@ -92,9 +92,7 @@ export function closeShareCompany(
     state.stationReservations = state.stationReservations.filter(
         (reservation) => reservation.companyId !== companyId
     )
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        removedTrainIds.includes(train.id) ? unownedTrain(train, trainDestination) : train
-    )
+    releaseTrains(state.trainInventory, removedTrainIds, trainDestination)
     if (company.kind === 'major') removeStockMarker(state.stockMarket, companyId)
     return details
 }

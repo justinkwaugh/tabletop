@@ -1,7 +1,7 @@
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { cashOwnedBy, getCompany, unownedTrain, type EighteenXXState } from '@tabletop/18xx'
+import { cashOwnedBy, getCompany, type EighteenXXState } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenSeventeenLoanRules,
@@ -163,12 +163,13 @@ describe('loans in the operating turn', () => {
 
     it('liquidates a company that ends its turn without a train', () => {
         const play = operating((state) => {
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'owned' &&
-                train.owner.kind === 'company' &&
-                train.owner.companyId === 'BA'
-                    ? unownedTrain(train, 'removed')
-                    : train
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) =>
+                    !(
+                        train.status === 'owned' &&
+                        train.owner.kind === 'company' &&
+                        train.owner.companyId === 'BA'
+                    )
             )
         })
         toLoanStep(play)

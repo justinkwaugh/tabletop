@@ -244,12 +244,13 @@ describe('mail', () => {
     it('pays nothing to a company without a train', () => {
         const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
             givePrivate(state, 'MAIL', 'BA')
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'owned' &&
-                train.owner.kind === 'company' &&
-                train.owner.companyId === 'BA'
-                    ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                    : train
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) =>
+                    !(
+                        train.status === 'owned' &&
+                        train.owner.kind === 'company' &&
+                        train.owner.companyId === 'BA'
+                    )
             )
         })
         expect(EighteenSeventeenOperatingRules.privateIncome?.(play.state, 'MAIL')).toBe(0)

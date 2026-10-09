@@ -38,7 +38,6 @@ function phaseIVReady() {
     discardTrain(table)
     let secondTier = 0
     table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) => {
-        if (train.status === 'removed') return train
         if (train.definitionId === '5')
             return { ...train, status: 'owned', owner: { kind: 'company', companyId: 'NYC' } }
         if (train.definitionId === '4') {
@@ -94,7 +93,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
             expect(trainsCountingForLimit(table.hydrated, TrainRules1846, 'IC')).toHaveLength(1)
             const phase = result.processedActions.find(isAdvancePhase1846)?.metadata
             assertExists(phase)
-            expect(phase.event.rustedTrainIds).toHaveLength(5)
+            expect(phase.event.rustedTrains).toHaveLength(5)
             expect(phase.event.pendingRustTrainIds).toHaveLength(2)
             expect(phase.removedRevenueMarkers).toEqual(before.revenueMarkers)
             expect(table.state.revenueMarkers).toEqual([])
@@ -256,15 +255,16 @@ describe('1846 Phase IV trains and lifecycle', () => {
     })
     it('supports an emergency final train purchase and the receiver’s cheapest final train', () => {
         const table = phaseIVReady()
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'owned' &&
-            train.owner.kind === 'company' &&
-            train.owner.companyId === 'IC'
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'owned' &&
+                    train.owner.kind === 'company' &&
+                    train.owner.companyId === 'IC'
+                )
         )
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'market' ? { ...train, status: 'removed' } : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => train.status !== 'market'
         )
         const cash = table.state.cash.find(
             (c) => c.owner.kind === 'company' && c.owner.companyId === 'IC'
@@ -279,10 +279,8 @@ describe('1846 Phase IV trains and lifecycle', () => {
         discardTrain(table)
         const owned = trainsOwnedBy(table.state, { kind: 'company', companyId: 'IC' })
         expect(owned.map((t) => t.definitionId)).toEqual(['6'])
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            owned.some((t) => t.id === train.id)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => !owned.some((t) => t.id === train.id)
         )
         setCompanyInReceivership(table, 'IC')
         const receiverCash = table.state.cash.find(
@@ -290,8 +288,8 @@ describe('1846 Phase IV trains and lifecycle', () => {
         )
         assertExists(receiverCash)
         receiverCash.amount = 900
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'market' ? { ...train, status: 'removed' } : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => train.status !== 'market'
         )
         expect(receiverTrainPurchase(table.hydrated)).toMatchObject({
             definitionId: '6',
@@ -300,13 +298,14 @@ describe('1846 Phase IV trains and lifecycle', () => {
     })
     it('resumes a receiver after its final-train purchase interrupts for another company’s discard', () => {
         const table = phaseIVReady()
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'market' ||
-            (train.status === 'owned' &&
-                train.owner.kind === 'company' &&
-                train.owner.companyId === 'IC')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'market' ||
+                    (train.status === 'owned' &&
+                        train.owner.kind === 'company' &&
+                        train.owner.companyId === 'IC')
+                )
         )
         setCompanyInReceivership(table, 'IC')
         table.state.machineState = 'BuyingReceiverTrain'

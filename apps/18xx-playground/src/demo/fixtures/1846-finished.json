@@ -1044,16 +1044,8 @@
           "definitionId": "2",
           "status": "depot"
         },
-        {
-          "id": "1846/2/6",
-          "definitionId": "2",
-          "status": "removed"
-        },
-        {
-          "id": "1846/2/7",
-          "definitionId": "2",
-          "status": "removed"
-        },
+        
+        
         {
           "id": "1846/4/8",
           "definitionId": "4",
@@ -1074,16 +1066,8 @@
           "definitionId": "4",
           "status": "depot"
         },
-        {
-          "id": "1846/4/12",
-          "definitionId": "4",
-          "status": "removed"
-        },
-        {
-          "id": "1846/4/13",
-          "definitionId": "4",
-          "status": "removed"
-        },
+        
+        
         {
           "id": "1846/5/14",
           "definitionId": "5",
@@ -1098,16 +1082,6 @@
           "id": "1846/5/16",
           "definitionId": "5",
           "status": "depot"
-        },
-        {
-          "id": "1846/5/17",
-          "definitionId": "5",
-          "status": "removed"
-        },
-        {
-          "id": "1846/5/18",
-          "definitionId": "5",
-          "status": "removed"
         }
       ],
       "nextTrainNumber": 19

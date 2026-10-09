@@ -269,13 +269,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded train run requires its revenue')
         return {
             text: action.routes.length ? 'Ran' : 'Did not run trains',
-            trainDefinitionIds: action.routes.map((route) => {
-                const train = state.trainInventory.trains.find(
-                    (train) => train.id === route.trainId
-                )
-                assertExists(train, 'Recorded train run requires its train')
-                return train.definitionId
-            }),
+            trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
             detail: runBonusesDetail(action.metadata.routes, money)
         }
@@ -478,10 +472,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded phase change requires its event')
         const event = action.metadata.event
         const effects = [
-            ...event.rustedTrainIds.map(
-                (id) =>
-                    `${state.trainInventory.trains.find((train) => train.id === id)?.definitionId ?? id} rusted`
-            ),
+            ...event.rustedTrains.map((train) => `${train.definitionId} rusted`),
             ...event.privateEffects.map((effect) => {
                 const name = companyName(effect.privateCompanyId)
                 if (effect.kind === 'close') return `${name} closed`
@@ -639,14 +630,12 @@ function describeShared(
                 important: true
             }
         const purchaseAsset = offer.asset
+        const trainDefinitionId = action.metadata.trainDefinitionId
         if (purchaseAsset.kind === 'train' && accepted) {
-            const train = state.trainInventory.trains.find(
-                (train) => train.id === purchaseAsset.trainId
-            )
-            assertExists(train, 'Recorded train purchase requires its train')
+            assertExists(trainDefinitionId, 'Recorded train purchase names its train')
             return {
                 text: 'Bought',
-                trainDefinitionIds: [train.definitionId],
+                trainDefinitionIds: [trainDefinitionId],
                 omitActor: true,
                 value: money(offer.price),
                 detail: [`From ${nameOf(offer.seller)}`, ...closures].join(' · '),
@@ -658,7 +647,7 @@ function describeShared(
                 ? companyName(purchaseAsset.privateCompanyId)
                 : purchaseAsset.kind === 'company'
                   ? companyName(purchaseAsset.companyId)
-                  : `${state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)?.definitionId ?? purchaseAsset.trainId} train`
+                  : `${trainDefinitionId} train`
         return {
             text: accepted
                 ? `Bought ${asset}`

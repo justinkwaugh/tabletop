@@ -167,10 +167,12 @@ export function createShikoku1889CompanyExample(
             }
         const next = position !== 'diesel' ? '5' : 'D'
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                )
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
@@ -197,10 +199,12 @@ export function createShikoku1889CompanyExample(
             })
         }
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('3')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf('3')
+                )
         )
     }
     if (position === 'funding' || position === 'bankruptcy') {
@@ -211,10 +215,8 @@ export function createShikoku1889CompanyExample(
             { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
         ])
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ranks.indexOf(train.definitionId) < ranks.indexOf('4')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => !(ranks.indexOf(train.definitionId) < ranks.indexOf('4'))
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'

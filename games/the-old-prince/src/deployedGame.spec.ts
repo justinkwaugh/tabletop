@@ -33,10 +33,33 @@ type RecordedCertificate = Certificate extends infer Current
               ({ retired: false; owner: Current['owner']; poolId?: string } | { retired: true })
         : never
     : never
-type RecordedState = Omit<TheOldPrinceState, 'stockMarket' | 'certificates'> & {
+type Train = TheOldPrinceState['trainInventory']['trains'][number]
+type RecordedTrain = Train | { id: string; definitionId: string; status: 'removed' }
+type PhaseEvent = TheOldPrinceState['phaseEvents'][number]
+type RouteStep = NonNullable<TheOldPrinceState['routeStep']>
+type RouteResult = NonNullable<RouteStep['result']>['routes'][number]
+type RecordedState = Omit<
+    TheOldPrinceState,
+    'stockMarket' | 'certificates' | 'trainInventory' | 'phaseEvents' | 'routeStep'
+> & {
     usedPrivatePowerIds: string[]
     stockMarket: TheOldPrinceState['stockMarket'] & { spaces: StockMarketSpace[] }
     certificates: RecordedCertificate[]
+    trainInventory: Omit<TheOldPrinceState['trainInventory'], 'trains'> & {
+        trains: RecordedTrain[]
+    }
+    phaseEvents: (Omit<PhaseEvent, 'rustedTrains'> & { rustedTrainIds: string[] })[]
+    routeStep?: Omit<RouteStep, 'result'> & {
+        result?: Omit<NonNullable<RouteStep['result']>, 'routes'> & {
+            routes: Omit<RouteResult, 'definitionId'>[]
+        }
+    }
+}
+
+function trainDefinition(trains: readonly RecordedTrain[], trainId: string): string {
+    const train = trains.find((entry) => entry.id === trainId)
+    assertExists(train, 'A recorded train stays in the recorded inventory')
+    return train.definitionId
 }
 
 function currentCertificates(
@@ -55,30 +78,60 @@ function currentCertificates(
     })
 }
 
+function currentRouteStep(
+    { result, ...step }: NonNullable<RecordedState['routeStep']>,
+    trains: readonly RecordedTrain[]
+): RouteStep {
+    if (!result) return step
+    return {
+        ...step,
+        result: {
+            ...result,
+            routes: result.routes.map((route) => ({
+                ...route,
+                definitionId: trainDefinition(trains, route.trainId)
+            }))
+        }
+    }
+}
+
 function currentShape({
     usedPrivatePowerIds,
     stockMarket: { stacks },
     certificates,
+    trainInventory,
+    phaseEvents,
+    routeStep,
     ...recorded
 }: RecordedState): TheOldPrinceState {
     assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
+    const trains = trainInventory.trains
     const state = { ...recorded, companies: structuredClone(recorded.companies) }
     return {
         ...state,
         stockMarket: { stacks },
-        certificates: currentCertificates(state, certificates)
+        certificates: currentCertificates(state, certificates),
+        trainInventory: {
+            ...trainInventory,
+            trains: trains.filter((train): train is Train => train.status !== 'removed')
+        },
+        phaseEvents: phaseEvents.map(({ rustedTrainIds, ...event }) => ({
+            ...event,
+            rustedTrains: rustedTrainIds.map((trainId) => ({
+                trainId,
+                definitionId: trainDefinition(trains, trainId)
+            }))
+        })),
+        ...(routeStep ? { routeStep: currentRouteStep(routeStep, trains) } : {})
     }
-}
-
-// Metadata is what logic records on applying an Action; it is regenerated in the current shape.
-function withoutRecordedMetadata({ metadata: _metadata, ...action }: GameAction): GameAction {
-    return action
 }
 
 const recordedLatestState: RecordedState = readFixture('state')
 const latestState = currentShape(recordedLatestState)
 const oldestFirstActions: GameAction[] = readFixture('actions')
-    .map(({ createdAt, updatedAt, ...action }: Record<string, string>) => ({
+    // Metadata is what logic records on applying an Action; replay regenerates it in the current
+    // shape, and recorded history needs only the undo patches.
+    .map(({ createdAt, updatedAt, metadata: _metadata, ...action }: Record<string, string>) => ({
         ...action,
         createdAt: new Date(createdAt),
         ...(updatedAt ? { updatedAt: new Date(updatedAt) } : {})
@@ -140,7 +193,7 @@ describe('the deployed game', () => {
             const transition = transitions.get(action.id)
             assertExists(transition?.before, 'Every recorded action has an undo patch')
             const { updatedState } = engine.executeSingleAction({
-                action: withoutRecordedMetadata(action),
+                action,
                 state: transition.before,
                 game
             })

@@ -173,8 +173,9 @@ describe('1846 bankruptcy and receivership', () => {
     })
     it('buys the cheaper phase-II face and resumes receiver completion after advancing phase', () => {
         const { table } = funding(40, 100)
-        for (const train of table.state.trainInventory.trains)
-            if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => !(train.status === 'depot' && train.definitionId === '2')
+        )
         table.act('StartEmergencyFunding', { companyId: 'IC' })
         expect(bankruptcyShortfall(table.hydrated)).toBe(40)
         const before = structuredClone(table.state)

@@ -1,7 +1,7 @@
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { placeStockMarker, unownedTrain, type EighteenXXState, type Train } from '@tabletop/18xx'
+import { placeStockMarker, type EighteenXXState, type Train } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenTrainDepot, acquisitionRoundOf } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -15,19 +15,20 @@ const depot = (state: EighteenXXState, definitionId: string) =>
         (train) => train.status === 'depot' && train.definitionId === definitionId
     )
 
+// The depot's trains that have left play, exported or scrapped, in depot order.
 const removed = (state: EighteenXXState) =>
-    state.trainInventory.trains
-        .filter((train) => train.status === 'removed')
+    EighteenSeventeenTrainDepot.createInventory(state.trainInventory.depotId)
+        .trains.filter(
+            (train) => !state.trainInventory.trains.some((entry) => entry.id === train.id)
+        )
         .map((train) => train.definitionId)
 
 // As though the trains were bought and scrapped earlier, keeping the first `keep` in the depot.
 function removeFromDepot(state: EighteenXXState, definitionId: string, keep = 0) {
     let kept = 0
-    state.trainInventory.trains = state.trainInventory.trains.map((train) => {
-        if (train.status !== 'depot' || train.definitionId !== definitionId) return train
-        if (kept++ < keep) return train
-        return unownedTrain(train, 'removed')
-    })
+    state.trainInventory.trains = state.trainInventory.trains.filter(
+        (train) => train.status !== 'depot' || train.definitionId !== definitionId || kept++ < keep
+    )
 }
 
 const ownedBy = (state: EighteenXXState, companyId: string) =>
@@ -73,8 +74,8 @@ describe('train exports', () => {
         const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
             state.phaseId = '3'
             placeStockMarker(state.stockMarket, 'PLE', '0:18')
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'owned' ? unownedTrain(train, 'removed') : train
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) => train.status !== 'owned'
             )
             give(state, 'PLE', '2+')
             for (const companyId of ['BA', 'PLE'])

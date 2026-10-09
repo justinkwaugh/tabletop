@@ -221,6 +221,7 @@ export class RouteEvaluation {
         return {
             result: {
                 ...route,
+                definitionId: train.definitionId,
                 visits: trace.visits.map(({ locationId, nodeId }) => ({ locationId, nodeId })),
                 payments,
                 ...(bonuses.length ? { bonuses } : {}),

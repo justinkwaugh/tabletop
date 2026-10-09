@@ -1413,11 +1413,6 @@
      "id": "1830/6/20",
      "definitionId": "6",
      "status": "depot"
-    },
-    {
-     "id": "1830/6/21",
-     "definitionId": "6",
-     "status": "removed"
     }
    ],
    "nextTrainNumber": 22

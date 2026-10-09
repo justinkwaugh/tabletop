@@ -113,8 +113,11 @@ mechanism below, plus the six implemented titles.
    certificates and 1846's one-share independent president would each need an id
    scheme. Storing each kind of certificate once in a State table was measured at only
    1–2 KB more per finished game than this change, against a lookup at every reader.
-4. **Retired and removed records are dropped.** Retired certificates, removed stations
-   and rusted or exported trains leave State.
+4. **Retired and removed records are dropped.** Retired certificates and rusted, exported
+   or scrapped trains leave State. Removed stations stay until the deferred station
+   change: 1830's and 1832's charter costs count a removed piece as used and 1832 finds
+   its charter pieces by record order, so dropping them needs the charter slot carried
+   some other way than the record.
     - Certificates leave through `removeCertificates`, and the `retired` flag goes: every
       certificate in State is in play.
     - Ids must stay unique for the whole game, because recorded Actions and metadata name
@@ -129,6 +132,13 @@ mechanism below, plus the six implemented titles.
       record the certificate's `shares`; a private's exchange effect records the received
       company and shares; a certificate exchange records the surrendered company and
       number and the received company and shares.
+    - Trains leave through `releaseTrains(inventory, ids, destination)`; `removed` is a
+      destination the rules choose, not a stored status, and the depot no longer requires
+      every opening train to stay listed. Exporting an unlimited train still advances the
+      depot's numbering. Phase events record each rusted train's definition, route
+      results record the train's definition, and purchase-offer metadata records an
+      offered train's. 1817's first-8-train ending reads phase 8, which that train
+      starts, instead of looking for 8-trains outside the depot.
 5. **Names, depot and final wealth.** Company and pool names move to the definition. The
    depot's roster comes from the resolved configuration, with State keeping what remains
    in order and any trains created during play. `finalWealth` labels are built by the
@@ -149,7 +159,7 @@ estimated, not yet measured.
 
 - **Stations as placed positions plus a count**, and creating TOP's branches at the
   split. Both change station identity in action inputs and other State, and the saving
-  outside TOP is under 1.5 KB per game.
+  outside TOP is under 1.5 KB per game. Removed stations leave State with this change.
 - **1846 on the shared runtime factory.** The factory builds the family's operating
   sequence and has no visibility projector; 1846's sequence differs.
 

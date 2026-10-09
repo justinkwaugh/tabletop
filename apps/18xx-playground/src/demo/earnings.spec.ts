@@ -289,8 +289,8 @@ it.each(Titles)(
     ({ definition, companyId, trainRules }) => {
         const { state } = example(definition, 'routes')
         state.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
-        state.trainInventory.trains = state.trainInventory.trains.map((t) =>
-            t.status === 'owned' ? { id: t.id, definitionId: t.definitionId, status: 'removed' } : t
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (t) => t.status !== 'owned'
         )
         expect(finishOperatingTurnReason(state, trainRules, companyId)).toContain(
             'must buy a train'

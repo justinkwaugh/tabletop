@@ -47,11 +47,7 @@ export function createEighteenThirtyTwoTrainInventory(
     if (!variants.diesels) return inventory
     return {
         ...inventory,
-        trains: inventory.trains.map((train) =>
-            ['8', '10'].includes(train.definitionId)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
-        )
+        trains: inventory.trains.filter((train) => !['8', '10'].includes(train.definitionId))
     }
 }
 

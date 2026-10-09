@@ -14,7 +14,6 @@ import {
     replaceStation,
     sameOwner,
     sharesStillToFloat,
-    unownedTrain,
     type CompanyRules,
     type FormationState,
     type StockState
@@ -143,10 +142,8 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             assertExists(cash, 'PEIR requires a treasury')
             cash.amount = 0
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'owned' && sameOwner(train.owner, cash.owner)
-                    ? unownedTrain(train, 'removed')
-                    : train
+            state.trainInventory.trains = state.trainInventory.trains.filter(
+                (train) => !(train.status === 'owned' && sameOwner(train.owner, cash.owner))
             )
             closePrivate(state, 'KM')
         }

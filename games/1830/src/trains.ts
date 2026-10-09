@@ -59,9 +59,7 @@ export function createEighteenThirtyTrainInventory(extraSixTrain: boolean): Trai
     const optional = inventory.trains.findLast((train) => train.definitionId === '6')
     return {
         ...inventory,
-        trains: inventory.trains.map((train) =>
-            train === optional ? { id: train.id, definitionId: '6', status: 'removed' } : train
-        )
+        trains: inventory.trains.filter((train) => train !== optional)
     }
 }
 

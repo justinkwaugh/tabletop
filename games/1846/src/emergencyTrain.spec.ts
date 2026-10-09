@@ -6,8 +6,9 @@ import { emergencyBuyingGame as buyingGame } from './testSupport.js'
 import { emergencyTrainChoices } from './emergencyTrain.js'
 
 function phaseII(table: ReturnType<typeof buyingGame>) {
-    for (const train of table.state.trainInventory.trains)
-        if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '2')
+    )
 }
 function choice(table: ReturnType<typeof buyingGame>, definitionId = '2') {
     const choice = emergencyTrainChoices(table.hydrated).find(

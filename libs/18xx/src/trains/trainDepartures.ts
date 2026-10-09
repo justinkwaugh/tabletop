@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import type { Owner } from '../finance/finance.js'
-import { unownedTrain, type TrainPurchaseState } from './train.js'
+import { releaseTrains, type TrainPurchaseState } from './train.js'
 import type { TrainRules } from './trainPurchase.js'
 
 /** A train leaving the depot or its owner: bought, exported, rusted or discarded. */
@@ -64,8 +64,6 @@ export function discardTrainToMarket(
             owner: { kind: 'company', companyId }
         }
     ])
-    state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
-        entry.id === trainId ? unownedTrain(entry, 'market') : entry
-    )
+    releaseTrains(state.trainInventory, [trainId], 'market')
     return payments
 }

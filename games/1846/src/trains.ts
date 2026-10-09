@@ -9,7 +9,8 @@ import {
     trainCanBeTraded,
     type TrainInventory,
     type TrainPurchaseState,
-    type TrainRules
+    type TrainRules,
+    releaseTrains
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { DraftCompanies } from './catalog.js'
@@ -84,10 +85,14 @@ export function createInitialTrainInventory(playerCount: number): TrainInventory
         ['4', playerCount + 1],
         ['5', playerCount]
     ] as const)
-        for (const train of inventory.trains
-            .filter((train) => train.definitionId === definitionId)
-            .slice(count))
-            train.status = 'removed'
+        releaseTrains(
+            inventory,
+            inventory.trains
+                .filter((train) => train.definitionId === definitionId)
+                .slice(count)
+                .map((train) => train.id),
+            'removed'
+        )
     return inventory
 }
 export function finalDepotEmpty(state: TrainPurchaseState): boolean {

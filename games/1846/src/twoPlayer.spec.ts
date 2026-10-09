@@ -105,12 +105,13 @@ function lastTrainGame(roundNumber = 1) {
         (train) => train.status === 'depot' && train.definitionId === '6'
     )
     expect(finals).toHaveLength(4)
-    table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) => {
-        if (train.id === finals[3].id) return train
-        if (finals.some((candidate) => candidate.id === train.id))
-            return { ...train, status: 'owned', owner: { kind: 'company', companyId: 'NYC' } }
-        return { id: train.id, definitionId: train.definitionId, status: 'removed' }
-    })
+    table.state.trainInventory.trains = table.state.trainInventory.trains
+        .filter((train) => finals.some((candidate) => candidate.id === train.id))
+        .map((train) =>
+            train.id === finals[3].id
+                ? train
+                : { ...train, status: 'owned', owner: { kind: 'company', companyId: 'NYC' } }
+        )
     assertExists(table.state.operatingSet)
     table.state.operatingSet.roundNumber = roundNumber
     return table
@@ -301,11 +302,11 @@ describe('1846 complete two-player rules', () => {
                 trainId: sellerTrain.id
             })
         ).toBe(true)
-        const returned = table.state.trainInventory.trains.find(
-            (train) => train.definitionId === '5' && train.status === 'removed'
-        )
+        const returned = TrainDepot1846.createInventory(
+            table.state.trainInventory.depotId
+        ).trains.find((train) => train.definitionId === '5')
         assertExists(returned)
-        returned.status = 'market'
+        table.state.trainInventory.trains.push({ ...returned, status: 'market' })
         expect(finalDepotEmpty(table.hydrated)).toBe(false)
         expect(TrainRules1846.requiresTrain(table.hydrated, 'IC')).toBe(true)
         expect(

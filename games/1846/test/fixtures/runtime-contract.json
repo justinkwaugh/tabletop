@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "fee1e89ef73548f46c5a7f7963876211b60cd3de96a07b713a2b8df237f79416",
+    "AdvancePhase": "009f4492ca461e3340fa921a2865138e625e92b963c831beb8e5be4425630885",
     "AssignRevenueMarker": "99507556bc2b9d4c56f8013534d5f778b45ba10c6326a74c9dbe7f94a0c0e210",
     "AssignSteamboat": "c90a5f32432482418b417ccd4f8ce5074f52861b366730a633da4758d869ecec",
     "BuildPrivateTrack": "1fefa61b2d521412402f324dba890cc103be85a45afa63b59b10dc6ece5dd3b3",
@@ -25,15 +25,15 @@
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "LayTile": "249fc9b4fcffcbb7a93a12b1cdef9ef8b42628162e7801ea1e7b41d89d9c3378",
-    "OfferPurchase": "bf4dd61539794a4cece33ea8bc62f11c3efed2dc87cf4ca226d86fbf3782a2c2",
+    "OfferPurchase": "136ac8c1fe9d5b9aac31aa987b3a719fc65e9d2d9437b15775613e8b37bfea41",
     "PassFinalCompany": "a6f0317e8e075e7aeef871f74fbf4d9c89a7c57acb03b514ec6677647c98b7c5",
     "PassOpeningPurchase": "d0193d73e05c66e172af5abd13d4490a92f26a78783301e00b3c76199c3d6e5f",
     "PlaceCWIStation": "c76cd1af598092af248d81a827e347777da4b0a2cee7c44760ae48fe2d99ad16",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
-    "RespondToPurchaseOffer": "32c7b1d8eb100fcb836d7a8a745bb8be5c4f2b1d2c3c8a2afe0c2a6fb69b78b5",
+    "RespondToPurchaseOffer": "bb8b740526e40cb58233307832ce7d879791fb047787ffabd4421790e6586b97",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "8fd9faa1d84014dff7c81664568218514d3b6b7e566cbb5740f2685d2e4d0281",
-    "RunTrains": "b84264c109ac6df6e72f1c392573625f8a0fa09c8cbca48d4e7ded249a9f98b4",
+    "RunTrains": "a00f6e3a70d2a6cc2c43e4ca917328530cbeaa7ccaae56993080a0c37791424a",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellEmergencyShares": "606d44a18b52bde6087fc7d469fa479a4e4ef088d0757c83b8c89cf5bb0623b8",
@@ -2021,10 +2021,24 @@
               },
               "type": "array"
             },
-            "rustedTrainIds": {
+            "rustedTrains": {
               "items": {
-                "minLength": 1,
-                "type": "string"
+                "additionalProperties": false,
+                "properties": {
+                  "definitionId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "trainId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "definitionId",
+                  "trainId"
+                ],
+                "type": "object"
               },
               "type": "array"
             },
@@ -2043,7 +2057,7 @@
             "id",
             "pendingRustTrainIds",
             "privateEffects",
-            "rustedTrainIds",
+            "rustedTrains",
             "toPhaseId",
             "trainId"
           ],
@@ -2576,6 +2590,9 @@
                       "minItems": 1,
                       "type": "array"
                     },
+                    "definitionId": {
+                      "type": "string"
+                    },
                     "distance": {
                       "minimum": 0,
                       "type": "integer"
@@ -2677,6 +2694,7 @@
                     }
                   },
                   "required": [
+                    "definitionId",
                     "distance",
                     "paths",
                     "payments",
@@ -3609,32 +3627,6 @@
                     "definitionId",
                     "id",
                     "owner",
-                    "status"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "additionalProperties": false,
-                  "properties": {
-                    "definitionId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "status": {
-                      "const": "removed",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "definitionId",
-                    "id",
                     "status"
                   ],
                   "type": "object"

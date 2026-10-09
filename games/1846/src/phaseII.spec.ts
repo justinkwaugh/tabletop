@@ -71,7 +71,7 @@ describe('1846 phase-II train introduction', () => {
                     fromPhaseId: 'I',
                     toPhaseId: 'II',
                     definitionId,
-                    rustedTrainIds: [],
+                    rustedTrains: [],
                     privateEffects: []
                 },
                 nextState: 'BuyingTrains'

@@ -4,7 +4,6 @@ import {
     EmergencyTrainFunding,
     getCompany,
     privateExchangeOffers,
-    unownedTrain,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
@@ -192,12 +191,13 @@ it('keeps the train and sales obligation when an exchange changes the operating 
         state.operatingSet.completedCompanyIds = ['PRR']
         state.trainPurchaseStep = { companyId: 'NYC', purchasedTrainIds: [] }
         state.activePlayerIds = ['alex']
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'owned' &&
-            train.owner.kind === 'company' &&
-            train.owner.companyId === 'NYC'
-                ? unownedTrain(train, 'removed')
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'owned' &&
+                    train.owner.kind === 'company' &&
+                    train.owner.companyId === 'NYC'
+                )
         )
         state.stations = state.stations.map((station) => ({
             ...station,

@@ -50,6 +50,7 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
     const state = historyStateFixture()
     const route = (bonuses: { locationId: string; amount: number; label?: string }[]) => ({
         trainId: 'train',
+        definitionId: '2',
         start: { locationId: 'A1', nodeId: 'city' },
         paths: [{ locationId: 'A1', pathId: 'edge-0' }],
         visits: [],

@@ -37,6 +37,7 @@ export type RouteBonus = Type.Static<typeof RouteBonus>
 export const RouteResult = Type.Object(
     {
         ...TrainRoute.properties,
+        definitionId: Type.String(),
         visits: Type.Array(RevenueCenter),
         payments: Type.Array(RoutePayment),
         bonuses: Type.Optional(Type.Array(RouteBonus, { minItems: 1 })),

@@ -107,11 +107,9 @@ describe('1846 first major train buying', () => {
         (count) => {
             const { state } = start(count, 7)
             expect(TrainRules1846.depot.remaining(state.trainInventory, '2')).toBe(count + 2)
-            expect(
-                state.trainInventory.trains.filter(
-                    (t) => t.status === 'removed' && t.definitionId === '2'
-                )
-            ).toHaveLength(5 - count)
+            expect(state.trainInventory.trains.filter((t) => t.definitionId === '2')).toHaveLength(
+                count + 2
+            )
         }
     )
 })

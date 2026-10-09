@@ -37,10 +37,9 @@ function buyTrains(state: TrainState, companyId: string, ranks: readonly string[
 
 function removeDepotTrainsBefore(state: TrainState, next: string): void {
     const ranks = EighteenThirtyTwoTrainDepot.definition.supply.map((entry) => entry.definitionId)
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    state.trainInventory.trains = state.trainInventory.trains.filter(
+        (train) =>
+            !(train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next))
     )
 }
 
@@ -171,10 +170,8 @@ export function createEighteenThirtyTwoCompanyExample(
         const ranks = EighteenThirtyTwoTrainDepot.definition.supply.map(
             (entry) => entry.definitionId
         )
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ranks.indexOf(train.definitionId) < ranks.indexOf('4')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => !(ranks.indexOf(train.definitionId) < ranks.indexOf('4'))
         )
         setTreasury(state, 'CG', position === 'funding' ? 70 : 0)
         for (const cash of state.cash)

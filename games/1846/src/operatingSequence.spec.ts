@@ -232,11 +232,9 @@ describe('1846 stock and operating sequence', () => {
         expect(table.state.stockRound.number).toBe(2)
         expect(table.state.companies.find((company) => company.id === 'GT')?.closed).toBe(true)
         expect(trainsOwnedBy(table.state, { kind: 'company', companyId: 'GT' })).toEqual([])
-        expect(table.state.trainInventory.trains.find((entry) => entry.id === train.id)).toEqual({
-            id: train.id,
-            definitionId: '2',
-            status: 'removed'
-        })
+        expect(
+            table.state.trainInventory.trains.find((entry) => entry.id === train.id)
+        ).toBeUndefined()
         expect(table.state.trainInventory.trains.filter((entry) => entry.id !== train.id)).toEqual(
             otherTrains
         )

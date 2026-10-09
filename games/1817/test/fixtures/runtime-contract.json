@@ -1,7 +1,7 @@
 {
   "actionSchemaDigests": {
     "AcquireCompany": "27234f242a1eadc8d6b59b3efda2edd72b01cc898e3be015966cf392057f065c",
-    "AdvancePhase": "49a335040056ae42bc2bc97697bf14f316921c0baa33e79a8108d2e038c034ad",
+    "AdvancePhase": "455ea5fcecfff534b4b1ca9ddb8a834c6c3a4575df84a596bdffefa2ae77b3ec",
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
     "BidForLot": "8ab4c24d5d3df608d5ccef32d6ed194338b5153cec0957bf1cfaebdcfc59a819",
@@ -48,7 +48,7 @@
     "MergeCompanies": "40ef42616a732230e84f6c9faa49c5e7abe4a69f934cd2b200660a0d8f10bab7",
     "NominateLot": "ced79bf0b77f7263a8c0f7add24c6a7a5fef4cd2be2ffc8e85d9260e9b97cbb2",
     "OfferCompany": "4e1ded6ccc5a7434f4178fd06ae7ac96a75eaff788675be4e7dfc54fd6352b96",
-    "OfferPurchase": "1ffb58aefcc66ae93163bb679227ceea684bf43ba5cdbc6e7fd928ea5a3c3a45",
+    "OfferPurchase": "adcc4687593d9edd9c26f185126a89e49b9ee467105f35f482fa6807f906955a",
     "OpenCompanySale": "89cf80783a6228e7d3f7055653772202c386e25ddc3b832a7c4c25713ef83452",
     "PassCompanyAuction": "4a168b2924b9765af76f47dc46210be9dee7a257007e2d71b81214eb156708a7",
     "PassConvertedShares": "db09690cb190823aefe060d72024527a42acdea1543e385fcfc45b25354b8864",
@@ -64,9 +64,9 @@
     "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
-    "RespondToPurchaseOffer": "b324a45d36316c79cd4c76e672f7900bf0bdab503916d96ec016da210bdd7509",
+    "RespondToPurchaseOffer": "7ceafd12caf8dd6e73971e49ef80d4c5a63cd74a02b311b405be84113b050a4f",
     "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
-    "RunTrains": "b84264c109ac6df6e72f1c392573625f8a0fa09c8cbca48d4e7ded249a9f98b4",
+    "RunTrains": "a00f6e3a70d2a6cc2c43e4ca917328530cbeaa7ccaae56993080a0c37791424a",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellConvertedShares": "232228a9ca56bda8f8c487c129af2844643d29dd5f8b994a59bf05dee327560f",
@@ -2399,10 +2399,24 @@
               },
               "type": "array"
             },
-            "rustedTrainIds": {
+            "rustedTrains": {
               "items": {
-                "minLength": 1,
-                "type": "string"
+                "additionalProperties": false,
+                "properties": {
+                  "definitionId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "trainId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "definitionId",
+                  "trainId"
+                ],
+                "type": "object"
               },
               "type": "array"
             },
@@ -2421,7 +2435,7 @@
             "id",
             "pendingRustTrainIds",
             "privateEffects",
-            "rustedTrainIds",
+            "rustedTrains",
             "toPhaseId",
             "trainId"
           ],
@@ -2867,6 +2881,9 @@
                       "minItems": 1,
                       "type": "array"
                     },
+                    "definitionId": {
+                      "type": "string"
+                    },
                     "distance": {
                       "minimum": 0,
                       "type": "integer"
@@ -2968,6 +2985,7 @@
                     }
                   },
                   "required": [
+                    "definitionId",
                     "distance",
                     "paths",
                     "payments",
@@ -4204,32 +4222,6 @@
                     "definitionId",
                     "id",
                     "owner",
-                    "status"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "additionalProperties": false,
-                  "properties": {
-                    "definitionId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "status": {
-                      "const": "removed",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "definitionId",
-                    "id",
                     "status"
                   ],
                   "type": "object"
