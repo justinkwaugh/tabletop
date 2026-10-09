@@ -11,6 +11,7 @@ import { ReefEncounterApiActions } from './apiActions.js'
 import { ReefEncounterActionSchemas } from './actionSchemas.js'
 import { ReefEncounterStateHandlers } from './stateHandlers.js'
 import { ReefEncounterColors } from './colors.js'
+import { ReefEncounterScoring } from './scoring.js'
 
 export const ReefEncounterRuntime = {
     randomnessVersion: 1,
@@ -21,6 +22,7 @@ export const ReefEncounterRuntime = {
     apiActions: ReefEncounterApiActions,
     playerColors: ReefEncounterColors,
     stateLogger: new DefaultStateLogger(),
+    scoring: new ReefEncounterScoring(),
     visibility: {
         state: Visibility.createProjector(ReefEncounterGameState),
         actions: Visibility.createActionProjector(ReefEncounterActionSchemas)

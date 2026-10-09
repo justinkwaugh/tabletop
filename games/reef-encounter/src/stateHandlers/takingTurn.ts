@@ -2,26 +2,44 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
+import { HydratedTakeOpenSeaSpace, isTakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
+import { RefillOpenSea } from '../actions/refillOpenSea.js'
 import { activateTurnPlayer } from '../util/turns.js'
 
-// The turn's actions arrive in the next milestone; until then a turn offers nothing.
 export class TakingTurnStateHandler implements MachineStateHandler<
-    HydratedAction,
+    HydratedTakeOpenSeaSpace,
     HydratedReefEncounterGameState
 > {
-    isValidAction(_action: HydratedAction): _action is HydratedAction {
-        return false
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedReefEncounterGameState>
+    ): action is HydratedTakeOpenSeaSpace {
+        const gameState = context.gameState
+        return (
+            isTakeOpenSeaSpace(action) &&
+            gameState.activePlayerIds.includes(action.playerId) &&
+            gameState.canTakeOpenSeaSpace(action.larvaColor)
+        )
     }
 
-    validActionsForPlayer(): ActionType[] {
-        return []
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedReefEncounterGameState>
+    ): ActionType[] {
+        return context.gameState.activePlayerIds.includes(playerId)
+            ? [ActionType.TakeOpenSeaSpace]
+            : []
     }
 
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
         activateTurnPlayer(context.gameState)
     }
 
-    onAction(): MachineState {
-        throw Error('No turn actions exist yet')
+    onAction(
+        _action: HydratedTakeOpenSeaSpace,
+        context: MachineContext<HydratedReefEncounterGameState>
+    ): MachineState {
+        context.addSystemAction(RefillOpenSea, { revealsInfo: true })
+        return MachineState.RefillingOpenSea
     }
 }

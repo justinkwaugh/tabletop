@@ -5,7 +5,13 @@ import {
     ReefEncounterGameStateValidator,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
-import { startTestGame, type TestSession } from '../util/testHelper.js'
+import {
+    chooseEveryLarvaCube,
+    dealtColorOf,
+    feedEveryParrotfish,
+    startTestGame,
+    type TestSession
+} from '../util/testHelper.js'
 import type { ReefEncounterGameConfig } from './config.js'
 import { ActionType } from './actions.js'
 import { ReefEncounterRuntime } from './runtime.js'
@@ -28,25 +34,6 @@ function project(
     return ReefEncounterRuntime.visibility.state.project(session.state, perspective, {
         config: session.game.config
     })
-}
-
-function dealtColorOf(session: TestSession, playerId: string): CoralColor {
-    const polyps = session.hydrated().getPlayerState(playerId).getSecretScreenPolyps()
-    const color = CoralColors.find((candidate) => polyps[candidate] > 0)
-    assert(color, `Player ${playerId} was dealt no polyps`)
-    return color
-}
-
-function feedEveryParrotfish(session: TestSession) {
-    for (const playerId of session.state.turnManager.turnOrder) {
-        session.feedParrotfish(playerId, dealtColorOf(session, playerId))
-    }
-}
-
-function chooseEveryLarvaCube(session: TestSession) {
-    for (const playerId of session.state.turnManager.turnOrder) {
-        session.chooseLarvaCubes(playerId, [CoralColor.Pink, CoralColor.Grey])
-    }
 }
 
 function startSession(config: Partial<ReefEncounterGameConfig> = {}) {

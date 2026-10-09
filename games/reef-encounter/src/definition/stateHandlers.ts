@@ -4,6 +4,8 @@ import type { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { ChoosingParrotfishPolypStateHandler } from '../stateHandlers/choosingParrotfishPolyp.js'
 import { ChoosingLarvaCubesStateHandler } from '../stateHandlers/choosingLarvaCubes.js'
 import { TakingTurnStateHandler } from '../stateHandlers/takingTurn.js'
+import { RefillingOpenSeaStateHandler } from '../stateHandlers/refillingOpenSea.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
 export const ReefEncounterStateHandlers: Record<
     MachineState,
@@ -11,5 +13,7 @@ export const ReefEncounterStateHandlers: Record<
 > = {
     [MachineState.ChoosingParrotfishPolyp]: new ChoosingParrotfishPolypStateHandler(),
     [MachineState.ChoosingLarvaCubes]: new ChoosingLarvaCubesStateHandler(),
-    [MachineState.TakingTurn]: new TakingTurnStateHandler()
+    [MachineState.TakingTurn]: new TakingTurnStateHandler(),
+    [MachineState.RefillingOpenSea]: new RefillingOpenSeaStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

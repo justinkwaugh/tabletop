@@ -22,6 +22,19 @@ In the rulebook's order (pp. 3–4):
 7. In turn order, each player secretly feeds one of their polyps to their parrotfish. Nobody else ever learns its colour before the game ends.
 8. In turn order, each player takes two larva cubes from the supply and shows them. Two of the same colour are allowed.
 
+## Turns
+
+- **Action 10 ends every turn** (rulebook pp. 4–5): the player takes one larva cube from the open sea with every polyp on its space. Those polyps' colours were seen by everyone, so they count as known polyps behind the screen.
+- **Refill.** The taken cube is replaced by one of the same colour from the supply, then every space holding fewer than three polyps gains one from the bag (rulebook p. 5). The polyps come from a shuffled bag, so the refill is a reveal and Undo cannot step back past it.
+- **The bag running dry.** When the bag holds fewer polyps than the refill needs, the five bonus polyps go into it and it is reshuffled (rulebook p. 11).
+- **Shortage ends the game at once** (rulebook p. 11, end condition 4): if the supply has no cube of the taken colour, or the bag, with the bonus polyps, cannot supply the refill, the game ends with no extra turns. The open sea is left as it stood.
+- The game is one continuous round, with turns passing clockwise (rulebook p. 5).
+
+## Scoring
+
+- Each polyp in a player's parrotfish scores its colour's value: 1, plus 1 for every coral tile currently showing that colour as the stronger coral. The values always total 15 (rulebook p. 12).
+- Ties are broken, in order, by consumed polyps in front of the screen, unplayed larva cubes, unplayed screen polyps, then polyps on the boards in corals protected by the player's shrimps. Players still level share the place (rulebook p. 12). Until consumed polyps and shrimps on the reef exist in this implementation, ties use the two in between.
+
 ## Hidden information
 
 - The polyps dealt at setup and the polyp fed to the parrotfish at setup are hidden from the other players until the game ends, since nobody could track them at the table.

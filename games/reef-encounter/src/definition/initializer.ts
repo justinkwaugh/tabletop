@@ -126,7 +126,7 @@ export class ReefEncounterGameInitializer
         return OpenSeaOrder.map((larvaColor) => {
             const polyps = polypsBySpace.get(larvaColor)
             assertExists(polyps, `The open sea has no ${larvaColor} space`)
-            return { larvaColor, polyps }
+            return { larvaColor, hasLarvaCube: true, polyps }
         })
     }
 

@@ -1,4 +1,6 @@
 export enum ActionType {
     FeedParrotfish = 'feedParrotfish',
-    ChooseLarvaCubes = 'chooseLarvaCubes'
+    ChooseLarvaCubes = 'chooseLarvaCubes',
+    TakeOpenSeaSpace = 'takeOpenSeaSpace',
+    RefillOpenSea = 'refillOpenSea'
 }

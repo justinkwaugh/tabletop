@@ -2,13 +2,20 @@ import { assert, assertExists, Color, Hydratable, PlayerState, Visibility } from
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { CoralColor, CoralCounts, coralCounts, totalCount } from '../components/colors.js'
+import { MachineState } from '../definition/states.js'
 
 export const ShrimpsPerPlayer = 4
 
 // Facts any careful player could track are open unless the game plays Concealed.
 const trackablePolicy = Visibility.Policy.anyOf(
     Visibility.Policy.Owner,
-    Visibility.Policy.configEquals('concealed', false, { defaultValue: false })
+    Visibility.Policy.configEquals('concealed', false, { defaultValue: false }),
+    Visibility.Policy.stateEquals('machineState', MachineState.EndOfGame)
+)
+
+const secretPolicy = Visibility.Policy.anyOf(
+    Visibility.Policy.Owner,
+    Visibility.Policy.stateEquals('machineState', MachineState.EndOfGame)
 )
 
 export type ReefEncounterPlayerState = Type.Static<typeof ReefEncounterPlayerState>
@@ -18,12 +25,8 @@ export const ReefEncounterPlayerState = Type.Intersect([
     PlayerState,
     Type.Object({
         knownScreenPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
-        secretScreenPolyps: Visibility.protect(CoralCounts, {
-            policy: Visibility.Policy.Owner
-        }),
-        secretParrotfishPolyps: Visibility.protect(CoralCounts, {
-            policy: Visibility.Policy.Owner
-        }),
+        secretScreenPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
+        secretParrotfishPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         larvaCubes: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         shrimpsBehindScreen: Visibility.protect(Type.Number(), { policy: trackablePolicy })
     })
@@ -90,6 +93,30 @@ export class HydratedReefEncounterPlayerState
 
     addLarvaCube(color: CoralColor) {
         this.getLarvaCubes()[color] += 1
+    }
+
+    // Polyps taken from the open sea were seen by everyone, so they join the known polyps.
+    addKnownScreenPolyps(polyps: readonly CoralColor[]) {
+        const known = this.getKnownScreenPolyps()
+        for (const polyp of polyps) {
+            known[polyp] += 1
+        }
+    }
+
+    screenPolypCount(): number {
+        return totalCount(this.getKnownScreenPolyps()) + totalCount(this.getSecretScreenPolyps())
+    }
+
+    getParrotfishPolyps(): CoralCounts {
+        return { ...this.getSecretParrotfishPolyps() }
+    }
+
+    getKnownScreenPolyps(): CoralCounts {
+        assertExists(
+            this.knownScreenPolyps,
+            'Known screen polyps are unavailable in this representation'
+        )
+        return this.knownScreenPolyps
     }
 
     getSecretScreenPolyps(): CoralCounts {

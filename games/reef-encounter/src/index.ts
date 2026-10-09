@@ -9,6 +9,7 @@ export * from './definition/states.js'
 
 export * from './model/gameState.js'
 export * from './model/playerState.js'
+export * from './model/scoring.js'
 
 export * from './components/colors.js'
 export * from './components/coralTiles.js'
@@ -17,3 +18,5 @@ export * from './components/polypBag.js'
 export * from './components/reefBoards.js'
 export * from './actions/feedParrotfish.js'
 export * from './actions/chooseLarvaCubes.js'
+export * from './actions/takeOpenSeaSpace.js'
+export * from './actions/refillOpenSea.js'

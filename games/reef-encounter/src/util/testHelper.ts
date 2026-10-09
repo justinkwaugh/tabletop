@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    assertExists,
     defaultGameConfig,
     GameEngine,
     normalizeGameConfig,
@@ -11,7 +12,7 @@ import type { ReefEncounterGameConfig } from '../definition/config.js'
 import { Definition } from '../definition/definition.js'
 import { ReefEncounterInfo } from '../definition/info.js'
 import { ReefEncounterRuntime } from '../definition/runtime.js'
-import type { CoralColor } from '../components/colors.js'
+import { CoralColor, CoralColors } from '../components/colors.js'
 import type { ReefEncounterProjectedState } from '../model/gameState.js'
 
 export const TestMasterSeed = '0123456789abcdef0123456789abcdef'
@@ -79,6 +80,11 @@ export function createTestSession(game: TestGame, initialState: ReefEncounterPro
         get state() {
             return state
         },
+        edit(change: (draft: ReefEncounterProjectedState) => void) {
+            const draft = structuredClone(state)
+            change(draft)
+            state = draft
+        },
         hydrated() {
             return ReefEncounterRuntime.hydrator.hydrateState(structuredClone(state))
         },
@@ -91,8 +97,35 @@ export function createTestSession(game: TestGame, initialState: ReefEncounterPro
         },
         chooseLarvaCubes(playerId: string, colors: CoralColor[]) {
             return act(playerId, ActionType.ChooseLarvaCubes, { colors })
+        },
+        takeOpenSeaSpace(playerId: string, larvaColor: CoralColor) {
+            return act(playerId, ActionType.TakeOpenSeaSpace, { larvaColor })
         }
     }
 }
 
 export type TestSession = ReturnType<typeof createTestSession>
+
+export function dealtColorOf(session: TestSession, playerId: string): CoralColor {
+    const polyps = session.hydrated().getPlayerState(playerId).getSecretScreenPolyps()
+    const color = CoralColors.find((candidate) => polyps[candidate] > 0)
+    assertExists(color, `Player ${playerId} was dealt no polyps`)
+    return color
+}
+
+export function feedEveryParrotfish(session: TestSession) {
+    for (const playerId of session.state.turnManager.turnOrder) {
+        session.feedParrotfish(playerId, dealtColorOf(session, playerId))
+    }
+}
+
+export function chooseEveryLarvaCube(session: TestSession) {
+    for (const playerId of session.state.turnManager.turnOrder) {
+        session.chooseLarvaCubes(playerId, [CoralColor.Pink, CoralColor.Grey])
+    }
+}
+
+export function completeSetup(session: TestSession) {
+    feedEveryParrotfish(session)
+    chooseEveryLarvaCube(session)
+}
