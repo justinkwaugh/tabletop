@@ -269,11 +269,6 @@
             column-gap: 12px;
             row-gap: 4px;
         }
-        .step {
-            width: 30px;
-            height: 30px;
-            font-size: 16px;
-        }
         .player-table {
             display: flex;
             flex-wrap: wrap;
