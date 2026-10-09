@@ -212,6 +212,7 @@ describe('breaking ties', () => {
                 player.larvaCubes = coralCounts(0)
                 player.knownScreenPolyps = coralCounts(0)
                 player.secretScreenPolyps = coralCounts(0)
+                player.secretScreenPolypCount = 0
                 player.consumedPolyps = coralCounts(0)
             }
         })

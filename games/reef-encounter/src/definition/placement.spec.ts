@@ -68,6 +68,7 @@ describe('placing polyps', () => {
         give(session, (player) => {
             player.knownScreenPolyps = { ...coralCounts(0), [CoralColor.Pink]: 1 }
             player.secretScreenPolyps = { ...coralCounts(0), [CoralColor.Pink]: 2 }
+            player.secretScreenPolypCount = 2
             player.larvaCubes = { ...coralCounts(0), [CoralColor.Pink]: 1 }
         })
         play(session, CoralColor.Pink)
@@ -77,6 +78,7 @@ describe('placing polyps', () => {
         expect(currentPlayer(session).getSecretScreenPolyps()[CoralColor.Pink]).toBe(2)
         place(session, at(0, 1))
         expect(currentPlayer(session).getSecretScreenPolyps()[CoralColor.Pink]).toBe(1)
+        expect(currentPlayer(session).getSecretScreenPolypCount()).toBe(1)
     })
 
     it('places any number of consumed polyps on top of the four', () => {

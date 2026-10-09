@@ -32,6 +32,9 @@ export const ReefEncounterPlayerState = Type.Intersect([
     Type.Object({
         knownScreenPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         secretScreenPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
+        // How many secret polyps are left is trackable: everyone saw how many were dealt, and
+        // the known ones are always played first.
+        secretScreenPolypCount: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
         secretParrotfishPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         knownParrotfishPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         larvaCubes: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
@@ -63,6 +66,7 @@ export function newPlayerState(
         color,
         knownScreenPolyps: coralCounts(),
         secretScreenPolyps: dealtPolyps,
+        secretScreenPolypCount: totalCount(dealtPolyps),
         secretParrotfishPolyps: coralCounts(),
         knownParrotfishPolyps: coralCounts(),
         larvaCubes: coralCounts(),
@@ -81,6 +85,7 @@ export class HydratedReefEncounterPlayerState
     declare color: Color
     declare knownScreenPolyps?: CoralCounts
     declare secretScreenPolyps?: CoralCounts
+    declare secretScreenPolypCount?: number
     declare secretParrotfishPolyps?: CoralCounts
     declare knownParrotfishPolyps?: CoralCounts
     declare larvaCubes?: CoralCounts
@@ -107,7 +112,7 @@ export class HydratedReefEncounterPlayerState
             this.hasSecretScreenPolyp(color),
             `Player ${this.playerId} has no ${color} polyp to feed`
         )
-        this.getSecretScreenPolyps()[color] -= 1
+        this.spendSecretScreenPolyp(color)
         this.getSecretParrotfishPolyps()[color] += 1
     }
 
@@ -137,8 +142,13 @@ export class HydratedReefEncounterPlayerState
         if (known[color] > 0) {
             known[color] -= 1
         } else {
-            this.getSecretScreenPolyps()[color] -= 1
+            this.spendSecretScreenPolyp(color)
         }
+    }
+
+    private spendSecretScreenPolyp(color: CoralColor) {
+        this.getSecretScreenPolyps()[color] -= 1
+        this.secretScreenPolypCount = this.getSecretScreenPolypCount() - 1
     }
 
     spendConsumedPolyp(color: CoralColor) {
@@ -184,7 +194,7 @@ export class HydratedReefEncounterPlayerState
     }
 
     screenPolypCount(): number {
-        return totalCount(this.getKnownScreenPolyps()) + totalCount(this.getSecretScreenPolyps())
+        return totalCount(this.getKnownScreenPolyps()) + this.getSecretScreenPolypCount()
     }
 
     getParrotfishPolyps(): CoralCounts {
@@ -227,6 +237,14 @@ export class HydratedReefEncounterPlayerState
             'Secret screen polyps are unavailable in this representation'
         )
         return this.secretScreenPolyps
+    }
+
+    getSecretScreenPolypCount(): number {
+        assertExists(
+            this.secretScreenPolypCount,
+            'The number of secret screen polyps is unavailable in this representation'
+        )
+        return this.secretScreenPolypCount
     }
 
     getSecretParrotfishPolyps(): CoralCounts {

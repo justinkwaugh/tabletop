@@ -94,7 +94,13 @@ An option, off by default (rulebook p. 12):
 ## Hidden information
 
 - The polyps dealt at setup and the polyp fed to the parrotfish at setup are hidden from the other players until the game ends, since nobody could track them at the table.
-- With the **Concealed** option off (the default), anything a careful player could track is shown: larva cubes, shrimps behind the screen, and polyps whose colours were seen when taken from the open sea.
+- With the **Concealed** option off (the default), anything a careful player could track is shown: larva cubes, shrimps behind the screen, polyps whose colours were seen when taken from the open sea, and how many of the secret setup polyps each player still holds (everyone saw how many were dealt, and the known polyps are always played first).
 - With **Concealed** on, the game hides what the printed rules hide: everything behind the screens.
 - The order of the polyps in the bag is never shown; how many remain is public.
 - **When the game ends, everything is revealed to everyone**: every screen, every parrotfish including its setup polyp, and every shrimp count. The bag's order stays hidden, since it no longer affects anything.
+
+## Exploring
+
+- **From what a player can see.** An exploration started from a player's or spectator's view deals every polyp they haven't seen at random: into the other players' secret screen polyps, as many as each still holds; one into each parrotfish already fed; and the rest into the bag. Everything the viewer could see stays as it was.
+- **What the deal ignores.** Earlier draws can hint where some polyps are; for example, a bonus space left empty meant the bag then held none of that colour. The deal doesn't use such hints, since any deal can be played on.
+- **Concealed games** can't be explored from a player's view until the game ends, as the hidden screens can't be rebuilt. At the end everything but the bag's order is shown, so only the bag is dealt.

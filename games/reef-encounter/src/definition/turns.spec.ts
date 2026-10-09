@@ -223,8 +223,10 @@ describe('scoring', () => {
                 player.larvaCubes = coralCounts(0)
                 player.knownScreenPolyps = coralCounts(0)
                 player.secretScreenPolyps = coralCounts(0)
+                player.secretScreenPolypCount = 0
             }
             draft.players[0].secretScreenPolyps = { ...coralCounts(0), [CoralColor.White]: 2 }
+            draft.players[0].secretScreenPolypCount = 2
             evenOutTheEndingTake(draft)
         })
         expect(byPolyps.state.winningPlayerIds).toEqual([byPolyps.state.players[0].playerId])
@@ -238,6 +240,7 @@ describe('scoring', () => {
                 player.larvaCubes = coralCounts(0)
                 player.knownScreenPolyps = coralCounts(0)
                 player.secretScreenPolyps = coralCounts(0)
+                player.secretScreenPolypCount = 0
             }
             evenOutTheEndingTake(draft)
         })

@@ -12,10 +12,12 @@ import { ReefEncounterActionSchemas } from './actionSchemas.js'
 import { ReefEncounterStateHandlers } from './stateHandlers.js'
 import { ReefEncounterColors } from './colors.js'
 import { ReefEncounterScoring } from './scoring.js'
+import { ReefEncounterGameExploration } from './gameExploration.js'
 
 export const ReefEncounterRuntime = {
     randomnessVersion: 1,
     initializer: new ReefEncounterGameInitializer(),
+    exploration: new ReefEncounterGameExploration(),
     canonicalStateValidator: ReefEncounterGameStateValidator,
     hydrator: new ReefEncounterHydrator(),
     stateHandlers: ReefEncounterStateHandlers,
