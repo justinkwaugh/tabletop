@@ -35,7 +35,7 @@
 <button
     type="button"
     {@attach pointsAt(points)}
-    class="flex w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left disabled:opacity-40
+    class="flex items-center gap-2.5 rounded-md border px-2 py-1.5 text-left disabled:opacity-40 max-sm:min-h-11
            {on
         ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
         : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"

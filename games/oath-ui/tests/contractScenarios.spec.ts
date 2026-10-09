@@ -49,7 +49,7 @@ test.describe('on touch', () => {
         page
     }) => {
         await openTable(page, 'setup')
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
         await magnifiers(page).first().tap()
         await expect(preview(page)).toBeVisible()
         await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
@@ -57,7 +57,7 @@ test.describe('on touch', () => {
         await page.touchscreen.tap(20, 20)
         await expect(preview(page)).toHaveCount(0)
         await panelCards(page).first().tap()
-        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+        await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
         await expect(preview(page)).toHaveCount(0)
     })
 
@@ -113,7 +113,7 @@ test.describe('on touch', () => {
 
         await call(page, 'seatMakesSetupChoice')
         await expect(preview(page)).toHaveCount(0)
-        await expect(page.getByText('Tap the site where your pawn starts', { exact: false })).toBeVisible()
+        await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
         await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
     })
 
@@ -240,7 +240,7 @@ test('scenario 24: an enlarged card closes when its card leaves the table, and t
     const name = await shown.getAttribute('alt')
 
     await call(page, 'seatMakesSetupChoice')
-    await expect(page.getByText('Tap the site where your pawn starts', { exact: false })).toBeVisible()
+    await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
     await expect(preview(page).locator(`img[alt="${name}"]`)).toHaveCount(0)
     await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
 })
@@ -2212,11 +2212,37 @@ test('scenario 2: an Exile chooses a start site from the rows, and a tap on anot
     expect(await sites.count()).toBeGreaterThan(1)
     await sites.nth(0).click()
     await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
-    await expect(sites.nth(0)).toContainText('start here')
+    await expect(sites.nth(0).getByText('start here')).toBeVisible()
+    await expect(sites.nth(1).getByText('start here')).toBeHidden()
     await sites.nth(1).click()
     await expect(sites.nth(1)).toHaveAttribute('aria-pressed', 'true')
     await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
+    await expect(sites.nth(0).getByText('start here')).toBeHidden()
+    await expect(sites.nth(1).getByText('start here')).toBeVisible()
 })
+
+/** The start-site rows share the widest row's width, which a pick does not change, and stretch across nothing. */
+for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+    test(`scenario 2: the start-site rows are one width and fit their names at ${viewport.width}`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'setup')
+        await call(page, 'seatMakesSetupChoice')
+        const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
+        await expect(sites.first()).toBeVisible()
+        const widths = async () => sites.evaluateAll((rows) => rows.map((row) => row instanceof HTMLElement ? row.offsetWidth : 0))
+        const before = await widths()
+        expect(new Set(before).size).toBe(1)
+        const room = await page.getByRole('list', { name: 'Start sites' }).evaluate((list) => list.parentElement?.clientWidth ?? 0)
+        expect(before[0]).toBeLessThan(room)
+        if (viewport.width < 640) {
+            const heights = await sites.evaluateAll((rows) => rows.map((row) => row instanceof HTMLElement ? row.offsetHeight : 0))
+            for (const height of heights) expect(height).toBeGreaterThanOrEqual(44)
+        }
+        await sites.nth(0).click()
+        await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
+        expect(await widths()).toEqual(before)
+    })
+}
 
 test('scenario 2: the other sites dim; a card kept first stays marked, and the site picked after takes the ring off the map', async ({
     page
@@ -2236,7 +2262,7 @@ test('scenario 2: the other sites dim; a card kept first stays marked, and the s
     await page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]').first().click()
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
-    await expect(page.getByText(/^Keeping /)).toBeVisible()
+    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
 })
 
 test('scenario 2: Undo unwinds an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
@@ -2251,11 +2277,11 @@ test('scenario 2: Undo unwinds an Exile’s picks, the card then the site, and t
     await sites.nth(0).click()
     await expect(pickedSites).toHaveCount(1)
     await panelCards(page).filter({ hasNotText: /start here/ }).first().click()
-    await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
     await expect(stepBacks(page)).toHaveCount(0)
     const undo = undoButton(page)
     await undo.click()
-    await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toHaveCount(0)
+    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toHaveCount(0)
     await expect(pickedSites).toHaveCount(1)
     await undo.click()
     await expect(pickedSites).toHaveCount(0)
@@ -2271,6 +2297,11 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
     page.on('pageerror', (error) => errors.push(error.message))
     const { seatId } = await openTable(page, 'shortBank')
     if (seatId === undefined) throw Error('A seat is on the clock')
+    await expect(grid(page)).toContainText('Place 4')
+    await expect(grid(page).getByText('Salt Flats', { exact: true })).toBeVisible()
+    await expect(grid(page)).not.toContainText('prints')
+    await expect(grid(page)).not.toContainText('placed.')
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 
     await favorOn(page, 1, 'Salt Flats').click()
     const count = grid(page).getByText('3 of 4 placed.')
@@ -2278,16 +2309,20 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
     await expect(count).toHaveClass(/text-oath-danger/)
     await expect(page.getByRole('list', { name: 'Start sites' })).toHaveCount(0)
     await expect(grid(page)).not.toContainText('Tap the site where your pawn starts')
+    await expect(grid(page)).not.toContainText('Pick a start site')
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 
     await panelCards(page).filter({ hasNotText: /^\d$/ }).first().click()
     await expect(favorOn(page, 2, 'Salt Flats')).toBeVisible()
     await expect(grid(page)).toContainText('Place all 4')
     await expect(count).toBeVisible()
+    await expect(grid(page)).not.toContainText('Tap to discard')
     expect((await call(page, 'tableFacts')).siteOf[seatId]).toBeUndefined()
 
     await favorOn(page, 2, 'Salt Flats').click()
     await expect(count).toHaveCount(0)
     await expect(favorOn(page, 2, 'Salt Flats')).toHaveCount(0)
+    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
     await panelCards(page).first().click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf[seatId]).toBe('slot.cradle.0')
     expect((await call(page, 'cardTokens', 'site.salt-flats')).favor).toBe(2)
@@ -2485,7 +2520,7 @@ test('scenario 48: History View offers no choice; a click enlarges, the seat, th
 }) => {
     await openTable(page, 'setup')
     await call(page, 'seatMakesSetupChoice')
-    const prompt = page.getByText('Tap the site where your pawn starts', { exact: false })
+    const prompt = page.getByText('Pick a start site and a card to keep.', { exact: true })
     await expect(prompt).toBeVisible()
     await page.getByRole('button', { name: 'step backwards' }).click()
     await expect(prompt).toHaveCount(0)
@@ -2747,7 +2782,7 @@ test('the fixture opens the Chancellor setup with the hand offered', async ({ pa
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await openTable(page, 'setup')
-    await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
     expect(errors).toEqual([])
 })
 
