@@ -96,7 +96,8 @@
 /* Phones: everything above the board, text and controls alike, at a smaller scale. */
 @media (max-width: 639px), (max-height: 500px) {
     .above-board {
-        zoom: 0.85;
+        --above-board-zoom: 0.85;
+        zoom: var(--above-board-zoom);
     }
 }
 
