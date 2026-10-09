@@ -761,7 +761,7 @@ test.describe('answering an offer of Citizenship', () => {
 
 /** Scenario 31: the defending side's losses after a won battle (R-5.5.6.a). */
 test.describe('scenario 31: choosing the defending side’s losses', () => {
-    test('one row of number buttons per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
+    test('one row of number buttons per group and a count; Kill shows only once the count is right; Undo clears every count', async ({
         page
     }) => {
         await openTable(page, 'exileDefeated')
@@ -770,15 +770,17 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         expect(facts.machineState).toBe('CampaignDefeat')
         expect((await call(page, 'defeatPicks')).required).toBe(2)
 
-        const kill = answer(page, 'Kill these warbands')
+        const kill = answer(page, 'Kill')
+        await expect(grid(page).locator('h3')).toHaveText('Losses')
+        await expect(grid(page)).toContainText('Pick 2 to kill.')
         await expect(countRows(page)).toHaveCount(2)
         await expect(grid(page)).toContainText('Chosen 0 of 2')
-        await expect(kill).toBeDisabled()
-        await expect(grid(page)).toContainText('must kill exactly 2 of the defeated force, not 0')
+        await expect(kill).toHaveCount(0)
+        await expect(grid(page)).not.toContainText('must kill exactly')
 
         await pickCount(page, 0, 1)
         await expect(grid(page)).toContainText('Chosen 1 of 2')
-        await expect(kill).toBeDisabled()
+        await expect(kill).toHaveCount(0)
         await pickCount(page, 1, 1)
         await expect(grid(page)).toContainText('Chosen 2 of 2')
         await expect(kill).toBeEnabled()
@@ -786,7 +788,7 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
 
         await page.getByRole('button', { name: 'Undo', exact: true }).click()
         await expect(grid(page)).toContainText('Chosen 0 of 2')
-        await expect(kill).toBeDisabled()
+        await expect(kill).toHaveCount(0)
         expect((await call(page, 'defeatPicks')).picked).toEqual([0, 0])
 
         await pickCount(page, 0, 1)
@@ -800,14 +802,254 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         expect(after.boardOf.def).toEqual({ def: 2 })
     })
 
+    test('the count is muted, never rose; the rows name the board by its owner; no rule is restated', async ({
+        page
+    }) => {
+        await openTable(page, 'exileDefeated')
+        await expect(grid(page).getByText('Chosen 0 of 2', { exact: true })).toHaveClass(
+            /text-oath-text-muted/
+        )
+        await expect(grid(page)).toContainText('on your board')
+        await expect(grid(page)).not.toContainText('the rest go home')
+        await expect(grid(page)).not.toContainText('The attacker won')
+    })
+
     test('for an Imperial defence the Chancellor chooses, not the defending Citizen', async ({
         page
     }) => {
         await openTable(page, 'imperialDefeated')
         expect((await call(page, 'tableFacts')).seatId).toBe('chan')
         await expect(countRows(page)).toHaveCount(2)
-        await expect(answer(page, 'Kill these warbands')).toBeDisabled()
+        await expect(answer(page, 'Kill')).toHaveCount(0)
     })
+})
+
+/** The panel's buttons whose label is wider than the button, by their text. */
+async function clippedLabels(page: Page) {
+    return grid(page)
+        .locator('button')
+        .evaluateAll((buttons) =>
+            buttons
+                .filter((button) => button.scrollWidth > button.clientWidth + 1)
+                .map((button) => button.textContent?.trim() ?? '')
+        )
+}
+
+async function widthOf(locator: ReturnType<Page['locator']>) {
+    const box = await locator.boundingBox()
+    if (!box) throw Error('The button is on screen')
+    return Math.round(box.width)
+}
+
+/** The background a primary button wears, read from a probe so the token's value is not repeated. */
+async function primaryBackground(page: Page) {
+    return grid(page).evaluate((panel) => {
+        const probe = document.createElement('button')
+        probe.className = 'bg-oath-primary'
+        panel.append(probe)
+        const colour = getComputedStyle(probe).backgroundColor
+        probe.remove()
+        return colour
+    })
+}
+
+const backgroundOf = (locator: ReturnType<Page['locator']>) =>
+    locator.evaluate((element) => getComputedStyle(element).backgroundColor)
+
+/** A battle plan's card in the panel's strip. */
+const planCard = (page: Page) => panelCards(page).filter({ hasNotText: /plans/ }).first()
+
+/** Scenario 62: the Campaign's panels say the least; the History holds the rest. */
+test.describe('scenario 62: the Campaign’s words', () => {
+    test('declaring: the defender is asked only when there is a choice, and Declare shows once a target and the dice are picked', async ({
+        page
+    }) => {
+        await openTable(page, 'campaignTwoDefenders')
+        await tile(page, 'Campaign').click()
+        await expect(grid(page)).toContainText('Attack who?')
+        await expect(grid(page)).not.toContainText('Choose who you are attacking')
+        const bandits = answer(page, 'The bandits')
+        const ann = grid(page).getByRole('button', { name: /^ann$/i })
+        expect(await widthOf(bandits)).toBe(await widthOf(ann))
+        await ann.click()
+
+        await expect(grid(page)).toContainText(/Against ann\. Tap targets\./i)
+        await expect(grid(page)).not.toContainText('Tap a target to add it')
+        // The site is held by nobody, so the defender rules no site here.
+        await expect(grid(page).locator('h4')).toContainText(['Pawn and favor', 'Attack dice'])
+        await expect(grid(page)).not.toContainText('Attack dice — tap')
+        const pawn = grid(page)
+            .locator('button[aria-pressed]')
+            .filter({ has: page.locator('img[src*="pawn"]') })
+        await expect(pawn).toHaveAccessibleName(/^ann$/i)
+        await expect(pawn).not.toContainText('Their pawn and favor')
+
+        const declare = answer(page, 'Declare')
+        await expect(declare).toHaveCount(0)
+        await grid(page).locator('button[aria-pressed]').first().click()
+        await expect(declare).toHaveCount(0)
+        await grid(page).getByRole('button', { name: /^Add attack die 2/ }).click()
+        await expect(declare).toBeVisible()
+        await expect(grid(page)).not.toContainText('Declare the Campaign')
+    })
+
+    test('the defender’s battle plans: Use plans once a plan is picked, No plans always; no rule restated', async ({
+        page
+    }) => {
+        await openTable(page, 'battleDefenderPlans')
+        expect((await call(page, 'tableFacts')).seatId).toBe('def')
+        await expect(grid(page).locator('h3')).toHaveText('Battle plans')
+        await expect(grid(page)).toContainText('Tap the plans to use.')
+        await expect(grid(page)).not.toContainText('You are defending')
+        await expect(grid(page)).not.toContainText('and roll')
+        const use = answer(page, 'Use plans')
+        const none = answer(page, 'No plans')
+        await expect(use).toHaveCount(0)
+        await expect(none).toBeVisible()
+
+        await planCard(page).click()
+        await expect(use).toBeVisible()
+        expect(await backgroundOf(use)).toBe(await primaryBackground(page))
+        expect(await widthOf(use)).toBe(await widthOf(none))
+
+        await none.click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).machineState)
+            .not.toBe('CampaignPlans')
+    })
+
+    test('the attacker’s battle plans after the Citizens: the same two buttons, the confirm drawn as the primary', async ({
+        page
+    }) => {
+        await openTable(page, 'attackerPlans')
+        expect((await call(page, 'tableFacts')).seatId).toBe('att')
+        await expect(grid(page).locator('h3')).toHaveText('Battle plans')
+        await expect(grid(page)).toContainText('Tap the plans to use.')
+        await expect(grid(page)).not.toContainText('The Citizens have answered')
+        const use = answer(page, 'Use plans')
+        const none = answer(page, 'No plans')
+        await expect(use).toHaveCount(0)
+        await expect(none).toBeVisible()
+
+        await planCard(page).click()
+        await expect(use).toBeVisible()
+        expect(await backgroundOf(use)).toBe(await primaryBackground(page))
+        expect(await widthOf(use)).toBe(await widthOf(none))
+    })
+
+    test('the battle: the two choices at one width, with no rule restated', async ({ page }) => {
+        await openTable(page, 'sacrifice')
+        await expect(grid(page).locator('h3')).toHaveText('Battle')
+        await expect(grid(page)).not.toContainText('Defending:')
+        await expect(grid(page)).not.toContainText('The rules allow no amount in between')
+        await expect(grid(page)).not.toContainText('Defeated, you lose half your force')
+        const win = answer(page, 'Sacrifice 3 and win')
+        const lose = answer(page, 'Sacrifice nothing')
+        await expect(win).toBeVisible()
+        await expect(lose).toBeVisible()
+        expect(await widthOf(win)).toBe(await widthOf(lose))
+    })
+
+    test('the battle with a force of two groups: each choice shows once its own picks are complete', async ({
+        page
+    }) => {
+        await openTable(page, 'sacrificeMixed')
+        await expect(grid(page)).toContainText('To win, sacrifice 2:')
+        await expect(grid(page)).toContainText(/If you lose, \d die:/)
+        await expect(grid(page)).not.toContainText('of these')
+        const win = answer(page, 'Sacrifice 2 and win')
+        const lose = answer(page, 'Sacrifice nothing')
+        await expect(win).toHaveCount(0)
+        await expect(lose).toHaveCount(0)
+        await expect(grid(page)).not.toContainText('must sacrifice exactly')
+
+        await pickCount(page, 0, 2)
+        await expect(win).toBeVisible()
+        await expect(lose).toHaveCount(0)
+    })
+
+    test('a battle with nothing to choose says who won, over Continue', async ({ page }) => {
+        await openTable(page, 'wonOutright')
+        await expect(grid(page)).toContainText('You win.')
+        await expect(grid(page)).not.toContainText('already victorious')
+        await expect(answer(page, 'Continue')).toBeVisible()
+    })
+
+    test('the spoils: what is taken in short words, the banish with the defender’s chip, and the two buttons at one width', async ({
+        page
+    }) => {
+        await openTable(page, 'spoils')
+        await expect(grid(page).locator('h3')).toHaveText('Spoils')
+        await expect(grid(page)).not.toContainText('You were victorious')
+        const list = grid(page).locator('ul')
+        await expect(list).toContainText(/ · 0 warbands/)
+        await expect(list).toContainText('The People')
+        await expect(list).toContainText(/def's\s+pawn\s+and\s+favor/i)
+        await expect(list).not.toContainText('their pawn sent away')
+        await expect(grid(page)).toContainText('Place warbands: 0 of 4.')
+        await expect(grid(page)).not.toContainText('This is how you come to rule them')
+        await expect(grid(page)).toContainText(/Banish def to:/i)
+        await expect(grid(page).locator('select option').first()).toHaveText('nowhere')
+
+        const take = answer(page, 'Take spoils')
+        const burn = grid(page).getByRole('button', { name: /^Take and burn 2/ })
+        await expect(take).toBeVisible()
+        await expect(burn).toBeVisible()
+        expect(await widthOf(take)).toBe(await widthOf(burn))
+    })
+})
+
+const CAMPAIGN_STEPS = [
+    'campaignTwoDefenders',
+    'battleDefenderPlans',
+    'attackerPlans',
+    'sacrifice',
+    'sacrificeMixed',
+    'wonOutright',
+    'exileDefeated',
+    'spoils'
+] as const
+
+/** Brings each step to the moment its confirm shows. */
+async function completeCampaignStep(page: Page, name: (typeof CAMPAIGN_STEPS)[number]) {
+    switch (name) {
+        case 'campaignTwoDefenders':
+            await tile(page, 'Campaign').click()
+            await expect(grid(page)).toContainText('Attack who?')
+            expect(await clippedLabels(page)).toEqual([])
+            await grid(page).getByRole('button', { name: /^ann$/i }).click()
+            await grid(page).locator('button[aria-pressed]').first().click()
+            await grid(page).getByRole('button', { name: /^Add attack die 2/ }).click()
+            await expect(answer(page, 'Declare')).toBeVisible()
+            return
+        case 'battleDefenderPlans':
+        case 'attackerPlans':
+            await planCard(page).click()
+            await expect(answer(page, 'Use plans')).toBeVisible()
+            return
+        case 'sacrificeMixed':
+            await pickCount(page, 0, 2)
+            return
+        case 'exileDefeated':
+            await pickCount(page, 0, 1)
+            await pickCount(page, 1, 1)
+            await expect(answer(page, 'Kill')).toBeVisible()
+            return
+        default:
+            return
+    }
+}
+
+test.describe('scenario 62 on a phone: every label inside its button', () => {
+    test.use({ viewport: { width: 375, height: 812 } })
+
+    for (const name of CAMPAIGN_STEPS) {
+        test(`${name}: no label is wider than its button`, async ({ page }) => {
+            await openTable(page, name)
+            await completeCampaignStep(page, name)
+            expect(await clippedLabels(page)).toEqual([])
+        })
+    }
 })
 
 /** Scenario 32: every panel waits while a send is in flight or a new state is being shown. */
@@ -1660,7 +1902,10 @@ test('scenario 18: each warband move is a row of counts, and a count sends', asy
 test('scenario 5: a Campaign target is a row with its picture, a tap adds it and a second drops it', async ({ page }) => {
     await openTable(page, 'campaign')
     await tile(page, 'Campaign').click()
-    await grid(page).getByRole('button', { name: /^ann$/i }).click()
+    // The Chancellor is the one defender the rules allow, so the panel opens on the targets.
+    await expect(grid(page)).toContainText(/Against ann\. Tap targets\./i)
+    await expect(grid(page)).not.toContainText('Attack who?')
+    await expect(grid(page).locator('h4').first()).toHaveText('Sites')
     const site = grid(page).locator('button[aria-pressed]').first()
     await expect(site).toHaveAttribute('aria-pressed', 'false')
     await site.click()
@@ -1681,8 +1926,6 @@ test('scenario 5: a Campaign target is a row with its picture, a tap adds it and
     await expect(rows.nth(0)).toHaveAttribute('aria-pressed', 'true')
     await undo.click()
     await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
-    await undo.click()
-    await expect(grid(page).getByRole('button', { name: /^ann$/i })).toBeVisible()
     await expect(page.locator('.travel-cost.targeted')).toHaveCount(0)
     await expect(stepBacks(page)).toHaveCount(0)
     await undo.click()
@@ -2109,7 +2352,7 @@ test('the unrolled dice keep the totals’ room: on a phone the dice row does no
     await openTable(page, 'defenderPlans')
     const row = grid(page).getByRole('region', { name: 'the Campaign\'s dice' }).locator('.dice')
     const before = await row.boundingBox()
-    await grid(page).getByRole('button', { name: 'Use none and roll' }).click()
+    await grid(page).getByRole('button', { name: 'No plans', exact: true }).click()
     await expect(row.locator('img').first()).toBeVisible()
     await expect(row).toContainText(/\d+ swords?/)
     const after = await row.boundingBox()

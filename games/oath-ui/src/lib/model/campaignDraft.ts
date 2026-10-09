@@ -23,7 +23,7 @@ import {
 import { campaignDraftOpens } from './campaignTurn.js'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, planChoices } from './planChoices.js'
-import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
+import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -144,7 +144,7 @@ export class CampaignDraft implements PanelDraft {
         return this.playerId !== undefined
     }
 
-    // Sneak Attack — the card names the defender, so it is never a pick.
+    // Sneak Attack names the defender, or the rules allow only one: either way it is never a pick.
     get defenderFixed(): boolean {
         return this.open && this.flow.sourceOf('defender') === 'auto'
     }
@@ -152,8 +152,12 @@ export class CampaignDraft implements PanelDraft {
     /** What the rules leave no choice over is taken for the player when the Campaign is chosen. */
     begin(): void {
         const named = this.session.sneakAttackDefenderId
-        if (named !== undefined)
+        const [lone, ...others] = this.defenderOptions
+        if (named !== undefined) {
             this.flow.autoSelect('defender', { kind: 'player', playerId: named })
+        } else if (lone !== undefined && others.length === 0) {
+            this.flow.autoSelect('defender', lone)
+        }
         this.autoSelectDice()
     }
 
@@ -393,28 +397,33 @@ export class CampaignDraft implements PanelDraft {
         }
     }
 
-    get blockedBecause(): string | undefined {
-        const playerId = this.playerId
-        const defender = this.defender
-        const targets = this.targets
-        if (!playerId || !defender || targets.length === 0) return undefined
-        const state = this.session.gameState
-        const targetReason = reasonCampaignTargetsInvalid(state, playerId, defender, targets)
-        if (targetReason) return targetReason
-        // R-7.1.2 — the declared plans are paid from one holding, so the engine judges them together.
-        const declaration = this.declaration
-        return declaration
-            ? HydratedCampaign.reasonCannotCampaign(state, playerId, declaration)
-            : undefined
+    /** A defender, a target and the dice are picked, and every declared plan has its picks. */
+    get complete(): boolean {
+        return (
+            this.declaration !== undefined &&
+            this.planOptions
+                .filter((power) => this.isPlanDeclared(power))
+                .every((power) => picksComplete(this.planChoicesOf(power), this.planPicksOf(power)))
+        )
     }
 
-    get declarable(): boolean {
-        return this.declaration !== undefined && this.blockedBecause === undefined
+    /** Why the engine refuses the declaration as picked, read only once it is complete. */
+    get refusedBecause(): string | undefined {
+        const playerId = this.playerId
+        const declaration = this.declaration
+        if (!playerId || !declaration || !this.complete) return undefined
+        const state = this.session.gameState
+        const { defender, targets } = declaration
+        // R-7.1.2 — the declared plans are paid from one holding, so the engine judges them together.
+        return (
+            reasonCampaignTargetsInvalid(state, playerId, defender, targets) ??
+            HydratedCampaign.reasonCannotCampaign(state, playerId, declaration)
+        )
     }
 
     async declare(): Promise<void> {
         const declaration = this.declaration
-        if (!declaration || !this.declarable) return
+        if (!declaration || !this.complete || this.refusedBecause !== undefined) return
         await this.session.declareCampaign(declaration)
     }
 

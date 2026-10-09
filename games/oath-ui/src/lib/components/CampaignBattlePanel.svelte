@@ -1,14 +1,14 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists, range } from '@tabletop/common'
-    import { CardKind, MachineState, forceTotal, type WarbandGroup } from '@tabletop/oath'
+    import { CardKind, MachineState, type WarbandGroup } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CountPicker from '$lib/components/CountPicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, plural, siteName, relicSiteName } from '$lib/model/names.js'
+    import { cardName, siteName, relicSiteName } from '$lib/model/names.js'
     import { spoilsSummary } from '$lib/model/spoils.js'
-    import { favorToken } from '$lib/images/tileImages.js'
 
     // R-5.5.5's sacrifice, then R-5.5.7's spoils: each needs the roll, or the surviving force, first.
     let gameSession = getGameSession()
@@ -19,16 +19,20 @@
         return campaign
     })
     let attackerId = $derived(campaign.attackerPlayerId)
+    let defenderId = $derived(campaign.defenderPlayerId)
     let isAttacker = $derived(gameSession.myPlayer?.id === attackerId)
-    let defence = $derived.by(() => {
-        const warbands = plural(forceTotal(campaign.defendingForce), 'warband')
-        const bandits = campaign.defendingBandits
-        return bandits > 0 ? `${warbands} and ${plural(bandits, 'bandit')}` : warbands
-    })
+
+    // The heading names the step; the turn bar names whose turn it is.
+    let heading = $derived(
+        gameState.machineState === MachineState.CampaignDefeat
+            ? 'Losses'
+            : gameState.machineState === MachineState.CampaignVictory
+              ? 'Spoils'
+              : 'Battle'
+    )
 
     let busy = $derived(gameSession.busy)
     let spoils = $derived(gameSession.victory)
-    const burnToken = favorToken()
 
     // R-5.5.5.b, R-5.5.5.c — the exact winning sacrifice, or zero.
     let losses = $derived(gameSession.attackerLosses)
@@ -38,180 +42,149 @@
     let chooserId = $derived(campaign.pendingDefeatKills?.chooserPlayerId)
     let iChooseLosses = $derived(!!chooserId && gameSession.myPlayer?.id === chooserId)
 
+    /** For a count's screen-reader name; the row shows the board's owner as their chip. */
     function whereText(group: WarbandGroup): string {
         return group.at.kind === 'board'
             ? `on ${gameSession.getPlayerName(group.at.playerId)}'s board`
             : `at ${siteName(gameState, group.at.siteId)}`
     }
 
-    let winBlockedBecause = $derived(needed > 0 ? losses.winBlockedBecause : undefined)
-    let loseBlockedBecause = $derived(losses.loseBlockedBecause)
+    let winRefusedBecause = $derived(losses.winRefusedBecause)
+    let loseRefusedBecause = $derived(losses.loseRefusedBecause)
 
-    let spoilsList = $derived(spoilsSummary(gameState, campaign.targets, spoils.placeCounts))
+    let spoilsList = $derived(
+        spoilsSummary(gameState, campaign.targets, spoils.placeCounts, defenderId)
+    )
 </script>
 
-<div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
-        Campaign — the battle
-    </h3>
+{#snippet groupName(group: WarbandGroup)}
+    {gameSession.warbandOwnerName(group.owner)}
+    {#if group.at.kind === 'board'}on <PlayerName playerId={group.at.playerId} possessive /> board{:else}at
+        {siteName(gameState, group.at.siteId)}{/if}
+{/snippet}
 
-    <p class="text-[11px] text-oath-text-muted mb-2">
-        Defending: {defence}.
-    </p>
+{#snippet countRows(
+    groups: readonly WarbandGroup[],
+    picked: readonly number[],
+    onpick: (index: number, n: number) => void
+)}
+    {#each groups as group, index (JSON.stringify(group.at) + group.owner)}
+        <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span class="w-56 max-sm:w-full">{@render groupName(group)}</span>
+            <CountPicker
+                values={range(0, group.count + 1)}
+                picked={picked[index] ?? 0}
+                label={(n) =>
+                    `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
+                onpick={(n) => onpick(index, n)}
+                disabled={busy}
+            />
+        </div>
+    {/each}
+{/snippet}
+
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">{heading}</h3>
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}
             <WaitingOn />
         {:else}
-            <p class="text-sm mb-2">
-                The attacker won. Choose which {plural(defeat.required, 'warband')} of the defending force
-                die; the rest go home to their boards.
-            </p>
+            <p class="text-sm mb-2">Pick {defeat.required} to kill.</p>
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                {#each defeat.groups as group, index (JSON.stringify(group.at) + group.owner)}
-                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        <span class="w-56 max-sm:w-full"
-                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
-                        >
-                        <CountPicker
-                            values={range(0, group.count + 1)}
-                            picked={defeat.picked[index] ?? 0}
-                            label={(n) =>
-                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
-                            onpick={(n) => defeat.setPicked(index, n)}
-                            disabled={busy}
-                        />
-                    </div>
-                {/each}
-                <div
-                    class={defeat.pickedTotal === defeat.required
-                        ? 'text-oath-text-muted'
-                        : 'text-oath-danger'}
-                >
+                {@render countRows(defeat.groups, defeat.picked, (index, n) =>
+                    defeat.setPicked(index, n)
+                )}
+                <div class="text-oath-text-muted">
                     Chosen {defeat.pickedTotal} of {defeat.required}
                 </div>
             </div>
-            {#if defeat.blockedBecause}
+            <!-- Kill waits for the count; a refusal of a complete pick takes its place. -->
+            {#if defeat.refusedBecause}
                 <p class="mb-2 text-[11px] text-oath-danger">
-                    <TokenText text={gameSession.humanizeReason(defeat.blockedBecause) ?? ''} />
+                    <TokenText text={gameSession.humanizeReason(defeat.refusedBecause) ?? ''} />
                 </p>
+            {:else if defeat.complete}
+                <button
+                    class="rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
+                           px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => defeat.choose()}
+                >
+                    Kill
+                </button>
             {/if}
-            <button
-                class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
-                       px-2 py-1.5 text-sm font-semibold"
-                disabled={busy || !!defeat.blockedBecause}
-                onclick={() => defeat.choose()}
-            >
-                Kill these warbands
-            </button>
         {/if}
     {:else if !isAttacker}
         <WaitingOn />
     {:else if gameState.machineState === MachineState.CampaignSacrifice}
-        <p class="text-sm mb-2">
-            {#if campaign.decidedVictor}
-                A battle plan has decided the battle: the
-                <span class="font-semibold">{campaign.decidedVictor}</span> is victorious. No sacrifice
-                is possible.
-            {:else if needed > 0}
-                Sacrifice <span class="font-semibold">{needed}</span> warbands to win, or none and lose.
-                The rules allow no amount in between.
-            {:else}
-                You are already victorious — no sacrifice is needed.
-            {/if}
-        </p>
+        <!-- With nothing to sacrifice, the outcome is all there is to say. -->
+        {#if needed === 0}
+            <p class="text-sm mb-2">{losses.wonWithoutSacrifice ? 'You win.' : 'You lose.'}</p>
+        {/if}
         {#if losses.choosesSacrifice}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1">To win, sacrifice {needed} of these:</div>
-                {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
-                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        <span class="w-56 max-sm:w-full"
-                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
-                        >
-                        <CountPicker
-                            values={range(0, group.count + 1)}
-                            picked={losses.sacrificed[index] ?? 0}
-                            label={(n) =>
-                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
-                            onpick={(n) => losses.setSacrificed(index, n)}
-                            disabled={busy}
-                        />
-                    </div>
-                {/each}
+                <div class="mb-1">To win, sacrifice {needed}:</div>
+                {@render countRows(losses.force, losses.sacrificed, (index, n) =>
+                    losses.setSacrificed(index, n)
+                )}
             </div>
         {/if}
         {#if losses.choosesDefeat}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1">
-                    If you sacrifice nothing and lose, {losses.defeatRequired} of these die:
-                </div>
-                {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
-                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        <span class="w-56 max-sm:w-full"
-                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
-                        >
-                        <CountPicker
-                            values={range(0, group.count + 1)}
-                            picked={losses.defeated[index] ?? 0}
-                            label={(n) =>
-                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
-                            onpick={(n) => losses.setDefeated(index, n)}
-                            disabled={busy}
-                        />
-                    </div>
-                {/each}
+                <div class="mb-1">If you lose, {losses.defeatRequired} die:</div>
+                {@render countRows(losses.force, losses.defeated, (index, n) =>
+                    losses.setDefeated(index, n)
+                )}
             </div>
         {/if}
-        {#if needed > 0 && winBlockedBecause}
+
+        <!-- Each choice waits for its own picks; a refusal of a complete one takes its place. -->
+        {#if winRefusedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                You cannot win this battle: {gameSession.humanizeReason(winBlockedBecause)}
+                Can't win: {gameSession.humanizeReason(winRefusedBecause)}
             </p>
         {/if}
-
-        <div class="flex gap-2">
-            {#if needed > 0}
+        {#if loseRefusedBecause}
+            <p class="mb-2 text-[11px] text-oath-danger">
+                {gameSession.humanizeReason(loseRefusedBecause)}
+            </p>
+        {/if}
+        <!-- One width for the two, the wider one's. -->
+        <div class="inline-grid auto-cols-fr grid-flow-col gap-2">
+            {#if needed > 0 && losses.winComplete && !winRefusedBecause}
                 <button
-                    class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                           border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
-                    disabled={busy || !!winBlockedBecause}
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
                     onclick={() => losses.win()}
                 >
                     Sacrifice {needed} and win
                 </button>
             {/if}
-            <button
-                class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
-                       px-2 py-1.5 text-sm"
-                disabled={busy || !!loseBlockedBecause}
-                onclick={() => losses.lose()}
-            >
-                {needed > 0 ? 'Sacrifice nothing' : 'Continue'}
-            </button>
+            {#if losses.loseComplete && !loseRefusedBecause}
+                <button
+                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
+                           px-3 py-1.5 text-sm max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => losses.lose()}
+                >
+                    {needed > 0 ? 'Sacrifice nothing' : 'Continue'}
+                </button>
+            {/if}
         </div>
-
-        {#if loseBlockedBecause}
-            <p class="mt-2 text-[11px] text-oath-danger">
-                {gameSession.humanizeReason(loseBlockedBecause)}
-            </p>
-        {/if}
-
-        <p class="mt-2 text-[11px] text-oath-text-muted">
-            Defeated, you lose half your force. Victorious, the defending side chooses its own
-            losses.
-        </p>
     {:else if gameState.machineState === MachineState.CampaignVictory}
-        <p class="text-sm mb-1">You were victorious. The spoils:</p>
         <ul class="mb-2 list-disc pl-5 text-sm text-oath-text">
-            {#each spoilsList as item (item)}
-                <li>{item}</li>
+            {#each spoilsList as item, index (index)}
+                <li>
+                    {#if item.kind === 'pawn'}<PlayerName playerId={item.playerId} possessive /> pawn
+                        and favor{:else}{item.text}{/if}
+                </li>
             {/each}
         </ul>
         {#if spoils.relicTargets.length > 0}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1">
-                    The relics you targeted are yours, and you have seen them. Any you tap go to the
-                    bottom of the relic deck instead.
-                </div>
+                <div class="mb-1">Tap to put a relic on the bottom of the relic deck.</div>
                 <CardChoiceRow
                     choices={spoils.relicTargets.map((slotId) => {
                         const known = gameSession.knownRelicAt(slotId)
@@ -231,8 +204,7 @@
         {#if spoils.capturedSites.length > 0 && spoils.forceOwners.length > 0}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">
-                    Place warbands on the sites you took — {spoils.placedTotal} of
-                    {spoils.forceAvailable} in your force. This is how you come to rule them.
+                    Place warbands: {spoils.placedTotal} of {spoils.forceAvailable}.
                 </div>
                 {#each spoils.capturedSites as siteId (siteId)}
                     {#each spoils.forceOwners as owner (owner)}
@@ -267,7 +239,7 @@
             </div>
         {/if}
 
-        {#if spoils.woodChooses}
+        {#if spoils.woodChooses && defenderId !== undefined}
             <label class="mb-2 flex items-center gap-2 text-xs">
                 <input
                     type="checkbox"
@@ -275,64 +247,65 @@
                     disabled={busy}
                     onchange={(e) => spoils.setBanishByWood(e.currentTarget.checked)}
                 />
-                Banish their pawn — the Shrouded Wood's ruler chooses where it goes
+                <span
+                    >Banish <PlayerName playerId={defenderId} />; the Wood's ruler picks where</span
+                >
             </label>
         {/if}
-        {#if spoils.banishSites.length > 0}
+        {#if spoils.banishSites.length > 0 && defenderId !== undefined}
             <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-oath-text-muted">Banish their pawn to:</span>
+                <span class="text-oath-text-muted"
+                    >Banish <PlayerName playerId={defenderId} /> to:</span
+                >
                 <select
                     disabled={busy}
                     class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
                     value={spoils.banishSite ?? ''}
                     onchange={(e) => spoils.setBanishSite(e.currentTarget.value || undefined)}
                 >
-                    <option value="">leave it where it is</option>
+                    <option value="">nowhere</option>
                     {#each spoils.banishSites as siteId (siteId)}
                         <option value={siteId}>{siteName(gameState, siteId)}</option>
                     {/each}
                 </select>
             </label>
         {/if}
+        <!-- The reason the spoils are refused takes the buttons' place. -->
         {#if spoils.blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
                 <TokenText text={gameSession.humanizeReason(spoils.blockedBecause) ?? ''} />
             </p>
-        {/if}
-        <div class="flex gap-2">
-            <button
-                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
-                disabled={busy || !!spoils.blockedBecause}
-                onclick={() => spoils.takeSpoils(false)}
-            >
-                Take the spoils{spoils.mayBurnFavor ? ', no burn' : ''}
-            </button>
-            {#if spoils.mayBurnFavor}
-                <!-- R-5.5.7.III — "may burn half their favor" is a choice, so a second button. -->
+        {:else}
+            <!-- One width for the two, the wider one's. -->
+            <div class="inline-grid auto-cols-fr grid-flow-col gap-2">
                 <button
-                    class="grow rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
-                           px-2 py-1.5 text-sm font-semibold flex items-center justify-center gap-2"
-                    disabled={busy || !!spoils.blockedBecause}
-                    title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
-                    onclick={() => spoils.takeSpoils(true)}
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => spoils.takeSpoils(false)}
                 >
-                    …and burn {spoils.burnAmount}
-                    <img
-                        class="h-5 w-auto burn"
-                        src={burnToken.src}
-                        width={burnToken.width}
-                        height={burnToken.height}
-                        alt="favor"
-                    />
+                    Take spoils
                 </button>
-            {/if}
-        </div>
+                {#if spoils.mayBurnFavor}
+                    <!-- R-5.5.7.III — "may burn half their favor" is a choice, so a second button. -->
+                    <button
+                        class="burn rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
+                               px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                        disabled={busy}
+                        title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
+                        onclick={() => spoils.takeSpoils(true)}
+                    >
+                        <TokenText text={`Take and burn ${spoils.burnAmount} favor`} />
+                    </button>
+                {/if}
+            </div>
+        {/if}
     {/if}
 </div>
 
 <style>
-    .burn {
+    /* The burnt favor: the token as the text draws it, scorched. */
+    .burn :global(img) {
         filter: sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.7) contrast(1.3);
     }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import {
         CampaignTargetKind,
@@ -33,10 +34,8 @@
     let defender = $derived(draft.defender)
     let busy = $derived(gameSession.busy)
 
-    function defenderLabel(candidate: CampaignDefender): string {
-        return candidate.kind === 'bandits'
-            ? 'The bandits'
-            : gameSession.getPlayerName(candidate.playerId)
+    function defenderKey(candidate: CampaignDefender): string {
+        return candidate.kind === 'bandits' ? 'bandits' : candidate.playerId
     }
 
     function targetLabel(target: CampaignTarget): string {
@@ -94,14 +93,10 @@
             (target) => draft.hasTarget(target) || draft.canToggleTarget(target)
         )
     )
+    // The headings name the kinds; the line above them names the defender.
     let targetGroups = $derived.by(() => {
-        const name = defender ? defenderLabel(defender) : ''
         const groups = [
-            {
-                heading:
-                    defender?.kind === 'bandits' ? 'Sites the bandits hold' : `Sites ${name} rules`,
-                kinds: [CampaignTargetKind.Site]
-            },
+            { heading: 'Sites', kinds: [CampaignTargetKind.Site] },
             {
                 heading: 'Relics and banners',
                 kinds: [
@@ -110,7 +105,7 @@
                     CampaignTargetKind.SiteRelic
                 ]
             },
-            { heading: name, kinds: [CampaignTargetKind.PawnAndFavor] }
+            { heading: 'Pawn and favor', kinds: [CampaignTargetKind.PawnAndFavor] }
         ]
         return groups
             .map((group) => ({
@@ -125,32 +120,37 @@
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         Campaign
         <span class="ml-2 normal-case tracking-normal text-oath-accent">
-            {draft.supplyCost === 0 ? 'no Supply' : `${draft.supplyCost} Supply`}
+            {draft.supplyCost === 0 ? 'Free' : `${draft.supplyCost} Supply`}
         </span>
     </h3>
 
     {#if !defender}
-        <p class="text-sm mb-1">Choose who you are attacking.</p>
-        <div class="flex flex-col gap-1">
-            {#each draft.defenderOptions as candidate (defenderLabel(candidate))}
+        <p class="text-sm mb-1">Attack who?</p>
+        <!-- One width for the choices, the widest one's; nothing stretched. -->
+        <div class="grid w-max max-w-full gap-1">
+            {#each draft.defenderOptions as candidate (defenderKey(candidate))}
                 <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised
-                           hover:border-oath-accent disabled:opacity-40 px-2 py-1 text-sm text-left"
+                    type="button"
+                    class="rounded-md border border-oath-frame bg-oath-surface px-3 py-1.5 text-[15px]
+                           font-semibold hover:border-oath-accent hover:bg-oath-accent-soft
+                           disabled:opacity-40 max-sm:min-h-11"
                     disabled={busy}
                     onclick={() => draft.chooseDefender(candidate)}
                 >
-                    {defenderLabel(candidate)}
+                    {#if candidate.kind === 'player'}<PlayerName
+                            playerId={candidate.playerId}
+                        />{:else}The bandits{/if}
                 </button>
             {/each}
         </div>
     {:else}
-        {#if draft.defenderFixed && defender.kind === 'player'}
-            <p class="text-sm mb-1">
-                Sneak Attack: the defender is {gameSession.getPlayerName(defender.playerId)}.
-            </p>
-        {/if}
-        <p class="text-sm mb-1">Tap a target to add it, and again to drop it.</p>
-        <div class="mb-2 flex flex-col gap-1.5">
+        <p class="text-sm mb-1">
+            Against {#if defender.kind === 'player'}<PlayerName
+                    playerId={defender.playerId}
+                />{:else}the bandits{/if}. Tap targets.
+        </p>
+        <!-- The target rows share the widest row's width. -->
+        <div class="mb-2 grid w-max max-w-full gap-1.5">
             {#each targetGroups as group (group.heading)}
                 <h4
                     class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
@@ -158,37 +158,49 @@
                     {group.heading}
                 </h4>
                 {#each group.targets as target (JSON.stringify(target))}
-                    <MenuToggleRow
-                        image={targetImage(target)}
-                        name={targetLabel(target)}
-                        detail={targetDetail(target)}
-                        tag="target"
-                        shape={target.kind === CampaignTargetKind.Site ||
-                        target.kind === CampaignTargetKind.Banner
-                            ? 'wide'
-                            : target.kind === CampaignTargetKind.PawnAndFavor
-                              ? 'piece'
-                              : 'relic'}
-                        on={draft.hasTarget(target)}
-                        points={targetPoints(target)}
-                        disabled={busy}
-                        onclick={() => draft.toggleTarget(target)}
-                    />
+                    {#if target.kind === CampaignTargetKind.PawnAndFavor && defender.kind === 'player'}
+                        {@const defenderId = defender.playerId}
+                        <MenuToggleRow
+                            image={targetImage(target)}
+                            tag="target"
+                            shape="piece"
+                            on={draft.hasTarget(target)}
+                            disabled={busy}
+                            onclick={() => draft.toggleTarget(target)}
+                        >
+                            {#snippet name()}<PlayerName playerId={defenderId} />{/snippet}
+                        </MenuToggleRow>
+                    {:else}
+                        <MenuToggleRow
+                            image={targetImage(target)}
+                            name={targetLabel(target)}
+                            detail={targetDetail(target)}
+                            tag="target"
+                            shape={target.kind === CampaignTargetKind.Site ||
+                            target.kind === CampaignTargetKind.Banner
+                                ? 'wide'
+                                : 'relic'}
+                            on={draft.hasTarget(target)}
+                            points={targetPoints(target)}
+                            disabled={busy}
+                            onclick={() => draft.toggleTarget(target)}
+                        />
+                    {/if}
                 {/each}
             {/each}
         </div>
 
+        <h4 class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading">
+            Attack dice
+        </h4>
         <div class="mb-2 text-sm">
-            <div class="mb-1">Attack dice — tap to set the pool</div>
             <AttackDiceRow />
         </div>
 
         {#if draft.lossSources.length > 1}
             <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1 text-oath-text-muted">
-                    Skulls kill your warbands from, in order:
-                </div>
+                <div class="mb-1 text-oath-text-muted">Skull losses, in order:</div>
                 {#each draft.lossOrder as source, index (JSON.stringify(source))}
                     <div class="flex items-center gap-2 mb-0.5">
                         <span class="grow"
@@ -212,14 +224,11 @@
             </div>
         {/if}
 
-        {#if draft.plansWaitForAllies}
-            <p class="mb-2 text-[11px] text-oath-text-muted">
-                A Citizen may join the defence, so your battle plans are chosen after they answer.
-            </p>
-        {/if}
         {#if draft.planOptions.length > 0}
-            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1 text-oath-text-muted">Battle plans to use:</div>
+            <h4 class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading">
+                Battle plans
+            </h4>
+            <div class="mb-2 text-xs">
                 <CardChoiceRow
                     choices={powerUseCards(draft.planOptions)}
                     picked={draft.planOptions
@@ -256,21 +265,22 @@
             </div>
         {/if}
 
-        {#if draft.blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(draft.blockedBecause) ?? ''} />
-            </p>
-        {/if}
-
-        <div class="flex gap-2">
-            <button
-                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
-                disabled={busy || !draft.declarable}
-                onclick={() => draft.declare()}
-            >
-                Declare the Campaign
-            </button>
+        <!-- Declare waits for the picks; the reason a complete declaration is refused takes its place. -->
+        <div class="flex flex-wrap items-center gap-2">
+            {#if draft.refusedBecause}
+                <p class="text-[11px] text-oath-danger">
+                    <TokenText text={gameSession.humanizeReason(draft.refusedBecause) ?? ''} />
+                </p>
+            {:else if draft.complete}
+                <button
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => draft.declare()}
+                >
+                    Declare
+                </button>
+            {/if}
         </div>
     {/if}
 </div>

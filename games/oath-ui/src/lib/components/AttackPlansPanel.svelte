@@ -15,19 +15,18 @@
     let mine = $derived(
         draft.attackerId !== undefined && draft.attackerId === gameSession.myPlayer?.id
     )
-    let reason = $derived(mine ? draft.blockedBecause : undefined)
+    let useRefusedBecause = $derived(mine ? draft.usePlansRefusedBecause : undefined)
+    let noneRefusedBecause = $derived(mine ? draft.noPlansRefusedBecause : undefined)
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
-        Campaign — the attacker's battle plans
-    </h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">Battle plans</h3>
     {#if !mine}
         <WaitingOn />
     {:else}
-        <p class="text-sm mb-2">
-            The Citizens have answered. Use any battle plans you rule, once each.
-        </p>
+        {#if draft.usable.length > 0}
+            <p class="text-sm mb-2">Tap the plans to use.</p>
+        {/if}
         <div class="mb-1">
             <CardChoiceRow
                 choices={powerUseCards(draft.usable)}
@@ -57,17 +56,39 @@
                 </div>
             {/if}
         {/each}
-        {#if reason}
+        <!-- Use plans waits for a plan and its picks; a refusal takes the button's place. -->
+        {#if useRefusedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(useRefusedBecause) ?? ''} />
             </p>
         {/if}
-        <button
-            class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
-            disabled={busy || !!reason}
-            onclick={() => draft.declare()}
-        >
-            {draft.plans.length > 0 ? 'Use these plans' : 'Use no plans'}
-        </button>
+        {#if noneRefusedBecause}
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={gameSession.humanizeReason(noneRefusedBecause) ?? ''} />
+            </p>
+        {/if}
+        <!-- One width for the two, the wider one's; the confirm is the panel's primary. -->
+        <div class="inline-grid auto-cols-fr grid-flow-col gap-2">
+            {#if draft.plansComplete && !useRefusedBecause}
+                <button
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => draft.declare(true)}
+                >
+                    Use plans
+                </button>
+            {/if}
+            {#if !noneRefusedBecause}
+                <button
+                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                           max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => draft.declare(false)}
+                >
+                    No plans
+                </button>
+            {/if}
+        </div>
     {/if}
 </div>

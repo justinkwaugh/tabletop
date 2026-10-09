@@ -23,7 +23,7 @@ import {
 } from '@tabletop/oath'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, planChoices } from './planChoices.js'
-import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
+import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -310,6 +310,30 @@ abstract class PlanDeclarationDraft implements PanelDraft {
         return this.plans.some((p) => samePowerUse(p, use))
     }
 
+    /** "Use plans" waits for a plan, and for every declared plan's picks. */
+    get plansComplete(): boolean {
+        const declared = this.usable.filter((power) => this.isDeclared(power))
+        return (
+            declared.length > 0 &&
+            declared.every((power) =>
+                picksComplete(this.planChoicesOf(power), this.planPicksOf(power))
+            )
+        )
+    }
+
+    /** Why the engine refuses the plans as picked, read only once they are complete. */
+    get usePlansRefusedBecause(): string | undefined {
+        return this.plansComplete ? this.reasonCannotDeclare(this.plans) : undefined
+    }
+
+    /** "No plans" is always complete; the engine still judges it. */
+    get noPlansRefusedBecause(): string | undefined {
+        return this.reasonCannotDeclare([])
+    }
+
+    /** Why the engine refuses these plans from the seat on screen. */
+    protected abstract reasonCannotDeclare(plans: BattlePlanUse[]): string | undefined
+
     setPlan(use: PowerUseKey, on: boolean): void {
         if (!this.usable.some((p) => samePowerUse(p, use))) return
         const key = powerKey(use.cardId, use.powerIndex)
@@ -354,19 +378,16 @@ export class DefenceDraft extends PlanDeclarationDraft {
         return HydratedCampaignDefend.answeringPlayerId(this.session.gameState)
     }
 
-    get blockedBecause(): string | undefined {
+    protected reasonCannotDeclare(plans: BattlePlanUse[]): string | undefined {
         const playerId = this.session.myPlayer?.id
         assertExists(playerId, 'Battle plans are declared from a seat')
-        return HydratedCampaignDefend.reasonCannotDefend(
-            this.session.gameState,
-            playerId,
-            this.plans
-        )
+        return HydratedCampaignDefend.reasonCannotDefend(this.session.gameState, playerId, plans)
     }
 
-    async answer(): Promise<void> {
+    /** "Use plans" sends the plans picked; "No plans" sends none, whatever is picked. */
+    async answer(usePlans: boolean): Promise<void> {
         if (!this.playerId) return
-        await this.session.defendCampaign(this.plans)
+        await this.session.defendCampaign(usePlans ? this.plans : [])
     }
 }
 
@@ -387,19 +408,21 @@ export class AttackPlansDraft extends PlanDeclarationDraft {
             : []
     }
 
-    get blockedBecause(): string | undefined {
+    protected reasonCannotDeclare(plans: BattlePlanUse[]): string | undefined {
         const playerId = this.playerId
         if (!playerId) return 'the attacker declares these plans'
         return HydratedCampaignAttackPlans.reasonCannotDeclare(
             this.session.gameState,
             playerId,
-            this.plans
+            plans
         )
     }
 
-    async declare(): Promise<void> {
-        if (!this.playerId || this.blockedBecause !== undefined) return
-        await this.session.declareAttackPlans(this.plans)
+    /** "Use plans" sends the plans picked; "No plans" sends none, whatever is picked. */
+    async declare(usePlans: boolean): Promise<void> {
+        const plans = usePlans ? this.plans : []
+        if (!this.playerId || this.reasonCannotDeclare(plans) !== undefined) return
+        await this.session.declareAttackPlans(plans)
     }
 }
 
@@ -456,6 +479,16 @@ export class DefeatDraft implements PanelDraft {
         )
     }
 
+    /** "Kill" waits for the count owed. */
+    get complete(): boolean {
+        return this.pickedTotal === this.required
+    }
+
+    /** Why the engine refuses the kills as picked, read only once the count is right. */
+    get refusedBecause(): string | undefined {
+        return this.complete ? this.blockedBecause : undefined
+    }
+
     setPicked(index: number, count: number): void {
         const group = this.groups[index]
         if (!group) return
@@ -478,6 +511,10 @@ export class DefeatDraft implements PanelDraft {
     reset(): void {
         this.flow.reset()
     }
+}
+
+function total(counts: readonly number[]): number {
+    return counts.reduce((sum, count) => sum + count, 0)
 }
 
 type AttackerLossesValueByStage = { sacrificed: number[]; defeated: number[] }
@@ -546,6 +583,36 @@ export class AttackerLossesDraft implements PanelDraft {
 
     get defeated(): number[] {
         return this.picksFor('defeated')
+    }
+
+    /** R-5.5.5 — nothing to sacrifice: the swords already win, or a battle plan decided it. */
+    get wonWithoutSacrifice(): boolean {
+        const campaign = this.campaign
+        return (
+            campaign !== undefined &&
+            this.needed === 0 &&
+            HydratedCampaignSacrifice.isVictorious(campaign, 0)
+        )
+    }
+
+    /** "Sacrifice N and win" waits for the warbands, when the force leaves a choice. */
+    get winComplete(): boolean {
+        return !this.choosesSacrifice || total(this.sacrificed) === this.needed
+    }
+
+    /** "Sacrifice nothing" waits for the half that dies, when the force leaves a choice. */
+    get loseComplete(): boolean {
+        return !this.choosesDefeat || total(this.defeated) === this.defeatRequired
+    }
+
+    /** Why the engine refuses the win as picked, read only once it is complete. */
+    get winRefusedBecause(): string | undefined {
+        return this.needed > 0 && this.winComplete ? this.winBlockedBecause : undefined
+    }
+
+    /** Why the engine refuses the loss as picked, read only once it is complete. */
+    get loseRefusedBecause(): string | undefined {
+        return this.loseComplete ? this.loseBlockedBecause : undefined
     }
 
     setSacrificed(index: number, count: number): void {

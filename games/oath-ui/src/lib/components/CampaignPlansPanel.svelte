@@ -27,7 +27,6 @@
             ? { defender: defenderName() }
             : undefined
     )
-    let attackerName = $derived(gameSession.getPlayerName(campaign.attackerPlayerId))
 
     function defenderName(): string {
         const defenderId = campaign.defenderPlayerId
@@ -36,35 +35,23 @@
     }
 
     let usable = $derived(defence.usable)
-    let plans = $derived(defence.plans)
     let busy = $derived(gameSession.busy)
 
-    let blockedBecause = $derived(defence.blockedBecause)
+    let useRefusedBecause = $derived(defence.usePlansRefusedBecause)
+    let noneRefusedBecause = $derived(defence.noPlansRefusedBecause)
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
-        Campaign — battle plans
-    </h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">Battle plans</h3>
 
     <div class="text-sm mb-2 flex gap-4">
         <span>Attack dice <span class="font-semibold">{campaign.attackPool}</span></span>
         <span>Defense dice <span class="font-semibold">{campaign.defensePool}</span></span>
     </div>
-    {#if campaign.plansUsed.length > 0}
-        <p class="text-[11px] text-oath-text-muted mb-2">
-            {attackerName} used: {campaign.plansUsed.map(cardName).join(', ')}
-        </p>
-    {/if}
-
     {#if isAnswering}
-        <p class="text-sm mb-2">
-            {#if ally}
-                You are {ally.defender}'s ally. Use any defender's battle plans you rule, once each.
-            {:else}
-                You are defending. Use any battle plans you rule, once each, then roll.
-            {/if}
-        </p>
+        {#if usable.length > 0}
+            <p class="text-sm mb-2">Tap the plans to use.</p>
+        {/if}
         <div class="mb-1">
             <CardChoiceRow
                 choices={powerUseCards(usable)}
@@ -94,19 +81,40 @@
                 </div>
             {/if}
         {/each}
-        {#if blockedBecause}
+        <!-- Use plans waits for a plan and its picks; a refusal takes the button's place. -->
+        {#if useRefusedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(useRefusedBecause) ?? ''} />
             </p>
         {/if}
-        <button
-            class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                   border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
-            disabled={busy || !!blockedBecause}
-            onclick={() => defence.answer()}
-        >
-            {plans.length > 0 ? `Use ${plans.length} and roll` : 'Use none and roll'}
-        </button>
+        {#if noneRefusedBecause}
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={gameSession.humanizeReason(noneRefusedBecause) ?? ''} />
+            </p>
+        {/if}
+        <!-- One width for the two, the wider one's. -->
+        <div class="inline-grid auto-cols-fr grid-flow-col gap-2">
+            {#if defence.plansComplete && !useRefusedBecause}
+                <button
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => defence.answer(true)}
+                >
+                    Use plans
+                </button>
+            {/if}
+            {#if !noneRefusedBecause}
+                <button
+                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                           max-sm:min-h-11"
+                    disabled={busy}
+                    onclick={() => defence.answer(false)}
+                >
+                    No plans
+                </button>
+            {/if}
+        </div>
     {:else}
         <WaitingOn />
     {/if}

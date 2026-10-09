@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import { pointsAt, type MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
 
     let {
@@ -13,7 +14,8 @@
         onclick
     }: {
         image: string
-        name: string
+        /** Printed words, or a snippet for a name that is a player's colour chip. */
+        name: string | Snippet
         detail?: string
         tag: string
         shape?: 'wide' | 'relic' | 'piece'
@@ -43,13 +45,15 @@
 >
     <img class="shrink-0 {SHAPES[shape]}" src={image} alt="" />
     <span class="flex min-w-0 flex-col">
-        <span class="text-[15px] font-bold">{name}</span>
+        <span class="text-[15px] font-bold"
+            >{#if typeof name === 'string'}{name}{:else}{@render name()}{/if}</span
+        >
         {#if detail}<span class="text-xs text-oath-text-muted">{detail}</span>{/if}
     </span>
-    {#if on}
-        <span
-            class="shrink-0 rounded bg-oath-accent px-1.5 py-px text-[11px] font-extrabold text-oath-surface-raised"
-            >{tag}</span
-        >
-    {/if}
+    <!-- The tag keeps its room when off, so a row keeps its width when tapped. -->
+    <span
+        class="shrink-0 rounded bg-oath-accent px-1.5 py-px text-[11px] font-extrabold text-oath-surface-raised"
+        class:invisible={!on}
+        aria-hidden={!on}>{tag}</span
+    >
 </button>

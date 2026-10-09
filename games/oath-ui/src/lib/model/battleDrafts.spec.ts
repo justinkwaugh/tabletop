@@ -135,11 +135,20 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         const draft = session.attackPlans
         expect(draft.usable.map((p) => p.cardId)).toEqual([ARCHERS])
+        expect(draft.plansComplete).toBe(false)
         draft.setPlan(draft.usable[0], true)
-        await draft.declare()
+        expect(draft.plansComplete).toBe(true)
+        expect(draft.usePlansRefusedBecause).toBeUndefined()
+        await draft.declare(true)
         const action = sent.mock.calls[0][0]
         assert(isCampaignAttackPlans(action), 'the attacker\'s plans are sent')
         expect(action.plans?.map((p) => p.cardId)).toEqual([ARCHERS])
+
+        draft.setPlan(draft.usable[0], true)
+        await draft.declare(false)
+        const none = sent.mock.calls[1][0]
+        assert(isCampaignAttackPlans(none), 'no plans are sent')
+        expect(none.plans ?? []).toEqual([])
     })
 })
 
@@ -171,10 +180,13 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         const { losses, sent } = sacrificing()
         expect(losses.needed).toBe(2)
         expect(losses.choosesSacrifice).toBe(true)
-        expect(losses.winBlockedBecause).toMatch(/must sacrifice exactly 2/)
+        expect(losses.winComplete).toBe(false)
+        expect(losses.winRefusedBecause).toBeUndefined()
         losses.setSacrificed(1, 1)
+        expect(losses.winComplete).toBe(false)
         losses.setSacrificed(0, 1)
-        expect(losses.winBlockedBecause).toBeUndefined()
+        expect(losses.winComplete).toBe(true)
+        expect(losses.winRefusedBecause).toBeUndefined()
         await losses.win()
         expect(sent).toHaveBeenCalledWith(
             2,
@@ -189,8 +201,12 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
     it('a defeat is sent with the half picked', async () => {
         const { losses, sent } = sacrificing()
         expect(losses.defeatRequired).toBe(2)
+        expect(losses.loseComplete).toBe(false)
+        expect(losses.loseRefusedBecause).toBeUndefined()
         losses.setDefeated(1, 1)
         losses.setDefeated(0, 1)
+        expect(losses.loseComplete).toBe(true)
+        expect(losses.loseRefusedBecause).toBeUndefined()
         await losses.lose()
         expect(sent).toHaveBeenCalledWith(0, undefined, [
             { at: board, owner: ME, count: 1 },
@@ -203,6 +219,40 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         losses.setSacrificed(0, 2)
         expect(losses.back()).toBe(true)
         expect(losses.sacrificed).toEqual([0, 0])
+    })
+
+    it('a sacrifice is complete only at exactly the number needed', () => {
+        const { losses } = sacrificing()
+        losses.setSacrificed(0, 3)
+        expect(losses.winComplete).toBe(false)
+        losses.setSacrificed(0, 2)
+        expect(losses.winComplete).toBe(true)
+        losses.setSacrificed(1, 1)
+        expect(losses.winComplete).toBe(false)
+        expect(losses.winRefusedBecause).toBeUndefined()
+    })
+})
+
+/** With nothing to sacrifice, the outcome is all the step says. */
+describe('R-5.5.5 — a battle that needs no sacrifice', () => {
+    it('is won when the swords beat the defense', () => {
+        const session = battle(MachineState.CampaignSacrifice, { swords: 3, defense: 2 }, ME)
+        expect(session.attackerLosses.needed).toBe(0)
+        expect(session.attackerLosses.wonWithoutSacrifice).toBe(true)
+    })
+
+    it('follows a battle plan that decided it (Hearts and Minds, Peace Envoy)', () => {
+        const lost = battle(MachineState.CampaignSacrifice, { swords: 0, defense: 5, decidedVictor: 'defender' }, ME)
+        expect(lost.attackerLosses.needed).toBe(0)
+        expect(lost.attackerLosses.wonWithoutSacrifice).toBe(false)
+        const won = battle(MachineState.CampaignSacrifice, { swords: 0, defense: 5, decidedVictor: 'attacker' }, ME)
+        expect(won.attackerLosses.wonWithoutSacrifice).toBe(true)
+    })
+
+    it('is not settled while a sacrifice could still win it', () => {
+        const session = battle(MachineState.CampaignSacrifice, { swords: 1, defense: 2, sacrificeWorth: 1 }, ME)
+        expect(session.attackerLosses.needed).toBe(2)
+        expect(session.attackerLosses.wonWithoutSacrifice).toBe(false)
     })
 })
 
@@ -281,6 +331,27 @@ describe('the defence draft (docs/user-interactions.md)', () => {
         expect(defence.hasManualSelection()).toBe(false)
     })
 
+    it('Use plans waits for a ringed plan; No plans sends none, whatever is ringed', async () => {
+        const session = battle(
+            MachineState.CampaignPlans,
+            { targets: [{ kind: CampaignTargetKind.PawnAndFavor }], pendingDefenderPlans: { queue: [FOE] } },
+            FOE
+        )
+        const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
+        const defence = session.defence
+        expect(defence.plansComplete).toBe(false)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+        expect(defence.noPlansRefusedBecause).toBeUndefined()
+        defence.setPlan({ cardId: WILD_MOUNTS, powerIndex: MOUNTS_PLAN }, true)
+        expect(defence.plansComplete).toBe(true)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+
+        await defence.answer(false)
+        expect(sent).toHaveBeenLastCalledWith([])
+        await defence.answer(true)
+        expect(sent).toHaveBeenLastCalledWith([{ cardId: WILD_MOUNTS, powerIndex: MOUNTS_PLAN }])
+    })
+
     it('the attacker sees no plans of the defender’s to declare', () => {
         const session = battle(
             MachineState.CampaignPlans,
@@ -336,6 +407,18 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         expect(defeat.picked).toEqual([0, 2])
         defeat.setPicked(5, 1)
         expect(defeat.picked).toEqual([0, 2])
+    })
+
+    it('Kill waits for the count; the engine is asked only once the count is right', () => {
+        const defeat = defeated()
+        const required = defeat.required
+        expect(defeat.complete).toBe(false)
+        expect(defeat.refusedBecause).toBeUndefined()
+        defeat.setPicked(0, Math.min(required, 3))
+        defeat.setPicked(1, required - Math.min(required, 3))
+        expect(defeat.pickedTotal).toBe(required)
+        expect(defeat.complete).toBe(true)
+        expect(defeat.refusedBecause).toBeUndefined()
     })
 
     it('recounting a group replaces its count only', () => {
