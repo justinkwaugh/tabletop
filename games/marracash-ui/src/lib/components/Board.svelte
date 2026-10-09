@@ -179,6 +179,15 @@
         text-rendering="geometricPrecision"
     >
         <defs>
+            <!-- Every halo, marked by the candidate-halo class, glows softly round what it marks. -->
+            <filter id="marracash-halo-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
+                <feMerge>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="glow"></feMergeNode>
+                    <feMergeNode in="SourceGraphic"></feMergeNode>
+                </feMerge>
+            </filter>
             <StallDefs />
             <PawnDefs />
             <FountainDefs />
@@ -389,6 +398,11 @@
 </div>
 
 <style>
+    /* Each glow's blur covers only its own halo. */
+    :global(.candidate-halo) {
+        filter: url(#marracash-halo-glow);
+    }
+
     .walker {
         will-change: transform;
     }
