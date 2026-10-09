@@ -1,46 +1,55 @@
 <script lang="ts">
-    import { MARKET_GROUND, MARKET_TABLE } from '$lib/utils/pieceColors.js'
+    import { MARKET_CANVAS_DARK, MARKET_CANVAS_LIGHT, MARKET_LOT } from '$lib/utils/pieceColors.js'
 
     let { size = 100 }: { size?: number } = $props()
 
-    const id = `market-${Math.random().toString(36).slice(2)}`
-    const seed = Math.floor(Math.random() * 1000)
-    const grainAngle = Math.floor(Math.random() * 40) - 20
+    // A flea-market booth seen from the front: a canopy over a stocked counter, standing on
+    // its lot. Its soft edges match the faint lines on the other pieces.
+    const BOOTH = {
+        left: 12,
+        right: 88,
+        eave: 36,
+        roofTop: 15,
+        roofTopHalf: 9,
+        ground: 91,
+        counter: 19,
+        pole: 4.5
+    }
+    const EDGE = 'rgb(0 0 0 / 0.28)'
+    const EDGE_WIDTH = 0.7
+    const INTERIOR = '#3c3c3c'
+    const POLE = '#b5b5b5'
 
-    // Seen from the front and a little above and to the right. Boxes are in table space:
-    // x across, h up from the ground, z back from the front.
-    const GROUND_Y = 78
-    const ZX = 0.45
-    const ZY = 0.33
-    const at = (x: number, h: number, z: number) =>
-        `${(x + z * ZX - 8).toFixed(2)},${(GROUND_Y - h - z * ZY).toFixed(2)}`
-    type Box = { x0: number; x1: number; h0: number; h1: number; z0: number; z1: number }
-    const faces = (b: Box) => ({
-        front: [
-            at(b.x0, b.h0, b.z0),
-            at(b.x1, b.h0, b.z0),
-            at(b.x1, b.h1, b.z0),
-            at(b.x0, b.h1, b.z0)
-        ].join(' '),
-        top: [
-            at(b.x0, b.h1, b.z0),
-            at(b.x1, b.h1, b.z0),
-            at(b.x1, b.h1, b.z1),
-            at(b.x0, b.h1, b.z1)
-        ].join(' '),
-        side: [
-            at(b.x1, b.h0, b.z0),
-            at(b.x1, b.h0, b.z1),
-            at(b.x1, b.h1, b.z1),
-            at(b.x1, b.h1, b.z0)
-        ].join(' ')
+    const SCALLOPS = 5
+    const scallopWidth = (BOOTH.right - BOOTH.left) / SCALLOPS
+    const scallopDepth = scallopWidth / 2.6
+    const VALANCE = 9
+
+    const roof = `M${BOOTH.left} ${BOOTH.eave} L${50 - BOOTH.roofTopHalf} ${BOOTH.roofTop} L${50 + BOOTH.roofTopHalf} ${BOOTH.roofTop} L${BOOTH.right} ${BOOTH.eave} Z`
+    const valance = Array.from({ length: SCALLOPS }, (_, i) => {
+        const x0 = BOOTH.left + i * scallopWidth
+        const bottom = BOOTH.eave + VALANCE - scallopDepth
+        return {
+            i,
+            d: `M${x0} ${BOOTH.eave} H${x0 + scallopWidth} V${bottom} A${scallopWidth / 2} ${scallopDepth} 0 0 1 ${x0} ${bottom} Z`
+        }
     })
-    const parts = [
-        { x0: 27, x1: 35, h0: 0, h1: 22, z0: 3, z1: 33 },
-        { x0: 65, x1: 73, h0: 0, h1: 22, z0: 3, z1: 33 },
-        { x0: 23, x1: 77, h0: 22, h1: 35, z0: 0, z1: 36 }
-    ].map((box, i) => ({ i, ...faces(box) }))
-    const shadow = [at(23, 0, 0), at(77, 0, 0), at(81, 0, 36), at(27, 0, 36)].join(' ')
+
+    // A few goods of different heights, in greys so they never read as one of the four stall
+    // goods.
+    const counterTop = BOOTH.ground - BOOTH.counter
+    const goods = [
+        { x: 22, w: 8, h: 21, r: 4, fill: '#c2c2c2' },
+        { x: 33, w: 15, h: 10, r: 1.5, fill: '#8f8f8f' },
+        { x: 35.5, w: 10, h: 8, r: 1.5, fill: '#a9a9a9', stack: 10 },
+        { x: 54, w: 20, h: 10, r: 5, fill: '#c9c9c9' }
+    ].map(({ stack = 0, ...good }, i) => ({ ...good, i, y: counterTop - good.h - stack }))
+
+    // Shrunk about its base, then moved so it sits centred in the lot.
+    const SCALE = 0.836
+    const scaledTop = BOOTH.ground - (BOOTH.ground - BOOTH.roofTop) * SCALE
+    const shift = 50 - (scaledTop + BOOTH.ground) / 2
+    const placement = `translate(0 ${shift}) translate(50 ${BOOTH.ground}) scale(${SCALE}) translate(-50 ${-BOOTH.ground})`
 </script>
 
 <svg
@@ -51,62 +60,52 @@
     viewBox="0 0 100 100"
     xmlns="http://www.w3.org/2000/svg"
 >
-    <defs>
-        <filter id="{id}-grain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.012 0.18" numOctaves="2" {seed}
-            ></feTurbulence>
-            <feColorMatrix type="saturate" values="0"></feColorMatrix>
-        </filter>
-        <filter id="{id}-soft" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3"></feGaussianBlur>
-        </filter>
-        <clipPath id="{id}-table">
-            {#each parts as part (part.i)}
-                <polygon points={part.front}></polygon>
-                <polygon points={part.top}></polygon>
-                <polygon points={part.side}></polygon>
-            {/each}
-        </clipPath>
-    </defs>
+    <!-- On the board the cell paints the lot past its edges, so neighbouring markets join; this
+         square backs previews. -->
+    <rect width="100" height="100" fill={MARKET_LOT}></rect>
 
-    <!-- The ground bleeds past the square so scaled boards show no seams. -->
-    <rect x="-1" y="-1" width="102" height="102" fill={MARKET_GROUND}></rect>
-    <rect
-        width="100"
-        height="100"
-        filter="url(#{id}-grain)"
-        opacity="0.05"
-        style="mix-blend-mode: screen"
-    ></rect>
-
-    <g transform="translate(50 56) scale(0.95) translate(-50 -56)">
-        <g filter="url(#{id}-soft)" opacity="0.22">
-            <polygon points={shadow} fill="#000" transform="translate(3 1)"></polygon>
-        </g>
-        {#each parts as part (part.i)}
-            <polygon points={part.side} fill={MARKET_TABLE}></polygon>
-            <polygon points={part.side} fill="#000" opacity="0.38"></polygon>
-            <polygon points={part.top} fill={MARKET_TABLE}></polygon>
-            <polygon points={part.top} fill="#fff" opacity="0.14"></polygon>
-            <polygon points={part.front} fill={MARKET_TABLE}></polygon>
-            <polyline
-                points={part.front.split(' ').slice(2).reverse().join(' ')}
-                fill="none"
-                stroke="#fff"
-                stroke-opacity="0.18"
-                stroke-width="1.4"
-                stroke-linecap="round"
-            ></polyline>
-        {/each}
-        <g clip-path="url(#{id}-table)">
-            <rect
-                width="100"
-                height="100"
-                filter="url(#{id}-grain)"
-                opacity="0.22"
-                style="mix-blend-mode: multiply"
-                transform="rotate({grainAngle} 50 50)"
+    <g transform={placement} stroke={EDGE} stroke-width={EDGE_WIDTH} stroke-linejoin="round">
+        <rect
+            x={BOOTH.left + 2}
+            y={BOOTH.eave}
+            width={BOOTH.right - BOOTH.left - 4}
+            height={BOOTH.ground - BOOTH.eave}
+            fill={INTERIOR}
+            stroke="none"
+        ></rect>
+        {#each goods as good (good.i)}
+            <rect x={good.x} y={good.y} width={good.w} height={good.h} rx={good.r} fill={good.fill}
             ></rect>
-        </g>
+        {/each}
+        <rect
+            x={BOOTH.left + 1}
+            y={counterTop}
+            width={BOOTH.right - BOOTH.left - 2}
+            height={BOOTH.counter}
+            rx="2.5"
+            fill={MARKET_CANVAS_DARK}
+        ></rect>
+        <rect
+            x={BOOTH.left + 1}
+            y={counterTop}
+            width={BOOTH.right - BOOTH.left - 2}
+            height="4"
+            rx="2"
+            fill={MARKET_CANVAS_LIGHT}
+        ></rect>
+        {#each [BOOTH.left - 1, BOOTH.right + 1 - BOOTH.pole] as x (x)}
+            <rect
+                {x}
+                y={BOOTH.eave}
+                width={BOOTH.pole}
+                height={BOOTH.ground - BOOTH.eave}
+                rx={BOOTH.pole / 2}
+                fill={POLE}
+            ></rect>
+        {/each}
+        <path d={roof} fill={MARKET_CANVAS_LIGHT}></path>
+        {#each valance as flap (flap.i)}
+            <path d={flap.d} fill={MARKET_CANVAS_LIGHT}></path>
+        {/each}
     </g>
 </svg>

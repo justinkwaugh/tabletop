@@ -8,7 +8,7 @@
         HydratedPlaceMarket,
         isDiskCell
     } from '@tabletop/fresh-fish'
-    import { GRASS_DARK, GRASS_LIGHT } from '$lib/utils/pieceColors.js'
+    import { GRASS_DARK, GRASS_LIGHT, MARKET_LOT } from '$lib/utils/pieceColors.js'
     import roadImg from '$lib/images/tile-road.png'
     import Disk from '$lib/components/Disk.svelte'
     import WoodMarket from '$lib/components/WoodMarket.svelte'
@@ -62,8 +62,9 @@
             // placed piece replaces the disc that reserved its lot.
             case CellType.Stall:
             case CellType.Truck:
-            case CellType.Market:
                 return grass
+            case CellType.Market:
+                return `linear-gradient(${MARKET_LOT}, ${MARKET_LOT})`
             case CellType.Road:
                 return `url(${roadImg})`
             case CellType.OffBoard:

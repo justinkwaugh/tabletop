@@ -3,8 +3,9 @@ export const UNCLAIMED_STALL = '#8f9397'
 export const GRASS_LIGHT = '#78ac53'
 export const GRASS_DARK = '#6ba247'
 
-export const MARKET_GROUND = '#a9a9a9'
-export const MARKET_TABLE = '#55595d'
+export const MARKET_LOT = '#73888c'
+export const MARKET_CANVAS_DARK = '#74808e'
+export const MARKET_CANVAS_LIGHT = '#c0c5ca'
 
 export const TRUCK_WOOD = '#d6b07a'
 export const TRUCK_GROUND = '#2a2c2f'
