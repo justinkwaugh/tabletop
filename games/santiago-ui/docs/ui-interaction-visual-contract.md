@@ -46,6 +46,10 @@ When the end of a round dries fields, the Game Session's drought dust animator t
 
 In the developer harness only, a mood tuner overrides both dials to preview the light on any board and plays the dust on a few living fields without changing the game.
 
+## Small screens
+
+On narrow screens (under 640px wide, a phone held upright) the action bar stops centering itself over the board and uses the column's full width: prompts wrap rather than running off the screen, and the bid or bribe controls stack above the table of bids instead of sitting beside it. The status bar keeps each item on one line, drops its phase icons, and grows to two lines rather than crushing them. On short screens (under 500px tall, a phone held sideways), where every pixel above the board comes out of the board, the status bar shrinks to 30px, the step buttons to 30px, the tables of bids and bribes become one wrapping strip of player and amount with the Overseer pill shown only on its player, and the captions are hidden. Larger screens are unaffected.
+
 ## Coexistence and precedence
 
 EndOfGame disclosure takes precedence over private-money presentation. History uses the displayed state's phase, so navigating back before the end restores private presentation. Perspective changes replace the permitted state; values learned through Host View must not remain in a subsequent Player or Spectator representation.
