@@ -4,6 +4,9 @@
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
     const VIEW_ANIMATION_MS = 180
+    // How long the view must stay still before content drawn at its view scale is redrawn.
+    const RENDER_SCALE_SETTLE_MS = 250
+    const RENDER_SCALE_TOLERANCE = 0.01
     const EPSILON = 0.001
     const MOUSE_WHEEL_ZOOM_SENSITIVITY = 0.003
     const TRACKPAD_PINCH_ZOOM_SENSITIVITY = 0.006
@@ -78,6 +81,7 @@
         overpan = 'none',
         gestureOverpanReach = 0,
         coverBelowScale,
+        renderAtViewScale = false,
         onManualViewChange
     }: {
         children: Snippet
@@ -96,6 +100,13 @@
         gestureOverpanReach?: number
         /** Rest at a cover fit instead when a contain fit would draw the content smaller than this scale. */
         coverBelowScale?: number
+        /**
+         * Draw the content at the scale it is shown, not at its own size: once the view settles the
+         * content is laid out again with CSS zoom at that scale, and only gestures and animations
+         * stretch it by transform until then. Its bitmaps and SVG then cost what is on screen, and
+         * it stays sharp when zoomed in, at the price of a redraw after each zoom.
+         */
+        renderAtViewScale?: boolean
         expandable?: boolean
         allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
@@ -104,6 +115,9 @@
     let minScale = $state(1)
     let restScale = $state(1)
     let currentScale = $state(1)
+    // The scale the content is laid out at by CSS zoom; the transform supplies the rest.
+    let renderScale = 1
+    let renderScaleTimer: ReturnType<typeof setTimeout> | undefined
     let zoomLevels = $state(0)
 
     let wrapperWidth = $state(0)
@@ -369,8 +383,41 @@
             viewRenderFrame = undefined
         }
         if (content && contentWidth && contentHeight) {
-            content.style.transform = `translate3d(${currentTranslateX}px, ${currentTranslateY}px, 0) scale(${currentScale})`
+            content.style.transform = `translate3d(${currentTranslateX}px, ${currentTranslateY}px, 0) scale(${currentScale / renderScale})`
+            if (renderAtViewScale) scheduleRenderScale()
         }
+    }
+
+    function viewIsMoving() {
+        return (
+            pinchStartDistance !== null ||
+            gestureStartScale !== null ||
+            panLastClientPoint !== null ||
+            mouseStartPoint !== null ||
+            viewAnimationFrame !== undefined ||
+            pinchAnimationFrame !== undefined ||
+            panInertiaFrame !== undefined ||
+            scrollInertiaFrame !== undefined ||
+            performance.now() - lastWheelTimestamp < RENDER_SCALE_SETTLE_MS
+        )
+    }
+
+    function scheduleRenderScale() {
+        clearTimeout(renderScaleTimer)
+        renderScaleTimer = setTimeout(() => {
+            if (viewIsMoving()) scheduleRenderScale()
+            else commitRenderScale()
+        }, RENDER_SCALE_SETTLE_MS)
+    }
+
+    // Lays the content out again at the current scale, so the transform scales it by one.
+    function commitRenderScale() {
+        clearTimeout(renderScaleTimer)
+        if (!renderAtViewScale || !measuredContent) return
+        if (Math.abs(currentScale / renderScale - 1) < RENDER_SCALE_TOLERANCE) return
+        renderScale = currentScale
+        measuredContent.style.zoom = String(renderScale)
+        renderView()
     }
 
     function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
@@ -747,6 +794,7 @@
             } else {
                 applyView(targetView.scale, targetView.translateX, targetView.translateY)
             }
+            if (!initialized) commitRenderScale()
             initialized = true
             return
         }
@@ -766,6 +814,8 @@
 
         cancelViewAnimation()
         applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        // The first fit is drawn at its scale at once, before the content is ever painted larger.
+        if (!initialized) commitRenderScale()
         initialized = true
     }
 
@@ -1236,6 +1286,7 @@
 
     onDestroy(() => {
         if (viewRenderFrame !== undefined) cancelAnimationFrame(viewRenderFrame)
+        clearTimeout(renderScaleTimer)
         cancelViewAnimation()
         cancelPinchAnimation()
         cancelPanInertia()

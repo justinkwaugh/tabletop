@@ -299,3 +299,33 @@ for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 632,
         expect(offset.y).toBeCloseTo(expected.y, 0)
     })
 }
+
+test('content drawn at its view scale is laid out at that scale once the view settles', async ({ page }) => {
+    await mountWrapper(page, { renderAtViewScale: true })
+    const board = page.getByTestId('board')
+    const drawn = () => board.evaluate(element => {
+        const zoomed = element.parentElement as HTMLElement
+        return {
+            zoom: Number(zoomed.style.zoom),
+            transform: (zoomed.parentElement as HTMLElement).style.transform,
+            ownWidth: (element as HTMLElement).offsetWidth
+        }
+    })
+    // The 1000 px board fits the 400 px view at 0.375 and is laid out there, not stretched to it
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    expect(await drawn()).toMatchObject({ zoom: 0.375, ownWidth: 1000 })
+    expect((await drawn()).transform).toContain('scale(1)')
+
+    await board.dispatchEvent('wheel', { deltaY: -200, clientX: 200, clientY: 150 })
+    const zoomedWidth = 375 * Math.exp(0.6)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(zoomedWidth, 1)
+    const before = await board.boundingBox()
+    await expect.poll(async () => (await drawn()).zoom).toBeCloseTo(zoomedWidth / 1000, 3)
+    expect((await drawn()).transform).toContain('scale(1)')
+    // Redrawing moves nothing on screen, and the content still takes clicks
+    const after = await board.boundingBox()
+    expect(after!.x).toBeCloseTo(before!.x, 0)
+    expect(after!.width).toBeCloseTo(before!.width, 0)
+    await board.click()
+    await expect(page.locator('output')).toHaveText('1')
+})
