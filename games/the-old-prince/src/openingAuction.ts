@@ -208,9 +208,7 @@ export function createTheOldPrinceOpening({
                 companyId: 'PEIR',
                 kind: 'share' as const,
                 shares: 1,
-                president: false,
                 number: c.number,
-                certificateLimitCount: 1,
                 retired: false as const,
                 owner: { kind: 'bank' as const },
                 poolId: 'auction'
@@ -219,7 +217,6 @@ export function createTheOldPrinceOpening({
                 id: `${p.id}:charter`,
                 companyId: p.id,
                 kind: 'private' as const,
-                certificateLimitCount: 1,
                 retired: false as const,
                 owner:
                     p.id === 'KM'

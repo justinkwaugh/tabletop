@@ -175,7 +175,6 @@ describe('private sales between players', () => {
                 id: 'BOP:charter',
                 companyId: 'BOP',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'player', playerId: 'casey' }
             })

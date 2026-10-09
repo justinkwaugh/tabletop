@@ -96,9 +96,16 @@ describe('closing a short', () => {
     it('retires the bought share with the short, even at the certificate limit', () => {
         const play = caseysTurn((state) => {
             openShort(state, 'BA', casey, marketPool(state))
-            const [heavy] = issueShareCertificates(state, 'PLE', 1, { owner: casey })
-            for (const certificate of state.certificates)
-                if (certificate.id === heavy) certificate.certificateLimitCount = 21
+            const toLimit =
+                EighteenSeventeenStockRules.certificateLimit(state, casey) -
+                stockCertificateCount(state, casey, EighteenSeventeenStockRules)
+            const unstarted = state.companies.filter(
+                (company) => company.kind === 'major' && !company.started
+            )
+            for (let index = 0; index < toLimit; index++)
+                issueShareCertificates(state, unstarted[index % unstarted.length].id, 1, {
+                    owner: casey
+                })
         })
         expect(stockCertificateCount(play.state, casey, EighteenSeventeenStockRules)).toBe(
             EighteenSeventeenStockRules.certificateLimit(play.state, casey)

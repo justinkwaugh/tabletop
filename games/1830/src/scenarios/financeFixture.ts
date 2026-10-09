@@ -108,7 +108,6 @@ export function createEighteenThirtyFinanceExample(
                 id: 'CS:charter',
                 companyId: 'CS',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: casey
             },
@@ -116,7 +115,6 @@ export function createEighteenThirtyFinanceExample(
                 id: 'DH:charter',
                 companyId: 'DH',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'company', companyId: 'PRR' }
             }

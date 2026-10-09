@@ -110,7 +110,6 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 id: 'UB:charter',
                 companyId: 'UB',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: alex
             },
@@ -118,7 +117,6 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 id: 'VR:charter',
                 companyId: 'VR',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: casey
             },
@@ -126,23 +124,18 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 id: 'KM:charter',
                 companyId: 'KM',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'company', companyId: 'PEIR' }
             },
-            ...[alex, blair, casey, blair, casey].map(
-                (owner, index): Certificate => ({
-                    id: `PEIR:share:${index + 2}`,
-                    companyId: 'PEIR',
-                    kind: 'share',
-                    shares: 1,
-                    president: false,
-                    number: index + 2,
-                    certificateLimitCount: 1,
-                    retired: false,
-                    owner
-                })
-            )
+            ...[alex, blair, casey, blair, casey].map((owner, index): Certificate => ({
+                id: `PEIR:share:${index + 2}`,
+                companyId: 'PEIR',
+                kind: 'share',
+                shares: 1,
+                number: index + 2,
+                retired: false,
+                owner
+            }))
         ]
     }
 }

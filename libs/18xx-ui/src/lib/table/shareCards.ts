@@ -82,7 +82,7 @@ export function shareCard(
     return {
         id: certificate.id,
         companyId: certificate.companyId,
-        president: certificate.president,
+        president: certificate.president === true,
         name,
         thumbnail,
         full

@@ -83,7 +83,6 @@ export function prepareTheOldPrinceBranchSplit(
         companyId: 'HS',
         kind: 'private',
         retired: false,
-        certificateLimitCount: 1,
         owner
     })
 }

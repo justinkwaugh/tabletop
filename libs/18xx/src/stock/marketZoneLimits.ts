@@ -1,4 +1,4 @@
-import { getCompany } from '../finance/finance.js'
+import { getCompany, standardCertificateWeight } from '../finance/finance.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRules } from './stockRules.js'
 
@@ -18,7 +18,7 @@ export function marketZoneHoldingLimits(options: {
                 )
             )
                 return 0
-            return certificate.certificateLimitCount
+            return standardCertificateWeight(certificate)
         },
         ownershipLimit(state, companyId) {
             const company = getCompany(state, companyId)

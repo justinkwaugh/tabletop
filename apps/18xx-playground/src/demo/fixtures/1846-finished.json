@@ -330,7 +330,6 @@
         "kind": "share",
         "shares": 2,
         "president": true,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -342,8 +341,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -355,8 +352,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -368,8 +363,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -381,8 +374,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -394,8 +385,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -407,8 +396,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -420,8 +407,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -433,8 +418,6 @@
         "companyId": "NYC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -447,7 +430,6 @@
         "kind": "share",
         "shares": 2,
         "president": true,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -459,8 +441,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -472,8 +452,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -485,8 +463,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -498,8 +474,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -511,8 +485,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -524,8 +496,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -537,8 +507,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -550,8 +518,6 @@
         "companyId": "B&O",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -564,7 +530,6 @@
         "kind": "share",
         "shares": 2,
         "president": true,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -576,8 +541,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -589,8 +552,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -602,8 +563,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -615,8 +574,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -628,8 +585,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -641,8 +596,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -654,8 +607,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -667,8 +618,6 @@
         "companyId": "ERIE",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -681,7 +630,6 @@
         "kind": "share",
         "shares": 2,
         "president": true,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -693,8 +641,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -706,8 +652,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -719,8 +663,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -732,8 +674,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -745,8 +685,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -758,8 +696,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -771,8 +707,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -784,8 +718,6 @@
         "companyId": "GT",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -798,7 +730,6 @@
         "kind": "share",
         "shares": 2,
         "president": true,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -810,8 +741,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -823,8 +752,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -836,8 +763,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -849,8 +774,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -862,8 +785,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -875,8 +796,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -888,8 +807,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -901,8 +818,6 @@
         "companyId": "IC",
         "kind": "share",
         "shares": 1,
-        "president": false,
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "company",
@@ -912,7 +827,6 @@
       {
         "id": "MS:charter",
         "companyId": "MS",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"
@@ -924,7 +838,6 @@
       {
         "id": "BIG4:charter",
         "companyId": "BIG4",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"
@@ -936,7 +849,6 @@
       {
         "id": "C&WI:charter",
         "companyId": "C&WI",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"
@@ -946,7 +858,6 @@
       {
         "id": "MAIL:charter",
         "companyId": "MAIL",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"
@@ -956,7 +867,6 @@
       {
         "id": "MC:charter",
         "companyId": "MC",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"
@@ -966,7 +876,6 @@
       {
         "id": "MPC:charter",
         "companyId": "MPC",
-        "certificateLimitCount": 1,
         "retired": false,
         "owner": {
           "kind": "bank"

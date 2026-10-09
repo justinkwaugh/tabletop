@@ -100,7 +100,6 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 id: 'MF:charter',
                 companyId: 'MF',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: casey
             },
@@ -108,7 +107,6 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 id: 'ER:charter',
                 companyId: 'ER',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'company', companyId: 'IR' }
             }

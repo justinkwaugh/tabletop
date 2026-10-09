@@ -33,7 +33,6 @@ function closingState() {
                 kind: 'share' as const,
                 president: true,
                 shares: 2,
-                certificateLimitCount: 1,
                 retired: false as const,
                 owner: { kind: 'player' as const, playerId: 'one' }
             },
@@ -41,7 +40,6 @@ function closingState() {
                 id: 'P:charter',
                 companyId: 'P',
                 kind: 'private' as const,
-                certificateLimitCount: 1,
                 retired: false as const,
                 owner
             }

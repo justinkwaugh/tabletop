@@ -18,7 +18,6 @@ function state(): OperatingState & TrainState {
                 companyId: 'P',
                 kind: 'private',
                 shares: 0,
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'company', companyId: 'A' }
             }

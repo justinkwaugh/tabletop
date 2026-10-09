@@ -50,7 +50,6 @@ function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
         state.certificates.push({
             id: `${company.id}:charter`,
             companyId: company.id,
-            certificateLimitCount: 1,
             retired: false,
             owner: { kind: 'bank' },
             kind: 'private'

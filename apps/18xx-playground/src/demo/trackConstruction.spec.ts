@@ -269,7 +269,6 @@ it('respects private rights independently of ordinary topology checks', () => {
         id: 'TE:charter',
         companyId: 'TE',
         kind: 'private',
-        certificateLimitCount: 1,
         retired: false,
         owner: { kind: 'player', playerId: 'blair' }
     })

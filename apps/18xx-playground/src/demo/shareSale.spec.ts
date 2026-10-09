@@ -15,7 +15,8 @@ import {
     type FinishStockTurn,
     type EighteenXXState,
     type Owner,
-    type ShareSale
+    type ShareSale,
+    type StockRules
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
@@ -328,10 +329,15 @@ it('applies yellow/orange exemptions dynamically and requires sales when an exem
 it('does not use a presidency exchange to evade the 1889 certificate limit', () => {
     const { state } = example(Shikoku)
     for (const id of [3, 4]) give(state, `IR:share:${id}`, alex)
-    const certificate = state.certificates.find((certificate) => certificate.id === 'AR:president')!
-    certificate.certificateLimitCount = 15
-    expect(stockCertificateCount(state, alex, Shikoku1889StockRules)).toBe(19)
-    expect(
-        evaluateSharePurchase(state, purchase('IR:share:5', 70), Shikoku1889StockRules).reason
-    ).toContain('certificate limit')
+    const rules: StockRules = {
+        ...Shikoku1889StockRules,
+        certificateWeight: (current, certificate) =>
+            certificate.id === 'AR:president'
+                ? 15
+                : Shikoku1889StockRules.certificateWeight(current, certificate)
+    }
+    expect(stockCertificateCount(state, alex, rules)).toBe(19)
+    expect(evaluateSharePurchase(state, purchase('IR:share:5', 70), rules).reason).toContain(
+        'certificate limit'
+    )
 })

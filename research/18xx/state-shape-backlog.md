@@ -103,12 +103,16 @@ mechanism below, plus the six implemented titles.
    descent, 1817's liquidation). **Intentional limit:** one chart per title. No current
    title's market depends on options or player count; a title that needs that would
    select its chart from its configuration when its rules are built.
-3. **Certificate faces come from the id.** Records keep `id`, `owner`, `poolId` and
-   `retired`; `kind`, `shares`, `president`, `companyId` and TOP's `number` follow from
-   the id through a title-owned rule. `certificateLimitCount` is removed; the limit uses
-   `certificateWeight`. A face never changes; a different face is a new certificate.
-   1846's `:charter` id, which now means either an independent's share or a private, and
-   1832's two-share System certificates get ids that state their face.
+3. **Certificates drop their redundant fields.** `certificateLimitCount` is removed: the
+   limit weight belongs to `StockRules.certificateWeight`, which starts from
+   `standardCertificateWeight` (one per certificate, none for a short) and applies title
+   and market exemptions. `president` is recorded only when true. `kind`, `shares`,
+   `companyId` and TOP's `number` stay on the record. Deriving the whole face from the id
+   was rejected: it makes ids carry meaning that every title and every recorded action
+   must follow, and 1832's four-share System president and carried-over two-share
+   certificates and 1846's one-share independent president would each need an id
+   scheme. Storing each kind of certificate once in a State table was measured at only
+   1–2 KB more per finished game than this change, against a lookup at every reader.
 4. **Retired and removed records are dropped.** Retired certificates, removed stations
    and rusted trains leave State; new ids come from a counter instead of scanning
    existing records (`nextCertificateNumber`, `addCompanyStations`). History and the UI
@@ -126,7 +130,7 @@ mechanism below, plus the six implemented titles.
    offer's `companyId` and a player offer's `buyerPlayerId`, in the State union and in
    `RespondToPurchaseOffer` metadata. `OfferPurchase` input stays a company buyer.
 
-Changes 2 to 4 reduce a finished game's State by roughly 27% (1846) to 48% (1832);
+Changes 2 to 4 reduce a finished game's State by roughly a fifth (1846) to two fifths (1832);
 estimated, not yet measured.
 
 ## Deferred

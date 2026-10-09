@@ -7,7 +7,8 @@
         type Cash,
         type Certificate,
         type Owner,
-        type FinancialState
+        type FinancialState,
+        standardCertificateWeight
     } from '@tabletop/18xx'
     import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
@@ -20,7 +21,7 @@
         label = 'portfolio',
         compact = false,
         certificateDetail,
-        certificateWeight = (certificate) => certificate.certificateLimitCount
+        certificateWeight = standardCertificateWeight
     }: {
         gameState: FinancialState
         owner: Owner

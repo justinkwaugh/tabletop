@@ -21,7 +21,6 @@ const bank = { kind: 'bank' } as const
 const share = {
     kind: 'share',
     shares: 1,
-    certificateLimitCount: 1,
     retired: false,
     owner: bank
 } as const
@@ -39,14 +38,12 @@ function instructionState(
             ...share,
             id: `R-extra-${index}`,
             companyId: TestCompanyId,
-            president: false,
             poolId: 'ipo'
         })),
         ...Array.from({ length: extraMarketShares }, (_, index) => ({
             ...share,
             id: `R-market-${index}`,
             companyId: TestCompanyId,
-            president: false,
             poolId: 'market'
         }))
     ]
@@ -65,10 +62,10 @@ function instructionState(
         ],
         cash: [...state.cash, { owner: { kind: 'player', playerId: TestPlayerId }, amount: cash }],
         certificates: [
-            { ...share, id: 'R-1', companyId: TestCompanyId, president: false, poolId: 'ipo' },
+            { ...share, id: 'R-1', companyId: TestCompanyId, poolId: 'ipo' },
             { ...share, id: 'R-P', companyId: TestCompanyId, president: true, poolId: 'market' },
-            { ...share, id: 'R-2', companyId: TestCompanyId, president: false, poolId: 'reserved' },
-            { ...share, id: 'S-1', companyId: 'S', president: false, poolId: 'ipo' },
+            { ...share, id: 'R-2', companyId: TestCompanyId, poolId: 'reserved' },
+            { ...share, id: 'S-1', companyId: 'S', poolId: 'ipo' },
             ...extra
         ],
         ownershipLimitExemptions: exemption

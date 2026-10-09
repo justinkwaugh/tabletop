@@ -120,7 +120,6 @@ it('counts privates outside the certificate limit', () => {
             id: 'MINC:charter',
             companyId: 'MINC',
             kind: 'private',
-            certificateLimitCount: 1,
             retired: false,
             owner: { kind: 'bank' }
         })

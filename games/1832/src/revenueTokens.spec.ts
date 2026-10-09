@@ -32,7 +32,6 @@ function stationsPlay(privateIds: readonly string[]) {
                 id: `${id}:charter`,
                 companyId: id,
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'company', companyId: 'CG' }
             })

@@ -10,7 +10,7 @@ import {
     sharesOwned,
     privateOwner,
     controllingOwner,
-    countCertificatesForLimit,
+    standardCertificateWeight,
     FinanceFields,
     validateFinances,
     type FinancialState,
@@ -43,8 +43,7 @@ const position: FinancialState = {
             companyId: 'investment',
             owner: player,
             kind: 'private',
-            retired: false,
-            certificateLimitCount: 1
+            retired: false
         },
         {
             id: 'president',
@@ -53,8 +52,7 @@ const position: FinancialState = {
             kind: 'share',
             shares: 4,
             president: true,
-            retired: false,
-            certificateLimitCount: 1
+            retired: false
         },
         {
             id: 'small',
@@ -62,9 +60,7 @@ const position: FinancialState = {
             owner: player,
             kind: 'share',
             shares: 1,
-            president: false,
-            retired: false,
-            certificateLimitCount: 0.5
+            retired: false
         },
         {
             id: 'offered',
@@ -73,18 +69,14 @@ const position: FinancialState = {
             poolId: 'ipo',
             kind: 'share',
             shares: 1,
-            president: false,
-            retired: false,
-            certificateLimitCount: 0.5
+            retired: false
         },
         {
             id: 'retired',
             companyId: 'railway',
             kind: 'share',
             shares: 1,
-            president: false,
-            retired: true,
-            certificateLimitCount: 0.5
+            retired: true
         }
     ]
 }
@@ -108,8 +100,7 @@ describe('finances', () => {
             'small'
         ])
         expect(sharesOwned(state, 'railway', player)).toBe(1)
-        expect(countCertificatesForLimit(certificatesOwnedBy(state, player))).toBe(1.5)
-        expect(countCertificatesForLimit(state.certificates)).toBe(3)
+        expect(certificatesOwnedBy(state, player).map(standardCertificateWeight)).toEqual([1, 1])
         const restored = validatedCopy(JSON.parse(JSON.stringify(state)))
         expect(restored).toEqual(position)
         restored.cash[2].amount = 'unlimited'

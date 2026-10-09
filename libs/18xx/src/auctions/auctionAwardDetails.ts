@@ -48,7 +48,7 @@ export class AuctionAwardRecorder {
                         certificateId: certificate.id,
                         companyId: certificate.companyId,
                         shares: certificate.shares,
-                        president: certificate.president
+                        president: certificate.president === true
                     }
                 ]
             })

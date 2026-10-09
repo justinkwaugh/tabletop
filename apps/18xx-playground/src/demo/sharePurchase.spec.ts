@@ -8,7 +8,8 @@ import {
     evaluateSharePurchase,
     sameOwner,
     type BuyShares,
-    type EighteenXXState
+    type EighteenXXState,
+    stockCertificateCount
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
@@ -174,9 +175,29 @@ describe('purchase rejection', () => {
         {
             name: 'certificate limit',
             change: (state) => {
-                state.certificates.find(
-                    (certificate) => certificate.id === 'AR:president'
-                )!.certificateLimitCount = 19
+                const owner = { kind: 'player' as const, playerId: 'alex' }
+                const spare = state.certificates.filter(
+                    (certificate) =>
+                        !certificate.retired &&
+                        certificate.kind === 'share' &&
+                        !certificate.president &&
+                        certificate.owner.kind === 'bank' &&
+                        certificate.companyId !== 'AR'
+                )
+                const companies = [...new Set(spare.map((certificate) => certificate.companyId))]
+                const byRound = spare.toSorted(
+                    (left, right) =>
+                        Number(left.id.split(':').at(-1)) - Number(right.id.split(':').at(-1)) ||
+                        companies.indexOf(left.companyId) - companies.indexOf(right.companyId)
+                )
+                const needed =
+                    Shikoku1889StockRules.certificateLimit(state, owner) -
+                    stockCertificateCount(state, owner, Shikoku1889StockRules)
+                for (const certificate of byRound.slice(0, needed)) {
+                    if (certificate.retired) throw new Error('Spare certificates are in play')
+                    certificate.owner = owner
+                    delete certificate.poolId
+                }
             }
         },
         {

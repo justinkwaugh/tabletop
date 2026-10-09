@@ -76,14 +76,13 @@ export type CertificatePool = Type.Static<typeof CertificatePool>
 
 const CertificateFields = {
     id: Id,
-    companyId: Id,
-    certificateLimitCount: Type.Number({ minimum: 0 })
+    companyId: Id
 }
 const ShareFields = {
     ...CertificateFields,
     kind: Type.Literal('share'),
     shares: Type.Integer({ minimum: 1 }),
-    president: Type.Boolean()
+    president: Type.Optional(Type.Literal(true))
 }
 const PrivateFields = { ...CertificateFields, kind: Type.Literal('private') }
 // A short owes its holder's shares of the company back: it nets against their shares.
@@ -172,12 +171,9 @@ export function sameOwner(a: Owner, b: Owner): boolean {
     }
 }
 
-export function countCertificatesForLimit(certificates: readonly Certificate[]): number {
-    return certificates.reduce(
-        (count, certificate) =>
-            count + (certificate.retired ? 0 : certificate.certificateLimitCount),
-        0
-    )
+/** A certificate's weight toward the certificate limit before any title or market exemption. */
+export function standardCertificateWeight(certificate: Portfolio[number]): number {
+    return certificate.kind === 'short' ? 0 : 1
 }
 
 export function validateFinances(state: FinancialState, playerIds: readonly string[]): void {
@@ -365,7 +361,6 @@ export function createOrdinaryShareCertificates(
             kind: 'share',
             shares: 2,
             president: true,
-            certificateLimitCount: 1,
             retired: false,
             ...('owner' in president ? president : { owner: president })
         },
@@ -414,8 +409,6 @@ function ordinaryShareCertificate(
         companyId,
         kind: 'share',
         shares: 1,
-        president: false,
-        certificateLimitCount: 1,
         retired: false,
         ...allocation
     }

@@ -50,7 +50,6 @@ describe('PrivatesModule', () => {
                     id: 'P:charter',
                     companyId: 'P',
                     kind: 'private',
-                    certificateLimitCount: 1,
                     retired: false,
                     owner: { kind: 'player', playerId: TestPlayerId }
                 },
@@ -107,7 +106,6 @@ describe('PrivatesModule', () => {
                     id: 'P:charter',
                     companyId: 'P',
                     kind: 'private',
-                    certificateLimitCount: 1,
                     retired: false,
                     owner: { kind: 'player', playerId: TestPlayerId }
                 },

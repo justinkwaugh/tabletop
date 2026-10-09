@@ -362,7 +362,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -374,8 +373,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -387,8 +384,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -400,8 +395,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -413,8 +406,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -426,8 +417,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -439,8 +428,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -452,8 +439,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -465,8 +450,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -479,7 +462,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -491,8 +473,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -504,8 +484,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -517,8 +495,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -530,8 +506,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -543,8 +517,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -556,8 +528,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -569,8 +539,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -582,8 +550,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -596,7 +562,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -608,8 +573,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -621,8 +584,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -634,8 +595,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -647,8 +606,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -660,8 +617,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -673,8 +628,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -686,8 +639,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -699,8 +650,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -713,7 +662,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -725,8 +673,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -738,8 +684,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -751,8 +695,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -764,8 +706,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -777,8 +717,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -790,8 +728,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -803,8 +739,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -816,8 +750,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -830,7 +762,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -842,8 +773,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -855,8 +784,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -868,8 +795,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -881,8 +806,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -894,8 +817,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -907,8 +828,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -920,8 +839,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -933,8 +850,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -947,7 +862,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -959,8 +873,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -972,8 +884,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -985,8 +895,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -998,8 +906,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1011,8 +917,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1024,8 +928,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1037,8 +939,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1050,8 +950,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1064,7 +962,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1076,8 +973,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1089,8 +984,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1102,8 +995,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1115,8 +1006,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1128,8 +1017,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1141,8 +1028,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1154,8 +1039,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1167,8 +1050,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1181,7 +1062,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1193,8 +1073,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1206,8 +1084,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1219,8 +1095,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1232,8 +1106,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1245,8 +1117,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1258,8 +1128,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1271,8 +1139,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1284,8 +1150,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1296,7 +1160,6 @@
     "id": "SV:charter",
     "companyId": "SV",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1306,7 +1169,6 @@
     "id": "CS:charter",
     "companyId": "CS",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1316,7 +1178,6 @@
     "id": "DH:charter",
     "companyId": "DH",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1326,7 +1187,6 @@
     "id": "MH:charter",
     "companyId": "MH",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1336,7 +1196,6 @@
     "id": "CA:charter",
     "companyId": "CA",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"
@@ -1346,7 +1205,6 @@
     "id": "BOP:charter",
     "companyId": "BOP",
     "kind": "private",
-    "certificateLimitCount": 1,
     "retired": false,
     "owner": {
      "kind": "bank"

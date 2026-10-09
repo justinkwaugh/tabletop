@@ -229,7 +229,6 @@ export function formSystem(
             kind: 'share',
             shares: PresidentShares,
             president: true,
-            certificateLimitCount: 1,
             retired: false,
             owner: president
         }
@@ -252,8 +251,6 @@ export function formSystem(
                 companyId: systemId,
                 kind: 'share',
                 shares: certificate.shares,
-                president: false,
-                certificateLimitCount: 1,
                 retired: false,
                 owner,
                 ...(certificate.poolId ? { poolId: certificate.poolId } : {})

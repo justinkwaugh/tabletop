@@ -45,7 +45,6 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
         id: `${privateCompanyId}:charter`,
         companyId: privateCompanyId,
         kind: 'private',
-        certificateLimitCount: 1,
         retired: false,
         owner
     })

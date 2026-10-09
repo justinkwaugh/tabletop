@@ -22,18 +22,40 @@ function readFixture(name: string) {
     )
 }
 
-type RecordedState = Omit<TheOldPrinceState, 'stockMarket'> & {
+type Certificate = TheOldPrinceState['certificates'][number]
+type RecordedCertificate = Certificate extends infer Current
+    ? Current extends Certificate
+        ? Omit<Current, 'president'> & { president?: boolean; certificateLimitCount: number }
+        : never
+    : never
+type RecordedState = Omit<TheOldPrinceState, 'stockMarket' | 'certificates'> & {
     usedPrivatePowerIds: string[]
     stockMarket: TheOldPrinceState['stockMarket'] & { spaces: StockMarketSpace[] }
+    certificates: RecordedCertificate[]
+}
+
+function currentCertificate({
+    certificateLimitCount,
+    president,
+    ...certificate
+}: RecordedCertificate): Certificate {
+    assert(certificateLimitCount === 1, 'Every deployed certificate counted once')
+    if (certificate.kind !== 'share' || !president) return certificate
+    return { ...certificate, president }
 }
 
 function currentShape({
     usedPrivatePowerIds,
     stockMarket: { stacks },
+    certificates,
     ...state
 }: RecordedState): TheOldPrinceState {
     assert(usedPrivatePowerIds.length === 0, 'The deployed game never used a private power')
-    return { ...state, stockMarket: { stacks } }
+    return {
+        ...state,
+        stockMarket: { stacks },
+        certificates: certificates.map(currentCertificate)
+    }
 }
 
 const recordedLatestState: RecordedState = readFixture('state')

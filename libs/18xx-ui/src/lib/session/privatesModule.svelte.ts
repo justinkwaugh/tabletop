@@ -209,8 +209,7 @@ export class PrivatesModule {
                 certificate.poolId,
                 certificate.shares,
                 certificate.president,
-                certificate.number,
-                certificate.certificateLimitCount
+                certificate.number
             ])
             if (seen.has(key)) return false
             seen.add(key)

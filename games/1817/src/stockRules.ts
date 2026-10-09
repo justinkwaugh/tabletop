@@ -21,7 +21,8 @@ import {
     type ShareSaleTerms,
     type StationState,
     type StockRules,
-    type StockState
+    type StockState,
+    standardCertificateWeight
 } from '@tabletop/18xx'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { EighteenSeventeenMap } from './map.js'
@@ -299,7 +300,7 @@ export const EighteenSeventeenStockRules: StockRules = {
         return limit
     },
     certificateWeight: (_state, certificate) =>
-        certificate.kind === 'private' ? 0 : certificate.certificateLimitCount,
+        certificate.kind === 'private' ? 0 : standardCertificateWeight(certificate),
     ownershipLimit(state, companyId) {
         return getCompany(state, companyId).shareCount === 2 ? 100 : 60
     },

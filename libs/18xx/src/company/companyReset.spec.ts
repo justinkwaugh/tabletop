@@ -31,7 +31,6 @@ it('returns a company to an unstarted charter with its president’s certificate
                 kind: 'share',
                 president: true,
                 shares: 2,
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'player', playerId: 'one' }
             },
@@ -40,7 +39,6 @@ it('returns a company to an unstarted charter with its president’s certificate
                 companyId: 'A',
                 kind: 'short',
                 shares: 1,
-                certificateLimitCount: 0,
                 retired: false,
                 owner: { kind: 'player', playerId: 'two' }
             }

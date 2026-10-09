@@ -18,7 +18,8 @@ import {
     type StartCompany,
     type EighteenXXState,
     type Owner,
-    type FloatCompany
+    type FloatCompany,
+    type StockRules
 } from '@tabletop/18xx'
 import {
     Definition as Top,
@@ -418,16 +419,16 @@ it('rejects player-triggered flotation and refuses start costs above the buyerâ€
     state.cash.find(
         (cash) => cash.owner.kind === 'player' && cash.owner.playerId === 'alex'
     )!.amount = 240
-    state.certificates.find(
-        (certificate) => certificate.id === 'AR:president'
-    )!.certificateLimitCount = 19
+    const atLimit: StockRules = {
+        ...Shikoku1889StockRules,
+        certificateWeight: (current, certificate) =>
+            certificate.id === 'AR:president'
+                ? 19
+                : Shikoku1889StockRules.certificateWeight(current, certificate)
+    }
     expect(
-        evaluateCompanyStart(
-            state,
-            start('SR', '5:3', 130),
-            Shikoku1889StockRules,
-            Shikoku1889CompanyRules
-        ).reason
+        evaluateCompanyStart(state, start('SR', '5:3', 130), atLimit, Shikoku1889CompanyRules)
+            .reason
     ).toContain('limits')
 })
 it('resolves both presidencies when the PEIR exchange changes the largest interests', () => {

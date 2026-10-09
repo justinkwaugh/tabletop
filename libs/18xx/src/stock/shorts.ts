@@ -81,7 +81,6 @@ export function addShort(
         companyId,
         kind: 'short',
         shares: 1,
-        certificateLimitCount: 0,
         retired: false,
         owner: { ...holder },
         ...(poolId ? { poolId } : {})

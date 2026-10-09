@@ -86,7 +86,6 @@ export function createShikoku1889Opening({
                 id: `${company.id}:charter`,
                 companyId: company.id,
                 kind: 'private' as const,
-                certificateLimitCount: 1,
                 retired: false as const,
                 owner: { kind: 'bank' as const }
             }))

@@ -18,7 +18,6 @@ function setup(): FinancialState {
                 id: 'private',
                 companyId: 'private',
                 kind: 'private',
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'bank' }
             },
@@ -28,7 +27,6 @@ function setup(): FinancialState {
                 kind: 'share',
                 shares: 2,
                 president: true,
-                certificateLimitCount: 1,
                 retired: false,
                 owner: { kind: 'bank' }
             }

@@ -510,7 +510,6 @@ it('TOP concessions close on operation and no longer receive private income', ()
         id: 'MLC:charter',
         companyId: 'MLC',
         kind: 'private',
-        certificateLimitCount: 1,
         retired: false,
         owner: { kind: 'player', playerId: 'alex' }
     })

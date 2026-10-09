@@ -258,10 +258,6 @@
             {
               "additionalProperties": false,
               "properties": {
-                "certificateLimitCount": {
-                  "minimum": 0,
-                  "type": "number"
-                },
                 "companyId": {
                   "minLength": 1,
                   "type": "string"
@@ -336,6 +332,7 @@
                   "type": "string"
                 },
                 "president": {
+                  "const": true,
                   "type": "boolean"
                 },
                 "retired": {
@@ -348,12 +345,10 @@
                 }
               },
               "required": [
-                "certificateLimitCount",
                 "companyId",
                 "id",
                 "kind",
                 "owner",
-                "president",
                 "retired",
                 "shares"
               ],
@@ -362,10 +357,6 @@
             {
               "additionalProperties": false,
               "properties": {
-                "certificateLimitCount": {
-                  "minimum": 0,
-                  "type": "number"
-                },
                 "companyId": {
                   "minLength": 1,
                   "type": "string"
@@ -445,7 +436,6 @@
                 }
               },
               "required": [
-                "certificateLimitCount",
                 "companyId",
                 "id",
                 "kind",
@@ -457,10 +447,6 @@
             {
               "additionalProperties": false,
               "properties": {
-                "certificateLimitCount": {
-                  "minimum": 0,
-                  "type": "number"
-                },
                 "companyId": {
                   "minLength": 1,
                   "type": "string"
@@ -474,6 +460,7 @@
                   "type": "string"
                 },
                 "president": {
+                  "const": true,
                   "type": "boolean"
                 },
                 "retired": {
@@ -486,11 +473,9 @@
                 }
               },
               "required": [
-                "certificateLimitCount",
                 "companyId",
                 "id",
                 "kind",
-                "president",
                 "retired",
                 "shares"
               ],
@@ -499,10 +484,6 @@
             {
               "additionalProperties": false,
               "properties": {
-                "certificateLimitCount": {
-                  "minimum": 0,
-                  "type": "number"
-                },
                 "companyId": {
                   "minLength": 1,
                   "type": "string"
@@ -521,7 +502,6 @@
                 }
               },
               "required": [
-                "certificateLimitCount",
                 "companyId",
                 "id",
                 "kind",

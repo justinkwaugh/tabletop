@@ -34,8 +34,6 @@ describe('company ownership', () => {
             kind: 'share',
             companyId: 'A',
             shares: 4,
-            president: false,
-            certificateLimitCount: 1,
             retired: true
         })
         const before = structuredClone(state)
@@ -62,9 +60,7 @@ describe('company ownership', () => {
                 kind: 'share',
                 shares: 1,
                 number,
-                president: false,
                 retired: false,
-                certificateLimitCount: 1,
                 owner
             }))
         }

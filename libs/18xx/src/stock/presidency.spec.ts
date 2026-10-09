@@ -12,22 +12,17 @@ function example(): FinancialState {
             kind: 'share',
             shares: 4,
             president: true,
-            certificateLimitCount: 1,
             retired: false,
             owner: previous
         },
-        ...[2, 2, 2, 1, 1, 2, 2].map(
-            (shares, index): Certificate => ({
-                id: `ordinary:${index}`,
-                companyId: 'rail',
-                kind: 'share',
-                shares,
-                president: false,
-                certificateLimitCount: 1,
-                retired: false,
-                owner: index < 2 ? previous : next
-            })
-        )
+        ...[2, 2, 2, 1, 1, 2, 2].map((shares, index): Certificate => ({
+            id: `ordinary:${index}`,
+            companyId: 'rail',
+            kind: 'share',
+            shares,
+            retired: false,
+            owner: index < 2 ? previous : next
+        }))
     ]
     return {
         bank: { name: 'Bank' },

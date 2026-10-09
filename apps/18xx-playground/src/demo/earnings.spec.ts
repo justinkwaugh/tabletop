@@ -137,8 +137,6 @@ it('PEIR uses surviving shares, rounds each dividend up and retains the rounded-
                   companyId: c.companyId,
                   kind: 'share',
                   shares: 1,
-                  president: false,
-                  certificateLimitCount: 0,
                   retired: true
               }
             : c

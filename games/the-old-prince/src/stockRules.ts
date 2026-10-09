@@ -9,7 +9,8 @@ import {
     sameOwner,
     type Owner,
     type StockState,
-    type StockRules
+    type StockRules,
+    standardCertificateWeight
 } from '@tabletop/18xx'
 
 export const TheOldPrinceStockRules: StockRules = {
@@ -54,7 +55,7 @@ export const TheOldPrinceStockRules: StockRules = {
         })
     },
     certificateLimit: (state) => (state.players.length === 4 ? 16 : 20),
-    certificateWeight: (_state, certificate) => certificate.certificateLimitCount,
+    certificateWeight: (_state, certificate) => standardCertificateWeight(certificate),
     ownershipLimit: () => 60,
     presidencyCandidates(state, companyId) {
         return [

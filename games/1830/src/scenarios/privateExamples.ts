@@ -20,7 +20,6 @@ export function prepareEighteenThirtyPrivates(
             id: `${id}:charter`,
             companyId: id,
             kind: 'private',
-            certificateLimitCount: 1,
             retired: false,
             owner: { kind: 'player', playerId: players[playerIndex].playerId }
         })

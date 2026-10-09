@@ -9,7 +9,6 @@ it('pays players per net share and charges those short, leaving pools unpaid', (
         companyId: 'A',
         kind: 'share' as const,
         shares: 1,
-        certificateLimitCount: 1,
         retired: false as const,
         owner: holder
     })
@@ -28,7 +27,6 @@ it('pays players per net share and charges those short, leaving pools unpaid', (
                 companyId: 'A',
                 kind: 'short',
                 shares: 1,
-                certificateLimitCount: 0,
                 retired: false,
                 owner: owner('two')
             }

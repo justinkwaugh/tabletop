@@ -14,7 +14,6 @@ export function addPrivate(state: EighteenXXState, privateId: string, owner: Own
         id: `${privateId}:charter`,
         companyId: privateId,
         kind: 'private',
-        certificateLimitCount: 1,
         retired: false,
         owner
     })
