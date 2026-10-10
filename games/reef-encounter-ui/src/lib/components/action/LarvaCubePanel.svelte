@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { withArticle } from '$lib/utils/actionDescription.js'
     import { CoralColors } from '@tabletop/reef-encounter'
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
@@ -17,7 +18,7 @@
         {@const available = gameSession.larvaCubeChoices.includes(color)}
         {#if available}
             <ChoiceButton
-                label="Take a {color} larva cube"
+                label="Take {withArticle(color)} larva cube"
                 selected={first === color}
                 onclick={() => gameSession.chooseLarvaCube(color)}
             >

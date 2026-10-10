@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
     import { polypFaceUrl } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -11,7 +12,7 @@
 <div class="choices">
     {#each gameSession.feedableColors as color (color)}
         <ChoiceButton
-            label="Feed a {color} polyp"
+            label="Feed {withArticle(color)} polyp"
             onclick={() => gameSession.feedParrotfish(color)}
         >
             <img src={polypFaceUrl(color, 'choice')} alt="" width="44" height="44" />

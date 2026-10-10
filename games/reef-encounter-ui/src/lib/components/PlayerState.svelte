@@ -78,10 +78,18 @@
                 {:else if view.larvaCubes}
                     {#each view.larvaCubes as { color, count } (color)}
                         <span class="cube" title="{count} {color}">
-                            <svg width="20" height="22" viewBox="-10 -11 20 22" aria-hidden="true">
+                            <svg
+                                width="20"
+                                height="22"
+                                viewBox="-10 -11 20 22"
+                                role="img"
+                                aria-label="{count} {color} larva cube{count === 1 ? '' : 's'}"
+                            >
                                 <LarvaCube center={{ x: 0, y: 0 }} size={18} {color} />
                             </svg>
-                            {#if count > 1}<span class="reef-display">{count}</span>{/if}
+                            {#if count > 1}<span class="reef-display" aria-hidden="true"
+                                    >{count}</span
+                                >{/if}
                         </span>
                     {/each}
                 {:else}

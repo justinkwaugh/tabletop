@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { withArticle } from '$lib/utils/actionDescription.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import type { Reef, ReefSquare } from '@tabletop/reef-encounter'
     import Pieces from './Pieces.svelte'
@@ -38,14 +39,14 @@
             : undefined
     )
     const where = (coords: OffsetCoordinates) =>
-        `board ${reef.boardId}, row ${coords.row + 1}, column ${coords.col + 1}`
+        `on board ${reef.boardId}, row ${coords.row + 1}, column ${coords.col + 1}`
 </script>
 
 <svg
     viewBox="0 0 {drawing.size.width} {drawing.size.height}"
     width={drawing.size.width * ImageToTable}
     height={drawing.size.height * ImageToTable}
-    role="img"
+    role="group"
     aria-label="Reef board {reef.boardId}"
 >
     <g transform={drawing.transform}>
@@ -72,14 +73,14 @@
             <Target
                 box={boardSquare(square.coords)}
                 tone="piece"
-                label="Pick up your shrimp on {where(square.coords)}"
+                label="Pick up your shrimp {where(square.coords)}"
                 onselect={() => gameSession.pickUpShrimp(square)}
             />
         {/each}
         {#each shrimpTargets as square (`${square.coords.row},${square.coords.col}`)}
             <Target
                 box={boardSquare(square.coords)}
-                label="Put your shrimp on {where(square.coords)}"
+                label="Put your shrimp {where(square.coords)}"
                 onselect={() => gameSession.placeShrimp(square)}
             />
         {/each}
@@ -88,7 +89,7 @@
                 <Target
                     box={boardSquare(coords)}
                     tone="eat"
-                    label="Feed the {coral.squares.length}-polyp {coral.color} coral on {where(
+                    label="Feed the {coral.squares.length}-polyp {coral.color} coral {where(
                         coords
                     )} to your parrotfish"
                     onselect={() => gameSession.eatCoral(coral.square)}
@@ -99,10 +100,9 @@
             <Target
                 box={boardSquare(target.coords)}
                 tone={target.attack ? 'attack' : 'plain'}
-                label="{target.attack
-                    ? 'Attack with'
-                    : 'Place'} a {placing?.color} polyp on board {reef.boardId}, row {target.coords
-                    .row + 1}, column {target.coords.col + 1}"
+                label="{target.attack ? 'Attack with' : 'Place'} {withArticle(
+                    placing?.color ?? ''
+                )} polyp {where(target.coords)}"
                 onselect={() => gameSession.placePolyp(reef.boardId, target.coords)}
             />
         {/each}

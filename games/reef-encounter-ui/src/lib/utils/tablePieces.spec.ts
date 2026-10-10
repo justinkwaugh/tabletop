@@ -12,6 +12,7 @@ const shrimp = (
     key,
     container,
     center: { x, y: 0 },
+    place: '',
     playerId,
     upsideDown: false
 })
@@ -21,6 +22,7 @@ const polyp = (key: string, color: CoralColor, x: number, larvaSpace?: CoralColo
     key,
     container: larvaSpace ? 'sea' : 1,
     center: { x, y: 0 },
+    place: '',
     color,
     box: { x, y: 0, width: 10, height: 10 },
     url: '',

@@ -22,7 +22,7 @@ const listed = (words: readonly string[]): string =>
         ? (words[0] ?? '')
         : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
 
-const withArticle = (word: string): string => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word}`
+export const withArticle = (word: string): string => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word}`
 
 const polyps = (colors: readonly CoralColor[]): string =>
     colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`

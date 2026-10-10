@@ -8,7 +8,7 @@ test('every player feeds their parrotfish, then takes two larva cubes', async ({
     for (let seat = 0; seat < 3; seat++) {
         await expect(actions).toContainText('Feed one of your polyps')
         await actions
-            .getByRole('button', { name: /^Feed a / })
+            .getByRole('button', { name: /^Feed an? / })
             .first()
             .click()
     }
@@ -28,7 +28,7 @@ test('Undo takes back the first larva cube without undoing the feeding', async (
     const actions = actionPanel(page)
     for (let seat = 0; seat < 2; seat++) {
         await actions
-            .getByRole('button', { name: /^Feed a / })
+            .getByRole('button', { name: /^Feed an? / })
             .first()
             .click()
     }

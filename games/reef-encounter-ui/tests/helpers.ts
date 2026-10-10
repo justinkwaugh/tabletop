@@ -33,14 +33,16 @@ export async function playSetup(page: Page, playerCount: number) {
     const held: string[] = []
     for (let seat = 0; seat < playerCount; seat++) {
         await expect(actions).toContainText('Feed one of your polyps')
-        const feeds = actions.getByRole('button', { name: /^Feed a / })
+        const feeds = actions.getByRole('button', { name: /^Feed an? / })
         const label = await feeds.first().getAttribute('aria-label')
         held.push(label?.split(' ')[2] ?? '')
         await feeds.last().click()
     }
     for (let seat = 0; seat < playerCount; seat++) {
         await expect(actions).toContainText('Take two larva cubes')
-        const cube = actions.getByRole('button', { name: `Take a ${held[seat]} larva cube` })
+        const cube = actions.getByRole('button', {
+            name: new RegExp(`^Take an? ${held[seat]} larva cube$`)
+        })
         await cube.click()
         await cube.click()
     }
@@ -63,7 +65,7 @@ export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
         ) {
             return
         }
-        const cubes = actions.getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube$/ })
         if ((await settledCount(page, cubes)) > 0) {
             await cubes.first().click()
             let last: ReturnType<typeof squareIn>
@@ -73,7 +75,7 @@ export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
                     await attacks.first().click()
                     continue
                 }
-                const places = page.getByRole('button', { name: /^Place a / })
+                const places = page.getByRole('button', { name: /^Place an? / })
                 await settled(page)
                 const labels = await places.evaluateAll((elements) =>
                     elements.map((element) => element.getAttribute('aria-label') ?? '')
@@ -151,7 +153,7 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
         if ((await settledCount(page, actions.getByRole('button', { name: 'Eat a coral' }))) > 0) {
             return
         }
-        const cubes = actions.getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube$/ })
         const counts = await cubes.evaluateAll((elements) =>
             elements.map((element) => Number(element.textContent?.trim()) || 0)
         )
@@ -159,7 +161,7 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
             const best = counts.indexOf(Math.max(...counts))
             const color = (await labelsOf(cubes))[best].split(' ')[2]
             await cubes.nth(best).click()
-            const places = page.getByRole('button', { name: /^(Place|Attack with) a / })
+            const places = page.getByRole('button', { name: /^(Place|Attack with) an? / })
             for (let placed = 0; placed < 8 && (await settledCount(page, places)) > 0; placed++) {
                 const coral = await squaresOfColor(page, color)
                 const index = (await labelsOf(places)).findIndex((label) => {

@@ -6,11 +6,11 @@ test('a history entry shows the table as its player left it', async ({ page }) =
     await playSetup(page, 2)
     const actions = actionPanel(page)
     await actions
-        .getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        .getByRole('button', { name: /^Play an? \w+ larva cube$/ })
         .first()
         .click()
     await page
-        .getByRole('button', { name: /^(Place|Attack with) a / })
+        .getByRole('button', { name: /^(Place|Attack with) an? / })
         .first()
         .click()
     await page
@@ -33,11 +33,11 @@ test("Replay plays a turn's moves and returns to the live game", async ({ page }
     await playSetup(page, 2)
     const actions = actionPanel(page)
     await actions
-        .getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        .getByRole('button', { name: /^Play an? \w+ larva cube$/ })
         .first()
         .click()
     await page
-        .getByRole('button', { name: /^(Place|Attack with) a / })
+        .getByRole('button', { name: /^(Place|Attack with) an? / })
         .first()
         .click()
     await page

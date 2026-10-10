@@ -3,7 +3,7 @@
     import LarvaCube from './LarvaCube.svelte'
     import AlgaCylinder from './AlgaCylinder.svelte'
     import { ShrimpLength, upright, type BoardRotation } from '$lib/utils/artGeometry.js'
-    import type { PieceContainer } from '$lib/utils/tablePieces.js'
+    import type { PieceContainer, TablePiece } from '$lib/utils/tablePieces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { container, rotation }: { container: PieceContainer; rotation: BoardRotation } = $props()
@@ -12,13 +12,26 @@
     const pieces = $derived(
         gameSession.tablePieces.filter((piece) => piece.container === container)
     )
+
+    function label(piece: TablePiece): string {
+        switch (piece.kind) {
+            case 'polyp':
+                return `${piece.color} polyp ${piece.place}`
+            case 'shrimp':
+                return `${gameSession.getPlayerName(piece.playerId)}'s shrimp ${piece.place}`
+            case 'cube':
+                return `${piece.color} larva cube ${piece.place}`
+            case 'cylinder':
+                return `${piece.color} alga cylinder ${piece.place}`
+        }
+    }
 </script>
 
 <!-- The outer group of each piece belongs to the animator; the inner one places it. Pieces
      stand upright on the turned drawing, except polyps, which are square, and the shrimps eaten
      onto the open sea, which lie on their printed silhouettes. -->
 {#each pieces as piece (piece.key)}
-    <g {@attach gameSession.piecesAnimator.attach(piece.key)}>
+    <g {@attach gameSession.piecesAnimator.attach(piece.key)} role="img" aria-label={label(piece)}>
         {#if piece.kind === 'polyp'}
             <image
                 href={piece.url}

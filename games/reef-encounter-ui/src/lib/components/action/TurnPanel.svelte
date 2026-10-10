@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
     import Shrimp from '$lib/components/table/Shrimp.svelte'
@@ -122,8 +123,8 @@
             {#each gameSession.larvaCubesToPlay as { color, polypsToPlace } (color)}
                 <ChoiceButton
                     label={polypsToPlace > 0
-                        ? `Play a ${color} larva cube`
-                        : `Play a ${color} larva cube, though you have no ${color} polyps to place`}
+                        ? `Play ${withArticle(color)} larva cube`
+                        : `Play ${withArticle(color)} larva cube, though you have no ${color} polyps to place`}
                     onclick={() => gameSession.playLarvaCube(color)}
                 >
                     <svg width="36" height="38" viewBox="-18 -19 36 38" aria-hidden="true">
@@ -143,7 +144,7 @@
         <span class="label">Trade</span>
         {#each gameSession.cubesForPolyps as color (color)}
             <ChoiceButton
-                label="Trade a {color} larva cube for a {color} polyp"
+                label="Trade {withArticle(color)} larva cube for {withArticle(color)} polyp"
                 onclick={() => gameSession.exchangeLarvaCube(color)}
             >
                 <svg width="26" height="28" viewBox="-13 -14 26 28" aria-hidden="true">
@@ -155,7 +156,7 @@
         {/each}
         {#each gameSession.consumedForCubes as color (color)}
             <ChoiceButton
-                label="Trade a consumed {color} polyp for a {color} larva cube"
+                label="Trade a consumed {color} polyp for {withArticle(color)} larva cube"
                 onclick={() => gameSession.exchangeConsumedPolyp(color)}
             >
                 <PolypChip {color} count={1} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { faceUp } from '@tabletop/reef-encounter'
     import Pieces from './Pieces.svelte'
     import Target from './Target.svelte'
     import { CoralTileFaceUrls, OpenSeaImageUrl } from '$lib/images/art.generated.js'
@@ -30,7 +31,7 @@
     viewBox="0 0 {drawing.size.width} {drawing.size.height}"
     width={drawing.size.width * ImageToTable}
     height={drawing.size.height * ImageToTable}
-    role="img"
+    role="group"
     aria-label="Open sea"
 >
     <g transform={drawing.transform}>
@@ -40,7 +41,14 @@
         {#each state.coralTiles as tile, index (tile.tileId)}
             {@const slot = coralTileSlot(index)}
             {@const faces = CoralTileFaceUrls[tile.tileId]}
-            <g transform={upright(rotation, center(slot))}>
+            {@const face = faceUp(tile)}
+            <g
+                transform={upright(rotation, center(slot))}
+                role="img"
+                aria-label="Coral tile {tile.tileId}: {face.stronger} beats {face.weaker}; {face.largeAlga} and {face.smallAlga} algae{tile.starfishSideUp
+                    ? ', starfish side up'
+                    : ''}"
+            >
                 <image
                     href={tile.starfishSideUp ? faces.starfish : faces.plain}
                     x={slot.x}

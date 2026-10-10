@@ -24,6 +24,8 @@ type PieceBase = {
     key: string
     container: PieceContainer
     center: Point
+    // Where it lies, for screen readers: "on board 2, row 3, column 4".
+    place: string
 }
 
 export type PolypPiece = PieceBase & {
@@ -52,6 +54,9 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
         y: box.y + box.height / 2
     })
 
+    const onSquare = (boardId: ReefBoardId, coords: { row: number; col: number }) =>
+        `on board ${boardId}, row ${coords.row + 1}, column ${coords.col + 1}`
+
     for (const reef of state.reefs) {
         for (const { coords, color } of reef.polyps) {
             const box = boardSquare(coords)
@@ -60,6 +65,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `${reef.boardId}:polyp:${coords.row},${coords.col}:${color}`,
                 container: reef.boardId,
                 center: centerOf(box),
+                place: onSquare(reef.boardId, coords),
                 color,
                 box,
                 url: polypFaceUrl(color, `${gameId}:${reef.boardId}:${coords.row}:${coords.col}`)
@@ -72,6 +78,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             key: `${boardId}:shrimp:${coords.row},${coords.col}:${playerId}`,
             container: boardId,
             center: centerOf(boardSquare(coords)),
+            place: onSquare(boardId, coords),
             playerId,
             upsideDown: false
         })
@@ -85,6 +92,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `sea:cube:${larvaColor}`,
                 container: 'sea',
                 center: larvaSpaceCube(larvaColor),
+                place: `in the ${larvaColor} larva space`,
                 color: larvaColor
             })
         }
@@ -96,6 +104,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `sea:polyp:${larvaColor}:${index}of${polyps.length}:${color}`,
                 container: 'sea',
                 center: centerOf(box),
+                place: `in the ${larvaColor} larva space`,
                 color,
                 box,
                 url: polypFaceUrl(color, `${gameId}:sea:${larvaColor}:${index}`),
@@ -109,6 +118,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             key: `sea:alga:${state.openSeaAlga}`,
             container: 'sea',
             center: AlgaSpace,
+            place: 'on the open-sea cylinder space',
             color: state.openSeaAlga,
             size: 64
         })
@@ -120,6 +130,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `sea:tile:${tile.tileId}:${tile.cylinder}`,
                 container: 'sea',
                 center: centerOf(coralTileSlot(index)),
+                place: `locking coral tile ${tile.tileId}`,
                 color: tile.cylinder,
                 size: 56
             })
@@ -132,6 +143,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `sea:shrimp:${playerId}`,
                 container: 'sea',
                 center: eatenShrimpSlot(seat),
+                place: 'on the open sea, eaten',
                 playerId,
                 // Lying on its silhouette, which alternate in direction.
                 upsideDown: seat % 2 === 1

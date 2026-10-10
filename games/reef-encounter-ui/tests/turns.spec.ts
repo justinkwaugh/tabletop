@@ -9,11 +9,11 @@ test('a turn plays a larva cube, places its polyps and ends by taking an open-se
     const actions = actionPanel(page)
 
     await actions
-        .getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        .getByRole('button', { name: /^Play an? \w+ larva cube$/ })
         .first()
         .click()
     await expect(actions).toContainText(/Place \w+ polyps on the reefs/)
-    const targets = page.getByRole('button', { name: /^(Place|Attack with) a / })
+    const targets = page.getByRole('button', { name: /^(Place|Attack with) an? / })
     await expect(targets.first()).toBeVisible()
 
     const remaining = async () =>
@@ -39,7 +39,9 @@ test('a larva cube is traded for a polyp of its colour', async ({ page }) => {
     await createGame(page, 2)
     await playSetup(page, 2)
     const actions = actionPanel(page)
-    const trade = actions.getByRole('button', { name: /^Trade a \w+ larva cube for a \w+ polyp$/ })
+    const trade = actions.getByRole('button', {
+        name: /^Trade an? \w+ larva cube for an? \w+ polyp$/
+    })
     // The acting player is first in turn order, so theirs is the first panel; setup gave them
     // two cubes of one colour
     const cubes = page.locator('article').first().locator('.row', { hasText: 'Larva cubes' })
