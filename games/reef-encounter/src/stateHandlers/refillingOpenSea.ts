@@ -9,6 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { GameEndReason, HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
 import { newTurnRecord } from '../model/turn.js'
+import { EndGame } from '../actions/endGame.js'
 
 export class RefillingOpenSeaStateHandler implements MachineStateHandler<
     HydratedRefillOpenSea,
@@ -34,7 +35,8 @@ export class RefillingOpenSeaStateHandler implements MachineStateHandler<
         gameState.turn = newTurnRecord()
         if (action.metadata?.shortage) {
             gameState.endReason = GameEndReason.Shortage
-            return MachineState.EndOfGame
+            context.addSystemAction(EndGame, { revealsInfo: true })
+            return MachineState.EndingGame
         }
         return MachineState.TakingTurn
     }

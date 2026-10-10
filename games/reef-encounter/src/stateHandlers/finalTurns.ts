@@ -57,7 +57,7 @@ export class FinalTurnsStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         gameState.turnManager.endTurn(gameState.actionCount)
         gameState.turn = newTurnRecord()
-        if (gameState.nextInTurnOrder(action.playerId) === gameState.endingPlayerId) {
+        if (gameState.turnManager.nextPlayer(action.playerId) === gameState.endingPlayerId) {
             context.addSystemAction(EndGame, { revealsInfo: true })
             return MachineState.EndingGame
         }

@@ -101,7 +101,7 @@ export function describeSystemAction(action: GameAction): string | undefined {
         const refill = action.metadata
         if (!refill) return undefined
         if (refill.shortage) {
-            return 'The open sea could not be refilled, so the game ended.'
+            return 'The open sea could not be refilled.'
         }
         const added = refill.additions.map((addition) => addition.polyp)
         return added.length === 0

@@ -696,10 +696,16 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return rockLeft ? undefined : GameEndReason.NoRockLeft
     }
 
-    // The player after this one in turn order.
-    nextInTurnOrder(playerId: string): string {
-        const order = this.turnManager.turnOrder
-        return order[(order.indexOf(playerId) + 1) % order.length]
+    // Each player's setup parrotfish polyp, which stays secret until the game ends.
+    setupParrotfishColors(): Record<string, CoralColor> {
+        return Object.fromEntries(
+            this.players.flatMap((player) => {
+                const color = CoralColors.find(
+                    (candidate) => (player.secretParrotfishPolyps?.[candidate] ?? 0) > 0
+                )
+                return color ? [[player.playerId, color]] : []
+            })
+        )
     }
 
     scores(): Record<string, ScoreBreakdown> {

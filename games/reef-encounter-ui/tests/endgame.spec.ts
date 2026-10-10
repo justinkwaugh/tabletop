@@ -19,4 +19,11 @@ test('the game ends when the open sea cannot be refilled, and shows the scores',
     await expect(actions).toContainText(/(wins|share the win) with \d+ points/)
     await expect(actions).toContainText('The game ended when the open sea could not be refilled.')
     await expect(actions.locator('tbody tr')).toHaveCount(2)
+
+    // The end reveals the polyps fed at setup, which no earlier history entry showed
+    await page.getByRole('tab', { name: 'History' }).click()
+    const reveals = page
+        .getByRole('listitem')
+        .filter({ hasText: /had fed an? \w+ polyp\s+to their parrotfish\s+at setup/ })
+    await expect(reveals).toHaveCount(2)
 })

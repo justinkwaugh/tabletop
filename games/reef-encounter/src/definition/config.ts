@@ -21,7 +21,7 @@ export const ReefEncounterGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.Boolean,
         name: 'Concealed',
         description:
-            "Hide what is behind each player's screen and inside their parrotfish, as the printed rules do",
+            "Don't track other players' screens, larva cubes and parrotfish for you: they stay hidden, as the printed rules keep them, and you rely on your memory",
         default: false
     }
 ]

@@ -3,11 +3,17 @@
     import type { GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { historyEntries, movesPieces, type HistoryEntry } from '$lib/utils/historyEntries.js'
-    import { capitalised, describeActions } from '$lib/utils/actionDescription.js'
+    import { capitalised, describeActions, withArticle } from '$lib/utils/actionDescription.js'
+    import { isEndGame, type CoralColor } from '@tabletop/reef-encounter'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const timeAgo = createTimeAgo()
     const gameSession = getGameSession()
+    function setupParrotfish(entry: HistoryEntry): [string, CoralColor][] {
+        const end = entry.actions.find((action) => isEndGame(action))
+        return isEndGame(end) ? Object.entries(end.metadata?.setupParrotfish ?? {}) : []
+    }
+
     let scrollContainer: HTMLDivElement | undefined = $state()
 
     // While an entry replays, the session steps through history, so the list holds still on the
@@ -102,6 +108,12 @@
             <ul>
                 {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their') as phrase, index (index)}
                     <li>{capitalised(phrase)}</li>
+                {/each}
+                {#each setupParrotfish(entry) as [playerId, color] (playerId)}
+                    <li>
+                        <PlayerName {playerId} /> had fed {withArticle(color)} polyp to their parrotfish
+                        at setup.
+                    </li>
                 {/each}
             </ul>
         </article>

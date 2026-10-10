@@ -84,6 +84,7 @@ An option, off by default (rulebook p. 12):
 
 - **No extra growth.** Placing a polyp beside a starfish square never grows a bonus polyp. The bonus polyps are still used for action 8.
 - **Eating returns one more polyp** to the bag: five instead of four, and six instead of five in the final turns.
+- **A shrimp parked on bare rock when the game ends** stays there. Locking the last coral tile ends the turn at once, before the shrimp must move; it cannot affect the score, as bare rock holds no coral.
 - **A coral of five may still be eaten**, though it feeds the parrotfish nothing; only the shrimp goes to the parrotfish (designer ruling, BGG thread 35388). The smallest edible coral stays five, in the final turns too.
 
 ## Scoring
@@ -95,9 +96,10 @@ An option, off by default (rulebook p. 12):
 
 - The polyps dealt at setup and the polyp fed to the parrotfish at setup are hidden from the other players until the game ends, since nobody could track them at the table.
 - With the **Concealed** option off (the default), anything a careful player could track is shown: larva cubes, shrimps behind the screen, polyps whose colours were seen when taken from the open sea, and how many of the secret setup polyps each player still holds (everyone saw how many were dealt, and the known polyps are always played first).
-- With **Concealed** on, the game hides what the printed rules hide: everything behind the screens.
+- With **Concealed** on, the game hides what the printed rules hide: everything behind the screens. It hides them from the player panels only: the history still tells everything that happened in the open, and history playback and Replay stay available while the game runs. Players could work out a hidden screen or parrotfish from them, as an attentive player could at the table; they are trusted to play in the spirit of the game (user decision, 2026-10-10).
 - The order of the polyps in the bag is never shown; how many remain is public.
-- **When the game ends, everything is revealed to everyone**: every screen, every parrotfish including its setup polyp, and every shrimp count. The bag's order stays hidden, since it no longer affects anything.
+- **When the game ends, everything is revealed to everyone**: every screen, every parrotfish including its setup polyp, and every shrimp count. The bag's order stays hidden, since it no longer affects anything. The history's end-of-game entry names the polyp each player fed their parrotfish at setup, which no earlier entry could show.
+- **Undo after a bonus polyp is replaced.** Trading a larva cube for a polyp, or extra growth, replaces the bonus polyp from the bag, and an empty bonus space shows the bag held none of that colour. Undo is not blocked there, so a player could learn that and take the move back. It tells no more than refilling the bonus space at the table would, so it is accepted rather than blocking Undo after every trade and extra growth.
 
 ## Exploring
 
