@@ -190,14 +190,44 @@ function groupKey(group: WarbandGroup): string {
     return `${group.owner}'s at ${where}`
 }
 
-/** R-5.5.6, R-5.5.7.I — site warbands go to their owner's board, the Empire's to the Chancellor's. */
-export function moveForceToBoards(state: HydratedOathGameState, force: readonly WarbandGroup[]) {
+/**
+ * R-5.5.6 — the board a defeated force's survivor ends on. One on a board stays there. From revision 7
+ * a defeated attacker takes those at the sites in their force to their own board, whatever their
+ * colour (R-5.5.6-H2); otherwise, and for a defending force, each goes to its owner's board, the
+ * Empire's to the Chancellor's.
+ */
+export function survivorBoardOf(
+    state: HydratedOathGameState,
+    group: WarbandGroup,
+    defeatedAttackerId: string | undefined
+): string {
+    if (group.at.kind === 'board') return group.at.playerId
+    if (
+        defeatedAttackerId !== undefined &&
+        isAtLeastOathRevision(state, OathRevision.EngineFixes3)
+    ) {
+        return defeatedAttackerId
+    }
+    return state.warbandBankHolderOf(group.owner)
+}
+
+/** R-5.5.6 — `defeatedAttackerId` when the force is a defeated attacker's. */
+export function moveForceToBoards(
+    state: HydratedOathGameState,
+    force: readonly WarbandGroup[],
+    defeatedAttackerId?: string
+) {
     for (const group of force) {
         if (group.at.kind !== 'site') {
             continue
         }
         removeWarbandsFrom(state, group.at, group.owner, group.count)
-        addWarbandsToBoard(state, state.warbandBankHolderOf(group.owner), group.owner, group.count)
+        addWarbandsToBoard(
+            state,
+            survivorBoardOf(state, group, defeatedAttackerId),
+            group.owner,
+            group.count
+        )
     }
 }
 
@@ -307,8 +337,27 @@ export function gainWarbandsWithOwner(
     return { owner: gained > 0 ? owner : undefined, gained }
 }
 
-/** R-5.5.6 — every survivor goes to its board, so only owners and boards tell the losses apart. */
+/**
+ * R-5.5.6-H1 — before revision 7 (R-X.4) a defending side was asked whenever part of its force stood
+ * on a board.
+ */
 export function defeatChoiceMatters(force: readonly WarbandGroup[]): boolean {
     if (new Set(force.map((group) => group.owner)).size > 1) return true
     return force.some((group) => group.at.kind === 'board')
+}
+
+/**
+ * R-5.5.6, R-10.13 — which of a defeated force's warbands die changes something only when the dead go
+ * to more than one bank (the force mixes owners) or the survivors to more than one board. From
+ * revision 7 a defeated attacker's survivors all end on their board, so for them only a force that
+ * mixes owners, which a game created before revision 5 can hold, makes the pick matter.
+ */
+export function defeatPickMatters(
+    state: HydratedOathGameState,
+    force: readonly WarbandGroup[],
+    defeatedAttackerId?: string
+): boolean {
+    if (new Set(force.map((group) => group.owner)).size > 1) return true
+    const boards = new Set(force.map((group) => survivorBoardOf(state, group, defeatedAttackerId)))
+    return boards.size > 1
 }

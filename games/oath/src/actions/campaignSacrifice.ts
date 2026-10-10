@@ -32,6 +32,7 @@ import {
     moveForceToBoards,
     selectionExceedsForce,
     defeatChoiceMatters,
+    defeatPickMatters,
     soleOwner
 } from '../util/force.js'
 import { BRUTAL, hasTrait } from '../util/reliquaryTraits.js'
@@ -211,7 +212,7 @@ export class HydratedCampaignSacrifice
         if (required === 0 || required >= forceTotal(force) || force.length < 2) return undefined
         if (
             isAtLeastOathRevision(state, OathRevision.TurnFlow) &&
-            !defeatChoiceMatters(force)
+            !HydratedCampaignSacrifice.defendingLossesMatter(state, force)
         ) {
             return undefined
         }
@@ -220,6 +221,16 @@ export class HydratedCampaignSacrifice
         return isImperialPlayer(state, defenderId, scopeOf(partiesOf(state, campaign)))
             ? state.chancellorId()
             : defenderId
+    }
+
+    /** R-5.5.6-H1 — from revision 7, only losses that can end in another bank or on another board. */
+    private static defendingLossesMatter(
+        state: HydratedOathGameState,
+        force: readonly WarbandGroup[]
+    ): boolean {
+        return isAtLeastOathRevision(state, OathRevision.EngineFixes3)
+            ? defeatPickMatters(state, force)
+            : defeatChoiceMatters(force)
     }
 
     /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands. */
@@ -262,7 +273,11 @@ export class HydratedCampaignSacrifice
             survivors
         )
         if (survivorsNote === undefined) {
-            moveForceToBoards(state, survivors)
+            moveForceToBoards(
+                state,
+                survivors,
+                attackerVictorious ? undefined : campaign.attackerPlayerId
+            )
         }
         return { defeatKilled: forceTotal(kills), survivorsNote }
     }
