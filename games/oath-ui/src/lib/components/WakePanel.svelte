@@ -1,6 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { Banner } from '@tabletop/oath'
     import { bannerImage } from '$lib/images/tileImages.js'
@@ -63,11 +64,16 @@
         <div class="flex items-start gap-3">
             {#if question.kind === 'siteTake'}
                 {#if siteCardId}
-                    <span class="shrink-0">
+                    <span class="relative inline-flex shrink-0">
                         <CardImage
                             cardId={siteCardId}
                             width={widthAtHeight(40, { cardId: siteCardId })}
                             inspect
+                        />
+                        <Magnifier
+                            preview={{ cardId: siteCardId, label: cardName(siteCardId) }}
+                            label={cardName(siteCardId)}
+                            size="small"
                         />
                     </span>
                 {/if}

@@ -172,16 +172,3 @@ export function answerCostText(cost: PowerCost): string | undefined {
     ]
     return parts.length > 0 ? parts.join(' + ') : undefined
 }
-
-/** A card's printed power in words the panel's tokens can be drawn from. */
-export function printedPowerWords(text: string): string {
-    return text
-        .replace(/(?:\[(?:favor|secret)\])+/g, (run) => {
-            const count = run.split('][').length
-            const noun = run.includes('favor') ? 'favor' : 'secret'
-            return count === 1 ? noun : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
-        })
-        .replace(/\[suit:([a-z]+)\]/g, '$1')
-        .replace(/\*\*/g, '')
-        .replace(/_/g, '')
-}

@@ -3492,7 +3492,8 @@ test('scenario 55: a card that makes a Search possible is found with the powers;
     await usePower(page).click()
     await expect(grid(page)).toContainText('Makes an action possible')
     const card = actionCard(page, 'denizen.beast.mushrooms')
-    await expect(card).toContainText('Search:')
+    await expect(card).toContainText('Mushrooms — Search')
+    await expect(card).not.toContainText('Spend no Supply')
     await expect(card).toContainText('on it')
     await card.getByRole('button', { name: 'Search with Mushrooms', exact: true }).click()
     expect((await call(page, 'tableFacts')).machineState).toBe('ActPhase')
@@ -4704,5 +4705,187 @@ test.describe('the Show menu', () => {
         expect(await call(page, 'letPeekState')).toEqual({ open: true, staged: false })
         await undoButton(page).click()
         expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: false })
+    })
+})
+
+/**
+ * Rule 4 and "Choose a card": no panel prints a card's power text, under or beside it; the card is
+ * a magnifier press away. Every card in a panel carries its corner magnifier, a small one
+ * straddling the top-left corner of a small card, and its hover title and the magnifier's spoken
+ * name are the card's name alone.
+ */
+test.describe('card power text: none in a panel; every panel card has its magnifier', () => {
+    /** A picture-row card (CardChoiceRow) by its title, and the cell around it. */
+    const rowCard = (page: Page, name: string) => grid(page).locator(`button[aria-pressed][title="${name}"]`)
+    const rowCell = (page: Page, name: string) => rowCard(page, name).locator('xpath=..')
+    const enlarge = (scope: Locator, name: string) =>
+        scope.getByRole('button', { name: `Enlarge ${name}`, exact: true })
+    /** Marks only a raw printed text carries: emphasis, token codes, an "Action:" lead. */
+    const RAW_MARKS = ['**', '[', 'Action:']
+    /** Its laid-out size in CSS pixels, whatever a scaled panel draws it at. */
+    const layoutSize = (locator: Locator) =>
+        locator.evaluate((element) =>
+            element instanceof HTMLElement ? { width: element.offsetWidth, height: element.offsetHeight } : { width: 0, height: 0 }
+        )
+
+    async function expectNoRawText(page: Page) {
+        const text = await grid(page).innerText()
+        for (const mark of RAW_MARKS) expect(text, `the panel prints "${mark}"`).not.toContain(mark)
+    }
+
+    /** Each offered card in the panel's picture rows: its title, its picture's name, its cell's text and magnifiers. */
+    async function offeredCards(page: Page) {
+        return grid(page)
+            .locator('button[aria-pressed][title]')
+            .evaluateAll((buttons) =>
+                buttons.map((button) => {
+                    const cell = button.parentElement
+                    return {
+                        title: button.getAttribute('title') ?? '',
+                        alt: button.querySelector('img')?.getAttribute('alt') ?? '',
+                        text: cell?.innerText.trim() ?? '',
+                        magnifiers: [...(cell?.querySelectorAll('button.magnifier') ?? [])].map(
+                            (magnifier) => magnifier.getAttribute('aria-label') ?? ''
+                        )
+                    }
+                })
+            )
+    }
+
+    async function expectNamedCardsWithoutText(page: Page) {
+        const cards = await offeredCards(page)
+        expect(cards.length, 'cards offered').toBeGreaterThan(0)
+        for (const card of cards) {
+            expect(card.title, `${card.title}: named by its card alone`).not.toContain('—')
+            expect(card.alt, `${card.title}: its picture named by the card`).toBe(card.title)
+            expect(card.text, `${card.title}: no text under the card`).toBe('')
+            expect(card.magnifiers, `${card.title}: one magnifier, named for the card`).toEqual([`Enlarge ${card.title}`])
+        }
+    }
+
+    /** The magnifier on a card picture, by the card's name: its laid-out size, and its box and the picture's on screen. */
+    async function magnifierOn(scope: Locator, name: string) {
+        const glass = enlarge(scope, name)
+        await expect(glass).toHaveCount(1)
+        const card = glass.locator('xpath=..').getByRole('img', { name, exact: true })
+        await expect(card).toHaveCount(1)
+        return { glass, size: (await layoutSize(glass)).width, glassBox: await boxOf(glass), cardBox: await boxOf(card) }
+    }
+
+    test('a modifier in an action’s menu: Truthful Harp is its picture and magnifier, with no text and its name alone', async ({ page }) => {
+        await openTable(page, 'harpSearch')
+        await tile(page, 'Search').click()
+        await expect(rowCard(page, 'Truthful Harp')).toBeVisible()
+        await expect(rowCell(page, 'Truthful Harp')).toHaveText('')
+        await expect(enlarge(rowCell(page, 'Truthful Harp'), 'Truthful Harp')).toBeVisible()
+        await expectNamedCardsWithoutText(page)
+        await expectNoRawText(page)
+        await expect(grid(page)).not.toContainText('reveal')
+
+        await enlarge(rowCell(page, 'Truthful Harp'), 'Truthful Harp').click()
+        await expect(preview(page)).toBeVisible()
+        await expect(rowCard(page, 'Truthful Harp')).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    for (const name of ['battleDefenderPlans', 'attackerPlans'] as const) {
+        test(`battle plans (${name}): each plan its picture and magnifier, with no text and its name alone`, async ({ page }) => {
+            await openTable(page, name)
+            await expect(grid(page).locator('button[aria-pressed]').first()).toBeVisible()
+            await expectNamedCardsWithoutText(page)
+            await expectNoRawText(page)
+        })
+    }
+
+    test('Use a power: each card its magnifier, the name and action with no text, the Whistle’s cost on Use in gold', async ({ page }) => {
+        await openTable(page, 'usePower')
+        await usePower(page).click()
+        const entries = [
+            { entry: actionCard(page, 'denizen.beast.mushrooms'), name: 'Mushrooms', head: 'Mushrooms — Search' },
+            { entry: actionCard(page, 'denizen.nomad.tents'), name: 'Tents', head: 'Tents — Travel' },
+            { entry: grid(page).locator('[data-action-power="relic.whistle"]'), name: 'Whistle', head: 'Whistle' }
+        ]
+        for (const { entry, name, head } of entries) {
+            await expect(entry).toBeVisible()
+            await expect(entry.locator('button.magnifier'), `${name}: one magnifier`).toHaveCount(1)
+            const { size, glassBox, cardBox } = await magnifierOn(entry, name)
+            expect(size, `${name}: the mid-sized glass`).toBe(24)
+            expect(glassBox.x + glassBox.width, `${name}: in the card’s top-right corner`).toBeGreaterThan(cardBox.x + cardBox.width)
+            expect(glassBox.y, `${name}: straddling its top edge`).toBeLessThan(cardBox.y)
+            await expect(entry.locator('.text-sm').first()).toHaveText(head)
+        }
+        await expect(actionCard(page, 'denizen.beast.mushrooms')).not.toContainText('Spend no Supply')
+        await expect(actionCard(page, 'denizen.nomad.tents')).not.toContainText('traveling')
+        await expect(grid(page)).not.toContainText('Choose a pawn')
+        await expectNoRawText(page)
+
+        const use = grid(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true })
+        await expect(use).toBeVisible()
+        await expect(use).toHaveText(/^Use\s*·\s*1$/)
+        const cost = use.locator('.text-oath-accent')
+        await expect(cost.getByRole('img', { name: 'secret' })).toBeVisible()
+        expect(await tokenRuns(cost)).toEqual([['1', 'accent']])
+
+        await enlarge(grid(page), 'Whistle').click()
+        await expect(preview(page)).toBeVisible()
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test(`Use a power at ${viewport.width}: its buttons and its pick 44 px tall, every label inside its button`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'usePower')
+            await usePower(page).click()
+            const controls = [
+                grid(page).getByRole('button', { name: 'Search with Mushrooms', exact: true }),
+                grid(page).getByRole('button', { name: 'Travel with Tents', exact: true }),
+                grid(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true }),
+                grid(page).locator('[data-action-power="relic.whistle"] select')
+            ]
+            for (const control of controls) {
+                await expect(control).toBeVisible()
+                const { height } = await layoutSize(control)
+                expect(height, `${await control.textContent()}: 44 tall`).toBeGreaterThanOrEqual(44)
+            }
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+            for (const name of ['Mushrooms', 'Tents', 'Whistle']) {
+                await expect(enlarge(grid(page), name)).toBeVisible()
+            }
+        })
+    }
+
+    test('a question’s small card: the small magnifier straddles its top-left corner and enlarges it', async ({ page }) => {
+        await openTable(page, 'askBlackmail')
+        const form = grid(page).locator('.question-form')
+        const { glass, size, glassBox, cardBox } = await magnifierOn(form, 'Ring of Devotion')
+        expect(size).toBe(18)
+        expect(glassBox.x, 'out past the card’s left edge').toBeLessThan(cardBox.x)
+        expect(glassBox.y, 'out past the card’s top edge').toBeLessThan(cardBox.y)
+        expect(glassBox.x + glassBox.width, 'clear of the line beside the card').toBeLessThan(cardBox.x + cardBox.width)
+        await glass.click()
+        await expect(preview(page)).toBeVisible()
+        await expect(answer(page, 'Pay')).toBeVisible()
+    })
+
+    test('Search’s kept card at "How do you play it?" carries its magnifier', async ({ page }) => {
+        await openTable(page, 'searching')
+        const first = panelCards(page).first()
+        const name = (await first.getByRole('img').getAttribute('alt')) ?? ''
+        expect(name).not.toBe('')
+        await first.click()
+        await expect(grid(page).getByText('How do you play it?', { exact: true })).toBeVisible()
+        const { glass, size } = await magnifierOn(grid(page), name)
+        expect(size).toBe(28)
+        await glass.click()
+        await expect(preview(page)).toBeVisible()
+        expect((await call(page, 'searchPicks')).placement).toBeUndefined()
+    })
+
+    test('the Wake’s site card carries the small magnifier', async ({ page }) => {
+        await openTable(page, 'wakeSite')
+        const { glass, size, glassBox, cardBox } = await magnifierOn(grid(page), 'Drowned City')
+        expect(size).toBe(18)
+        expect(glassBox.x, 'out past the card’s left edge').toBeLessThan(cardBox.x)
+        await glass.click()
+        await expect(preview(page)).toBeVisible()
     })
 })

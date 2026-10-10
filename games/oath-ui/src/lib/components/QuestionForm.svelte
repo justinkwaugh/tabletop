@@ -2,6 +2,7 @@
     import type { Snippet } from 'svelte'
     import { CardKind } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import { CARD_ASPECT, cardAspect } from '$lib/images/cardShape.js'
     import { cardName } from '$lib/model/names.js'
 
@@ -11,7 +12,7 @@
         line,
         children
     }: {
-        /** The card the question is about, small beside the line; a tap enlarges it. */
+        /** The card the question is about, small beside the line; a tap or its magnifier enlarges it. */
         cardId?: string
         line: Snippet
         children: Snippet
@@ -29,8 +30,10 @@
 
 <div class="question-form flex items-start gap-3">
     {#if cardId}
-        <span class="shrink-0">
-            <CardImage {cardId} {width} label={cardName(cardId)} inspect />
+        {@const name = cardName(cardId)}
+        <span class="relative inline-flex shrink-0">
+            <CardImage {cardId} {width} label={name} inspect />
+            <Magnifier preview={{ cardId, label: name }} label={name} size="small" />
         </span>
     {/if}
     <div class="min-w-0 grow">

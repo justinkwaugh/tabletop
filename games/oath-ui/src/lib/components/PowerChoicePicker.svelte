@@ -38,8 +38,14 @@
 
     let {
         choices,
-        picks = $bindable(emptyPicks())
-    }: { choices: LegalChoice[]; picks?: PowerChoicePicks } = $props()
+        picks = $bindable(emptyPicks()),
+        tallOnPhone = false
+    }: {
+        choices: LegalChoice[]
+        picks?: PowerChoicePicks
+        /** Its list is 44 px tall on a phone, as Use a power draws its pick beside its buttons. */
+        tallOnPhone?: boolean
+    } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
@@ -238,7 +244,9 @@
                     <span class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</span>
                     <select
                         disabled={busy}
-                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
+                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow {tallOnPhone
+                            ? 'max-sm:min-h-11'
+                            : ''}"
                         value={pick}
                         onchange={(event) => setOption(legal, i, Number(event.currentTarget.value))}
                     >

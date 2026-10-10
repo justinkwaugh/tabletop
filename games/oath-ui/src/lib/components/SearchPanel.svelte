@@ -123,12 +123,18 @@
             </div>
         {/if}
         <div class="flex items-start gap-3">
-            <CardImage
-                cardId={search.kept}
-                width={widthAtHeight(100, { cardId: search.kept })}
-                label={cardName(search.kept)}
-                inspect
-            />
+            <span class="relative inline-flex shrink-0">
+                <CardImage
+                    cardId={search.kept}
+                    width={widthAtHeight(100, { cardId: search.kept })}
+                    label={cardName(search.kept)}
+                    inspect
+                />
+                <Magnifier
+                    preview={{ cardId: search.kept, label: cardName(search.kept) }}
+                    label={cardName(search.kept)}
+                />
+            </span>
             <div>
                 <!-- One width, the widest label's: a row on a wide screen, a column below it. -->
                 <div class="inline-grid auto-cols-fr gap-1 lg:grid-flow-col">

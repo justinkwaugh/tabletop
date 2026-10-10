@@ -138,6 +138,8 @@ export type TableName =
     | 'offerCitizenshipToOne'
     | 'everyMinor'
     | 'show'
+    | 'harpSearch'
+    | 'usePower'
     | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
@@ -1633,6 +1635,85 @@ function mushroomsTable(supply: number): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.4: the seat holds Truthful Harp, a Search modifier whose printed text carries emphasis marks. */
+function harpSearchTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 4,
+                relicIds: ['relic.truthful-harp']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-7.4, R-6.2: Use a power with a card that makes a Search possible (Mushrooms, 1 Supply), an
+ * adviser that changes a Travel (Tents) and an "Action:" power that costs a secret (the Whistle,
+ * which picks a pawn at another site).
+ */
+function usePowerTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 1,
+                favor: 2,
+                secrets: 3,
+                relicIds: ['relic.whistle'],
+                advisers: [{ cardId: 'denizen.nomad.tents', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.beast.mushrooms'] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-9.4: Tavern Songs at the seat's site peeks at the Cradle discard pile, which nobody else sees. */
 function tavernSongsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -2350,6 +2431,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     everyMinor: everyMinorTable,
     show: () => showTable('jacob'),
     showOne: () => showTable('cole'),
+    harpSearch: harpSearchTable,
+    usePower: usePowerTable,
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
