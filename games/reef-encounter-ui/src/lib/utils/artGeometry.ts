@@ -70,3 +70,32 @@ export const AlgaPaint: Record<AlgaColor, string> = {
     [AlgaColor.Purple]: '#93519f',
     [AlgaColor.Red]: '#e2462c'
 }
+
+export type BoardRotation = 0 | 90 | 180 | 270
+
+// Turns a board's image-pixel drawing so its bottom edge faces the given side of the table.
+export function rotatedBoard(rotation: BoardRotation): {
+    size: RectangleDimensions
+    transform: string
+} {
+    const { width, height } = BoardImage
+    switch (rotation) {
+        case 0:
+            return { size: { width, height }, transform: '' }
+        case 90:
+            return {
+                size: { width: height, height: width },
+                transform: `translate(${height} 0) rotate(90)`
+            }
+        case 180:
+            return {
+                size: { width, height },
+                transform: `translate(${width} ${height}) rotate(180)`
+            }
+        case 270:
+            return {
+                size: { width: height, height: width },
+                transform: `translate(0 ${width}) rotate(270)`
+            }
+    }
+}

@@ -95,7 +95,7 @@
                 <ScalingWrapper
                     justify="center"
                     controls="bottom-left"
-                    coverBelowScale={0.45}
+                    coverBelowScale={0.3}
                     expandable
                 >
                     <Table />
