@@ -1,5 +1,5 @@
 import { Region, type HydratedOathGameState, type WoodPick } from '@tabletop/oath'
-import { cardName, regionName } from '$lib/model/names.js'
+import { cardName } from '$lib/model/names.js'
 
 /** R-11.7 — the sites the Shrouded Wood's ruler may pick in one region, at one price. */
 export interface WoodRegion {
@@ -42,23 +42,7 @@ export function woodCommonCost(regions: readonly WoodRegion[]): number | undefin
     return costs.size === 1 ? regions[0]?.cost : undefined
 }
 
-function counted(n: number): string {
-    return n === 1 ? 'one' : String(n)
-}
-
-/** What set the region's price: the Wood's own, or the modifier that changed it (Decadent). */
-export function woodCostNote(row: WoodRegion): string {
-    if (row.foldedBy.length === 0) return `the Wood's ${row.base}`
-    const change =
-        row.cost === 0
-            ? 'none'
-            : row.cost > row.base
-              ? `${counted(row.cost - row.base)} more`
-              : `${counted(row.base - row.cost)} less`
-    return `${woodCostNoteShort(row)}: ${change} into the ${regionName(row.region)}`
-}
-
-/** The phone's note: the modifier's name alone, or nothing for the Wood's own price. */
+/** What changed the region's price: the modifier's name alone (Decadent), or nothing for the Wood's own. */
 export function woodCostNoteShort(row: WoodRegion): string {
     return row.foldedBy.map(cardName).join(', ')
 }

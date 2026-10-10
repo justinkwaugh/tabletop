@@ -3,7 +3,7 @@ import { ActionSource, assert, createAction } from '@tabletop/common'
 import { ActionType, OathRevision, PowerQuestionKind, Region, Travel, isAnswerQuestion } from '@tabletop/oath'
 import { disposeSessions, openSessionOn, played, tableOf } from '$lib/testing/sessionHarness.js'
 import { shroudedWoodState } from '$lib/testing/shroudedWoodTable.js'
-import { woodCommonCost, woodCostNote, woodCostNoteShort } from './woodTravel.js'
+import { woodCommonCost, woodCostNoteShort } from './woodTravel.js'
 
 afterEach(() => {
     disposeSessions()
@@ -28,7 +28,6 @@ describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () =
             { region: Region.Provinces, cost: 2, base: 2, foldedBy: [], siteIds: ['p2', 'p3'] }
         ])
         assert(regions !== undefined, 'the Travel pays at the pick')
-        expect(regions.map(woodCostNote)).toEqual(['Decadent: none into the Cradle', "the Wood's 2"])
         expect(regions.map(woodCostNoteShort)).toEqual(['Decadent', ''])
         expect(woodCommonCost(regions)).toBeUndefined()
     })
@@ -36,7 +35,7 @@ describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () =
     it('with 3 Supply the Hinterland is listed at Decadent’s one more', () => {
         const regions = travellerSession(shroudedWoodState(3)).woodRegions ?? []
         expect(regions.map((r) => [r.region, r.cost])).toEqual([[Region.Cradle, 0], [Region.Provinces, 2], [Region.Hinterland, 3]])
-        expect(woodCostNote(regions[2])).toBe('Decadent: one more into the Hinterland')
+        expect(woodCostNoteShort(regions[2])).toBe('Decadent')
     })
 
     it('one cost for every region listed, or a free Travel, is said once', () => {

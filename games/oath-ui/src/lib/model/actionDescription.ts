@@ -584,7 +584,7 @@ function describeWoodPick(
 ): string {
     const site = (slotId: string) => {
         const name = names.site(slotId)
-        return name.startsWith('a ') ? name : `the ${name}`
+        return name.startsWith('a ') || name.startsWith('The ') ? name : `the ${name}`
     }
     const paid = pick.supplySpent > 0 ? String(pick.supplySpent) : 'no'
     const notes = (pick.notes ?? []).map((note) => `; ${nameIds(note, site)}`).join('')

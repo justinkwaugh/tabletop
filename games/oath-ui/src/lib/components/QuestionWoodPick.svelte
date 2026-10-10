@@ -1,8 +1,10 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind, PowerQuestionKind, type PowerQuestion } from '@tabletop/oath'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { regionName, siteName } from '$lib/model/names.js'
     import { woodCostNoteShort } from '$lib/model/woodTravel.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-11.7 — the traveller's own Travel: only the sites they can pay for, by region and price.
@@ -15,8 +17,8 @@
     let gameState = $derived(gameSession.gameState)
     let draft = $derived(gameSession.question)
     let busy = $derived(gameSession.busy)
-    let traveler = $derived(gameSession.getPlayerName(question.travelerPlayerId))
-    let supply = $derived(gameState.getPlayerState(question.travelerPlayerId).supply)
+    // Every site the ruler may pick is one choice of one width.
+    const siteWidth = new ChoiceWidth()
 
     function picture(slotId: string): string {
         const cardId = gameState.siteCardAt(slotId)
@@ -25,12 +27,9 @@
     }
 </script>
 
-<p class="text-sm mb-2.5">
-    You rule the Shrouded Wood: choose where {traveler} goes. {traveler} pays when you choose, and has
-    {supply} Supply.
-</p>
+<p class="text-sm mb-2.5">Pick where <PlayerName playerId={question.travelerPlayerId} /> goes.</p>
 <div
-    class="inline-grid auto-cols-fr grid-flow-col items-start gap-x-5 max-sm:flex max-sm:w-full max-sm:flex-col max-sm:items-stretch max-sm:gap-2"
+    class="inline-grid auto-cols-fr grid-flow-col items-start gap-x-5 max-sm:flex max-sm:flex-col max-sm:gap-2"
 >
     {#each draft.woodRegions as row (`${row.region}:${row.cost}`)}
         <div class="min-w-0" role="group" aria-label="Sites in the {regionName(row.region)}">
@@ -47,27 +46,30 @@
                     {/if}
                 </p>
             </div>
-            <div
-                class="flex flex-col gap-1.5 max-sm:grid max-sm:auto-cols-[minmax(0,1fr)] max-sm:grid-flow-col max-sm:gap-1"
-            >
+            <!-- A column's buttons share its width; on a phone a region's buttons wrap, each as wide as
+                 the widest label, never stretched across the row. -->
+            <div class="flex flex-col gap-1.5 max-sm:flex-row max-sm:flex-wrap max-sm:gap-1">
                 {#each row.siteIds as slotId (slotId)}
                     <button
-                        class="flex w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-md border border-oath-frame
+                        class="flex w-full min-w-0 items-center overflow-hidden rounded-md border border-oath-frame
                                bg-oath-surface py-1 pr-3 pl-1 text-left text-[15px] leading-tight font-semibold
                                hover:bg-oath-surface-raised disabled:opacity-40
-                               max-sm:min-h-[42px] max-sm:gap-1.5 max-sm:pr-1.5 max-sm:text-[13px]"
+                               max-sm:min-h-11 max-sm:w-auto max-sm:pr-1.5 max-sm:text-[13px]"
+                        style:min-width="{siteWidth.widest}px"
                         disabled={busy}
                         onclick={() => draft.sendThrough(slotId)}
                     >
-                        <img
-                            src={picture(slotId)}
-                            alt=""
-                            class="h-[34px] w-11 shrink-0 rounded object-cover
-                                   {row.siteIds.length > 2
-                                ? 'max-sm:h-5 max-sm:w-[26px]'
-                                : 'max-sm:h-7 max-sm:w-9'}"
-                        />
-                        <span class="min-w-0">{siteName(gameState, slotId)}</span>
+                        <span
+                            class="flex w-max items-center gap-2.5 max-sm:gap-1.5"
+                            {@attach siteWidth.measure}
+                        >
+                            <img
+                                src={picture(slotId)}
+                                alt=""
+                                class="h-[34px] w-11 shrink-0 rounded object-cover max-sm:h-7 max-sm:w-9"
+                            />
+                            <span>{siteName(gameState, slotId)}</span>
+                        </span>
                     </button>
                 {/each}
             </div>

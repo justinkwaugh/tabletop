@@ -179,11 +179,7 @@
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination && mine.travel}
         <QuestionWoodPick question={mine} />
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
-        <p class="text-sm mb-2">
-            You rule the Shrouded Wood: choose where {gameSession.getPlayerName(
-                mine.travelerPlayerId
-            )} goes.
-        </p>
+        <p class="text-sm mb-2">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
         <div class="flex flex-wrap gap-1">
             {#each draft.woodDestinations as siteId (siteId)}
                 <button

@@ -24,7 +24,7 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules, as the traveller re
 })
 
 describe('R-11.7 — the History of a Travel the ruler settles', () => {
-    const SITES: Record<string, string> = { 'slot.provinces.1': 'Great Slum', 'slot.hinterland.0': 'Mountain', 'slot.cradle.0': 'Drowned City' }
+    const SITES: Record<string, string> = { 'slot.provinces.1': 'Great Slum', 'slot.hinterland.0': 'Mountain', 'slot.cradle.0': 'Drowned City', 'slot.hinterland.1': 'The Hidden Place' }
     const names = { player: (playerId: string) => playerId, site: (slotId: string) => SITES[slotId] ?? slotId, seats: ['Jacob', 'Cole'] }
 
     function row(fields: { type: ActionType; playerId?: string } & Record<string, unknown>): GameAction {
@@ -59,6 +59,10 @@ describe('R-11.7 — the History of a Travel the ruler settles', () => {
         expect(describeAction(slum, names, 'Cole')).toBe('left the Shrouded Wood for the Great Slum (your pick), paying 2 Supply')
         expect(describeAction(pick('slot.hinterland.0', 3), names, 'Jacob')).toBe("left the Shrouded Wood for the Mountain (Cole's pick), paying 3 Supply")
         expect(describeAction(pick('slot.cradle.0', 0), names, 'Jacob')).toBe("left the Shrouded Wood for the Drowned City (Cole's pick), paying no Supply")
+    })
+
+    it('a site whose name prints its own article is not given another', () => {
+        expect(describeAction(pick('slot.hinterland.1', 3), names, 'Jacob')).toBe("left the Shrouded Wood for The Hidden Place (Cole's pick), paying 3 Supply")
     })
 
     it('Tyrant’s kill is a clause of the pick’s row, in the colour of the warband killed', () => {

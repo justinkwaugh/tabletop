@@ -84,6 +84,7 @@ import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
 import { woodRegions, type WoodRegion } from './woodTravel.js'
+import { gridRefusal, refusalWords } from './actionAvailability.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -1234,6 +1235,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId) return undefined
         return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {})
+    }
+
+    /** The red line under a Wood Travel nobody can pay, in the grid's words ("Needs 2 Supply; you have 1."). */
+    get woodTravelRefusal(): string | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.woodTravelReason === undefined) return undefined
+        const refusal = gridRefusal(this.gameState, playerId, ActionType.Travel)
+        if (!refusal) return undefined
+        return refusal.cause === 'engine'
+            ? this.humanizeReason(refusal.reason)
+            : refusalWords(refusal)
     }
 
     async travelFromShroudedWood(): Promise<void> {

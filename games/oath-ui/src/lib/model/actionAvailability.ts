@@ -16,6 +16,9 @@ import {
     reasonFreeActionComesFirst,
     usableFavor,
     shroudedWoodChooser,
+    isFreeTravelNow,
+    woodPick,
+    woodTravelPaysAtPick,
     type HydratedOathGameState
 } from '@tabletop/oath'
 import type { MajorAction, MajorEntry } from './actionCatalogue.js'
@@ -147,6 +150,10 @@ function knownCause(
     }
     switch (type) {
         case ActionType.Travel:
+            // R-11.7 — leaving an enemy's Shrouded Wood, the ruler picks: the cheapest pick is the price.
+            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+                return woodCause(gameState, playerId)
+            }
             return sharedCause(gameState, playerId, travelCandidates(gameState, playerId))
 
         case ActionType.Muster: {
@@ -219,6 +226,20 @@ function sharedCause(
         default:
             return { cause }
     }
+}
+
+function woodCause(gameState: HydratedOathGameState, playerId: string): KnownRefusal | undefined {
+    const player = gameState.getPlayerState(playerId)
+    const free = isFreeTravelNow(gameState, playerId)
+    const needs = woodTravelPaysAtPick(gameState)
+        ? Math.min(
+              ...gameState
+                  .allSiteIds()
+                  .filter((siteId) => siteId !== player.siteId)
+                  .map((siteId) => woodPick(gameState, playerId, siteId, free).cost)
+          )
+        : HydratedTravel.shroudedWoodCost(gameState, playerId)
+    return player.supply < needs ? { cause: 'supply', needs, has: player.supply } : undefined
 }
 
 function travelCandidates(gameState: HydratedOathGameState, playerId: string): Candidate[] {

@@ -130,33 +130,12 @@
                 </div>
             {/if}
 
-            {#if chosen === ActionType.Travel && gameSession.shroudedWoodChooser && gameSession.woodRegions}
+            {#if chosen === ActionType.Travel && gameSession.shroudedWoodChooser}
                 <div class="mb-2">
                     <WoodTravelPanel
-                        ruler={gameSession.getPlayerName(gameSession.shroudedWoodChooser)}
+                        rulerId={gameSession.shroudedWoodChooser}
                         regions={gameSession.woodRegions}
                     />
-                </div>
-            {:else if chosen === ActionType.Travel && gameSession.shroudedWoodChooser}
-                {@const woodReason = gameSession.woodTravelReason}
-                <div class="mb-2 text-sm">
-                    <p class="mb-1">
-                        An enemy rules this Shrouded Wood: {gameSession.getPlayerName(
-                            gameSession.shroudedWoodChooser
-                        )} chooses where you go.
-                    </p>
-                    {#if woodReason}
-                        <p class="text-[11px] text-oath-danger">
-                            <TokenText text={gameSession.humanizeReason(woodReason) ?? ''} />
-                        </p>
-                    {/if}
-                    <button
-                        class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
-                        disabled={busy || !!woodReason}
-                        onclick={() => gameSession.travelFromShroudedWood()}
-                    >
-                        Travel for 2 Supply
-                    </button>
                 </div>
             {/if}
 

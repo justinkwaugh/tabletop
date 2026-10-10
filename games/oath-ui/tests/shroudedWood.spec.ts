@@ -45,23 +45,22 @@ for (const { name, viewport, phone } of SIZES) {
         test('the traveller sees what each region the ruler can pick costs, and the Travel spends nothing', async ({ page }) => {
             await openTable(page, 'woodTraveller')
             await panel(page).locator('.majors button').filter({ hasText: 'Travel' }).click()
-            await expect(panel(page).getByText('Leave the Shrouded Wood.', { exact: true })).toBeVisible()
-            await expect(panel(page).getByText('Cole rules this Shrouded Wood: Cole picks where you go, and you pay when Cole picks.')).toBeVisible()
+            await expect(panel(page).locator('.bg-oath-accent-soft').first()).toHaveText('Travel')
+            await expect(panel(page)).not.toContainText('rules this Shrouded Wood')
 
+            // A card that changed the price is named alone; the Wood's own price has no note.
             const costs = panel(page).getByRole('list', { name: 'What you pay, by region' })
             await expect(costs.getByRole('listitem')).toHaveText(
-                phone
-                    ? [/^cradle\s*0 Supply\s*Decadent$/i, /^provinces\s*2 Supply\s*$/i]
-                    : [/^cradle\s*0 Supply\s*Decadent: none into the Cradle$/i, /^provinces\s*2 Supply\s*the Wood's 2$/i],
+                [/^cradle\s*0 Supply\s*Decadent$/i, /^provinces\s*2 Supply\s*$/i],
                 { useInnerText: true }
             )
-            const button = panel(page).getByRole('button', { name: 'Travel: Cole picks where', exact: true })
-            const [buttonBox, costsBox] = [await boxOf(page, button), await boxOf(page, costs)]
-            if (phone) expect(Math.abs(buttonBox.width - costsBox.width)).toBeLessThan(2)
-            else expect(buttonBox.width).toBeLessThan(costsBox.width)
+            const button = panel(page).getByRole('button', { name: /^Travel:\s*Cole\s*picks where$/ })
+            const [buttonBox, panelBox] = [await boxOf(page, button), await boxOf(page, panel(page))]
+            expect(buttonBox.width).toBeLessThan(panelBox.width * 0.7)
+            if (phone) expect(buttonBox.height).toBeGreaterThanOrEqual(44)
 
             await button.click()
-            await expect(panel(page).getByText('You rule the Shrouded Wood: choose where Jacob goes.', { exact: false })).toBeVisible()
+            await expect(panel(page).getByText(/^Pick where\s*Jacob\s*goes\.$/)).toBeVisible()
             const facts = await call(page, 'tableFacts')
             expect(facts.seatId).toBe('Cole')
             expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
@@ -69,7 +68,8 @@ for (const { name, viewport, phone } of SIZES) {
 
         test('the ruler is offered only the sites the traveller can pay for, by region with the cost', async ({ page }) => {
             await openTable(page, 'woodRuler')
-            await expect(panel(page).getByText('You rule the Shrouded Wood: choose where Jacob goes. Jacob pays when you choose, and has 2 Supply.')).toBeVisible()
+            await expect(panel(page).getByText(/^Pick where\s*Jacob\s*goes\.$/)).toBeVisible()
+            await expect(panel(page)).not.toContainText('has 2 Supply')
 
             const cradle = panel(page).getByRole('group', { name: 'Sites in the Cradle' })
             const provinces = panel(page).getByRole('group', { name: 'Sites in the Provinces' })
@@ -83,8 +83,12 @@ for (const { name, viewport, phone } of SIZES) {
             const [cradleBox, provincesBox] = [await boxOf(page, cradle), await boxOf(page, provinces)]
             const [drowned, plains] = [await boxOf(page, cradle.getByRole('button').first()), await boxOf(page, cradle.getByRole('button').last())]
             if (phone) {
+                // A region's buttons wrap side by side, as wide as the widest label, never stretched.
                 expect(provincesBox.y).toBeGreaterThanOrEqual(cradleBox.y + cradleBox.height - 1)
                 expect(Math.abs(drowned.y - plains.y)).toBeLessThan(1)
+                expect(Math.abs(drowned.width - plains.width)).toBeLessThan(1)
+                expect(drowned.width + plains.width).toBeLessThan((await boxOf(page, panel(page))).width * 0.9)
+                expect(drowned.height).toBeGreaterThanOrEqual(44)
             } else {
                 expect(provincesBox.x).toBeGreaterThan(cradleBox.x + cradleBox.width - 1)
                 expect(plains.y).toBeGreaterThan(drowned.y + drowned.height - 1)
