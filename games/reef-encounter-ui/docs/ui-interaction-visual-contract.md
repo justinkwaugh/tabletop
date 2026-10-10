@@ -61,4 +61,10 @@ Automated, in `tests/`:
 
 `src/lib/utils/tablePieces.spec.ts` covers how changes are read: slides, lifts and lands, attacks, tile flips.
 
-Manual: the motion itself, including replay and undo; the final-turn panel (the end conditions take a long game to reach); attack rings show dashed orange on a weaker polyp joined to a coral of at least two (the cylinder test attacks, but does not check the ring's look); locking a coral tile needs a shrimp on the open sea.
+Manual (the end conditions take a long game to reach, so these were checked by hand on 2026-10-10 and need rechecking when their code changes):
+
+- the final-turn panel, reached by temporarily ending the game after one eaten shrimp in the built logic: it offers Pass alone when no coral is edible, and passing ends the game on the score table;
+- attack rings: dashed orange with a light orange wash over the weaker polyp;
+- coral tiles turning over when a cylinder lands on the open sea;
+- the motion itself, including replay and undo;
+- locking a coral tile, which needs a shrimp on the open sea, is not yet checked.
