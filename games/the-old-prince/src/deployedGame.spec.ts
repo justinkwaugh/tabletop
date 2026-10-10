@@ -38,7 +38,7 @@ type Train = TheOldPrinceState['trainInventory']['trains'][number]
 type RecordedTrain = (Train | { id: string; definitionId: string; status: 'removed' }) & {
     hasRun?: boolean
 }
-type PhaseEvent = TheOldPrinceState['phaseEvents'][number]
+type PhaseOccurrence = TheOldPrinceState['phaseEvents'][number]
 type RouteStep = NonNullable<TheOldPrinceState['routeStep']>
 type RouteResult = NonNullable<RouteStep['result']>['routes'][number]
 type Named<Item> = Item & { name: string }
@@ -63,7 +63,12 @@ type RecordedState = Omit<
     trainInventory: Omit<TheOldPrinceState['trainInventory'], 'trains'> & {
         trains: RecordedTrain[]
     }
-    phaseEvents: (Omit<PhaseEvent, 'rustedTrains'> & { rustedTrainIds: string[] })[]
+    phaseEvents: (PhaseOccurrence & {
+        privateEffects: unknown[]
+        rustedTrainIds: string[]
+        pendingRustTrainIds: string[]
+        departurePayments?: unknown[]
+    })[]
     routeStep?: Omit<RouteStep, 'result'> & {
         result?: Omit<NonNullable<RouteStep['result']>, 'routes'> & {
             routes: Omit<RouteResult, 'definitionId'>[]
@@ -144,12 +149,12 @@ function currentShape({
                 train.status === 'removed' ? [] : [train]
             )
         },
-        phaseEvents: phaseEvents.map(({ rustedTrainIds, ...event }) => ({
-            ...event,
-            rustedTrains: rustedTrainIds.map((trainId) => ({
-                trainId,
-                definitionId: trainDefinition(trains, trainId)
-            }))
+        phaseEvents: phaseEvents.map(({ id, trainId, definitionId, fromPhaseId, toPhaseId }) => ({
+            id,
+            trainId,
+            definitionId,
+            fromPhaseId,
+            toPhaseId
         })),
         ...(routeStep ? { routeStep: currentRouteStep(routeStep, trains) } : {})
     }

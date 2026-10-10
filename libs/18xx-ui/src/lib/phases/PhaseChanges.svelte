@@ -54,20 +54,6 @@
     {#if gameState.phaseEvents.length}<ol aria-label="Phase history">
             {#each gameState.phaseEvents as event (event.id)}<li>
                     Phase {event.fromPhaseId} → {event.toPhaseId}
-                    {#if event.rustedTrains.length}
-                        · Rusted: {event.rustedTrains.map((train) => train.trainId).join(', ')}{/if}
-                    {#if event.pendingRustTrainIds.length}
-                        · Rusts after its next operation: {event.pendingRustTrainIds.join(
-                            ', '
-                        )}{/if}
-                    {#each event.privateEffects as effect, index (index)}
-                        <div>
-                            {#if effect.kind === 'close'}Closed {effect.privateCompanyId}
-                            {:else if effect.kind === 'income'}{effect.privateCompanyId} revenue becomes
-                                {effect.revenue}
-                            {:else}Exchanged {effect.privateCompanyId} for {effect.certificateId}{/if}
-                        </div>
-                    {/each}
                 </li>{/each}
         </ol>{/if}
 </section>

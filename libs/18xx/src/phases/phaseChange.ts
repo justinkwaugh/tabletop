@@ -51,7 +51,7 @@ export const PhaseChange = Type.Object(
 )
 export type PhaseChange = Type.Static<typeof PhaseChange>
 export const PhaseFields = {
-    phaseEvents: Type.Array(PhaseEvent),
+    phaseEvents: Type.Array(PhaseOccurrence),
     phaseChange: Type.Optional(PhaseChange)
 }
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
@@ -142,7 +142,7 @@ export function advancePhase(
     )
     const payments = settleTrainDepartures(state, trainRules, departures)
     if (payments.length) event.departurePayments = payments
-    state.phaseEvents.push(event)
+    state.phaseEvents.push({ ...change.event })
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)
         .filter(

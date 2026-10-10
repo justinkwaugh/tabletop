@@ -153,8 +153,30 @@ mechanism below, plus the six implemented titles.
    `companyOfferRequest` recovers a company offer's request for re-evaluation;
    `OfferPurchase` input is unchanged.
 
-Measured after change 4, replaying each recorded finished game: TOP 75.1 → 58.8 KB, 1889
-48.9 → 34.0, 1830 58.7 → 39.4, 1846 37.1 → 29.0, 1817 92.4 → 66.2, 1832 76.0 → 44.4 (22–42%).
+7. **A track lay records the stations it moves.** `TrackLayDetails` copied every station
+   and reservation on the board into each lay's metadata (and into TOP's pending track
+   consent in State). It now records `movedStations`, the placed stations whose city or
+   slot the new tile changes; reservations follow the lay's `nodeMapping`.
+   `TrackConstruction.stationsAfter` (`stationsAfterLay`) rebuilds both lists to apply a
+   lay and to draw the map preview. Recorded action metadata for a finished game fell from
+   637 to 272 KB in TOP and from 1,061 to 444 KB in 1817.
+8. **Dead and duplicate fields are removed** (2026-10-10 audit).
+    - `example: 'finances'`, kept for saves older than any hosted game. The opening
+      digest still hashes the literal so its recorded digests stay comparable.
+    - The `StationsComplete` machine state, which nothing transitioned to.
+    - `hasRun` on trains. Only TOP's 4+ rule read it, next to TOP's own
+      `fourPlusTrainIdsWithOperatingOpportunity`. A train that has run is owned when its
+      company settles earnings, which adds it to that record before any phase can
+      change, so the record alone decides the rule.
+    - 1846's `removedPrivateIds`, read by nothing, and `priorityDealPlayerId`, which
+      repeated `turnManager.turnOrder[0]` at both places that read it.
+9. **Phase events keep the occurrence only.** `phaseEvents` holds each
+   `PhaseOccurrence` (id, train, definition, from and to phase); logic reads only the
+   ids. Rusted and pending trains, private effects and departure payments stay in the
+   `AdvancePhase` metadata, where history already reads them.
+
+Measured after change 9, replaying each recorded finished game: TOP 75.1 → 55.8 KB, 1889
+48.9 → 32.8, 1830 58.7 → 37.9, 1846 37.1 → 28.0, 1817 92.4 → 63.3, 1832 76.0 → 42.3 (25–44%).
 
 ## Deferred
 
@@ -176,11 +198,45 @@ worth their cost for now:
 - **1846 on the shared runtime factory.** The factory builds the family's operating
   sequence and has no visibility projector; 1846's sequence differs.
 
+The 2026-10-10 audit of all six titles' States also found these, left for now:
+
+- **Finished opening-auction records** (`offerAuction`, `openingAuction`,
+  `selectionAuction`; 1846's `draft` and `purchases`), 0.4–0.9 KB kept for the rest of
+  the game. Deleting the record at completion is the right model, but `completed` is
+  read in about sixty places, and the history panel reads TOP's awards and tells an offer
+  auction apart from the finished record in current State. It needs `completed` removed
+  as a flag and auction history built from `ResolveAuction` metadata.
+- **The pool's owner repeated on pooled certificates** (0.02–1.2 KB, TOP the most).
+  `certificate.owner` is read in about 150 places across 63 files; making it optional
+  or deriving it from the pool touches all of them.
+- **Certificate pools as definition data** (0.05–1.4 KB), **tile placements keyed
+  without piece ids** (1.2–3.3 KB), and **zero cash rows**. Each changes a shared
+  component's interface for a small saving.
+- **TOP's ownership-limit exemptions that no longer apply** (0.6 KB), and stale setup
+  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` and
+  `removedCorporationIds` (the UI reads the last to draw the removed corporations'
+  blocking tokens).
+- **Step records kept after their step** (`routeStep.result` mid-turn,
+  `earningsDistribution`): history and the UI read the latest result from State.
+- **Modeling duplicates of negligible size**: game options held in several places,
+  `bankruptPlayerIds` in two shapes across the family and 1846, lifecycle flags
+  (`started`, `funded`, `operated`), and `gameEnding.reason` as text.
+- **1832's `systems`** stays: it is the record of which companies are Systems and of
+  their two components, read throughout the title; `mergers` is the history.
+- **The stock-instruction title snapshot** (`titleSnapshot`, with `positionChange`)
+  stays: no title implements it yet, it is optional and never written, so it costs
+  nothing in State.
+
 ## Not a change
 
 `turnManager.series` stays. It is the index of the game's turns. Round and phase managers
 recording their own starts and ends are wanted later for the same reason, and 18xx's
 `operatingSet` and `phaseEvents` are candidates to be written through them.
+
+Reviewed again on 2026-10-10 and left alone by the owner's decision. It is the largest
+single field left: 8–23 KB, 28–40% of a finished game's State. For reference, the same
+turns as compact tuples would be 1.6–5.2 KB, and pruned to the current round about
+0.2–0.3 KB.
 
 ## Verification
 

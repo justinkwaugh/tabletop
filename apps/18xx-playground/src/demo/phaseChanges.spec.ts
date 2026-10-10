@@ -20,7 +20,8 @@ import {
     trainCanBeTraded,
     cashOwnedBy,
     type EighteenXXState,
-    type TrainRules
+    type TrainRules,
+    isAdvancePhase
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
 const Titles = [
@@ -211,7 +212,9 @@ it('1889 exchanges a 4 at capacity for an 800 diesel and rusts the traded-in tra
         Number(before) - 800
     )
     expect(result.updatedState.trainInventory.trains.find((t) => t.id === four.id)).toBeUndefined()
-    expect(result.updatedState.phaseEvents[0].rustedTrains).toContainEqual({
+    expect(
+        result.processedActions.find(isAdvancePhase)?.metadata?.event.rustedTrains
+    ).toContainEqual({
         trainId: four.id,
         definitionId: '4'
     })

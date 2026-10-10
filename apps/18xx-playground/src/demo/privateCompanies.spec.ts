@@ -383,19 +383,18 @@ it.each([
             expect(description.detail).toContain('So President: UB → alex')
         } else expect(description.detail).toContain('UTF income $50')
         expect(updated.phaseId).toBe(phase)
-        expect(updated.phaseEvents[0].privateEffects.length).toBeGreaterThan(0)
+        const privateEffects = advancement.metadata?.event.privateEffects ?? []
+        expect(privateEffects.length).toBeGreaterThan(0)
         if (definition === Top) {
             for (const id of ['MC', 'VR', 'SB', 'IB', 'SBC', 'HS', 'MLC', 'SLC'])
                 expect(getCompany(updated, id).closed).toBe(true)
             expect(getCompany(updated, 'UB').closed).not.toBe(true)
             expect(getCompany(updated, 'KM').closed).toBe(true)
-            expect(updated.phaseEvents[0].privateEffects).toContainEqual({
+            expect(privateEffects).toContainEqual({
                 kind: 'close',
                 privateCompanyId: 'KM'
             })
-            expect(
-                updated.phaseEvents[0].privateEffects.filter((effect) => effect.kind === 'exchange')
-            ).toHaveLength(3)
+            expect(privateEffects.filter((effect) => effect.kind === 'exchange')).toHaveLength(3)
             expect(getCompany(updated, 'So').president).toEqual({
                 kind: 'player',
                 playerId: 'alex'

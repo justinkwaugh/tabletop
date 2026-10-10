@@ -19,6 +19,7 @@ export type ExamplePlay<
     readonly game: Game
     readonly engine: GameEngine<Raw, State>
     readonly state: Raw
+    readonly processed: readonly GameAction[]
     act(type: string, fields?: object, playerId?: string): void
     valid(playerId: string): string[]
     replaceState(state: Raw): void
@@ -44,9 +45,11 @@ export function playExample<
         state = next
     }
     check(state)
+    const processed: GameAction[] = []
     return {
         game,
         engine,
+        processed,
         get state() {
             return state
         },
@@ -59,7 +62,9 @@ export function playExample<
                 type,
                 ...fields
             }
-            check(engine.executeCanonicalAction({ game, state, action }).updatedState)
+            const result = engine.executeCanonicalAction({ game, state, action })
+            processed.push(...result.processedActions)
+            check(result.updatedState)
         },
         valid: (playerId) => engine.getValidActionTypesForPlayer(game, state, playerId),
         replaceState: check

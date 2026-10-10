@@ -10,7 +10,8 @@ import {
     sameOwner,
     type CompanyDecisionState,
     type EighteenXXState,
-    type Owner
+    type Owner,
+    isAdvancePhase
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
@@ -184,7 +185,7 @@ describe('the Scrapper in play', () => {
                 train.definitionId === '2'
         ).length
         passUntil(play, (state) => state.phaseId === '4')
-        expect(play.state.phaseEvents.at(-1)?.departurePayments).toEqual(
+        expect(play.processed.findLast(isAdvancePhase)?.metadata?.event.departurePayments).toEqual(
             Array(twos).fill({
                 from: { kind: 'bank' },
                 to: company('BA'),
