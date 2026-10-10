@@ -5,7 +5,9 @@ import {
     ChooseLarvaCubes,
     CoralColors,
     FeedParrotfish,
+    IntroduceShrimp,
     MachineState,
+    MoveShrimp,
     PlacePolyp,
     polypAt,
     PlayLarvaCube,
@@ -13,15 +15,17 @@ import {
     TakeOpenSeaSpace,
     type CoralColor,
     type ReefBoardId,
+    type ReefSquare,
     type HydratedReefEncounterGameState,
     type ReefEncounterProjectedState
 } from '@tabletop/reef-encounter'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     hasManualReefSelection,
     popReefSelection,
     setReefSelection,
-    type ReefSelection
+    type ReefSelection,
+    type ShrimpIntent
 } from './stagedSelection.js'
 
 export type PolypSource = 'screen' | 'consumed'
@@ -107,7 +111,7 @@ export class ReefEncounterGameSession extends GameSession<
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
         const placing = this.placing
         const source = this.placementSource
-        if (!placing || !source) return []
+        if (!placing || !source || this.shrimpIntent) return []
         const me = this.myPlayerId()
         return this.gameState.reefs.flatMap((reef) =>
             ReefBoards[reef.boardId].rock
@@ -123,9 +127,36 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     readonly takeableSpaces: CoralColor[] = $derived.by(() => {
-        if (!this.canTake(ActionType.TakeOpenSeaSpace)) return []
+        if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.shrimpIntent) return []
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canTakeOpenSeaSpace(me, color))
+    })
+
+    readonly shrimpIntent: ShrimpIntent | undefined = $derived(this.selection.shrimp?.value)
+    readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
+    readonly hasShrimpOnBareRock = $derived(
+        this.isTakingTurn && this.gameState.hasShrimpOnBareRock(this.myPlayerId())
+    )
+
+    // The viewer's shrimps that may be picked up, while no other shrimp choice is open.
+    readonly movableShrimps: ReefSquare[] = $derived.by(() => {
+        if (!this.canTake(ActionType.MoveShrimp) || this.shrimpIntent) return []
+        const me = this.myPlayerId()
+        return this.gameState.shrimps
+            .filter((shrimp) => shrimp.playerId === me)
+            .map((shrimp) => ({ boardId: shrimp.boardId, coords: shrimp.coords }))
+    })
+
+    readonly shrimpTargets: ReefSquare[] = $derived.by(() => {
+        const intent = this.shrimpIntent
+        if (!intent) return []
+        const me = this.myPlayerId()
+        const squares = this.gameState.reefs.flatMap((reef) =>
+            ReefBoards[reef.boardId].rock.map((coords) => ({ boardId: reef.boardId, coords }))
+        )
+        return intent.kind === 'introduce'
+            ? squares.filter((square) => this.gameState.canIntroduceShrimp(me, square))
+            : squares.filter((square) => this.gameState.canMoveShrimp(me, intent.from, square))
     })
 
     override beforeNewState() {
@@ -188,6 +219,35 @@ export class ReefEncounterGameSession extends GameSession<
     async takeOpenSeaSpace(larvaColor: CoralColor) {
         if (this.busy) return
         await this.applyAction(this.createPlayerAction(TakeOpenSeaSpace, { larvaColor }))
+    }
+
+    startIntroducingShrimp() {
+        this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'introduce' })
+    }
+
+    pickUpShrimp(from: ReefSquare) {
+        this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'move', from })
+    }
+
+    async placeShrimp(square: ReefSquare) {
+        if (this.busy) return
+        const intent = this.shrimpIntent
+        assertExists(intent, 'Placing a shrimp needs a shrimp choice')
+        await this.applyAction(
+            intent.kind === 'introduce'
+                ? this.createPlayerAction(IntroduceShrimp, {
+                      boardId: square.boardId,
+                      coords: square.coords
+                  })
+                : this.createPlayerAction(MoveShrimp, { from: intent.from, to: square })
+        )
+    }
+
+    async returnShrimpBehindScreen() {
+        if (this.busy) return
+        const intent = this.shrimpIntent
+        assert(intent?.kind === 'move', 'Only a picked-up shrimp returns behind the screen')
+        await this.applyAction(this.createPlayerAction(MoveShrimp, { from: intent.from }))
     }
 
     private myPlayerId(): string {

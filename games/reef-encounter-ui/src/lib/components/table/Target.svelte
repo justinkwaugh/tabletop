@@ -9,7 +9,7 @@
     }: {
         box: BoundingBox
         label: string
-        tone?: 'plain' | 'attack'
+        tone?: 'plain' | 'attack' | 'piece'
         onselect: () => void
     } = $props()
 
@@ -47,6 +47,13 @@
         fill: rgb(239 143 46 / 0.22);
         stroke: #ef8f2e;
         stroke-dasharray: 18 9;
+    }
+
+    .target.piece {
+        fill: rgb(255 255 255 / 0);
+        stroke: rgb(255 255 255 / 0.9);
+        stroke-width: 5;
+        stroke-dasharray: 10 8;
     }
 
     .target:hover,

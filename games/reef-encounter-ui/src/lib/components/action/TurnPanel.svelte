@@ -1,10 +1,13 @@
 <script lang="ts">
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
+    import Shrimp from '$lib/components/table/Shrimp.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
     const placing = $derived(gameSession.placing)
+    const intent = $derived(gameSession.shrimpIntent)
+    const myColor = $derived(gameSession.colors.getPlayerBgColorValue(gameSession.myPlayer?.id))
     const me = $derived(gameSession.myPlayerState)
     const consumedLeft = $derived(placing ? (me?.consumedPolyps[placing.color] ?? 0) : 0)
     const screenLeft = $derived.by(() => {
@@ -16,7 +19,23 @@
     })
 </script>
 
-{#if placing}
+{#if intent?.kind === 'introduce'}
+    <p class="prompt reef-display">Choose a polyp for your shrimp</p>
+    <p class="detail">It may go on any coral without a shrimp. Undo cancels.</p>
+{:else if intent?.kind === 'move'}
+    <p class="prompt reef-display">Move your shrimp</p>
+    <p class="detail">
+        Choose a polyp or bare rock, or put it back behind your screen. Undo cancels.
+    </p>
+    <div class="choices">
+        <ChoiceButton
+            label="Put the shrimp back behind your screen"
+            onclick={() => gameSession.returnShrimpBehindScreen()}
+        >
+            <span class="choice-text">Back behind your screen</span>
+        </ChoiceButton>
+    </div>
+{:else if placing}
     <p class="prompt reef-display">Place {placing.color} polyps on the reefs</p>
     <p class="detail">
         {screenLeft} more from behind your screen{consumedLeft > 0
@@ -45,7 +64,7 @@
     <p class="prompt reef-display">Grow your reefs</p>
 {/if}
 
-{#if gameSession.larvaCubesToPlay.length > 0}
+{#if !intent && gameSession.larvaCubesToPlay.length > 0}
     <div class="row">
         <span class="label">
             {placing ? 'Play another larva cube' : 'Play a larva cube'}
@@ -68,6 +87,33 @@
             {/each}
         </div>
     </div>
+{/if}
+
+{#if !intent && (gameSession.canIntroduceShrimp || gameSession.movableShrimps.length > 0)}
+    <div class="row">
+        <span class="label">Shrimps</span>
+        {#if gameSession.canIntroduceShrimp}
+            <ChoiceButton
+                label="Introduce a shrimp"
+                onclick={() => gameSession.startIntroducingShrimp()}
+            >
+                <svg width="22" height="34" viewBox="0 0 22 34" aria-hidden="true">
+                    <Shrimp center={{ x: 11, y: 17 }} size={32} color={myColor} />
+                </svg>
+                <span class="choice-text">Introduce</span>
+            </ChoiceButton>
+        {/if}
+        {#if gameSession.movableShrimps.length > 0}
+            <span class="label">or pick up one of yours on the reefs to move it</span>
+        {/if}
+    </div>
+{/if}
+
+{#if gameSession.hasShrimpOnBareRock && !intent}
+    <p class="warning">
+        Your shrimp on bare rock must move onto a polyp or back behind your screen before your turn
+        can end.
+    </p>
 {/if}
 
 {#if gameSession.takeableSpaces.length > 0}
@@ -108,6 +154,12 @@
     .count.none {
         color: var(--reef-muted);
         font-style: italic;
+    }
+
+    .warning {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #ffd29a;
     }
 
     .end {

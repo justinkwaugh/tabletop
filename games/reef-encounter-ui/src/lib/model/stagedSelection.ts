@@ -1,4 +1,4 @@
-import type { CoralColor } from '@tabletop/reef-encounter'
+import type { CoralColor, ReefSquare } from '@tabletop/reef-encounter'
 import {
     hasManualStagedSelection,
     popHighestManualStagedSelection,
@@ -6,14 +6,18 @@ import {
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
+export type ShrimpIntent = { kind: 'introduce' } | { kind: 'move'; from: ReefSquare }
+
 export type ReefSelectionValues = {
     firstLarvaCube: CoralColor
+    shrimp: ShrimpIntent
 }
 
 export type ReefSelection = StagedSelectionState<ReefSelectionValues>
 
 export const ReefStageOrder = [
-    'firstLarvaCube'
+    'firstLarvaCube',
+    'shrimp'
 ] as const satisfies readonly (keyof ReefSelectionValues)[]
 type MissingStages = Exclude<keyof ReefSelectionValues, (typeof ReefStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true

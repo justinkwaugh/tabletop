@@ -1,82 +1,45 @@
-# UI Interaction Visual Contract
+# Reef Encounter: UI interaction visual contract
 
-This file is required for every new game UI, even if the game does not yet have complex interaction visuals.
+How the action panel and the table share the acting player's choices. Follow `docs/ui-interaction-visual-contract.md` (repository root) when changing it.
 
-Purpose:
-- separate visual intent from implementation details
-- keep layer responsibilities narrow
-- prevent one highlight/dimming change from breaking another interaction
+## Visual intents
 
-If this game has no interactive visual states yet, leave the sections below in place and note `Not yet applicable` where appropriate.
+- **Placing polyps.** Trigger: the player has played a larva cube and has a polyp of its colour to place. Every square that can take one is ringed in white; a square holding a weaker polyp that the new one would attack is ringed in dashed orange instead. Clicking, tapping, or Enter or Space on a focused ring places the polyp. The panel names the colour, how many more may come from behind the screen, and, when consumed polyps could be used too, a choice between the two sources.
+- **Taking an open-sea space.** Trigger: the player may end their turn. Every larva space they may take is ringed in white on the open sea; choosing one ends the turn. The panel says so.
+- **Picking up a shrimp.** Trigger: the player may move a shrimp and no shrimp choice is open. Each of their shrimps on the reefs gets a dashed white ring; choosing one opens _Moving a shrimp_.
+- **Introducing a shrimp.** Trigger: the panel's Introduce button. Every polyp the new shrimp may go on is ringed in white, and the panel asks for one.
+- **Moving a shrimp.** Trigger: picking up a shrimp. Its square gets a solid orange ring, every polyp or bare rock it may move to is ringed in white, and the panel offers _Back behind your screen_.
+- **Bare rock warning.** Trigger: one of the player's shrimps sits on bare rock. The panel warns that it must move before the turn can end; no open-sea space is offered, since the rules forbid ending the turn.
+- **Setup choices.** Feeding the parrotfish and taking larva cubes happen in the panel alone; the chosen first cube is outlined in orange until the second is chosen.
 
-## 1. Visual Intents
+Coral tiles, larva cubes and cylinders on the open sea always stand upright, whatever the board's turn, so a coral tile reads as printed: stronger coral across the top, algae at the lower left.
 
-List each interaction mode separately.
+## Coexistence and precedence
 
-| Intent | Trigger | What should be emphasized | What should be dimmed | What must remain unaffected |
-| --- | --- | --- | --- | --- |
-| example_intent | example trigger | example emphasis | example dimming | example unaffected elements |
+- A shrimp choice (_Introducing_ or _Moving a shrimp_) wins over everything else on the table: while one is open, no placement rings, open-sea rings or shrimp pick-up rings show, and the panel shows only the shrimp prompt.
+- _Placing polyps_, _Taking an open-sea space_ and _Picking up a shrimp_ coexist; each rings different things (reef squares, larva spaces, the player's own shrimps).
+- A square never shows both a placement ring and a shrimp pick-up ring: a polyp is never placed under a shrimp.
+- The _Bare rock warning_ and _Taking an open-sea space_ never coexist: the rules make no space takeable while a shrimp is on bare rock.
 
-## 2. Visual Primitives
+## Shared visual state
 
-List the visual building blocks used by the UI.
+- **Shrimp choice** (`shrimp` stage of the staged selection). Producer: the panel's Introduce button and the board's pick-up rings. Consumers: the board's rings and the panel's prompt. It decides precedence. Lifetime: cleared when a shrimp action commits, by Undo (one press closes it without undoing any game action), and whenever a new state is published. Validity: it only exists while the player may act.
+- **First larva cube** (`firstLarvaCube` stage). Producer and consumer: the setup panel. Lifetime: cleared by the second choice's commit, by Undo, and on every new state.
+- **Polyp source** (screen or consumed). Producer and consumer: the turn panel; the board's rings follow it. Lifetime: cleared on every new state. Validity: when the chosen source has nothing left, the first available source applies instead.
 
-- board spotlight mask
-- invalid-area dimming
-- area overlay fill
-- dual outline
-- piece emphasis
-- card exemption cutout
-- disabled/muted state
+None of these exist in History View or for players who are not acting: every ring and choice derives from the session's `canAct`, which is false there.
 
-For each primitive, document:
-- owner layer
-- allowed inputs
-- forbidden responsibilities
+## Render ownership
 
-## 3. Layer Responsibilities
+- Each reef board draws its own rings inside the same turned drawing as its art, so a ring's hit area always covers the square it rings, whatever the board's rotation. The open sea does the same for larva spaces.
+- Upright pieces on the turned open sea are counter-turned about their own centres; their positions still turn with the board.
 
-| Layer | Owns | Allowed Inputs | Must Not Own |
-| --- | --- | --- | --- |
-| `ExampleLayer` | example responsibility | example inputs | example forbidden scope |
+## Verification scenarios
 
-## 4. Shared State Contracts
+Automated, in `tests/`:
 
-For each shared visual state:
-- semantic meaning
-- producer
-- consumers
-- permitted uses
-- forbidden uses
+- `setup.spec.ts`: every player feeds their parrotfish and takes two cubes; Undo takes back the first cube without undoing the feeding.
+- `turns.spec.ts`: playing a cube rings placements; placing one lowers the count from behind the screen and Undo restores it; taking a space ends the turn.
+- `shrimps.spec.ts`: Introduce hides the open-sea rings and rings polyps; a pick-up closes on Undo without undoing anything; a shrimp left on bare rock shows the warning and no space; sending it behind the screen restores the spaces.
 
-## 5. Forbidden Couplings
-
-- Do not reuse board spotlight state to drive piece emphasis.
-- Do not reuse piece emphasis state to drive board dimming.
-- Do not let one layer infer another layer's visual responsibilities.
-- Do not couple mask exemption and visible overlay styling unless explicitly intended.
-
-## 6. Interaction Matrix
-
-| Intent A | Intent B | Can coexist? | Winner / combination rule |
-| --- | --- | --- | --- |
-| example_a | example_b | yes/no | describe precedence |
-
-## 7. Regression Checklist
-
-- verify existing highlight interactions still work
-- verify existing dimming interactions still work
-- verify unaffected layers remain unaffected
-
-## 8. Change Rules
-
-When touching interactive visuals:
-1. identify the intent being changed
-2. identify the primitives involved
-3. verify whether shared state contracts are being widened
-4. update this document if a new interaction or coupling is introduced
-
-## 9. Status
-
-- Interactive visual system status: `Not yet applicable` / `Initial` / `Established`
-- Last updated for interaction change:
+Manual: attack rings show dashed orange on a weaker polyp joined to a coral of at least two (not yet reachable in a short automated game).
