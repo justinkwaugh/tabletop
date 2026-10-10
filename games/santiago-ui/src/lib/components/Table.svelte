@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { isNeutralPlacementStage, isPlantTurn } from '$lib/model/turnRules.js'
     import {
         ScalingWrapper,
         DefaultTableLayout,
@@ -9,21 +10,23 @@
         GameSession
     } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/santiago'
-    import { setGameSession, getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
-    import type { SantiagoGameSession } from '$lib/stores/SantiagoGameSession.svelte.js'
+    import { SantiagoGameSession } from '$lib/stores/SantiagoGameSession.svelte.js'
+    import { untrack } from 'svelte'
     import type { SantiagoProjectedState, HydratedSantiagoGameState } from '@tabletop/santiago'
     import Board from './Board.svelte'
     import ActionPanel from './ActionPanel.svelte'
     import ActionToolbar from './ActionToolbar.svelte'
     import PlayerActionBar from './PlayerActionBar.svelte'
+    import MoodTuner from './MoodTuner.svelte'
     import LastActionBanner from './LastActionBanner.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import History from './History.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { desertUrl } from '$lib/utils/imageUrls.js'
     import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
-    import { useBoardCenterX } from '$lib/utils/boardCenter.svelte.js'
+    import { centerOverBoard } from '$lib/utils/boardCenter.js'
     import BitterFont from '$lib/fonts/Bitter.woff2'
     import LoraFont from '$lib/fonts/Lora.woff2'
 
@@ -31,27 +34,26 @@
         gameSession
     }: { gameSession: GameSession<SantiagoProjectedState, HydratedSantiagoGameState> } = $props()
 
-    // svelte-ignore state_referenced_locally
-    setGameSession(gameSession as SantiagoGameSession)
+    function ensureSantiagoGameSession(
+        session: GameSession<SantiagoProjectedState, HydratedSantiagoGameState>
+    ): SantiagoGameSession {
+        if (session instanceof SantiagoGameSession) return session
+        throw new Error('Table expected a SantiagoGameSession')
+    }
 
-    const deal = getGameSession().tileDeal
+    const session = untrack(() => ensureSantiagoGameSession(gameSession))
+    setGameSession(session)
 
-    const session = $derived(gameSession as SantiagoGameSession)
+    const deal = session.tileDeal
+    const preview = session.boardPreview
     const state = $derived(session.gameState)
     const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
-    const isTileReveal = $derived(state.machineState === MachineState.TileReveal)
     const isBidding = $derived(state.machineState === MachineState.Bidding)
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
-    const myId = $derived(session.myPlayer?.id)
-    const isMyPlantTurn = $derived(isPlanting && state.plantersOrder?.[state.planterIndex] === myId)
-    const isNeutralPlacementMode = $derived(
-        isPlanting &&
-        (state.planterIndex ?? 0) >= (state.plantersOrder?.length ?? Infinity) &&
-        (state.players?.length ?? 0) === 3 &&
-        (state.revealedTiles?.length ?? 0) > 0
-    )
+    const isMyPlantTurn = $derived(isPlantTurn(state, session.myPlayer?.id))
+    const isNeutralPlacementMode = $derived(isNeutralPlacementStage(state))
     const revealedTiles = $derived(
-        deal.dealingTiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
+        preview.tiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
     )
 
     const displayTiles = $derived(
@@ -72,13 +74,9 @@
     const playerName = (id: string) =>
         session.game?.players.find((p) => p.id === id)?.name ?? id
 
-    // Tracks the board's live horizontal center (relative to the bar above it) so that
-    // bar's contents can be centered over just the board rather than over the board +
-    // the tile strip beside it. Board.svelte doesn't expose a bindable root element, so
-    // this wraps it in a plain div below and measures via getBoundingClientRect.
+    // Board.svelte doesn't expose a bindable root element, so this wraps it in a plain div below
+    // for centerOverBoard to measure.
     let boardEl: HTMLDivElement | undefined
-    let topBarEl: HTMLDivElement | undefined
-    const boardCenter = useBoardCenterX(() => boardEl, () => topBarEl)
 </script>
 
 <style>
@@ -88,11 +86,26 @@
     transition: transform 0.15s ease-out;
 }
 
-/* Lora as Santiago's default body font, scoped to just this game's own subtree
-   (via :global + the .santiago-root ancestor) rather than overriding Tailwind's
-   shared --font-sans token, which would leak into the surrounding host page/harness
-   chrome that isn't part of Santiago at all. */
-:global(.santiago-root) {
+/* Lora as Santiago's default body font, set on this game's own root and inherited by its
+   subtree, rather than overriding Tailwind's shared --font-sans token, which would leak into
+   the host page and harness chrome around it. */
+/* Short screens, such as a phone held sideways: the board keeps a usable height, and the game
+   column scrolls to reach it rather than squeezing it to nothing. */
+@media (max-height: 500px) {
+    .board-area {
+        min-height: 260px;
+    }
+}
+
+/* Phones: everything above the board, text and controls alike, at a smaller scale. */
+@media (max-width: 639px), (max-height: 500px) {
+    .above-board {
+        --above-board-zoom: 0.85;
+        zoom: var(--above-board-zoom);
+    }
+}
+
+.santiago-root {
     font-family: 'Lora', ui-serif, Georgia, serif;
 }
 </style>
@@ -111,6 +124,9 @@
 <CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
 
 <div class="santiago-root earth-texture bg-[#1c1410]" {@attach attachAnimator(deal)}>
+    {#if session.isDeveloperHarness}
+        <MoodTuner />
+    {/if}
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -157,15 +173,15 @@
 
         {#snippet gameContent()}
             <!-- Top part is not allowed to shrink -->
-            <div class="shrink-0" bind:this={topBarEl}>
+            <div class="above-board shrink-0" {@attach centerOverBoard(() => boardEl)}>
                 <ActionToolbar />
-                <LastActionBanner boardCenterX={boardCenter.value} />
-                <PlayerActionBar boardCenterX={boardCenter.value} />
+                <LastActionBanner />
+                <PlayerActionBar />
             </div>
             <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size -->
-            <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-right">
+            <div class="board-area grow-0 overflow-hidden" style="flex:1;">
+                <ScalingWrapper justify="left" controls="bottom-right">
                     <div class="w-fit">
                         <!-- ScalingWrapper (a shared library component) clips to its own
                              measured content box — CSS overflow:visible on anything inside
@@ -175,100 +191,107 @@
                              the box ScalingWrapper actually measures and doesn't clip. -->
                         <div class="pl-8 pr-8 pt-4">
                             <div class="flex items-start gap-4">
-                                {#if displayTiles.length > 0 || isTileReveal}
-                                    <!-- This round's tiles with the draw pile below them — a
-                                         vertical strip to the board's left, top-aligned with it,
-                                         for the whole round. Before the reveal the pile stands
-                                         alone at the top. mt-5 gives the top element's hover
-                                         scale-up clearance against ScalingWrapper's measured
-                                         content box; Board is taller than this column, so it
-                                         borrows from already-reserved height. -->
-                                    <div class="flex flex-col gap-2 shrink-0 mt-5" style="perspective: 900px">
-                                        {#each displayTiles as { tile, isSelected }, i (i)}
-                                            <div
-                                                class="shrink-0"
-                                                style="transform-style: preserve-3d"
-                                                {@attach (el) => {
-                                                    deal.setTileNode(i, el)
-                                                    return () => deal.setTileNode(i, undefined)
-                                                }}
-                                            >
-                                                {#if deal.dealingTiles}
-                                                    <!-- Two faces for the deal: the pile's back design
-                                                         and the tile's face, which the animator turns
-                                                         over once the pile has come to rest on it. -->
-                                                    <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d">
-                                                        <img src={desertUrl} alt=""
-                                                             class="absolute inset-0 w-full h-full rounded-md object-cover"
-                                                             style="backface-visibility: hidden" />
-                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                             alt={tile.crop}
-                                                             class="absolute inset-0 w-full h-full rounded-md object-cover"
-                                                             style="backface-visibility: hidden; transform: rotateY(180deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                    </div>
-                                                {:else if isSelected}
-                                                    <div class="rounded-md overflow-hidden tile-selected shrink-0"
-                                                         style="width:{CELL_W}px; height:{CELL_H}px">
-                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                             alt={tile.crop}
-                                                             class="w-full h-full object-cover" />
-                                                    </div>
-                                                {:else if isMyPlantTurn}
-                                                    <button
-                                                        onclick={() => session.selectTile(i)}
-                                                        class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                        style="width:{CELL_W}px; height:{CELL_H}px"
-                                                    >
-                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                             alt={tile.crop}
-                                                             class="w-full h-full object-cover"
-                                                             style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                    </button>
-                                                {:else if isNeutralPlacementMode}
-                                                    <button
-                                                        onclick={() => session.selectTile(i)}
-                                                        class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                        style="width:{CELL_W}px; height:{CELL_H}px"
-                                                    >
-                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                             alt={tile.crop}
-                                                             class="w-full h-full object-cover"
-                                                             style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
-                                                    </button>
-                                                {:else}
+                                <!-- This round's tiles with the draw pile below them — a
+                                     vertical strip to the board's left, top-aligned with it,
+                                     in every phase so the board never shifts sideways. Before
+                                     the reveal and after planting the pile stands alone at the
+                                     top; once the bag is empty an outline keeps its place.
+                                     mt-5 gives the top element's hover scale-up clearance
+                                     against ScalingWrapper's measured content box; Board is
+                                     taller than this column, so it borrows from
+                                     already-reserved height. Each slot is a flex box, so a
+                                     tile that becomes a button doesn't gain the descender
+                                     space an inline box reserves below it. -->
+                                <div class="flex flex-col gap-2 shrink-0 mt-5" style="perspective: 900px">
+                                    {#each displayTiles as { tile, isSelected }, i (i)}
+                                        <div
+                                            class="flex shrink-0"
+                                            style="transform-style: preserve-3d"
+                                        >
+                                            {#if preview.dealing}
+                                                <!-- Two faces for the deal: the pile's back design
+                                                     and the tile's face, which the animator turns
+                                                     over once the pile has come to rest on it. The
+                                                     deal's styles live on this card, so they go
+                                                     with it when the deal ends. -->
+                                                <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d"
+                                                     {@attach (el: HTMLElement) => {
+                                                         deal.setTileNode(i, el)
+                                                         return () => deal.setTileNode(i, undefined)
+                                                     }}>
+                                                    <img src={desertUrl} alt=""
+                                                         class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                         style="backface-visibility: hidden" />
                                                     <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                                          alt={tile.crop}
-                                                         class="rounded-md object-cover"
-                                                         style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                {/if}
-                                            </div>
-                                        {/each}
-                                        {#if state.getRemainingTileCount() > 0}
-                                            <div
-                                                class="relative z-10 shrink-0"
-                                                {@attach (el) => {
-                                                    deal.setDrawPile(el)
-                                                    return () => deal.setDrawPile(undefined)
-                                                }}
-                                            >
-                                                {#if session.canRevealTiles}
-                                                    <button
-                                                        onclick={() => session.revealTiles()}
-                                                        aria-label="Reveal this round's fields"
-                                                        class="relative rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                        style="width:{CELL_W}px; height:{CELL_H}px"
-                                                    >
-                                                        {@render drawPile()}
-                                                    </button>
-                                                {:else}
-                                                    <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
-                                                        {@render drawPile()}
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        {/if}
-                                    </div>
-                                {/if}
+                                                         class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                         style="backface-visibility: hidden; transform: rotateY(180deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                </div>
+                                            {:else if isSelected}
+                                                <div class="rounded-md overflow-hidden tile-selected shrink-0"
+                                                     style="width:{CELL_W}px; height:{CELL_H}px">
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover" />
+                                                </div>
+                                            {:else if isMyPlantTurn}
+                                                <button
+                                                    onclick={() => session.selectTile(i)}
+                                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover"
+                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                </button>
+                                            {:else if isNeutralPlacementMode}
+                                                <button
+                                                    onclick={() => session.selectTile(i)}
+                                                    class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover"
+                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
+                                                </button>
+                                            {:else}
+                                                <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                     alt={tile.crop}
+                                                     class="rounded-md object-cover"
+                                                     style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                            {/if}
+                                        </div>
+                                    {/each}
+                                    {#if state.getRemainingTileCount() > 0}
+                                        <div
+                                            class="relative z-10 flex shrink-0"
+                                            {@attach (el) => {
+                                                deal.setDrawPile(el)
+                                                return () => deal.setDrawPile(undefined)
+                                            }}
+                                        >
+                                            {#if session.canRevealTiles}
+                                                <button
+                                                    onclick={() => session.revealTiles()}
+                                                    aria-label="Reveal this round's fields"
+                                                    class="relative rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    {@render drawPile()}
+                                                </button>
+                                            {:else}
+                                                <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
+                                                    {@render drawPile()}
+                                                </div>
+                                            {/if}
+                                        </div>
+                                    {:else}
+                                        <div class="rounded-md border-2 border-dashed border-amber-900/50"
+                                             style="width:{CELL_W}px; height:{CELL_H}px"></div>
+                                    {/if}
+                                </div>
                                 <div bind:this={boardEl}>
                                     <Board />
                                 </div>

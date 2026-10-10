@@ -1,35 +1,49 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
     import { Color } from '@tabletop/common'
+    import { fade } from 'svelte/transition'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import { bribePillKey } from '$lib/animators/bribePopAnimator.svelte.js'
+    import { DUST_PARTICLES, dustParticleKey } from '$lib/animators/droughtDustAnimator.svelte.js'
+    import { groupProposalsBySegment } from '$lib/model/turnRules.js'
+    import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import BirdLayer from '$lib/birds/BirdLayer.svelte'
+    import SunWash from './SunWash.svelte'
+    import DustMotes from './DustMotes.svelte'
+    import SurveyLine from './SurveyLine.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { boardUrl, desertUrl, palmtreeUrl } from '$lib/utils/imageUrls.js'
     import {
         W, H, BORDER_X, BORDER_Y, FIELD_W, FIELD_H, CELL_W, CELL_H,
-        GRID_TEMPLATE_COLUMNS, GRID_TEMPLATE_ROWS, gridLine, intersectionX, intersectionY
+        GRID_TEMPLATE_COLUMNS, GRID_TEMPLATE_ROWS, COL_STARTS, gridLine, intersectionX, intersectionY
     } from '$lib/utils/boardGeometry.js'
+    import { CANAL_HALF_THICKNESS, intersectionKey, segmentEndpointKeys, segmentEnds, segmentKey, waterEntersAtFarEnd } from '$lib/utils/canalGeometry.js'
 
     const session = getGameSession()
+    const canalBuild = session.canalBuild
+    const bribePop = session.bribePop
+    const fieldPop = session.fieldPop
+    const droughtDust = session.droughtDust
+    const boardCanals = $derived(canalBuild.canals ?? session.gameState.board.canals)
+    const waterNetwork = $derived({ spring: session.gameState.board.spring, canals: boardCanals })
 
-    // Placed-canal visual thickness.
-    const CANAL_THICKNESS = 12.48 // 9.6 * 1.3 — ~30% thicker
-    const CANAL_HALF_THICKNESS = CANAL_THICKNESS / 2
-
-    function segCoords(seg: { orientation: 'H' | 'V'; col: number; row: number }) {
-        const x = intersectionX(seg.col)
-        const y = intersectionY(seg.row)
-        return seg.orientation === 'H'
-            ? { x1: x, y1: y, x2: intersectionX(seg.col + 1), y2: y }
-            : { x1: x, y1: y, x2: x, y2: intersectionY(seg.row + 1) }
-    }
 
     const fieldImage = fieldImageUrl
 
     // Deterministic pseudo-random tilt per cell — looks like a real piece placed on a board
     function fieldRotation(col: number, row: number): number {
         return ((col * 7 + row * 11 + col * row * 3) % 17 - 8) * 0.125
+    }
+
+    function swayPhase(seg: CanalSegment): number {
+        return ((seg.col * 7 + seg.row * 13 + (seg.orientation === 'H' ? 5 : 0)) % 17) / 17
+    }
+
+    function palmSwayStyle(col: number, row: number): string {
+        const seconds = 4.5 + ((col * 3 + row * 5) % 7) * 0.4
+        const offset = ((col * 11 + row * 7) % 13) / 13
+        return `animation-duration: ${seconds}s; animation-delay: ${-offset * seconds}s`
     }
 
     function cubeRotation(col: number, row: number, i: number): number {
@@ -74,9 +88,9 @@
         return session.colors.getPlayerColor(playerId) === Color.Yellow
     }
 
-    // Direction the dashes should flow: -1 makes them march toward (x2,y2) / (right or down);
-    // +1 makes them march toward (x1,y1) / (left or up). Spring is always the source.
-    function segFlowDir(seg: { orientation: 'H' | 'V'; col: number; row: number }): -1 | 1 {
+    // Which way water runs along a segment, taking the spring as the source: -1 toward (x2,y2)
+    // (right or down), +1 toward (x1,y1) (left or up). Canal sparkles drift this way.
+    function segFlowDir(seg: CanalSegment): -1 | 1 {
         const spring = session.gameState.board.spring
         if (seg.orientation === 'H') {
             return spring.col <= seg.col ? -1 : 1
@@ -86,13 +100,12 @@
     }
 
     // Proposed canals grouped by segment — shown during the full CanalBuilding phase
-    const proposedSegments = $derived.by(() => {
-        if (session.gameState.machineState !== MachineState.CanalBuilding) return []
-        return session.segmentProposals.map((sp) => ({
-            segment: sp.segment as CanalSegment,
+    const proposedSegments = $derived(
+        groupProposalsBySegment(bribePop.proposals ?? session.canalProposals).map((sp) => ({
+            segment: sp.segment,
             contributions: sp.contributions.map(c => ({ playerId: c.playerId, color: playerColor(c.playerId), amount: c.amount })),
         }))
-    })
+    )
 
     const isOverseerDeciding = $derived(
         session.gameState.machineState === MachineState.CanalBuilding &&
@@ -100,23 +113,64 @@
         session.isOverseerDecisionPhase
     )
 
-    // Valid canal locations that received no bribe — shown to the overseer as a
-    // "reject all & build here" label with the penalty cost, alongside the bribe labels.
-    const unbribedSegments = $derived.by(() => {
-        if (!isOverseerDeciding) return []
-        const bribed = new Set(proposedSegments.map(ps => labelKey(ps.segment)))
-        return session.validSegments.filter(seg => !bribed.has(labelKey(seg)))
+    const bribeColorsByKey = $derived(new Map(proposedSegments.map((ps) => [
+        segmentKey(ps.segment),
+        ps.contributions.map((c) => c.color)
+    ])))
+
+    const BRIBE_PILL_HALF_WIDTH = 20
+    const BANK_PILL_HALF_WIDTH = 32
+    const PILL_SPACING_ALONG_H = 48
+    const PILL_SPACING_ALONG_V = 36
+    const PILL_RISE = 40
+    const PILL_DROP = 30
+    const PILL_GAP = 8
+    const PENNANT_SIDE_CLEARANCE = 18
+    // Nothing outside the board's top and right edges is visible, so spots there put their pills
+    // below the twine or to its left, and a horizontal spot's row of pills shifts to stay on the
+    // board.
+    function pillCenter(seg: CanalSegment, index: number, count: number, halfWidth: number): { cx: number; cy: number } {
+        const c = segmentEnds(seg)
+        if (seg.orientation === 'H') {
+            const rowHalfSpan = ((count - 1) / 2) * PILL_SPACING_ALONG_H + halfWidth
+            const rowCenter = Math.min(Math.max((c.x1 + c.x2) / 2, rowHalfSpan), W - rowHalfSpan)
+            return {
+                cx: rowCenter + (index - (count - 1) / 2) * PILL_SPACING_ALONG_H,
+                cy: seg.row === 0 ? c.y1 + PILL_DROP : c.y1 - PILL_RISE
+            }
+        }
+        const onRightEdge = seg.col === COL_STARTS.length
+        return {
+            cx: onRightEdge ? c.x1 - PENNANT_SIDE_CLEARANCE - halfWidth : c.x1 + PILL_GAP + halfWidth,
+            cy: (c.y1 + c.y2) / 2 + (index - (count - 1) / 2) * PILL_SPACING_ALONG_V
+        }
+    }
+
+    let hoveredLabelKey = $state<string | null>(null)
+
+    // A finger has no hover, so on touch the first tap on an unbribed spot reveals its cost to the
+    // bank, and building there takes a tap on that cost. Any change of state forgets the reveal.
+    let lastSegmentPointer = 'mouse'
+    let revealedBankKey: string | null = $derived.by(() => {
+        void session.gameState
+        return null
     })
+
+    function tapSegment(seg: CanalSegment, buildsForBankCost: boolean) {
+        const key = segmentKey(seg)
+        if (buildsForBankCost && lastSegmentPointer === 'touch' && revealedBankKey !== key) {
+            revealedBankKey = key
+            return
+        }
+        handleSegmentClick(seg)
+    }
 
     // Grid nodes touched by ≥2 canal segments — those ends get a square (not rounded)
     // cap, so adjoining segments' rectangles tile together with no gap and no patch needed.
     const canalJunctionKeys = $derived.by(() => {
         const counts = new Map<string, number>()
-        for (const seg of session.gameState.board.canals) {
-            const endpoints = seg.orientation === 'H'
-                ? [`${seg.col},${seg.row}`, `${seg.col + 1},${seg.row}`]
-                : [`${seg.col},${seg.row}`, `${seg.col},${seg.row + 1}`]
-            for (const key of endpoints) {
+        for (const seg of boardCanals) {
+            for (const key of segmentEndpointKeys(seg)) {
                 counts.set(key, (counts.get(key) ?? 0) + 1)
             }
         }
@@ -124,7 +178,7 @@
     })
 
     function hasCanalSegment(col: number, row: number, orientation: 'H' | 'V'): boolean {
-        return session.gameState.board.canals.some(
+        return boardCanals.some(
             (s) => s.orientation === orientation && s.col === col && s.row === row
         )
     }
@@ -206,7 +260,7 @@
     // Builds a canal segment as a path (rather than a plain rect) so each end can be
     // independently rounded (true dead end) or square (connects to another segment).
     function canalPathD(seg: CanalSegment, junctionKeys: Set<string>): string {
-        const c = segCoords(seg)
+        const c = segmentEnds(seg)
         const r = CANAL_HALF_THICKNESS
         if (seg.orientation === 'H') {
             const startFree = !junctionKeys.has(`${seg.col},${seg.row}`)
@@ -252,19 +306,33 @@
         return d + 'Z'
     }
 
-    let hoveredLabelKey = $state<string | null>(null)
-    function labelKey(seg: CanalSegment) { return `${seg.orientation},${seg.col},${seg.row}` }
 
     type Sparkle = { x: number; y: number; dx: number; dy: number; scale: number; rotate: number; id: number }
     let sparkles = $state<Sparkle[]>([])
     let sparkleId = 0
+    const SPARKLE_LIFETIME_MS = 1200
+    const sparkleRemovals = new Set<ReturnType<typeof setTimeout>>()
+
+    function addSparkle(sparkle: Sparkle) {
+        sparkles = [...sparkles, sparkle]
+        const removal = setTimeout(() => {
+            sparkleRemovals.delete(removal)
+            sparkles = sparkles.filter((x) => x.id !== sparkle.id)
+        }, SPARKLE_LIFETIME_MS)
+        sparkleRemovals.add(removal)
+    }
+
+    onMount(() => () => {
+        for (const removal of sparkleRemovals) clearTimeout(removal)
+        sparkleRemovals.clear()
+    })
 
     onMount(() => {
         function spawnSparkle() {
             const canals = session.gameState.board.canals
             if (canals.length === 0) return
             const seg = canals[Math.floor(Math.random() * canals.length)]
-            const c = segCoords(seg)
+            const c = segmentEnds(seg)
             const t = 0.15 + Math.random() * 0.7
             const dir = segFlowDir(seg)
             const drift = 8
@@ -278,8 +346,7 @@
                 rotate: (Math.random() - 0.5) * 60,
                 id: ++sparkleId
             }
-            sparkles = [...sparkles, s]
-            setTimeout(() => { sparkles = sparkles.filter(x => x.id !== s.id) }, 1200)
+            addSparkle(s)
         }
 
         let timeout: ReturnType<typeof setTimeout>
@@ -312,8 +379,7 @@
                 rotate: (Math.random() - 0.5) * 60,
                 id: ++sparkleId
             }
-            sparkles = [...sparkles, s]
-            setTimeout(() => { sparkles = sparkles.filter(x => x.id !== s.id) }, 1200)
+            addSparkle(s)
         }
 
         let timeout: ReturnType<typeof setTimeout>
@@ -326,12 +392,28 @@
 </script>
 
 <style>
-@keyframes marchingAnts {
-    from { stroke-dashoffset: var(--dash-start, 0); }
-    to   { stroke-dashoffset: var(--flow-end, -10); }
+.board-shell :global(.survey .bank-pill) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-out;
 }
-.canal-animated {
-    animation: marchingAnts 1.67s linear infinite;
+.board-shell :global(.survey:hover .bank-pill),
+.board-shell :global(.survey .bank-pill.revealed) {
+    opacity: 1;
+    pointer-events: all;
+}
+@keyframes palm-sway {
+    0%, 100% { transform: rotate(-1.5deg) skewX(0.6deg); }
+    50%      { transform: rotate(1.8deg) skewX(-0.8deg); }
+}
+.palm-sway {
+    transform-origin: 50% 92%;
+    animation-name: palm-sway;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .palm-sway { animation: none; }
 }
 @keyframes sparkle-pop {
     0%   { opacity: 0;   transform: translate(0px, 0px) scale(0.2); }
@@ -344,6 +426,9 @@
     transform-box: fill-box;
     transform-origin: center;
     pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .canal-sparkle { display: none; }
 }
 
 .board-shell {
@@ -364,6 +449,9 @@
 .board-surface {
     border-radius: 14px;
     overflow: hidden;
+    /* Its own stacking context, so a square lifted above its neighbours while it pops still
+       sits beneath the sunlight drawn over the whole board. */
+    isolation: isolate;
     box-shadow:
         0 0 0 5px rgba(58, 28, 10, 0.32),
         0 10px 22px rgba(30, 14, 4, 0.35);
@@ -411,7 +499,7 @@
          style="left: {BORDER_X}px; top: {BORDER_Y}px; width: {FIELD_W}px; height: {FIELD_H}px; grid-template-columns: {GRID_TEMPLATE_COLUMNS}; grid-template-rows: {GRID_TEMPLATE_ROWS}">
         {#each Array(6) as _, row (row)}
             {#each Array(8) as _, col (col)}
-                {@const sq = session.gameState.board.squares[col][row]}
+                {@const sq = (session.boardPreview.squares ?? session.gameState.board.squares)[col][row]}
                 {@const highlight = fieldHighlight(col, row)}
                 {@const neutralOk = isValidNeutralPlacement(col, row)}
                 <button
@@ -432,30 +520,49 @@
                     {/if}
                     {#if !isFieldSquare(sq)}
                         {#if sq.hasPalmTree}
-                            <img src={palmtreeUrl} alt="palm tree" class="absolute inset-0 w-full h-full object-contain p-1" />
+                            <img src={palmtreeUrl} alt="palm tree" class="palm-sway absolute inset-0 w-full h-full object-contain p-1" style={palmSwayStyle(col, row)} />
                         {/if}
                     {:else if sq.dried}
                         <img src={desertUrl} alt="desert"
                              class="absolute object-cover"
                              style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
                     {:else}
-                        <img src={fieldImage(sq.crop, sq.farmerCapacity)}
-                             alt=""
-                             class="absolute object-cover"
-                             style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                        <!-- Farmer cubes — only for owned fields -->
-                        {#if sq.playerId}
-                            <div class="absolute flex gap-[2px]" style="left: calc(20% - 7px); bottom: calc(20% - 6px)">
-                                {#each Array(sq.farmerCount) as _, i (i)}
-                                    <div class="w-[18px] h-[18px] rounded-[4px]"
-                                         style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
+                        <div class="absolute inset-0" {@attach fieldPop.field(col, row)}>
+                            {#if droughtDust.flipping.includes(intersectionKey(col, row))}
+                                <!-- Drying: the field's card turns over to its desert side. -->
+                                <div class="absolute" style="inset:3px; perspective: 600px">
+                                    <div class="relative w-full h-full" style="transform-style: preserve-3d"
+                                         {@attach droughtDust.flipCard(col, row)}>
+                                        <img src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                             alt=""
+                                             class="absolute inset-0 w-full h-full object-cover"
+                                             style="backface-visibility: hidden; border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                                        <img src={desertUrl}
+                                             alt=""
+                                             class="absolute inset-0 w-full h-full object-cover"
+                                             style="backface-visibility: hidden; border-radius:3px; transform:rotateY(180deg) rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
                                     </div>
-                                {/each}
-                            </div>
-                        {/if}
-                        {#if sq.hasPalmTree}
-                            <img src={palmtreeUrl} alt="palm tree" class="absolute bottom-0.5 right-0.5 w-8 h-8 object-contain" />
-                        {/if}
+                                </div>
+                            {:else}
+                                <img src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                     alt=""
+                                     class="absolute object-cover"
+                                     style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
+                            {/if}
+                            <!-- Farmer cubes — only for owned fields -->
+                            {#if sq.playerId}
+                                <div class="absolute flex gap-[2px]" style="left: calc(20% - 7px); bottom: calc(20% - 6px)">
+                                    {#each Array(sq.farmerCount) as _, i (i)}
+                                        <div class="w-[18px] h-[18px] rounded-[4px]"
+                                             style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+                            {#if sq.hasPalmTree}
+                                <img src={palmtreeUrl} alt="palm tree" class="palm-sway absolute bottom-0.5 right-0.5 w-8 h-8 object-contain" style={palmSwayStyle(col, row)} />
+                            {/if}
+                        </div>
                     {/if}
                 </button>
             {/each}
@@ -467,8 +574,28 @@
          overflow:hidden (needed to round the board image's corners) doesn't clip labels
          that land near the board's edges; positioned to match .board-surface exactly. -->
     <svg class="absolute" width={W} height={H} viewBox="0 0 {W} {H}"
-         style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none">
+         style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none"
+         {@attach attachAnimator(canalBuild)}
+         {@attach attachAnimator(bribePop)}
+         {@attach attachAnimator(fieldPop)}
+         {@attach attachAnimator(droughtDust)}>
         <defs>
+            <clipPath id="canalReveal">
+                <rect x="0" y="0" width={W} height={H}
+                      {@attach (el: SVGRectElement) => {
+                          canalBuild.setRevealRect(el)
+                          return () => canalBuild.setRevealRect(undefined)
+                      }} />
+            </clipPath>
+            <radialGradient id="droughtDust">
+                <stop offset="0%" stop-color="rgb(238, 214, 172)" stop-opacity="1"/>
+                <stop offset="60%" stop-color="rgb(228, 200, 154)" stop-opacity="0.75"/>
+                <stop offset="100%" stop-color="rgb(218, 188, 140)" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="surveyStakeWood" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#f0c48a"/>
+                <stop offset="100%" stop-color="#b47a42"/>
+            </linearGradient>
             <!-- Horizontal piece: lighter on top edge (light from above) -->
             <linearGradient id="canalH" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   stop-color="#8888cc"/>
@@ -535,11 +662,13 @@
              The mask then softens each junction's one genuinely exposed corner with a
              small curve (see canalCornerMask above). -->
         <g mask="url(#canalCornerMask)">
-            {#each session.gameState.board.canals as seg, i (i)}
+            {#each boardCanals as seg (segmentKey(seg))}
                 {@const isH = seg.orientation === 'H'}
                 {@const d = canalPathD(seg, canalJunctionKeys)}
-                <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
-                <path {d} fill={isH ? 'url(#canalFadeH)' : 'url(#canalFadeV)'}/>
+                <g clip-path={segmentKey(seg) === canalBuild.revealingKey ? 'url(#canalReveal)' : undefined}>
+                    <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
+                    <path {d} fill={isH ? 'url(#canalFadeH)' : 'url(#canalFadeV)'}/>
+                </g>
             {/each}
         </g>
 
@@ -554,6 +683,15 @@
             <path d={concaveFilletPathD(f)} fill="#0000a0" />
         {/each}
         -->
+
+        {#each droughtDust.puffs as puff (puff.key)}
+            <g transform="translate({puff.x} {puff.y})">
+                {#each { length: DUST_PARTICLES } as _, i (i)}
+                    <circle r={7 + (i % 3) * 2.5} fill="url(#droughtDust)" opacity="0"
+                            {@attach droughtDust.particle(dustParticleKey(puff.key, i))} />
+                {/each}
+            </g>
+        {/each}
 
         <!-- Canal sparkles — small glints that drift along placed canal segments -->
         {#each sparkles as s (s.id)}
@@ -570,115 +708,98 @@
             </g>
         {/each}
 
-        <!-- Proposed canals — labels only; dashed lines come from the validSegments layer unchanged. -->
-        {#snippet bribeLabel(cx: number, cy: number, fill: string, textColor: string, amount: number, extraStyle: string)}
-            <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                  fill={fill}
-                  stroke="black" stroke-width="1"
-                  opacity="0.9"
-                  style={extraStyle} />
-            <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                  fill={textColor} font-size="16" font-weight="bold"
-                  style="font-family:sans-serif; {extraStyle}">{amount}</text>
+        {#snippet bribeLabel(segment: CanalSegment, contrib: { playerId: string; color: string; amount: number }, cx: number, cy: number, hovered: boolean)}
+            <g transform="translate({cx} {cy})">
+                <g {@attach bribePop.pill(bribePillKey(segment, contrib.playerId))}>
+                    <g style="transform: scale({hovered ? 1.15 : 1}); transition: transform 0.12s ease-out">
+                        <rect x={-BRIBE_PILL_HALF_WIDTH} y="-14" width={BRIBE_PILL_HALF_WIDTH * 2} height="28" rx="6"
+                              fill={contrib.color}
+                              stroke="black" stroke-width="1"
+                              opacity="0.9" />
+                        <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+                              fill={isYellowPlayer(contrib.playerId) ? 'black' : 'white'} font-size="16" font-weight="bold"
+                              style="font-family:sans-serif">{contrib.amount}</text>
+                    </g>
+                </g>
+            </g>
         {/snippet}
         {#each proposedSegments as ps, psIndex (psIndex)}
-            {@const c = segCoords(ps.segment)}
-            {@const isH = ps.segment.orientation === 'H'}
-            {@const mx = (c.x1 + c.x2) / 2}
-            {@const my = (c.y1 + c.y2) / 2}
             {@const n = ps.contributions.length}
             {#if isOverseerDeciding}
-                {@const key = labelKey(ps.segment)}
+                {@const key = segmentKey(ps.segment)}
                 {@const hovered = hoveredLabelKey === key}
                 <g style="pointer-events: all; cursor: pointer; touch-action: manipulation"
                    onclick={() => session.acceptProposal(ps.segment)}
                    onmouseenter={() => hoveredLabelKey = key}
                    onmouseleave={() => hoveredLabelKey = null}>
                     {#each ps.contributions as contrib, i (i)}
-                        {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
-                        {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
-                        {@const isYellow = isYellowPlayer(contrib.playerId)}
-                        {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
-                        {@render bribeLabel(cx, cy, contrib.color, isYellow ? 'black' : 'white', contrib.amount, popStyle)}
+                        {@const { cx, cy } = pillCenter(ps.segment, i, n, BRIBE_PILL_HALF_WIDTH)}
+                        {@render bribeLabel(ps.segment, contrib, cx, cy, hovered)}
                     {/each}
                 </g>
             {:else}
                 {#each ps.contributions as contrib, i (i)}
-                    {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
-                    {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
-                    {@const isYellow = isYellowPlayer(contrib.playerId)}
-                    {@render bribeLabel(cx, cy, contrib.color, isYellow ? 'black' : 'white', contrib.amount, '')}
+                    {@const { cx, cy } = pillCenter(ps.segment, i, n, BRIBE_PILL_HALF_WIDTH)}
+                    {@render bribeLabel(ps.segment, contrib, cx, cy, false)}
                 {/each}
             {/if}
         {/each}
 
-        <!-- Unbribed canal locations — overseer can click to reject all bribes and build here for a penalty -->
-        {#each unbribedSegments as seg, i (i)}
-            {@const c = segCoords(seg)}
-            {@const isH = seg.orientation === 'H'}
-            {@const cx = isH ? (c.x1 + c.x2) / 2 : c.x1 + 44}
-            {@const cy = isH ? c.y1 - 28 : (c.y1 + c.y2) / 2}
-            {@const key = labelKey(seg)}
-            {@const hovered = hoveredLabelKey === key}
-            {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
-            <g style="pointer-events: all; cursor: pointer; touch-action: manipulation"
-               onclick={() => session.rejectAndBuild(seg)}
-               onmouseenter={() => hoveredLabelKey = key}
-               onmouseleave={() => hoveredLabelKey = null}>
-                <rect x={cx - 32} y={cy - 14} width="64" height="28" rx="6"
-                      fill="#666666"
-                      stroke="black" stroke-width="1"
-                      opacity="0.7"
-                      style={popStyle} />
-                <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                      fill="white" font-size="12" font-weight="bold"
-                      style="font-family:sans-serif; {popStyle}">
-                    {session.rejectPenalty} → bank
-                </text>
+        {#each session.visibleSegments as seg (segmentKey(seg))}
+            {@const c = segmentEnds(seg)}
+            {@const key = segmentKey(seg)}
+            {@const bribeColors = bribeColorsByKey.get(key)}
+            <g {@attach (el: SVGGElement) => {
+                   canalBuild.setSurveyNode(key, el)
+                   return () => canalBuild.setSurveyNode(key, undefined)
+               }}>
+            <g in:fade={{ duration: session.easesAmbientChanges ? 250 : 0 }}>
+            <SurveyLine
+                {...c}
+                selected={session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
+                selectedColor={session.myPlayer ? playerColor(session.myPlayer.id) : undefined}
+                fillsFromFarEnd={waterEntersAtFarEnd(seg, waterNetwork)}
+                phase={swayPhase(seg)}
+                bunting={bribeColors}
+            >
+                <!-- Drawn from visibleSegments (everyone, all through the bribe phase) but only
+                     given a hit area when this player can actually act on it - see
+                     SantiagoGameSession.validSegments. An observer sees where the bribes are
+                     pointing without the lines inviting a click that would be rejected. -->
+                {#if session.isMyTurn}
+                    <!-- Wider transparent hit area. 34 user units rather than 16: the board is
+                         drawn in a 768x576 viewBox and scaled to fit, so on a phone (~350px
+                         wide) 16 units came out around 7 physical pixels - fine for a mouse,
+                         essentially unhittable with a fingertip, which is what an Android
+                         player reported. Parallel canals sit ~99 units apart, so 34 still
+                         leaves a wide gap between neighbouring hit areas.
+                         touch-action stops Android from holding the tap back to see whether a
+                         double-tap zoom is coming. -->
+                    <line {...c} stroke="transparent" stroke-width="34"
+                          style="pointer-events: all; cursor: pointer; touch-action: manipulation"
+                          onpointerdown={(event) => (lastSegmentPointer = event.pointerType)}
+                          onclick={() => tapSegment(seg, isOverseerDeciding && !bribeColors)} />
+                {/if}
+                {#if isOverseerDeciding && !bribeColors}
+                    {@const { cx, cy } = pillCenter(seg, 0, 1, BANK_PILL_HALF_WIDTH)}
+                    <!-- Shown only while this spot is hovered, or on touch after a first tap on its
+                         twine: the action bar already states the cost of rejecting every bribe and
+                         building here. -->
+                    <g class="bank-pill" class:revealed={revealedBankKey === segmentKey(seg)}
+                       style="cursor: pointer; touch-action: manipulation"
+                       onclick={() => session.rejectAndBuild(seg)}>
+                        <rect x={cx - BANK_PILL_HALF_WIDTH} y={cy - 14} width={BANK_PILL_HALF_WIDTH * 2} height="28" rx="6"
+                              fill="#666666" stroke="black" stroke-width="1" opacity="0.85" />
+                        <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
+                              fill="white" font-size="12" font-weight="bold"
+                              style="font-family:sans-serif">
+                            {session.rejectPenalty} → bank
+                        </text>
+                    </g>
+                {/if}
+            </SurveyLine>
             </g>
-        {/each}
-
-        <!-- Valid (unplaced) canal segments — clickable in canal mode. During bribe
-             proposing, picking a location just selects it (see selectedBribeSegment) —
-             it's drawn as a solid gold line instead of the usual animated dashed one,
-             so it's clear which spot is currently chosen versus still just available. -->
-        {#each session.visibleSegments as seg, i (i)}
-            {@const c = segCoords(seg)}
-            {@const dir = segFlowDir(seg)}
-            {@const isSelectedBribe = session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
-            <!-- Drawn from visibleSegments (everyone, all through the bribe phase) but only
-                 given a hit area when this player can actually act on it - see
-                 SantiagoGameSession.validSegments. An observer sees where the bribes are
-                 pointing without the lines inviting a click that would be rejected. -->
-            {#if session.isMyTurn}
-                <!-- Wider transparent hit area. 34 user units rather than 16: the board is
-                     drawn in a 768x576 viewBox and scaled to fit, so on a phone (~350px
-                     wide) 16 units came out around 7 physical pixels - fine for a mouse,
-                     essentially unhittable with a fingertip, which is what an Android
-                     player reported. Parallel canals sit ~99 units apart, so 34 still
-                     leaves a wide gap between neighbouring hit areas.
-                     touch-action stops Android from holding the tap back to see whether a
-                     double-tap zoom is coming. -->
-                <line {...c} stroke="transparent" stroke-width="34"
-                      style="pointer-events: all; cursor: pointer; touch-action: manipulation"
-                      onclick={() => handleSegmentClick(seg)} />
-            {/if}
-            {#if isSelectedBribe}
-                <line {...c}
-                      stroke="#fbbf24"
-                      stroke-width="8"
-                      stroke-linecap="round"
-                      opacity="0.95" />
-            {:else}
-                <line {...c}
-                      stroke="#7dd3fc"
-                      stroke-width="6"
-                      stroke-linecap="round"
-                      stroke-dasharray="15 12"
-                      opacity="0.9"
-                      class="canal-animated"
-                      style={`--flow-end: ${dir * 27}`} />
-            {/if}
+            </g>
         {/each}
 
         {#if session.gameState.machineState !== MachineState.SpringPlacement}
@@ -717,4 +838,6 @@
         {/if}
     </svg>
     <BirdLayer />
+    <SunWash />
+    <DustMotes />
 </div>

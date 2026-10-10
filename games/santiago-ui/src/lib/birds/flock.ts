@@ -13,6 +13,8 @@ export type FlockParams = {
     size: number
     boardWidth: number
     boardHeight: number
+    // False for a dried-out field: the birds circle it a while without landing, then leave.
+    lands?: boolean
 }
 
 export const CLIP_X = 30
@@ -33,6 +35,9 @@ const MEANDER_SETTLE_RADIUS = 120
 const FLAP_RATE = 8
 const PECK_TILT = 20
 const STARTLE_BOOST = 1.3
+const HOVER_RETARGET_RADIUS = 18
+const HOVER_SPREAD = 30
+const HOVER_SPEED = 0.75
 
 const GROUND_BEHAVIORS: ReadonlyArray<{ kind: GroundBehavior; weight: number }> = [
     { kind: 'idle', weight: 0.55 },
@@ -102,10 +107,12 @@ export class Bird {
         switch (this.mode) {
             case 'arriving':
             case 'relocating':
-                this.fly(dt, true)
+                this.fly(dt, flock.lands)
                 if (flock.leaving) this.reactionDelay -= dt
                 if (this.reactionDelay <= 0) this.depart(flock)
-                else if (distance(this.pos, this.target) < LANDED_RADIUS) this.land()
+                else if (!flock.lands) {
+                    if (distance(this.pos, this.target) < HOVER_RETARGET_RADIUS) this.hoverOver(flock)
+                } else if (distance(this.pos, this.target) < LANDED_RADIUS) this.land()
                 break
             case 'landed':
                 this.scavenge(dt)
@@ -127,6 +134,12 @@ export class Bird {
             case 'gone':
                 break
         }
+    }
+
+    // Wheel around the field in the air: head for another point near it, at an unhurried pace.
+    hoverOver(flock: Flock) {
+        this.target = flock.hoverPoint()
+        this.speed = between(this.random, 70, 90) * HOVER_SPEED
     }
 
     depart(flock: Flock) {
@@ -269,11 +282,16 @@ export class Flock {
     readonly zone: LandingZone
     leaving = false
     startled = false
+    readonly lands: boolean
+    private lingerLeft: number
+    private hoverStarted = false
 
     constructor(
         private readonly params: FlockParams,
         private readonly random: RandomFunction
     ) {
+        this.lands = params.lands ?? true
+        this.lingerLeft = between(random, 3, 6)
         const landingRects = params.cells.map((cell) => this.inset(cell))
         this.zones = [...landingRects, ...params.nearbyCells.map((cell) => this.inset(cell))].map(
             (rect) => new LandingZone([rect])
@@ -308,6 +326,11 @@ export class Flock {
     }
 
     step(dt: number) {
+        this.hoverStarted ||= !this.lands && this.birds.some((bird) => this.zone.contains(bird.pos))
+        if (this.hoverStarted && !this.leaving) {
+            this.lingerLeft -= dt
+            if (this.lingerLeft <= 0) this.beginLeaving()
+        }
         for (const bird of this.birds) bird.step(dt, this)
         for (const bird of this.birds) {
             if (bird.mode === 'gone') continue
@@ -345,6 +368,14 @@ export class Flock {
         }
         const { zone, index } = choices[Math.floor(this.random() * choices.length)]
         bird.flyTo(this.freeSpotIn(zone), index)
+    }
+
+    hoverPoint(): Point {
+        const rect = this.zone.rects[0]
+        return {
+            x: rect.x + rect.width / 2 + between(this.random, -HOVER_SPREAD, HOVER_SPREAD),
+            y: rect.y + rect.height / 2 + between(this.random, -HOVER_SPREAD, HOVER_SPREAD)
+        }
     }
 
     exitPointFor(bird: Bird): Point {

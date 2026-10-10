@@ -25,6 +25,12 @@ function emptyBoard(): BoardSquare[][] {
     )
 }
 
+function dryField(squares: BoardSquare[][], col: number, row: number) {
+    plantField(squares, col, row)
+    const field = squares[col][row]
+    if (field.type === SquareType.Field) field.dried = true
+}
+
 function plantField(squares: BoardSquare[][], col: number, row: number) {
     squares[col][row] = {
         type: SquareType.Field,
@@ -49,7 +55,13 @@ type Fixture = {
 function fixture(squares = emptyBoard()): Fixture {
     const ticker = new RecordingTicker()
     let visibility: (hidden: boolean) => void = () => {}
-    const host = { isViewingHistory: false, gameState: { board: { squares } } }
+    const host = {
+        isViewingHistory: false,
+        gameState: { board: { squares } },
+        get incomingGameState() {
+            return this.gameState
+        }
+    }
     const env = {
         random: getPrng(9),
         ticker,
@@ -175,5 +187,68 @@ describe('bird director', () => {
         expect(f.ids).toEqual([])
         expect(f.env.ticker.callbacks.size).toBe(0)
         expect(vi.getTimerCount()).toBe(0)
+    })
+})
+
+describe('bird director and dried-out fields', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('flies over a desert target without landing, then schedules another visit', () => {
+        const squares = emptyBoard()
+        dryField(squares, 3, 2)
+        const f = fixture(squares)
+        expect(f.director.summon()).toBe(true)
+        expect(f.ids.length).toBeGreaterThanOrEqual(3)
+        f.env.ticker.run(40)
+        expect(f.director.hasFlock).toBe(false)
+        expect(f.ids).toEqual([])
+        expect(vi.getTimerCount()).toBe(1)
+    })
+
+    it('sometimes lands and sometimes only flies over when living fields and deserts are mixed', () => {
+        const outcomes = new Set<string>()
+        for (let visit = 0; visit < 30; visit++) {
+            const squares = emptyBoard()
+            plantField(squares, 1, 1)
+            dryField(squares, 5, 3)
+            dryField(squares, 6, 4)
+            const f = fixture(squares)
+            for (let i = 0; i < visit; i++) f.env.random()
+            f.director.summon()
+            outcomes.add(f.director.hasFlyover ? 'flew over' : 'landing')
+            f.detach()
+        }
+        expect(outcomes).toEqual(new Set(['landing', 'flew over']))
+    })
+
+    it('scatters the flyover if its field stops being desert, as on Undo', () => {
+        const squares = emptyBoard()
+        dryField(squares, 2, 2)
+        const f = fixture(squares)
+        f.director.summon()
+        f.env.ticker.run(2)
+        squares[2][2] = { type: SquareType.Empty, hasPalmTree: false }
+        f.env.ticker.run(15)
+        expect(f.director.hasFlock).toBe(false)
+    })
+})
+
+describe('bird director during a transition', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('startles a landed flock as soon as the incoming state dries its field', () => {
+        const squares = emptyBoard()
+        plantField(squares, 3, 2)
+        const f = fixture(squares)
+        f.director.summon()
+        f.env.ticker.run(6)
+        expect(f.director.hasFlock).toBe(true)
+        const drying = emptyBoard()
+        dryField(drying, 3, 2)
+        Object.defineProperty(f.host, 'incomingGameState', { get: () => ({ board: { squares: drying } }) })
+        f.env.ticker.run(8)
+        expect(f.director.hasFlock).toBe(false)
     })
 })

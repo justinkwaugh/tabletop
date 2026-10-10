@@ -1,4 +1,5 @@
 <script lang="ts">
+    import OverseerPill from './OverseerPill.svelte'
     import { MachineState, calculateScores, calculateLiveScores } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import MoneyBadge from './MoneyBadge.svelte'
@@ -53,9 +54,9 @@
                  style="background-color: {color}">
                 <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}">{playerName(p.playerId)}</span>
                 {#if isOverseer}
-                    <span class="text-[13px] bg-black/30 text-white px-1.5 py-[3px] rounded font-normal shrink-0 normal-case tracking-normal">Overseer</span>
+                    <OverseerPill />
                 {:else if isPreviousOverseer}
-                    <span class="text-[13px] bg-black/30 text-white px-1.5 py-[3px] rounded font-normal shrink-0 normal-case tracking-normal opacity-70">Previous Overseer</span>
+                    <OverseerPill previous />
                 {/if}
                 {#if isPlanting && p.bid !== undefined}
                     <span class="ml-auto shrink-0 flex items-center gap-1">
