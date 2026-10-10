@@ -31,7 +31,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Warning Signals:** warbands moved from the board all go to one site per use.
-- **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse).
+- **Toll Roads:** never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, Brass Horse), nor, at any revision, on a Travel out of a Shrouded Wood an enemy rules, whose ruler may pick a Toll Roads site.
 - **Ring of Devotion:** its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
 - **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
