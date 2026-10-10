@@ -213,7 +213,6 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
         state.stockRound.passedPlayerIds = state.stockRound.passedPlayerIds.filter(
             (id) => id !== this.playerId
         )
-        state.priorityDealPlayerId = state.turnManager.turnOrder[0]
         state.turnManager.endTurn(state.actionCount)
         delete state.emergencyFunding
         if (state.turnManager.turnOrder.length === 1) {

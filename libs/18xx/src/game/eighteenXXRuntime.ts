@@ -288,7 +288,6 @@ export function createEighteenXXRuntime<
                 new PlacingStationHandler(options.stationRules, after('PlacingStation'))
             )
         ),
-        StationsComplete: endsGame(new TerminalStateHandler()),
         RunningTrains: operatingStep(
             decides(
                 'RunningTrains',

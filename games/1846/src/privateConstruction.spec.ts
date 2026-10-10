@@ -35,9 +35,6 @@ function acquire(table: ReturnType<typeof major>, id: string) {
         assertExists(certificate)
         table.state.companies.push(structuredClone(company))
         table.state.certificates.push(structuredClone(certificate))
-        table.state.removedPrivateIds = table.state.removedPrivateIds.filter(
-            (privateId) => privateId !== id
-        )
     }
     const certificate = table.state.certificates.find((certificate) => certificate.companyId === id)
     assert(certificate)

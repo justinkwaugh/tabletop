@@ -7,7 +7,6 @@ export function historyStateFixture(): EighteenXXState {
         usedPrivatePowerIds: [],
         id: 'state',
         gameId: 'history',
-        example: 'finances',
         machineState: 'StockRound',
         actionCount: 0,
         actionChecksum: 0,

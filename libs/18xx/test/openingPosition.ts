@@ -50,6 +50,7 @@ function seededPosition({
         ...position,
         stockMarketStacks: stockMarket.stacks,
         // The shape digests were first recorded in, so setup randomness stays comparable.
+        example: 'finances',
         certificates: certificates.map(({ id, owner, poolId }) => ({
             id,
             retired: false,

@@ -55,7 +55,6 @@ export const RailwayMachineStates = [
     'OperatingSet',
     'LayingTrack',
     'PlacingStation',
-    'StationsComplete',
     'BuyingTrains',
     'FundingTrain',
     'Bankrupt',
@@ -80,8 +79,6 @@ export type EighteenXXMachineState =
     | (typeof CashCrisisMachineStates)[number]
 
 export const RailwayFields = {
-    // Retained for saved games created before the runtime left the examples folder.
-    example: Type.Literal('finances'),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
     trackStep: Type.Optional(TrackStep),
@@ -101,10 +98,7 @@ export const RailwayFields = {
     ...PurchaseOfferFields,
     ...RouteFields
 }
-type RuntimeFields = Omit<
-    typeof RailwayFields,
-    'companies' | 'certificates' | 'example' | 'purchaseOffer'
-> &
+type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | 'purchaseOffer'> &
     typeof FinanceFields &
     Omit<typeof CompanyDecisionFields, 'purchaseOffer'> &
     typeof CompanyAcquisitionOfferFields &
@@ -117,7 +111,6 @@ type RuntimeFields = Omit<
     typeof CompanyAuctionFields &
     typeof LoanFields &
     typeof CashCrisisFields & {
-        example: Type.TOptional<typeof RailwayFields.example>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }

@@ -110,7 +110,7 @@ describe('1846 stock and operating sequence', () => {
         operate(table, 'IC')
         expect(table.state.machineState).toBe('StockRound')
         expect(table.state.operatingSet?.completedCompanyIds).toEqual(['MS', 'BIG4', 'NYC', 'IC'])
-        expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+        expect(table.state.activePlayerIds).toEqual([table.state.turnManager.turnOrder[0]])
         expect(
             table.actions.filter((action) => action.type === 'StartOperatingRound')
         ).toHaveLength(2)
@@ -252,7 +252,7 @@ describe('1846 stock and operating sequence', () => {
 
     it('keeps passing stock rounds and independent-only operating sets in a bounded player-driven loop', () => {
         const table = stockGame()
-        const priority = table.state.priorityDealPlayerId
+        const priority = table.state.turnManager.turnOrder[0]
         for (let setNumber = 1; setNumber <= 3; setNumber++) {
             expect(table.state.machineState).toBe('StockRound')
             expect(table.state.stockRound.number).toBe(setNumber)

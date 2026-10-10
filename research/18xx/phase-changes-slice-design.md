@@ -102,8 +102,9 @@ The shared earnings Action exposes an optional `afterDistribution` policy callba
 after settlement and private effects. TOP alone records
 `fourPlusTrainIdsWithOperatingOpportunity`; the other titles acquire no state
 property. IDs persist across ownership changes. An absent record means no recorded
-opportunity; `hasRun` remains actual route use and is independently sufficient
-evidence that an opportunity occurred. The existing TOP save fixture is in phase
+opportunity. Trains no longer record `hasRun` (2026-10-10): a train that runs is owned
+when its company settles earnings, so it is already in this record before any phase can
+change. The existing TOP save fixture is in phase
 3H, before 4+ acquisition, so no compatibility reader or migration is needed.
 This implements TOP's specific lifetime fact, not a general train-history system.
 

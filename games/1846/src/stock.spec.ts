@@ -85,12 +85,12 @@ describe('1846 first stock round', () => {
     })
     it('completes on consecutive passes, preserves priority after no trades, and rejects further actions', () => {
         const table = stockGame()
-        const priority = table.state.priorityDealPlayerId
+        const priority = table.state.turnManager.turnOrder[0]
         table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         expect(table.state.machineState).toBe('LayingTrack')
-        expect(table.state.priorityDealPlayerId).toBe(priority)
+        expect(table.state.turnManager.turnOrder[0]).toBe(priority)
         expect(table.state.trackStep?.companyId).toBe('MS')
         expect(() => table.finishTurn()).toThrow()
     })
@@ -110,7 +110,7 @@ describe('1846 first stock round', () => {
         table.finishTurn()
         table.finishTurn()
         table.finishTurn()
-        expect(table.state.priorityDealPlayerId).toBe(priority)
+        expect(table.state.turnManager.turnOrder[0]).toBe(priority)
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
     })
     it('transfers presidency on a larger holding, keeping the incumbent on ties', () => {

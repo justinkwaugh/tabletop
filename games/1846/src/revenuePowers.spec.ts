@@ -60,7 +60,6 @@ function restorePrivate(table: ReturnType<typeof major>, privateId: RevenuePriva
         ...certificate,
         owner: { kind: 'player', playerId: table.state.activePlayerIds[0] }
     })
-    table.state.removedPrivateIds = table.state.removedPrivateIds.filter((id) => id !== privateId)
 }
 function assign(
     table: ReturnType<typeof major>,

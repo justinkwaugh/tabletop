@@ -938,10 +938,6 @@
         ],
         "type": "object"
       },
-      "example": {
-        "const": "finances",
-        "type": "string"
-      },
       "explorationState": {
         "properties": {
           "actionCount": {
@@ -1367,10 +1363,6 @@
           },
           {
             "const": "PlacingStation",
-            "type": "string"
-          },
-          {
-            "const": "StationsComplete",
             "type": "string"
           },
           {
@@ -4134,9 +4126,6 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
                     "id": {
                       "minLength": 1,
                       "type": "string"
@@ -4160,9 +4149,6 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
                     "id": {
                       "minLength": 1,
                       "type": "string"
@@ -4185,9 +4171,6 @@
                     "definitionId": {
                       "minLength": 1,
                       "type": "string"
-                    },
-                    "hasRun": {
-                      "type": "boolean"
                     },
                     "id": {
                       "minLength": 1,
@@ -4394,7 +4377,6 @@
       "coalRights",
       "companies",
       "companyStarts",
-      "example",
       "gameId",
       "id",
       "machineState",
@@ -4437,7 +4419,6 @@
     "RunningTrains",
     "RustingTrains",
     "StartingOperatingSet",
-    "StationsComplete",
     "StockRound",
     "WaterfallAuction"
   ]

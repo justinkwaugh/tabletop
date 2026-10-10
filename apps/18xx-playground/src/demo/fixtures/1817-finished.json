@@ -83,7 +83,6 @@
     "color": "yellow"
    }
   ],
-  "example": "finances",
   "phaseEvents": [],
   "usedPrivatePowerIds": [],
   "machineState": "SelectionAuction",

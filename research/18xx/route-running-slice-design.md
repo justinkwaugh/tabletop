@@ -44,8 +44,8 @@ explicit extensions when another consumer needs them. No silent universal policy
 or empty plugin framework is implied.
 
 RunTrains accepts paths only, calculates authoritative results, and records them
-in RouteStep and action metadata. Trains that run retain a hasRun fact for later
-retirement rules; absent means the train has never run. It transfers no money. FinishStations initializes
+in RouteStep and action metadata. Trains no longer retain a hasRun fact (removed
+2026-10-10; TOP's 4+ rule reads its own operating-opportunity record). It transfers no money. FinishStations initializes
 RouteStep directly and advances to RunningTrains; RunTrains reaches TrainsRun
 pending the earnings slice. A new prepared Routes example provides track, stations
 and two owned trains for each title. No start-route bookkeeping action is added.

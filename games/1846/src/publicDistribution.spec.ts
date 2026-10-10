@@ -113,7 +113,7 @@ describe('1846 two-player opening', () => {
                     (company) =>
                         company.kind === 'private' &&
                         company.group === group &&
-                        !state.removedPrivateIds.includes(company.id)
+                        state.companies.some((entry) => entry.id === company.id)
                 )
             ).toHaveLength(2)
         expect(
@@ -124,7 +124,6 @@ describe('1846 two-player opening', () => {
         expect(TrainDepot1846.remaining(state.trainInventory, '4')).toBe(5)
         expect(TrainDepot1846.remaining(state.trainInventory, '5')).toBe(3)
         expect(state.activePlayerIds).toEqual([state.players[1].playerId])
-        expect(state.priorityDealPlayerId).toBe(state.players[0].playerId)
         if (state.removedCorporationIds.includes('ERIE'))
             expect(state.stations.find((station) => station.id === 'ERIE:blocking')).toMatchObject({
                 status: 'placed',
@@ -144,7 +143,7 @@ describe('1846 two-player opening', () => {
         ).toEqual(['BuyOpeningCompany'])
         for (const fields of [
             { companyId: 'MS', expectedPrice: 139 },
-            { companyId: 'MS', expectedPrice: 140, playerId: table.state.priorityDealPlayerId },
+            { companyId: 'MS', expectedPrice: 140, playerId: table.state.players[0].playerId },
             { companyId: 'MS', expectedPrice: 140, source: ActionSource.System },
             { companyId: 'blank:1', expectedPrice: 0 }
         ])
@@ -173,7 +172,7 @@ describe('1846 two-player opening', () => {
         expect(result.processedActions[0]).toMatchObject({
             metadata: { cardId: 'MS', price: 140, playerId }
         })
-        expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+        expect(table.state.activePlayerIds).toEqual([table.state.players[0].playerId])
         replayAndUndo(table, before, result.processedActions)
     })
 
@@ -256,7 +255,7 @@ describe('1846 two-player opening', () => {
                 metadata: { purchase: { cardId: last, price: company.debt } }
             })
             expect(table.state.result).toBeUndefined()
-            expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+            expect(table.state.activePlayerIds).toEqual([table.state.players[0].playerId])
             replayAndUndo(table, before, table.actions)
         }
     )
@@ -275,9 +274,9 @@ describe('1846 two-player opening', () => {
         ]) {
             const projected = Runtime.visibility.state.project(before, perspective)
             expect(projected.draft).toEqual(before.draft)
-            expect(
-                unboughtOpeningCompanies(hydrateEighteenFortySixState(projected))
-            ).toHaveLength(8)
+            expect(unboughtOpeningCompanies(hydrateEighteenFortySixState(projected))).toHaveLength(
+                8
+            )
             const after = Runtime.visibility.state.project(table.state, perspective)
             expect(after.purchases).toEqual(table.state.purchases)
             expect(privateOwner(after, 'MAIL')).toEqual({

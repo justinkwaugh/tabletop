@@ -440,8 +440,6 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                     context.gameState.stockRound.completed &&
                     !corporationAwaitingClosure(context.gameState)
                 ) {
-                    context.gameState.priorityDealPlayerId =
-                        context.gameState.turnManager.turnOrder[0]
                     context.gameState.activePlayerIds = []
                     return 'PreparingOperatingSet'
                 }

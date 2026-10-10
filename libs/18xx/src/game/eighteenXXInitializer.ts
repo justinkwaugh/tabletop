@@ -106,7 +106,6 @@ export class EighteenXXInitializer<
                     ...state,
                     players,
                     activePlayerIds: [seatOrder[0]],
-                    example: 'finances',
                     phaseEvents: [],
                     ...('usedPrivatePowerIds' in this.rules.state.schema.properties
                         ? { usedPrivatePowerIds: [] }

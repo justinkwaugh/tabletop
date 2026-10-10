@@ -128,8 +128,6 @@ export class Initializer extends BaseGameInitializer<
                 turnOrder: order.toReversed(),
                 turnCounts: Object.fromEntries(order.map((id) => [id, 0]))
             },
-            priorityDealPlayerId: order[0],
-            removedPrivateIds,
             removedCorporationIds,
             bank: { unlimitedAfterExhaustion: true },
             companies: [

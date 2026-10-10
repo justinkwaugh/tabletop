@@ -20,7 +20,13 @@ describe('1846 setup and distribution', () => {
     it.each([3, 4, 5])('initializes the second-printing setup for %i players', (count) => {
         const { state } = start(count)
         expect(CanonicalValidator.Check(state)).toBe(true)
-        expect(state.removedPrivateIds).toHaveLength(2 * (6 - count))
+        expect(
+            DraftCompanies.filter(
+                (company) =>
+                    company.kind === 'private' &&
+                    !state.companies.some((entry) => entry.id === company.id)
+            )
+        ).toHaveLength(2 * (6 - count))
         expect(state.removedCorporationIds).toHaveLength(5 - count)
         expect(state.removedCorporationIds.every((id) => ['PRR', 'C&O', 'ERIE'].includes(id))).toBe(
             true
@@ -29,7 +35,6 @@ describe('1846 setup and distribution', () => {
         expect(
             state.cash.filter((cash) => cash.owner.kind === 'player').map((cash) => cash.amount)
         ).toEqual(Array(count).fill(400))
-        expect(state.priorityDealPlayerId).toBe(state.players[0].playerId)
         expect(state.activePlayerIds).toEqual([state.players.at(-1)?.playerId])
         expect(state.turnManager.turnOrder).toEqual(
             state.players.map((player) => player.playerId).toReversed()
@@ -127,13 +132,13 @@ describe('1846 setup and distribution', () => {
                 const { state } = finish(count, seed, seed % 2 === 0)
                 expect(CanonicalValidator.Check(state)).toBe(true)
                 expect(money(state)).toBe(BankSize[count])
-                expect(state.purchases).toHaveLength(12 - state.removedPrivateIds.length)
+                expect(state.purchases).toHaveLength(2 * count)
                 expect(new Set(state.purchases.map((p) => p.cardId)).size).toBe(
                     state.purchases.length
                 )
-                expect(state.activePlayerIds).toEqual([state.priorityDealPlayerId])
+                expect(state.activePlayerIds).toEqual([state.players[0].playerId])
                 expect(state.result).toBeUndefined()
-                expect(state.turnManager.turnOrder[0]).toBe(state.priorityDealPlayerId)
+                expect(state.turnManager.turnOrder[0]).toBe(state.players[0].playerId)
                 for (const [id, capital, home] of [
                     ['MS', 60, 'C15'],
                     ['BIG4', 40, 'G9']

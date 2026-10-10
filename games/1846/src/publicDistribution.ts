@@ -62,8 +62,9 @@ function finishOpeningPurchase(state: State): void {
     }
     state.turnManager.endTurn(state.actionCount)
     state.turnManager.turnOrder = state.players.map((player) => player.playerId)
-    state.activePlayerIds = [state.priorityDealPlayerId]
-    state.turnManager.startTurn(state.priorityDealPlayerId, state.actionCount + 1)
+    const [priorityDealPlayerId] = state.turnManager.turnOrder
+    state.activePlayerIds = [priorityDealPlayerId]
+    state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
     state.draft = { kind: 'public', stage: 'complete' }
     delete state.operatingSet
     state.machineState = 'StockRound'

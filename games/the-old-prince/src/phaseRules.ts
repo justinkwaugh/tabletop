@@ -13,7 +13,6 @@ export const TheOldPrincePhaseRules: PhaseRules = {
             timing &&
             train.definitionId === '4+' &&
             train.status === 'owned' &&
-            !train.hasRun &&
             !state.fourPlusTrainIdsWithOperatingOpportunity?.includes(train.id)
         )
             return 'after-operation'

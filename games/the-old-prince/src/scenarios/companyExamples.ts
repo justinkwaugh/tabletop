@@ -14,15 +14,22 @@ import {
     TheOldPrinceTileSet,
     TheOldPrinceTrainDepot
 } from '../index.js'
+import type { TheOldPrinceState } from '../state.js'
 import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
 import { createTheOldPrinceFinanceExample } from './financeFixture.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
 
+type CompanyExample = CompanyState &
+    TrancheState &
+    MapStateData &
+    TrainState &
+    Pick<TheOldPrinceState, 'fourPlusTrainIdsWithOperatingOpportunity'>
+
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
     position: PreparedPosition
-): CompanyState & TrancheState & MapStateData & TrainState {
-    const state: CompanyState & TrancheState & MapStateData & TrainState = {
+): CompanyExample {
+    const state: CompanyExample = {
         ...createTheOldPrinceFinanceExample(players),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),
         phaseId: '3H',
@@ -211,7 +218,7 @@ export function createTheOldPrinceCompanyExample(
                     train.definitionId === '4+'
             )
             assert(used, 'Diesel example requires a used 4+')
-            used.hasRun = true
+            state.fourPlusTrainIdsWithOperatingOpportunity = [used.id]
         }
     }
     if (position === 'transfers' || position === 'powers') {

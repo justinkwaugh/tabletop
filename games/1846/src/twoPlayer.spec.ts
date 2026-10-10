@@ -129,7 +129,7 @@ describe('1846 complete two-player rules', () => {
         purchaseRemaining(table)
         expect(table.state.operatingSet).toBeUndefined()
         expect(table.state.stockRound.number).toBe(1)
-        expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+        expect(table.state.activePlayerIds).toEqual([table.state.turnManager.turnOrder[0]])
         replayAndUndo(table, before, table.actions.slice(offset))
         table.launch('IC', 40)
         table.launch('NYC', 90)

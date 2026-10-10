@@ -2081,10 +2081,6 @@
         },
         "type": "array"
       },
-      "priorityDealPlayerId": {
-        "minLength": 1,
-        "type": "string"
-      },
       "prng": {
         "properties": {
           "invocations": {
@@ -2488,14 +2484,6 @@
         "type": "array"
       },
       "removedCorporationIds": {
-        "items": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "type": "array",
-        "uniqueItems": true
-      },
-      "removedPrivateIds": {
         "items": {
           "minLength": 1,
           "type": "string"
@@ -3514,9 +3502,6 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
                     "id": {
                       "minLength": 1,
                       "type": "string"
@@ -3540,9 +3525,6 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "hasRun": {
-                      "type": "boolean"
-                    },
                     "id": {
                       "minLength": 1,
                       "type": "string"
@@ -3565,9 +3547,6 @@
                     "definitionId": {
                       "minLength": 1,
                       "type": "string"
-                    },
-                    "hasRun": {
-                      "type": "boolean"
                     },
                     "id": {
                       "minLength": 1,
@@ -3763,11 +3742,9 @@
       "phaseEvents",
       "phaseId",
       "players",
-      "priorityDealPlayerId",
       "prng",
       "purchases",
       "removedCorporationIds",
-      "removedPrivateIds",
       "revenueMarkers",
       "stationReservations",
       "stations",

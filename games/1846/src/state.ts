@@ -120,8 +120,6 @@ export const EighteenFortySixState = composeEighteenXXState(
         ...StationFields,
         trainInventory: TrainInventory,
         trainPurchaseStep: Type.Optional(TrainPurchaseStep),
-        priorityDealPlayerId: Id,
-        removedPrivateIds: Type.Array(Id, { uniqueItems: true }),
         removedCorporationIds: Type.Array(Id, { uniqueItems: true }),
         draft: Type.Union([HiddenDistribution, PublicDistribution]),
         purchases: Type.Array(Purchase)

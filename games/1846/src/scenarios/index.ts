@@ -52,7 +52,6 @@ function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
             owner: { kind: 'bank' },
             kind: 'private'
         })
-        state.removedPrivateIds = state.removedPrivateIds.filter((id) => id !== privateId)
     }
     const certificate = state.certificates.find(
         (certificate) => certificate.companyId === privateId

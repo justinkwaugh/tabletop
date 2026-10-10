@@ -551,7 +551,7 @@ export function validateTrackStep(state: {
     trackStep?: TrackStep
     operatingSet?: { companyOrder: readonly string[] }
 }): void {
-    if (!['LayingTrack', 'PlacingStation', 'StationsComplete'].includes(state.machineState)) return
+    if (state.machineState !== 'LayingTrack' && state.machineState !== 'PlacingStation') return
     assert(
         state.trackStep && state.operatingSet?.companyOrder.includes(state.trackStep.companyId),
         'Track step requires an operating company'

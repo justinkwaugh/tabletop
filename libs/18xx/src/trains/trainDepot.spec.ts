@@ -85,14 +85,13 @@ it('keeps Market returns separate from new supply, including unlimited train ide
     const cursor = inventory.nextTrainNumber
     inventory.trains = inventory.trains.map((entry) =>
         entry.id === train.id
-            ? { id: entry.id, definitionId: entry.definitionId, status: 'market', hasRun: true }
+            ? { id: entry.id, definitionId: entry.definitionId, status: 'market' }
             : entry
     )
     depot.purchase(inventory, train.id, 'express', { kind: 'company', companyId: 'B' })
     expect(inventory.nextTrainNumber).toBe(cursor)
     expect(inventory.trains.find((entry) => entry.id === train.id)).toMatchObject({
         status: 'owned',
-        hasRun: true,
         owner: { kind: 'company', companyId: 'B' }
     })
     expect(depot.nextTrain(inventory, 'express')!.id).not.toBe(train.id)

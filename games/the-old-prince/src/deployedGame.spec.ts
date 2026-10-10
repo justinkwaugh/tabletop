@@ -35,7 +35,9 @@ type RecordedCertificate = Certificate extends infer Current
         : never
     : never
 type Train = TheOldPrinceState['trainInventory']['trains'][number]
-type RecordedTrain = Train | { id: string; definitionId: string; status: 'removed' }
+type RecordedTrain = (Train | { id: string; definitionId: string; status: 'removed' }) & {
+    hasRun?: boolean
+}
 type PhaseEvent = TheOldPrinceState['phaseEvents'][number]
 type RouteStep = NonNullable<TheOldPrinceState['routeStep']>
 type RouteResult = NonNullable<RouteStep['result']>['routes'][number]
@@ -51,6 +53,7 @@ type RecordedState = Omit<
     | 'certificatePools'
     | 'bank'
 > & {
+    example: 'finances'
     usedPrivatePowerIds: string[]
     companies: Named<TheOldPrinceState['companies'][number]>[]
     certificatePools: Named<TheOldPrinceState['certificatePools'][number]>[]
@@ -112,6 +115,7 @@ function withoutName<Item>({ name: _name, ...item }: Named<Item>): Omit<Named<It
 }
 
 function currentShape({
+    example: _example,
     usedPrivatePowerIds,
     stockMarket: { stacks },
     certificates,
@@ -136,7 +140,9 @@ function currentShape({
         certificates: currentCertificates(state, certificates),
         trainInventory: {
             ...trainInventory,
-            trains: trains.filter((train): train is Train => train.status !== 'removed')
+            trains: trains.flatMap(({ hasRun: _hasRun, ...train }) =>
+                train.status === 'removed' ? [] : [train]
+            )
         },
         phaseEvents: phaseEvents.map(({ rustedTrainIds, ...event }) => ({
             ...event,

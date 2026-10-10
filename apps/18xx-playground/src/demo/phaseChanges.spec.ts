@@ -217,20 +217,18 @@ it('1889 exchanges a 4 at capacity for an 800 diesel and rusts the traded-in tra
     })
     expect(result.updatedState.machineState).toBe('LayingTrack')
 })
-it('1889 preserves a traded 5 in the Market, and Market purchases preserve identity and prior use', () => {
+it('1889 preserves a traded 5 in the Market, and Market purchases preserve identity', () => {
     const { game, engine, state } = example(Shikoku, 'diesel')
     const five = trainsOwnedBy(state, { kind: 'company', companyId: 'IR' }).find(
         (t) => t.definitionId === '5'
     )!
-    five.hasRun = true
     const current = engine.executeCanonicalAction({
         game,
         state,
         action: buy(state, Shikoku1889TrainRules, 'D', five.id)
     }).updatedState
     expect(current.trainInventory.trains.find((t) => t.id === five.id)).toMatchObject({
-        status: 'market',
-        hasRun: true
+        status: 'market'
     })
     expect(trainsOwnedBy(current, { kind: 'company', companyId: 'IR' })).toHaveLength(1)
     const result = engine.executeCanonicalAction({
@@ -250,7 +248,6 @@ it('1889 preserves a traded 5 in the Market, and Market purchases preserve ident
     ])
     expect(result.updatedState.trainInventory.trains.find((t) => t.id === five.id)).toMatchObject({
         status: 'owned',
-        hasRun: true,
         owner: { kind: 'company', companyId: 'IR' }
     })
     expect(result.updatedState.phaseEvents).toHaveLength(1)
@@ -389,10 +386,7 @@ it.each([false, true])(
               })
             : run
         const current = settled.updatedState
-        expect(current.fourPlusTrainIdsWithOperatingOpportunity).toEqual([four.id])
-        expect(
-            current.trainInventory.trains.find((train) => train.id === four.id)?.hasRun
-        ).toBeUndefined()
+        expect(current.fourPlusTrainIdsWithOperatingOpportunity).toContain(four.id)
         expect(TheOldPrincePhaseRules.rustTiming({ ...current, phaseId: 'D' }, four)).toBe(
             'immediate'
         )
@@ -434,7 +428,7 @@ it('TOP preserves the first opportunity of a 4+ bought after settling earnings',
         state,
         action: action(state, 'RunTrains', { companyId: 'ML', routes: [] })
     }).updatedState
-    expect(current.fourPlusTrainIdsWithOperatingOpportunity).toBeUndefined()
+    expect(current.fourPlusTrainIdsWithOperatingOpportunity).not.toContain(four.id)
     for (const rank of ['4+', 'D'])
         current = engine.executeCanonicalAction({
             game,

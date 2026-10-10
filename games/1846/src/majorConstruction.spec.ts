@@ -172,7 +172,7 @@ describe('1846 major construction', () => {
     it('reserves the southeast Chicago city only while C&WI is in play', () => {
         for (const seed of [1, 7, 12, 23]) {
             const { state } = start(3, seed)
-            const reserved = !state.removedPrivateIds.includes('C&WI')
+            const reserved = state.companies.some((company) => company.id === 'C&WI')
             expect(state.stationReservations.some((r) => r.companyId === 'C&WI')).toBe(reserved)
             const placement = new StationPlacement(state, StationRules1846)
             expect(placement.openSlots('IC', 'D6', 'city-3')).toEqual(reserved ? [] : [0])
