@@ -14,10 +14,15 @@ import {
     isCampaignDefeatKills
 } from '../actions/campaignDefeatKills.js'
 import {
+    HydratedCampaignSkullLosses,
+    isCampaignSkullLosses
+} from '../actions/campaignSkullLosses.js'
+import {
     giveClockTo,
     isPlayerActionOfType,
     stateAfterCampaignDeclared,
-    stateAfterCampaignEnded
+    stateAfterCampaignEnded,
+    stateAfterCampaignRoll
 } from './handlerSupport.js'
 
 /** R-5.5.3, R-7.5.2 — mid-Campaign, before the roll: the attacker's plans after allies join, then the defending side's. */
@@ -64,8 +69,42 @@ export class CampaignPlansStateHandler implements MachineStateHandler<
             if (context.gameState.campaign?.pendingDefenderPlans) {
                 return MachineState.CampaignPlans
             }
-            return MachineState.CampaignSacrifice
+            return stateAfterCampaignRoll(context.gameState)
         }
+        throw Error(`Unhandled action type: ${action.type}`)
+    }
+}
+
+/** R-5.5.5 — from revision 7 the attacker picks where the skulls kill; out of turn too (Sneak Attack). */
+export class CampaignSkullLossesStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedOathGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedOathGameState>
+    ): boolean {
+        return isPlayerActionOfType(action, ActionType.CampaignSkullLosses)
+    }
+
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedOathGameState>
+    ): string[] {
+        return HydratedCampaignSkullLosses.canDoCampaignSkullLosses(context.gameState, playerId)
+            ? [ActionType.CampaignSkullLosses]
+            : []
+    }
+
+    enter(context: MachineContext<HydratedOathGameState>) {
+        giveClockTo(context.gameState, context.gameState.campaign?.attackerPlayerId)
+    }
+
+    onAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedOathGameState>
+    ): MachineState {
+        if (isCampaignSkullLosses(action)) return MachineState.CampaignSacrifice
         throw Error(`Unhandled action type: ${action.type}`)
     }
 }

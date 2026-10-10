@@ -353,6 +353,9 @@ export class HydratedCampaignSacrifice
         if (campaign.pendingDefenderPlans) {
             return 'the defender has yet to use their battle plans (R-5.5.3); nothing is rolled'
         }
+        if (campaign.pendingSkullLosses) {
+            return 'the attacker has yet to pick where the skulls kill (R-5.5.5)'
+        }
         if (campaign.attackerVictorious !== undefined) {
             return 'this Campaign is already resolved'
         }

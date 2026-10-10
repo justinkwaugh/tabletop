@@ -145,7 +145,10 @@ export const Campaign = Type.Evaluate(
             attackDice: Type.Integer({ minimum: 0, maximum: 999 }),
             /** R-5.5.3 — used once each. */
             plans: BattlePlanUses,
-            /** R-5.5.5 — where the skulls' kills come from first; the rest follow the default. */
+            /**
+             * R-5.5.5 — where the skulls' kills come from first; the rest follow the default. From
+             * revision 7 a non-empty order is refused: the attacker picks after the roll.
+             */
             skullLossOrder: Type.Optional(Type.Array(LossSource, { maxItems: 16 })),
             metadata: Type.Optional(CampaignMetadata)
         })
@@ -429,6 +432,13 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const most = HydratedCampaign.maxAttackDice(state, parties)
         if (choice.attackDice > most) {
             return `can add at most ${most} attack dice, one per warband in your force`
+        }
+        // R-5.5.5 — from revision 7 the attacker picks where the skulls kill once they are rolled.
+        if (
+            isAtLeastOathRevision(state, OathRevision.EngineFixes3) &&
+            (choice.skullLossOrder?.length ?? 0) > 0
+        ) {
+            return 'the losses to skulls are picked after the roll, not declared'
         }
         const lossOrderReason = reasonLossOrderOutsideForce(
             state,

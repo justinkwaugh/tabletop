@@ -15,7 +15,8 @@ import { sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import {
     isPlayerActionOfType,
     returnClockToTurnPlayer,
-    stateAfterCampaignDeclared
+    stateAfterCampaignDeclared,
+    stateAfterCampaignRoll
 } from './handlerSupport.js'
 
 export class PowerQuestionStateHandler implements MachineStateHandler<
@@ -67,6 +68,10 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
             // Read from the action: `pendingQuestions` is cleared below.
             gameState.pendingQuestions = undefined
             returnClockToTurnPlayer(gameState)
+            // Jinx — the skulls' kills settled with the last answer may wait for the attacker's pick.
+            if (action.metadata.resumeMachineState === MachineState.CampaignSacrifice) {
+                action.metadata.resumeMachineState = stateAfterCampaignRoll(gameState)
+            }
             return action.metadata.resumeMachineState
         }
         throw Error(`Unhandled action type: ${action.type}`)

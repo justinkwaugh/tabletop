@@ -12,6 +12,8 @@ export enum ActionType {
     CampaignDefend = 'campaignDefend',
     /** R-4.3.5, R-7.3.4 — once each. */
     UseRestPower = 'useRestPower',
+    /** R-5.5.5 — from revision 7, after the roll. */
+    CampaignSkullLosses = 'campaignSkullLosses',
     CampaignSacrifice = 'campaignSacrifice',
     /** R-5.5.6.a */
     CampaignDefeatKills = 'campaignDefeatKills',

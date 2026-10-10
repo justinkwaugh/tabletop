@@ -41,6 +41,7 @@ function stepOf(state: HydratedOathGameState, at: MachineState): Step {
             return { phase: at }
         case MachineState.Searching:
         case MachineState.CampaignPlans:
+        case MachineState.CampaignSkullLosses:
         case MachineState.CampaignSacrifice:
         case MachineState.CampaignDefeat:
         case MachineState.CampaignVictory:

@@ -30,6 +30,13 @@ export function stateAfterCampaignDeclared(gameState: HydratedOathGameState): Ma
     }
     return gameState.campaign?.pendingDefenderPlans
         ? MachineState.CampaignPlans
+        : stateAfterCampaignRoll(gameState)
+}
+
+/** R-5.5.5 — the attacker picks where the skulls kill (revision 7), then the Battle step. */
+export function stateAfterCampaignRoll(gameState: HydratedOathGameState): MachineState {
+    return gameState.campaign?.pendingSkullLosses
+        ? MachineState.CampaignSkullLosses
         : MachineState.CampaignSacrifice
 }
 
