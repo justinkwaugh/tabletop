@@ -16,7 +16,7 @@ import {
     regionOfPawn
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
-import { CARELESS, hasTrait } from '../util/reliquaryTraits.js'
+import { CARELESS, hasTrait, reasonTradeForSecretsGainsNoFavor } from '../util/reliquaryTraits.js'
 
 function player(ctx: EffectContext) {
     return ctx.state.getPlayerState(ctx.playerId)
@@ -219,16 +219,28 @@ registerModifier(
     powerIndexOf('denizen.arcane.secret-signal', PowerTiming.Modifier),
     {
         hooks: {
-            // Its Q&A: under Careless a Trade for secrets gains one favor, so it may be used there too.
-            condition: (ctx) =>
-                ctx.particulars?.tradeOption === 'forFavor' ||
-                hasTrait(ctx.state, ctx.playerId, CARELESS)
-                    ? undefined
-                    : 'you are not trading for favor',
+            // Its Q&A: under Careless a Trade for secrets gains one favor, so it may be used there too,
+            // unless Vow of Poverty withholds that favor and the Trade gains none.
+            condition: (ctx) => {
+                if (ctx.particulars?.tradeOption === 'forFavor') return undefined
+                if (!hasTrait(ctx.state, ctx.playerId, CARELESS))
+                    return 'you are not trading for favor'
+                return reasonTradeForSecretsGainsNoFavor(
+                    ctx.state,
+                    ctx.playerId,
+                    ctx.particulars?.advisersOf
+                )
+            },
             tradeFavor: (base) => (base === 1 ? 2 : base),
             // Careless gave this Trade for secrets its one favor first; a bank that had none to give has none now (R-9.3).
             after: (ctx) => {
                 if (ctx.particulars?.tradeOption !== 'forSecrets') return undefined
+                const withheld = reasonTradeForSecretsGainsNoFavor(
+                    ctx.state,
+                    ctx.playerId,
+                    ctx.particulars.advisersOf
+                )
+                if (withheld) return { summary: `Secret Signal: ${withheld}` }
                 const cardId = ctx.particulars.cardId
                 assertExists(cardId, 'A Trade names the card it is made with')
                 const suit = suitOf(cardId)

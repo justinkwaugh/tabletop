@@ -238,7 +238,9 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
     ): ActionPlan {
         const none: ActionPlan = { cost: TRADE_SUPPLY_COST, active: [] }
         const player = state.getPlayerState(playerId)
-        const particulars = { cardId, tradeOption: option }
+        // Master of Disguise trades as the other player's advisers; the modifiers' conditions read it too.
+        const disguise = disguisedAs(ActionType.Trade, modifiers)
+        const particulars = { cardId, tradeOption: option, advisersOf: disguise }
         const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, particulars)
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
@@ -274,7 +276,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
         // R-7.1.4-H1, R-9.2 — Vow of Poverty's "cannot gain favor from Trade"; Master of Disguise trades as the other player's advisers.
-        const advisersOf = disguisedAs(ActionType.Trade, modifiers) ?? playerId
+        const advisersOf = disguise ?? playerId
         if (
             option === TradeOption.ForFavor &&
             cannotGainFavorFromTrade(state, playerId, advisersOf)

@@ -10,8 +10,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Vow of Renewal:** in a game created before revision 5 (R-X.4) its holder takes the two favor a Seize burns off the People's Favor; R-10.4-H1 burns them to the shared bank.
 - **Deed Writer's warbands:** in a game created before revision 5 (R-X.4) each site's warbands are checked alone against the new ruler's board, so terms can promise more warbands than the board holds in all: accepting them throws.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
-- **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets; the Vow's Q&A withholds it.
-- **Vow of Poverty with Secret Signal:** on a Trade for secrets under Careless, the Vow's holder still gains Secret Signal's one more favor; the Vow ("You cannot gain favor from Trade") withholds it, as it withholds Careless's from revision 5.
+- **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets, and Secret Signal's one more with it; the Vow's Q&A withholds Careless's, so the Trade gains none for Secret Signal to add to.
 - **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
 - **Ancient Binding:** in a game created before revision 5 (R-X.4) it burns faceup secrets only, so every facedown secret stays; Book Burning's Q&A gives the same words the meaning "face up or down".
 - **Obsidian Cage:** in a game created before revision 5 (R-X.4), warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.

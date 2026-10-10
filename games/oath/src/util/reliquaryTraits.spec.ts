@@ -24,6 +24,8 @@ import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { RunMode, engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { OathRevision } from './revision.js'
+import { PowerTiming, powersWithTiming } from '../data/cardPowers.js'
+import { effectFor } from '../powers/registry.js'
 
 const RETURN = 'denizen.hearth.awaited-return'
 const STEED = 'denizen.nomad.a-fast-steed'
@@ -320,6 +322,86 @@ describe('Careless under Vow of Poverty — "You still don’t get the favor fro
             for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
+    })
+})
+
+describe('Secret Signal under Vow of Poverty — no favor from the Trade, so not "only one" (R-9.2)', () => {
+    const SIGNAL = 'denizen.arcane.secret-signal'
+    const atRevision = OathRevision.EngineFixes2
+    const vowed = (oathRevision: number, advisers = [RETURN, POVERTY, SIGNAL]) =>
+        board([CARELESS], { oathRevision }, {}, [INN], advisers)
+    const reason = (s: ReturnType<typeof board>, modifiers: ModifierUse[]) =>
+        HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForSecrets, modifiers)
+    const tradeForSecrets = (s: ReturnType<typeof board>, modifiers: ModifierUse[]) => {
+        const action = new HydratedTrade(
+            buildAction(Trade, { playerId: 'ruler', cardId: INN, option: TradeOption.ForSecrets, modifiers })
+        )
+        action.apply(s)
+        return action
+    }
+    const signalAfter = (s: ReturnType<typeof board>) => {
+        const power = required(powersWithTiming(SIGNAL, PowerTiming.Modifier)[0], 'Secret Signal is a modifier')
+        const after = required(effectFor(power)?.modifier?.after, 'Secret Signal acts after the Trade')
+        return after({ state: s, playerId: 'ruler', power, choices: [], particulars: { cardId: INN, tradeOption: TradeOption.ForSecrets } })
+    }
+    const withOthersAdvisers = (s: ReturnType<typeof board>, cardIds: string[]) => {
+        s.getPlayerState('other').setAdvisers(cardIds.map((cardId) => ({ cardId, faceUp: true })))
+        return s
+    }
+
+    it('the Vow’s holder is refused Secret Signal on a Trade for secrets under Careless', () => {
+        const s = vowed(atRevision)
+        expect(reason(s, [])).toBeUndefined()
+        expect(reason(s, [modifierUse(SIGNAL)])).toBe(`${SIGNAL}: you cannot gain favor from Trade (Vow of Poverty)`)
+        expect(() => tradeForSecrets(s, [modifierUse(SIGNAL)])).toThrow('you cannot gain favor from Trade (Vow of Poverty)')
+    })
+
+    it('its after-hook, forced, pays the Vow’s holder nothing', () => {
+        const s = vowed(atRevision)
+        const bank = s.favorBank[Suit.Hearth]
+        expect(signalAfter(s)).toEqual({ summary: 'Secret Signal: you cannot gain favor from Trade (Vow of Poverty)' })
+        expect(s.getPlayerState('ruler').favor).toBe(3)
+        expect(s.favorBank[Suit.Hearth]).toBe(bank)
+    })
+
+    it('without the Vow, Careless and Secret Signal still gain one each', () => {
+        const s = vowed(atRevision, [RETURN, SIGNAL])
+        expect(reason(s, [modifierUse(SIGNAL)])).toBeUndefined()
+        const action = tradeForSecrets(s, [modifierUse(SIGNAL)])
+        expect(s.getPlayerState('ruler').favor).toBe(3)
+        expect(action.metadata?.modifierNotes).toEqual(['Careless: gained 1 favor', 'Secret Signal: gained 1 more favor'])
+    })
+
+    it('Master of Disguise: the Vow binds through the advisers the Trade acts with (its Q&A)', () => {
+        const disguise = [modifierUse(DISGUISE, [player('other')]), modifierUse(SIGNAL)]
+        const around = withOthersAdvisers(vowed(atRevision, [RETURN, POVERTY, DISGUISE]), [SIGNAL])
+        expect(reason(around, disguise)).toBeUndefined()
+        tradeForSecrets(around, disguise)
+        expect(around.getPlayerState('ruler').favor).toBe(3)
+
+        const into = withOthersAdvisers(vowed(atRevision, [RETURN, DISGUISE]), [POVERTY, SIGNAL])
+        expect(reason(into, disguise)).toBe(`${SIGNAL}: you cannot gain favor from Trade (Vow of Poverty)`)
+    })
+
+    it('R-X.4 — in a game created before the revision, the Vow’s holder still gains both', () => {
+        const s = vowed(OathRevision.CardFixes1)
+        expect(reason(s, [modifierUse(SIGNAL)])).toBeUndefined()
+        const action = tradeForSecrets(s, [modifierUse(SIGNAL)])
+        expect(s.getPlayerState('ruler').favor).toBe(3)
+        expect(action.metadata?.modifierNotes).toEqual(['Careless: gained 1 favor', 'Secret Signal: gained 1 more favor'])
+        expect(signalAfter(vowed(OathRevision.CardFixes1))).toEqual({ summary: 'Secret Signal: gained 1 more favor' })
+    })
+
+    it('R-X.4 — the older revision’s Trade with Secret Signal replays unchanged', () => {
+        const before = vowed(OathRevision.CardFixes1).dehydrate()
+        const game = testGame(['ruler', 'other'])
+        const trade = buildAction(Trade, { playerId: 'ruler', cardId: INN, option: TradeOption.ForSecrets, modifiers: [modifierUse(SIGNAL)] })
+        const recorded = engine.runNext(trade, structuredClone(before), game)
+        expect(recorded.updatedState.players.find((p) => p.playerId === 'ruler')?.favor).toBe(3)
+
+        let replayed = structuredClone(before)
+        for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        expect(replayed).toEqual(recorded.updatedState)
     })
 })
 
