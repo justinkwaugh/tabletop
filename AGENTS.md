@@ -54,6 +54,10 @@ To release, deploy, or publish a game or the site frontend, or to check what is 
 
 For read-only production evidence (logs, Cloud Tasks queues, Firestore records, serving revisions), use `.agents/skills/prod-investigation/SKILL.md`.
 
+### Harness scenarios
+
+To fulfil scenario requests from a dev harness, or to record a harness scenario, use `.agents/skills/harness-scenarios/SKILL.md`.
+
 ### Animation
 
 For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.

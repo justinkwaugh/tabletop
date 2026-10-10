@@ -26,7 +26,14 @@
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
     import { runHarnessScenario, type HarnessScenario } from '$lib/harness/harnessScenarios.js'
     import { recordGame, recordedScenarios } from '$lib/harness/harnessScenarioRecording.js'
-    import { HARNESS_SCENARIO_ENDPOINT } from '$lib/harness/harnessScenarioEndpoint.js'
+    import {
+        HARNESS_SCENARIO_ENDPOINT,
+        HARNESS_SCENARIO_REQUEST_ENDPOINT
+    } from '$lib/harness/harnessScenarioEndpoint.js'
+    import {
+        pendingScenarioRequests,
+        type HarnessScenarioRequest
+    } from '$lib/harness/harnessScenarioRequest.js'
 
     let {
         definition,
@@ -56,29 +63,55 @@
         void refreshRecordings()
     })
 
-    // Recordings come from the title's dev server when it has harnessScenarioFiles() installed;
-    // without it, the harness offers no saved scenarios and no saving.
+    // Recordings and requests come from the title's dev server when it has harnessScenarioFiles()
+    // installed; without it, the harness offers no saved scenarios, saving or requests.
     let recordingsAvailable = $state(false)
     let savedScenarios: HarnessScenario[] = $state([])
+    let requestedScenarios: HarnessScenarioRequest[] = $state([])
 
     async function refreshRecordings() {
+        const recordings = await listDevServerFiles(HARNESS_SCENARIO_ENDPOINT)
+        const requests = await listDevServerFiles(HARNESS_SCENARIO_REQUEST_ENDPOINT)
+        recordingsAvailable = recordings !== undefined
+        savedScenarios = recordings ? recordedScenarios(recordings) : []
+        requestedScenarios = pendingScenarioRequests(
+            requests ?? {},
+            new Set(savedScenarios.map((scenario) => scenario.id))
+        )
+    }
+
+    async function listDevServerFiles(
+        endpoint: string
+    ): Promise<Record<string, unknown> | undefined> {
         try {
-            const response = await fetch(HARNESS_SCENARIO_ENDPOINT)
+            const response = await fetch(endpoint)
             const listed = response.headers.get('Content-Type')?.includes('application/json')
-            if (!response.ok || !listed) {
-                recordingsAvailable = false
-                savedScenarios = []
-                return
-            }
-            const recordings: unknown = await response.json()
-            savedScenarios =
-                typeof recordings === 'object' && recordings !== null
-                    ? recordedScenarios(Object.fromEntries(Object.entries(recordings)))
-                    : []
-            recordingsAvailable = true
+            if (!response.ok || !listed) return undefined
+            const files: unknown = await response.json()
+            return typeof files === 'object' && files !== null
+                ? Object.fromEntries(Object.entries(files))
+                : undefined
         } catch {
-            recordingsAvailable = false
-            savedScenarios = []
+            return undefined
+        }
+    }
+
+    async function postToDevServer(endpoint: string, body: unknown) {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        if (response.status === 404) {
+            throw new Error("Add harnessScenarioFiles() to this title's vite.config.ts")
+        }
+        if (!response.ok) {
+            const failure: unknown = await response.json()
+            throw new Error(
+                typeof failure === 'object' && failure !== null && 'error' in failure
+                    ? String(failure.error)
+                    : `The dev server answered ${response.status}`
+            )
         }
     }
 
@@ -195,17 +228,19 @@
         }
     }
 
-    let savingScenario = $state(false)
+    // Saving records the current game; requesting describes a scenario for someone to record.
+    let scenarioForm: 'save' | 'request' | undefined = $state(undefined)
+    let scenarioFormOpen = $derived(scenarioForm !== undefined)
     let saveLabel = $state('')
     let saveDescription = $state('')
     let saveError: string | undefined = $state(undefined)
 
-    function openSaveScenario() {
+    function openScenarioForm(form: 'save' | 'request') {
         scenariosOpen = false
-        saveLabel = gameSession?.game.name ?? ''
+        saveLabel = form === 'save' ? (gameSession?.game.name ?? '') : ''
         saveDescription = ''
         saveError = undefined
-        savingScenario = true
+        scenarioForm = form
     }
 
     function recordingId(label: string) {
@@ -214,50 +249,51 @@
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '') || 'scenario'
-        const taken = new Set([...scenarios, ...savedScenarios].map((scenario) => scenario.id))
+        const taken = new Set(
+            [...scenarios, ...savedScenarios, ...requestedScenarios].map((scenario) => scenario.id)
+        )
         let id = base
         for (let n = 2; taken.has(id); n++) id = `${base}-${n}`
         return id
     }
 
-    async function saveScenario() {
+    async function submitScenarioForm() {
         saveError = undefined
         try {
-            assertExists(gameSession, 'Open a game to save it as a scenario')
-            const { game, actions } = await gameService.loadGame(gameSession.game.id)
-            assertExists(game?.state, 'The current game could not be loaded')
-            const recording = recordGame({
-                id: recordingId(saveLabel.trim()),
-                label: saveLabel.trim(),
-                description: saveDescription.trim(),
-                recordedWith: definition.info.metadata.version,
-                game,
-                state: game.state,
-                actions
-            })
-            const response = await fetch(HARNESS_SCENARIO_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(recording)
-            })
-            if (response.status === 404) {
-                throw new Error(
-                    "Add harnessScenarioFiles() to this title's vite.config.ts to save scenarios"
-                )
+            if (scenarioForm === 'request') {
+                const request: HarnessScenarioRequest = {
+                    format: 1,
+                    id: recordingId(saveLabel.trim()),
+                    label: saveLabel.trim(),
+                    description: saveDescription.trim(),
+                    title: definition.info.id,
+                    requestedAt: new Date().toISOString()
+                }
+                await postToDevServer(HARNESS_SCENARIO_REQUEST_ENDPOINT, request)
+            } else {
+                await saveCurrentGame()
             }
-            if (!response.ok) {
-                const failure: unknown = await response.json()
-                throw new Error(
-                    typeof failure === 'object' && failure !== null && 'error' in failure
-                        ? String(failure.error)
-                        : `Saving failed with status ${response.status}`
-                )
-            }
-            savingScenario = false
+            scenarioForm = undefined
             await refreshRecordings()
         } catch (error) {
             saveError = error instanceof Error ? error.message : String(error)
         }
+    }
+
+    async function saveCurrentGame() {
+        assertExists(gameSession, 'Open a game to save it as a scenario')
+        const { game, actions } = await gameService.loadGame(gameSession.game.id)
+        assertExists(game?.state, 'The current game could not be loaded')
+        const recording = recordGame({
+            id: recordingId(saveLabel.trim()),
+            label: saveLabel.trim(),
+            description: saveDescription.trim(),
+            recordedWith: definition.info.metadata.version,
+            game,
+            state: game.state,
+            actions
+        })
+        await postToDevServer(HARNESS_SCENARIO_ENDPOINT, recording)
     }
 
     async function loadGame(gameId: string) {
@@ -391,12 +427,30 @@
                                     {@render scenarioItem(scenario)}
                                 {/each}
                             {/if}
+                            {#if requestedScenarios.length > 0}
+                                <div
+                                    class="px-3 pt-2 pb-1 text-xs uppercase tracking-wide opacity-60"
+                                >
+                                    Requested
+                                </div>
+                                {#each requestedScenarios as request (request.id)}
+                                    <div class="px-3 py-2 opacity-60">
+                                        <div class="font-semibold">{request.label}</div>
+                                        <div class="text-xs">Waiting to be recorded</div>
+                                    </div>
+                                {/each}
+                            {/if}
                             {#if recordingsAvailable}
                                 <DropdownItem
                                     class="w-full px-3 py-2 text-left font-semibold"
                                     disabled={!gameSession}
-                                    onclick={openSaveScenario}
+                                    onclick={() => openScenarioForm('save')}
                                     >Save this game as a scenario…</DropdownItem
+                                >
+                                <DropdownItem
+                                    class="w-full px-3 py-2 text-left font-semibold"
+                                    onclick={() => openScenarioForm('request')}
+                                    >Request a new scenario…</DropdownItem
                                 >
                             {/if}
                         </Dropdown>
@@ -535,21 +589,29 @@
     </DropdownItem>
 {/snippet}
 
-{#if savingScenario}
+{#if scenarioForm}
     <Modal
-        bind:open={savingScenario}
+        open={scenarioFormOpen}
+        onclose={() => (scenarioForm = undefined)}
         size="xs"
         autoclose={false}
         class="w-full"
-        title="Save as a scenario"
+        title={scenarioForm === 'save' ? 'Save as a scenario' : 'Request a new scenario'}
     >
         <form
             class="flex flex-col gap-3"
             onsubmit={(event) => {
                 event.preventDefault()
-                void saveScenario()
+                void submitScenarioForm()
             }}
         >
+            {#if scenarioForm === 'request'}
+                <p class="text-sm opacity-80">
+                    Describe the game state you want. Anyone can record it later, by hand or with an
+                    AI assistant following .agents/skills/harness-scenarios; it then appears under
+                    Saved.
+                </p>
+            {/if}
             <Label class="flex flex-col gap-1"
                 >Label<Input name="label" bind:value={saveLabel} required /></Label
             >
@@ -558,15 +620,25 @@
                     name="description"
                     rows={3}
                     bind:value={saveDescription}
-                    placeholder="What this scenario sets up"
+                    placeholder={scenarioForm === 'save'
+                        ? 'What this scenario sets up'
+                        : 'For example: a three-way tie for the politics card, mid-game'}
+                    required={scenarioForm === 'request'}
                 /></Label
             >
             {#if saveError}
                 <div class="text-sm text-red-500" role="alert">{saveError}</div>
             {/if}
             <div class="flex justify-end gap-2">
-                <Button color="alternative" onclick={() => (savingScenario = false)}>Cancel</Button>
-                <Button type="submit" disabled={saveLabel.trim() === ''}>Save</Button>
+                <Button color="alternative" onclick={() => (scenarioForm = undefined)}
+                    >Cancel</Button
+                >
+                <Button
+                    type="submit"
+                    disabled={saveLabel.trim() === '' ||
+                        (scenarioForm === 'request' && saveDescription.trim() === '')}
+                    >{scenarioForm === 'save' ? 'Save' : 'Request'}</Button
+                >
             </div>
         </form>
     </Modal>

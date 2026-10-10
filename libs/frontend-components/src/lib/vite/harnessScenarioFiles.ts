@@ -1,12 +1,16 @@
 import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import type { Plugin } from 'vite'
-import { HARNESS_SCENARIO_ENDPOINT } from '../harness/harnessScenarioEndpoint.js'
+import type { Connect, Plugin } from 'vite'
+import {
+    HARNESS_SCENARIO_ENDPOINT,
+    HARNESS_SCENARIO_REQUEST_ENDPOINT
+} from '../harness/harnessScenarioEndpoint.js'
 
-const RECORDING_ID = /^[a-z0-9][a-z0-9-]*$/
+const FILE_ID = /^[a-z0-9][a-z0-9-]*$/
 
-// Lets the dev harness list and save scenario recordings in the title's own folder. It exists only
-// while the dev server runs, and the folder ignores itself, so recordings stay local.
+// Lets the dev harness list and save scenario recordings, and requests for new ones, in the
+// title's own folder. It exists only while the dev server runs, and the folder ignores itself, so
+// everything in it stays local.
 export function harnessScenarioFiles({
     dir = 'src/lib/dev/recordings'
 }: { dir?: string } = {}): Plugin {
@@ -14,34 +18,29 @@ export function harnessScenarioFiles({
         name: 'tabletop-harness-scenario-files',
         apply: 'serve',
         configureServer(server) {
-            const target = resolve(server.config.root, dir)
-            server.middlewares.use(HARNESS_SCENARIO_ENDPOINT, (request, response) => {
-                if (request.method === 'GET') {
-                    listScenarioRecordings(target)
-                        .then((recordings) => respond(response, 200, recordings))
-                        .catch((error: unknown) => respond(response, 500, failure(error)))
-                    return
-                }
-                if (request.method !== 'POST') {
-                    response.statusCode = 405
-                    response.end()
-                    return
-                }
-                const chunks: Buffer[] = []
-                request.on('data', (chunk: Buffer) => chunks.push(chunk))
-                request.on('end', () => {
-                    saveScenarioRecording(target, Buffer.concat(chunks).toString('utf8'))
-                        .then((file) => respond(response, 200, { file }))
-                        .catch((error: unknown) => respond(response, 400, failure(error)))
-                })
-            })
+            const recordings = resolve(server.config.root, dir)
+            server.middlewares.use(
+                HARNESS_SCENARIO_ENDPOINT,
+                jsonFolder((body) => saveScenarioRecording(recordings, body), recordings)
+            )
+            server.middlewares.use(
+                HARNESS_SCENARIO_REQUEST_ENDPOINT,
+                jsonFolder(
+                    (body) => saveScenarioRequest(recordings, body),
+                    scenarioRequestFolder(recordings)
+                )
+            )
         }
     }
 }
 
-// Each recording file's parsed contents by file name; a file that is not JSON is listed by its
-// parse error, so the harness reports it rather than dropping it silently.
-export async function listScenarioRecordings(dir: string): Promise<Record<string, unknown>> {
+export function scenarioRequestFolder(recordings: string) {
+    return join(recordings, 'requests')
+}
+
+// Each JSON file's parsed contents by file name; a file that is not JSON is listed by its parse
+// error, so the harness reports it rather than dropping it silently.
+export async function listJsonFiles(dir: string): Promise<Record<string, unknown>> {
     const names = await readdir(dir).catch(() => [])
     const files = names.filter((name) => name.endsWith('.json')).toSorted()
     const entries = await Promise.all(
@@ -57,21 +56,58 @@ export async function listScenarioRecordings(dir: string): Promise<Record<string
     return Object.fromEntries(entries)
 }
 
-export async function saveScenarioRecording(dir: string, body: string): Promise<string> {
-    const recording: unknown = JSON.parse(body)
+export function saveScenarioRecording(recordings: string, body: string): Promise<string> {
+    return saveJsonFile(recordings, recordings, body, 'A scenario recording')
+}
+
+export function saveScenarioRequest(recordings: string, body: string): Promise<string> {
+    return saveJsonFile(scenarioRequestFolder(recordings), recordings, body, 'A scenario request')
+}
+
+async function saveJsonFile(
+    dir: string,
+    recordings: string,
+    body: string,
+    noun: string
+): Promise<string> {
+    const content: unknown = JSON.parse(body)
     const id =
-        typeof recording === 'object' && recording !== null && 'id' in recording
-            ? recording.id
-            : undefined
-    if (typeof id !== 'string' || !RECORDING_ID.test(id)) {
-        throw new Error('A scenario recording needs an id of lowercase letters, digits and dashes')
+        typeof content === 'object' && content !== null && 'id' in content ? content.id : undefined
+    if (typeof id !== 'string' || !FILE_ID.test(id)) {
+        throw new Error(`${noun} needs an id of lowercase letters, digits and dashes`)
     }
     await mkdir(dir, { recursive: true })
-    const ignore = join(dir, '.gitignore')
+    const ignore = join(recordings, '.gitignore')
     await access(ignore).catch(() => writeFile(ignore, '*\n'))
     const file = join(dir, `${id}.json`)
-    await writeFile(file, `${JSON.stringify(recording, null, 4)}\n`)
+    await writeFile(file, `${JSON.stringify(content, null, 4)}\n`)
     return file
+}
+
+function jsonFolder(
+    save: (body: string) => Promise<string>,
+    dir: string
+): Connect.NextHandleFunction {
+    return (request, response) => {
+        if (request.method === 'GET') {
+            listJsonFiles(dir)
+                .then((files) => respond(response, 200, files))
+                .catch((error: unknown) => respond(response, 500, failure(error)))
+            return
+        }
+        if (request.method !== 'POST') {
+            response.statusCode = 405
+            response.end()
+            return
+        }
+        const chunks: Buffer[] = []
+        request.on('data', (chunk: Buffer) => chunks.push(chunk))
+        request.on('end', () => {
+            save(Buffer.concat(chunks).toString('utf8'))
+                .then((file) => respond(response, 200, { file }))
+                .catch((error: unknown) => respond(response, 400, failure(error)))
+        })
+    }
 }
 
 function respond(
