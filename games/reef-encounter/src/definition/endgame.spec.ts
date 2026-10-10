@@ -14,12 +14,12 @@ import {
     place,
     play,
     polyp,
-    startOnBoardOne
+    startOnBoardThree
 } from '../util/reefTestHelpers.js'
 
-// Board 1 (docs/board-map.md): (0,0), (0,1), (1,0), (1,1), (1,2), (1,3) and (1,4) are rock.
+// Board 3 (docs/board-map.md): (6,0), (5,0), (6,1), (5,1), (4,1), (3,1) and (2,1) are rock.
 const coral = (size: number, color = CoralColor.White): Polyp[] =>
-    [at(0, 0), at(0, 1), at(1, 0), at(1, 1), at(1, 2), at(1, 3), at(1, 4)]
+    [at(6, 0), at(5, 0), at(6, 1), at(5, 1), at(4, 1), at(3, 1), at(2, 1)]
         .slice(0, size)
         .map((coords) => polyp(coords.row, coords.col, color))
 
@@ -51,8 +51,8 @@ function pass(session: TestSession) {
 
 function eat(session: TestSession) {
     return session.act(session.currentPlayerId(), ActionType.EatCoral, {
-        boardId: 1,
-        coords: at(0, 0)
+        boardId: 3,
+        coords: at(6, 0)
     })
 }
 
@@ -62,7 +62,7 @@ function endedWithReveal(session: TestSession) {
 
 describe('locking the last coral tile', () => {
     it('ends the turn at once and gives every other player a final turn', () => {
-        const session = startOnBoardOne([], [], 3)
+        const session = startOnBoardThree([], [], 3)
         const [first, second, third] = session.state.turnManager.turnOrder
         lastTileLeft(session)
 
@@ -84,10 +84,10 @@ describe('locking the last coral tile', () => {
 
 describe('eating the fourth shrimp', () => {
     it('ends the turn at once and gives the other players a final turn', () => {
-        const session = startOnBoardOne(coral(5))
+        const session = startOnBoardThree(coral(5))
         const [first, second] = session.state.turnManager.turnOrder
         session.edit((draft) => {
-            draft.shrimps = [{ playerId: first, boardId: 1, coords: at(0, 0) }]
+            draft.shrimps = [{ playerId: first, boardId: 3, coords: at(6, 0) }]
         })
         give(session, (player) => {
             player.shrimpOnOpenSea = true
@@ -105,10 +105,10 @@ describe('eating the fourth shrimp', () => {
 
 describe('final turns', () => {
     function startFinalTurns() {
-        const session = startOnBoardOne(coral(6))
+        const session = startOnBoardThree(coral(6))
         const [, second] = session.state.turnManager.turnOrder
         session.edit((draft) => {
-            draft.shrimps = [{ playerId: second, boardId: 1, coords: at(0, 0) }]
+            draft.shrimps = [{ playerId: second, boardId: 3, coords: at(6, 0) }]
         })
         lastTileLeft(session)
         lockLastTile(session)
@@ -130,11 +130,11 @@ describe('final turns', () => {
     })
 
     it('returns six polyps in the Advanced game', () => {
-        const session = startOnBoardOne(coral(7))
+        const session = startOnBoardThree(coral(7))
         const [, second] = session.state.turnManager.turnOrder
         session.edit((draft) => {
             draft.advanced = true
-            draft.shrimps = [{ playerId: second, boardId: 1, coords: at(0, 0) }]
+            draft.shrimps = [{ playerId: second, boardId: 3, coords: at(6, 0) }]
         })
         lastTileLeft(session)
         lockLastTile(session)
@@ -162,17 +162,17 @@ describe('final turns', () => {
 
 describe('running out of rock', () => {
     it('ends the game at once, with no final turns', () => {
-        const filled = (boardId: 1 | 2) =>
+        const filled = (boardId: 3 | 4) =>
             ReefBoards[boardId].rock.map((coords) => polyp(coords.row, coords.col, CoralColor.Grey))
-        const boardOne = filled(1).filter((p) => !(p.coords.row === 0 && p.coords.col === 0))
-        const session = startOnBoardOne(boardOne)
+        const boardThree = filled(3).filter((p) => !(p.coords.row === 6 && p.coords.col === 0))
+        const session = startOnBoardThree(boardThree)
         session.edit((draft) => {
-            draft.reefs[1].polyps = filled(2)
+            draft.reefs[1].polyps = filled(4)
         })
         giveScreenPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
-        place(session, at(0, 0))
+        place(session, at(6, 0))
 
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
         expect(session.state.endReason).toBe(GameEndReason.NoRockLeft)

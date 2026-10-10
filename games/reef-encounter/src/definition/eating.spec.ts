@@ -11,18 +11,18 @@ import {
     giveScreenPolyps,
     play,
     polyp,
-    startOnBoardOne
+    startOnBoardThree
 } from '../util/reefTestHelpers.js'
 
-// Board 1 (docs/board-map.md): (0,0), (0,1), (1,0), (1,1) and (1,2) are rock.
+// Board 3 (docs/board-map.md): (6,0), (5,0), (6,1), (5,1) and (4,1) are rock.
 const whiteCoral = (size: number): Polyp[] =>
-    [at(0, 0), at(0, 1), at(1, 0), at(1, 1), at(1, 2), at(1, 3), at(1, 4)]
+    [at(6, 0), at(5, 0), at(6, 1), at(5, 1), at(4, 1), at(3, 1), at(2, 1)]
         .slice(0, size)
         .map((coords) => polyp(coords.row, coords.col, CoralColor.White))
 
 function guardedBy(session: TestSession, playerId: string) {
     session.edit((draft) => {
-        draft.shrimps = [{ playerId, boardId: 1, coords: at(0, 0) }]
+        draft.shrimps = [{ playerId, boardId: 3, coords: at(6, 0) }]
     })
     return session
 }
@@ -34,15 +34,15 @@ function opponentId(session: TestSession) {
     )
 }
 
-function eat(session: TestSession, row = 1, col = 1) {
+function eat(session: TestSession, row = 5, col = 1) {
     return session.act(session.currentPlayerId(), ActionType.EatCoral, {
-        boardId: 1,
+        boardId: 3,
         coords: at(row, col)
     })
 }
 
 function startWithOwnCoral(size: number) {
-    const session = startOnBoardOne(whiteCoral(size))
+    const session = startOnBoardThree(whiteCoral(size))
     return guardedBy(session, session.currentPlayerId())
 }
 
@@ -118,10 +118,10 @@ describe('eating a coral', () => {
     })
 
     it('needs the coral guarded by the player’s own shrimp', () => {
-        const unguarded = startOnBoardOne(whiteCoral(5))
+        const unguarded = startOnBoardThree(whiteCoral(5))
         expect(() => eat(unguarded)).toThrow()
 
-        const theirs = startOnBoardOne(whiteCoral(5))
+        const theirs = startOnBoardThree(whiteCoral(5))
         guardedBy(theirs, opponentId(theirs))
         expect(() => eat(theirs)).toThrow()
     })
@@ -134,34 +134,34 @@ describe('eating a coral', () => {
 
         const afterMove = startWithOwnCoral(5)
         afterMove.act(afterMove.currentPlayerId(), ActionType.MoveShrimp, {
-            from: { boardId: 1, coords: at(0, 0) },
-            to: { boardId: 1, coords: at(0, 1) }
+            from: { boardId: 3, coords: at(6, 0) },
+            to: { boardId: 3, coords: at(5, 0) }
         })
         expect(() => eat(afterMove)).toThrow()
 
-        const afterShrimp = startOnBoardOne([...whiteCoral(5), polyp(3, 4, CoralColor.Pink)])
+        const afterShrimp = startOnBoardThree([...whiteCoral(5), polyp(2, 3, CoralColor.Pink)])
         guardedBy(afterShrimp, afterShrimp.currentPlayerId())
         afterShrimp.act(afterShrimp.currentPlayerId(), ActionType.IntroduceShrimp, {
-            boardId: 1,
-            coords: at(3, 4)
+            boardId: 3,
+            coords: at(2, 3)
         })
         expect(() => eat(afterShrimp)).toThrow()
 
-        const twice = startOnBoardOne([
+        const twice = startOnBoardThree([
             ...whiteCoral(5),
-            ...[at(3, 4), at(3, 5), at(3, 6), at(4, 4), at(4, 5)].map((coords) =>
+            ...[at(2, 3), at(1, 3), at(0, 3), at(2, 4), at(1, 4)].map((coords) =>
                 polyp(coords.row, coords.col, CoralColor.Pink)
             )
         ])
         const playerId = twice.currentPlayerId()
         twice.edit((draft) => {
             draft.shrimps = [
-                { playerId, boardId: 1, coords: at(0, 0) },
-                { playerId, boardId: 1, coords: at(3, 4) }
+                { playerId, boardId: 3, coords: at(6, 0) },
+                { playerId, boardId: 3, coords: at(2, 3) }
             ]
         })
         eat(twice)
-        expect(() => eat(twice, 3, 4)).toThrow()
+        expect(() => eat(twice, 2, 3)).toThrow()
     })
 })
 

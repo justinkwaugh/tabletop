@@ -11,10 +11,10 @@ export const polyp = (row: number, col: number, color: CoralColor): Polyp => ({
     color
 })
 
-// Board 1 (docs/board-map.md): (2,1) and (3,3) are sand, (0,2) is off the board,
-// and (2,3) is the extra-growth square. Every coral tile shows its starfish side,
+// Board 3 (docs/board-map.md): (3,3) and (5,2) are sand, (4,0) is off the board,
+// and (3,2) is the extra-growth square. Every coral tile shows its starfish side,
 // so grey beats yellow, orange beats pink, white beats yellow and pink beats grey.
-export function startOnBoardOne(
+export function startOnBoardThree(
     polyps: Polyp[],
     shrimps: Omit<Shrimp, 'boardId'>[] = [],
     playerCount = 2
@@ -23,10 +23,10 @@ export function startOnBoardOne(
     completeSetup(session)
     session.edit((draft) => {
         draft.reefs = [
-            { boardId: 1, polyps },
-            { boardId: 2, polyps: [] }
+            { boardId: 3, polyps },
+            { boardId: 4, polyps: [] }
         ]
-        draft.shrimps = shrimps.map((shrimp) => ({ ...shrimp, boardId: 1 }))
+        draft.shrimps = shrimps.map((shrimp) => ({ ...shrimp, boardId: 3 }))
         for (const tile of draft.coralTiles) {
             tile.starfishSideUp = true
         }
@@ -63,7 +63,7 @@ export function place(
     session: TestSession,
     coords: OffsetCoordinates,
     fromConsumed = false,
-    boardId = 1
+    boardId = 3
 ) {
     return session.act(session.currentPlayerId(), ActionType.PlacePolyp, {
         boardId,
@@ -73,7 +73,7 @@ export function place(
 }
 
 export function polypsOn(session: TestSession): Polyp[] {
-    return session.state.reefs.find((reef) => reef.boardId === 1)?.polyps ?? []
+    return session.state.reefs.find((reef) => reef.boardId === 3)?.polyps ?? []
 }
 
 export function colorAt(session: TestSession, coords: OffsetCoordinates) {

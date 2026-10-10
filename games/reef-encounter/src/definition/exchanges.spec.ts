@@ -10,7 +10,7 @@ import {
     place,
     play,
     polyp,
-    startOnBoardOne
+    startOnBoardThree
 } from '../util/reefTestHelpers.js'
 
 const White = CoralColor.White
@@ -26,7 +26,7 @@ function sellCube(session: TestSession, color: CoralColor) {
 
 // The player holds one consumed white polyp, one pink larva cube, and four white screen polyps.
 function startWithConsumedWhite() {
-    const session = startOnBoardOne([polyp(0, 0, White)])
+    const session = startOnBoardThree([polyp(6, 0, White)])
     giveScreenPolyps(session, White, 4)
     give(session, (player) => {
         player.larvaCubes = { ...coralCounts(0), [Pink]: 1 }
@@ -61,8 +61,8 @@ describe('exchanging a consumed polyp for a larva cube', () => {
         const session = startWithConsumedWhite()
         const playerId = session.currentPlayerId()
         session.edit((draft) => {
-            draft.shrimps = [{ playerId, boardId: 1, coords: at(0, 0) }]
-            draft.reefs[0].polyps.push(polyp(1, 0, Pink))
+            draft.shrimps = [{ playerId, boardId: 3, coords: at(6, 0) }]
+            draft.reefs[0].polyps.push(polyp(6, 1, Pink))
         })
         give(session, (player) => {
             player.consumedPolyps = { ...coralCounts(0), [White]: 2 }
@@ -72,17 +72,17 @@ describe('exchanging a consumed polyp for a larva cube', () => {
         expect(() => play(session, Pink)).toThrow()
         expect(() => buyCube(session, White)).toThrow()
         expect(() =>
-            session.act(playerId, ActionType.IntroduceShrimp, { boardId: 1, coords: at(1, 0) })
+            session.act(playerId, ActionType.IntroduceShrimp, { boardId: 3, coords: at(6, 1) })
         ).toThrow()
         expect(() =>
             session.act(playerId, ActionType.TakeOpenSeaSpace, { larvaColor: White })
         ).toThrow()
         session.act(playerId, ActionType.MoveShrimp, {
-            from: { boardId: 1, coords: at(0, 0) }
+            from: { boardId: 3, coords: at(6, 0) }
         })
 
         play(session, White)
-        place(session, at(0, 1))
+        place(session, at(5, 0))
         expect(session.state.turn.cubeToPlay).toBeUndefined()
     })
 
@@ -128,7 +128,7 @@ describe('exchanging a consumed polyp for a larva cube', () => {
         })
         play(session, White)
         buyCube(session, Pink)
-        expect(() => place(session, at(0, 1))).toThrow()
+        expect(() => place(session, at(5, 0))).toThrow()
     })
 })
 
@@ -190,7 +190,7 @@ describe('exchanging a larva cube for a polyp', () => {
         })
         play(session, White)
         sellCube(session, Pink)
-        expect(() => place(session, at(0, 1))).toThrow()
+        expect(() => place(session, at(5, 0))).toThrow()
         expect(session.state.turn.larvaCubesPlayed).toBe(1)
     })
 })

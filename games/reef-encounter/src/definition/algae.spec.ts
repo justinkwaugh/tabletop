@@ -9,7 +9,7 @@ import {
     place,
     play,
     at,
-    startOnBoardOne
+    startOnBoardThree
 } from '../util/reefTestHelpers.js'
 
 const Blue = AlgaColor.Blue
@@ -19,7 +19,7 @@ const Green = AlgaColor.Green
 // Every tile starts starfish side up. Large algae there: blue on tiles 1, 7 and 10; red on
 // 6 and 8; green on 2, 3 and 4. The reverse of tiles 1 and 10 shows a large red alga.
 function startWithConsumed(count = 3, shrimpOnOpenSea = false) {
-    const session = startOnBoardOne([])
+    const session = startOnBoardThree([])
     give(session, (player) => {
         player.consumedPolyps = { ...coralCounts(0), [CoralColor.Grey]: count }
         player.shrimpOnOpenSea = shrimpOnOpenSea
@@ -96,7 +96,7 @@ describe('playing an alga cylinder on the open-sea space', () => {
         giveScreenPolyps(session, CoralColor.White, 4)
         play(session, CoralColor.White)
         playAlga(session, Blue)
-        expect(() => place(session, at(0, 0))).toThrow()
+        expect(() => place(session, at(6, 0))).toThrow()
     })
 
     it('waits while a bought larva cube is still to be played', () => {

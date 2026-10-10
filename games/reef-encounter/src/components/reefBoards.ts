@@ -23,14 +23,15 @@ export type ReefBoard = {
     extraGrowth: OffsetCoordinates
 }
 
-// Transcribed square by square in docs/board-map.md and checked against a printed copy:
-// '.' rock, '#' sand, ' ' off the board, '*' the extra-growth square, and a letter for
-// each starting polyp. Every board has 33 rock squares.
+// The official board art, numbered as its files are (docs/board-map.md): six columns by seven rows,
+// read top to bottom. '.' rock, '#' sand (open water in the art), ' ' off the board, '*' the
+// extra-growth (starfish) square, and a letter for each starting polyp. Every board has 33 rock
+// squares.
 const BoardMaps: Record<ReefBoardId, readonly string[]> = {
-    1: ['.. ... ', '..G.P. ', '.#.*...', '.Y.#W..', ' .O... ', '... .. '],
-    2: ['.......', '..O#P..', '.#.*.G.', '..W.#..', ' ..Y.. ', ' ...   '],
-    3: [' .. .. ', ' .Y.P. ', '...*.W.', '..G.#..', '..#O...', ' ..... '],
-    4: ['   ... ', '...G.. ', '..Y.#..', '.#.*.W.', '..O.P..', ' ..... ']
+    1: ['  ... ', '...W..', '..#.P.', '.G.*..', ' .Y.O.', ' ..#..', ' .... '],
+    2: [' ...  ', '......', '.#G.Y.', '.O.*. ', '..#.P.', '...W..', ' ...  '],
+    3: ['  ..  ', '......', '.P.W..', '..*#. ', ' G..O.', '..#Y..', '.... .'],
+    4: ['  ....', '...#..', '..W.O.', '.Y.*#.', ' .#.P.', ' ..G..', '  ....']
 }
 
 const StartingPolypLetters: Record<string, CoralColor> = {

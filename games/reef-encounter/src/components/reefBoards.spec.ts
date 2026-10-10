@@ -24,15 +24,15 @@ describe('reef boards', () => {
         )
     })
 
-    it('matches the checked board map', () => {
-        expect(ReefBoards[4].startingPolyps).toContainEqual({
-            coords: { row: 4, col: 2 },
-            color: 'orange'
+    it('matches the official board art', () => {
+        expect(ReefBoards[1].startingPolyps).toContainEqual({
+            coords: { row: 1, col: 3 },
+            color: 'white'
         })
-        expect(ReefBoards[4].extraGrowth).toEqual({ row: 3, col: 3 })
-        expect(isRock(1, { row: 2, col: 1 })).toBe(false)
-        expect(isRock(2, { row: 3, col: 3 })).toBe(true)
-        expect(isRock(4, { row: 4, col: 0 })).toBe(true)
-        expect(isRock(1, { row: 0, col: 2 })).toBe(false)
+        expect(ReefBoards[3].extraGrowth).toEqual({ row: 3, col: 2 })
+        expect(isRock(1, { row: 2, col: 2 })).toBe(false)
+        expect(isRock(4, { row: 3, col: 4 })).toBe(false)
+        expect(isRock(3, { row: 6, col: 5 })).toBe(true)
+        expect(isRock(2, { row: 3, col: 5 })).toBe(false)
     })
 })
