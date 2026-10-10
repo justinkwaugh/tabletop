@@ -6,7 +6,8 @@
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import type { SizedImage } from '$lib/images/manifestIndex.js'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { bannerImage, favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
+    import { bannerPreview } from '$lib/model/bannerPreview.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { bannerName, bannerTokenKind, cardName, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -21,14 +22,24 @@
     let siteId = $derived(gameSession.myPlayerState?.siteId)
     let slots = $derived(siteId ? gameState.relicSlotsAt(siteId).map((slot) => slot.slotId) : [])
 
+    // R-6.3 — a relic is its face once this player has seen it, else its back, named by its space.
     function relicName(slotId: string): string {
         const known = gameSession.knownRelicAt(slotId)
-        return known ? cardName(known) : `Facedown relic, space ${slots.indexOf(slotId) + 1}`
+        return known ? cardName(known) : `Facedown relic, ${spaceOf(slotId)}`
+    }
+
+    function spaceOf(slotId: string): string {
+        return `space ${slots.indexOf(slotId) + 1}`
     }
 
     function relicImage(slotId: string): string {
         const known = gameSession.knownRelicAt(slotId)
         return (known ? cardImage(known) : undefined) ?? cardBack(CardKind.Relic)
+    }
+
+    function relicPreview(slotId: string): { cardId: string; label: string } | undefined {
+        const known = gameSession.knownRelicAt(slotId)
+        return known ? { cardId: known, label: cardName(known) } : undefined
     }
 
     function costWords(cost: RecoverCost): string {
@@ -53,11 +64,14 @@
     </h3>
     <div class="mb-1.5 flex flex-col gap-1.5" role="list" aria-label="Relics to recover">
         {#each rows.relics as row (row.slotId)}
+            {@const preview = relicPreview(row.slotId)}
             <MenuRow
                 image={relicImage(row.slotId)}
                 imageAlt=""
-                name={relicName(row.slotId)}
+                name={preview ? preview.label : 'Facedown relic,'}
+                nameEnd={preview ? undefined : spaceOf(row.slotId)}
                 shape="relic"
+                {preview}
                 points={{ kind: 'relic', slotId: row.slotId }}
             >
                 <MenuChoice
@@ -97,11 +111,13 @@
         {#each rows.banners as bid (bid.banner)}
             {@const least = bid.amounts[0] ?? 0}
             {@const more = bid.amounts.length > 1}
+            {@const preview = bannerPreview(gameState, bid.banner)}
             <MenuRow
-                image={bannerImage(bid.banner, gameState.isOnMobSide(bid.banner))}
+                image={preview.imageSrc}
                 imageAlt=""
                 name={bannerName(bid.banner)}
                 shape="wide"
+                {preview}
                 points={{ kind: 'banner', banner: bid.banner }}
             >
                 <MenuChoice

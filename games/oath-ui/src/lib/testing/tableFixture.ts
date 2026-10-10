@@ -97,6 +97,7 @@ export type TableName =
     | 'careless'
     | 'musterEmptyBank'
     | 'recover'
+    | 'recoverSeen'
     | 'peek'
     | 'relics'
     | 'searchToll'
@@ -972,6 +973,20 @@ function recoverTable(): PlayedTable {
             siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
             relicsBySite: { [home]: [{ slotId }] },
             vault: testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' })
+        }
+    )
+}
+
+/** R-5.4, R-6.3: two relics at the Ancient City, the second already peeked by the seat, and both banners. */
+function recoverSeenTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
+    return tradeSiteTable(
+        { favor: 6, secrets: 3, peekedRelicSlotIds: [second], peekedRelics: { [second]: 'relic.map' } },
+        {
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
+            relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
+            vault: testVaultWithRelics({ [first]: 'relic.cup-of-plenty', [second]: 'relic.map' })
         }
     )
 }
@@ -2301,6 +2316,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     careless: carelessTable,
     musterEmptyBank: musterEmptyBankTable,
     recover: recoverTable,
+    recoverSeen: recoverSeenTable,
     peek: peekTable,
     relics: relicsTable,
     searchToll: searchTollTable,

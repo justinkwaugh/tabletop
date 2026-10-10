@@ -1,8 +1,7 @@
 <script lang="ts">
     import type { Banner } from '@tabletop/oath'
     import Magnifier from '$lib/components/Magnifier.svelte'
-    import { bannerImage } from '$lib/images/tileImages.js'
-    import { bannerName, bannerTokenKind } from '$lib/model/names.js'
+    import { bannerPreview } from '$lib/model/bannerPreview.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-6.6.1 — a banner in an offer's terms is its tile (2:1, as tall as the relic card beside
@@ -22,8 +21,9 @@
     } = $props()
 
     let gameState = $derived(getGameSession().gameState)
-    let src = $derived(bannerImage(banner, gameState.isOnMobSide(banner)))
-    let label = $derived(`the ${bannerName(banner)}`)
+    let preview = $derived(bannerPreview(gameState, banner))
+    let src = $derived(preview.imageSrc)
+    let label = $derived(preview.label)
 </script>
 
 <span class="relative inline-flex">
@@ -45,13 +45,5 @@
             style="height:{height}px; width:{height * 2}px;"
         />
     </button>
-    <Magnifier
-        preview={{
-            imageSrc: src,
-            aspect: 2,
-            label,
-            badge: { kind: bannerTokenKind(banner), count: gameState.banners[banner].value }
-        }}
-        {label}
-    />
+    <Magnifier {preview} {label} />
 </span>

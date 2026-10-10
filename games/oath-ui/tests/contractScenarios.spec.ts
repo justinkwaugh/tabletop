@@ -156,12 +156,19 @@ test('scenario 44: a hover opens nothing; a click on a card on the table enlarge
     await expect(preview(page)).toHaveCount(0)
 })
 
-test('scenario 41: with Recover chosen, a click on a banner on the rail enlarges it and stages nothing', async ({ page }) => {
+test('scenario 41: with Recover chosen, a click on a banner on the rail or on its row’s magnifier enlarges it and stages nothing', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Recover').click()
     const banners = page.getByRole('list', { name: 'Banners to recover' })
     await expect(banners).toBeVisible()
     await (await uncovered(page, '.banner')).click()
+    await expect(preview(page)).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /^pay \d+ favor$/ })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await expect(banners).toBeVisible()
+
+    await banners.getByRole('button', { name: 'Enlarge the People’s Favor', exact: true }).click()
     await expect(preview(page)).toBeVisible()
     await expect(grid(page).getByRole('button', { name: /^pay \d+ favor$/ })).toHaveCount(0)
     await page.keyboard.press('Escape')
@@ -2386,9 +2393,10 @@ function expectPictureRow(row: PictureRow, phone: boolean) {
     if (phone) {
         expect(Math.abs(row.buttons[0].left - row.name.left), `${row.label}: the button starts under the name`).toBeLessThanOrEqual(1)
     }
-    // Buttons that go one per line fill the row's line, so that row reaches the list's edge.
+    // A name that wraps, or buttons that go one per line, fill the row's line, so that row reaches
+    // the list's edge and no further.
     const buttonLines = new Set(row.buttons.map((button) => Math.round(button.top))).size
-    if (buttonLines > 1) expect(row.width).toBeLessThanOrEqual(row.listWidth)
+    if (row.nameLines > 1 || buttonLines > 1) expect(row.width).toBeLessThanOrEqual(row.listWidth)
     else {
         expect(row.width, `${row.label}: the row is as wide as its content`).toBeLessThanOrEqual(
             row.contentRight + row.paddingRight + 1.5
@@ -2400,8 +2408,49 @@ const PICTURE_VIEWPORTS = [
     { width: 1280, height: 900 },
     { width: 402, height: 874 },
     { width: 375, height: 812 },
-    { width: 320, height: 568 }
+    { width: 320, height: 1200 }
 ]
+
+for (const viewport of PICTURE_VIEWPORTS) {
+    const phone = viewport.width < 640
+    const narrow = viewport.width < 360
+    test(`Recover at ${viewport.width} wide: each relic and banner its own row, its whole picture left and its price to the right`, async ({
+        page
+    }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'recoverSeen')
+        await tile(page, 'Recover').click()
+
+        const relics = await pictureRows(page.getByRole('list', { name: 'Relics to recover' }))
+        expect(relics.map((row) => row.label)).toEqual(['Facedown relic, space 1', 'Map'])
+        for (const row of relics) {
+            expectPictureRow(row, phone)
+            // A relic is its card, as tall as a banner's tile: 56 x 56, whole.
+            expect(row.picture.width, `${row.label}: 56 wide`).toBeCloseTo(56, 0)
+            expect(row.picture.height, `${row.label}: 56 tall`).toBeCloseTo(56, 0)
+            expect(row.picture.natural).toBeCloseTo(1, 1)
+            expect(row.buttons[0].top, `${row.label}: the price beside the picture`).toBeLessThan(row.picture.bottom)
+        }
+        // A back has nothing to enlarge; the relic this player has seen is its face, with its magnifier.
+        expect(relics[0].magnifier).toBeNull()
+        expect(relics[1].magnifier?.label).toBe('Enlarge Map')
+        expect(relics[0].spaceLines, '"space 1" stays on one line').toBe(1)
+
+        const banners = await pictureRows(page.getByRole('list', { name: 'Banners to recover' }))
+        expect(banners.map((row) => row.label)).toEqual(['People’s Favor', 'Darkest Secret'])
+        for (const row of banners) {
+            expectPictureRow(row, phone)
+            // A banner is its whole tile, 2:1: 112 x 56, and 88 x 44 below a 360 px screen.
+            expect(row.picture.width, `${row.label}: the tile’s width`).toBeCloseTo(narrow ? 88 : 112, 0)
+            expect(row.picture.height, `${row.label}: the tile’s height`).toBeCloseTo(narrow ? 44 : 56, 0)
+            expect(row.picture.natural).toBeCloseTo(2, 1)
+            expect(row.picture.fit, `${row.label}: never cropped`).not.toBe('cover')
+            expect(row.magnifier?.label).toBe(`Enlarge the ${row.label}`)
+            expect(row.buttons[0].top, `${row.label}: the price beside the tile`).toBeLessThan(row.picture.bottom)
+        }
+        expect(await clippedLabels(page)).toEqual([])
+    })
+}
 
 /** The rows of every menu built on the same row, with the table and the tile or chip that opens it. */
 const MENU_ROWS = [
@@ -2424,6 +2473,13 @@ for (const viewport of [PICTURE_VIEWPORTS[0], PICTURE_VIEWPORTS[1]]) {
             else await tile(page, menu.open).click()
             const rows = await pictureRows(page.getByRole('list', { name: menu.list }))
             for (const row of rows) expectPictureRow(row, phone)
+            if (menu.open === 'Peek') {
+                // A back: 56 x 56, no magnifier, "space 1" together.
+                expect(rows[0].picture.width).toBeCloseTo(56, 0)
+                expect(rows[0].picture.height).toBeCloseTo(56, 0)
+                expect(rows[0].magnifier).toBeNull()
+                expect(rows[0].spaceLines).toBe(1)
+            }
             expect(await clippedLabels(page)).toEqual([])
         })
     }

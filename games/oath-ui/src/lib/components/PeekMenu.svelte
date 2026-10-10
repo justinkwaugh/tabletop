@@ -15,7 +15,8 @@
     let siteId = $derived(gameSession.myPlayerState?.siteId)
     let order = $derived(siteId ? gameState.relicSlotsAt(siteId).map((slot) => slot.slotId) : [])
 
-    const nameOf = (slotId: string) => `Facedown relic, space ${order.indexOf(slotId) + 1}`
+    const spaceOf = (slotId: string) => `space ${order.indexOf(slotId) + 1}`
+    const nameOf = (slotId: string) => `Facedown relic, ${spaceOf(slotId)}`
 </script>
 
 {#if slots.length === 0}
@@ -26,7 +27,8 @@
             <MenuRow
                 image={cardBack(CardKind.Relic)}
                 imageAlt=""
-                name={nameOf(slotId)}
+                name="Facedown relic,"
+                nameEnd={spaceOf(slotId)}
                 shape="relic"
                 points={{ kind: 'relic', slotId }}
             >
