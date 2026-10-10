@@ -77,6 +77,23 @@ export function reasonFreeActionComesFirst(
     return `your free ${names.join(' or ')} comes first: take it or give it up`
 }
 
+/** A free action due next that its player cannot take is given up unasked; one granted with it stays due next. */
+export function forgoFreeActionNext(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType.Travel | ActionType.Campaign
+): void {
+    const player = state.getPlayerState(playerId)
+    const next = nextActionIndex(state)
+    if (action === ActionType.Travel) {
+        assert(player.freeTravelAtAction === next, `${playerId} has no free Travel due next`)
+        delete player.freeTravelAtAction
+    } else {
+        assert(player.freeCampaignAtAction === next, `${playerId} has no free Campaign due next`)
+        delete player.freeCampaignAtAction
+    }
+}
+
 /** Giving up the free Travel leaves a free Campaign granted with it due next. */
 export function forgoFreeActionNow(
     state: HydratedOathGameState,

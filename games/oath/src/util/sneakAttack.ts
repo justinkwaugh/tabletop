@@ -121,7 +121,10 @@ export function endStepOutOfTurn(state: HydratedOathGameState, playerId: string)
     return resume
 }
 
-/** A grant is made for the next action (`nextActionIndex`), so that one is asked. */
+/**
+ * A grant is made for the next action (`nextActionIndex`), so that one is asked. One its holder cannot take is
+ * given up unasked, and the next is asked in its place.
+ */
 function askFreeActionOutOfTurn(
     state: HydratedOathGameState,
     playerId: string,
@@ -136,13 +139,13 @@ function askFreeActionOutOfTurn(
               ? ActionType.Campaign
               : undefined
     if (action === undefined) return false
-    const refused = askQuestion(state, playerId, {
+    const forgone = askQuestion(state, playerId, {
         kind: PowerQuestionKind.FreeActionOutOfTurn,
         cardId: SECOND_WIND_ID,
         askedPlayerId: playerId,
         action
     })
-    assert(refused === undefined, 'a free action out of turn is always asked: it may be skipped')
+    if (forgone !== undefined) return askFreeActionOutOfTurn(state, playerId, resumeMachineState)
     const pending = state.pendingQuestions
     assertExists(pending, 'the free action was just asked')
     // The chain's questions end where the held turn resumes.

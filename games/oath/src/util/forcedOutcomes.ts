@@ -11,7 +11,12 @@ import { playersAt } from './pawn.js'
 import { reliquarySlot } from './imperial.js'
 import { reasonCannotPayPowerCost } from './powerCost.js'
 import { reasonPersistentForbidsRelicTake } from './persistent.js'
-import { reasonCannotSneakAttack } from './campaign.js'
+import { defendersOpenTo, reasonCannotSneakAttack } from './campaign.js'
+import { ActionType } from '../definition/actions.js'
+import { forgoFreeActionNext, nextActionIndex } from './freeActions.js'
+import { canTravel } from './travelPlan.js'
+import { reasonPersistentForbidsCampaign } from './persistent.js'
+import { pawnSiteId } from './pawn.js'
 
 type ForcedOutcome<K extends PowerQuestionKind> = (
     state: HydratedOathGameState,
@@ -118,8 +123,35 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         usableFavor(state, question.askedPlayerId) < 1
             ? `${question.askedPlayerId} has no favor for ${question.cardId}`
             : undefined,
-    // It is asked for the action after this one, so it cannot be judged now; the skip is always legal.
-    [PowerQuestionKind.FreeActionOutOfTurn]: () => undefined
+    [PowerQuestionKind.FreeActionOutOfTurn]: (state, question) => {
+        const refused = reasonFreeActionOutOfTurnRefused(
+            state,
+            question.askedPlayerId,
+            question.action
+        )
+        if (!refused) return undefined
+        forgoFreeActionNext(state, question.askedPlayerId, question.action)
+        return `${question.askedPlayerId} cannot take the free ${question.action === ActionType.Travel ? 'Travel' : 'Campaign'}: ${refused}`
+    }
+}
+
+/** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */
+function reasonFreeActionOutOfTurnRefused(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType.Travel | ActionType.Campaign
+): string | undefined {
+    if (action === ActionType.Travel) {
+        const next = new HydratedOathGameState(state.dehydrate())
+        next.actionCount = nextActionIndex(state)
+        return canTravel(next, playerId) ? undefined : 'there is no site to travel to'
+    }
+    return (
+        reasonPersistentForbidsCampaign(state, playerId) ??
+        (defendersOpenTo(state, playerId).length > 0
+            ? undefined
+            : `there is no defender to campaign against at ${pawnSiteId(state, playerId)}`)
+    )
 }
 
 function forcedOutcomeOf<K extends PowerQuestionKind>(

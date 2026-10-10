@@ -29,6 +29,7 @@ const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 const SECOND_WIND = 'denizen.discord.second-wind'
 const HERALD = 'denizen.hearth.herald'
 const SHROUDED_WOOD = 'site.shrouded-wood'
+const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 
 const atRevision = OathRevision.EngineFixes3
 const before = OathRevision.UiBatch1
@@ -143,10 +144,15 @@ class Table {
  * x campaigns against y and loses; y's Sneak Attack, with Second Wind, wins against x. Searches seeds for y's
  * four attack dice beating x's defence outright.
  */
-function yWinsOutOfTurn(scene: Omit<Scene, 'seed'>, victory: Record<string, unknown> = {}, seats?: string[]): Table {
+function yWinsOutOfTurn(
+    scene: Omit<Scene, 'seed'>,
+    victory: Record<string, unknown> = {},
+    seats?: string[],
+    xTargets: CampaignTarget[] = [PAWN]
+): Table {
     for (let seed = 1; seed < 500; seed++) {
         const t = new Table(board({ ...scene, seed }), seats)
-        t.losesWithNoDice(X, Y, [PAWN])
+        t.losesWithNoDice(X, Y, xTargets)
         expect(t.question).toMatchObject({ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y })
         t.campaign(Y, X, [PAWN], 4, [SECOND_WIND]).defendIfAsked(X)
         const rolled = t.state.campaign
@@ -299,6 +305,52 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         expect(t.state.heldTurn).toBeUndefined()
         expect(t.state.machineState).toBe(MachineState.ActPhase)
         expect(t.state.activePlayerIds).toEqual([X])
+    })
+})
+
+/**
+ * Vow of Union: "You cannot travel from a site you rule if any warbands are on your board." A free action the
+ * holder cannot take is skipped without asking, and the next one is asked, or the paused turn resumes.
+ */
+describe('Second Wind out of turn (revision 7) — a free action that cannot be taken is not asked', () => {
+    const C1: CampaignTarget = { kind: CampaignTargetKind.Site, siteId: 'c1' }
+    const sworn = { advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(VOW_OF_UNION)] }
+
+    it('no legal destination: the Travel is skipped unasked, and "Campaign now?" is asked at once', () => {
+        const t = yWinsOutOfTurn({ revision: atRevision, y: sworn, state: { warbandsBySite: { c1: { [Y]: 1 } } } }, {}, undefined, [PAWN, C1])
+        expect(t.player(Y).siteId).toBe('c1')
+        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
+        expect(t.player(Y).freeTravelAtAction).toBeUndefined()
+        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
+    })
+
+    it('no legal defender from the new site: the Campaign is skipped unasked, and the paused turn resumes', () => {
+        const t = yWinsOutOfTurn({ revision: atRevision, state: { warbandsBySite: { h2: { [Y]: 1 } } } })
+        t.travel(Y, 'h2')
+        expect(t.player(Y).siteId).toBe('h2')
+        expect(t.state.pendingQuestions).toBeUndefined()
+        expect(t.state.heldTurn).toBeUndefined()
+        expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.activePlayerIds).toEqual([X])
+        expect(t.player(Y).freeCampaignAtAction).toBeUndefined()
+        expect(t.offered(X)).toContain(ActionType.EndActPhase)
+    })
+
+    it('neither can be taken: nothing is asked, and the paused turn resumes after the victory', () => {
+        const t = yWinsOutOfTurn(
+            { revision: atRevision, y: sworn, state: { warbandsBySite: { c1: { [Y]: 1 } } } },
+            { banishToSiteId: 'p2' },
+            undefined,
+            [PAWN, C1]
+        )
+        expect(t.player(X).siteId).toBe('p2')
+        expect(t.state.pendingQuestions).toBeUndefined()
+        expect(t.state.heldTurn).toBeUndefined()
+        expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.activePlayerIds).toEqual([X])
+        expect(t.player(Y).freeTravelAtAction).toBeUndefined()
+        expect(t.player(Y).freeCampaignAtAction).toBeUndefined()
     })
 })
 
