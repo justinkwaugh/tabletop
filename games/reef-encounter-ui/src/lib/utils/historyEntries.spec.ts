@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/reef-encounter'
-import { historyEntries, historyStep, movesPieces, previousTurn } from './historyEntries.js'
+import {
+    historyEntries,
+    historyStep,
+    isSetupEntry,
+    movesPieces,
+    previousTurn
+} from './historyEntries.js'
 
 const action = (type: ActionType, playerId?: string): GameAction => ({
     id: `${type}-${playerId ?? 'system'}-${Math.random()}`,
@@ -71,5 +77,14 @@ describe('history entries', () => {
         ]
         expect(previousTurn(actions, ['b'])?.actions).toEqual(actions.slice(0, 2))
         expect(previousTurn(actions, ['a', 'b'])).toBeUndefined()
+    })
+
+    it('tells setup entries from the turns that follow', () => {
+        const [feed, cubes, turn] = historyEntries([
+            action(ActionType.FeedParrotfish, 'a'),
+            action(ActionType.ChooseLarvaCubes, 'b'),
+            action(ActionType.PlayLarvaCube, 'a')
+        ])
+        expect([feed, cubes, turn].map(isSetupEntry)).toEqual([true, true, false])
     })
 })

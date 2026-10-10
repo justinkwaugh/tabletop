@@ -712,17 +712,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return rockLeft ? undefined : GameEndReason.NoRockLeft
     }
 
-    setupParrotfishColors(): Record<string, CoralColor> {
-        return Object.fromEntries(
-            this.players.flatMap((player) => {
-                const color = CoralColors.find(
-                    (candidate) => (player.secretParrotfishPolyps?.[candidate] ?? 0) > 0
-                )
-                return color ? [[player.playerId, color]] : []
-            })
-        )
-    }
-
     scores(): Record<string, ScoreBreakdown> {
         const values = coralValues(this.coralTiles)
         return Object.fromEntries(

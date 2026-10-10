@@ -21,6 +21,7 @@ test('a history entry shows the table as its player left it', async ({ page }) =
 
     await page.getByRole('tab', { name: 'History' }).click()
     const entries = page.getByRole('button', { name: /^Show the table as \w+ left it$/ })
+    await expect(page.getByRole('heading', { name: 'Setup' })).toHaveCount(1)
     // Newest first: the first player's turn, then each player's cubes and feeding in setup
     await expect(entries).toHaveCount(5)
     await entries.nth(1).click()

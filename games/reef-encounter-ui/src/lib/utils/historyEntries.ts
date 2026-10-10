@@ -17,6 +17,12 @@ const PieceMovingActions = new Set<string>([
     ActionType.RefillOpenSea
 ])
 
+const SetupActions = new Set<string>([ActionType.FeedParrotfish, ActionType.ChooseLarvaCubes])
+
+export function isSetupEntry(entry: HistoryEntry): boolean {
+    return entry.actions.every((action) => SetupActions.has(action.type))
+}
+
 export function movesPieces(entry: HistoryEntry): boolean {
     return entry.actions.some((action) => PieceMovingActions.has(action.type))
 }

@@ -2,18 +2,17 @@
     import { tick } from 'svelte'
     import type { GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
-    import { historyEntries, movesPieces, type HistoryEntry } from '$lib/utils/historyEntries.js'
-    import { capitalised, describeActions, withArticle } from '$lib/utils/actionDescription.js'
-    import { isEndGame, type CoralColor } from '@tabletop/reef-encounter'
+    import {
+        historyEntries,
+        isSetupEntry,
+        movesPieces,
+        type HistoryEntry
+    } from '$lib/utils/historyEntries.js'
+    import { capitalised, describeActions } from '$lib/utils/actionDescription.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const timeAgo = createTimeAgo()
     const gameSession = getGameSession()
-    function setupParrotfish(entry: HistoryEntry): [string, CoralColor][] {
-        const end = entry.actions.find((action) => isEndGame(action))
-        return isEndGame(end) ? Object.entries(end.metadata?.setupParrotfish ?? {}) : []
-    }
-
     let scrollContainer: HTMLDivElement | undefined = $state()
 
     // Replay steps the session through history, which would rewrite the list mid-replay.
@@ -65,7 +64,10 @@
 </script>
 
 <div class="history" bind:this={scrollContainer}>
-    {#each entries as entry (entry.actions[0].id)}
+    {#each entries as entry, index (entry.actions[0].id)}
+        {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
+            <h4 class="divider reef-display">Setup</h4>
+        {/if}
         {@const lastAt = entry.actions.at(-1)?.createdAt}
         {@const replaying = replay?.entryId === entry.actions[0].id}
         <article class="entry" class:replaying class:dimmed={replay && !replaying}>
@@ -106,12 +108,6 @@
                 {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their') as phrase, index (index)}
                     <li>{capitalised(phrase.text)}</li>
                 {/each}
-                {#each setupParrotfish(entry) as [playerId, color] (playerId)}
-                    <li>
-                        <PlayerName {playerId} /> had fed {withArticle(color)} polyp to their parrotfish
-                        at setup.
-                    </li>
-                {/each}
             </ul>
         </article>
     {:else}
@@ -127,6 +123,22 @@
         overflow-y: auto;
         padding: 2px;
         align-content: start;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 2px 0;
+        font-size: 14px;
+        color: var(--reef-muted);
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-top: 1.5px solid rgb(255 255 255 / 0.45);
     }
 
     .entry {

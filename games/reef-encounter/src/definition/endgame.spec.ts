@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isEndGame } from '../actions/endGame.js'
-import { AlgaColor, CoralColor, CoralColors, coralCounts } from '../components/colors.js'
+import { AlgaColor, CoralColor, coralCounts } from '../components/colors.js'
 import { ReefBoards } from '../components/reefBoards.js'
 import { GameEndReason } from '../model/gameState.js'
 import type { Polyp } from '../model/reef.js'
@@ -178,31 +178,5 @@ describe('running out of rock', () => {
         expect(session.state.endReason).toBe(GameEndReason.NoRockLeft)
         expect(session.state.endingPlayerId).toBeUndefined()
         expect(endedWithReveal(session)).toBe(true)
-    })
-
-    it("records each player's setup parrotfish polyp as the game ends", () => {
-        const filled = (boardId: 3 | 4) =>
-            ReefBoards[boardId].rock.map((coords) => polyp(coords.row, coords.col, CoralColor.Grey))
-        const boardThree = filled(3).filter((p) => !(p.coords.row === 6 && p.coords.col === 0))
-        const session = startOnBoardThree(boardThree)
-        session.edit((draft) => {
-            draft.reefs[1].polyps = filled(4)
-        })
-        const fed = Object.fromEntries(
-            session.state.players.flatMap((player) => {
-                const color = CoralColors.find(
-                    (candidate) => (player.secretParrotfishPolyps?.[candidate] ?? 0) > 0
-                )
-                return color ? [[player.playerId, color]] : []
-            })
-        )
-        expect(Object.keys(fed)).toHaveLength(session.state.players.length)
-        giveScreenPolyps(session, CoralColor.White, 1)
-        play(session, CoralColor.White)
-
-        place(session, at(6, 0))
-
-        const end = session.actions.find((action) => isEndGame(action))
-        expect(isEndGame(end) && end.metadata?.setupParrotfish).toEqual(fed)
     })
 })
