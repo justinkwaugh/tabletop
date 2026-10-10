@@ -3,11 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import {
-    deleteJsonFile,
-    listJsonFiles,
-    saveScenarioRecording,
-    saveScenarioRequest,
-    scenarioRequestFolder
+    deleteScenarioRecording,
+    listScenarioRecordings,
+    saveScenarioRecording
 } from './harnessScenarioFiles.js'
 
 describe('scenario recording files', () => {
@@ -52,7 +50,7 @@ describe('scenario recording files', () => {
         await saveScenarioRecording(dir, JSON.stringify({ id: 'a-first' }))
         await writeFile(join(dir, 'broken.json'), '{ not json')
 
-        const listed = await listJsonFiles(dir)
+        const listed = await listScenarioRecordings(dir)
 
         expect(Object.keys(listed)).toEqual(['a-first.json', 'b-second.json', 'broken.json'])
         expect(listed['a-first.json']).toEqual({ id: 'a-first' })
@@ -60,36 +58,25 @@ describe('scenario recording files', () => {
     })
 
     test('lists nothing before any recording is saved', async () => {
-        expect(await listJsonFiles(dir)).toEqual({})
+        expect(await listScenarioRecordings(dir)).toEqual({})
     })
 
-    test('keeps requests in their own folder, ignored with the recordings', async () => {
-        const file = await saveScenarioRequest(dir, JSON.stringify({ id: 'four-way-tie' }))
-
-        expect(file).toBe(join(scenarioRequestFolder(dir), 'four-way-tie.json'))
-        expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('*\n')
-        expect(await listJsonFiles(dir)).toEqual({})
-        expect(await listJsonFiles(scenarioRequestFolder(dir))).toEqual({
-            'four-way-tie.json': { id: 'four-way-tie' }
-        })
-    })
-
-    test('deletes a file by id, and an id with no file is already deleted', async () => {
+    test('deletes a recording by id, and an id with no file is already deleted', async () => {
         await saveScenarioRecording(dir, JSON.stringify({ id: 'old-duel' }))
 
-        await deleteJsonFile(dir, 'old-duel', 'A scenario recording')
-        await deleteJsonFile(dir, 'never-saved', 'A scenario recording')
+        await deleteScenarioRecording(dir, 'old-duel')
+        await deleteScenarioRecording(dir, 'never-saved')
 
-        expect(await listJsonFiles(dir)).toEqual({})
+        expect(await listScenarioRecordings(dir)).toEqual({})
     })
 
     test.each(['../.gitignore', '', null])('refuses to delete the id %j', async (id) => {
         await saveScenarioRecording(dir, JSON.stringify({ id: 'kept' }))
 
-        await expect(deleteJsonFile(dir, id, 'A scenario recording')).rejects.toThrow(
+        await expect(deleteScenarioRecording(dir, id)).rejects.toThrow(
             'lowercase letters, digits and dashes'
         )
-        expect(Object.keys(await listJsonFiles(dir))).toEqual(['kept.json'])
+        expect(Object.keys(await listScenarioRecordings(dir))).toEqual(['kept.json'])
         expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('*\n')
     })
 })
