@@ -28,10 +28,12 @@
     }
 </script>
 
+<!-- As wide as its content: the picture, then the name and the buttons to its right, on one line
+     on a desktop and the name over the buttons on a phone. -->
 <div
     role="listitem"
     {@attach pointsAt(points)}
-    class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-md bg-oath-surface-raised px-2 py-1.5"
+    class="flex w-fit max-w-full items-center gap-x-3.5 rounded-md bg-oath-surface-raised px-2 py-1.5"
 >
     <img
         class="shrink-0 {SHAPES[shape]}"
@@ -39,11 +41,12 @@
         src={image}
         alt={imageAlt}
     />
-    <span
-        class="w-56 min-w-0 shrink-0 text-[15px] font-bold max-sm:w-auto max-sm:basis-[calc(100%-3rem)]"
-        >{name}</span
+    <div
+        class="flex min-w-0 items-center gap-2.5 max-sm:flex-col max-sm:items-start max-sm:gap-1.5"
     >
-    <span class="flex flex-wrap gap-1.5 max-sm:basis-full">
-        {@render children()}
-    </span>
+        <span class="w-56 shrink-0 text-[15px] font-bold max-sm:w-auto">{name}</span>
+        <span class="flex flex-wrap gap-1.5">
+            {@render children()}
+        </span>
+    </div>
 </div>

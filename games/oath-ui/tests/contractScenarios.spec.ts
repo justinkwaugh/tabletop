@@ -2260,6 +2260,175 @@ test('scenario 20: a picked banner’s line asks its price; "Recover" shows once
     await expect(grid(page).getByRole('button', { name: 'Recover the Darkest Secret', exact: true })).toHaveText('Recover')
 })
 
+type Edges = { left: number; top: number; right: number; bottom: number; width: number; height: number }
+
+/**
+ * Each row of a menu list as drawn, in layout pixels from the row's corner (a tall panel is
+ * scaled to fit, so the scale is divided out): its picture, the picture's magnifier, the name's
+ * text and its lines, its buttons, and how much of the row its content takes.
+ */
+async function pictureRows(list: Locator) {
+    await expect(list.getByRole('listitem').first()).toBeVisible()
+    await list
+        .locator('img')
+        .evaluateAll((images: HTMLImageElement[]) =>
+            Promise.all(images.map((image) => image.decode().catch(() => undefined)))
+        )
+    return list.getByRole('listitem').evaluateAll((rows: HTMLElement[]) =>
+        rows.map((row) => {
+            const frame = row.getBoundingClientRect()
+            const scale = frame.width / row.offsetWidth
+            const local = (rect: DOMRect): Edges => ({
+                left: (rect.left - frame.left) / scale,
+                top: (rect.top - frame.top) / scale,
+                right: (rect.right - frame.left) / scale,
+                bottom: (rect.bottom - frame.top) / scale,
+                width: rect.width / scale,
+                height: rect.height / scale
+            })
+            const lineCount = (rects: DOMRect[]) => new Set(rects.map((rect) => Math.round(rect.top))).size
+
+            const picture = row.querySelector('img')
+            if (!picture) throw Error('A menu row has no picture')
+            const magnifier = row.querySelector('button.magnifier')
+
+            // The name is the row's text outside its buttons.
+            const texts: Text[] = []
+            const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT)
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                if (node instanceof Text && node.data.trim() && !node.parentElement?.closest('button')) {
+                    texts.push(node)
+                }
+            }
+            const first = texts[0]
+            const last = texts[texts.length - 1]
+            if (!first || !last) throw Error('A menu row has no name')
+            const nameRange = document.createRange()
+            nameRange.setStart(first, 0)
+            nameRange.setEnd(last, last.length)
+            const nameRects = [...nameRange.getClientRects()].filter((rect) => rect.width > 0)
+            const nameParts = nameRects.map(local)
+            const nameLeft = Math.min(...nameParts.map((part) => part.left))
+            const nameTop = Math.min(...nameParts.map((part) => part.top))
+            const nameRight = Math.max(...nameParts.map((part) => part.right))
+            const nameBottom = Math.max(...nameParts.map((part) => part.bottom))
+            const name: Edges = {
+                left: nameLeft,
+                top: nameTop,
+                right: nameRight,
+                bottom: nameBottom,
+                width: nameRight - nameLeft,
+                height: nameBottom - nameTop
+            }
+
+            // A facedown relic's "space N", which is not to be split over two lines.
+            let spaceLines = 0
+            const space = texts.find((text) => /space \d+/.test(text.data))
+            const words = space?.data.match(/space \d+/)
+            if (space && words?.index !== undefined) {
+                const range = document.createRange()
+                range.setStart(space, words.index)
+                range.setEnd(space, words.index + words[0].length)
+                spaceLines = lineCount([...range.getClientRects()].filter((rect) => rect.width > 0))
+            }
+
+            const buttons = [...row.querySelectorAll('button:not(.magnifier)')].map((button) => ({
+                ...local(button.getBoundingClientRect()),
+                label: button.getAttribute('aria-label') ?? '',
+                inside: button.scrollWidth <= button.clientWidth + 1
+            }))
+            const parts = [local(picture.getBoundingClientRect()), name, ...buttons]
+            if (magnifier) parts.push(local(magnifier.getBoundingClientRect()))
+            return {
+                label: nameRange.toString().replace(/\s+/g, ' ').trim(),
+                picture: {
+                    ...local(picture.getBoundingClientRect()),
+                    fit: getComputedStyle(picture).objectFit,
+                    natural: picture.naturalWidth / picture.naturalHeight
+                },
+                magnifier: magnifier
+                    ? { ...local(magnifier.getBoundingClientRect()), label: magnifier.getAttribute('aria-label') }
+                    : null,
+                name,
+                nameLines: lineCount(nameRects),
+                spaceLines,
+                buttons,
+                width: row.offsetWidth,
+                contentRight: Math.max(...parts.map((part) => part.right)),
+                listWidth: row.parentElement?.offsetWidth ?? 0,
+                paddingRight: parseFloat(getComputedStyle(row).paddingRight)
+            }
+        })
+    )
+}
+
+type PictureRow = Awaited<ReturnType<typeof pictureRows>>[number]
+
+/**
+ * A menu row: its picture on the left; the name and every button to its right, clear of the
+ * magnifier's 6 px; on a desktop the name and the buttons on one line, on a phone the name over
+ * them; every label inside its button; the row as wide as its content.
+ */
+function expectPictureRow(row: PictureRow, phone: boolean) {
+    const clear = row.picture.right + 6
+    expect(row.name.left, `${row.label}: the name is right of the picture`).toBeGreaterThanOrEqual(clear - 0.5)
+    expect(row.buttons.length).toBeGreaterThan(0)
+    for (const button of row.buttons) {
+        expect(button.left, `${button.label}: right of the picture`).toBeGreaterThanOrEqual(clear - 0.5)
+        expect(button.inside, `${button.label}: the label is inside its button`).toBe(true)
+        if (phone) {
+            expect(button.top, `${button.label}: under the name`).toBeGreaterThanOrEqual(row.name.bottom - 0.5)
+        } else {
+            expect(button.left, `${button.label}: beside the name`).toBeGreaterThan(row.name.right)
+            expect(button.top, `${button.label}: on the name’s line`).toBeLessThan(row.name.bottom)
+        }
+    }
+    if (phone) {
+        expect(Math.abs(row.buttons[0].left - row.name.left), `${row.label}: the button starts under the name`).toBeLessThanOrEqual(1)
+    }
+    // Buttons that go one per line fill the row's line, so that row reaches the list's edge.
+    const buttonLines = new Set(row.buttons.map((button) => Math.round(button.top))).size
+    if (buttonLines > 1) expect(row.width).toBeLessThanOrEqual(row.listWidth)
+    else {
+        expect(row.width, `${row.label}: the row is as wide as its content`).toBeLessThanOrEqual(
+            row.contentRight + row.paddingRight + 1.5
+        )
+    }
+}
+
+const PICTURE_VIEWPORTS = [
+    { width: 1280, height: 900 },
+    { width: 402, height: 874 },
+    { width: 375, height: 812 },
+    { width: 320, height: 568 }
+]
+
+/** The rows of every menu built on the same row, with the table and the tile or chip that opens it. */
+const MENU_ROWS = [
+    { table: 'trade', open: 'Muster', minor: false, list: 'Musters at your site' },
+    { table: 'trade', open: 'Trade', minor: false, list: 'Trades at your site' },
+    { table: 'searchToll', open: 'Search', minor: false, list: 'Sources to search' },
+    { table: 'moves', open: 'Move warbands', minor: true, list: 'Warband moves' },
+    { table: 'peek', open: 'Peek', minor: true, list: 'Relics to peek at' }
+] as const
+
+for (const viewport of [PICTURE_VIEWPORTS[0], PICTURE_VIEWPORTS[1]]) {
+    const phone = viewport.width < 640
+    for (const menu of MENU_ROWS) {
+        test(`${menu.open} at ${viewport.width} wide: a row as wide as its content, the picture left, the name and buttons to its right`, async ({
+            page
+        }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, menu.table)
+            if (menu.minor) await grid(page).getByRole('button', { name: menu.open, exact: true }).click()
+            else await tile(page, menu.open).click()
+            const rows = await pictureRows(page.getByRole('list', { name: menu.list }))
+            for (const row of rows) expectPictureRow(row, phone)
+            expect(await clippedLabels(page)).toEqual([])
+        })
+    }
+}
+
 test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {
     await openTable(page, 'peek')
     const peek = grid(page).getByRole('button', { name: 'Peek', exact: true })
@@ -2985,7 +3154,7 @@ test('scenario 23: a Search toll names who gets the favor on the source’s butt
 })
 
 /**
- * Each menu button's size, its row's width, and the width its words, tokens and chips take
+ * Each menu button's size, its list's width, and the width its words, tokens and chips take
  * inside it with the button's padding, in CSS pixels: the panel may be drawn scaled to fit.
  */
 async function menuButtonSizes(page: Page, list: string) {
@@ -3015,11 +3184,11 @@ async function menuButtonSizes(page: Page, list: string) {
                         inks.push(range.getBoundingClientRect())
                     }
                 }
-                const row = button.closest('[role="listitem"]')
+                const list = button.closest('[role="list"]')
                 return {
                     width,
                     height: parseFloat(style.height),
-                    row: row ? parseFloat(getComputedStyle(row).width) : 0,
+                    list: list ? parseFloat(getComputedStyle(list).width) : 0,
                     content:
                         (Math.max(...inks.map((ink) => ink.right)) - Math.min(...inks.map((ink) => ink.left))) / scale +
                         insets
@@ -3049,7 +3218,7 @@ test.describe('at phone width', () => {
             const standard = 8.5 * 16
             const widestContent = Math.max(...sizes.map((size) => size.content))
             for (const size of sizes) {
-                expect(size.width).toBeLessThan(size.row * 0.7)
+                expect(size.width).toBeLessThan(size.list * 0.7)
                 expect(size.height).toBeGreaterThanOrEqual(44)
             }
             expect(width).toBeLessThanOrEqual(Math.max(standard, widestContent) + 1)
