@@ -186,6 +186,9 @@ describe('moving a shrimp', () => {
             CoralColors.some((color) => state.canTakeOpenSeaSpace(session.currentPlayerId(), color))
         ).toBe(false)
         expect(() => endTurn(session)).toThrow()
+        expect(state.shrimpsOnBareRock(session.currentPlayerId())).toEqual([
+            expect.objectContaining(onBoard(5, 1))
+        ])
         move(session, onBoard(5, 1), onBoard(5, 0))
         endTurn(session)
     })

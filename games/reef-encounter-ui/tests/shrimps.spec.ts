@@ -29,7 +29,7 @@ test('a shrimp is introduced onto a polyp, moved, and sent back behind the scree
         .getByRole('button', { name: /^Put your shrimp on / })
         .first()
         .click()
-    await expect(actions).toContainText('must move onto a polyp or back behind your screen')
+    await expect(actions).toContainText(/Your shrimp on board \d, row \d, column \d is on bare rock./)
     await expect(takeSpace).toHaveCount(0)
 
     await pickUp.click()

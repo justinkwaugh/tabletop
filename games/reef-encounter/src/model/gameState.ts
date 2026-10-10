@@ -301,6 +301,23 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
+    // Weaker polyps that a coral of this colour could attack but for a shrimp protecting them.
+    shrimpProtectedPolyps(boardId: ReefBoardId, color: CoralColor): OffsetCoordinates[] {
+        const reef = this.reefOn(boardId)
+        const shrimps = this.shrimpsOn(boardId)
+        return reef.polyps
+            .filter(
+                (polyp) =>
+                    polyp.color !== color &&
+                    !shrimpAt(shrimps, polyp.coords) &&
+                    isStronger(this.coralTiles, color, polyp.color) &&
+                    isProtected(reef, shrimps, polyp.coords) &&
+                    !joinsGuardedCorals(reef, shrimps, polyp.coords, color) &&
+                    neighboringCorals(reef, polyp.coords, color).some((coral) => coral.length >= 2)
+            )
+            .map((polyp) => polyp.coords)
+    }
+
     // Why a polyp of this colour may not go on this square, or undefined when it may.
     placementBlocker(
         boardId: ReefBoardId,
@@ -638,7 +655,11 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     }
 
     hasShrimpOnBareRock(playerId: string): boolean {
-        return this.shrimps.some(
+        return this.shrimpsOnBareRock(playerId).length > 0
+    }
+
+    shrimpsOnBareRock(playerId: string): Shrimp[] {
+        return this.shrimps.filter(
             (shrimp) =>
                 shrimp.playerId === playerId && !polypAt(this.reefOn(shrimp.boardId), shrimp.coords)
         )

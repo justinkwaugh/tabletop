@@ -157,6 +157,16 @@ export class ReefEncounterGameSession extends GameSession<
         )
     })
 
+    readonly shrimpProtectedPolyps: ReefSquare[] = $derived.by(() => {
+        const placing = this.placing
+        if (!placing || !this.placementSource || this.turnChoiceOpen) return []
+        return this.gameState.reefs.flatMap((reef) =>
+            this.gameState
+                .shrimpProtectedPolyps(reef.boardId, placing.color)
+                .map((coords) => ({ boardId: reef.boardId, coords }))
+        )
+    })
+
     readonly takeableSpaces: CoralColor[] = $derived.by(() => {
         if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
@@ -175,8 +185,12 @@ export class ReefEncounterGameSession extends GameSession<
         this.shrimpIntent !== undefined || this.choosingCylinder || this.choosingCoralToEat
     )
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
-    readonly hasShrimpOnBareRock = $derived(
-        this.isTakingTurn && this.gameState.hasShrimpOnBareRock(this.myPlayerId())
+    readonly shrimpsOnBareRock: ReefSquare[] = $derived(
+        this.isTakingTurn
+            ? this.gameState
+                  .shrimpsOnBareRock(this.myPlayerId())
+                  .map(({ boardId, coords }) => ({ boardId, coords }))
+            : []
     )
 
     // The viewer's shrimps that may be picked up, while no other shrimp choice is open.

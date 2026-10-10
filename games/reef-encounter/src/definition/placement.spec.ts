@@ -215,6 +215,15 @@ describe('attacking', () => {
         expect(() => place(beside, at(1, 0))).toThrow()
     })
 
+    it('names the weaker polyps a shrimp protects from an attack beside them', () => {
+        const session = startOnBoardThree(
+            [...whiteCoral, polyp(1, 0, CoralColor.Yellow), polyp(1, 1, CoralColor.Yellow)],
+            [{ playerId: 'p1', coords: at(1, 1) }]
+        )
+        expect(session.hydrated().shrimpProtectedPolyps(3, CoralColor.White)).toEqual([at(1, 0)])
+        expect(session.hydrated().shrimpProtectedPolyps(3, CoralColor.Yellow)).toEqual([])
+    })
+
     it('can attack a polyp beside a shrimp that sits on a different coral', () => {
         const session = startOnBoardThree(
             [...whiteCoral, polyp(1, 0, CoralColor.Yellow), polyp(1, 1, CoralColor.Pink)],

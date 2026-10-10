@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { squareName } from '$lib/utils/reefSquare.js'
     import { withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
@@ -13,6 +14,7 @@
     const intent = $derived(gameSession.shrimpIntent)
     const myColor = $derived(gameSession.colors.getPlayerBgColorValue(gameSession.myPlayer?.id))
     const me = $derived(gameSession.myPlayerState)
+    const parked = $derived(gameSession.shrimpsOnBareRock)
     const consumedLeft = $derived(placing ? (me?.consumedPolyps[placing.color] ?? 0) : 0)
     const screenLeft = $derived.by(() => {
         if (!placing || !me) return 0
@@ -200,10 +202,13 @@
     </div>
 {/if}
 
-{#if gameSession.hasShrimpOnBareRock && !gameSession.turnChoiceOpen}
+{#if parked.length > 0 && !gameSession.turnChoiceOpen}
+    {#each parked.map(squareName) as name (name)}
+        <p class="warning">Your shrimp on {name} is on bare rock.</p>
+    {/each}
     <p class="warning">
-        Your shrimp on bare rock must move onto a polyp or back behind your screen before your turn
-        can end.
+        Before your turn can end, pick {parked.length === 1 ? 'it' : 'each one'} up and move it onto a
+        polyp, or put it back behind your screen.
     </p>
 {/if}
 

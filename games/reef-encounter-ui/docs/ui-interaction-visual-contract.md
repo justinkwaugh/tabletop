@@ -4,7 +4,7 @@ How the action panel and the table share the acting player's choices. Follow `do
 
 ## Visual intents
 
-- **Placing polyps.** Trigger: the player has played a larva cube and has a polyp of its colour to place. Every square that can take one is ringed in white; a square holding a weaker polyp that the new one would attack is ringed in dashed orange instead. Clicking, tapping, or Enter or Space on a focused ring places the polyp. The panel names the colour, how many more may come from behind the screen, and, when consumed polyps could be used too, a choice between the two sources.
+- **Placing polyps.** Trigger: the player has played a larva cube and has a polyp of its colour to place. Every square that can take one is ringed in white; a square holding a weaker polyp that the new one would attack is ringed in dashed orange instead. A weaker polyp the colour could attack but for a shrimp protecting it gets a dotted pale-blue outline, which takes no clicks. Clicking, tapping, or Enter or Space on a focused ring places the polyp. The panel names the colour, how many more may come from behind the screen, and, when consumed polyps could be used too, a choice between the two sources.
 - **Taking an open-sea space.** Trigger: the player may end their turn. Every larva space they may take is ringed in white on the open sea; choosing one ends the turn. The panel says so.
 - **Picking up a shrimp.** Trigger: the player may move a shrimp and no shrimp choice is open. Each of their shrimps on the reefs gets a dashed white ring; choosing one opens _Moving a shrimp_.
 - **Introducing a shrimp.** Trigger: the panel's Introduce button. Every polyp the new shrimp may go on is ringed in white, and the panel asks for one.
@@ -13,7 +13,7 @@ How the action panel and the table share the acting player's choices. Follow `do
 - **Trades.** Larva cubes for polyps and consumed polyps for larva cubes are single buttons in the panel, each showing what is given and what is received. After buying a cube the panel says it must be played next.
 - **Eating a coral.** Trigger: the panel's Eat a coral button, offered only before any other action of the turn, and in a final turn beside Pass. Every square of each coral the player's parrotfish may eat is ringed in red; choosing any of them eats that coral. The panel says how many of its polyps go back into the bag.
 - **Final turn.** Trigger: the game's final turns. The panel offers only Eat a coral (when a coral is edible) and Pass.
-- **Bare rock warning.** Trigger: one of the player's shrimps sits on bare rock. The panel warns that it must move before the turn can end; no open-sea space is offered, since the rules forbid ending the turn.
+- **Bare rock warning.** Trigger: one of the player's shrimps sits on bare rock. The panel names the square of each one and says to pick it up and move it onto a polyp or put it back behind the screen before the turn can end; no open-sea space is offered, since the rules forbid ending the turn.
 - **Setup choices.** Feeding the parrotfish and taking larva cubes happen in the panel alone; the chosen first cube is outlined in orange until the second is chosen.
 
 Coral tiles, larva cubes and cylinders on the open sea always stand upright, whatever the board's turn, so a coral tile reads as printed: stronger coral across the top, algae at the lower left.

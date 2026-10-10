@@ -17,6 +17,7 @@ import {
     larvaSpacePolyp
 } from './artGeometry.js'
 import { polypFaceUrl } from './polypFaces.js'
+import { squareName } from './reefSquare.js'
 
 // Where a piece lies: on one reef board, or on the open sea. Positions are in that drawing's
 // image pixels.
@@ -72,9 +73,6 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
         y: box.y + box.height / 2
     })
 
-    const onSquare = (boardId: ReefBoardId, coords: { row: number; col: number }) =>
-        `on board ${boardId}, row ${coords.row + 1}, column ${coords.col + 1}`
-
     for (const reef of state.reefs) {
         for (const { coords, color } of reef.polyps) {
             const box = boardSquare(coords)
@@ -83,7 +81,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `${reef.boardId}:polyp:${coords.row},${coords.col}:${color}`,
                 container: reef.boardId,
                 center: centerOf(box),
-                place: onSquare(reef.boardId, coords),
+                place: `on ${squareName({ boardId: reef.boardId, coords })}`,
                 color,
                 box,
                 url: polypFaceUrl(color, `${gameId}:${reef.boardId}:${coords.row}:${coords.col}`)
@@ -96,7 +94,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             key: `${boardId}:shrimp:${coords.row},${coords.col}:${playerId}`,
             container: boardId,
             center: centerOf(boardSquare(coords)),
-            place: onSquare(boardId, coords),
+            place: `on ${squareName({ boardId, coords })}`,
             playerId,
             upsideDown: false
         })
