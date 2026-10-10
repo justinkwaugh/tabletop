@@ -18,7 +18,7 @@
             <PlayerName playerId={turnPlayerId} possessive={true} /> turn
         {/if}
     </div>
-    {#if gameSession.undoableAction}
+    {#if gameSession.canUndo}
         <button type="button" class="undo" onclick={() => gameSession.undo()}>Undo</button>
     {/if}
 </div>
