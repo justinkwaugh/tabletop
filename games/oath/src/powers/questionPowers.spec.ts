@@ -292,6 +292,20 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
         expect(rulesSite(s, 'other', 'c2')).toBe(true)
     })
 
+    it('a Citizen holding the Bandit Crown takes two sites with no warbands, and from the revision the Empire rules them (its Q&A)', () => {
+        const crowned = (oathRevision: number) =>
+            table(oathRevision, {}, { other: { status: PlayerStatus.Citizen, relicIds: [BANDIT_CROWN] }, away: { status: PlayerStatus.Chancellor } }, { chancellorPlayerId: 'away' })
+        for (const [revision, empireRules] of [[atRevision, true], [before, false]] as const) {
+            const s = crowned(revision)
+            expect(probe(s, twoSites(0, 0)), `revision ${revision}`).toBeUndefined()
+            propose(s, twoSites(0, 0))
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+            expect(totalWarbandsAt(s, 'c1') + totalWarbandsAt(s, 'c2')).toBe(0)
+            expect(rulesSite(s, 'other', 'c2'), `revision ${revision}`).toBe(true)
+            expect(rulesSite(s, 'away', 'c2'), `revision ${revision}`).toBe(empireRules)
+        }
+    })
+
     it('an acceptance is re-checked against the sum, so it is refused rather than half-applied', () => {
         const s = table(atRevision)
         propose(s, twoSites(3, 1))

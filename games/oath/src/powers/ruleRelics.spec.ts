@@ -25,6 +25,7 @@ import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { siteTarget } from '../testing/choices.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathRevision } from '../util/revision.js'
 
 const CROWN = 'relic.bandit-crown'
 const MASK = 'relic.grand-mask'
@@ -185,8 +186,89 @@ describe('Bandit Crown — "except at sites ruled by enemies"', () => {
         expect(banditsServe(s, CIT, 'c1')).toBe(false)
         // R-5.5.1.a — suspended for one Campaign, the Citizen is the Chancellor's enemy.
         expect(banditsServe(s, CIT, 'p1', { nonImperialPlayerIds: [CIT] })).toBe(false)
-        // The empty sites are the holder's alone; the Crown is not Imperial.
+        // R-X.4 — in a game created before the revision the empty sites are the holder's alone.
         expect(rulersOfSite(s, 'c2')).toEqual([CIT])
+        // From it, the bandits are the Empire's warbands, and every Imperial player rules there.
+        expect(rulersOfSite(board({ [CIT]: [CROWN] }, {}, { oathRevision: OathRevision.EngineFixes2 }), 'c2')).toEqual([CHAN, CIT])
+    })
+})
+
+describe('Bandit Crown — "your warbands" are purple for the Chancellor or a Citizen (its Q&A)', () => {
+    const atRevision = OathRevision.EngineFixes2
+    const before = OathRevision.CardFixes1
+    const crownedCitizen = (oathRevision: OathRevision, over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}, turn = ME) =>
+        board({ [CIT]: [CROWN] }, over, { oathRevision, ...state }, turn)
+
+    it('Supremacy: the Chancellor counts the empty sites, and the Empire\'s tie is the Chancellor\'s (R-2.11.d)', () => {
+        const s = crownedCitizen(atRevision, {}, { oathType: OathType.Supremacy })
+        expect(sitesRuledCount(s, CHAN)).toBe(1 + EMPTY_SITES.length)
+        expect(sitesRuledCount(s, CIT)).toBe(1 + EMPTY_SITES.length)
+        expect(playersMeetingOathkeeperGoal(s)).toEqual([CHAN])
+
+        const old = crownedCitizen(before, {}, { oathType: OathType.Supremacy })
+        expect(sitesRuledCount(old, CHAN)).toBe(1)
+        expect(playersMeetingOathkeeperGoal(old)).toEqual([CIT])
+    })
+
+    it('access: the Chancellor rules the cards at an empty site, from anywhere', () => {
+        const s = crownedCitizen(atRevision)
+        expect(rulesCard(s, CHAN, MESSENGER)).toBe(true)
+        expect(accessibleCardIds(s, CHAN)).toEqual(expect.arrayContaining([MESSENGER, LONGBOWS]))
+        expect(accessibleCardIds(s, FOE)).not.toContain(MESSENGER)
+        expect(rulesCard(crownedCitizen(before), CHAN, MESSENGER)).toBe(false)
+    })
+
+    it('Grand Mask: an empty site the Citizen\'s bandits hold is an Imperial site', () => {
+        const masked = (oathRevision: OathRevision) =>
+            board({ [CIT]: [CROWN], [ME]: [MASK] }, {}, { oathRevision })
+        const s = masked(atRevision)
+        expect(rulesCard(s, ME, MESSENGER)).toBe(true)
+        for (const imperial of [CHAN, CIT]) expect(rulesCard(s, imperial, MESSENGER), imperial).toBe(false)
+
+        const old = masked(before)
+        expect(rulesCard(old, ME, MESSENGER)).toBe(false)
+        expect(rulesCard(old, CIT, MESSENGER)).toBe(true)
+    })
+
+    it('the Chancellor\'s last warband may leave an empty site the bandits hold, which stays the Empire\'s (R-6.5)', () => {
+        const lastOne = { move: { kind: WarbandMoveKind.SiteToBoard as const }, owner: IMPERIAL_WARBANDS, count: 1 }
+        const atC2 = (oathRevision: OathRevision) =>
+            crownedCitizen(oathRevision, { [CHAN]: { siteId: 'c2' } }, { warbandsBySite: { c1: { [ME]: 1 }, c2: { [IMPERIAL_WARBANDS]: 1 }, h1: { [FOE]: 3 }, p1: { [IMPERIAL_WARBANDS]: 2 } } }, CHAN)
+        const s = atC2(atRevision)
+        expect(HydratedMoveWarbands.maxMovable(s, CHAN, lastOne.move, IMPERIAL_WARBANDS)).toBe(1)
+        expect(HydratedMoveWarbands.reasonCannotMove(s, CHAN, { ...lastOne, count: 2 })).toMatch(/at most 1$/)
+        new HydratedMoveWarbands(buildAction(MoveWarbands, { playerId: CHAN, ...lastOne })).apply(s)
+        expect(warbandsAt(s, 'c2')[IMPERIAL_WARBANDS] ?? 0).toBe(0)
+        expect(rulersOfSite(s, 'c2')).toEqual([CHAN, CIT])
+
+        expect(HydratedMoveWarbands.reasonCannotMove(atC2(before), CHAN, lastOne)).toMatch(/the last one must stay/)
+    })
+
+    it('the Chancellor may put warbands on an empty site they stand at (R-6.5: "if you rule your site")', () => {
+        const move = { move: { kind: WarbandMoveKind.BoardToSite as const }, owner: IMPERIAL_WARBANDS, count: 2 }
+        const atC2 = { [CHAN]: { siteId: 'c2' } }
+        expect(HydratedMoveWarbands.reasonCannotMove(crownedCitizen(atRevision, atC2, {}, CHAN), CHAN, move)).toBeUndefined()
+        expect(HydratedMoveWarbands.reasonCannotMove(crownedCitizen(before, atC2, {}, CHAN), CHAN, move)).toMatch(/do not rule/)
+    })
+
+    it('Campaign: an Exile may target the Chancellor at an empty site, and the bandits defend it as the Empire\'s', () => {
+        const s = crownedCitizen(atRevision, { [FOE]: { siteId: 'c2' } })
+        const atChancellor = choiceOf({ kind: 'player', playerId: CHAN }, [siteTarget('c2')], 3)
+        expect(HydratedCampaign.reasonCannotCampaign(s, FOE, atChancellor)).toBeUndefined()
+        campaignBy(FOE, { kind: 'player', playerId: CHAN }, [siteTarget('c2')], 3).apply(s)
+        defendWithNothing(s)
+        expect(s.campaign?.allyPlayerIds).toEqual([])
+        expect(s.campaign?.defendingBandits).toBe(1)
+
+        expect(HydratedCampaign.reasonCannotCampaign(crownedCitizen(before, { [FOE]: { siteId: 'c2' } }), FOE, atChancellor)).toBeDefined()
+    })
+
+    it('Campaign: a Citizen holder who attacks the Chancellor has them in their own colour (R-5.5.1.a)', () => {
+        const s = crownedCitizen(atRevision, { [CIT]: { siteId: 'p1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } } }, {}, CIT)
+        expect(rulersOfSite(s, 'c2')).toEqual([CHAN, CIT])
+        // In the Campaign the Chancellor rules p1 by the Empire's own warbands, and the empty sites are the Citizen's alone.
+        expect(HydratedCampaign.reasonCannotCampaign(s, CIT, choiceOf({ kind: 'player', playerId: CHAN }, [siteTarget('p1')], 1))).toBeUndefined()
+        expect(HydratedCampaign.reasonCannotCampaign(s, CIT, choiceOf({ kind: 'player', playerId: CHAN }, [siteTarget('p1'), siteTarget('c2')], 1))).toMatch(/chan does not rule c2/)
     })
 })
 

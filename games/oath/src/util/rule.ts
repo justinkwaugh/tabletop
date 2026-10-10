@@ -3,6 +3,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { relicPersistentsHeldBy } from './heldPersistents.js'
 import { totalWarbands, countOf } from './warbands.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-10.21 — any warband a player rules with rules a faceup site. */
 
@@ -67,7 +68,7 @@ export function rulesSite(
     if (!state.isSiteFaceup(siteId)) return false
     return (
         rulesByWarbands(state, playerId, siteId, scope) ||
-        banditsServe(state, playerId, siteId, scope)
+        banditsHoldSiteFor(state, playerId, siteId, scope)
     )
 }
 
@@ -108,6 +109,35 @@ export function banditsServe(
     )
 }
 
+/**
+ * R-7.6.5 with R-6.6.3 — the Crown's Q&A: for the Chancellor or a Citizen "your warbands" are
+ * the Empire's, so the bandits that serve an Imperial holder are Imperial warbands. R-X.4: from
+ * revision 5; before it they served the holder alone.
+ */
+function banditsServeTheEmpire(
+    state: HydratedOathGameState,
+    siteId: string,
+    scope?: ImperialScope
+): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) return false
+    return state.players.some(
+        (holder) =>
+            isImperialPlayer(state, holder.playerId, scope) &&
+            banditsServe(state, holder.playerId, siteId, scope)
+    )
+}
+
+/** R-7.6.5 — the bandits hold the site for its holder, and for every Imperial player when they are the Empire's. */
+export function banditsHoldSiteFor(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    scope?: ImperialScope
+): boolean {
+    if (banditsServe(state, playerId, siteId, scope)) return true
+    return isImperialPlayer(state, playerId, scope) && banditsServeTheEmpire(state, siteId, scope)
+}
+
 /** R-6.5 — the last warband stays to hold the site, unless R-7.6.5's bandits hold it. */
 export function warbandsFreeToLeave(
     state: HydratedOathGameState,
@@ -116,12 +146,20 @@ export function warbandsFreeToLeave(
     owner: WarbandOwner
 ): number {
     const atSite = countOf(warbandsAt(state, siteId), owner)
-    return banditsServe(state, playerId, siteId) ? atSite : Math.max(0, atSite - 1)
+    return banditsHoldSiteFor(state, playerId, siteId) ? atSite : Math.max(0, atSite - 1)
 }
 
-/** R-6.6.3 */
-export function isImperialSite(state: HydratedOathGameState, siteId: string): boolean {
-    return state.isSiteFaceup(siteId) && countOf(warbandsAt(state, siteId), IMPERIAL_WARBANDS) > 0
+/** R-6.6.3 — a site the Empire's bandits hold has Imperial warbands. */
+export function isImperialSite(
+    state: HydratedOathGameState,
+    siteId: string,
+    scope?: ImperialScope
+): boolean {
+    if (!state.isSiteFaceup(siteId)) return false
+    return (
+        countOf(warbandsAt(state, siteId), IMPERIAL_WARBANDS) > 0 ||
+        banditsServeTheEmpire(state, siteId, scope)
+    )
 }
 
 /** R-6.6.3 — the bandits are `banditsRuleSite`'s. */
