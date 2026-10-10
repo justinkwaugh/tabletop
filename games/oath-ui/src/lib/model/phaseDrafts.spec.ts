@@ -405,7 +405,7 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 
 /** R-6.6.1 — the Exile, then the relic space, then the terms. */
 describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
-    const offeringIn = () => {
+    const offeringIn = (prepare?: (state: HydratedOathGameState) => void) => {
         const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] }, {}, [
             testPlayer({ playerId: 'exile2', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
         ])
@@ -414,6 +414,7 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         state.reliquary = state.reliquary.map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
         state.getPlayerState(CHANCELLOR).relicIds = ['relic.cup-of-plenty']
         state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }
+        prepare?.(state)
         const session = opened(state)
         session.chooseAction(ActionType.OfferCitizenship)
         return session
@@ -568,6 +569,79 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
             fromScepterHolder: { banners: [Banner.DarkestSecret] },
             fromExile: { relicCardIds: ['relic.cup-of-plenty'] }
         })
+    })
+
+    // Vow of Silence: "You cannot … give anyone secrets."
+    const silenced = (playerId: string, secrets: number) => (state: HydratedOathGameState) => {
+        const player = state.getPlayerState(playerId)
+        player.secrets = secrets
+        player.advisers = [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }]
+    }
+
+    it('favor and secrets are token rows: one token per unit a side holds, those the rules refuse not addable', () => {
+        const offer = offeringIn(silenced('exile2', 2)).citizenship
+        offer.chooseExile('exile2')
+        offer.chooseReliquarySlot(SLOT_A)
+        expect(offer.tokenRow('givenFavor')).toEqual({ held: 3, addable: 3, picked: 0 })
+        expect(offer.tokenRow('givenSecrets')).toEqual({ held: 2, addable: 2, picked: 0 })
+        // The Exile holds 2 secrets and may give none: two tokens, neither addable.
+        expect(offer.tokenRow('askedSecrets')).toEqual({ held: 2, addable: 0, picked: 0 })
+        // A token a side holds none of has no tokens, so no control.
+        expect(offer.tokenRow('askedFavor')).toEqual({ held: 0, addable: 0, picked: 0 })
+    })
+
+    it('a tap on the Nth token sets N; a tap on the token at the count sets 0; each tap is one pick for Undo', () => {
+        const offer = offering()
+        offer.chooseExile(CHANCELLOR)
+        offer.chooseReliquarySlot(SLOT_A)
+        offer.tapToken('givenFavor', 2)
+        expect(offer.tokenRow('givenFavor').picked).toBe(2)
+        offer.tapToken('givenFavor', 3)
+        expect(offer.tokenRow('givenFavor').picked).toBe(3)
+        offer.tapToken('givenFavor', 3)
+        expect(offer.tokenRow('givenFavor').picked).toBe(0)
+        offer.tapToken('givenSecrets', 1)
+        expect(offer.terms).toEqual({ fromScepterHolder: { secrets: 1 }, fromExile: undefined })
+
+        expect(offer.back()).toBe(true)
+        expect(offer.tokenRow('givenFavor').picked).toBe(0)
+        expect(offer.back()).toBe(true)
+        expect(offer.tokenRow('givenFavor').picked).toBe(3)
+        expect(offer.back()).toBe(true)
+        expect(offer.tokenRow('givenFavor').picked).toBe(2)
+    })
+
+    it('a token beyond what the rules let a side add is no pick', () => {
+        const offer = offeringIn(silenced(CHANCELLOR, 1)).citizenship
+        offer.chooseExile(CHANCELLOR)
+        offer.chooseReliquarySlot(SLOT_A)
+        offer.tapToken('askedSecrets', 1)
+        offer.tapToken('givenFavor', 4)
+        expect(offer.terms).toBeUndefined()
+        expect(offer.back()).toBe(true)
+        expect(offer.reliquarySlotId).toBeUndefined()
+    })
+
+    it('R-6.6.1 — an Exile offering himself gets no terms: the offer is the relic alone', () => {
+        const state = table(MachineState.ActPhase, { relicIds: ['relic.grand-scepter'] })
+        state.reliquary = state.reliquary.map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
+        state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }
+        const session = opened(state)
+        session.chooseAction(ActionType.OfferCitizenship)
+        const offer = session.citizenship
+        expect(offer.exilePlayerId).toBe(ME)
+        offer.chooseReliquarySlot(SLOT_A)
+        expect(offer.offersSelf).toBe(true)
+
+        offer.tapToken('givenFavor', 1)
+        offer.setTerm('askedSecrets', 1)
+        offer.toggleBanner('givenBanners', Banner.DarkestSecret, true)
+        offer.toggleRelic('givenRelics', 'relic.grand-scepter', true)
+        expect(offer.terms).toBeUndefined()
+        expect(offer.offerTerms.givenBanners).toEqual([])
+        expect(offer.blockedBecause).toBeUndefined()
+        expect(offer.back()).toBe(true)
+        expect(offer.reliquarySlotId).toBeUndefined()
     })
 })
 

@@ -924,7 +924,7 @@ const minor = (page: Page, label: string) =>
 
 /** The Citizenship offer's builder (R-6.6.1): to whom, which relic, then the terms. */
 test.describe('offering Citizenship', () => {
-    test('“To:” the Exiles’ chips, “Promise <chip> one relic.”, then the terms as rows and “Offer” alone', async ({
+    test('“To:” the Exiles’ chips, “Promise <chip> one relic.”, then the terms by side and “Offer” alone', async ({
         page
     }) => {
         await openTable(page, 'offerCitizenship')
@@ -958,11 +958,13 @@ test.describe('offering Citizenship', () => {
         await expect(darkest).toHaveAttribute('aria-pressed', 'true')
         await expect(answer(page, 'the People’s Favor')).toHaveAttribute('aria-pressed', 'false')
 
-        // The counts given are gold once picked; the counts asked stay plain.
+        // The counts are token rows: a tap on the second favor gives 2, the tokens up to it ringed.
         await answer(page, 'you give 2 favor').click()
-        await expect(answer(page, 'you give 2 favor')).toHaveClass(/text-oath-accent/)
-        await answer(page, 'they give 1 secrets').click()
-        await expect(answer(page, 'they give 1 secrets')).not.toHaveClass(/text-oath-accent/)
+        await expect(answer(page, 'you give 1 favor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'you give 2 favor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'you give 3 favor')).toHaveAttribute('aria-pressed', 'false')
+        await answer(page, 'they give 1 secret').click()
+        await expect(answer(page, 'they give 1 secret')).toHaveAttribute('aria-pressed', 'true')
 
         await answer(page, 'Offer').click()
         await expect.poll(async () => (await call(page, 'standing')).asked).toEqual({
@@ -982,7 +984,7 @@ test.describe('offering Citizenship', () => {
         await answer(page, 'you give 1 favor').click()
 
         await undoButton(page).click()
-        await expect(answer(page, 'you give 0 favor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'you give 1 favor')).toHaveAttribute('aria-pressed', 'false')
         await expect(answer(page, 'the Darkest Secret')).toHaveAttribute('aria-pressed', 'true')
         await undoButton(page).click()
         await expect(answer(page, 'the Darkest Secret')).toHaveAttribute('aria-pressed', 'false')
@@ -1008,6 +1010,180 @@ test.describe('offering Citizenship', () => {
         await expect(grid(page)).toContainText('Act Phase')
         expect((await call(page, 'tableFacts')).staged).toBeUndefined()
     })
+})
+
+/** An element's size in layout pixels: the panel may be drawn scaled to fit. */
+const layoutSizeOf = (locator: Locator) =>
+    locator.evaluate((element) =>
+        element instanceof HTMLElement ? { width: element.offsetWidth, height: element.offsetHeight } : undefined
+    )
+
+/** The scale the last fitted panel is drawn at. */
+const panelScale = (page: Page) =>
+    page
+        .locator('.fit__inner')
+        .last()
+        .evaluate((inner) => new DOMMatrixReadOnly(getComputedStyle(inner).transform).a)
+
+/** Opens the offer to Cole with the Cup of Plenty promised: the terms. */
+async function offerToCole(page: Page, table: TableFixture.TableName = 'offerCitizenship', exile = 'cole') {
+    await openTable(page, table)
+    await minor(page, 'Offer Citizenship').click()
+    await grid(page).getByRole('button', { name: exile, exact: true }).click()
+    await panelCards(page).filter({ has: page.getByRole('img', { name: 'Cup of Plenty' }) }).click()
+    await expect(grid(page).locator('p').filter({ hasText: /^To/ })).toHaveText(`To ${exile}`)
+}
+
+const FAVOR_TOKENS = (who: 'you' | 'they', count: number) =>
+    Array.from({ length: count }, (_, index) => `${who} give ${index + 1} favor`)
+
+/**
+ * The offer's terms (R-6.6.1): the promised relic is the one large card, each side's relics and
+ * banners small tiles ringed once added, favor and secrets token rows; the sides side by side on
+ * a desktop and stacked on a phone; no summary line; an Exile offering himself gets no terms.
+ */
+test.describe('the Citizenship offer’s terms', () => {
+    test('the promised relic is the 56 px card, not a button; the Scepter and banners are 40 px tiles, unringed until tapped', async ({
+        page
+    }) => {
+        await offerToCole(page)
+        const promised = grid(page).getByRole('img', { name: 'Cup of Plenty', exact: true })
+        expect(await layoutSizeOf(promised)).toEqual({ width: 56, height: 56 })
+        await expect(promised.locator('xpath=ancestor::button')).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'Enlarge Cup of Plenty', exact: true })).toHaveCount(1)
+
+        // Picks start empty: the Scepter is listed, not in the offer until tapped.
+        const scepter = answer(page, 'The Grand Scepter')
+        await expect(scepter).toHaveAttribute('aria-pressed', 'false')
+        expect(await layoutSizeOf(scepter.locator('img'))).toEqual({ width: 40, height: 40 })
+        await expect(grid(page).getByRole('button', { name: 'Enlarge The Grand Scepter', exact: true })).toHaveCSS('width', '24px')
+        for (const [name, width] of [['the Darkest Secret', 80], ['the People’s Favor', 80]] as const) {
+            const banner = answer(page, name)
+            await expect(banner).toHaveAttribute('aria-pressed', 'false')
+            expect(await layoutSizeOf(banner.locator('img'))).toEqual({ width, height: 40 })
+        }
+        // No hover: a tile has no hover ring and no tooltip.
+        for (const tile of [scepter, answer(page, 'the Darkest Secret')]) {
+            await expect(tile).not.toHaveAttribute('title')
+            await expect(tile.locator('img')).not.toHaveAttribute('title')
+            expect(await tile.getAttribute('class')).not.toMatch(/hover:/)
+        }
+        await expect(scepter).toHaveClass(/ring-1/)
+        await scepter.click()
+        await expect(scepter).toHaveAttribute('aria-pressed', 'true')
+        await expect(scepter).toHaveClass(/ring-2/)
+        await expect(scepter).toHaveClass(/ring-oath-accent/)
+    })
+
+    test('favor and secrets are token rows: the Nth token gives N, the token at the count gives 0', async ({ page }) => {
+        await offerToCole(page)
+        // One token per unit held, none at the start, and no "0".
+        const tokens = [...FAVOR_TOKENS('you', 4), 'you give 1 secret', 'you give 2 secrets', ...FAVOR_TOKENS('they', 3), 'they give 1 secret']
+        for (const name of tokens) {
+            await expect(answer(page, name)).toHaveAttribute('aria-pressed', 'false')
+            await expect(answer(page, name)).toBeEnabled()
+            expect(await layoutSizeOf(answer(page, name))).toEqual({ width: 34, height: 32 })
+        }
+        await expect(grid(page).getByRole('button', { name: /give 0 / })).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'you give 5 favor', exact: true })).toHaveCount(0)
+
+        const pressed = async () =>
+            Promise.all(FAVOR_TOKENS('you', 4).map((name) => answer(page, name).getAttribute('aria-pressed')))
+        await answer(page, 'you give 2 favor').click()
+        expect(await pressed()).toEqual(['true', 'true', 'false', 'false'])
+        await answer(page, 'you give 4 favor').click()
+        expect(await pressed()).toEqual(['true', 'true', 'true', 'true'])
+        await answer(page, 'you give 1 favor').click()
+        expect(await pressed()).toEqual(['true', 'false', 'false', 'false'])
+        await answer(page, 'you give 1 favor').click()
+        expect(await pressed()).toEqual(['false', 'false', 'false', 'false'])
+
+        // A token in the deal is ringed gold; its picture is full strength, the others faint.
+        await answer(page, 'they give 1 secret').click()
+        await expect(answer(page, 'they give 1 secret')).toHaveClass(/ring-oath-accent/)
+        await expect(answer(page, 'they give 1 secret').locator('img')).toHaveCSS('opacity', '1')
+        await expect(answer(page, 'they give 1 favor').locator('img')).not.toHaveCSS('opacity', '1')
+    })
+
+    test('the sides stand side by side, and nothing but “Offer” follows them', async ({ page }) => {
+        await offerToCole(page)
+        const give = await boxOf(grid(page).getByText('You give', { exact: true }))
+        const get = await boxOf(grid(page).getByText('You get', { exact: true }))
+        expect(Math.abs(give.y - get.y)).toBeLessThan(1)
+        expect(get.x).toBeGreaterThan(give.x + 200)
+        await answer(page, 'you give 2 favor').click()
+        await expect(grid(page)).toHaveText(/^\s*Offer Citizenship\s*To cole\s*You give\s*You get\s*Offer\s*$/)
+    })
+
+    test('a token a side holds none of has no control', async ({ page }) => {
+        await offerToCole(page, 'offerCitizenship', 'ann')
+        for (const name of FAVOR_TOKENS('they', 2)) await expect(answer(page, name)).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /^they give \d+ secrets?$/ })).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: /^you give \d+ secrets?$/ })).toHaveCount(2)
+    })
+
+    test('a token the rules refuse is not tappable and keeps its place', async ({ page }) => {
+        await offerToCole(page, 'offerCitizenshipSilenced')
+        const secret = answer(page, 'they give 1 secret')
+        await expect(secret).toBeVisible()
+        await expect(secret).toBeDisabled()
+        expect(await layoutSizeOf(secret)).toEqual({ width: 34, height: 32 })
+        await expect(answer(page, 'they give 1 favor')).toBeEnabled()
+        await expect(answer(page, 'Offer')).toBeEnabled()
+    })
+
+    test('an Exile offering himself gets no terms: the promised relic and “Offer”', async ({ page }) => {
+        await openTable(page, 'offerCitizenshipSelf')
+        await minor(page, 'Offer Citizenship').click()
+        await expect(grid(page)).not.toContainText('To:')
+        await panelCards(page).filter({ has: page.getByRole('img', { name: 'Cup of Plenty' }) }).click()
+        await expect(grid(page)).toContainText('You give')
+        await expect(grid(page)).not.toContainText('You get')
+        await expect(grid(page).getByRole('img', { name: 'Cup of Plenty', exact: true })).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /give \d+ (favor|secrets?)$/ })).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'The Grand Scepter', exact: true })).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'the Darkest Secret', exact: true })).toHaveCount(0)
+        await answer(page, 'Offer').click()
+        await expect.poll(async () => (await call(page, 'standing')).asked).toEqual({
+            kind: 'citizenshipOffer',
+            askedPlayerId: 'jacob'
+        })
+        expect(await call(page, 'offeredCitizenshipTerms')).toBe('none')
+    })
+
+    for (const viewport of [
+        { width: 402, height: 874 },
+        { width: 375, height: 812 }
+    ]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            test('the sides stack; tiles and tokens are 44 px, the Scepter unringed until tapped, every label inside its button', async ({
+                page
+            }) => {
+                await offerToCole(page)
+                await panelImagesLoaded(page)
+                const give = await boxOf(grid(page).getByText('You give', { exact: true }))
+                const get = await boxOf(grid(page).getByText('You get', { exact: true }))
+                expect(get.y).toBeGreaterThan(give.y + 44)
+                expect(Math.abs(give.x - get.x)).toBeLessThan(1)
+
+                const scepter = answer(page, 'The Grand Scepter')
+                expect(await layoutSizeOf(scepter.locator('img'))).toEqual({ width: 44, height: 44 })
+                expect(await layoutSizeOf(answer(page, 'the Darkest Secret').locator('img'))).toEqual({ width: 88, height: 44 })
+                for (const name of [...FAVOR_TOKENS('you', 4), 'you give 2 secrets', 'they give 1 secret']) {
+                    expect(await layoutSizeOf(answer(page, name))).toEqual({ width: 44, height: 44 })
+                }
+                expect((await layoutSizeOf(answer(page, 'Offer')))?.height).toBeGreaterThanOrEqual(44)
+                await expect(scepter).toHaveAttribute('aria-pressed', 'false')
+                await scepter.click()
+                await expect(scepter).toHaveAttribute('aria-pressed', 'true')
+                expect(await clippedLabels(page)).toEqual([])
+                expect(await wrappedLabels(page)).toEqual([])
+                if (viewport.width === 402) expect(await panelScale(page)).toBe(1)
+            })
+        })
+    }
 })
 
 /** Exile (R-6.7, R-6.8): each button is the price and whom it goes to. */

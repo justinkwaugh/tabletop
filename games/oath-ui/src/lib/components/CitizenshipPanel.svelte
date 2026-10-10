@@ -1,70 +1,110 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
-    import CountPicker from '$lib/components/CountPicker.svelte'
-    import BannerPick from '$lib/components/BannerPick.svelte'
+    import TokenRow from '$lib/components/TokenRow.svelte'
+    import TermTile from '$lib/components/TermTile.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
-    import { range } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Banner } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
-    import { cardChoices, reliquaryRelicChoice, type CardChoice } from '$lib/model/cardChoice.js'
+    import { cardImage } from '$lib/images/cardImages.js'
+    import { bannerPreview } from '$lib/model/bannerPreview.js'
+    import { cardName } from '$lib/model/names.js'
+    import { reliquaryRelicChoice, type CardChoice } from '$lib/model/cardChoice.js'
 
     // R-6.6.1, R-9.6 — the offer hands the turn to the Exile, and its terms bind. Undo backs out
     // of it one pick at a time: a term, the relic, the Exile, then the action.
     let gameSession = getGameSession()
     let offer = $derived(gameSession.citizenship)
     let busy = $derived(gameSession.busy)
+    let gameState = $derived(gameSession.gameState)
 
     let exilePlayerId = $derived(offer.exilePlayerId)
     let reliquarySlotId = $derived(offer.reliquarySlotId)
 
-    // As tall as the relic card on the Exile's answer.
+    // The promised relic: as tall as the relic card on the Exile's answer.
     const CARD_HEIGHT = 56
+
+    type Side = 'offerer' | 'exile'
+    type SideTerms = {
+        relics: 'givenRelics' | 'askedRelics'
+        banners: 'givenBanners' | 'askedBanners'
+        favor: 'givenFavor' | 'askedFavor'
+        secrets: 'givenSecrets' | 'askedSecrets'
+        giver: string
+    }
+    const SIDES: Record<Side, SideTerms> = {
+        offerer: {
+            relics: 'givenRelics',
+            banners: 'givenBanners',
+            favor: 'givenFavor',
+            secrets: 'givenSecrets',
+            giver: 'you'
+        },
+        exile: {
+            relics: 'askedRelics',
+            banners: 'askedBanners',
+            favor: 'askedFavor',
+            secrets: 'askedSecrets',
+            giver: 'they'
+        }
+    }
 
     // R-6.4-H1 — a face to the Scepter's holder, who knows every Reliquary relic; a back to anyone else.
     function relicAt(slotId: string): CardChoice {
         return reliquaryRelicChoice(slotId, (slot) => gameSession.knownRelicAt(slot))
     }
-
-    function toggleBanner(term: 'givenBanners' | 'askedBanners', banner: Banner) {
-        offer.toggleBanner(term, banner, !offer.offerTerms[term].includes(banner))
-    }
 </script>
 
-{#snippet countRow(
-    token: string,
-    held: number,
-    picked: number,
-    gives: boolean,
-    label: (n: number) => string,
-    onpick: (n: number) => void
-)}
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="w-6"><TokenText text={token} /></span>
-        <CountPicker values={range(0, held + 1)} {picked} {label} {onpick} {gives} disabled={busy} />
-    </div>
-{/snippet}
-
-{#snippet bannerTiles(
-    banners: Banner[],
-    picked: Banner[],
-    term: 'givenBanners' | 'askedBanners'
-)}
-    {#if banners.length > 0}
-        <div class="flex flex-wrap gap-x-4 gap-y-3.5 max-sm:flex-col max-sm:items-start">
-            {#each banners as banner (banner)}
-                <BannerPick
-                    {banner}
-                    picked={picked.includes(banner)}
-                    onpick={() => toggleBanner(term, banner)}
-                    {busy}
-                    height={CARD_HEIGHT}
-                />
-            {/each}
-        </div>
+<!-- One side's relics and banners as small tiles, then its favor and secrets as token rows; a
+     token the side holds none of has no row. -->
+{#snippet sideTerms(side: Side)}
+    {@const held = offer.holdings[side]}
+    {@const terms = SIDES[side]}
+    {@const favor = offer.tokenRow(terms.favor)}
+    {@const secrets = offer.tokenRow(terms.secrets)}
+    {#each held.relicIds as relicId (relicId)}
+        {@const picked = offer.offerTerms[terms.relics].includes(relicId)}
+        <TermTile
+            src={cardImage(relicId)}
+            label={cardName(relicId)}
+            preview={{ cardId: relicId, label: cardName(relicId) }}
+            {picked}
+            onpick={() => offer.toggleRelic(terms.relics, relicId, !picked)}
+            {busy}
+        />
+    {/each}
+    {#each held.banners as banner (banner)}
+        {@const preview = bannerPreview(gameState, banner)}
+        {@const picked = offer.offerTerms[terms.banners].includes(banner)}
+        <TermTile
+            src={preview.imageSrc}
+            label={preview.label}
+            {preview}
+            wide
+            {picked}
+            onpick={() => offer.toggleBanner(terms.banners, banner, !picked)}
+            {busy}
+        />
+    {/each}
+    {#if favor.held > 0}
+        <TokenRow
+            token="favor"
+            {...favor}
+            label={(n) => `${terms.giver} give ${n} favor`}
+            ontap={(n) => offer.tapToken(terms.favor, n)}
+            {busy}
+        />
+    {/if}
+    {#if secrets.held > 0}
+        <TokenRow
+            token="secrets"
+            {...secrets}
+            label={(n) => `${terms.giver} give ${n} ${n === 1 ? 'secret' : 'secrets'}`}
+            ontap={(n) => offer.tapToken(terms.secrets, n)}
+            {busy}
+        />
     {/if}
 {/snippet}
 
@@ -95,94 +135,45 @@
             height={80}
         />
     {:else}
-        {@const held = offer.holdings}
-        {@const terms = offer.offerTerms}
         {@const promised = relicAt(reliquarySlotId)}
         <p class="text-sm mb-2">To <PlayerName playerId={exilePlayerId} /></p>
 
-        <!-- The Exile's answer reads these rows from the other side. -->
+        <!-- The deal: the two sides side by side on a desktop, stacked on a phone; the Exile's
+             answer reads it from the other side. An Exile offering himself gets no terms. -->
         <div
-            class="mb-2 grid grid-cols-[74px_minmax(0,1fr)] items-start gap-x-2 gap-y-2.5 border-t
-                   border-oath-divider pt-2 text-[13px]"
+            class="mb-2.5 grid border-t border-oath-divider pt-2 {offer.offersSelf
+                ? ''
+                : 'sm:grid-cols-2'}"
         >
-            <span class="pt-2 text-xs text-oath-text-muted">You give</span>
-            <div class="flex flex-col gap-1.5">
-                <span class="relative inline-flex self-start">
-                    <CardImage
-                        cardId={promised.cardId}
-                        back={promised.back}
-                        label={promised.label}
-                        width={widthAtHeight(CARD_HEIGHT, promised)}
-                    />
-                    <Magnifier preview={promised} label={promised.label} />
-                </span>
-                {#if held.offerer.relicIds.length > 0}
-                    <CardChoiceRow
-                        choices={cardChoices(held.offerer.relicIds)}
-                        picked={terms.givenRelics}
-                        onpick={(relicId) =>
-                            offer.toggleRelic(
-                                'givenRelics',
-                                relicId,
-                                !terms.givenRelics.includes(relicId)
-                            )}
-                        {busy}
-                        height={CARD_HEIGHT}
-                    />
-                {/if}
-                {@render bannerTiles(held.offerer.banners, terms.givenBanners, 'givenBanners')}
-                {@render countRow(
-                    'favor',
-                    held.offerer.favor,
-                    terms.givenFavor,
-                    true,
-                    (n) => `you give ${n} favor`,
-                    (n) => offer.setTerm('givenFavor', n)
-                )}
-                {@render countRow(
-                    'secrets',
-                    held.offerer.secrets,
-                    terms.givenSecrets,
-                    true,
-                    (n) => `you give ${n} secrets`,
-                    (n) => offer.setTerm('givenSecrets', n)
-                )}
+            <div class="min-w-0 sm:pr-6">
+                <p class="mb-1.5 text-xs text-oath-text-muted">You give</p>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <!-- R-6.6.1 — the promised relic is the offer itself, not a pick: Undo changes it. -->
+                    <span class="relative inline-flex flex-none">
+                        <CardImage
+                            cardId={promised.cardId}
+                            back={promised.back}
+                            label={promised.label}
+                            width={widthAtHeight(CARD_HEIGHT, promised)}
+                        />
+                        <Magnifier preview={promised} label={promised.label} />
+                    </span>
+                    {#if !offer.offersSelf}
+                        {@render sideTerms('offerer')}
+                    {/if}
+                </div>
             </div>
-
-            <span class="pt-2 text-xs text-oath-text-muted">You get</span>
-            <div class="flex flex-col gap-1.5">
-                {#if held.exile.relicIds.length > 0}
-                    <CardChoiceRow
-                        choices={cardChoices(held.exile.relicIds)}
-                        picked={terms.askedRelics}
-                        onpick={(relicId) =>
-                            offer.toggleRelic(
-                                'askedRelics',
-                                relicId,
-                                !terms.askedRelics.includes(relicId)
-                            )}
-                        {busy}
-                        height={CARD_HEIGHT}
-                    />
-                {/if}
-                {@render bannerTiles(held.exile.banners, terms.askedBanners, 'askedBanners')}
-                {@render countRow(
-                    'favor',
-                    held.exile.favor,
-                    terms.askedFavor,
-                    false,
-                    (n) => `they give ${n} favor`,
-                    (n) => offer.setTerm('askedFavor', n)
-                )}
-                {@render countRow(
-                    'secrets',
-                    held.exile.secrets,
-                    terms.askedSecrets,
-                    false,
-                    (n) => `they give ${n} secrets`,
-                    (n) => offer.setTerm('askedSecrets', n)
-                )}
-            </div>
+            {#if !offer.offersSelf}
+                <div
+                    class="min-w-0 border-oath-divider max-sm:mt-2 max-sm:border-t max-sm:pt-2 sm:border-l
+                           sm:pl-6"
+                >
+                    <p class="mb-1.5 text-xs text-oath-text-muted">You get</p>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        {@render sideTerms('exile')}
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <!-- Rule 1 — terms the engine refuses have no Offer; its reason is the one red line. -->

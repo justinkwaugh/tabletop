@@ -6,6 +6,7 @@ import {
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    ConsentRequestKind,
     HydratedCampaignSacrifice,
     HydratedOathGameState,
     EndActPhase,
@@ -37,6 +38,7 @@ import {
     mapSlotId,
     mapSlotsFor,
     reliquarySlotId,
+    type CitizenshipTerms,
     type CitizenshipTransfer,
     type LetPeekSubject,
     type OathPlayerState,
@@ -136,6 +138,8 @@ export type TableName =
     | 'warbandGiveAsked'
     | 'offerCitizenship'
     | 'offerCitizenshipToOne'
+    | 'offerCitizenshipSilenced'
+    | 'offerCitizenshipSelf'
     | 'everyMinor'
     | 'show'
     | 'harpSearch'
@@ -2164,44 +2168,52 @@ const RELIQUARY_KNOWN = { peekedRelicSlotIds: Object.keys(RELIQUARY), peekedReli
 
 /**
  * R-6.6.1 — the Grand Scepter's holder, holding both banners, in their Act Phase with every
- * Reliquary relic known to them (R-6.4-H1); Cole is an Exile, and Ann too unless `oneExile`.
+ * Reliquary relic known to them (R-6.4-H1). `two`: Cole and Ann are Exiles; `one`: Cole alone;
+ * `silenced`: both, Cole with Vow of Silence, so he may give no secrets; `self`: the holder is the
+ * one Exile, Cole a Citizen and Ann the Chancellor.
  */
-function offerCitizenshipTable(oneExile: boolean): PlayedTable {
+function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
+    const self = exiles === 'self'
     const state = testState(
         [
             testPlayer({
                 playerId: 'jacob',
-                color: Color.Purple,
-                status: PlayerStatus.Chancellor,
+                color: self ? Color.Yellow : Color.Purple,
+                status: self ? PlayerStatus.Exile : PlayerStatus.Chancellor,
                 siteId: home,
                 favor: 4,
                 secrets: 2,
                 relicIds: ['relic.grand-scepter'],
-                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                warbandsInPersonalBank: self ? { jacob: 14 } : { [IMPERIAL_WARBANDS]: 16 },
                 ...RELIQUARY_KNOWN
             }),
             testPlayer({
                 playerId: 'cole',
                 color: Color.Red,
-                status: PlayerStatus.Exile,
+                status: self ? PlayerStatus.Citizen : PlayerStatus.Exile,
                 siteId: home,
                 favor: 3,
                 secrets: 1,
+                advisers: exiles === 'silenced' ? [faceup('denizen.arcane.vow-of-silence')] : [],
                 warbandsInPersonalBank: { cole: 14 }
             }),
             testPlayer({
                 playerId: 'ann',
-                color: Color.Blue,
-                status: oneExile ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                color: self ? Color.Purple : Color.Blue,
+                status: self
+                    ? PlayerStatus.Chancellor
+                    : exiles === 'one'
+                      ? PlayerStatus.Citizen
+                      : PlayerStatus.Exile,
                 siteId: home,
                 favor: 2,
-                warbandsInPersonalBank: { ann: 14 }
+                warbandsInPersonalBank: self ? { [IMPERIAL_WARBANDS]: 16 } : { ann: 14 }
             })
         ],
         {
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: self ? 'ann' : 'jacob',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
@@ -2426,8 +2438,10 @@ function woodRulerTable(): PlayedTable {
 
 const TABLES: Record<TableName, () => PlayedTable> = {
     warbandGiveAsked: warbandGiveAskedTable,
-    offerCitizenship: () => offerCitizenshipTable(false),
-    offerCitizenshipToOne: () => offerCitizenshipTable(true),
+    offerCitizenship: () => offerCitizenshipTable('two'),
+    offerCitizenshipToOne: () => offerCitizenshipTable('one'),
+    offerCitizenshipSilenced: () => offerCitizenshipTable('silenced'),
+    offerCitizenshipSelf: () => offerCitizenshipTable('self'),
     everyMinor: everyMinorTable,
     show: () => showTable('jacob'),
     showOne: () => showTable('cole'),
@@ -2737,6 +2751,13 @@ export function standing(): {
             ? { asked: { kind: pending.request.kind, askedPlayerId: pending.askedPlayerId } }
             : {})
     }
+}
+
+/** R-6.6.1 — the terms of the Citizenship offer the game waits on: `none` when it carries none. */
+export function offeredCitizenshipTerms(): CitizenshipTerms | 'none' | undefined {
+    const request = current().gameState.pendingConsent?.request
+    if (request?.kind !== ConsentRequestKind.CitizenshipOffer) return undefined
+    return request.terms ?? 'none'
 }
 
 export function defeatPicks(): { required: number; picked: number[]; blockedBecause?: string } {
