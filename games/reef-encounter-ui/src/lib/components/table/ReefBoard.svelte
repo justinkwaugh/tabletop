@@ -33,6 +33,9 @@
     const shrimpTargets = $derived(onBoard(gameSession.shrimpTargets))
     const movableShrimps = $derived(onBoard(gameSession.movableShrimps))
     const intent = $derived(gameSession.shrimpIntent)
+    const edible = $derived(
+        gameSession.edibleCorals.filter((coral) => coral.square.boardId === reef.boardId)
+    )
     const pickedUp = $derived(
         intent?.kind === 'move' && intent.from.boardId === reef.boardId
             ? intent.from.coords
@@ -102,6 +105,18 @@
                 label="Put your shrimp on {where(square.coords)}"
                 onselect={() => gameSession.placeShrimp(square)}
             />
+        {/each}
+        {#each edible as coral (`${coral.square.coords.row},${coral.square.coords.col}`)}
+            {#each coral.squares as coords (`${coords.row},${coords.col}`)}
+                <Target
+                    box={boardSquare(coords)}
+                    tone="eat"
+                    label="Feed the {coral.squares.length}-polyp {coral.color} coral on {where(
+                        coords
+                    )} to your parrotfish"
+                    onselect={() => gameSession.eatCoral(coral.square)}
+                />
+            {/each}
         {/each}
         {#each targets as target (`${target.coords.row},${target.coords.col}`)}
             <Target

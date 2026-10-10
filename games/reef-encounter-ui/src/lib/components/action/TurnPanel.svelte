@@ -4,6 +4,7 @@
     import Shrimp from '$lib/components/table/Shrimp.svelte'
     import AlgaCylinder from '$lib/components/table/AlgaCylinder.svelte'
     import PolypChip from '$lib/components/PolypChip.svelte'
+    import EatPrompt from './EatPrompt.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -21,7 +22,9 @@
     })
 </script>
 
-{#if gameSession.cylinderAlga}
+{#if gameSession.choosingCoralToEat}
+    <EatPrompt />
+{:else if gameSession.cylinderAlga}
     <p class="prompt reef-display">Put the {gameSession.cylinderAlga} cylinder on the open sea</p>
     <p class="detail">
         On the cylinder space, where it turns every unlocked coral tile whose large alga is
@@ -90,6 +93,15 @@
     {/if}
 {:else}
     <p class="prompt reef-display">Grow your reefs</p>
+{/if}
+
+{#if gameSession.canEatCoral && !gameSession.turnChoiceOpen}
+    <div class="row">
+        <span class="label">First, if you like</span>
+        <ChoiceButton label="Eat a coral" onclick={() => gameSession.startChoosingCoralToEat()}>
+            <span class="choice-text">Eat a coral</span>
+        </ChoiceButton>
+    </div>
 {/if}
 
 {#if gameSession.cubeToPlay && !gameSession.turnChoiceOpen}

@@ -9,7 +9,7 @@
     }: {
         box: BoundingBox
         label: string
-        tone?: 'plain' | 'attack' | 'piece'
+        tone?: 'plain' | 'attack' | 'piece' | 'eat'
         onselect: () => void
     } = $props()
 
@@ -54,6 +54,16 @@
         stroke: rgb(255 255 255 / 0.9);
         stroke-width: 5;
         stroke-dasharray: 10 8;
+    }
+
+    .target.eat {
+        fill: rgb(226 70 44 / 0.2);
+        stroke: #ff8a6b;
+    }
+
+    .target.eat:hover,
+    .target.eat:focus-visible {
+        fill: rgb(226 70 44 / 0.42);
     }
 
     .target:hover,

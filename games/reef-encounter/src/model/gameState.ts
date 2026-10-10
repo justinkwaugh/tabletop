@@ -564,7 +564,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     // A coral of exactly that many may still be eaten, feeding the parrotfish nothing
     // (designer ruling, for the Advanced game).
-    private polypsReturnedWhenEating(): number {
+    polypsReturnedWhenEating(): number {
         const returned =
             this.machineState === MachineState.FinalTurns
                 ? PolypsReturnedWhenEatingInFinalTurns

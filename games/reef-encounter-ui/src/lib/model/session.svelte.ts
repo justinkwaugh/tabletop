@@ -3,6 +3,8 @@ import type { OffsetCoordinates } from '@tabletop/common'
 import {
     ActionType,
     AlgaColors,
+    coralAt,
+    EatCoral,
     ExchangeConsumedPolyp,
     ExchangeLarvaCube,
     PlayAlgaCylinder,
@@ -13,6 +15,7 @@ import {
     IntroduceShrimp,
     MachineState,
     MoveShrimp,
+    PassFinalTurn,
     PlacePolyp,
     polypAt,
     PlayLarvaCube,
@@ -36,6 +39,8 @@ import {
 export type PolypSource = 'screen' | 'consumed'
 const PolypSources: readonly PolypSource[] = ['screen', 'consumed']
 
+export type EdibleCoral = { square: ReefSquare; color: CoralColor; squares: OffsetCoordinates[] }
+
 export type CylinderTargets = { openSea: boolean; tileIds: number[] }
 
 export type LarvaCubeChoice = { color: CoralColor; polypsToPlace: number }
@@ -57,6 +62,9 @@ export class ReefEncounterGameSession extends GameSession<
 
     readonly isTakingTurn = $derived(
         this.canAct && this.gameState.machineState === MachineState.TakingTurn
+    )
+    readonly isTakingFinalTurn = $derived(
+        this.canAct && this.gameState.machineState === MachineState.FinalTurns
     )
 
     readonly firstLarvaCube = $derived(this.selection.firstLarvaCube?.value)
@@ -146,7 +154,10 @@ export class ReefEncounterGameSession extends GameSession<
     readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
     readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
     // Any open shrimp or cylinder choice takes over the table until it commits or is undone.
-    readonly turnChoiceOpen = $derived(this.shrimpIntent !== undefined || this.choosingCylinder)
+    readonly choosingCoralToEat = $derived(this.selection.eating?.value === true)
+    readonly turnChoiceOpen = $derived(
+        this.shrimpIntent !== undefined || this.choosingCylinder || this.choosingCoralToEat
+    )
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
     readonly hasShrimpOnBareRock = $derived(
         this.isTakingTurn && this.gameState.hasShrimpOnBareRock(this.myPlayerId())
@@ -212,6 +223,31 @@ export class ReefEncounterGameSession extends GameSession<
                 .map((tile) => tile.tileId)
                 .filter((tileId) => this.gameState.canPlayAlgaCylinder(me, payment, alga, tileId))
         }
+    })
+
+    readonly canEatCoral = $derived(this.canTake(ActionType.EatCoral))
+    readonly canPassFinalTurn = $derived(this.canTake(ActionType.PassFinalTurn))
+
+    // Each coral the viewer may feed their parrotfish, named by the square of their shrimp on it.
+    readonly edibleCorals: EdibleCoral[] = $derived.by(() => {
+        if (!this.choosingCoralToEat || !this.canEatCoral) return []
+        const me = this.myPlayerId()
+        return this.gameState.shrimps
+            .filter((shrimp) => shrimp.playerId === me)
+            .map((shrimp) => ({ boardId: shrimp.boardId, coords: shrimp.coords }))
+            .filter((square) => this.gameState.canEatCoral(me, square))
+            .map((square) => {
+                const reef = this.gameState.reefs.find(
+                    (candidate) => candidate.boardId === square.boardId
+                )
+                assertExists(reef, `Reef board ${square.boardId} is not in play`)
+                const coral = coralAt(reef, square.coords)
+                return {
+                    square,
+                    color: coral[0].color,
+                    squares: coral.map((polyp) => polyp.coords)
+                }
+            })
     })
 
     override beforeNewState() {
@@ -332,6 +368,22 @@ export class ReefEncounterGameSession extends GameSession<
         await this.applyAction(
             this.createPlayerAction(PlayAlgaCylinder, { consumedColor, alga, tileId })
         )
+    }
+
+    startChoosingCoralToEat() {
+        this.selection = setReefSelection(this.selection, 'eating', true)
+    }
+
+    async eatCoral(square: ReefSquare) {
+        if (this.busy) return
+        await this.applyAction(
+            this.createPlayerAction(EatCoral, { boardId: square.boardId, coords: square.coords })
+        )
+    }
+
+    async passFinalTurn() {
+        if (this.busy) return
+        await this.applyAction(this.createPlayerAction(PassFinalTurn))
     }
 
     private myPlayerId(): string {

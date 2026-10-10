@@ -13,6 +13,7 @@ export type ReefSelectionValues = {
     shrimp: ShrimpIntent
     cylinderPayment: CoralColor
     cylinderAlga: AlgaColor
+    eating: true
 }
 
 export type ReefSelection = StagedSelectionState<ReefSelectionValues>
@@ -21,7 +22,8 @@ export const ReefStageOrder = [
     'firstLarvaCube',
     'shrimp',
     'cylinderPayment',
-    'cylinderAlga'
+    'cylinderAlga',
+    'eating'
 ] as const satisfies readonly (keyof ReefSelectionValues)[]
 type MissingStages = Exclude<keyof ReefSelectionValues, (typeof ReefStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
