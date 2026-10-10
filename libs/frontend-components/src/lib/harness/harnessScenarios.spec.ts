@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     BaseGameInitializer,
     Color,
-    GameEngine,
     GameResult,
     GameState,
     GameStatus,
@@ -22,6 +21,7 @@ import {
 } from '@tabletop/common'
 import { describe, expect, test, vi } from 'vitest'
 import { runHarnessScenario, type HarnessScenario } from './harnessScenarios.js'
+import { MemoryScenarioGames, recordHarnessScenario } from './harnessScenarioPlayer.js'
 import {
     recordGame,
     recordedScenarios,
@@ -130,33 +130,6 @@ const seededRuntime: GameRuntime<CountdownState, HydratedCountdownState> = {
     randomnessVersion: 1
 }
 
-class RecordingGameService {
-    readonly games = new Map<string, Game>()
-    saved: { game: Game; state: GameState; actions: GameAction[] } | undefined
-
-    constructor(private readonly runtime = countdownRuntime) {}
-
-    async createGame(partial: Partial<Game>, options?: { masterSeed?: string }): Promise<Game> {
-        const engine = new GameEngine(this.runtime)
-        const initialized = this.runtime.initializer.initializeGame(partial, {
-            info: countdownInfo,
-            runtime: this.runtime
-        })
-        const { startedGame, initialState } = engine.startGame(initialized, options?.masterSeed)
-        const game = { ...startedGame, state: initialState }
-        this.games.set(game.id, game)
-        return game
-    }
-
-    async loadGame(gameId: string) {
-        return { game: this.games.get(gameId), actions: [] }
-    }
-
-    async saveGameLocally(saved: { game: Game; state: GameState; actions: GameAction[] }) {
-        this.saved = saved
-    }
-}
-
 function scenario(stopAt: number): HarnessScenario {
     return {
         id: `count-to-${stopAt}`,
@@ -173,7 +146,10 @@ const owner = { id: 'developer', name: 'Developer' }
 
 describe('runHarnessScenario', () => {
     test('saves the game record as a played game would leave it', async () => {
-        const gameService = new RecordingGameService()
+        const gameService = new MemoryScenarioGames({
+            info: countdownInfo,
+            runtime: countdownRuntime
+        })
         const game = await runHarnessScenario({
             scenario: scenario(1),
             definition: countdown,
@@ -181,7 +157,7 @@ describe('runHarnessScenario', () => {
             owner
         })
 
-        const saved = gameService.saved
+        const saved = gameService.played
         assertExists(saved)
         expect(saved.game).toBe(game)
         expect(saved.actions).toHaveLength(2)
@@ -192,7 +168,10 @@ describe('runHarnessScenario', () => {
     })
 
     test('records the result when a scenario ends at the end of the game', async () => {
-        const gameService = new RecordingGameService()
+        const gameService = new MemoryScenarioGames({
+            info: countdownInfo,
+            runtime: countdownRuntime
+        })
         const game = await runHarnessScenario({
             scenario: scenario(0),
             definition: countdown,
@@ -207,7 +186,10 @@ describe('runHarnessScenario', () => {
     })
 
     test('fails when the game ends before the scenario reaches its state', async () => {
-        const gameService = new RecordingGameService()
+        const gameService = new MemoryScenarioGames({
+            info: countdownInfo,
+            runtime: countdownRuntime
+        })
         await expect(
             runHarnessScenario({
                 scenario: scenario(-1),
@@ -216,19 +198,19 @@ describe('runHarnessScenario', () => {
                 owner
             })
         ).rejects.toThrow('Scenario count-to--1 ended the game before reaching its state')
-        expect(gameService.saved).toBeUndefined()
+        expect(gameService.played).toBeUndefined()
     })
 })
 
 async function playAndRecord(runtime: typeof countdownRuntime) {
-    const gameService = new RecordingGameService(runtime)
+    const gameService = new MemoryScenarioGames({ info: countdownInfo, runtime })
     await runHarnessScenario({
         scenario: scenario(1),
         definition: { info: countdownInfo, runtime: async () => runtime },
         gameService,
         owner
     })
-    const saved = gameService.saved
+    const saved = gameService.played
     assertExists(saved)
     const recording = recordGame({
         id: 'one-left',
@@ -243,15 +225,15 @@ async function playAndRecord(runtime: typeof countdownRuntime) {
 async function replay(recording: unknown, runtime: typeof countdownRuntime) {
     const [recorded] = recordedScenarios({ 'one-left.json': recording })
     assertExists(recorded)
-    const gameService = new RecordingGameService(runtime)
+    const gameService = new MemoryScenarioGames({ info: countdownInfo, runtime })
     await runHarnessScenario({
         scenario: recorded,
         definition: { info: countdownInfo, runtime: async () => runtime },
         gameService,
         owner
     })
-    assertExists(gameService.saved)
-    return gameService.saved
+    assertExists(gameService.played)
+    return gameService.played
 }
 
 describe('scenario recordings', () => {
@@ -300,5 +282,21 @@ describe('scenario recordings', () => {
         await expect(replay(broken, countdownRuntime)).rejects.toThrow(
             'Scenario one-left move 2 (jump) was rejected'
         )
+    })
+
+    test('records a coded scenario without a browser', async () => {
+        const recording = await recordHarnessScenario({
+            scenario: scenario(1),
+            title: { info: countdownInfo, runtime: seededRuntime }
+        })
+
+        expect(recording).toMatchObject({
+            id: 'count-to-1',
+            label: 'Count to 1',
+            recordedWith: '1.0.0'
+        })
+        expect(recording.moves).toHaveLength(2)
+        const replayed = await replay(recording, seededRuntime)
+        expect(replayed.state.actionCount).toBe(2)
     })
 })
