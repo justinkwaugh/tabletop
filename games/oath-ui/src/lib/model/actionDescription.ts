@@ -185,6 +185,22 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
+/**
+ * R-7.1.4 — each toll a Travel paid, from its record's notes ("<card>: gave a favor to <player>",
+ * "<card>: burned a favor for the bandits"); a note of another shape is not printed.
+ */
+function travelTolls(notes: readonly string[] | undefined, nameOf: NameOf): string {
+    return (notes ?? [])
+        .map((note) => {
+            const given = /^(.+): gave a favor to (.+)$/.exec(note)
+            if (given) return `; 1 favor to ${nameOf(given[2])} (${cardName(given[1])})`
+            const burned = /^(.+): burned a favor for the bandits$/.exec(note)
+            if (burned) return `; burned 1 favor (${cardName(burned[1])})`
+            return ''
+        })
+        .join('')
+}
+
 function describeActionCited(
     action: GameAction,
     names: HistoryNames,
@@ -212,7 +228,7 @@ function describeActionCited(
             const chooser = meta?.destinationChooser
             return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${chooser ? nameOf(chooser) : 'its ruler'} chooses where`
         }
-        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${revealed}`
+        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${travelTolls(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}`
     }
     if (isMuster(action)) {
         const meta = action.metadata

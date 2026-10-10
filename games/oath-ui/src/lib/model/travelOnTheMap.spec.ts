@@ -12,21 +12,21 @@ const way = (cost: number, terms: Partial<TravelWay> = {}): TravelWay => ({
 })
 
 describe('the cost chip on a lit site (Choose a Travel destination)', () => {
-    it('one way to pay in Supply alone reads in words, its tolls named as before', () => {
-        expect(travelChip([way(2)], '')).toEqual({ words: '2 supply' })
-        expect(travelChip([way(1, { tolls: ['denizen.nomad.way-station'] })], ' + 1 favor to Ann')).toEqual({
-            words: '1 supply + 1 favor to Ann'
+    it('one way to pay in Supply alone reads in words; a way with a toll reads as its number and the favor', () => {
+        expect(travelChip([way(2)])).toEqual({ words: '2 Supply' })
+        expect(travelChip([way(1, { tolls: ['denizen.nomad.way-station'] })])).toEqual({
+            ways: [{ cost: 1, favor: 1, secret: false }]
         })
     })
 
     it('two ways read as numbers and symbols with "or" between them, in the engine’s order (R-11.12)', () => {
-        expect(travelChip([way(2), way(0, { flipSecret: true })], '')).toEqual({
+        expect(travelChip([way(2), way(0, { flipSecret: true })])).toEqual({
             ways: [
                 { cost: 2, favor: 0, secret: false },
                 { cost: 0, favor: 0, secret: true }
             ]
         })
-        expect(travelChip([way(1), way(0, { tolls: ['denizen.nomad.way-station'] })], '')).toEqual({
+        expect(travelChip([way(1), way(0, { tolls: ['denizen.nomad.way-station'] })])).toEqual({
             ways: [
                 { cost: 1, favor: 0, secret: false },
                 { cost: 0, favor: 1, secret: false }
@@ -35,13 +35,13 @@ describe('the cost chip on a lit site (Choose a Travel destination)', () => {
     })
 
     it('one way that flips a secret reads as its number and the secret, not in words', () => {
-        expect(travelChip([way(0, { flipSecret: true })], ' + a secret flipped')).toEqual({
+        expect(travelChip([way(0, { flipSecret: true })])).toEqual({
             ways: [{ cost: 0, favor: 0, secret: true }]
         })
     })
 
     it('no way to pay, no chip', () => {
-        expect(travelChip([], '')).toBeUndefined()
+        expect(travelChip([])).toBeUndefined()
     })
 })
 

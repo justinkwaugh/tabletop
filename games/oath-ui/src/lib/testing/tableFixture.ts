@@ -93,6 +93,7 @@ export type TableName =
     | 'cardOpensSearch'
     | 'cardChangesSearch'
     | 'cardsOpenTravel'
+    | 'travelToll'
     | 'majorEvents'
     | 'stackOrder'
     | 'sneakAttack'
@@ -951,6 +952,37 @@ function travelCardsTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-7.1.4 — Toll Roads stands at the first Provinces site, which the Empire rules: travelling there
+ * gives the Chancellor (ann) a favor. The seat is at the top Cradle site with Supply to spare.
+ */
+function travelTollTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const tolled = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 6, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [], [tolled]: ['denizen.order.toll-roads'] },
+            warbandsBySite: { [tolled]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const STACKED_CARDS = [
     'denizen.order.longbows',
     'denizen.hearth.wayside-inn',
@@ -1188,6 +1220,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
     cardsOpenTravel: travelCardsTable,
+    travelToll: travelTollTable,
     majorEvents: majorEventsTable,
     stackOrder: stackOrderTable,
     sneakAttack: sneakAttackTable,

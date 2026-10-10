@@ -589,6 +589,57 @@ describe('the history tab describes every action', () => {
         )
     })
 
+    describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
+        const travel = (metadata: Record<string, unknown>) =>
+            describeAction(
+                action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.provinces.1',
+                    metadata: { supplySpent: 2, supplyRemaining: 4, ...metadata }
+                }),
+                nameOf
+            )
+
+        it('a toll given to a player names them and the card', () => {
+            expect(travel({ tollsPaid: ['denizen.order.toll-roads: gave a favor to p2'] })).toBe(
+                'travelled to Provinces 2, spending 2 Supply; 1 favor to Bob (Toll Roads)'
+            )
+        })
+
+        it('a toll the bandits rule is burned', () => {
+            expect(
+                travel({ tollsPaid: ['denizen.order.toll-roads: burned a favor for the bandits'] })
+            ).toBe('travelled to Provinces 2, spending 2 Supply; burned 1 favor (Toll Roads)')
+        })
+
+        it('two tolls are two clauses, in the record’s order', () => {
+            expect(
+                travel({
+                    tollsPaid: [
+                        'denizen.order.toll-roads: gave a favor to p2',
+                        'denizen.nomad.way-station: gave a favor to p3'
+                    ]
+                })
+            ).toBe(
+                'travelled to Provinces 2, spending 2 Supply; 1 favor to Bob (Toll Roads); 1 favor to Cass (Way Station)'
+            )
+        })
+
+        it('a flipped secret is named after the tolls', () => {
+            expect(travel({ secretFlipped: true })).toBe(
+                'travelled to Provinces 2, spending 2 Supply; flipped 1 secret'
+            )
+        })
+
+        it('a note of another shape is not printed, and a record without tolls reads as before', () => {
+            expect(travel({ tollsPaid: ['something else'] })).toBe(
+                'travelled to Provinces 2, spending 2 Supply'
+            )
+            expect(travel({})).toBe('travelled to Provinces 2, spending 2 Supply')
+        })
+    })
+
     it('describes an action that has no metadata yet', () => {
         expect(() =>
             describeAction(

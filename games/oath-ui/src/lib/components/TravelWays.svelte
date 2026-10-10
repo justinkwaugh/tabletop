@@ -1,16 +1,16 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind } from '@tabletop/oath'
     import { CARD_ASPECT } from '$lib/images/cardShape.js'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
-    import { regionName } from '$lib/model/names.js'
     import type { TravelChoice, TravelRow } from '$lib/model/travelRows.js'
-    import { destinationName, travelSpoken, travelTollNotes } from '$lib/model/travelWords.js'
+    import { destinationName, tollFavor, travelSpoken } from '$lib/model/travelWords.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-11.12, R-7.1.4 — a destination picked on a phone's map with more than one way to pay:
     // the site, and a button per way, each as wide as the widest label; Undo closes it. Held
-    // sideways the site, its name and region and the ways stand on one row; held upright the name
+    // sideways the site, its name and the ways stand on one row; held upright the name
     // alone tops the site's picture, drawn as large as fits, with the ways stacked to its right.
     let { row, upright }: { row: TravelRow; upright: boolean } = $props()
 
@@ -21,15 +21,25 @@
 </script>
 
 <!-- Rule G: the whole cost is gold. Supply keeps its word; a way that pays in tokens reads its
-     number and their symbols ("0 + [secret]"). -->
+     number and their symbols ("0 + [secret]"), and a toll its favor and its payee's chip
+     ("2 Supply + 1 [favor] to <chip>"); the card that asks for it is named in the History. -->
 {#snippet cost(way: TravelChoice)}
     {@const tokens = way.tolls.length > 0 || way.flipSecret}
+    {@const toll = tollFavor(way)}
     <span class="inline-flex items-center gap-1 whitespace-nowrap">
         {tokens && way.cost === 0 ? '0' : `${way.cost} Supply`}
-        {#if way.tolls.length > 0}
-            <span>+</span>
-            {#if way.tolls.length > 1}{way.tolls.length}{/if}
+        {#if toll.given > 0}
+            <span>+ {toll.given}</span>
             <img class="ways__token" src={favorTokenImage()} alt="favor" />
+            <span>to</span>
+            {#each toll.payeeIds as payeeId (payeeId)}
+                <PlayerName playerId={payeeId} />
+            {/each}
+        {/if}
+        {#if toll.burned > 0}
+            <span>+ {toll.burned}</span>
+            <img class="ways__token" src={favorTokenImage()} alt="favor" />
+            <span>burned</span>
         {/if}
         {#if way.flipSecret}
             <span>+</span>
@@ -47,11 +57,6 @@
     />
     <span class="ways__name flex min-w-0 flex-col">
         <span class="text-[15px] font-bold leading-tight">{destinationName(row)}</span>
-        {#if !upright}
-            <span class="text-[13px] leading-tight text-oath-text-muted"
-                >{regionName(row.region)}</span
-            >
-        {/if}
     </span>
     <span class="ways__choices flex flex-col items-start gap-1">
         <span class="ways__buttons">
@@ -70,9 +75,6 @@
                 </button>
             {/each}
         </span>
-        {#each travelTollNotes(row.ways, nameOf) as note (note)}
-            <span class="text-[11px] leading-tight text-oath-text-muted">{note}</span>
-        {/each}
     </span>
 </div>
 
@@ -118,8 +120,7 @@
     }
     /* Held upright: the name on the top line; under it the picture fills the width the ways
        leave, and the ways stand stacked to its right, level with its top, each as wide as the
-       widest label, their right edge at the panel's. A toll's note wraps under them at
-       their width, so it never narrows the picture. */
+       widest label, their right edge at the panel's. */
     .ways--upright {
         grid-template-areas:
             'name name'

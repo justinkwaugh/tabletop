@@ -50,12 +50,11 @@
 <div class="travel-framing" {@attach frameWhileOpen}>
     {#if upright}
         <div class="chips" role="group" aria-label="Frame the map on a region">
-            {#each counts as { region, count } (region)}
+            {#each counts.filter(({ count }) => count > 0) as { region, count } (region)}
                 <button
                     type="button"
                     class="chip"
                     class:chip--on={framed === region}
-                    class:chip--empty={count === 0}
                     aria-pressed={framed === region}
                     aria-label="{regionName(region)}: {count} to travel to"
                     onclick={() => onframe(region)}
@@ -104,8 +103,5 @@
         border-color: var(--oath-accent);
         background: var(--oath-accent-soft);
         color: var(--oath-accent);
-    }
-    .chip--empty {
-        opacity: 0.45;
     }
 </style>

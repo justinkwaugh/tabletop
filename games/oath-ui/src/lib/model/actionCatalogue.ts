@@ -164,12 +164,12 @@ export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
 export type PromptState = { cardChosen: boolean; adviserChosen: boolean }
 
 /** Travel on a phone, where the lit map is the menu. */
-export const TRAVEL_ON_THE_MAP_PROMPT = 'Tap a lit site to travel there.'
+export const TRAVEL_ON_THE_MAP_PROMPT = 'Tap a lit site.'
 
 export function actionPrompt(action: ActionType, state: PromptState): string {
     switch (action) {
         case ActionType.Travel:
-            return 'Choose a destination.'
+            return 'Travel'
         case ActionType.Muster:
             return 'Choose a card at your site to place favor on.'
         case ActionType.Trade:

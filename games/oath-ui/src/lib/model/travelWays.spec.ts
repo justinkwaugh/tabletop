@@ -157,6 +157,20 @@ describe('Travel picked on the map, as a phone does (Choose a Travel destination
         expect(action.siteId).toBe('c2')
     })
 
+    it('a lit site whose one way pays a toll opens that way, so its payee shows before anything is paid', async () => {
+        const { session, sent } = travelling({ supply: 0 }, { c1: [], c2: [WAY_STATION] })
+        await session.pickTravelSite('c2')
+        expect(sent).not.toHaveBeenCalled()
+        const ways = session.travelWaysOpen?.ways ?? []
+        expect(ways.map((w) => w.tolls)).toEqual([[WAY_STATION]])
+        expect(ways.map((w) => w.favorTo)).toEqual([['ann']])
+
+        await session.travelTo('c2', ways[0])
+        const action = sent.mock.calls[0][0]
+        assert(isTravel(action), 'a Travel is sent')
+        expect(action.tolls).toEqual([WAY_STATION])
+    })
+
     it('a lit site with two ways opens its ways and sends nothing; the map stays lit, the site marked picked', async () => {
         const { session, sent } = travelling({ supply: 3 }, { c1: [], c2: [WAY_STATION] })
         const lit = session.selectableSites

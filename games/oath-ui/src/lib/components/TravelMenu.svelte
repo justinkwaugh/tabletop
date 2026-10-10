@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind, Region } from '@tabletop/oath'
     import MenuCount from '$lib/components/MenuCount.svelte'
     import { CARD_ASPECT } from '$lib/images/cardShape.js'
@@ -7,7 +8,7 @@
     import { pointsAt } from '$lib/model/menuPointer.svelte.js'
     import { regionName } from '$lib/model/names.js'
     import type { TravelChoice, TravelRow } from '$lib/model/travelRows.js'
-    import { destinationName, travelSpoken, travelTollNotes } from '$lib/model/travelWords.js'
+    import { destinationName, tollFavor, travelSpoken } from '$lib/model/travelWords.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-5.6 — a wide panel's Travel menu: a tile per destination, the regions side by side as
@@ -37,25 +38,37 @@
     />
 {/snippet}
 
-<!-- Rule G: the whole cost is gold, its joiners included. -->
+<!-- Rule G: the whole cost is gold, its joiners included. A toll names its payee by their chip
+     ("+ 1 [favor] to <chip>"); the card that asks for it is named in the History. -->
 {#snippet cost(way: TravelChoice)}
+    {@const toll = tollFavor(way)}
+    {@const secret = secretToken()}
     <span class="inline-flex flex-wrap items-center gap-x-1.5 text-oath-accent">
-        {way.cost} Supply
-        {#if way.tolls.length > 0}
+        {(way.tolls.length > 0 || way.flipSecret) && way.cost === 0 ? '0' : `${way.cost} Supply`}
+        {#if toll.given > 0}
             <span>+</span>
-            <MenuCount count={way.tolls.length} image={favorToken()} />
+            <MenuCount count={toll.given} image={favorToken()} />
+            <span>to</span>
+            {#each toll.payeeIds as payeeId (payeeId)}
+                <PlayerName playerId={payeeId} />
+            {/each}
+        {/if}
+        {#if toll.burned > 0}
+            <span>+</span>
+            <MenuCount count={toll.burned} image={favorToken()} />
+            <span>burned</span>
         {/if}
         {#if way.flipSecret}
-            <span>+ flip</span>
-            <MenuCount count={1} image={secretToken()} />
+            <span>+</span>
+            <img
+                class="h-[18px] w-auto"
+                src={secret.src}
+                width={secret.width}
+                height={secret.height}
+                alt="secret"
+            />
         {/if}
     </span>
-{/snippet}
-
-{#snippet notes(ways: TravelChoice[])}
-    {#each travelTollNotes(ways, nameOf) as note (note)}
-        <span class="tile__note text-oath-text-muted">{note}</span>
-    {/each}
 {/snippet}
 
 <div class="travel">
@@ -96,7 +109,6 @@
                                     <span class="tile__cost font-extrabold">
                                         {@render cost(way)}
                                     </span>
-                                    {@render notes(row.ways)}
                                 </span>
                             </button>
                         {:else}
@@ -122,7 +134,6 @@
                                             </button>
                                         {/each}
                                     </span>
-                                    {@render notes(row.ways)}
                                 </span>
                             </div>
                         {/if}
@@ -193,9 +204,5 @@
     }
     .tile__way {
         padding: 4px 6px;
-    }
-    .tile__note {
-        font-size: max(11px, calc(var(--tile) * 0.037));
-        line-height: 1.2;
     }
 </style>

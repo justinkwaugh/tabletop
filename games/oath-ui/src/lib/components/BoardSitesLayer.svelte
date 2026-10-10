@@ -49,7 +49,7 @@
                     ? { title: resting, chip: undefined }
                     : {
                           title: `Travel here — ${offer.cost} Supply${offer.toll}`,
-                          chip: travelChip(offer.ways, offer.toll)
+                          chip: travelChip(offer.ways)
                       }
             case 'target':
                 return offer.targeted
@@ -214,6 +214,11 @@
         width: auto;
         max-width: none;
         margin-left: 0.1em;
+    }
+
+    /* On the phone map a token is no taller than the numeral beside it. */
+    .site.on-map .travel-cost__token {
+        height: 0.78em;
     }
 
     /* On a phone the chip is read at the map's zoom: larger, wholly on its own card, and over

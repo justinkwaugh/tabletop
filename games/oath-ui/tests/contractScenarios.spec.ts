@@ -1041,7 +1041,7 @@ const boardView = (page: Page) => page.locator('.scaling-surface')
 const regionChips = (page: Page) => page.getByRole('group', { name: 'Frame the map on a region' })
 const regionChip = (page: Page, region: string) =>
     regionChips(page).getByRole('button', { name: new RegExp(`^${region}:`) })
-const travelPrompt = (page: Page) => grid(page).getByText('Tap a lit site to travel there.')
+const travelPrompt = (page: Page) => grid(page).getByText('Tap a lit site.', { exact: true })
 
 const litSlots = (page: Page) =>
     page
@@ -1253,6 +1253,54 @@ test.describe('scenario 4 on a phone held sideways', () => {
         const picture = await boxOf(grid(page).locator('img').first())
         expect(picture.x + picture.width).toBeLessThan(one.x)
         expect(Math.abs(picture.y + picture.height / 2 - (one.y + one.height / 2))).toBeLessThan(picture.height / 2)
+    })
+})
+
+/** R-7.1.4 — a toll's way names its payee by their chip; the card is named in the History. */
+test.describe('scenario 4 with a toll', () => {
+    const tolled = 'slot.provinces.0'
+    const tollWay = (page: Page) =>
+        grid(page).getByRole('button', { name: /give 1 favor to ann \(Toll Roads\)$/ })
+
+    test('on a desktop the bar reads Travel, the way reads its favor and the payee chip, and no note names the card', async ({ page }) => {
+        await openTable(page, 'travelToll')
+        await tile(page, 'Travel').click()
+        await expect(grid(page).locator('.bg-oath-accent-soft').first()).toHaveText('Travel')
+        await expect(tollWay(page)).toHaveCount(1)
+        await expect(tollWay(page)).toContainText(/\d Supply\s*\+\s*1\s*to\s*ann/)
+        await expect(grid(page)).not.toContainText('Toll Roads')
+
+        await tollWay(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe(tolled)
+        await page.getByRole('tab', { name: 'History' }).click()
+        const row = page.getByRole('tabpanel', { name: 'History' }).getByRole('listitem').first()
+        await expect(row).toContainText(/travelled to .+, spending \d Supply; 1\s*to ann \(Toll Roads\)/)
+        await expect(row.getByRole('img', { name: 'favor' })).toBeVisible()
+    })
+
+    test.describe('on a phone held upright', () => {
+        test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+        test('the chip is its number and the favor, the token no taller than the number; a tap opens the way with the payee chip', async ({ page }) => {
+            await openTable(page, 'travelToll')
+            await chooseTravelOnThePhone(page)
+            await regionChip(page, 'Provinces').tap()
+            const chip = siteAt(page, tolled).locator('.travel-cost')
+            await expect(chip).toHaveText(/^\s*\d\+$/)
+            const token = chip.getByRole('img', { name: 'favor' })
+            await expect(token).toBeVisible()
+            const fontSize = await chip.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+            expect((await boxOf(token)).height).toBeLessThanOrEqual(fontSize * 0.8)
+
+            await expect.poll(() => onScreen(page, siteCard(page, tolled))).toBe(true)
+            await siteCard(page, tolled).tap()
+            await expect(tollWay(page)).toContainText(/\d Supply\s*\+ 1\s*to\s*ann/)
+            expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+            await expect(grid(page)).not.toContainText('Toll Roads')
+
+            await tollWay(page).tap()
+            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe(tolled)
+        })
     })
 })
 

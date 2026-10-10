@@ -1224,15 +1224,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * A lit site tapped on the map, as a phone picks Travel: with one way to pay it travels at
-     * once; with more, its ways open in the panel, a manual pick that Back and Undo unwind.
+     * A lit site tapped on the map, as a phone picks Travel: with one way to pay and no toll it
+     * travels at once; with more, or a toll, its ways open in the panel, so a toll's payee is on
+     * a button before anything is paid (R-7.1.4). Undo unwinds the open ways.
      */
     async pickTravelSite(siteId: string): Promise<void> {
         if (!this.selectableSites.includes(siteId)) return
         const ways = this.travelWaysTo(siteId)
         const [only] = ways
-        if (ways.length === 1 && only) await this.travelTo(siteId, only)
-        else if (ways.length > 1) this.selection.set('site', siteId)
+        if (ways.length === 1 && only && only.tolls.length === 0) await this.travelTo(siteId, only)
+        else if (ways.length > 0) this.selection.set('site', siteId)
     }
 
     async travelTo(siteId: string, way: TravelTerms): Promise<void> {

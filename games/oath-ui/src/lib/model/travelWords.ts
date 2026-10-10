@@ -22,21 +22,17 @@ export function travelSpoken(
     return `Travel to ${destinationName(row)}: ${parts.join(', ')}`
 }
 
-/** R-7.1.4 — whom each toll's favor goes to, and the card that asks for it. */
-export function travelTollNote(way: TravelChoice, nameOf: (playerId: string) => string): string {
-    return way.tolls
-        .map((cardId, index) => `to ${payee(way.favorTo[index], nameOf)}, ${cardName(cardId)}`)
-        .join('; ')
-}
+/**
+ * R-7.1.4 — a way's tolls as its button reads them: the favor given and to whom (each payee
+ * once, in the tolls' order), and the favor burned where the bandits rule the card.
+ */
+export type TollFavor = { given: number; payeeIds: string[]; burned: number }
 
-/** Every toll note of a destination's ways, each once. */
-export function travelTollNotes(
-    ways: readonly TravelChoice[],
-    nameOf: (playerId: string) => string
-): string[] {
-    return [
-        ...new Set(
-            ways.filter((way) => way.tolls.length > 0).map((way) => travelTollNote(way, nameOf))
-        )
-    ]
+export function tollFavor(way: TravelChoice): TollFavor {
+    const payeeIds = way.favorTo.filter((playerId): playerId is string => playerId !== undefined)
+    return {
+        given: payeeIds.length,
+        payeeIds: [...new Set(payeeIds)],
+        burned: way.favorTo.length - payeeIds.length
+    }
 }

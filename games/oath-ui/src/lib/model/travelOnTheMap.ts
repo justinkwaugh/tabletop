@@ -5,15 +5,17 @@ import type { TravelWay } from './actionOffers.js'
 export type ChipWay = { cost: number; favor: number; secret: boolean }
 
 /**
- * A lit site's cost chip. One way paid in Supply alone keeps its words ("2 supply", a toll named
- * after it); otherwise each way is a number and symbols, with "or" between them (R-11.12).
+ * A lit site's cost chip. One way paid in Supply alone reads its words ("2 Supply"); a way with a
+ * token is a number and symbols ("2+[favor]"), with "or" between two ways (R-11.12, R-7.1.4).
  */
 export type TravelChip = { words: string } | { ways: ChipWay[] }
 
-export function travelChip(ways: readonly TravelWay[], toll: string): TravelChip | undefined {
+export function travelChip(ways: readonly TravelWay[]): TravelChip | undefined {
     const [only] = ways
     if (only === undefined) return undefined
-    if (ways.length === 1 && !only.flipSecret) return { words: `${only.cost} supply${toll}` }
+    if (ways.length === 1 && !only.flipSecret && only.tolls.length === 0) {
+        return { words: `${only.cost} Supply` }
+    }
     return {
         ways: ways.map((way) => ({
             cost: way.cost,
