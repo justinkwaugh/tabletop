@@ -29,16 +29,22 @@
     })
 </script>
 
-<div class="flex flex-wrap items-center gap-2 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]">
-    {#if gameSession.gameState.result}
+<div
+    class="flex flex-wrap items-center gap-2 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]"
+>
+    {#if gameSession.isViewingHistory}
+        <span>{lastAction || 'The armies are about to take the field.'}</span>
+    {:else if gameSession.gameState.result}
         <span class="nt-outcome">{outcome}</span>
     {:else if !gameSession.canAct}
         <span>{lastAction || 'Waiting for the other army.'}</span>
-        {#if !gameSession.isViewingHistory && waitingOn}
+        {#if waitingOn}
             <span class="opacity-70">Waiting for <PlayerName playerId={waitingOn} />.</span>
         {/if}
     {:else if gameSession.isCommanding}
-        {#if gameSession.selectedGroup}
+        {#if gameSession.ridingOn}
+            <span>The cavalry may ride on along its road, or threaten again.</span>
+        {:else if gameSession.selectedGroup}
             <span>Choose where they go on the map.</span>
         {:else}
             <span>Pick up a corps or a unit on the map.</span>
@@ -51,13 +57,16 @@
                 type="button"
                 class="nt-plain-button"
                 aria-label="Bring on {commanderDefinition(reinforcement.commander.id).name}"
-                aria-pressed={gameSession.selectedGroupKey === reinforcementKey(reinforcement.commander.id)}
+                aria-pressed={gameSession.selectedGroupKey ===
+                    reinforcementKey(reinforcement.commander.id)}
                 onclick={() => gameSession.selectReinforcement(reinforcement.commander.id)}
                 >{commanderDefinition(reinforcement.commander.id).name}</button
             >
         {/each}
         {#if gameSession.validActionTypes.includes(ActionType.EndTurn)}
-            <button type="button" class="nt-plain-button" onclick={() => gameSession.endTurn()}>End turn</button>
+            <button type="button" class="nt-plain-button" onclick={() => gameSession.endTurn()}
+                >End turn</button
+            >
         {/if}
     {/if}
 </div>

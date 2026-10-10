@@ -25,7 +25,9 @@ describe('ordinary movement', () => {
         })
         const state = game.hydrated
         expect(state.commander('langeron').position).toEqual({ locale: 106, approach })
-        expect(state.corpsUnits('langeron').every((unit) => unit.position?.approach === approach)).toBe(true)
+        expect(
+            state.corpsUnits('langeron').every((unit) => unit.position?.approach === approach)
+        ).toBe(true)
         expect(state.getPlayerState(allied).corpsCommandsUsed).toBe(1)
     })
 
@@ -50,9 +52,15 @@ describe('ordinary movement', () => {
         const game = new TestGame()
         game.deployBoth()
         const allied = game.playerOf(Side.Allied)
-        game.act(ActionType.Move, allied, { order: corpsOrder(game, 'langeron'), to: { locale: 94 } })
+        game.act(ActionType.Move, allied, {
+            order: corpsOrder(game, 'langeron'),
+            to: { locale: 94 }
+        })
         expect(() =>
-            game.act(ActionType.Move, allied, { order: corpsOrder(game, 'langeron'), to: { locale: 106 } })
+            game.act(ActionType.Move, allied, {
+                order: corpsOrder(game, 'langeron'),
+                to: { locale: 106 }
+            })
         ).toThrow()
         const [unitId] = game.hydrated.corpsUnits('langeron').map((unit) => unit.id)
         expect(() =>
@@ -112,7 +120,10 @@ describe('road movement', () => {
         const first = state.map.roadLinksFrom(96)[0]
         const second = state.map
             .roadLinksFrom(first.to)
-            .find((link) => link.fromGroup === first.toGroup && link.to !== 96 && !state.occupantOf(link.to))
+            .find(
+                (link) =>
+                    link.fromGroup === first.toGroup && link.to !== 96 && !state.occupantOf(link.to)
+            )
         expect(second).toBeDefined()
         if (!second) return
         game.act(ActionType.Move, allied, {
@@ -158,7 +169,9 @@ describe('road movement', () => {
         const corps = state.corpsUnits('miloradovich')
         const cavalry = corps.find((unit) => faceOf(unit).type === UnitType.Cavalry)
         const infantry = corps.find((unit) => faceOf(unit).type === UnitType.Infantry)
-        const link = state.map.roadLinksFrom(96).find((candidate) => !state.occupantOf(candidate.to))
+        const link = state.map
+            .roadLinksFrom(96)
+            .find((candidate) => !state.occupantOf(candidate.to))
         expect(link && infantry).toBeTruthy()
         if (!link || !infantry) return
         const approach = state.map.approach(link.exit).opposite

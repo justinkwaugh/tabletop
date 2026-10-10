@@ -31,33 +31,41 @@ if (steps.includes('deploy')) {
     }
 }
 try {
-for (const step of steps.split(',')) {
-    const [verb, argument] = step.split(':')
-    if (verb === 'select') {
-        await page.locator('[aria-label="Select these pieces"]').nth(Number(argument ?? 0)).click({ force: true })
-        await page.waitForTimeout(500)
-    } else if (verb === 'click') {
-        await page.getByRole('button', { name: argument }).first().click({ force: true })
-        await page.waitForTimeout(700)
-    } else if (verb === 'label') {
-        await page.locator(`[aria-label="${argument}"]`).first().click({ force: true })
-        await page.waitForTimeout(700)
-    } else if (verb === 'corps') {
-        await page.locator(`[data-commander="${argument}"]`).first().click({ force: true })
-        await page.waitForTimeout(500)
-    } else if (verb === 'wait') {
-        await page.waitForTimeout(Number(argument ?? 500))
-    } else if (verb === 'shot') {
-        await page.screenshot({ path: out.replace('.png', `-${argument}.png`) })
-    } else if (verb === 'zoom') {
-        for (let i = 0; i < Number(argument ?? 1); i++) await page.getByRole('button', { name: 'Zoom in' }).click()
-        await page.waitForTimeout(400)
+    for (const step of steps.split(',')) {
+        const [verb, argument] = step.split(':')
+        if (verb === 'select') {
+            await page
+                .locator('[aria-label="Select these pieces"]')
+                .nth(Number(argument ?? 0))
+                .click({ force: true })
+            await page.waitForTimeout(500)
+        } else if (verb === 'click') {
+            await page.getByRole('button', { name: argument }).first().click({ force: true })
+            await page.waitForTimeout(700)
+        } else if (verb === 'label') {
+            await page
+                .locator(`[aria-label="${argument}"]`)
+                .filter({ visible: true })
+                .first()
+                .click({ force: true })
+            await page.waitForTimeout(700)
+        } else if (verb === 'corps') {
+            await page.locator(`[data-commander="${argument}"]`).first().click({ force: true })
+            await page.waitForTimeout(500)
+        } else if (verb === 'wait') {
+            await page.waitForTimeout(Number(argument ?? 500))
+        } else if (verb === 'shot') {
+            await page.screenshot({ path: out.replace('.png', `-${argument}.png`) })
+        } else if (verb === 'zoom') {
+            for (let i = 0; i < Number(argument ?? 1); i++)
+                await page.getByRole('button', { name: 'Zoom in' }).click()
+            await page.waitForTimeout(400)
+        }
     }
-}
-if (process.env.EVAL) {
-    await page.evaluate(process.env.EVAL)
-    await page.waitForTimeout(800)
-}
+    if (process.env.EVAL) {
+        await page.evaluate(process.env.EVAL)
+        await page.waitForTimeout(800)
+    }
 } catch (error) {
     console.log('step failed:', String(error).split('\n')[0])
 }

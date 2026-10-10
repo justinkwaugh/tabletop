@@ -8,9 +8,7 @@
         commandersOf,
         type ProjectedUnit
     } from '@tabletop/napoleons-triumph'
-    import { ARMY_COLORS } from '$lib/definitions/palette.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { describeLocale } from '$lib/model/battle.js'
     import UnitTile from './UnitTile.svelte'
 
     const gameSession = getGameSession()
@@ -37,15 +35,17 @@
         if (!commander.position) {
             return 'off the map'
         }
-        const place = describeLocale(game, commander.position.locale)
+        const place = game.map.label(commander.position.locale)
         return commander.position.approach === undefined ? place : `${place}, on an approach`
     }
 </script>
 
 <div class="nt-armies">
     {#each armies as { player, side } (player.playerId)}
-        {@const colors = ARMY_COLORS[side]}
-        {@const detached = game.unitsOf(player.playerId).filter((unit) => unit.commanderId === undefined)}
+        {@const colors = gameSession.armyColors(player.playerId)}
+        {@const detached = game
+            .unitsOf(player.playerId)
+            .filter((unit) => unit.commanderId === undefined)}
         <section class="nt-army">
             <header style="background: {colors.block}; color: {colors.ink};">
                 <div class="nt-army-name">{ARMY_NAMES[side]}</div>
@@ -58,7 +58,9 @@
             <div class="nt-army-body">
                 {#if game.turnManager.currentTurn()?.playerId === player.playerId}
                     <div class="nt-army-note">
-                        Commands used this turn: {player.independentCommandsUsed} of {INDEPENDENT_COMMANDS[side]}
+                        Commands used this turn: {player.independentCommandsUsed} of {INDEPENDENT_COMMANDS[
+                            side
+                        ]}
                         independent{side === Side.Allied
                             ? `, ${player.corpsCommandsUsed} of ${ALLIED_CORPS_COMMAND_LIMIT} corps`
                             : ''}
@@ -66,15 +68,25 @@
                 {/if}
                 {#each commandersOf(side) as definition (definition.id)}
                     {@const units = game.corpsUnits(definition.id)}
-                    <div class="nt-corps" class:nt-corps-gone={game.commander(definition.id).eliminated}>
+                    <div
+                        class="nt-corps"
+                        class:nt-corps-gone={game.commander(definition.id).eliminated}
+                    >
                         <div class="nt-corps-head">
-                            <span class="nt-corps-name">{commanderDefinition(definition.id).name}</span>
+                            <span class="nt-corps-name"
+                                >{commanderDefinition(definition.id).name}</span
+                            >
                             <span class="nt-corps-where">{whereabouts(definition.id)}</span>
                         </div>
                         {#if units.some((unit) => gameSession.visibleFace(unit))}
                             <div class="nt-corps-units">
                                 {#each units as unit (unit.id)}
-                                    <UnitTile {side} face={gameSession.visibleFace(unit)} label="Unit" compact />
+                                    <UnitTile
+                                        playerId={unit.playerId}
+                                        face={gameSession.visibleFace(unit)}
+                                        label="Unit"
+                                        compact
+                                    />
                                 {/each}
                             </div>
                         {:else if units.length > 0}
@@ -91,7 +103,12 @@
                         {#if detached.some((unit) => gameSession.visibleFace(unit))}
                             <div class="nt-corps-units">
                                 {#each detached as unit (unit.id)}
-                                    <UnitTile {side} face={gameSession.visibleFace(unit)} label="Unit" compact />
+                                    <UnitTile
+                                        playerId={unit.playerId}
+                                        face={gameSession.visibleFace(unit)}
+                                        label="Unit"
+                                        compact
+                                    />
                                 {/each}
                             </div>
                         {/if}

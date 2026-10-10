@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { regroup } from '../model/attackFlow.js'
+import { regroup } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export type Regroup = Type.Static<typeof Regroup>
@@ -12,7 +12,6 @@ export const Regroup = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Regroup),
             playerId: Type.String(),
-            /** For each repulsed corps, the unit that stays in it. */
             keep: Type.Record(Type.String(), Type.String())
         })
     ])

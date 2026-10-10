@@ -1,22 +1,17 @@
 <script lang="ts">
-    import type { ProjectedUnit, Side } from '@tabletop/napoleons-triumph'
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { ProjectedUnit } from '@tabletop/napoleons-triumph'
     import UnitTile from '$lib/components/UnitTile.svelte'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
-        side,
         units,
         selected = [],
         markers = {},
-        disabled = [],
         onpick
     }: {
-        side: Side
         units: ProjectedUnit[]
         selected?: string[]
-        /** A note shown under a unit, by unit id. */
         markers?: Record<string, string>
-        disabled?: string[]
         onpick?: (unitId: string) => void
     } = $props()
 
@@ -26,12 +21,12 @@
 <div class="flex flex-wrap gap-x-1 gap-y-0.5">
     {#each units as unit (unit.id)}
         <UnitTile
-            {side}
+            playerId={unit.playerId}
             face={gameSession.visibleFace(unit)}
             selected={selected.includes(unit.id)}
             marker={markers[unit.id]}
             label="Choose this unit"
-            onclick={onpick && !disabled.includes(unit.id) ? () => onpick(unit.id) : undefined}
+            onclick={onpick ? () => onpick(unit.id) : undefined}
         />
     {/each}
 </div>

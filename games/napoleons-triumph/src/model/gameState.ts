@@ -28,7 +28,7 @@ import {
     type Face
 } from '../components/pieces.js'
 import { Scenario, roundDefinition, type RoundDefinition } from '../components/timeTrack.js'
-import { Attack } from './attack.js'
+import { Attack, RoadMarch, type LossEntry } from './attack.js'
 import {
     Commander,
     Position,
@@ -39,21 +39,17 @@ import {
     samePosition,
     type ProjectedUnit
 } from './pieces.js'
-import {
-    HydratedNapoleonsTriumphPlayerState,
-    NapoleonsTriumphPlayerState
-} from './playerState.js'
+import { HydratedNapoleonsTriumphPlayerState, NapoleonsTriumphPlayerState } from './playerState.js'
 
-/** Limits that last until the end of the current player turn. */
 export type TurnLimits = Type.Static<typeof TurnLimits>
 export const TurnLimits = Type.Object({
-    /** Attack approaches across which no further attack may be made (feint or repulse). */
+    /** Rule 11: no further attack crosses an approach where one was feinted or repulsed this turn. */
     closedApproaches: Type.Array(Type.Integer()),
-    /** Attack approaches already used by an artillery attack; a follow-up may not be led by artillery. */
+    /** Rule 11: a second attack across an approach artillery fired over may not be led by artillery. */
     bombardedApproaches: Type.Array(Type.Integer()),
-    /** Locales taken by assault; only the attacking pieces may enter them. */
+    /** Rule 11: only the attackers enter a locale won in combat this turn. */
     stormedLocales: Type.Array(Type.Integer()),
-    /** Locales a corps of two or more units marched into by road; nothing else may use their reserve. */
+    /** Rule 10: no other unit uses a reserve a corps of two or more units marched into. */
     marchedLocales: Type.Array(Type.Integer())
 })
 
@@ -76,34 +72,25 @@ export const NapoleonsTriumphGameState = Type.Object({
     rounds: RoundManager,
     scenario: Type.Enum(Scenario),
     santon: Type.Boolean(),
-    round: Type.Integer({ minimum: 0 }),
     units: Type.Array(Unit),
     commanders: Type.Array(Commander),
     frenchReinforcementsEntered: Type.Boolean(),
-    /** Round in which each attack approach last saw an artillery-led attack. */
     artilleryFire: Type.Record(Type.String(), Type.Integer()),
     limits: TurnLimits,
     attack: Type.Optional(Attack),
+    roadMarch: Type.Optional(RoadMarch),
     auction: Type.Optional(Auction),
     victory: Type.Optional(Type.Enum(VictoryKind))
 })
 
 export const NapoleonsTriumphGameStateValidator = Compile(NapoleonsTriumphGameState)
-export const NapoleonsTriumphProjectedState = Visibility.createProjectionSchema(
-    NapoleonsTriumphGameState
-)
+export const NapoleonsTriumphProjectedState =
+    Visibility.createProjectionSchema(NapoleonsTriumphGameState)
 export type NapoleonsTriumphProjectedState = Type.Static<typeof NapoleonsTriumphProjectedState>
 export const NapoleonsTriumphProjectedStateValidator = Compile(NapoleonsTriumphProjectedState)
 
 export function emptyTurnLimits(): TurnLimits {
     return { closedApproaches: [], bombardedApproaches: [], stormedLocales: [], marchedLocales: [] }
-}
-
-export interface LossRecord {
-    unitId: string
-    steps: number
-    eliminated: boolean
-    face: Face
 }
 
 export class HydratedNapoleonsTriumphGameState
@@ -128,26 +115,30 @@ export class HydratedNapoleonsTriumphGameState
     declare rounds: HydratedRoundManager
     declare scenario: Scenario
     declare santon: boolean
-    declare round: number
     declare units: ProjectedUnit[]
     declare commanders: Commander[]
     declare frenchReinforcementsEntered: boolean
     declare artilleryFire: Record<string, number>
     declare limits: TurnLimits
     declare attack?: NapoleonsTriumphProjectedState['attack']
+    declare roadMarch?: RoadMarch
     declare auction?: Auction
     declare victory?: VictoryKind
 
     constructor(data: NapoleonsTriumphProjectedState) {
         super(data, NapoleonsTriumphProjectedStateValidator)
-        this.players = data.players.map(
-            (player) => new HydratedNapoleonsTriumphPlayerState(player)
-        )
+        this.players = data.players.map((player) => new HydratedNapoleonsTriumphPlayerState(player))
         this.rounds = new HydratedRoundManager(data.rounds)
     }
 
     get map(): BattleMap {
         return AUSTERLITZ
+    }
+
+    get round(): number {
+        const current = this.rounds.currentRound
+        assertExists(current, 'No round is in progress')
+        return current.number - 1
     }
 
     get currentRound(): RoundDefinition {
@@ -236,7 +227,6 @@ export class HydratedNapoleonsTriumphGameState
         )
     }
 
-    /** The player with pieces in a locale. Opposing pieces never share one. */
     occupantOf(locale: LocaleId): string | undefined {
         return (
             this.units.find((unit) => unit.position?.locale === locale)?.playerId ??
@@ -249,7 +239,6 @@ export class HydratedNapoleonsTriumphGameState
         return occupant !== undefined && occupant !== playerId
     }
 
-    /** Room left for a player's units in a locale, optionally ignoring units about to leave it. */
     freeCapacity(locale: LocaleId, playerId: string, leaving: readonly string[] = []): number {
         const present = this.unitsIn(locale, playerId).filter((unit) => !leaving.includes(unit.id))
         return this.map.locale(locale).capacity - present.length
@@ -301,8 +290,7 @@ export class HydratedNapoleonsTriumphGameState
         return lost
     }
 
-    /** Removes steps from a unit, eliminating it and, when its corps empties, its commander. */
-    takeLoss(unit: ProjectedUnit, steps: number): LossRecord {
+    takeLoss(unit: ProjectedUnit, steps: number): LossEntry {
         assert(steps > 0, 'A loss must remove at least one step')
         this.commit(unit)
         const before = faceOf(unit)

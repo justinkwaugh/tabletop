@@ -1,7 +1,6 @@
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { SANTON_LOCALE } from '../components/austerlitz.js'
-import { Star } from '../components/battleMap.js'
 import {
     MAX_CORPS_UNITS,
     Side,
@@ -12,12 +11,12 @@ import {
 import { Scenario } from '../components/timeTrack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { Position, faceOf, samePosition, type ProjectedUnit } from './pieces.js'
+import { ALLIED_OBJECTIVES } from './victory.js'
 
 export type CorpsDeployment = Type.Static<typeof CorpsDeployment>
 export const CorpsDeployment = Type.Object({
     commanderId: Type.String(),
     unitIds: Type.Array(Type.String()),
-    /** The approach of the set-up locale the corps blocks; absent when it stands in reserve. */
     approach: Type.Optional(Type.Integer()),
     offMap: Type.Optional(Type.Literal(true))
 })
@@ -43,8 +42,7 @@ export const Deployment = Type.Object({
 
 export const MAX_FRENCH_DETACHMENTS = 6
 export const DETACHMENT_REACH = 2
-export const ALLIED_ADVANCE_GUARD_CORPS = 2
-const ALLIED_OBJECTIVES = [Star.Red, Star.Green, Star.Black]
+const ALLIED_ADVANCE_GUARD_CORPS = 2
 
 function startsOffMap(
     state: HydratedNapoleonsTriumphGameState,
@@ -82,11 +80,15 @@ function validateCorps(
     for (const corps of deployment.corps) {
         const definition = commanderDefinition(corps.commanderId)
         assert(
-            corps.unitIds.length >= definition.minimumUnits && corps.unitIds.length <= MAX_CORPS_UNITS,
+            corps.unitIds.length >= definition.minimumUnits &&
+                corps.unitIds.length <= MAX_CORPS_UNITS,
             `${definition.name} leads between ${definition.minimumUnits} and ${MAX_CORPS_UNITS} units`
         )
         const offMap = startsOffMap(state, side, corps)
-        assert(offMap === (corps.offMap === true), `${definition.name} starts ${offMap ? 'off' : 'on'} the map`)
+        assert(
+            offMap === (corps.offMap === true),
+            `${definition.name} starts ${offMap ? 'off' : 'on'} the map`
+        )
         if (offMap) {
             assert(corps.approach === undefined, 'A corps off the map has no position')
             if (side === Side.French) {
@@ -112,7 +114,10 @@ function validateCorps(
     }
     if (side === Side.Allied && state.scenario === Scenario.December1) {
         const onMap = deployment.corps.filter((corps) => !corps.offMap).length
-        assert(onMap === ALLIED_ADVANCE_GUARD_CORPS, 'Two Allied corps start on the map on 1 December')
+        assert(
+            onMap === ALLIED_ADVANCE_GUARD_CORPS,
+            'Two Allied corps start on the map on 1 December'
+        )
     }
 }
 
@@ -132,11 +137,16 @@ function validateDetachments(
         side === Side.French || deployment.detachments.length === 0,
         'Only the French detach units during set-up'
     )
-    assert(deployment.detachments.length <= MAX_FRENCH_DETACHMENTS, 'At most six units are detached')
+    assert(
+        deployment.detachments.length <= MAX_FRENCH_DETACHMENTS,
+        'At most six units are detached'
+    )
     const ids = deployment.detachments.map((detachment) => detachment.unitId)
     assert(new Set(ids).size === ids.length, 'A unit is detached once')
     for (const detachment of deployment.detachments) {
-        const corps = deployment.corps.find((candidate) => candidate.unitIds.includes(detachment.unitId))
+        const corps = deployment.corps.find((candidate) =>
+            candidate.unitIds.includes(detachment.unitId)
+        )
         assert(corps !== undefined && !corps.offMap, 'Detachments come from corps on the map')
         const remaining = corps.unitIds.filter((id) => !ids.includes(id))
         assert(remaining.length > 0, 'A commander cannot detach its last unit')
@@ -148,11 +158,17 @@ function validateDetachments(
             distance !== undefined && distance <= DETACHMENT_REACH,
             'A detachment stays within two locales of its commander'
         )
-        assert(!nearAlliedObjective(state, locale), 'Detachments keep clear of the Allied objectives')
+        assert(
+            !nearAlliedObjective(state, locale),
+            'Detachments keep clear of the Allied objectives'
+        )
         assert(!state.isEnemyOccupied(locale, playerId), 'Detachments cannot enter an enemy locale')
         if (approach !== undefined) {
             const definition = state.map.approach(approach)
-            assert(definition.locale === locale && !definition.impassable, 'That approach cannot be blocked')
+            assert(
+                definition.locale === locale && !definition.impassable,
+                'That approach cannot be blocked'
+            )
         }
     }
 }
@@ -173,7 +189,9 @@ function placements(state: HydratedNapoleonsTriumphGameState, deployment: Deploy
             }
             const locale = state.map.setupLocale(corps.commanderId)
             const position =
-                corps.offMap || !locale ? undefined : { locale: locale.id, approach: corps.approach }
+                corps.offMap || !locale
+                    ? undefined
+                    : { locale: locale.id, approach: corps.approach }
             return { unit, commanderId: corps.commanderId, position }
         })
     )
@@ -212,7 +230,11 @@ function validateFixedBattery(
         approach.locale === placement.position.locale && !approach.impassable,
         'The fixed battery blocks an approach of the locale it sets up in'
     )
-    if (placement.commanderId !== undefined && battery.approach !== undefined && battery.approach !== placement.position.approach) {
+    if (
+        placement.commanderId !== undefined &&
+        battery.approach !== undefined &&
+        battery.approach !== placement.position.approach
+    ) {
         const corps = placed.filter((candidate) => candidate.commanderId === placement.commanderId)
         assert(corps.length > 1, 'A commander cannot detach its last unit')
     }
@@ -251,7 +273,11 @@ export function deployArmy(
         const members = state.corpsUnits(commander.id)
         assert(members.length > 0, 'A corps can never be just a commander')
         assert(
-            members.every((unit) => samePosition(unit.position, commander.position) || (unit.position === undefined && commander.position === undefined)),
+            members.every(
+                (unit) =>
+                    samePosition(unit.position, commander.position) ||
+                    (unit.position === undefined && commander.position === undefined)
+            ),
             'The pieces of a corps stand together'
         )
     }
@@ -263,15 +289,13 @@ export function deployArmy(
     }
 }
 
-function firstWith(pool: ProjectedUnit[], match: (unit: ProjectedUnit) => boolean): ProjectedUnit | undefined {
+function firstWith(
+    pool: ProjectedUnit[],
+    match: (unit: ProjectedUnit) => boolean
+): ProjectedUnit | undefined {
     return pool.find(match) ?? pool[0]
 }
 
-/**
- * A legal starting point for a player's own set-up: every corps gets its minimum, the rest go
- * where there is room, every corps stands in reserve and the French reinforcements each get a
- * cavalry unit.
- */
 export function suggestedDeployment(
     state: HydratedNapoleonsTriumphGameState,
     side: Side
@@ -294,14 +318,22 @@ export function suggestedDeployment(
     }
     const roomFor = (commanderId: string): number => {
         const locale = state.map.setupLocale(commanderId)
-        return offMap(commanderId) || !locale ? MAX_CORPS_UNITS : Math.min(MAX_CORPS_UNITS, locale.capacity)
+        return offMap(commanderId) || !locale
+            ? MAX_CORPS_UNITS
+            : Math.min(MAX_CORPS_UNITS, locale.capacity)
     }
     for (const commander of commanders) {
         if (commander.reinforcement) {
-            take(commander.id, firstWith(pool, (unit) => faceOf(unit).type === UnitType.Cavalry))
+            take(
+                commander.id,
+                firstWith(pool, (unit) => faceOf(unit).type === UnitType.Cavalry)
+            )
         }
         while (sizeOf(commander.id) < commander.minimumUnits) {
-            take(commander.id, firstWith(pool, (unit) => faceOf(unit).type === UnitType.Infantry))
+            take(
+                commander.id,
+                firstWith(pool, (unit) => faceOf(unit).type === UnitType.Infantry)
+            )
         }
     }
     while (pool.length > 0) {
@@ -323,7 +355,9 @@ export function suggestedDeployment(
     }
     for (const entry of corps) {
         const locale = state.map.setupLocale(entry.commanderId)
-        const battery = entry.unitIds.find((id) => faceOf(state.unit(id)).type === UnitType.Artillery)
+        const battery = entry.unitIds.find(
+            (id) => faceOf(state.unit(id)).type === UnitType.Artillery
+        )
         if (entry.offMap || !locale || battery === undefined) {
             continue
         }

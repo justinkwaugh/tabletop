@@ -24,9 +24,13 @@
         [CommandKind.Unit]: 'Independent move'
     }
 
-    const title = $derived(
-        group?.commander ? `${commanderDefinition(group.commander.id).name}’s corps` : 'Detached units'
-    )
+    const ridingOn = $derived(gameSession.ridingOn)
+    const title = $derived.by(() => {
+        const name = group?.commander
+            ? `${commanderDefinition(group.commander.id).name}’s corps`
+            : 'Detached units'
+        return ridingOn ? `${name}, riding on` : name
+    })
 
     const commandsNote = $derived.by(() => {
         const playerId = gameSession.myPlayerId
@@ -46,8 +50,13 @@
         if (!group) {
             return ''
         }
+        if (ridingOn) {
+            return 'Riding on by road spends no further command. Any other command ends this move.'
+        }
         if (options.length === 0) {
-            return picked.length === 0 ? 'Pick the units to command.' : 'No command can move these units now.'
+            return picked.length === 0
+                ? 'Pick the units to command.'
+                : 'No command can move these units now.'
         }
         if (gameSession.targets.length === 0) {
             return 'These units have nowhere to go.'
@@ -67,13 +76,17 @@
                 {@const attachTo = gameSession.attachOptions(unit)}
                 <div class="nt-sheet-unit">
                     <UnitTile
-                        {side}
+                        playerId={unit.playerId}
                         face={gameSession.visibleFace(unit)}
                         selected={picked.includes(unit.id)}
-                        dimmed={unit.movesThisTurn !== undefined}
-                        marker={unit.fixed ? 'fixed battery' : unit.movesThisTurn !== undefined ? 'moved' : undefined}
+                        dimmed={unit.movesThisTurn !== undefined && !ridingOn}
+                        marker={unit.fixed
+                            ? 'fixed battery'
+                            : unit.movesThisTurn !== undefined && !ridingOn
+                              ? 'moved'
+                              : undefined}
                         label="Include this unit in the command"
-                        onclick={unit.movesThisTurn === undefined && !unit.fixed
+                        onclick={unit.movesThisTurn === undefined && !unit.fixed && !ridingOn
                             ? () => gameSession.togglePickedUnit(unit.id)
                             : undefined}
                     />
@@ -96,7 +109,8 @@
                         class="nt-plain-button nt-sheet-small"
                         class:nt-chosen={option === kind}
                         aria-pressed={option === kind}
-                        onclick={() => gameSession.chooseCommand(option)}>{COMMAND_NAMES[option]}</button
+                        onclick={() => gameSession.chooseCommand(option)}
+                        >{COMMAND_NAMES[option]}</button
                     >
                 {/each}
             </div>

@@ -2,28 +2,23 @@ import { shuffle } from '@tabletop/common'
 import { Side, type Face } from '../components/pieces.js'
 import { isLastRound } from '../components/timeTrack.js'
 import { emptyTurnLimits, type HydratedNapoleonsTriumphGameState } from './gameState.js'
-import type { ProjectedUnit } from './pieces.js'
+import { endRoadMarch } from './movement.js'
+import { standingGroupKey, type ProjectedUnit } from './pieces.js'
 
 const NIGHT_RECOVERY_LIMIT = 4
-
-function groupKey(unit: ProjectedUnit): string {
-    const position = unit.position
-    const where = position ? `${position.locale}:${position.approach ?? 'r'}` : 'off'
-    return `${unit.playerId}|${where}|${unit.commanderId ?? ''}`
-}
 
 /**
  * Both players re-arrange their blocks out of sight at the end of every turn (rule 7): units
  * standing together in the same corps, or together and detached, become indistinguishable again.
  * A block standing alone stays whatever the opponent has seen it to be.
  */
-export function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
+function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
     const groups = new Map<string, ProjectedUnit[]>()
     for (const unit of state.units) {
         if (unit.fixed) {
             continue
         }
-        const key = groupKey(unit)
+        const key = standingGroupKey(unit)
         groups.set(key, [...(groups.get(key) ?? []), unit])
     }
     const random = state.getProtectedPrng().random
@@ -68,7 +63,7 @@ function recoverAtNight(state: HydratedNapoleonsTriumphGameState) {
     }
 }
 
-export function beginTurn(state: HydratedNapoleonsTriumphGameState, playerId: string) {
+function beginTurn(state: HydratedNapoleonsTriumphGameState, playerId: string) {
     state.turnManager.startTurn(playerId, state.actionCount)
     state.activePlayerIds = [playerId]
 }
@@ -81,9 +76,9 @@ export function beginRound(state: HydratedNapoleonsTriumphGameState) {
     beginTurn(state, state.playerOf(Side.Allied).playerId)
 }
 
-/** Ends the current player turn. Returns false when that was the last turn of the game. */
 export function finishTurn(state: HydratedNapoleonsTriumphGameState): boolean {
     const playerId = state.turnPlayerId
+    endRoadMarch(state)
     shuffleBlocks(state)
     clearTurnState(state)
     state.turnManager.endTurn(state.actionCount)
@@ -91,12 +86,12 @@ export function finishTurn(state: HydratedNapoleonsTriumphGameState): boolean {
         beginTurn(state, state.playerOf(Side.French).playerId)
         return true
     }
+    const lastRound = isLastRound(state.scenario, state.round)
     state.rounds.endRound(state.actionCount)
-    if (isLastRound(state.scenario, state.round)) {
+    if (lastRound) {
         state.activePlayerIds = []
         return false
     }
-    state.round += 1
     beginRound(state)
     return true
 }

@@ -14,7 +14,6 @@ export const Occupy = Type.Evaluate(
             type: Type.Literal(ActionType.Occupy),
             playerId: Type.String(),
             orders: Type.Array(MoveOrder, { minItems: 1 }),
-            /** An artillery unit that could have led the attack may show itself and stay where it is. */
             artilleryStays: Type.Optional(Type.Literal(true))
         })
     ])

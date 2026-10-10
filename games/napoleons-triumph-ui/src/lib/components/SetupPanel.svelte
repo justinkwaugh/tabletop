@@ -9,7 +9,6 @@
         type CorpsDeployment
     } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { describeLocale } from '$lib/model/battle.js'
     import UnitTile from './UnitTile.svelte'
 
     const gameSession = getGameSession()
@@ -18,19 +17,17 @@
     const side = $derived(gameSession.mySide)
     const picked = $derived(gameSession.setupUnitId)
     const detached = $derived(new Set(deployment?.detachments.map((entry) => entry.unitId) ?? []))
-    const chooseAdvanceGuard = $derived(side === Side.Allied && game.scenario === Scenario.December1)
+    const chooseAdvanceGuard = $derived(
+        side === Side.Allied && game.scenario === Scenario.December1
+    )
     const pickedIsArtillery = $derived(
         picked !== undefined && game.unit(picked).face?.type === UnitType.Artillery
     )
     const pickedOnMap = $derived(
         picked !== undefined &&
-            deployment?.corps.some((corps) => !corps.offMap && corps.unitIds.includes(picked)) === true
+            deployment?.corps.some((corps) => !corps.offMap && corps.unitIds.includes(picked)) ===
+                true
     )
-
-    function approaches(corps: CorpsDeployment) {
-        const locale = game.map.setupLocale(corps.commanderId)
-        return locale ? game.map.passableApproachesOf(locale.id) : []
-    }
 
     function standing(corps: CorpsDeployment): string {
         if (corps.offMap) {
@@ -40,17 +37,11 @@
         if (!locale) {
             return ''
         }
-        const place = describeLocale(game, locale.id)
+        const place = game.map.label(locale.id)
         if (corps.approach === undefined) {
             return `in reserve at ${place}`
         }
-        return `at ${place}, facing ${describeLocale(game, game.map.approach(corps.approach).neighbour)}`
-    }
-
-    function nextStance(corps: CorpsDeployment) {
-        const options: (number | undefined)[] = [undefined, ...approaches(corps).map((approach) => approach.id)]
-        const index = options.indexOf(corps.approach)
-        gameSession.setCorpsApproach(corps.commanderId, options[(index + 1) % options.length])
+        return `at ${place}, facing ${game.map.label(game.map.approach(corps.approach).neighbour)}`
     }
 
     function marker(unitId: string): string | undefined {
@@ -71,7 +62,10 @@
         <div class="nt-setup-corps">
             {#each deployment.corps as corps (corps.commanderId)}
                 {@const definition = commanderDefinition(corps.commanderId)}
-                <div class="nt-setup-card" class:nt-setup-short={corps.unitIds.length < definition.minimumUnits}>
+                <div
+                    class="nt-setup-card"
+                    class:nt-setup-short={corps.unitIds.length < definition.minimumUnits}
+                >
                     <button
                         type="button"
                         class="nt-setup-name"
@@ -88,7 +82,8 @@
                         type="button"
                         class="nt-setup-stance"
                         disabled={corps.offMap}
-                        onclick={() => nextStance(corps)}>{standing(corps)}</button
+                        onclick={() => gameSession.cycleCorpsStance(corps.commanderId)}
+                        >{standing(corps)}</button
                     >
                     {#if chooseAdvanceGuard}
                         <button
@@ -101,7 +96,7 @@
                     <div class="nt-setup-units">
                         {#each corps.unitIds as unitId (unitId)}
                             <UnitTile
-                                {side}
+                                playerId={game.unit(unitId).playerId}
                                 face={game.unit(unitId).face}
                                 selected={picked === unitId}
                                 marker={marker(unitId)}
@@ -117,12 +112,18 @@
         <div class="nt-setup-footer">
             {#if picked !== undefined}
                 {#if detached.has(picked)}
-                    <button type="button" class="nt-plain-button" onclick={() => gameSession.recallDetachment(picked)}
+                    <button
+                        type="button"
+                        class="nt-plain-button"
+                        onclick={() => gameSession.recallDetachment(picked)}
                         >Return it to its corps</button
                     >
                 {/if}
                 {#if pickedIsArtillery && pickedOnMap && side === Side.French && deployment.fixedBattery?.unitId !== picked}
-                    <button type="button" class="nt-plain-button" onclick={() => gameSession.nameFixedBattery(picked)}
+                    <button
+                        type="button"
+                        class="nt-plain-button"
+                        onclick={() => gameSession.nameFixedBattery(picked)}
                         >Make it the fixed battery</button
                     >
                 {/if}
@@ -130,13 +131,10 @@
             {#if gameSession.setupPreview.problem}
                 <span class="nt-setup-problem">{gameSession.setupPreview.problem}</span>
             {:else}
-                <button type="button" class="nt-plain-button nt-setup-commit" onclick={() => gameSession.commitSetup()}
-                    >Deploy the army</button
-                >
-            {/if}
-            {#if gameSession.setupDraft}
-                <button type="button" class="nt-plain-button" onclick={() => gameSession.resetSetup()}
-                    >Start again</button
+                <button
+                    type="button"
+                    class="nt-plain-button nt-setup-commit"
+                    onclick={() => gameSession.commitSetup()}>Deploy the army</button
                 >
             {/if}
         </div>
@@ -190,7 +188,7 @@
         text-align: left;
     }
 
-    .nt-setup-name:not(:disabled) {
+    .nt-setup-name:not([disabled]) {
         text-decoration: underline;
         cursor: pointer;
     }
@@ -208,7 +206,7 @@
         text-decoration: underline dotted;
     }
 
-    .nt-setup-stance:disabled {
+    .nt-setup-stance[disabled] {
         text-decoration: none;
         opacity: 0.7;
     }
@@ -233,6 +231,5 @@
         .nt-setup {
             padding: 0 4px 6px;
         }
-
     }
 </style>

@@ -2,10 +2,12 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { afterRetreat, currentAttack, mustDefend } from '../model/attackFlow.js'
+import { afterRetreat } from '../model/attackResolution.js'
+import { currentAttack } from '../model/attackState.js'
+import { mustDefend } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { executeRetreat } from '../model/retreat.js'
-import { LossEntry } from './lossRecord.js'
+import { LossEntry } from '../model/attack.js'
 
 export type RetreatMetadata = Type.Static<typeof RetreatMetadata>
 export const RetreatMetadata = Type.Object({

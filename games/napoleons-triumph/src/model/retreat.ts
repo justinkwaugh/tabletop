@@ -1,8 +1,9 @@
 import { assert } from '@tabletop/common'
 import type { LocaleId } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
-import { currentAttack, attackLocale, defenseLocale } from './attackFlow.js'
-import type { HydratedNapoleonsTriumphGameState, LossRecord } from './gameState.js'
+import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
+import type { LossEntry } from './attack.js'
+import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, type ProjectedUnit } from './pieces.js'
 
 /** A group of retreating units that must give up steps between them (rule 12). */
@@ -12,16 +13,13 @@ export interface RetreatLossGroup {
 }
 
 export interface RetreatPlan {
-    /** Steps taken by each unit towards the retreat losses. */
     losses: Readonly<Record<string, number>>
-    /** The locale each surviving unit falls back to. Units left out are eliminated for want of room. */
     destinations: Readonly<Record<string, LocaleId>>
-    /** For each retreating corps with more than one surviving unit, the unit that stays in it. */
     kept: Readonly<Record<string, string>>
 }
 
 export interface RetreatOutcome {
-    losses: LossRecord[]
+    losses: LossEntry[]
     stepsLost: number
     eliminatedForRoom: string[]
     demoralized: boolean
@@ -36,11 +34,10 @@ export function retreatingUnits(state: HydratedNapoleonsTriumphGameState): Proje
     return state.unitsIn(defenseLocale(state, attack), attack.defenderId)
 }
 
-function isFoot(unit: ProjectedUnit): boolean {
+function isHorseOrFoot(unit: ProjectedUnit): boolean {
     return faceOf(unit).type !== UnitType.Artillery
 }
 
-/** The losses a retreat costs apart from artillery, which is simply lost. */
 export function retreatLossGroups(state: HydratedNapoleonsTriumphGameState): RetreatLossGroup[] {
     const attack = currentAttack(state)
     const locale = defenseLocale(state, attack)
@@ -49,7 +46,7 @@ export function retreatLossGroups(state: HydratedNapoleonsTriumphGameState): Ret
         if (approach.id === attack.defenseApproach) {
             continue
         }
-        const blockers = state.blockers(approach.id, attack.defenderId).filter(isFoot)
+        const blockers = state.blockers(approach.id, attack.defenderId).filter(isHorseOrFoot)
         if (blockers.length > 0) {
             groups.push({
                 unitIds: blockers.map((unit) => unit.id),
@@ -74,7 +71,6 @@ export function retreatLossGroups(state: HydratedNapoleonsTriumphGameState): Ret
     return groups
 }
 
-/** Locales the defender may fall back to, with the room each has for more of its units. */
 export function retreatRoom(state: HydratedNapoleonsTriumphGameState): Map<LocaleId, number> {
     const attack = currentAttack(state)
     const from = defenseLocale(state, attack)
@@ -102,7 +98,10 @@ function validateLosses(
             groups.some((group) => group.unitIds.includes(unitId)),
             `Unit ${unitId} owes no retreat loss`
         )
-        assert(steps <= faceOf(state.unit(unitId)).strength, 'A unit cannot lose more steps than it has')
+        assert(
+            steps <= faceOf(state.unit(unitId)).strength,
+            'A unit cannot lose more steps than it has'
+        )
     }
     for (const group of groups) {
         const total = group.unitIds.reduce((sum, id) => sum + (losses[id] ?? 0), 0)
@@ -125,7 +124,7 @@ export function executeRetreat(
     const groups = retreatLossGroups(state)
     validateLosses(state, groups, plan.losses)
 
-    const records: LossRecord[] = []
+    const records: LossEntry[] = []
     for (const unit of retreating) {
         if (faceOf(unit).type === UnitType.Artillery) {
             records.push(state.takeLoss(unit, faceOf(unit).strength))
@@ -149,8 +148,14 @@ export function executeRetreat(
         assert(count <= (room.get(locale) ?? 0), `Locale ${locale} cannot hold that many units`)
     }
     const stranded = survivors.filter((unit) => plan.destinations[unit.id] === undefined)
-    const spare = [...room].reduce((sum, [locale, free]) => sum + free - (arrivals.get(locale) ?? 0), 0)
-    assert(stranded.length === 0 || spare === 0, 'Units are lost only when no locale has room for them')
+    const spare = [...room].reduce(
+        (sum, [locale, free]) => sum + free - (arrivals.get(locale) ?? 0),
+        0
+    )
+    assert(
+        stranded.length === 0 || spare === 0,
+        'Units are lost only when no locale has room for them'
+    )
 
     const corpsIds = [...new Set(survivors.flatMap((unit) => unit.commanderId ?? []))]
     for (const commanderId of corpsIds) {

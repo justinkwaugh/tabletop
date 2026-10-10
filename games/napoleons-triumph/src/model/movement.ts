@@ -1,32 +1,32 @@
-import { assert } from '@tabletop/common'
-import type { ApproachId, LocaleId, RoadArrival } from '../components/battleMap.js'
+import { assert, assertExists } from '@tabletop/common'
+import {
+    LOCAL_ROAD_REACH,
+    MAIN_ROAD_REACH,
+    type LocaleId,
+    type RoadArrival
+} from '../components/battleMap.js'
 import { FRENCH_REINFORCEMENT_MORALE, Side, UnitType } from '../components/pieces.js'
-import { CommandKind, type MoveOrder } from './attack.js'
+import { CommandKind, type MoveOrder, type RoadMarch } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import {
+    assertArrived,
     expendOrder,
-    mayEnter,
     movingCommander,
     resolveOrder,
     type ResolvedOrder
 } from './orders.js'
-import { faceOf, inReserve, reserveOf, type Position, type ProjectedUnit } from './pieces.js'
+import { faceOf, inReserve, samePosition, type Position, type ProjectedUnit } from './pieces.js'
 
 export function allCavalry(units: readonly ProjectedUnit[]): boolean {
     return units.every((unit) => faceOf(unit).type === UnitType.Cavalry)
 }
 
 /** A corps of two or more units is subject to the road march restrictions (rule 10). */
-export function isLargeCorps(resolved: ResolvedOrder): boolean {
+function isLargeCorps(resolved: ResolvedOrder): boolean {
     return resolved.order.kind === CommandKind.Corps && resolved.units.length >= 2
 }
 
-export function isReinforcement(resolved: ResolvedOrder): boolean {
-    return resolved.start === undefined
-}
-
-/** Whether a player's pieces may come into a locale's reserve this turn, short of attacking. */
-export function reserveOpenTo(
+function reserveOpenTo(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     locale: LocaleId
@@ -52,38 +52,70 @@ function checkRoom(
     )
 }
 
-/**
- * Validates the locales a road move passes through, short of where it ends. `path` are the
- * locales entered. Returns the roads the move may be standing on at the end.
- */
+export function roadOrigin(resolved: ResolvedOrder): LocaleId | { entryId: string } {
+    const { march, start, order } = resolved
+    const startLocale = march ? march.start : start?.locale
+    if (startLocale !== undefined) {
+        return startLocale
+    }
+    const entryId = march ? march.entryId : order.entryId
+    assertExists(entryId, 'Reinforcements enter by a road at the map edge')
+    return { entryId }
+}
+
+/** A corps of two or more units halts on entering a locale next to an enemy corps of two or more (rule 10). */
+function mustHalt(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    locale: LocaleId
+): boolean {
+    const enemyId = state.opponentOf(playerId).playerId
+    return state.map
+        .adjacentLocales(locale)
+        .some((adjacent) => state.hasLargeCorps(adjacent, enemyId))
+}
+
 export function traceRoadMove(
     state: HydratedNapoleonsTriumphGameState,
     resolved: ResolvedOrder,
-    path: readonly LocaleId[]
+    path: readonly LocaleId[],
+    attacking = false
 ): RoadArrival[] {
-    const { order, units, start } = resolved
+    const { order, units, start, march } = resolved
     const playerId = units[0].playerId
     assert(order.kind !== CommandKind.Detach, 'Detached units cannot move by road')
-    let arrivals: RoadArrival[]
-    if (start === undefined) {
+    let from: LocaleId | undefined
+    if (march) {
+        from = march.path[march.path.length - 1]
+    } else if (start === undefined) {
         assert(order.entryId !== undefined, 'Reinforcements enter by a road at the map edge')
         const entry = state.map.findEntry(order.entryId)
         assert(entry?.side === state.sideOf(playerId), 'That is not an entry for this army')
-        arrivals = state.map.traceRoad({ entryId: order.entryId }, [...path])
     } else {
         assert(order.entryId === undefined, 'Only reinforcements use an entry')
         assert(inReserve(start), 'A road move starts in reserve')
-        arrivals = state.map.traceRoad(start.locale, [...path])
+        from = start.locale
     }
+    const arrivals = state.map.traceRoad(roadOrigin(resolved), [...(march?.path ?? []), ...path])
     assert(arrivals.length > 0, 'No connected road covers that move')
     const large = isLargeCorps(resolved)
     path.forEach((locale, index) => {
+        const stopsHere = index === path.length - 1 && !attacking
         assert(reserveOpenTo(state, playerId, locale), `Locale ${locale} cannot be entered`)
         // Erratum to rule 8: a move may pass through a locale too small for it, but not a full one.
         assert(
-            index === path.length - 1 || state.freeCapacity(locale, playerId) > 0,
+            stopsHere || state.freeCapacity(locale, playerId) > 0,
             `Locale ${locale} is full and cannot be passed through`
         )
+        const previous = index === 0 ? from : path[index - 1]
+        if (attacking && previous !== undefined) {
+            assert(
+                !state.limits.closedApproaches.includes(
+                    state.map.approachBetween(previous, locale).id
+                ),
+                'No attack move may cross an approach where an attack was turned back this turn'
+            )
+        }
         if (!large) {
             return
         }
@@ -91,15 +123,50 @@ export function traceRoadMove(
             !state.reserveUnits(locale, playerId).some((unit) => unit.enteredReserveThisTurn),
             `Units already moved into the reserve of locale ${locale} this turn`
         )
-        const mustStop = state.map
-            .adjacentLocales(locale)
-            .some((adjacent) => state.hasLargeCorps(adjacent, state.opponentOf(playerId).playerId))
         assert(
-            !mustStop || index === path.length - 1,
+            stopsHere || !mustHalt(state, playerId, locale),
             `A corps must halt in locale ${locale}, next to an enemy corps`
         )
     })
     return arrivals
+}
+
+function reach(arrivals: readonly RoadArrival[]): number {
+    return arrivals.some((arrival) => arrival.main) ? MAIN_ROAD_REACH : LOCAL_ROAD_REACH
+}
+
+/** Ends the cavalry road move in progress, if any; its units are shown now that the move is over (rule 11). */
+export function endRoadMarch(state: HydratedNapoleonsTriumphGameState) {
+    const march = state.roadMarch
+    if (!march) {
+        return
+    }
+    state.revealAll(march.unitIds.flatMap((id) => state.findUnit(id) ?? []))
+    state.roadMarch = undefined
+}
+
+export function settleRoadMarch(
+    state: HydratedNapoleonsTriumphGameState,
+    resolved: ResolvedOrder,
+    entered: readonly LocaleId[],
+    to: Position
+) {
+    const { order, units, start, march } = resolved
+    const begun: RoadMarch = march ?? {
+        kind: order.kind,
+        commanderId: order.kind === CommandKind.Corps ? order.commanderId : undefined,
+        unitIds: units.map((unit) => unit.id),
+        start: start?.locale,
+        entryId: order.entryId,
+        path: [...entered]
+    }
+    const path = march ? [...march.path, ...entered] : [...entered]
+    const arrivals = state.map.traceRoad(roadOrigin(resolved), path)
+    const halted = isLargeCorps(resolved) && mustHalt(state, units[0].playerId, to.locale)
+    state.roadMarch = { ...begun, path }
+    if (!inReserve(to) || halted || arrivals.length === 0 || path.length >= reach(arrivals)) {
+        endRoadMarch(state)
+    }
 }
 
 function validateRoadEnd(
@@ -118,7 +185,6 @@ function validateRoadEnd(
     )
 }
 
-/** Validates a move that makes no attack. Returns the locales entered by road, if any. */
 export function validateMove(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -127,23 +193,40 @@ export function validateMove(
 ): ResolvedOrder {
     const resolved = resolveOrder(state, playerId, order)
     const { start } = resolved
+    assert(
+        resolved.units.every((unit) => !unit.fixed),
+        'The fixed battery cannot move'
+    )
     if (to.approach !== undefined) {
         const approach = state.map.approach(to.approach)
         assert(approach.locale === to.locale, 'That approach is in another locale')
         assert(!approach.impassable, 'An impassable approach cannot be blocked')
     }
-    if (start === undefined) {
-        assert(resolved.commander === undefined || mayEnter(state, resolved.commander.id), 'That corps has not arrived yet')
+    if (resolved.march) {
+        const road = order.road ?? []
+        const here = resolved.march.path[resolved.march.path.length - 1]
         assert(
-            resolved.units.every(
-                (unit) => unit.commanderId === undefined || mayEnter(state, unit.commanderId)
-            ),
-            'Those units have not arrived yet'
+            to.locale === (road.length > 0 ? road[road.length - 1] : here),
+            'The road must end where the move ends'
         )
+        assert(road.length > 0 || to.approach !== undefined, 'The cavalry already stands there')
+        const arrivals = traceRoadMove(state, resolved, road)
+        validateRoadEnd(state, resolved, arrivals, to)
+        if (road.length > 0) {
+            checkRoom(state, resolved, to.locale)
+        }
+        return resolved
+    }
+    if (start === undefined) {
+        assertArrived(state, resolved)
         assert(order.road !== undefined, 'Reinforcements enter by road')
     }
     if (order.road !== undefined) {
-        assert(order.road[order.road.length - 1] === to.locale, 'The road must end where the move ends')
+        assert(order.road.length > 0, 'A road move enters at least one locale')
+        assert(
+            order.road[order.road.length - 1] === to.locale,
+            'The road must end where the move ends'
+        )
         const arrivals = traceRoadMove(state, resolved, order.road)
         validateRoadEnd(state, resolved, arrivals, to)
         checkRoom(state, resolved, to.locale)
@@ -183,10 +266,7 @@ export interface MoveOutcome {
     frenchMoraleGain: number
 }
 
-function noteArrival(
-    state: HydratedNapoleonsTriumphGameState,
-    resolved: ResolvedOrder
-): number {
+function noteArrival(state: HydratedNapoleonsTriumphGameState, resolved: ResolvedOrder): number {
     const playerId = resolved.units[0].playerId
     for (const unit of resolved.units) {
         unit.enteredThisTurn = true
@@ -203,7 +283,6 @@ function noteArrival(
     return FRENCH_REINFORCEMENT_MORALE
 }
 
-/** Moves the commanded pieces and records everything the move changes for the rest of the turn. */
 export function relocate(
     state: HydratedNapoleonsTriumphGameState,
     resolved: ResolvedOrder,
@@ -213,9 +292,13 @@ export function relocate(
     const from = resolved.start
     const frenchMoraleGain = from === undefined ? noteArrival(state, resolved) : 0
     const commander = movingCommander(resolved)
+    const arriving = !samePosition(from, to)
     state.place(commander ? [...resolved.units, commander] : resolved.units, to)
     for (const unit of resolved.units) {
-        unit.enteredReserveThisTurn = inReserve(to) ? true : undefined
+        // Forum ruling on rule 10: pieces that feint from reserve and stay there have not moved into it.
+        if (arriving) {
+            unit.enteredReserveThisTurn = inReserve(to) ? true : undefined
+        }
     }
     if (road && isLargeCorps(resolved)) {
         for (const locale of road) {
@@ -237,20 +320,14 @@ export function executeMove(
     order: MoveOrder,
     to: Position
 ): MoveOutcome {
+    if (!order.continues) {
+        endRoadMarch(state)
+    }
     const resolved = validateMove(state, playerId, order, to)
     const outcome = relocate(state, resolved, to, order.road)
     expendOrder(state, resolved)
+    if (resolved.march) {
+        settleRoadMarch(state, resolved, order.road ?? [], to)
+    }
     return outcome
-}
-
-/** Approaches of a locale a piece standing in its reserve may step up to. */
-export function blockableApproaches(
-    state: HydratedNapoleonsTriumphGameState,
-    locale: LocaleId
-): ApproachId[] {
-    return state.map.passableApproachesOf(locale).map((approach) => approach.id)
-}
-
-export function reservePosition(locale: LocaleId): Position {
-    return reserveOf(locale)
 }

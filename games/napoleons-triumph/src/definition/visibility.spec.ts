@@ -8,7 +8,10 @@ import { NapoleonsTriumphRuntime } from './runtime.js'
 
 const spectator = { kind: 'spectator' } as const
 
-function project(game: TestGame, perspective: { kind: 'player'; playerId: string } | typeof spectator) {
+function project(
+    game: TestGame,
+    perspective: { kind: 'player'; playerId: string } | typeof spectator
+) {
     return NapoleonsTriumphRuntime.visibility.state.project(game.canonical, perspective, {
         config: game.game.config
     })

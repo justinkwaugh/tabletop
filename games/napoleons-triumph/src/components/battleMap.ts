@@ -19,7 +19,6 @@ export interface ApproachDefinition {
     wide: boolean
     impassable: boolean
     obstructed: boolean
-    /** Unit types penalised when attacking into this approach's locale across it. */
     penalties: UnitType[]
 }
 
@@ -27,12 +26,10 @@ export interface RoadEntry {
     id: string
     side: Side
     locale: LocaleId
-    /** Index of the connected stretch of road, within its locale, that the entry leads onto. */
     group: number
     main: boolean
 }
 
-/** One direction of a road crossing an approach, from one connected stretch of road to another. */
 export interface RoadLink {
     exit: ApproachId
     from: LocaleId
@@ -71,7 +68,6 @@ export interface BorderSpec {
     bSymbols?: string
 }
 
-/** A road crossing the border between two locales, joining one road group on each side. */
 export type RoadSpec = [a: LocaleId, groupA: number, b: LocaleId, groupB: number, main: 0 | 1]
 export type EntrySpec = [id: string, side: Side, locale: LocaleId, group: number, main: 0 | 1]
 
@@ -91,10 +87,10 @@ const PENALTY_LETTERS: Record<string, UnitType> = {
     A: UnitType.Artillery
 }
 
-/** Where a road move can stand after following its path: on which road, and whether all of it was main road. */
 export interface RoadArrival {
     locale: LocaleId
-    group: number
+    /** Absent before the first step, when the move may leave by any road of its start locale (rule 10). */
+    group?: number
     main: boolean
 }
 
@@ -128,7 +124,13 @@ export class BattleMap {
             )
         }
         for (const [id, side, locale, group, main] of spec.entries) {
-            this.roadEntries.push({ id, side, locale: this.locale(locale).id, group, main: main === 1 })
+            this.roadEntries.push({
+                id,
+                side,
+                locale: this.locale(locale).id,
+                group,
+                main: main === 1
+            })
         }
     }
 
@@ -174,24 +176,20 @@ export class BattleMap {
         return [...this.approaches.values()]
     }
 
+    label(id: LocaleId): string {
+        return this.locale(id).name ?? `locale ${id}`
+    }
+
     locale(id: LocaleId): LocaleDefinition {
         const locale = this.locales.get(id)
         assertExists(locale, `Unknown locale ${id}`)
         return locale
     }
 
-    hasLocale(id: LocaleId): boolean {
-        return this.locales.has(id)
-    }
-
     approach(id: ApproachId): ApproachDefinition {
         const approach = this.approaches.get(id)
         assertExists(approach, `Unknown approach ${id}`)
         return approach
-    }
-
-    hasApproach(id: ApproachId): boolean {
-        return this.approaches.has(id)
     }
 
     opposite(id: ApproachId): ApproachDefinition {
@@ -210,7 +208,6 @@ export class BattleMap {
         return this.approachesOf(from).find((approach) => approach.neighbour === to)
     }
 
-    /** The side of the shared border that lies in `from`. */
     approachBetween(from: LocaleId, to: LocaleId): ApproachDefinition {
         const approach = this.findApproachBetween(from, to)
         assertExists(approach, `Locales ${from} and ${to} do not share an approach`)
@@ -226,7 +223,6 @@ export class BattleMap {
         return this.passableApproachesOf(locale).map((approach) => approach.neighbour)
     }
 
-    /** Fewest locales between two locales without crossing an impassable approach. */
     distance(from: LocaleId, to: LocaleId): number | undefined {
         const distances = new Map<LocaleId, number>([[from, 0]])
         const queue = [from]
@@ -257,11 +253,6 @@ export class BattleMap {
         return this.roadLinks.filter((link) => link.from === locale)
     }
 
-    /** Roads leaving a locale across one of its approaches. */
-    roadLinksAcross(approachId: ApproachId): RoadLink[] {
-        return this.roadLinks.filter((link) => link.exit === approachId)
-    }
-
     entries(side: Side): RoadEntry[] {
         return this.roadEntries.filter((entry) => entry.side === side)
     }
@@ -274,19 +265,11 @@ export class BattleMap {
         return [...new Set(this.entries(side).map((entry) => entry.locale))]
     }
 
-    /**
-     * Follows a road move locale by locale. `path` lists the locales entered in order. A move on
-     * the map starts in `start` on any of its roads; a reinforcement names its entry instead and
-     * the first path locale is the entry locale. Returns every road the move could be standing on
-     * at the end, or nothing when no connected road covers the path within its reach.
-     */
     traceRoad(start: LocaleId | { entryId: string }, path: LocaleId[]): RoadArrival[] {
         let arrivals: RoadArrival[]
         let remaining = path
-        let anyRoad = false
         if (typeof start === 'number') {
-            arrivals = [{ locale: start, group: -1, main: true }]
-            anyRoad = true
+            arrivals = [{ locale: start, main: true }]
         } else {
             const entry = this.findEntry(start.entryId)
             if (!entry || path[0] !== entry.locale) {
@@ -299,28 +282,48 @@ export class BattleMap {
             const stepped: RoadArrival[] = []
             for (const arrival of arrivals) {
                 for (const link of this.roadLinksFrom(arrival.locale)) {
-                    if (link.to !== next || (!anyRoad && link.fromGroup !== arrival.group)) {
+                    const onRoad = arrival.group === undefined || link.fromGroup === arrival.group
+                    if (link.to !== next || !onRoad) {
                         continue
                     }
                     const main = arrival.main && link.main
-                    if (!stepped.some((other) => other.group === link.toGroup && other.main === main)) {
+                    if (
+                        !stepped.some(
+                            (other) => other.group === link.toGroup && other.main === main
+                        )
+                    ) {
                         stepped.push({ locale: next, group: link.toGroup, main })
                     }
                 }
             }
             arrivals = stepped
-            anyRoad = false
         }
         return arrivals.filter(
             (arrival) => path.length <= (arrival.main ? MAIN_ROAD_REACH : LOCAL_ROAD_REACH)
         )
     }
 
-    /** Approaches of the arrival locale crossed by the road the move arrived on. */
+    roadPathsFrom(start: LocaleId): LocaleId[][] {
+        const paths: LocaleId[][] = []
+        const extend = (path: LocaleId[], locale: LocaleId) => {
+            if (path.length >= MAIN_ROAD_REACH) {
+                return
+            }
+            for (const next of new Set(this.roadLinksFrom(locale).map((link) => link.to))) {
+                if (next !== start && !path.includes(next)) {
+                    paths.push([...path, next])
+                    extend([...path, next], next)
+                }
+            }
+        }
+        extend([], start)
+        return paths
+    }
+
     approachesOnRoad(arrivals: RoadArrival[]): ApproachId[] {
         const approaches = arrivals.flatMap((arrival) =>
             this.roadLinksFrom(arrival.locale)
-                .filter((link) => arrival.group === -1 || link.fromGroup === arrival.group)
+                .filter((link) => arrival.group === undefined || link.fromGroup === arrival.group)
                 .map((link) => link.exit)
         )
         return [...new Set(approaches)]
@@ -329,13 +332,13 @@ export class BattleMap {
     /** Whether a road path joins two locales, optionally avoiding some locales (rule 16). */
     roadConnects(from: LocaleId, to: LocaleId, blocked: (locale: LocaleId) => boolean): boolean {
         const seen = new Set<string>()
-        const queue: { locale: LocaleId; group: number }[] = [{ locale: from, group: -1 }]
+        const queue: { locale: LocaleId; group?: number }[] = [{ locale: from }]
         for (const current of queue) {
             if (current.locale === to) {
                 return true
             }
             for (const link of this.roadLinksFrom(current.locale)) {
-                if (current.group !== -1 && link.fromGroup !== current.group) {
+                if (current.group !== undefined && link.fromGroup !== current.group) {
                     continue
                 }
                 const key = `${link.to}:${link.toGroup}`

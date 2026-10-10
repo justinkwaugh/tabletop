@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { threatenAttack } from '../model/attackFlow.js'
+import { threatenAttack } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export type ThreatenAttack = Type.Static<typeof ThreatenAttack>
@@ -12,9 +12,7 @@ export const ThreatenAttack = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.ThreatenAttack),
             playerId: Type.String(),
-            /** The attacker's side of the approach the attack will cross. */
             approach: Type.Integer(),
-            /** Guard infantry shown to declare a Guard Attack. */
             guardUnitId: Type.Optional(Type.String())
         })
     ])

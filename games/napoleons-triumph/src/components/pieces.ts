@@ -22,7 +22,7 @@ export const Face = Type.Object({
     guard: Type.Optional(Type.Literal(true))
 })
 
-export const ELITE_STRENGTH = 3
+const ELITE_STRENGTH = 3
 
 export function isGuard(face: Face): boolean {
     return face.guard === true
@@ -36,14 +36,16 @@ export function sameFace(a: Face, b: Face): boolean {
     return a.type === b.type && a.strength === b.strength && isGuard(a) === isGuard(b)
 }
 
-/** A unit that loses a step is swapped for the next weaker block, which is never a Guard block. */
+/** Designer ruling: Guard infantry that takes a loss becomes ordinary infantry. */
 export function reducedFace(face: Face, losses: number): Face | undefined {
     const strength = face.strength - losses
     return strength > 0 ? { type: face.type, strength } : undefined
 }
 
 function faces(count: number, type: UnitType, strength: number, guard?: true): Face[] {
-    return Array.from({ length: count }, () => (guard ? { type, strength, guard } : { type, strength }))
+    return Array.from({ length: count }, () =>
+        guard ? { type, strength, guard } : { type, strength }
+    )
 }
 
 export const STARTING_ARMIES: Record<Side, Face[]> = {
@@ -67,7 +69,7 @@ export const STARTING_ARMIES: Record<Side, Face[]> = {
     ]
 }
 
-export const UNIT_ID_PREFIX: Record<Side, string> = {
+const UNIT_ID_PREFIX: Record<Side, string> = {
     [Side.French]: 'F',
     [Side.Allied]: 'A'
 }
@@ -83,7 +85,6 @@ export interface CommanderDefinition {
     name: string
     side: Side
     minimumUnits: number
-    /** French corps that start off-map and enter as reinforcements in both scenarios. */
     reinforcement?: true
 }
 

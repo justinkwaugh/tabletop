@@ -1,21 +1,22 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { TargetKind, type MoveTarget } from '$lib/model/targets.js'
 
-    /** Attack markers are drawn in a pass of their own, above the pieces they would otherwise sit under. */
     let { attacks: attacksOnly = false }: { attacks?: boolean } = $props()
 
     const gameSession = getGameSession()
 
     const targets = $derived(gameSession.targets)
     const reserves = $derived(
-        targets.filter((target) => target.kind === TargetKind.Reserve || target.kind === TargetKind.Retreat)
+        targets.filter(
+            (target) => target.kind === TargetKind.Reserve || target.kind === TargetKind.Retreat
+        )
     )
     const approaches = $derived(targets.filter((target) => target.kind === TargetKind.Approach))
     const attacks = $derived(targets.filter((target) => target.kind === TargetKind.Attack))
 
-    // Markers keep a tappable size on screen when the board is zoomed far out.
     const markerScale = $derived(Math.min(3, Math.max(1, 0.55 / gameSession.zoom)))
 
     function outline(locale: number): string {
@@ -27,9 +28,13 @@
         gameSession.chooseTarget(target)
     }
 
+    function barOf(target: MoveTarget) {
+        assertExists(target.position.approach, 'An approach target names its approach')
+        return APPROACH_GEOMETRY[target.position.approach]
+    }
+
     function label(target: MoveTarget): string {
-        const name = gameSession.gameState.map.locale(target.position.locale).name
-        const place = name ?? `locale ${target.position.locale}`
+        const place = gameSession.gameState.map.label(target.position.locale)
         if (target.kind === TargetKind.Retreat) {
             return `Retreat to ${place}`
         }
@@ -38,55 +43,56 @@
 </script>
 
 {#if !attacksOnly}
-{#each reserves as target (target.key)}
-    <polygon
-        points={outline(target.position.locale)}
-        class="nt-target-locale"
-        class:nt-target-road={target.road !== undefined}
-        role="button"
-        tabindex="0"
-        aria-label={label(target)}
-        onclick={(event) => choose(event, target)}
-        onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
-    />
-{/each}
-{#each approaches as target (target.key)}
-    {@const bar = APPROACH_GEOMETRY[target.position.approach ?? 0]}
-    <g
-        transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y + bar.inward.y * 14}) rotate({bar.angle})"
-        role="button"
-        tabindex="0"
-        aria-label="Block this approach"
-        onclick={(event) => choose(event, target)}
-        onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
-    >
-        <rect
-            x={-bar.length / 2}
-            y="-13"
-            width={bar.length}
-            height="26"
-            rx="3"
-            class="nt-target-approach"
-        />
-    </g>
-{/each}
-{:else}
-{#each attacks as target (target.key)}
-    {@const bar = APPROACH_GEOMETRY[target.position.approach ?? 0]}
-    <g
-        transform="translate({bar.centre.x} {bar.centre.y}) scale({markerScale})"
-        role="button"
-        tabindex="0"
-        aria-label="Threaten an attack across this approach"
-        class="nt-target-attack"
-        onclick={(event) => choose(event, target)}
-        onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
-    >
-        <g transform="rotate({(Math.atan2(-bar.inward.y, -bar.inward.x) * 180) / Math.PI})">
-            <path d="M-20 -11 H4 V-21 L26 0 L4 21 V11 H-20 Z" />
+    {#each reserves as target (target.key)}
+        <polygon
+            points={outline(target.position.locale)}
+            class="nt-target-locale"
+            class:nt-target-road={target.road !== undefined}
+            role="button"
+            tabindex="0"
+            aria-label={label(target)}
+            onclick={(event) => choose(event, target)}
+            onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
+        ></polygon>
+    {/each}
+    {#each approaches as target (target.key)}
+        {@const bar = barOf(target)}
+        <g
+            transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
+                bar.inward.y * 14}) rotate({bar.angle})"
+            role="button"
+            tabindex="0"
+            aria-label="Block this approach"
+            onclick={(event) => choose(event, target)}
+            onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
+        >
+            <rect
+                x={-bar.length / 2}
+                y="-13"
+                width={bar.length}
+                height="26"
+                rx="3"
+                class="nt-target-approach"
+            ></rect>
         </g>
-    </g>
-{/each}
+    {/each}
+{:else}
+    {#each attacks as target (target.key)}
+        {@const bar = barOf(target)}
+        <g
+            transform="translate({bar.centre.x} {bar.centre.y}) scale({markerScale})"
+            role="button"
+            tabindex="0"
+            aria-label="Threaten an attack across this approach"
+            class="nt-target-attack"
+            onclick={(event) => choose(event, target)}
+            onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
+        >
+            <g transform="rotate({(Math.atan2(-bar.inward.y, -bar.inward.x) * 180) / Math.PI})">
+                <path d="M-20 -11 H4 V-21 L26 0 L4 21 V11 H-20 Z"></path>
+            </g>
+        </g>
+    {/each}
 {/if}
 
 <style>

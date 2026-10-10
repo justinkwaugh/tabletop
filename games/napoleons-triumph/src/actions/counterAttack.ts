@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { counterAttack } from '../model/attackFlow.js'
+import { counterAttack } from '../model/attackResolution.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
 

@@ -35,17 +35,24 @@ function artilleryBarredOnSanton(
     )
 }
 
-function assertPairable(units: readonly ProjectedUnit[], needSameCorps: boolean) {
+interface Pairing {
+    /** Units in reserve pair only within one corps (rule 11, steps 4 and 7). */
+    sameCorps: boolean
+    /** Guard infantry does not pair with other infantry to attack or counter-attack (rule 15). */
+    guardsApart: boolean
+}
+
+function assertPairable(units: readonly ProjectedUnit[], pairing: Pairing) {
     if (units.length < 2) {
         return
     }
     const [first, second] = units.map(faceOf)
     assert(first.type === second.type, 'Paired leading units must be of the same type')
     assert(
-        isGuard(first) === isGuard(second),
+        !pairing.guardsApart || isGuard(first) === isGuard(second),
         'Guard infantry cannot be paired with other infantry'
     )
-    if (needSameCorps) {
+    if (pairing.sameCorps) {
         assert(
             units[0].commanderId !== undefined && units[0].commanderId === units[1].commanderId,
             'Units in reserve can only be paired when they belong to the same corps'
@@ -74,7 +81,7 @@ export function validateDefenseLeaders(
         }
     }
     if (!blocking) {
-        assertPairable(leaders, true)
+        assertPairable(leaders, { sameCorps: true, guardsApart: false })
     }
 }
 
@@ -95,12 +102,15 @@ export function validateAttackLeaders(
     const attackApproach = state.map.approach(context.attackApproach)
     const defenseApproach = state.map.opposite(context.attackApproach)
     assert(leaders.length <= (context.wide ? 2 : 1), 'Too many attack leading units')
-    assertPairable(leaders, false)
+    assertPairable(leaders, { sameCorps: false, guardsApart: true })
     for (const unit of leaders) {
         const face = faceOf(unit)
         const order = context.orders.find((entry) => entry.units.includes(unit))?.order
         if (face.type === UnitType.Artillery) {
-            assert(order?.kind !== CommandKind.Corps, 'A Corps Move attack cannot be led by artillery')
+            assert(
+                order?.kind !== CommandKind.Corps,
+                'A Corps Move attack cannot be led by artillery'
+            )
             assert(
                 context.attackersBlocking || isSantonBattery(state, unit),
                 'Artillery leads an attack only from the attack approach'
@@ -133,15 +143,21 @@ export function validateCounterAttackers(
     const approach = state.map.approach(defenseApproach)
     assert(units.length <= 2, 'At most two units counter-attack')
     if (units.length === 2) {
-        assertPairable(units, true)
+        assertPairable(units, { sameCorps: true, guardsApart: true })
     }
     for (const unit of units) {
         const face = faceOf(unit)
         assert(face.type !== UnitType.Artillery, 'Artillery cannot counter-attack')
         if (face.type === UnitType.Infantry) {
-            assert(attackerWonInitially, 'Infantry counter-attacks only when the attacker is winning')
+            assert(
+                attackerWonInitially,
+                'Infantry counter-attacks only when the attacker is winning'
+            )
         } else {
-            assert(!approach.obstructed, 'Cavalry cannot counter-attack across an obstructed approach')
+            assert(
+                !approach.obstructed,
+                'Cavalry cannot counter-attack across an obstructed approach'
+            )
         }
     }
 }

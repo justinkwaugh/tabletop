@@ -8,7 +8,6 @@ export const NapoleonsTriumphPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,
         Type.Object({
-            /** Absent until sides are settled by the morale auction. */
             side: Type.Optional(Type.Enum(Side)),
             morale: Type.Integer(),
             /** Morale points lost so far, for the night recovery (rule 14). */

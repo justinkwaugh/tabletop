@@ -1,7 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { Scenario, roundLabel } from '@tabletop/napoleons-triumph'
-    import { ARMY_COLORS } from '$lib/definitions/palette.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -10,12 +9,22 @@
     const inPlay = $derived(gameSession.gameState.rounds.currentRound !== undefined)
     const morale = $derived(
         gameSession.gameState.players.flatMap((player) =>
-            player.side ? [{ side: player.side, morale: player.morale }] : []
+            player.side
+                ? [
+                      {
+                          side: player.side,
+                          morale: player.morale,
+                          colors: gameSession.armyColors(player.playerId)
+                      }
+                  ]
+                : []
         )
     )
 </script>
 
-<div class="flex h-[40px] max-sm:h-[30px] items-center justify-between px-3 max-sm:px-1 text-[#2b2620]">
+<div
+    class="flex h-[40px] max-sm:h-[30px] items-center justify-between px-3 max-sm:px-1 text-[#2b2620]"
+>
     <div class="flex items-baseline gap-x-3 text-[17px] max-sm:text-[14px]">
         {#if gameSession.isViewingHistory}
             <span>History</span>
@@ -41,12 +50,14 @@
         {#each morale as army (army.side)}
             <span
                 class="nt-morale"
-                style="background: {ARMY_COLORS[army.side].block}; color: {ARMY_COLORS[army.side].ink};"
+                style="background: {army.colors.block}; color: {army.colors.ink};"
                 aria-label="{army.side} morale {army.morale}">{army.morale}</span
             >
         {/each}
         {#if gameSession.hasManualSelection() || gameSession.undoableAction}
-            <button type="button" class="nt-plain-button" onclick={() => gameSession.undo()}>Undo</button>
+            <button type="button" class="nt-plain-button" onclick={() => gameSession.undo()}
+                >Undo</button
+            >
         {/if}
     </div>
 </div>

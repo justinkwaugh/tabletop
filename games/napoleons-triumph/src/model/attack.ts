@@ -1,5 +1,7 @@
 import * as Type from 'typebox'
 import { Visibility } from '@tabletop/common'
+import { Face } from '../components/pieces.js'
+import { MachineState } from '../definition/states.js'
 
 export enum CommandKind {
     Corps = 'Corps',
@@ -7,14 +9,28 @@ export enum CommandKind {
     Unit = 'Unit'
 }
 
-/** One command and the pieces it moves. A road move lists the locales it enters in order. */
 export type MoveOrder = Type.Static<typeof MoveOrder>
 export const MoveOrder = Type.Object({
     kind: Type.Enum(CommandKind),
     commanderId: Type.Optional(Type.String()),
     unitIds: Type.Array(Type.String(), { minItems: 1 }),
-    road: Type.Optional(Type.Array(Type.Integer(), { minItems: 1 })),
-    entryId: Type.Optional(Type.String())
+    road: Type.Optional(Type.Array(Type.Integer())),
+    entryId: Type.Optional(Type.String()),
+    continues: Type.Optional(Type.Literal(true))
+})
+
+/**
+ * A cavalry road move that took a locale the defender gave up without a fight and may still go on:
+ * ride further, or threaten again across an approach its road crosses (rule 11).
+ */
+export type RoadMarch = Type.Static<typeof RoadMarch>
+export const RoadMarch = Type.Object({
+    kind: Type.Enum(CommandKind),
+    commanderId: Type.Optional(Type.String()),
+    unitIds: Type.Array(Type.String(), { minItems: 1 }),
+    start: Type.Optional(Type.Integer()),
+    entryId: Type.Optional(Type.String()),
+    path: Type.Array(Type.Integer(), { minItems: 1 })
 })
 
 export enum DecisionKind {
@@ -61,7 +77,6 @@ export const PendingDecision = Type.Union([
     AdvanceDecision
 ])
 
-/** The defender's choice of leading units, kept from the attacker until the attack is pressed. */
 export type DefensePlan = Type.Static<typeof DefensePlan>
 export const DefensePlan = Type.Object({
     playerId: Type.String(),
@@ -70,20 +85,29 @@ export const DefensePlan = Type.Object({
     })
 })
 
-/** Where the attack procedure of rule 11 stands. */
-export enum AttackStep {
-    DefenseResponse = 'DefenseResponse',
-    FeintDecision = 'FeintDecision',
-    AttackDeclaration = 'AttackDeclaration',
-    CounterAttackDecision = 'CounterAttackDecision',
-    Resolving = 'Resolving',
-    Retreating = 'Retreating',
-    Occupying = 'Occupying'
-}
+/** The machine states an attack passes through (rule 11); the attack records which it is in. */
+export type AttackStep = Type.Static<typeof AttackStep>
+export const AttackStep = Type.Union([
+    Type.Literal(MachineState.DefenseResponse),
+    Type.Literal(MachineState.FeintDecision),
+    Type.Literal(MachineState.AttackDeclaration),
+    Type.Literal(MachineState.CounterAttackDecision),
+    Type.Literal(MachineState.ResolvingAttack),
+    Type.Literal(MachineState.Retreating),
+    Type.Literal(MachineState.Occupying)
+])
+
+export type LossEntry = Type.Static<typeof LossEntry>
+export const LossEntry = Type.Object({
+    unitId: Type.String(),
+    steps: Type.Integer(),
+    eliminated: Type.Boolean(),
+    face: Face
+})
 
 export type Attack = Type.Static<typeof Attack>
 export const Attack = Type.Object({
-    step: Type.Enum(AttackStep),
+    step: AttackStep,
     attackerId: Type.String(),
     defenderId: Type.String(),
     attackApproach: Type.Integer(),
@@ -106,10 +130,8 @@ export const Attack = Type.Object({
     artilleryLed: Type.Optional(Type.Boolean()),
     retreatBeforeCombat: Type.Optional(Type.Literal(true)),
     feint: Type.Optional(Type.Literal(true)),
-    /** Strength points each army has lost in this attack so far. */
     attackerStepsLost: Type.Integer({ minimum: 0 }),
     defenderStepsLost: Type.Integer({ minimum: 0 }),
-    /** Set once the losses of steps 9 and 10 are fully applied and morale has been adjusted. */
     lossesSettled: Type.Optional(Type.Literal(true)),
     pending: Type.Array(PendingDecision)
 })

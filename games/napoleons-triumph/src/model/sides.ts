@@ -10,11 +10,8 @@ import {
 import { SIDE_COLORS } from '../definition/colors.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 
-/**
- * Creates both armies off the map. Which block carries which face is drawn from the protected
- * stream, so a unit's id says nothing about what it is.
- */
 function raiseArmies(state: HydratedNapoleonsTriumphGameState) {
+    // Faces are dealt from the protected stream so a unit's id says nothing about what it is.
     const random = state.getProtectedPrng().random
     state.units = []
     for (const side of [Side.French, Side.Allied]) {
@@ -31,7 +28,6 @@ function raiseArmies(state: HydratedNapoleonsTriumphGameState) {
     }))
 }
 
-/** Gives one player an army and the other the opposing one, with any morale handicap the chooser accepted. */
 export function assignSides(
     state: HydratedNapoleonsTriumphGameState,
     chooserId: string,
@@ -44,9 +40,6 @@ export function assignSides(
         player.color = SIDE_COLORS[own]
         player.morale = STARTING_MORALE[own] - (player.playerId === chooserId ? handicap : 0)
     }
-    state.turnManager.turnOrder = [
-        state.playerOf(Side.Allied).playerId,
-        state.playerOf(Side.French).playerId
-    ]
+    state.turnManager.newFirstPlayer(state.playerOf(Side.Allied).playerId)
     raiseArmies(state)
 }

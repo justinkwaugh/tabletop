@@ -9,8 +9,14 @@
     const lowest = $derived((highBid ?? -1) + 1)
     let wanted = $state(0)
     const amount = $derived(Math.min(MAX_BID, Math.max(lowest, wanted)))
-    const canBid = $derived(gameSession.validActionTypes.includes(ActionType.PlaceBid) && lowest <= MAX_BID)
-    const canChoose = $derived(gameSession.validActionTypes.includes(ActionType.ChooseSide))
+    const canBid = $derived(
+        gameSession.canAct &&
+            gameSession.validActionTypes.includes(ActionType.PlaceBid) &&
+            lowest <= MAX_BID
+    )
+    const canChoose = $derived(
+        gameSession.canAct && gameSession.validActionTypes.includes(ActionType.ChooseSide)
+    )
 
     const ARMIES = [
         { side: Side.French, name: 'the French' },
@@ -18,12 +24,22 @@
     ]
 </script>
 
-<div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]">
+<div
+    class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]"
+>
     {#if canChoose}
-        <span>Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span>
+        <span
+            >Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span
+        >
         {#each ARMIES as army (army.side)}
-            <button type="button" class="nt-plain-button" onclick={() => gameSession.chooseSide(army.side)}>
-                Take {army.name} at {STARTING_MORALE[army.side] - (highBid ?? 0)} morale
+            {@const morale = STARTING_MORALE[army.side] - (highBid ?? 0)}
+            <button
+                type="button"
+                class="nt-plain-button"
+                disabled={morale < 1}
+                onclick={() => gameSession.chooseSide(army.side)}
+            >
+                Take {army.name} at {morale} morale
             </button>
         {/each}
     {:else if gameSession.canAct && auction}
@@ -51,17 +67,22 @@
                     onclick={() => (wanted = amount + 1)}>+</button
                 >
             </span>
-            <button type="button" class="nt-plain-button" onclick={() => gameSession.placeBid(amount)}
-                >Bid {amount}</button
+            <button
+                type="button"
+                class="nt-plain-button"
+                onclick={() => gameSession.placeBid(amount)}>Bid {amount}</button
             >
         {/if}
         <button type="button" class="nt-plain-button" onclick={() => gameSession.passBid()}>
             {highBid === undefined ? 'Pass, and let them choose for nothing' : 'Pass'}
         </button>
-    {:else if auction && !gameSession.isViewingHistory}
+    {:else if auction}
         <span>
-            The armies are being bid for{highBid !== undefined ? `; the bid stands at ${highBid}` : ''}. Waiting
-            for <PlayerName playerId={gameSession.gameState.activePlayerIds[0]} />.
+            The armies are being bid for{highBid !== undefined
+                ? `; the bid stands at ${highBid}`
+                : ''}. Waiting for <PlayerName
+                playerId={gameSession.gameState.activePlayerIds[0]}
+            />.
         </span>
     {/if}
 </div>

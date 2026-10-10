@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, assert, assertExists } from '@tabletop/common'
-import { Side } from '../components/pieces.js'
+import { STARTING_MORALE, Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { assignSides } from '../model/sides.js'
@@ -37,6 +37,10 @@ export class HydratedChooseSide extends HydratableAction<typeof ChooseSide> impl
         const auction = state.auction
         assertExists(auction, 'There is no morale auction')
         assert(auction.highBidderId === this.playerId, 'The auction winner chooses the army')
+        assert(
+            STARTING_MORALE[this.side] > (auction.highBid ?? 0),
+            'That bid would leave the army with no morale'
+        )
         assignSides(state, this.playerId, this.side, auction.highBid ?? 0)
         state.auction = undefined
     }

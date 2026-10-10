@@ -5,28 +5,37 @@ import {
     arrangeBattlefield,
     artillery,
     cavalry,
-    infantry,
-    type PiecePlacement
+    infantry
 } from '@tabletop/napoleons-triumph/testing'
-import { emptyBattleDraft } from './battle.js'
-import { retreatDraft } from './retreatDraft.js'
+import { retreatSelection } from './battleSelection.js'
+import { retreatPlan } from './retreatPlan.js'
 
 const ATTACK_FROM = 95
 const DEFEND_IN = 108
-
-const PLACEMENTS: PiecePlacement[] = [
-    { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
-    { id: 'A-inf-a', side: Side.Allied, face: infantry(3), locale: DEFEND_IN, commanderId: 'langeron' },
-    { id: 'A-inf-b', side: Side.Allied, face: infantry(1), locale: DEFEND_IN, commanderId: 'langeron' },
-    { id: 'A-cav', side: Side.Allied, face: cavalry(2), locale: DEFEND_IN },
-    { id: 'A-art', side: Side.Allied, face: artillery(), locale: DEFEND_IN }
-]
 
 function threatened(): TestGame {
     const game = new TestGame()
     game.deployBoth()
     game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
-    arrangeBattlefield(game, PLACEMENTS)
+    arrangeBattlefield(game, [
+        { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
+        {
+            id: 'A-inf-a',
+            side: Side.Allied,
+            face: infantry(3),
+            locale: DEFEND_IN,
+            commanderId: 'langeron'
+        },
+        {
+            id: 'A-inf-b',
+            side: Side.Allied,
+            face: infantry(1),
+            locale: DEFEND_IN,
+            commanderId: 'langeron'
+        },
+        { id: 'A-cav', side: Side.Allied, face: cavalry(2), locale: DEFEND_IN },
+        { id: 'A-art', side: Side.Allied, face: artillery(), locale: DEFEND_IN }
+    ])
     const approach = game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
     game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), { approach })
     return game
@@ -35,7 +44,7 @@ function threatened(): TestGame {
 describe('arranging a retreat', () => {
     it('suggests losses that cost no unit, and a plan the rules accept', () => {
         const game = threatened()
-        const plan = retreatDraft(game.hydrated, emptyBattleDraft())
+        const plan = retreatPlan(game.hydrated, retreatSelection.empty())
         const owed = plan.groups.reduce((sum, group) => sum + group.steps, 0)
         expect(owed).toBeGreaterThan(0)
         expect(plan.losses).toEqual({ 'A-inf-a': owed })
@@ -54,21 +63,31 @@ describe('arranging a retreat', () => {
 
     it('sends a unit where the player asks and the rest where there is most room', () => {
         const game = threatened()
-        const base = retreatDraft(game.hydrated, emptyBattleDraft())
-        const [elsewhere] = [...base.room.keys()].filter(
-            (locale) => locale !== base.destinations['A-cav'] && (base.room.get(locale) ?? 0) > 0
+        const suggested = retreatPlan(game.hydrated, retreatSelection.empty())
+        const [elsewhere] = [...suggested.room.keys()].filter(
+            (locale) =>
+                locale !== suggested.destinations['A-cav'] && (suggested.room.get(locale) ?? 0) > 0
         )
-        const plan = retreatDraft(game.hydrated, {
-            ...emptyBattleDraft(),
-            destinations: { 'A-cav': elsewhere }
-        })
+        const asked = retreatSelection.set(
+            retreatSelection.empty(),
+            'destinations',
+            { 'A-cav': elsewhere },
+            'manual'
+        )
+        const plan = retreatPlan(game.hydrated, asked)
         expect(plan.destinations['A-cav']).toBe(elsewhere)
-        expect(plan.destinations['A-inf-a']).toBe(base.destinations['A-inf-a'])
+        expect(plan.destinations['A-inf-a']).toBe(suggested.destinations['A-inf-a'])
     })
 
     it('reports losses that do not add up', () => {
         const game = threatened()
-        const plan = retreatDraft(game.hydrated, { ...emptyBattleDraft(), allocation: { 'A-inf-b': 1 } })
+        const chosen = retreatSelection.set(
+            retreatSelection.empty(),
+            'losses',
+            { 'A-inf-b': 1 },
+            'manual'
+        )
+        const plan = retreatPlan(game.hydrated, chosen)
         const owed = plan.groups.reduce((sum, group) => sum + group.steps, 0)
         expect(plan.lossesValid).toBe(owed === 1)
         expect(plan.survivors.map((unit) => unit.id)).toEqual(['A-inf-a', 'A-cav'])

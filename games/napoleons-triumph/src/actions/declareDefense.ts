@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, Visibility, assertExists } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { declareDefense } from '../model/attackFlow.js'
+import { declareDefense } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export type DeclareDefense = Type.Static<typeof DeclareDefense>

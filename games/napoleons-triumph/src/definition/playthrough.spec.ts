@@ -36,7 +36,7 @@ describe("Napoleon's Triumph set-up", () => {
         game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
         expect(game.activePlayerId).toBe(game.playerOf(Side.French))
         game.act(ActionType.EndTurn, game.playerOf(Side.French))
-        expect(game.state.round).toBe(1)
+        expect(game.hydrated.round).toBe(1)
         expect(game.activePlayerId).toBe(game.playerOf(Side.Allied))
     })
 })

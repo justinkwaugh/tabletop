@@ -1,6 +1,7 @@
 import type { Point } from '@tabletop/common'
 import {
     samePosition,
+    standingGroupKey,
     type Commander,
     type HydratedNapoleonsTriumphGameState,
     type Position,
@@ -21,43 +22,37 @@ const FULL_RANK_SPACING = BLOCK_THICKNESS + 2
 export interface BlockSprite {
     unit: ProjectedUnit
     centre: Point
-    /** Rotation of the block in degrees; 0 lies along the x axis. */
     angle: number
 }
 
-/** The pieces a player handles as one: a corps with its commander, or detached units standing together. */
 export interface PieceGroup {
     key: string
     playerId: string
-    position: Position
+    position?: Position
     commander?: Commander
     units: ProjectedUnit[]
 }
 
+interface PlacedGroup extends PieceGroup {
+    position: Position
+}
+
 export interface GroupSprite {
-    group: PieceGroup
+    group: PlacedGroup
     blocks: BlockSprite[]
-    /** Where the commander's flag stands, when the group is a corps. */
     flag?: Point
-    /** The middle of the group, for anchoring popups and labels. */
     centre: Point
-    /** Half the extent of the group across and along its ranks. */
     radius: number
 }
 
-export function groupKey(position: Position, playerId: string, commanderId?: string): string {
-    return `${playerId}|${position.locale}:${position.approach ?? 'r'}|${commanderId ?? ''}`
-}
-
-/** Groups the pieces on the map by position and corps. */
-export function pieceGroups(state: HydratedNapoleonsTriumphGameState): PieceGroup[] {
-    const groups = new Map<string, PieceGroup>()
+function placedGroups(state: HydratedNapoleonsTriumphGameState): PlacedGroup[] {
+    const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
         if (!position) {
             continue
         }
-        const key = groupKey(position, unit.playerId, unit.commanderId)
+        const key = standingGroupKey(unit)
         const group = groups.get(key)
         if (group) {
             group.units.push(unit)
@@ -70,9 +65,7 @@ export function pieceGroups(state: HydratedNapoleonsTriumphGameState): PieceGrou
 }
 
 export interface LayoutOptions {
-    /** Clockwise turn of the board on screen, so faces and reserve stacks stay level for the viewer. */
     rotation: number
-    /** Locales whose pieces are spread out so every block can be told apart and tapped. */
     looseLocales?: readonly number[]
 }
 
@@ -84,7 +77,7 @@ function rankSpacing(count: number, room: number, loose: boolean): number {
     return Math.max(MIN_RANK_SPACING, Math.min(FULL_RANK_SPACING, fitted))
 }
 
-function sprite(group: PieceGroup, blocks: BlockSprite[], flagAt?: Point): GroupSprite {
+function sprite(group: PlacedGroup, blocks: BlockSprite[], flagAt?: Point): GroupSprite {
     const xs = blocks.map((block) => block.centre.x)
     const ys = blocks.map((block) => block.centre.y)
     const centre = {
@@ -97,11 +90,17 @@ function sprite(group: PieceGroup, blocks: BlockSprite[], flagAt?: Point): Group
     return { group, blocks, flag: group.commander ? flagAt : undefined, centre, radius }
 }
 
-/** Pieces blocking an approach line up in ranks behind its bar, two abreast on a wide approach. */
-function layoutBlockers(groups: PieceGroup[], approachId: number, options: LayoutOptions): GroupSprite[] {
+function layoutBlockers(
+    groups: PlacedGroup[],
+    approachId: number,
+    options: LayoutOptions
+): GroupSprite[] {
     const bar = APPROACH_GEOMETRY[approachId]
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
-    const along = { x: Math.cos((bar.angle * Math.PI) / 180), y: Math.sin((bar.angle * Math.PI) / 180) }
+    const along = {
+        x: Math.cos((bar.angle * Math.PI) / 180),
+        y: Math.sin((bar.angle * Math.PI) / 180)
+    }
     const columns = bar.length > BLOCK_LENGTH * 2 ? 2 : 1
     const total = groups.reduce((sum, group) => sum + group.units.length, 0)
     const ranks = Math.ceil(total / columns)
@@ -136,8 +135,7 @@ function layoutBlockers(groups: PieceGroup[], approachId: number, options: Layou
     })
 }
 
-/** Reserve pieces gather round the locale's anchor, each group a short column of blocks level on screen. */
-function layoutReserve(groups: PieceGroup[], options: LayoutOptions): GroupSprite[] {
+function layoutReserve(groups: PlacedGroup[], options: LayoutOptions): GroupSprite[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
     const angle = uprightAngle((Math.atan2(right.y, right.x) * 180) / Math.PI, options.rotation)
@@ -177,7 +175,7 @@ function layoutReserve(groups: PieceGroup[], options: LayoutOptions): GroupSprit
     })
 }
 
-function sortGroups(groups: PieceGroup[]): PieceGroup[] {
+function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
     return groups.toSorted((a, b) => {
         if ((a.commander === undefined) !== (b.commander === undefined)) {
             return a.commander ? -1 : 1
@@ -186,13 +184,12 @@ function sortGroups(groups: PieceGroup[]): PieceGroup[] {
     })
 }
 
-/** Where every block on the map is drawn. */
 export function layoutPieces(
     state: HydratedNapoleonsTriumphGameState,
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
-    const byPosition: PieceGroup[][] = []
-    for (const group of pieceGroups(state)) {
+    const byPosition: PlacedGroup[][] = []
+    for (const group of placedGroups(state)) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)

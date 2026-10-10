@@ -9,9 +9,7 @@
         symbolHeight = 12
     }: {
         face: Face
-        /** Colour of the printed symbol. */
         ink: string
-        /** Colour of the block the symbol is printed on. */
         ground: string
         symbolWidth?: number
         symbolHeight?: number
@@ -29,18 +27,18 @@
 {#each offsets as x (x)}
     <g transform="translate({x} {-h / 2})">
         {#if face.type === UnitType.Artillery}
-            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3" />
-            <circle cx={w / 2} cy={h / 2} r={h * 0.27} fill={ink} />
+            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3"></rect>
+            <circle cx={w / 2} cy={h / 2} r={h * 0.27} fill={ink}></circle>
         {:else if face.type === UnitType.Cavalry}
-            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3" />
-            <polygon points="0,0 0,{h} {w},{h}" fill={ink} />
+            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3"></rect>
+            <polygon points="0,0 0,{h} {w},{h}" fill={ink}></polygon>
         {:else if face.guard}
-            <rect width={w} height={h} fill={ink} stroke={ink} stroke-width="1.3" />
-            <path d="M0 0 L{w} {h} M{w} 0 L0 {h}" stroke={ground} stroke-width="1.1" />
+            <rect width={w} height={h} fill={ink} stroke={ink} stroke-width="1.3"></rect>
+            <path d="M0 0 L{w} {h} M{w} 0 L0 {h}" stroke={ground} stroke-width="1.1"></path>
         {:else}
-            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3" />
-            <polygon points="0,0 {w / 2},{h / 2} 0,{h}" fill={ink} />
-            <polygon points="{w},0 {w / 2},{h / 2} {w},{h}" fill={ink} />
+            <rect width={w} height={h} fill={ground} stroke={ink} stroke-width="1.3"></rect>
+            <polygon points="0,0 {w / 2},{h / 2} 0,{h}" fill={ink}></polygon>
+            <polygon points="{w},0 {w / 2},{h / 2} {w},{h}" fill={ink}></polygon>
         {/if}
     </g>
 {/each}

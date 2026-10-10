@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, assert } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { DecisionKind } from '../model/attack.js'
-import { assignExcessLosses, assignOddLoss, nextDecision } from '../model/attackFlow.js'
+import { assignExcessLosses, assignOddLoss, nextDecision } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
 
@@ -15,7 +15,6 @@ export const AssignLosses = Type.Evaluate(
             type: Type.Literal(ActionType.AssignLosses),
             playerId: Type.String(),
             metadata: Type.Optional(CombatMetadata),
-            /** Steps each unit takes. An odd loss names one of the two leading units with one step. */
             allocation: Type.Record(Type.String(), Type.Integer({ minimum: 1 }))
         })
     ])
@@ -44,7 +43,10 @@ export class HydratedAssignLosses
         const decision = nextDecision(state)
         if (decision?.kind === DecisionKind.OddLoss) {
             const [unitId, ...rest] = Object.keys(this.allocation)
-            assert(rest.length === 0 && this.allocation[unitId] === 1, 'An odd loss is one step on one unit')
+            assert(
+                rest.length === 0 && this.allocation[unitId] === 1,
+                'An odd loss is one step on one unit'
+            )
             this.metadata = combatMetadata(assignOddLoss(state, this.playerId, unitId))
             return
         }

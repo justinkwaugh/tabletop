@@ -57,7 +57,6 @@ export class NapoleonsTriumphGameInitializer
             rounds: HydratedRoundManager.generate(),
             scenario: scenarioOf(game.config),
             santon: santonOf(game.config),
-            round: 0,
             units: [],
             commanders: [],
             frenchReinforcementsEntered: false,

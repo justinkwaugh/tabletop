@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { Side } from '@tabletop/napoleons-triumph'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
-import { BoardView, boundsOf, screenAxes, toView, uprightAngle, viewFor, viewRotation } from './boardView.js'
+import {
+    BoardView,
+    boundsOf,
+    screenAxes,
+    toView,
+    uprightAngle,
+    viewFor,
+    viewRotation
+} from './boardView.js'
 
 describe('board views', () => {
     it("puts the viewer's own edge of the board at the bottom of the screen", () => {
@@ -27,7 +35,8 @@ describe('board views', () => {
     it('never leaves a face upside down', () => {
         for (const rotation of [0, 90, -90]) {
             for (let angle = -180; angle <= 180; angle += 15) {
-                const onScreen = ((((uprightAngle(angle, rotation) + rotation) % 360) + 540) % 360) - 180
+                const onScreen =
+                    ((((uprightAngle(angle, rotation) + rotation) % 360) + 540) % 360) - 180
                 expect(onScreen).toBeGreaterThan(-90)
                 expect(onScreen).toBeLessThanOrEqual(90)
             }
@@ -35,7 +44,13 @@ describe('board views', () => {
     })
 
     it('bounds points in view coordinates', () => {
-        const rect = boundsOf([{ x: 100, y: 200 }, { x: 300, y: 260 }], 90)
+        const rect = boundsOf(
+            [
+                { x: 100, y: 200 },
+                { x: 300, y: 260 }
+            ],
+            90
+        )
         expect(rect).toEqual({ x: BOARD_HEIGHT - 260, y: 100, width: 60, height: 200 })
     })
 })

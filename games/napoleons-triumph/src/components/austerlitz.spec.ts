@@ -24,9 +24,10 @@ describe('the Austerlitz map, as checked against the public map file', () => {
         expect(AUSTERLITZ.entries(Side.French)).toHaveLength(13)
         expect(AUSTERLITZ.entries(Side.Allied)).toHaveLength(7)
         expect(AUSTERLITZ.entryLocales(Side.French)).toContain(139)
-        const main = [...AUSTERLITZ.entries(Side.French), ...AUSTERLITZ.entries(Side.Allied)].filter(
-            (entry) => entry.main
-        )
+        const main = [
+            ...AUSTERLITZ.entries(Side.French),
+            ...AUSTERLITZ.entries(Side.Allied)
+        ].filter((entry) => entry.main)
         expect(main.map((entry) => entry.locale).toSorted((a, b) => a - b)).toEqual([51, 59, 87])
     })
 

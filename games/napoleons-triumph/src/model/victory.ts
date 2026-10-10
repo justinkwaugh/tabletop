@@ -4,7 +4,7 @@ import { Side, UnitType } from '../components/pieces.js'
 import { VictoryKind, type HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf } from './pieces.js'
 
-const ALLIED_OBJECTIVES = [Star.Green, Star.Red, Star.Black]
+export const ALLIED_OBJECTIVES = [Star.Green, Star.Red, Star.Black]
 
 export function declareVictory(
     state: HydratedNapoleonsTriumphGameState,
@@ -25,9 +25,7 @@ export function controls(
     const garrisoned = state
         .commandersIn(locale, playerId)
         .some((commander) =>
-            state
-                .corpsUnits(commander.id)
-                .some((unit) => faceOf(unit).type !== UnitType.Cavalry)
+            state.corpsUnits(commander.id).some((unit) => faceOf(unit).type !== UnitType.Cavalry)
         )
     if (!garrisoned) {
         return false
@@ -42,10 +40,7 @@ export function controls(
         )
 }
 
-export function controlledStars(
-    state: HydratedNapoleonsTriumphGameState,
-    playerId: string
-): Star[] {
+function controlledStars(state: HydratedNapoleonsTriumphGameState, playerId: string): Star[] {
     const stars = state.map.allLocales
         .filter((locale) => locale.stars.length > 0 && controls(state, playerId, locale.id))
         .flatMap((locale) => locale.stars)

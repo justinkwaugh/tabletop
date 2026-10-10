@@ -7,13 +7,12 @@ import {
     type ProjectedUnit,
     type RetreatLossGroup
 } from '@tabletop/napoleons-triumph'
-import type { BattleDraft } from './battle.js'
+import type { StagedSelectionState } from '@tabletop/frontend-components'
+import { retreatSelection, type RetreatValues } from './battleSelection.js'
 
-/** A retreat as it stands: the player's picks, completed with the kindest choices for the rest. */
-export interface RetreatDraft {
+export interface RetreatPlan {
     units: ProjectedUnit[]
     groups: RetreatLossGroup[]
-    /** Locales the retreat may reach, with the room each has. */
     room: Map<number, number>
     losses: Record<string, number>
     survivors: ProjectedUnit[]
@@ -26,11 +25,6 @@ function strengthOf(unit: ProjectedUnit): number {
     return unit.face?.strength ?? 0
 }
 
-function isArtillery(unit: ProjectedUnit): boolean {
-    return unit.face?.type === UnitType.Artillery
-}
-
-/** Each group's steps taken where they cost no unit if possible, from the strongest units first. */
 function suggestedLosses(
     state: HydratedNapoleonsTriumphGameState,
     groups: readonly RetreatLossGroup[]
@@ -38,28 +32,23 @@ function suggestedLosses(
     const result: Record<string, number> = {}
     for (const group of groups) {
         let owed = group.steps
-        const order = group.unitIds
+        const strongestFirst = group.unitIds
             .map((id) => state.unit(id))
             .toSorted((a, b) => strengthOf(b) - strengthOf(a))
-        for (const unit of order) {
-            const take = Math.min(owed, Math.max(0, strengthOf(unit) - 1))
-            if (take > 0) {
-                result[unit.id] = take
-                owed -= take
-            }
-        }
-        for (const unit of order) {
-            const take = Math.min(owed, strengthOf(unit) - (result[unit.id] ?? 0))
-            if (take > 0) {
-                result[unit.id] = (result[unit.id] ?? 0) + take
-                owed -= take
+        for (const spare of [1, 0]) {
+            for (const unit of strongestFirst) {
+                const taken = result[unit.id] ?? 0
+                const take = Math.min(owed, Math.max(0, strengthOf(unit) - spare - taken))
+                if (take > 0) {
+                    result[unit.id] = taken + take
+                    owed -= take
+                }
             }
         }
     }
     return result
 }
 
-/** Survivors go where the player sent them while there is room, the rest wherever room is greatest. */
 function settleDestinations(
     survivors: readonly ProjectedUnit[],
     room: ReadonlyMap<number, number>,
@@ -67,42 +56,49 @@ function settleDestinations(
 ): Record<string, number> {
     const result: Record<string, number> = {}
     const free = new Map(room)
+    const send = (unit: ProjectedUnit, locale: number) => {
+        result[unit.id] = locale
+        free.set(locale, (free.get(locale) ?? 0) - 1)
+    }
     for (const unit of survivors) {
         const chosen = wanted[unit.id]
         if (chosen !== undefined && (free.get(chosen) ?? 0) > 0) {
-            result[unit.id] = chosen
-            free.set(chosen, (free.get(chosen) ?? 0) - 1)
+            send(unit, chosen)
         }
     }
-    for (const unit of survivors) {
-        if (result[unit.id] !== undefined) {
-            continue
-        }
-        const [best] = [...free].toSorted((a, b) => b[1] - a[1])
-        if (best && best[1] > 0) {
-            result[unit.id] = best[0]
-            free.set(best[0], best[1] - 1)
+    for (const unit of survivors.filter((candidate) => result[candidate.id] === undefined)) {
+        const [roomiest] = [...free].toSorted((a, b) => b[1] - a[1])
+        if (roomiest && roomiest[1] > 0) {
+            send(unit, roomiest[0])
         }
     }
     return result
 }
 
-export function retreatDraft(state: HydratedNapoleonsTriumphGameState, draft: BattleDraft): RetreatDraft {
+export function retreatPlan(
+    state: HydratedNapoleonsTriumphGameState,
+    selection: StagedSelectionState<RetreatValues>
+): RetreatPlan {
     const units = retreatingUnits(state)
     const groups = retreatLossGroups(state)
     const room = retreatRoom(state)
-    const losses =
-        Object.keys(draft.allocation).length > 0 ? draft.allocation : suggestedLosses(state, groups)
+    const losses = retreatSelection.value(selection, 'losses') ?? suggestedLosses(state, groups)
     const survivors = units.filter(
-        (unit) => !isArtillery(unit) && (losses[unit.id] ?? 0) < strengthOf(unit)
+        (unit) =>
+            unit.face?.type !== UnitType.Artillery && (losses[unit.id] ?? 0) < strengthOf(unit)
     )
-    const destinations = settleDestinations(survivors, room, draft.destinations)
+    const destinations = settleDestinations(
+        survivors,
+        room,
+        retreatSelection.value(selection, 'destinations') ?? {}
+    )
+    const wantedKept = retreatSelection.value(selection, 'kept') ?? {}
     const kept: Record<string, string> = {}
     for (const commanderId of new Set(survivors.flatMap((unit) => unit.commanderId ?? []))) {
         const corps = survivors.filter(
             (unit) => unit.commanderId === commanderId && destinations[unit.id] !== undefined
         )
-        const chosen = corps.find((unit) => unit.id === draft.kept[commanderId]) ?? corps[0]
+        const chosen = corps.find((unit) => unit.id === wantedKept[commanderId]) ?? corps[0]
         if (chosen && corps.length > 1) {
             kept[commanderId] = chosen.id
         }

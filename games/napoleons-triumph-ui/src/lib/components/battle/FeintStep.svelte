@@ -1,55 +1,35 @@
 <script lang="ts">
-    import { ActionType, FeintEnd, inReserve, type Side } from '@tabletop/napoleons-triumph'
+    import { FeintEnd } from '@tabletop/napoleons-triumph'
+    import type { FeintStage } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AttackerPicker from './AttackerPicker.svelte'
 
-    let { side }: { side: Side } = $props()
+    let { stage }: { stage: FeintStage } = $props()
 
     const gameSession = getGameSession()
-    const game = $derived(gameSession.gameState)
-    const picked = $derived(gameSession.battleStage?.picked ?? [])
-    const orders = $derived(gameSession.battleStage?.orders)
-    const fromReserve = $derived(
-        picked.length > 0 && picked.every((id) => {
-            const position = game.unit(id).position
-            return position !== undefined && inReserve(position)
-        })
-    )
-    const canPress = $derived(gameSession.validActionTypes.includes(ActionType.PressAttack))
+
+    const END_NAMES: Record<FeintEnd, string> = {
+        [FeintEnd.Approach]: 'Feint, moving up to the approach',
+        [FeintEnd.Reserve]: 'Feint, staying in reserve'
+    }
 </script>
 
 <div class="nt-battle-prompt">
-    The defence stands. Press the attack to see its leading units, or call it a feint with the
-    units you pick.
+    The defence stands. Press the attack to see its leading units, or call it a feint with the units
+    you pick.
 </div>
-<AttackerPicker {side} />
+<AttackerPicker {stage} />
 <div class="flex flex-wrap gap-2 pt-1">
-    {#if canPress}
+    {#if stage.canPress}
         <button type="button" class="nt-plain-button" onclick={() => gameSession.pressAttack()}
             >Press the attack</button
         >
     {/if}
-    {#if fromReserve}
-        <button
-            type="button"
-            class="nt-plain-button"
-            disabled={!orders}
-            onclick={() => orders && gameSession.feint(orders, FeintEnd.Approach)}
-            >Feint, moving up to the approach</button
-        >
-        <button
-            type="button"
-            class="nt-plain-button"
-            disabled={!orders}
-            onclick={() => orders && gameSession.feint(orders, FeintEnd.Reserve)}
-            >Feint, staying in reserve</button
+    {#each stage.ends as end (end)}
+        <button type="button" class="nt-plain-button" onclick={() => gameSession.feint(end)}
+            >{stage.ends.length === 1 ? 'Feint in place' : END_NAMES[end]}</button
         >
     {:else}
-        <button
-            type="button"
-            class="nt-plain-button"
-            disabled={!orders}
-            onclick={() => orders && gameSession.feint(orders, FeintEnd.Approach)}>Feint in place</button
-        >
-    {/if}
+        <button type="button" class="nt-plain-button" disabled>Feint</button>
+    {/each}
 </div>

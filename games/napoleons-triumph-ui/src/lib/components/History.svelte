@@ -1,55 +1,23 @@
 <script lang="ts">
-    import { ROUNDS, Side, isEndTurn, roundLabel } from '@tabletop/napoleons-triumph'
-    import { ARMY_COLORS } from '$lib/definitions/palette.js'
+    import { historyChapters } from '$lib/model/historyChapters.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeAction } from '$lib/utils/describeAction.js'
 
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
 
-    const context = $derived({
-        map: game.map,
-        sideOf: (playerId: string | undefined) => game.findPlayerState(playerId ?? '')?.side
-    })
-
-    interface Entry {
-        index: number
-        side?: Side
-        text: string
-    }
-
-    interface Chapter {
-        title: string
-        entries: Entry[]
-    }
-
-    /** Actions grouped under the round they were taken in; ending a turn tells nothing by itself. */
-    const chapters = $derived.by(() => {
-        const rounds = game.rounds.series
-        const result: Chapter[] = []
-        for (const action of gameSession.actions) {
-            const index = action.index ?? 0
-            const round = rounds.findLast((candidate) => candidate.start <= index)
-            const definition = round ? ROUNDS[game.scenario][round.number - 1] : undefined
-            const title = definition
-                ? `${roundLabel(definition)}${definition.night ? '' : `, ${definition.day} December`}`
-                : 'Before the battle'
-            let chapter = result.at(-1)
-            if (!chapter || chapter.title !== title) {
-                chapter = { title, entries: [] }
-                result.push(chapter)
-            }
-            const text = isEndTurn(action) ? '' : describeAction(action, context)
-            if (text) {
-                chapter.entries.push({ index, side: context.sideOf(action.playerId), text })
-            }
-        }
-        return result.filter((chapter) => chapter.entries.length > 0).toReversed()
-    })
+    const chapters = $derived(
+        historyChapters(gameSession.actions, game.rounds.series, game.scenario, (action) =>
+            describeAction(action, {
+                map: game.map,
+                sideOf: (playerId) => game.findPlayerState(playerId ?? '')?.side
+            })
+        )
+    )
 </script>
 
 <div class="nt-history">
-    {#each chapters as chapter (chapter.title)}
+    {#each chapters.toReversed() as chapter (chapter.title)}
         <h3>{chapter.title}</h3>
         {#each chapter.entries.toReversed() as entry (entry.index)}
             <button
@@ -59,7 +27,9 @@
             >
                 <span
                     class="nt-history-mark"
-                    style="background: {entry.side ? ARMY_COLORS[entry.side].block : '#8a857a'};"
+                    style="background: {entry.playerId
+                        ? gameSession.colors.getPlayerUiColor(entry.playerId)
+                        : '#8a857a'};"
                 ></span>
                 <span>{entry.text}</span>
             </button>

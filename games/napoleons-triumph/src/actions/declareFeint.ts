@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MoveOrder } from '../model/attack.js'
-import { FeintEnd, declareFeint } from '../model/attackFlow.js'
+import { FeintEnd, declareFeint } from '../model/attackDeclaration.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export type DeclareFeint = Type.Static<typeof DeclareFeint>

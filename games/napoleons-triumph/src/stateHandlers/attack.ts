@@ -1,13 +1,9 @@
 import { assertExists } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { DecisionKind } from '../model/attack.js'
-import {
-    canPressAttack,
-    currentAttack,
-    eligibleReserveDefenders,
-    mustDefend,
-    nextDecision
-} from '../model/attackFlow.js'
+import { nextDecision } from '../model/attackDecisions.js'
+import { currentAttack } from '../model/attackState.js'
+import { canPressAttack, eligibleReserveDefenders, mustDefend } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { StepStateHandler, type AllowedAction } from './stepStateHandler.js'
 

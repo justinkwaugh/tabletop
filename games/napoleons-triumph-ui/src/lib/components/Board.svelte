@@ -33,43 +33,55 @@
     }
 </script>
 
-<div class="relative select-none" style="width: {size.width}px; height: {size.height}px;" {@attach watchZoom}>
 <div
-    class="absolute left-0 top-0 origin-top-left"
-    style="width: {BOARD_WIDTH}px; height: {BOARD_HEIGHT}px; transform: {viewTransform(gameSession.boardRotation)};"
+    class="relative select-none"
+    style="width: {size.width}px; height: {size.height}px;"
+    {@attach watchZoom}
 >
-    <img
-        src={boardPreview}
-        alt=""
-        class="absolute inset-0 w-full h-full"
-        draggable="false"
-        class:hidden={artLoaded}
-    />
-    <img
-        src={boardArt}
-        alt="The battlefield of Austerlitz"
-        class="absolute inset-0 w-full h-full"
-        draggable="false"
-        onload={() => (artLoaded = true)}
-    />
-    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-    <svg
-        class="absolute inset-0"
-        width={BOARD_WIDTH}
-        height={BOARD_HEIGHT}
-        viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
-        font-family="'Libre Baskerville', Georgia, serif"
-        onclick={() => gameSession.clearSelection()}
+    <div
+        class="absolute left-0 top-0 origin-top-left"
+        style="width: {BOARD_WIDTH}px; height: {BOARD_HEIGHT}px; transform: {viewTransform(
+            gameSession.boardRotation
+        )};"
     >
-        <defs>
-            <filter id="nt-contact-shadow" x="-5%" y="-5%" width="110%" height="110%">
-                <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#1c2a25" flood-opacity="0.38" />
-            </filter>
-        </defs>
-        <TargetLayer />
-        <PiecesLayer />
-        <TargetLayer attacks />
-        <BattleMarker />
-    </svg>
-</div>
+        <img
+            src={boardPreview}
+            alt=""
+            class="absolute inset-0 w-full h-full"
+            draggable="false"
+            class:hidden={artLoaded}
+        />
+        <img
+            src={boardArt}
+            alt="The battlefield of Austerlitz"
+            class="absolute inset-0 w-full h-full"
+            draggable="false"
+            onload={() => (artLoaded = true)}
+        />
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <svg
+            class="absolute inset-0"
+            width={BOARD_WIDTH}
+            height={BOARD_HEIGHT}
+            viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
+            font-family="'Libre Baskerville', Georgia, serif"
+            onclick={() => gameSession.clearSelection()}
+        >
+            <defs>
+                <filter id="nt-contact-shadow" x="-5%" y="-5%" width="110%" height="110%">
+                    <feDropShadow
+                        dx="0"
+                        dy="2.5"
+                        stdDeviation="2.2"
+                        flood-color="#1c2a25"
+                        flood-opacity="0.38"
+                    ></feDropShadow>
+                </filter>
+            </defs>
+            <TargetLayer />
+            <PiecesLayer />
+            <TargetLayer attacks />
+            <BattleMarker />
+        </svg>
+    </div>
 </div>

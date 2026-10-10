@@ -5,7 +5,6 @@ export enum Scenario {
 
 export interface RoundDefinition {
     day: 1 | 2
-    /** Hour of the day on a 24-hour clock; absent for the night round. */
     hour?: number
     night: boolean
 }
@@ -21,7 +20,6 @@ export const ROUNDS: Record<Scenario, RoundDefinition[]> = {
     [Scenario.December1]: [...dayRounds(1), NIGHT, ...dayRounds(2)]
 }
 
-/** When each French reinforcement corps becomes eligible to enter (time track). */
 const FRENCH_ARRIVALS: Record<string, { day: 1 | 2; hour: number }> = {
     bernadotte: { day: 1, hour: 11 },
     davout: { day: 2, hour: 8 }
@@ -39,7 +37,6 @@ export function isLastRound(scenario: Scenario, round: number): boolean {
     return round === ROUNDS[scenario].length - 1
 }
 
-/** The first round in which a French reinforcement commander may enter; earlier arrivals wait for the scenario start. */
 export function frenchArrivalRound(scenario: Scenario, commanderId: string): number {
     const arrival = FRENCH_ARRIVALS[commanderId]
     if (!arrival) {
@@ -51,7 +48,6 @@ export function frenchArrivalRound(scenario: Scenario, commanderId: string): num
     return Math.max(index, 0)
 }
 
-/** The hour of a round as printed on the time track, with its day when the battle runs over two. */
 export function roundLabel(definition: RoundDefinition, withDay = false): string {
     const day = withDay ? `${definition.day} December · ` : ''
     if (definition.night || definition.hour === undefined) {

@@ -29,7 +29,6 @@ export class HydratedPassBid extends HydratableAction<typeof PassBid> implements
         super(data, PassBidValidator)
     }
 
-    /** Passing hands the choice of army to the opponent at their last bid, or at nothing. */
     apply(state: HydratedNapoleonsTriumphGameState) {
         const auction = state.auction
         assertExists(auction, 'There is no morale auction')

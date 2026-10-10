@@ -3,7 +3,6 @@ import {
     CommandKind,
     FeintEnd,
     Side,
-    UnitType,
     commanderDefinition,
     isAdvance,
     isAssignLosses,
@@ -25,7 +24,6 @@ import {
     isThreatenAttack,
     type BattleMap,
     type CombatMetadata,
-    type Face,
     type MoveOrder,
     type Position
 } from '@tabletop/napoleons-triumph'
@@ -40,22 +38,12 @@ const ARMY: Record<Side, string> = {
     [Side.Allied]: 'The Allies'
 }
 
-const TYPE_NAMES: Record<UnitType, string> = {
-    [UnitType.Infantry]: 'infantry',
-    [UnitType.Cavalry]: 'cavalry',
-    [UnitType.Artillery]: 'artillery'
-}
-
-function place(map: BattleMap, locale: number): string {
-    return map.locale(locale).name ?? `locale ${locale}`
-}
-
 function standing(map: BattleMap, position: Position): string {
     if (position.approach === undefined) {
-        return place(map, position.locale)
+        return map.label(position.locale)
     }
-    const facing = place(map, map.approach(position.approach).neighbour)
-    return `the approach at ${place(map, position.locale)} facing ${facing}`
+    const facing = map.label(map.approach(position.approach).neighbour)
+    return `the approach at ${map.label(position.locale)} facing ${facing}`
 }
 
 function count(units: number): string {
@@ -70,11 +58,6 @@ function force(order: MoveOrder): string {
         return `${count(order.unitIds.length)} detached by ${commanderDefinition(order.commanderId).name}`
     }
     return 'a unit'
-}
-
-export function describeFace(face: Face): string {
-    const kind = face.guard ? 'Guard infantry' : TYPE_NAMES[face.type]
-    return `${face.strength}-strength ${kind}`
 }
 
 function signed(value: number): string {
@@ -109,7 +92,6 @@ function combat(metadata: CombatMetadata | undefined, context: ActionDescription
     return parts.join(' ')
 }
 
-/** What an action did, from its input and recorded result alone. Empty when there is nothing to tell. */
 export function describeAction(action: GameAction, context: ActionDescriptionContext): string {
     const side = context.sideOf(action.playerId)
     const army = side ? ARMY[side] : 'A player'
@@ -142,15 +124,16 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
     if (isThreatenAttack(action)) {
         const approach = map.approach(action.approach)
         const kind = action.guardUnitId ? 'a Guard Attack' : 'an attack'
-        return `${army} threaten ${kind} on ${place(map, approach.neighbour)} from ${place(map, approach.locale)}.`
+        return `${army} threaten ${kind} on ${map.label(approach.neighbour)} from ${map.label(approach.locale)}.`
     }
     if (isDeclareDefense(action)) {
         return `${army} stand with ${count(action.unitIds.length)}.`
     }
     if (isRetreat(action)) {
-        const from = action.metadata ? place(map, action.metadata.fromLocale) : 'the locale'
+        const from = action.metadata ? map.label(action.metadata.fromLocale) : 'the locale'
         const steps = action.metadata?.losses.reduce((sum, loss) => sum + loss.steps, 0) ?? 0
-        const cost = steps > 0 ? `, losing ${steps} step${steps === 1 ? '' : 's'} and as much morale` : ''
+        const cost =
+            steps > 0 ? `, losing ${steps} step${steps === 1 ? '' : 's'} and as much morale` : ''
         const when = action.metadata?.beforeCombat ? ' without a fight' : ''
         const broken = action.metadata?.demoralized ? ` ${army} are demoralized.` : ''
         return `${army} retreat from ${from}${when}${cost}.${broken}`
@@ -163,7 +146,10 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
         return `${army}: the attack by ${action.orders.map(force).join(' and ')} is a feint, ending ${stance}.`
     }
     if (isDeclareAttack(action)) {
-        const led = action.leaderIds.length === 0 ? 'with no leading unit' : `led by ${count(action.leaderIds.length)}`
+        const led =
+            action.leaderIds.length === 0
+                ? 'with no leading unit'
+                : `led by ${count(action.leaderIds.length)}`
         const width = action.wide ? 'a wide' : 'a narrow'
         const initial = action.metadata?.initialResult
         const result = initial === undefined ? '' : ` Initial result ${signed(initial)}.`

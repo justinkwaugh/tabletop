@@ -11,7 +11,6 @@ import { Position, faceOf } from '../model/pieces.js'
 export type MoveMetadata = Type.Static<typeof MoveMetadata>
 export const MoveMetadata = Type.Object({
     from: Type.Optional(Position),
-    /** Cavalry shown to prove a road move could end on an approach. */
     revealed: Type.Optional(Type.Array(Face)),
     frenchMoraleGain: Type.Optional(Type.Integer())
 })

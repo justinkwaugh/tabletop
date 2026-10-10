@@ -19,9 +19,8 @@ import {
 } from '../model/gameState.js'
 import { suggestedDeployment, type Deployment } from '../model/setup.js'
 
-export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
+const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-/** Drives a canonical game through the engine for tests. */
 export class TestGame {
     readonly engine = new GameEngine(NapoleonsTriumphRuntime)
     game: Game
@@ -87,13 +86,11 @@ export class TestGame {
         return result.processedActions
     }
 
-    /** Acts and returns the engine-recorded result of that action. */
     outcome(type: ActionType, playerId: string, payload: Record<string, unknown> = {}): unknown {
         const [action] = this.act(type, playerId, payload)
         return Reflect.get(action, 'metadata')
     }
 
-    /** Replaces the working state with an edited copy, for arranging a position. */
     arrange(edit: (state: HydratedNapoleonsTriumphGameState) => void) {
         const hydrated = this.hydrated
         edit(hydrated)
@@ -106,7 +103,6 @@ export class TestGame {
         return this.act(ActionType.DeployArmy, this.playerOf(side), { deployment })
     }
 
-    /** Sets both armies up with the default deployment and reaches the first Allied turn. */
     deployBoth() {
         this.deploy(Side.Allied)
         this.deploy(Side.French)
@@ -121,12 +117,10 @@ export interface PiecePlacement {
     side: Side
     face: Face
     locale: number
-    /** The neighbouring locale whose shared approach the piece blocks; absent for reserve. */
     facing?: number
     commanderId?: string
 }
 
-/** Clears the map and stands exactly the given units on it, with their commanders alongside. */
 export function arrangeBattlefield(game: TestGame, placements: readonly PiecePlacement[]) {
     game.arrange((state) => {
         const positionOf = (placement: PiecePlacement) => ({

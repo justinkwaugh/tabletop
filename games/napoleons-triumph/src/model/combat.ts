@@ -3,16 +3,14 @@ import { Side, UnitType, type Face } from '../components/pieces.js'
 export interface Engagement {
     attackLeaders: Face[]
     defenseLeaders: Face[]
-    /** Whether the defending pieces block the defense approach rather than stand in reserve. */
     defendersBlocking: boolean
-    /** Penalties printed on the defender's side of the approach. */
     approachPenalties: UnitType[]
     /** The Santon's slopes count even against an attack on its reserve (rule 18). */
     penaltiesApplyInReserve: boolean
     guardAttack: boolean
 }
 
-export function leadingType(leaders: Face[]): UnitType | undefined {
+function leadingType(leaders: Face[]): UnitType | undefined {
     return leaders[0]?.type
 }
 
@@ -67,7 +65,6 @@ export function attackerWins(result: number, tiebreak: Tiebreak): boolean {
     return tiebreak.attackerSide === Side.French
 }
 
-/** Counter-attackers take a step loss first and count at their reduced strength. */
 export function counterAttackStrength(counterAttackers: Face[]): number {
     return counterAttackers.reduce((sum, face) => sum + Math.max(0, face.strength - 1), 0)
 }
@@ -99,11 +96,8 @@ export function defenderLossPoints(
 }
 
 export interface EvenSplit {
-    /** Steps each unit takes for certain. */
     taken: number[]
-    /** Two units either of which could take the one remaining step; the opponent decides. */
     oddBetween?: [number, number]
-    /** Steps left over once every unit in the group is eliminated. */
     excess: number
 }
 
@@ -114,7 +108,9 @@ export function splitEvenly(strengths: number[], losses: number): EvenSplit {
     let remaining = Math.min(losses, capacity)
     const excess = losses - remaining
     while (remaining > 0) {
-        const open = strengths.flatMap((strength, index) => (taken[index] < strength ? [index] : []))
+        const open = strengths.flatMap((strength, index) =>
+            taken[index] < strength ? [index] : []
+        )
         const fewest = Math.min(...open.map((index) => taken[index]))
         const next = open.filter((index) => taken[index] === fewest)
         if (next.length > remaining) {

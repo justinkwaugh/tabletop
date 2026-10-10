@@ -23,7 +23,7 @@
     import ArmiesPanel from '$lib/components/ArmiesPanel.svelte'
     import History from '$lib/components/History.svelte'
     import { NapoleonsTriumphGameSession } from '$lib/model/session.svelte'
-    import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte'
+    import { setGameSession } from '$lib/model/sessionContext.svelte'
     import OrderSheet from '$lib/components/OrderSheet.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { BoardView, boundsOf, nextView, viewFor } from '$lib/utils/boardView.js'
@@ -35,14 +35,17 @@
     }: {
         gameSession: GameSession<NapoleonsTriumphProjectedState, HydratedNapoleonsTriumphGameState>
     } = $props()
-    assert(
-        gameSession instanceof NapoleonsTriumphGameSession,
-        "Napoleon's Triumph needs its own game session"
-    )
-    setGameSession(gameSession)
-    const session = getGameSession()
+    const session = untrack(() => {
+        assert(
+            gameSession instanceof NapoleonsTriumphGameSession,
+            "Napoleon's Triumph needs its own game session"
+        )
+        return gameSession
+    })
+    setGameSession(session)
 
     let wrapper: ScalingWrapper | undefined = $state()
+    let orderStripHeight = $state(0)
     let restoreView: ReturnType<ScalingWrapper['captureView']> | undefined
 
     const VIEW_NAMES: Record<BoardView, string> = {
@@ -51,8 +54,7 @@
         [BoardView.Allied]: 'From the Allied lines'
     }
 
-    // The armies face each other across the long sides of the board, so a wide screen shows more
-    // of it turned to the viewer's own side of the table.
+    // The armies sit along the long sides of the board (rule 4 map), so a wide screen opens turned to the viewer's side.
     onMount(() => {
         if (window.innerWidth > window.innerHeight) {
             session.boardView = viewFor(session.mySide)
@@ -69,7 +71,6 @@
 
     const battleKey = $derived(`${session.battleLocales.join(':')}|${session.boardRotation}`)
 
-    // The view closes in on an attack while it is fought and returns when it is over.
     $effect(() => {
         void battleKey
         untrack(() => {
@@ -88,20 +89,30 @@
         })
     })
 
-    // Picking up pieces while the whole field is in view closes in on where they can go.
     $effect(() => {
         const group = session.selectedGroup
         untrack(() => {
             if (!wrapper || !group || session.zoom >= SELECTION_FOCUS_BELOW_ZOOM) return
-            const locales = [group.position.locale, ...session.targets.map((target) => target.position.locale)]
+            const locales = [
+                ...(group.position ? [group.position.locale] : []),
+                ...session.targets.map((target) => target.position.locale)
+            ]
             const points = outlines(locales)
             if (points.length === 0) return
-            wrapper.focusRect(boundsOf(points, session.boardRotation), { animate: true, ...SELECTION_FOCUS })
+            wrapper.focusRect(boundsOf(points, session.boardRotation), {
+                animate: true,
+                ...SELECTION_FOCUS
+            })
         })
     })
 </script>
 
-<CustomFont fontFamily="Libre Baskerville" url={LibreBaskervilleFont} format="woff2" fontWeight="400 700" />
+<CustomFont
+    fontFamily="Libre Baskerville"
+    url={LibreBaskervilleFont}
+    format="woff2"
+    fontWeight="400 700"
+/>
 <CustomFont
     fontFamily="Libre Baskerville"
     url={LibreBaskervilleItalicFont}
@@ -150,18 +161,20 @@
             </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
-            <div class="shrink-0">
+            <fieldset class="min-w-0 shrink-0" disabled={session.busy}>
                 <Header />
-                {#if gameSession.attack}
+                {#if session.isViewingHistory}
+                    <ActionPanel />
+                {:else if session.attack}
                     <BattlePanel />
                 {:else if session.isAuction}
                     <AuctionPanel />
-                {:else if gameSession.isDeploying}
+                {:else if session.isDeploying}
                     <SetupPanel />
                 {:else}
                     <ActionPanel />
                 {/if}
-            </div>
+            </fieldset>
             <div class="grow-0 overflow-hidden" style="flex:1; min-height: 40dvh;">
                 <ScalingWrapper
                     bind:this={wrapper}
@@ -169,12 +182,16 @@
                     controls="bottom-left"
                     expandable
                     maxScale={1.4}
+                    insetTop={orderStripHeight}
                     coverBelowScale={0.4}
                     onManualViewChange={() => (restoreView = undefined)}
                 >
                     <Board />
                     {#snippet overlay()}
-                        <div class="absolute inset-x-0 top-0 z-10">
+                        <div
+                            class="absolute inset-x-0 top-0 z-10"
+                            bind:clientHeight={orderStripHeight}
+                        >
                             <OrderSheet />
                         </div>
                         <button
