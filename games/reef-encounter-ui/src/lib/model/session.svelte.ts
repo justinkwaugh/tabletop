@@ -2,6 +2,11 @@ import { GameSession } from '@tabletop/frontend-components'
 import type { OffsetCoordinates } from '@tabletop/common'
 import {
     ActionType,
+    AlgaColors,
+    ExchangeConsumedPolyp,
+    ExchangeLarvaCube,
+    PlayAlgaCylinder,
+    type AlgaColor,
     ChooseLarvaCubes,
     CoralColors,
     FeedParrotfish,
@@ -30,6 +35,8 @@ import {
 
 export type PolypSource = 'screen' | 'consumed'
 const PolypSources: readonly PolypSource[] = ['screen', 'consumed']
+
+export type CylinderTargets = { openSea: boolean; tileIds: number[] }
 
 export type LarvaCubeChoice = { color: CoralColor; polypsToPlace: number }
 
@@ -111,7 +118,7 @@ export class ReefEncounterGameSession extends GameSession<
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
         const placing = this.placing
         const source = this.placementSource
-        if (!placing || !source || this.shrimpIntent) return []
+        if (!placing || !source || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return this.gameState.reefs.flatMap((reef) =>
             ReefBoards[reef.boardId].rock
@@ -127,12 +134,19 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     readonly takeableSpaces: CoralColor[] = $derived.by(() => {
-        if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.shrimpIntent) return []
+        if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canTakeOpenSeaSpace(me, color))
     })
 
     readonly shrimpIntent: ShrimpIntent | undefined = $derived(this.selection.shrimp?.value)
+    readonly cylinderPayment: CoralColor | undefined = $derived(
+        this.selection.cylinderPayment?.value
+    )
+    readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
+    readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
+    // Any open shrimp or cylinder choice takes over the table until it commits or is undone.
+    readonly turnChoiceOpen = $derived(this.shrimpIntent !== undefined || this.choosingCylinder)
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
     readonly hasShrimpOnBareRock = $derived(
         this.isTakingTurn && this.gameState.hasShrimpOnBareRock(this.myPlayerId())
@@ -140,7 +154,7 @@ export class ReefEncounterGameSession extends GameSession<
 
     // The viewer's shrimps that may be picked up, while no other shrimp choice is open.
     readonly movableShrimps: ReefSquare[] = $derived.by(() => {
-        if (!this.canTake(ActionType.MoveShrimp) || this.shrimpIntent) return []
+        if (!this.canTake(ActionType.MoveShrimp) || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return this.gameState.shrimps
             .filter((shrimp) => shrimp.playerId === me)
@@ -157,6 +171,47 @@ export class ReefEncounterGameSession extends GameSession<
         return intent.kind === 'introduce'
             ? squares.filter((square) => this.gameState.canIntroduceShrimp(me, square))
             : squares.filter((square) => this.gameState.canMoveShrimp(me, intent.from, square))
+    })
+
+    readonly cubeToPlay: CoralColor | undefined = $derived(
+        this.isTakingTurn ? this.gameState.turn.cubeToPlay : undefined
+    )
+
+    readonly consumedForCubes: CoralColor[] = $derived.by(() => {
+        if (!this.canTake(ActionType.ExchangeConsumedPolyp) || this.turnChoiceOpen) return []
+        const me = this.myPlayerId()
+        return CoralColors.filter((color) => this.gameState.canExchangeConsumedPolyp(me, color))
+    })
+
+    readonly cubesForPolyps: CoralColor[] = $derived.by(() => {
+        if (!this.canTake(ActionType.ExchangeLarvaCube) || this.turnChoiceOpen) return []
+        const me = this.myPlayerId()
+        return CoralColors.filter((color) => this.gameState.canExchangeLarvaCube(me, color))
+    })
+
+    readonly cylinderPayments: CoralColor[] = $derived.by(() => {
+        if (!this.canTake(ActionType.PlayAlgaCylinder) || this.shrimpIntent) return []
+        const consumed = this.gameState.getPlayerState(this.myPlayerId()).consumedPolyps
+        return CoralColors.filter((color) => consumed[color] > 0)
+    })
+
+    readonly cylinderAlgas: AlgaColor[] = $derived(
+        this.cylinderPayment === undefined
+            ? []
+            : AlgaColors.filter((alga) => this.gameState.algaSupply[alga] > 0)
+    )
+
+    readonly cylinderTargets: CylinderTargets = $derived.by(() => {
+        const payment = this.cylinderPayment
+        const alga = this.cylinderAlga
+        if (payment === undefined || alga === undefined) return { openSea: false, tileIds: [] }
+        const me = this.myPlayerId()
+        return {
+            openSea: this.gameState.canPlayAlgaCylinder(me, payment, alga),
+            tileIds: this.gameState.coralTiles
+                .map((tile) => tile.tileId)
+                .filter((tileId) => this.gameState.canPlayAlgaCylinder(me, payment, alga, tileId))
+        }
     })
 
     override beforeNewState() {
@@ -248,6 +303,35 @@ export class ReefEncounterGameSession extends GameSession<
         const intent = this.shrimpIntent
         assert(intent?.kind === 'move', 'Only a picked-up shrimp returns behind the screen')
         await this.applyAction(this.createPlayerAction(MoveShrimp, { from: intent.from }))
+    }
+
+    async exchangeConsumedPolyp(color: CoralColor) {
+        if (this.busy) return
+        await this.applyAction(this.createPlayerAction(ExchangeConsumedPolyp, { color }))
+    }
+
+    async exchangeLarvaCube(color: CoralColor) {
+        if (this.busy) return
+        await this.applyAction(this.createPlayerAction(ExchangeLarvaCube, { color }))
+    }
+
+    chooseCylinderPayment(color: CoralColor) {
+        this.selection = setReefSelection(this.selection, 'cylinderPayment', color)
+    }
+
+    chooseCylinderAlga(alga: AlgaColor) {
+        this.selection = setReefSelection(this.selection, 'cylinderAlga', alga)
+    }
+
+    async playAlgaCylinder(tileId?: number) {
+        if (this.busy) return
+        const consumedColor = this.cylinderPayment
+        const alga = this.cylinderAlga
+        assertExists(consumedColor, 'A cylinder needs a consumed polyp to pay for it')
+        assertExists(alga, 'A cylinder needs a colour')
+        await this.applyAction(
+            this.createPlayerAction(PlayAlgaCylinder, { consumedColor, alga, tileId })
+        )
     }
 
     private myPlayerId(): string {

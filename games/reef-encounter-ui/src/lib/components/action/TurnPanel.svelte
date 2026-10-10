@@ -2,6 +2,8 @@
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
     import Shrimp from '$lib/components/table/Shrimp.svelte'
+    import AlgaCylinder from '$lib/components/table/AlgaCylinder.svelte'
+    import PolypChip from '$lib/components/PolypChip.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -19,7 +21,33 @@
     })
 </script>
 
-{#if intent?.kind === 'introduce'}
+{#if gameSession.cylinderAlga}
+    <p class="prompt reef-display">Put the {gameSession.cylinderAlga} cylinder on the open sea</p>
+    <p class="detail">
+        On the cylinder space, where it turns every unlocked coral tile whose large alga is
+        {gameSession.cylinderAlga}{gameSession.cylinderTargets.tileIds.length > 0
+            ? ', or on one of those tiles to lock it'
+            : ''}. Undo goes back a step.
+    </p>
+{:else if gameSession.cylinderPayment}
+    <p class="prompt reef-display">Choose the cylinder's colour</p>
+    <p class="detail">
+        Paid with a consumed {gameSession.cylinderPayment} polyp. Undo goes back a step.
+    </p>
+    <div class="choices">
+        {#each gameSession.cylinderAlgas as alga (alga)}
+            <ChoiceButton
+                label="A {alga} cylinder"
+                onclick={() => gameSession.chooseCylinderAlga(alga)}
+            >
+                <svg width="34" height="36" viewBox="-17 -18 34 36" aria-hidden="true">
+                    <AlgaCylinder center={{ x: 0, y: 0 }} size={28} color={alga} />
+                </svg>
+                <span class="count">{gameSession.gameState.algaSupply[alga]}</span>
+            </ChoiceButton>
+        {/each}
+    </div>
+{:else if intent?.kind === 'introduce'}
     <p class="prompt reef-display">Choose a polyp for your shrimp</p>
     <p class="detail">It may go on any coral without a shrimp. Undo cancels.</p>
 {:else if intent?.kind === 'move'}
@@ -64,7 +92,14 @@
     <p class="prompt reef-display">Grow your reefs</p>
 {/if}
 
-{#if !intent && gameSession.larvaCubesToPlay.length > 0}
+{#if gameSession.cubeToPlay && !gameSession.turnChoiceOpen}
+    <p class="warning">
+        Play the {gameSession.cubeToPlay} larva cube you just bought before anything else, or trade it
+        for a polyp.
+    </p>
+{/if}
+
+{#if !gameSession.turnChoiceOpen && gameSession.larvaCubesToPlay.length > 0}
     <div class="row">
         <span class="label">
             {placing ? 'Play another larva cube' : 'Play a larva cube'}
@@ -89,7 +124,51 @@
     </div>
 {/if}
 
-{#if !intent && (gameSession.canIntroduceShrimp || gameSession.movableShrimps.length > 0)}
+{#if !gameSession.turnChoiceOpen && (gameSession.cubesForPolyps.length > 0 || gameSession.consumedForCubes.length > 0)}
+    <div class="row">
+        <span class="label">Trade</span>
+        {#each gameSession.cubesForPolyps as color (color)}
+            <ChoiceButton
+                label="Trade a {color} larva cube for a {color} polyp"
+                onclick={() => gameSession.exchangeLarvaCube(color)}
+            >
+                <svg width="26" height="28" viewBox="-13 -14 26 28" aria-hidden="true">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={22} {color} />
+                </svg>
+                <span class="arrow" aria-hidden="true">→</span>
+                <PolypChip {color} count={1} />
+            </ChoiceButton>
+        {/each}
+        {#each gameSession.consumedForCubes as color (color)}
+            <ChoiceButton
+                label="Trade a consumed {color} polyp for a {color} larva cube"
+                onclick={() => gameSession.exchangeConsumedPolyp(color)}
+            >
+                <PolypChip {color} count={1} />
+                <span class="arrow" aria-hidden="true">→</span>
+                <svg width="26" height="28" viewBox="-13 -14 26 28" aria-hidden="true">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={22} {color} />
+                </svg>
+            </ChoiceButton>
+        {/each}
+    </div>
+{/if}
+
+{#if !gameSession.turnChoiceOpen && gameSession.cylinderPayments.length > 0}
+    <div class="row">
+        <span class="label">Alga cylinder, paid with</span>
+        {#each gameSession.cylinderPayments as color (color)}
+            <ChoiceButton
+                label="Pay a consumed {color} polyp for an alga cylinder"
+                onclick={() => gameSession.chooseCylinderPayment(color)}
+            >
+                <PolypChip {color} count={1} />
+            </ChoiceButton>
+        {/each}
+    </div>
+{/if}
+
+{#if !gameSession.turnChoiceOpen && (gameSession.canIntroduceShrimp || gameSession.movableShrimps.length > 0)}
     <div class="row">
         <span class="label">Shrimps</span>
         {#if gameSession.canIntroduceShrimp}
@@ -109,7 +188,7 @@
     </div>
 {/if}
 
-{#if gameSession.hasShrimpOnBareRock && !intent}
+{#if gameSession.hasShrimpOnBareRock && !gameSession.turnChoiceOpen}
     <p class="warning">
         Your shrimp on bare rock must move onto a polyp or back behind your screen before your turn
         can end.
@@ -154,6 +233,10 @@
     .count.none {
         color: var(--reef-muted);
         font-style: italic;
+    }
+
+    .arrow {
+        color: var(--reef-muted);
     }
 
     .warning {

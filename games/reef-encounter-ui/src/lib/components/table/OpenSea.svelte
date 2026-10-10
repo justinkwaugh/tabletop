@@ -103,6 +103,23 @@
             {/each}
         {/each}
 
+        {#if gameSession.cylinderTargets.openSea}
+            <Target
+                box={{ x: AlgaSpace.x - 56, y: AlgaSpace.y - 56, width: 112, height: 112 }}
+                label="Put the {gameSession.cylinderAlga} cylinder on the open-sea cylinder space"
+                onselect={() => gameSession.playAlgaCylinder()}
+            />
+        {/if}
+        {#each state.coralTiles as tile, index (tile.tileId)}
+            {#if gameSession.cylinderTargets.tileIds.includes(tile.tileId)}
+                <Target
+                    box={coralTileSlot(index)}
+                    label="Lock coral tile {tile.tileId} with the {gameSession.cylinderAlga} cylinder"
+                    onselect={() => gameSession.playAlgaCylinder(tile.tileId)}
+                />
+            {/if}
+        {/each}
+
         {#each gameSession.takeableSpaces as larvaColor (larvaColor)}
             <Target
                 box={larvaSpace(larvaColor)}

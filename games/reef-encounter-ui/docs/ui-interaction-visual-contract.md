@@ -9,6 +9,8 @@ How the action panel and the table share the acting player's choices. Follow `do
 - **Picking up a shrimp.** Trigger: the player may move a shrimp and no shrimp choice is open. Each of their shrimps on the reefs gets a dashed white ring; choosing one opens _Moving a shrimp_.
 - **Introducing a shrimp.** Trigger: the panel's Introduce button. Every polyp the new shrimp may go on is ringed in white, and the panel asks for one.
 - **Moving a shrimp.** Trigger: picking up a shrimp. Its square gets a solid orange ring, every polyp or bare rock it may move to is ringed in white, and the panel offers _Back behind your screen_.
+- **Buying an alga cylinder.** Trigger: the panel's row of consumed polyps to pay with. Choosing one asks for the cylinder's colour (each with how many remain); choosing a colour rings the open sea's cylinder circle and every coral tile the cylinder may lock, and the panel explains both. Undo steps back one choice at a time.
+- **Trades.** Larva cubes for polyps and consumed polyps for larva cubes are single buttons in the panel, each showing what is given and what is received. After buying a cube the panel says it must be played next.
 - **Bare rock warning.** Trigger: one of the player's shrimps sits on bare rock. The panel warns that it must move before the turn can end; no open-sea space is offered, since the rules forbid ending the turn.
 - **Setup choices.** Feeding the parrotfish and taking larva cubes happen in the panel alone; the chosen first cube is outlined in orange until the second is chosen.
 
@@ -24,6 +26,7 @@ Coral tiles, larva cubes and cylinders on the open sea always stand upright, wha
 ## Shared visual state
 
 - **Shrimp choice** (`shrimp` stage of the staged selection). Producer: the panel's Introduce button and the board's pick-up rings. Consumers: the board's rings and the panel's prompt. It decides precedence. Lifetime: cleared when a shrimp action commits, by Undo (one press closes it without undoing any game action), and whenever a new state is published. Validity: it only exists while the player may act.
+- **Cylinder payment and colour** (`cylinderPayment` and `cylinderAlga` stages). Producer: the panel. Consumers: the panel's prompt and the open sea's rings, which also decide precedence. Lifetime: cleared when the cylinder is played, by Undo (one stage per press), and on every new state.
 - **First larva cube** (`firstLarvaCube` stage). Producer and consumer: the setup panel. Lifetime: cleared by the second choice's commit, by Undo, and on every new state.
 - **Polyp source** (screen or consumed). Producer and consumer: the turn panel; the board's rings follow it. Lifetime: cleared on every new state. Validity: when the chosen source has nothing left, the first available source applies instead.
 
@@ -40,6 +43,8 @@ Automated, in `tests/`:
 
 - `setup.spec.ts`: every player feeds their parrotfish and takes two cubes; Undo takes back the first cube without undoing the feeding.
 - `turns.spec.ts`: playing a cube rings placements; placing one lowers the count from behind the screen and Undo restores it; taking a space ends the turn.
+- `cylinders.spec.ts`: after an attack yields a consumed polyp, paying and choosing a colour ring the cylinder circle and hide the larva-space rings; Undo steps back through both choices; playing it ends the choice.
+- `turns.spec.ts` also trades a larva cube for a polyp and undoes it.
 - `shrimps.spec.ts`: Introduce hides the open-sea rings and rings polyps; a pick-up closes on Undo without undoing anything; a shrimp left on bare rock shows the warning and no space; sending it behind the screen restores the spaces.
 
-Manual: attack rings show dashed orange on a weaker polyp joined to a coral of at least two (not yet reachable in a short automated game).
+Manual: attack rings show dashed orange on a weaker polyp joined to a coral of at least two (the cylinder test attacks, but does not check the ring's look); locking a coral tile needs a shrimp on the open sea.

@@ -46,3 +46,54 @@ export async function playSetup(page: Page, playerCount: number) {
     }
     await expect(actions).toContainText('Grow your reefs')
 }
+
+const squareIn = (label: string) => {
+    const match = label.match(/board (\d), row (\d+), column (\d+)/)
+    return match ? { board: +match[1], row: +match[2], col: +match[3] } : undefined
+}
+
+// Plays turns that grow one coral at a time and attack whenever they can, until the acting
+// player holds a consumed polyp. The seed in createGame reaches one within a few turns.
+export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
+    const actions = actionPanel(page)
+    for (let turn = 0; turn < maxTurns; turn++) {
+        await expect(actions).toContainText('Grow your reefs')
+        if ((await actions.getByRole('button', { name: /^Pay a consumed/ }).count()) > 0) {
+            return
+        }
+        const cubes = actions.getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        if ((await cubes.count()) > 0) {
+            await cubes.first().click()
+            let last: ReturnType<typeof squareIn>
+            for (let placed = 0; placed < 6; placed++) {
+                const attacks = page.getByRole('button', { name: /^Attack with/ })
+                if ((await attacks.count()) > 0) {
+                    await attacks.first().click()
+                    continue
+                }
+                const places = page.getByRole('button', { name: /^Place a / })
+                const labels = await places.evaluateAll((elements) =>
+                    elements.map((element) => element.getAttribute('aria-label') ?? '')
+                )
+                if (labels.length === 0) break
+                const next = labels.findIndex((label) => {
+                    const square = squareIn(label)
+                    return (
+                        last !== undefined &&
+                        square !== undefined &&
+                        square.board === last.board &&
+                        Math.abs(square.row - last.row) + Math.abs(square.col - last.col) === 1
+                    )
+                })
+                const index = Math.max(next, 0)
+                last = squareIn(labels[index])
+                await places.nth(index).click()
+            }
+        }
+        await page
+            .getByRole('button', { name: /^Take the \w+ larva cube/ })
+            .first()
+            .click()
+    }
+    throw new Error('No consumed polyp within the turns played')
+}

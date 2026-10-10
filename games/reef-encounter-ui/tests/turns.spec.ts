@@ -34,3 +34,19 @@ test('a turn plays a larva cube, places its polyps and ends by taking an open-se
     await expect(banner).not.toHaveText(turnBanner)
     await expect(actions).toContainText('Grow your reefs')
 })
+
+test('a larva cube is traded for a polyp of its colour', async ({ page }) => {
+    await createGame(page, 2)
+    await playSetup(page, 2)
+    const actions = actionPanel(page)
+    const trade = actions.getByRole('button', { name: /^Trade a \w+ larva cube for a \w+ polyp$/ })
+    // The acting player is first in turn order, so theirs is the first panel; setup gave them
+    // two cubes of one colour
+    const cubes = page.locator('article').first().locator('.row', { hasText: 'Larva cubes' })
+    await expect(cubes).toContainText('2')
+
+    await trade.first().click()
+    await expect(cubes).not.toContainText('2')
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(cubes).toContainText('2')
+})
