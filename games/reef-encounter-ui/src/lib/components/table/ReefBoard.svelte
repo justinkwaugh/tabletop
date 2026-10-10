@@ -6,7 +6,8 @@
         BoardImage,
         boardSquare,
         ImageToTable,
-        rotatedBoard,
+        rotatedView,
+        BoardView,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
     import { polypFaceUrl } from '$lib/utils/polypFaces.js'
@@ -18,7 +19,7 @@
         rotation
     }: { reef: Reef; shrimps: readonly ShrimpState[]; rotation: BoardRotation } = $props()
 
-    const drawing = $derived(rotatedBoard(rotation))
+    const drawing = $derived(rotatedView(BoardView, rotation))
 
     const gameSession = getGameSession()
     const place = (row: number, col: number) =>

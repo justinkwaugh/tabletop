@@ -106,13 +106,13 @@ export const BoardView: BoundingBox = {
 }
 export const OpenSeaView: BoundingBox = { x: 40, y: 50, width: 1495, height: 1040 }
 
-// Turns the board's view so its bottom edge faces the given side of the table.
-export function rotatedBoard(rotation: BoardRotation): {
-    size: RectangleDimensions
-    transform: string
-} {
-    const { width, height } = BoardView
-    const toView = `translate(${-BoardView.x} ${-BoardView.y})`
+// Turns a view so its bottom edge faces the given side of the table.
+export function rotatedView(
+    view: BoundingBox,
+    rotation: BoardRotation
+): { size: RectangleDimensions; transform: string } {
+    const { width, height } = view
+    const toView = `translate(${-view.x} ${-view.y})`
     switch (rotation) {
         case 0:
             return { size: { width, height }, transform: toView }
@@ -132,4 +132,9 @@ export function rotatedBoard(rotation: BoardRotation): {
                 transform: `translate(0 ${width}) rotate(270) ${toView}`
             }
     }
+}
+
+// Keeps a piece upright on a turned board.
+export function upright(rotation: BoardRotation, center: Point): string {
+    return `rotate(${-rotation} ${center.x} ${center.y})`
 }
