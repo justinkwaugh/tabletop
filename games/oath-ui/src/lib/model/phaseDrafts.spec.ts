@@ -481,15 +481,18 @@ describe('the Citizenship answer draft (docs/user-interactions.md)', () => {
         expect(consent.hasManualSelection()).toBe(true)
     })
 
-    it('a tap on a picked piece untaps it, and the engine refuses fewer than the Empire covers', () => {
+    it('a tap on a picked piece untaps it; the picks are short, and the engine refuses fewer than the Empire covers', () => {
         const session = answering(3)
         const { consent } = session
         const [b1, b2, b3, v1] = pieceKeys(session)
+        expect(consent.picksComplete).toBe(true)
         consent.pick(b1)
         expect(consent.picked).toEqual([b2, b3])
+        expect(consent.picksComplete).toBe(false)
         expect(consent.blockedBecause).toMatch(/must choose exactly 3 warbands to replace, not 2/)
         consent.pick(v1)
         expect(consent.picked).toEqual([b2, b3, v1])
+        expect(consent.picksComplete).toBe(true)
         expect(consent.blockedBecause).toBeUndefined()
     })
 

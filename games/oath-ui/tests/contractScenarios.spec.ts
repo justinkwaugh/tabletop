@@ -419,7 +419,8 @@ test.describe('scenario 30: answering another player’s request', () => {
     test('another seat sees whom the game is waiting on, and no answer', async ({ page }) => {
         await openTable(page, 'warbandMoveAsked')
         expect(await call(page, 'viewOffTheClock')).toBe('cit')
-        await expect(grid(page)).toContainText('Waiting on chan to answer cit.')
+        await expect(grid(page)).toContainText('Waiting on chan.')
+        await expect(grid(page)).not.toContainText('A question for you')
         await expect(answer(page, 'Allow')).toHaveCount(0)
         await expect(answer(page, 'Refuse')).toHaveCount(0)
     })
@@ -480,7 +481,19 @@ test.describe('answering an offer of Citizenship', () => {
         await expect(piece(page, 'Imperial: a warband on your board')).toHaveCount(3)
         await expect(piece(page, 'Removed: a warband at Fertile Valley')).toHaveCount(2)
         await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(3)
-        await expect(answer(page, 'Accept Citizenship')).toBeEnabled()
+        await expect(answer(page, 'Accept')).toBeEnabled()
+    })
+
+    test('short: Accept is hidden while fewer are picked than the Empire covers, with no red line', async ({ page }) => {
+        await openTable(page, 'citizenshipShort')
+        await piece(page, 'Imperial: a warband on your board').first().click()
+        await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(2)
+        await expect(answer(page, 'Accept')).toHaveCount(0)
+        await expect(grid(page)).not.toContainText('must choose exactly')
+        await expect(answer(page, 'Refuse')).toBeEnabled()
+
+        await piece(page, 'Removed: a warband at Fertile Valley').first().click()
+        await expect(answer(page, 'Accept')).toBeEnabled()
     })
 
     test('short: a tap on a removed piece makes it Imperial and removes the oldest pick', async ({ page }) => {
@@ -491,7 +504,7 @@ test.describe('answering an offer of Citizenship', () => {
         await expect(pieces(page).first()).toHaveAttribute('aria-pressed', 'false')
         await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(3)
 
-        await answer(page, 'Accept Citizenship').click()
+        await answer(page, 'Accept').click()
         await expect.poll(async () => (await call(page, 'tableFacts')).machineState).not.toBe('ConsentRequest')
         const accepted = await call(page, 'tableFacts')
         expect(accepted.boardOf.me?.imperial).toBe(2)
@@ -508,7 +521,7 @@ test.describe('answering an offer of Citizenship', () => {
         for (const one of await pieces(page).all()) await expect(one).toBeDisabled()
         await expect(grid(page).getByRole('button', { name: /^Removed: a warband/ })).toHaveCount(5)
 
-        await answer(page, 'Accept Citizenship').click()
+        await answer(page, 'Accept').click()
         await expect.poll(async () => (await call(page, 'tableFacts')).machineState).not.toBe('ConsentRequest')
         const accepted = await call(page, 'tableFacts')
         expect(accepted.boardOf.me?.imperial ?? 0).toBe(0)
@@ -527,7 +540,7 @@ test.describe('answering an offer of Citizenship', () => {
 
     test('"You give" shows what the Exile gives, its count in gold, and is gone when they give nothing', async ({ page }) => {
         await openTable(page, 'citizenshipShort')
-        await expect(grid(page).getByText('You receive', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('You get', { exact: true })).toBeVisible()
         await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
         const given = grid(page).getByRole('img', { name: '1 secret', exact: true })
         await expect(given).toBeVisible()
@@ -545,7 +558,7 @@ test.describe('answering an offer of Citizenship', () => {
         expect(count).toBe(accent)
 
         await openTable(page, 'citizenshipEnough')
-        await expect(grid(page).getByText('You receive', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('You get', { exact: true })).toBeVisible()
         await expect(grid(page).getByText('You give', { exact: true })).toHaveCount(0)
     })
 
@@ -560,7 +573,7 @@ test.describe('answering an offer of Citizenship', () => {
 
     test('on a desktop the answers fit their label and share one width', async ({ page }) => {
         await openTable(page, 'citizenshipShort')
-        const accept = await answer(page, 'Accept Citizenship').boundingBox()
+        const accept = await answer(page, 'Accept').boundingBox()
         const refuse = await answer(page, 'Refuse').boundingBox()
         const panel = await grid(page).boundingBox()
         expect(accept && refuse && panel).toBeTruthy()
@@ -569,16 +582,17 @@ test.describe('answering an offer of Citizenship', () => {
         expect(accept.width + refuse.width).toBeLessThan(panel.width / 2)
     })
 
-    test('on a phone the answers take the full width', async ({ page }) => {
+    test('on a phone the answers fit their label too, share one width and are 44 px tall', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 812 })
         await openTable(page, 'citizenshipShort')
-        const accept = await answer(page, 'Accept Citizenship').boundingBox()
+        const accept = await answer(page, 'Accept').boundingBox()
         const refuse = await answer(page, 'Refuse').boundingBox()
         const panel = await grid(page).boundingBox()
         expect(accept && refuse && panel).toBeTruthy()
         if (!accept || !refuse || !panel) return
         expect(Math.abs(accept.width - refuse.width)).toBeLessThan(1)
-        expect(refuse.x + refuse.width - accept.x).toBeGreaterThan(panel.width * 0.8)
+        expect(refuse.x + refuse.width - accept.x).toBeLessThan(panel.width * 0.6)
+        expect(accept.height).toBeGreaterThanOrEqual(44)
     })
 })
 

@@ -63,7 +63,7 @@
     class="mb-2 grid grid-cols-[84px_minmax(0,1fr)] items-center gap-y-2 border-t border-oath-divider pt-2
            text-[13px]"
 >
-    <span class="text-xs text-oath-text-muted">You receive</span>
+    <span class="text-xs text-oath-text-muted">You get</span>
     <span class="flex flex-wrap items-center gap-3.5">
         <span class="relative inline-flex">
             <CardImage
@@ -92,21 +92,24 @@
     <CitizenshipConversion {exileId} />
 {/if}
 
-{#if blockedBecause}
+{#if consent.picksComplete && blockedBecause}
     <p class="mb-2 text-[11px] text-oath-danger">
         <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
     </p>
 {/if}
 
-<div class="answers grid grid-cols-2 gap-2">
-    <button
-        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold"
-        disabled={busy || !!blockedBecause}
-        onclick={() => consent.answer(true)}
-    >
-        Accept Citizenship
-    </button>
+<!-- R1: Accept shows once as many pieces are picked as the Empire covers. -->
+<div class="answers gap-2">
+    {#if consent.picksComplete}
+        <button
+            class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                   border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold"
+            disabled={busy || !!blockedBecause}
+            onclick={() => consent.answer(true)}
+        >
+            Accept
+        </button>
+    {/if}
     <button
         class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                px-3 py-1.5 text-sm font-semibold"
@@ -118,13 +121,15 @@
 </div>
 
 <style>
-    /* On a desktop the answers are as wide as the longer label; a phone keeps them full width. */
-    @media (min-width: 640px) {
-        .answers {
-            display: inline-grid;
-            grid-template-columns: none;
-            grid-auto-flow: column;
-            grid-auto-columns: 1fr;
+    /* The answers are as wide as the longer label at every width, 44 px tall on a phone. */
+    .answers {
+        display: inline-grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+    }
+    @media (max-width: 639px) {
+        .answers button {
+            min-height: 44px;
         }
     }
 </style>

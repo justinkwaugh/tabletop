@@ -601,6 +601,11 @@ export class ConsentDraft extends OneStepDraft<string[]> {
         return keys.slice(0, this.conversion.imperial)
     }
 
+    /** R1 — every piece the Empire covers is picked, so Accept can show. */
+    get picksComplete(): boolean {
+        return !this.canPick || this.picked.length === this.conversion.imperial
+    }
+
     isImperial(key: string): boolean {
         return this.conversion.kind === 'enough' || this.picked.includes(key)
     }

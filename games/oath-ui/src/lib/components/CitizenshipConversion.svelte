@@ -114,7 +114,7 @@
         background: var(--oath-accent-soft);
     }
     .piece--removed {
-        border: 1px dashed color-mix(in srgb, var(--oath-danger) 60%, transparent);
+        border: 1px solid color-mix(in srgb, var(--oath-danger) 60%, transparent);
         background: var(--oath-surface);
     }
     .piece:not(:disabled) {
