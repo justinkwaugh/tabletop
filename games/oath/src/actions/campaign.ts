@@ -35,7 +35,12 @@ import {
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer } from '../util/rule.js'
-import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
+import {
+    freeActionOutOfTurnOfferedTo,
+    holdTurnForFreeActionOutOfTurn,
+    holdTurnForSneakAttack,
+    sneakAttackOfferedTo
+} from '../util/sneakAttack.js'
 import { reasonPersistentForbidsCampaign } from '../util/persistent.js'
 import { forceTotal } from '../util/force.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
@@ -124,6 +129,8 @@ export const CampaignBattleMetadata = Type.Object({
 export type CampaignMetadata = Type.Static<typeof CampaignMetadata>
 export const CampaignMetadata = Type.Object({
     supplySpent: Type.Number(),
+    /** Second Wind out of turn (revision 7) — the card whose free Campaign this was. */
+    freeActionOf: Type.Optional(Type.String()),
     /** R-5.5.2.a — Citizens are asked whether to join the defence before anything is mustered. */
     awaitingAllies: Type.Optional(Type.Boolean()),
     battle: Type.Optional(CampaignBattleMetadata)
@@ -192,7 +199,16 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         // R-5.5.1 — or nothing, right after a Knights Errant Muster / Hunting
         // Party Search, or as a Sneak Attack.
         const supplyCost = HydratedCampaign.supplyCostFor(state, this.playerId)
+        // Second Wind out of turn (revision 7) — the Campaign is the holder's answer to "Campaign now?".
+        const freeActionOf = freeActionOutOfTurnOfferedTo(
+            state,
+            this.playerId,
+            ActionType.Campaign
+        )?.cardId
         if (sneakAttackOfferedTo(state, this.playerId)) holdTurnForSneakAttack(state, this.playerId)
+        if (freeActionOf) {
+            holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Campaign)
+        }
         attacker.spendSupply(supplyCost)
         delete attacker.freeCampaignAtAction
         // Wild Allies, Captains — acting from elsewhere, with the warbands there
@@ -220,12 +236,13 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (toAsk.length > 0) {
             state.pendingCampaign = { declaration, toAsk }
             HydratedCampaign.askToJoinDefence(state)
-            this.metadata = { supplySpent: supplyCost, awaitingAllies: true }
+            this.metadata = { supplySpent: supplyCost, freeActionOf, awaitingAllies: true }
             return
         }
 
         this.metadata = {
             supplySpent: supplyCost,
+            freeActionOf,
             battle: HydratedCampaign.muster(state, declaration)
         }
     }

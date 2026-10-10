@@ -117,7 +117,9 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     [PowerQuestionKind.PayTravelToll]: (state, question) =>
         usableFavor(state, question.askedPlayerId) < 1
             ? `${question.askedPlayerId} has no favor for ${question.cardId}`
-            : undefined
+            : undefined,
+    // It is asked for the action after this one, so it cannot be judged now; the skip is always legal.
+    [PowerQuestionKind.FreeActionOutOfTurn]: () => undefined
 }
 
 function forcedOutcomeOf<K extends PowerQuestionKind>(

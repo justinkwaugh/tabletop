@@ -1,7 +1,8 @@
-import { type HydratedAction } from '@tabletop/common'
+import { type HydratedAction, assertExists } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedOathGameState } from '../model/gameState.js'
+import { currentQuestion } from '../util/questions.js'
 
 export function isPlayerActionOfType(action: HydratedAction, ...types: ActionType[]): boolean {
     if (!action.playerId) return false
@@ -52,4 +53,22 @@ export function stateAfterCampaignEnded(
 ): MachineState {
     returnClockToTurnPlayer(gameState)
     return metadata?.resumeMachineState ?? phaseAfterActPhaseAction(metadata)
+}
+
+/** Second Wind out of turn — the Travel's own questions and then the free Campaign, or the held turn resumes. */
+export function stateAfterTravelOutOfTurn(
+    gameState: HydratedOathGameState,
+    metadata: { resumeMachineState?: MachineState } | undefined
+): MachineState {
+    const next = currentQuestion(gameState)
+    if (next) {
+        gameState.activePlayerIds = [next.askedPlayerId]
+        return MachineState.PowerQuestion
+    }
+    returnClockToTurnPlayer(gameState)
+    assertExists(
+        metadata?.resumeMachineState,
+        'a Travel out of turn records where the turn resumes'
+    )
+    return metadata.resumeMachineState
 }

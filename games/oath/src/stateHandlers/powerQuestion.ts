@@ -9,14 +9,16 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedAnswerQuestion, isAnswerQuestion } from '../actions/answerQuestion.js'
 import { HydratedCampaign, isCampaign } from '../actions/campaign.js'
+import { HydratedTravel, isTravel } from '../actions/travel.js'
 import { currentQuestion } from '../util/questions.js'
 import { settleQueue } from '../util/questionAnswers.js'
-import { sneakAttackOfferedTo } from '../util/sneakAttack.js'
+import { freeActionOutOfTurnOfferedTo, sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import {
     isPlayerActionOfType,
     returnClockToTurnPlayer,
     stateAfterCampaignDeclared,
-    stateAfterCampaignRoll
+    stateAfterCampaignRoll,
+    stateAfterTravelOutOfTurn
 } from './handlerSupport.js'
 
 export class PowerQuestionStateHandler implements MachineStateHandler<
@@ -25,10 +27,19 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
 > {
     isValidAction(action: HydratedAction, context: MachineContext<HydratedOathGameState>): boolean {
         if (isPlayerActionOfType(action, ActionType.AnswerQuestion)) return true
+        const state = context.gameState
         // Sneak Attack — "you may campaign": the Campaign is the asked player's yes.
+        // Second Wind out of turn — "you may travel and then may campaign": so is each action.
+        if (isCampaign(action)) {
+            return (
+                sneakAttackOfferedTo(state, action.playerId) !== undefined ||
+                freeActionOutOfTurnOfferedTo(state, action.playerId, ActionType.Campaign) !==
+                    undefined
+            )
+        }
         return (
-            isCampaign(action) &&
-            sneakAttackOfferedTo(context.gameState, action.playerId) !== undefined
+            isTravel(action) &&
+            freeActionOutOfTurnOfferedTo(state, action.playerId, ActionType.Travel) !== undefined
         )
     }
 
@@ -38,11 +49,17 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
     ): string[] {
         const gameState = context.gameState
         if (!HydratedAnswerQuestion.canAnswer(gameState, playerId)) return []
-        const maySneakAttack =
-            sneakAttackOfferedTo(gameState, playerId) !== undefined &&
+        const mayCampaign =
+            (sneakAttackOfferedTo(gameState, playerId) !== undefined ||
+                freeActionOutOfTurnOfferedTo(gameState, playerId, ActionType.Campaign) !==
+                    undefined) &&
             HydratedCampaign.canDoCampaign(gameState, playerId)
-        return maySneakAttack
-            ? [ActionType.AnswerQuestion, ActionType.Campaign]
+        if (mayCampaign) return [ActionType.AnswerQuestion, ActionType.Campaign]
+        const mayTravel =
+            freeActionOutOfTurnOfferedTo(gameState, playerId, ActionType.Travel) !== undefined &&
+            HydratedTravel.canDoTravel(gameState, playerId)
+        return mayTravel
+            ? [ActionType.AnswerQuestion, ActionType.Travel]
             : [ActionType.AnswerQuestion]
     }
 
@@ -54,6 +71,7 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
 
     onAction(action: HydratedAction, context: MachineContext<HydratedOathGameState>): MachineState {
         if (isCampaign(action)) return stateAfterCampaignDeclared(context.gameState)
+        if (isTravel(action)) return stateAfterTravelOutOfTurn(context.gameState, action.metadata)
         if (isAnswerQuestion(action)) {
             const gameState = context.gameState
             const queueIsEmpty = settleQueue(gameState)

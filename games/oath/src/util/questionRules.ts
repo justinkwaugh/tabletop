@@ -49,6 +49,9 @@ import {
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
+import { forgoFreeActionNow } from './freeActions.js'
+import { endStepOutOfTurn, holdTurnForSkippedFreeAction } from './sneakAttack.js'
+import { ActionType } from '../definition/actions.js'
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
@@ -531,6 +534,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         reasonCannotAnswer: () => undefined,
         apply: (_state, _playerId, matched) =>
             `passed on a Sneak Attack against ${matched.question.defenderPlayerId}`
+    },
+    // Second Wind — "you may travel and then may campaign": skipping the Travel leaves the Campaign.
+    [PowerQuestionKind.FreeActionOutOfTurn]: {
+        reasonCannotAnswer: () => undefined,
+        apply: (state, playerId) => {
+            const skipped = forgoFreeActionNow(state, playerId)
+            holdTurnForSkippedFreeAction(state)
+            endStepOutOfTurn(state, playerId)
+            return `skipped the free ${skipped === ActionType.Travel ? 'Travel' : 'Campaign'}`
+        }
     },
     [PowerQuestionKind.OrderDiscards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {
