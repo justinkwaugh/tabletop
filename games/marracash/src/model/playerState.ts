@@ -18,8 +18,12 @@ export const MarracashPlayerState = Type.Evaluate(
         PlayerState,
         Type.Object({
             money: Visibility.protect(Type.Number(), { policy: moneyPolicy }),
+            // Each hand is its owner's secret until the game ends, when every hand is shown.
             antiques: Visibility.protect(Type.Array(Antique), {
-                policy: Visibility.Policy.Owner,
+                policy: Visibility.Policy.anyOf(
+                    Visibility.Policy.Owner,
+                    Visibility.Policy.stateEquals('machineState', MachineState.EndOfGame)
+                ),
                 redaction: Visibility.redaction.emptyArray()
             }),
             revealedAntiques: Type.Array(Antique)

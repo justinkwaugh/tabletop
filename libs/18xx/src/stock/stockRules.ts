@@ -11,10 +11,11 @@ import {
 } from '../finance/finance.js'
 import type { CompanyAuctionRules } from './companyAuction.js'
 import type { PrivateSaleRules } from './privateSale.js'
-import type { ShareCertificate, SharePurchaseTerms } from './sharePurchase.js'
+import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import { companyMarketSpace } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
+import type { ShareSaleDetails } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 
@@ -47,8 +48,18 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
-    /** What follows any sale into the market, such as the market closing its own shorts. */
-    afterSale?(state: StockState): void
+    /**
+     * Whether a new president exchanges their largest ordinary certificates first, as 1832's
+     * vice-president's certificates must be included.
+     */
+    presidencyExchangeLargestFirst?: boolean
+    /**
+     * What follows any sale into the market, such as the market closing its own shorts. Sale
+     * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
+     */
+    afterSale?(state: StockState, details: ShareSaleDetails): void
+    /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
+    afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**

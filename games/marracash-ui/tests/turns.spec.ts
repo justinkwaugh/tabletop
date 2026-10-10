@@ -274,3 +274,17 @@ test('the queue keeps its front at the top as visitors leave either end', async 
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
     await expect.poll(line).toEqual(before.slice(0, before.length - 3))
 })
+
+test('the new-game dialog offers Antique Cards, off by default', async ({ page }) => {
+    await page.goto('/')
+    const gameName = page.getByPlaceholder('choose a name for your game')
+    await expect(async () => {
+        await page.getByRole('button', { name: 'New game', exact: true }).click()
+        await expect(gameName).toBeVisible({ timeout: 2_000 })
+    }).toPass()
+    const antiques = page
+        .locator('dialog label', { hasText: 'Antique Cards' })
+        .locator('input[type=checkbox]')
+    await expect(antiques).toHaveCount(1)
+    await expect(antiques).not.toBeChecked()
+})

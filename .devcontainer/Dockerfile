@@ -27,7 +27,7 @@ ENV CLAUDE_CONFIG_DIR="/home/node/.claude"
 
 ENV PNPM_HOME="/opt/pnpm"
 ENV PATH="${PNPM_HOME}:${PATH}"
-ARG T3_VERSION=0.0.42
+ARG T3_VERSION=0.0.45
 RUN pnpm add --global t3@${T3_VERSION}
 
 USER node

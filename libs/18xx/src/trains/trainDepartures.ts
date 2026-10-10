@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
+import { assert } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import type { Owner } from '../finance/finance.js'
-import type { TrainPurchaseState } from './train.js'
+import { unownedTrain, type TrainPurchaseState } from './train.js'
 import type { TrainRules } from './trainPurchase.js'
 
 /** A train leaving the depot or its owner: bought, exported, rusted or discarded. */
@@ -39,4 +40,32 @@ export function departurePaymentsField(payments: DeparturePayment[]): {
     departurePayments?: DeparturePayment[]
 } {
     return payments.length ? { departurePayments: payments } : {}
+}
+
+/** A company discards a train of its own to the open market, settling what its departure pays. */
+export function discardTrainToMarket(
+    state: TrainPurchaseState,
+    rules: TrainRules,
+    companyId: string,
+    trainId: string
+): DeparturePayment[] {
+    const train = state.trainInventory.trains.find((entry) => entry.id === trainId)
+    assert(
+        train?.status === 'owned' &&
+            train.owner.kind === 'company' &&
+            train.owner.companyId === companyId,
+        'A company discards a train it owns'
+    )
+    const payments = settleTrainDepartures(state, rules, [
+        {
+            trainId,
+            definitionId: train.definitionId,
+            cause: 'discard',
+            owner: { kind: 'company', companyId }
+        }
+    ])
+    state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
+        entry.id === trainId ? unownedTrain(entry, 'market') : entry
+    )
+    return payments
 }

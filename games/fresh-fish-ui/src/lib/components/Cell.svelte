@@ -8,41 +8,66 @@
         HydratedPlaceMarket,
         isDiskCell
     } from '@tabletop/fresh-fish'
-    import emptyTileImg from '$lib/images/tile-empty.png'
+    import { GRASS_DARK, GRASS_LIGHT, MARKET_LOT } from '$lib/utils/pieceColors.js'
     import roadImg from '$lib/images/tile-road.png'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import StallTile from '$lib/components/StallTile.svelte'
-    import MarketTile from '$lib/components/MarketTile.svelte'
-    import TruckTile from '$lib/components/TruckTile.svelte'
+    import Disk from '$lib/components/Disk.svelte'
+    import WoodMarket from '$lib/components/WoodMarket.svelte'
+    import WoodStall from '$lib/components/WoodStall.svelte'
+    import WoodTruck from '$lib/components/WoodTruck.svelte'
     import { fadeScale, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction, OffsetTupleCoordinates } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getGameSession() as FreshFishGameSession
+    let gameSession = getGameSession()
+
     let { cell, coords }: { cell: Cell; coords: OffsetTupleCoordinates } = $props()
 
-    let cellBgColor = $derived.by(() => {
-        switch (cell.type) {
-            case CellType.OffBoard:
-                return 'bg-transparent'
-            case CellType.Road:
-                return 'bg-brown-500'
-            default:
-                return 'bg-gray-500'
+    const CORNER_RADIUS = 12
+    let cornerClip = $derived.by(() => {
+        if (cell.type === CellType.OffBoard) return undefined
+        const cells = gameSession.gameState.board.cells
+        const [x, y] = coords
+        const isOffBoard = (cx: number, cy: number) => {
+            const neighbour = cells[cy]?.[cx]
+            return !neighbour || neighbour.type === CellType.OffBoard
         }
+        const radiusToward = (dx: number, dy: number) =>
+            isOffBoard(x + dx, y) && isOffBoard(x, y + dy) ? CORNER_RADIUS : 0
+        const [tl, tr, br, bl] = [
+            radiusToward(-1, -1),
+            radiusToward(1, -1),
+            radiusToward(1, 1),
+            radiusToward(-1, 1)
+        ]
+        if (!tl && !tr && !br && !bl) return undefined
+        // A negative inset keeps the half-pixel bleed that hides seams between squares.
+        return `inset(-1px round ${tl}px ${tr}px ${br}px ${bl}px)`
+    })
+
+    // A mown-lawn checker of two close greens marks out the lots without drawing lines,
+    // under a fine grain so the grass reads as matte rather than flat colour.
+    const GRASS_GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E")`
+    let grass = $derived.by(() => {
+        const [x, y] = coords
+        const green = (x + y) % 2 ? GRASS_DARK : GRASS_LIGHT
+        return `${GRASS_GRAIN}, linear-gradient(${green}, ${green})`
     })
 
     let backgroundImage = $derived.by(() => {
         switch (cell.type) {
             case CellType.Disk:
             case CellType.Empty:
-                return `url(${emptyTileImg})`
+                return grass
+            // Under a piece the lot still shows grass, so nothing dark shows through while a
+            // placed piece replaces the disc that reserved its lot.
+            case CellType.Stall:
+            case CellType.Truck:
+                return grass
+            case CellType.Market:
+                return `linear-gradient(${MARKET_LOT}, ${MARKET_LOT})`
             case CellType.Road:
                 return `url(${roadImg})`
-            case CellType.Market:
-            case CellType.Stall:
             case CellType.OffBoard:
-            case CellType.Truck:
             default:
                 return 'none'
         }
@@ -51,30 +76,31 @@
     let interacting = $derived(
         gameSession.isMyTurn &&
             gameSession.isPlayable &&
+            !gameSession.isViewingHistory &&
             (gameSession.chosenAction === ActionType.PlaceDisk ||
                 gameSession.chosenAction === ActionType.PlaceStall ||
                 gameSession.chosenAction === ActionType.PlaceMarket)
     )
     let interactable = $derived(
-        (interacting &&
-            gameSession.chosenAction === ActionType.PlaceDisk &&
-            HydratedPlaceDisk.isValidCellForPlacement(
-                gameSession.gameState,
-                coords,
-                gameSession.myPlayer?.id ?? ''
-            )) ||
-            (gameSession.chosenAction === ActionType.PlaceStall &&
-                HydratedPlaceStall.isValidCellForPlacement(
+        interacting &&
+            ((gameSession.chosenAction === ActionType.PlaceDisk &&
+                HydratedPlaceDisk.isValidCellForPlacement(
                     gameSession.gameState,
                     coords,
                     gameSession.myPlayer?.id ?? ''
                 )) ||
-            (gameSession.chosenAction === ActionType.PlaceMarket &&
-                HydratedPlaceMarket.isValidCellForPlacement(
-                    gameSession.gameState,
-                    coords,
-                    gameSession.myPlayer?.id ?? ''
-                ))
+                (gameSession.chosenAction === ActionType.PlaceStall &&
+                    HydratedPlaceStall.isValidCellForPlacement(
+                        gameSession.gameState,
+                        coords,
+                        gameSession.myPlayer?.id ?? ''
+                    )) ||
+                (gameSession.chosenAction === ActionType.PlaceMarket &&
+                    HydratedPlaceMarket.isValidCellForPlacement(
+                        gameSession.gameState,
+                        coords,
+                        gameSession.myPlayer?.id ?? ''
+                    )))
     )
     let disabled = $derived.by(() => {
         let isInteractable = interactable // need this to be evaluated... this feels like svelte bug
@@ -82,29 +108,23 @@
         if (cell.type === CellType.OffBoard) {
             return false
         }
-        if (gameSession.highlightedCoords !== undefined) {
-            if (
-                gameSession.highlightedCoords[0] !== coords[0] ||
-                gameSession.highlightedCoords[1] !== coords[1]
-            ) {
-                return true
-            } else {
-                return false
-            }
-        }
-        return interacting && !isInteractable
+        return interacting && !isInteractable && !gameSession.isExpropriationPreviewed(coords)
     })
+
+    let highlighted = $derived(
+        gameSession.highlightedCoords !== undefined &&
+            gameSession.highlightedCoords[0] === coords[0] &&
+            gameSession.highlightedCoords[1] === coords[1]
+    )
     let showBorder = $state(false)
 
     let mayExpropriate = $derived(
-        isDiskCell(cell) &&
+        (isDiskCell(cell) &&
             (!gameSession.isMyTurn ||
                 (gameSession.chosenAction !== ActionType.PlaceMarket &&
-                    gameSession.chosenAction !== ActionType.PlaceStall &&
-                    gameSession.chosenAction !== ActionType.PlaceDisk) ||
-                (interactable &&
-                    (gameSession.chosenAction === ActionType.PlaceMarket ||
-                        gameSession.chosenAction === ActionType.PlaceStall)))
+                    gameSession.chosenAction !== ActionType.PlaceStall) ||
+                interactable)) ||
+            (interactable && gameSession.chosenAction === ActionType.PlaceDisk)
     )
 
     function handleMouseOver() {
@@ -148,8 +168,15 @@
         await gameSession.applyAction(action)
     }
 
+    let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
+    let available = $derived(interacting && interactable && !showBorder)
+
     // Note that tabindex has to be used or interactable is not evaluated... why?
 </script>
+
+{#snippet disk(color: string, ghost = false)}
+    <Disk {color} size={84} class="z-10 {ghost ? 'ff-ghost-disc' : ''}" />
+{/snippet}
 
 <div
     role="button"
@@ -159,42 +186,101 @@
     onkeypress={async () => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
-    class="relative w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center align-center bg-contain bg-origin-border dark:{cellBgColor} {showBorder
-        ? 'border-4'
-        : ''} border-orange-400"
-    style="background-image: {backgroundImage}"
+    class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
+        {interactable && interacting ? 'cursor-pointer' : ''}
+        {disabled ? 'dimmed' : ''}"
+    style="--cell-bg: {backgroundImage}"
+    style:clip-path={cornerClip}
 >
     {#if gameSession.isExpropriationPreviewed(coords)}
         <img src={roadImg} alt="road" class="absolute x-0 y-0 w-full h-full z-0 opacity-50" />
     {/if}
 
     {#if cell.type === CellType.Disk}
-        <svg
+        <!-- Absolute, so a disc fading out never shares the row with the piece replacing it. -->
+        <div
+            class="absolute inset-0 flex justify-center items-center"
             in:fadeScale={{ baseScale: 0.1, duration: 100 }}
             out:fadeScale={{ baseScale: 0.1, duration: 50 }}
-            class="pointer-events-none z-10"
-            viewBox="0 0 30 30"
-            xmlns="http://www.w3.org/2000/svg"
         >
-            <circle
-                fill={gameSession.colors.getPlayerUiColor(cell.playerId)}
-                stroke="#333333"
-                stroke-width=".5"
-                cx="15"
-                cy="15"
-                r="6"
-            ></circle>
-        </svg>
+            {@render disk(gameSession.colors.getPlayerUiColor(cell.playerId))}
+        </div>
     {:else if cell.type === CellType.Truck}
-        <TruckTile goodsType={cell.goodsType} />
+        <WoodTruck goodsType={cell.goodsType} />
     {:else if cell.type === CellType.Stall}
-        <StallTile playerId={cell.playerId} goodsType={cell.goodsType} />
+        <WoodStall
+            color={gameSession.colors.getPlayerUiColor(cell.playerId)}
+            goodsType={cell.goodsType}
+        />
     {:else if cell.type === CellType.Market}
-        <MarketTile />
+        <WoodMarket />
     {/if}
-    <div
-        class="z-20 absolute top left w-[100px] h-[100px] bg-black opacity-50 {disabled
-            ? ''
-            : 'hidden'}"
-    ></div>
+
+    {#if showBorder}
+        <div class="absolute inset-0 z-10 flex justify-center items-center pointer-events-none">
+            {#if gameSession.chosenAction === ActionType.PlaceDisk}
+                {@render disk(myColor, true)}
+            {:else if gameSession.chosenAction === ActionType.PlaceStall}
+                <div class="ff-ghost">
+                    <WoodStall
+                        color={myColor}
+                        goodsType={gameSession.gameState.getChosenStallType()}
+                    />
+                </div>
+            {:else if gameSession.chosenAction === ActionType.PlaceMarket}
+                <div class="ff-ghost">
+                    <WoodMarket />
+                </div>
+            {/if}
+        </div>
+        {#if gameSession.chosenAction === ActionType.PlaceDisk}
+            <div class="target hover z-20"></div>
+        {/if}
+    {:else if available}
+        <div class="target available z-20"></div>
+    {:else if highlighted}
+        <div class="target hover z-20"></div>
+    {/if}
 </div>
+
+<style>
+    /* The ground bleeds half a pixel past the square, so scaled boards show no seams between
+       neighbouring squares. */
+    .cell::before {
+        content: '';
+        position: absolute;
+        inset: -0.5px;
+        z-index: -1;
+        background-image: var(--cell-bg);
+        background-size: 100% 100%;
+        pointer-events: none;
+    }
+    :global(.ff-ghost-disc) {
+        transform: translateY(-5px);
+        filter: drop-shadow(0 7px 4px rgba(0, 0, 0, 0.35));
+    }
+    :global(.ff-ghost) {
+        width: 100%;
+        height: 100%;
+    }
+    .target {
+        position: absolute;
+        inset: 3px;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+    .target.available {
+        box-shadow: inset 0 0 0 2px rgba(255, 236, 170, 0.85);
+        opacity: 0.75;
+    }
+    .target.hover {
+        box-shadow:
+            inset 0 0 0 3px #ffd36b,
+            inset 0 0 24px rgba(255, 211, 107, 0.5);
+    }
+    /* Dimming darkens the square itself rather than laying a translucent sheet over it;
+       neighbouring sheets leave a lighter seam where they meet on a scaled board. */
+    .cell.dimmed {
+        filter: brightness(0.62);
+    }
+</style>

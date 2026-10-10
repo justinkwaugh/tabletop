@@ -1,3 +1,4 @@
+import type { RevenueCenter } from '../routes/route.js'
 import * as Type from 'typebox'
 import { cashOwnedBy, controllingOwner, type Owner } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
@@ -78,14 +79,28 @@ export interface TrackRules {
     tileSet: TileSet
     colorOrder: readonly string[]
     availableColors(state: ConstructionState): readonly string[]
-    allowance(state: ConstructionState, color: string): { cost: number } | { reason: string }
+    /** Whether the company may lay a tile of the colour, replacing a tile when ``upgrade``. */
+    allowance(
+        state: ConstructionState,
+        color: string,
+        upgrade?: boolean
+    ): { cost: number } | { reason: string }
+    /**
+     * A replacement in the same colour the title allows on this hex, such as a medium city's
+     * yellow town becoming a yellow city; the title then judges its stops, and towns may become
+     * cities.
+     */
+    upgradesWithinColor?(state: ConstructionState, locationId: string, after: TileFace): boolean
+    /** Whether the company's network may continue through a revenue center, as its routes may. */
+    stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
     /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
     mostExits?(before: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
-     * adding connected track, or raising a connected city's revenue.
+     * adding connected track, raising a connected city's revenue, or putting a city or town on
+     * the company's network.
      */
     useful(change: {
         home: boolean
@@ -93,6 +108,7 @@ export interface TrackRules {
         newTrack: boolean
         increasedCityRevenue: boolean
         connectedCity: boolean
+        connectedTown: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
@@ -139,7 +155,8 @@ export class TrackConstruction {
                     connected: false,
                     newTrack: false,
                     increasedCityRevenue: false,
-                    connectedCity: false
+                    connectedCity: false,
+                    connectedTown: false
                 }))
         )
     }
@@ -150,13 +167,18 @@ export class TrackConstruction {
         for (const definition of this.rules.tileSet.definitions) {
             if (
                 !this.basicTileAllowed(locationId, definition) ||
-                'reason' in this.rules.allowance(this.state, definition.face.color)
+                'reason' in
+                    this.rules.allowance(
+                        this.state,
+                        definition.face.color,
+                        this.replacesTile(locationId)
+                    )
             )
                 continue
             for (const rotation of Rotations) {
                 const before = this.mapState.tile(locationId)
                 const after = rotateTileFace(definition.face, rotation)
-                for (const nodeMapping of tileUpgradeMappings(
+                for (const nodeMapping of this.upgradeMappings(
                     rotateTileFace(before.face, before.rotation),
                     after
                 )) {
@@ -193,7 +215,7 @@ export class TrackConstruction {
                 other.face.color === definition.face.color &&
                 this.exitCount(other.face) > this.exitCount(definition.face) &&
                 Rotations.some((rotation) =>
-                    tileUpgradeMappings(before, rotateTileFace(other.face, rotation)).some(
+                    this.upgradeMappings(before, rotateTileFace(other.face, rotation)).some(
                         (nodeMapping) =>
                             !!this.evaluatePlacement({
                                 ...request,
@@ -230,7 +252,11 @@ export class TrackConstruction {
         if (!location || !definition) return { reason: 'Unknown map location or tile' }
         if (!this.basicTileAllowed(locationId, definition))
             return { reason: 'The tile’s color, labels, or stops cannot replace this hex' }
-        const allowance = this.rules.allowance(this.state, definition.face.color)
+        const allowance = this.rules.allowance(
+            this.state,
+            definition.face.color,
+            this.replacesTile(locationId)
+        )
         if ('reason' in allowance) return allowance
         const restriction = this.rules.restriction(this.state, request)
         if (restriction) return { reason: restriction }
@@ -238,7 +264,7 @@ export class TrackConstruction {
         const before = rotateTileFace(previous.face, previous.rotation)
         const after = rotateTileFace(definition.face, rotation)
         if (
-            !tileUpgradeMappings(before, after).some(
+            !this.upgradeMappings(before, after).some(
                 (mapping) =>
                     Object.keys(mapping).length === Object.keys(nodeMapping).length &&
                     Object.entries(mapping).every(([id, target]) => nodeMapping[id] === target)
@@ -324,6 +350,9 @@ export class TrackConstruction {
                 increasedCityRevenue,
                 connectedCity: after.nodes.some(
                     (node) => node.kind === 'city' && network.nodes.has(node.id)
+                ),
+                connectedTown: after.nodes.some(
+                    (node) => node.kind === 'town' && network.nodes.has(node.id)
                 )
             })
         )
@@ -359,7 +388,9 @@ export class TrackConstruction {
         return (this.reachability ??= new ConstructionReachability(
             this.mapState,
             this.state,
-            companyId
+            companyId,
+            (locationId, nodeId) =>
+                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false
         ))
     }
     private availablePieces(definitionId: string): ReturnType<TileSet['availablePieces']> {
@@ -379,10 +410,18 @@ export class TrackConstruction {
                 this.availablePieces(definition.id).length > 0 &&
                 Rotations.some(
                     (rotation) =>
-                        tileUpgradeMappings(before, rotateTileFace(definition.face, rotation))
+                        this.upgradeMappings(before, rotateTileFace(definition.face, rotation))
                             .length > 0
                 )
         )
+    }
+    private replacesTile(locationId: string): boolean {
+        return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
+    }
+    private upgradeMappings(before: TileFace, after: TileFace): TileNodeMapping[] {
+        return tileUpgradeMappings(before, after, {
+            townsBecomeCities: before.color === after.color
+        })
     }
     private basicTileAllowed(
         locationId: string,
@@ -393,12 +432,11 @@ export class TrackConstruction {
         const before = this.mapState.tile(locationId).face
         const after = definition.face
         if (!location.buildable || !colors.includes(after.color)) return false
-        if (
-            this.rules.colorOrder.indexOf(after.color) !==
-            this.rules.colorOrder.indexOf(before.color) + 1
-        )
-            return false
-        if (!this.rules.preservesStops(before, after)) return false
+        const colorStep =
+            this.rules.colorOrder.indexOf(after.color) - this.rules.colorOrder.indexOf(before.color)
+        if (colorStep === 0) {
+            if (!this.rules.upgradesWithinColor?.(this.state, locationId, after)) return false
+        } else if (colorStep !== 1 || !this.rules.preservesStops(before, after)) return false
         const future = location.upgradeLabels
             ?.filter(
                 (label) =>

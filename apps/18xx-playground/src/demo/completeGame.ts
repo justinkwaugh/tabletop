@@ -1,5 +1,11 @@
 import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
-import { ActionSource, assert, type GameAction, type GameEngine } from '@tabletop/common'
+import {
+    ActionSource,
+    assert,
+    assertExists,
+    type GameAction,
+    type GameEngine
+} from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceAuctionRules,
@@ -20,6 +26,19 @@ import {
     Shikoku1889RouteRules,
     Shikoku1889TrainFundingRules
 } from '@tabletop/shikoku-1889'
+import {
+    Definition as EighteenThirtyTwo,
+    EighteenThirtyTwoAuctionRules,
+    EighteenThirtyTwoStockRules,
+    EighteenThirtyTwoCompanyRules,
+    EighteenThirtyTwoTrackRules,
+    EighteenThirtyTwoTrainRules,
+    EighteenThirtyTwoRouteRules,
+    EighteenThirtyTwoTrainFundingRules,
+    mergerOptions,
+    protectionDecision,
+    requireEighteenThirtyTwoState
+} from '@tabletop/1832'
 import {
     OfferAuction,
     ReserveBidAuction,
@@ -42,6 +61,18 @@ import { enumerateRouteCandidates } from './routeCandidates.js'
 export const FullGameTitles = [
     {
         definition: Top,
+        ending: 'First diesel',
+        finalPhaseId: undefined,
+        waterfall: undefined,
+        policy: {
+            floatedTarget: (state: EighteenXXState) => state.companies.length,
+            laysEveryTurn: false,
+            dividend: (state: EighteenXXState, companyId: string) =>
+                trainsOwnedBy(state, { kind: 'company', companyId }).length >=
+                TheOldPrinceTrainRules.trainLimit(state, companyId)
+                    ? ('pay' as const)
+                    : ('withhold' as const)
+        },
         stocks: TheOldPrinceStockRules,
         companies: TheOldPrinceCompanyRules,
         track: TheOldPrinceTrackRules,
@@ -56,7 +87,48 @@ export const FullGameTitles = [
         track: Shikoku1889TrackRules,
         trains: Shikoku1889TrainRules,
         routes: Shikoku1889RouteRules,
-        funding: Shikoku1889TrainFundingRules
+        funding: Shikoku1889TrainFundingRules,
+        waterfall: Shikoku1889AuctionRules,
+        ending: 'Bank broken',
+        finalPhaseId: undefined,
+        policy: {
+            floatedTarget: () => 2,
+            laysEveryTurn: false,
+            dividend: () => 'withhold' as const
+        }
+    },
+    {
+        definition: EighteenThirtyTwo,
+        stocks: EighteenThirtyTwoStockRules,
+        companies: EighteenThirtyTwoCompanyRules,
+        track: EighteenThirtyTwoTrackRules,
+        trains: EighteenThirtyTwoTrainRules,
+        routes: EighteenThirtyTwoRouteRules,
+        funding: EighteenThirtyTwoTrainFundingRules,
+        waterfall: EighteenThirtyTwoAuctionRules,
+        ending: 'Bank broken',
+        finalPhaseId: '12',
+        // 1832's companies must keep building and buying trains, and only withhold to afford
+        // one, to stay out of the black area while the game advances.
+        policy: {
+            floatedTarget: () => 5,
+            laysEveryTurn: true,
+            dividend: (state: EighteenXXState, companyId: string) => {
+                const trains = trainsOwnedBy(state, { kind: 'company', companyId }).length
+                const next = EighteenThirtyTwoTrainRules.availableDefinitions(state)[0]
+                const price = next
+                    ? EighteenThirtyTwoTrainRules.depot.trainDefinition(next).price
+                    : Infinity
+                const cash = state.cash.find(
+                    (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+                )?.amount
+                return trains < EighteenThirtyTwoTrainRules.trainLimit(state, companyId) &&
+                    typeof cash === 'number' &&
+                    cash < price
+                    ? ('withhold' as const)
+                    : ('pay' as const)
+            }
+        }
     }
 ]
 export class CompleteGameRun {
@@ -118,8 +190,41 @@ export class CompleteGameRun {
             this.act('PassAuction')
             return
         }
+        if (available.includes('ParCompany')) {
+            const pending = state.pendingPar
+            assertExists(pending, 'A par choice names its company')
+            const companyId = pending.companyId
+            this.act('ParCompany', {
+                companyId,
+                marketSpaceId: this.title.companies.startMarketSpaces(state, companyId)[0]
+            })
+            return
+        }
+        if (available.includes('DeclineProtection')) {
+            const decision = protectionDecision(requireEighteenThirtyTwoState(state))
+            assertExists(decision, 'A protection decision is open')
+            this.act('DeclineProtection', { companyId: decision.sale.companyId })
+            return
+        }
+        if (available.includes('AnswerRedemption')) {
+            this.act('AnswerRedemption', { accept: false })
+            return
+        }
+        if (available.includes('AnswerMerger')) {
+            this.act('AnswerMerger', { accept: true })
+            return
+        }
+        if (available.includes('ProposeMerger')) {
+            const system = mergerOptions(requireEighteenThirtyTwoState(state), playerId).find(
+                (option) => option.kind === 'system'
+            )
+            if (system) this.act('ProposeMerger', system)
+            else this.act('PassMerger')
+            return
+        }
         if (state.machineState === 'WaterfallAuction') {
-            const auction = new ReserveBidAuction(state, Shikoku1889AuctionRules)
+            assertExists(this.title.waterfall, 'A waterfall opening has its rules')
+            const auction = new ReserveBidAuction(state, this.title.waterfall)
             const lotId = auction.auction.remainingLotIds[0]
             if (auction.canPurchase(playerId, lotId))
                 this.act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
@@ -133,7 +238,10 @@ export class CompleteGameRun {
         if (state.machineState === 'LayingTrack') {
             const construction = new TrackConstruction(state, this.title.track)
             const companyId = state.trackStep!.companyId
-            if (!state.trackStep!.lays.length && state.stockRound.number < 5) {
+            if (
+                !state.trackStep!.lays.length &&
+                (state.stockRound.number < 5 || this.title.policy.laysEveryTurn)
+            ) {
                 for (const location of this.title.track.map.definition.locations) {
                     const choice = construction.choices(location.id)[0]
                     if (choice) {
@@ -176,23 +284,21 @@ export class CompleteGameRun {
             return
         }
         if (state.machineState === 'DistributingEarnings') {
+            const companyId = state.routeStep!.companyId
             this.act('DistributeEarnings', {
-                companyId: state.routeStep!.companyId,
-                choice:
-                    this.title.definition.info.id === 'the-old-prince' &&
-                    trainsOwnedBy(state, { kind: 'company', companyId: state.routeStep!.companyId })
-                        .length >= this.title.trains.trainLimit(state, state.routeStep!.companyId)
-                        ? 'pay'
-                        : 'withhold'
+                companyId,
+                choice: this.title.policy.dividend(state, companyId)
             })
             return
         }
         if (state.machineState === 'BuyingTrains') {
             const companyId = state.trainPurchaseStep!.companyId
-            const purchase = new TrainPurchase(state, this.title.trains)
-                .offers()
-                .find((offer) => offer.evaluation.details)?.evaluation.details
-            if (purchase && !state.gameEnding) {
+            const trains = new TrainPurchase(state, this.title.trains)
+            const purchase =
+                trains.offers().find((offer) => offer.evaluation.details)?.evaluation.details ??
+                trains.marketOffers().find((offer) => offer.details)?.details
+            // Once the end is due it buys only a train the company must have.
+            if (purchase && (!state.gameEnding || !available.includes('FinishOperatingTurn'))) {
                 this.act('BuyTrain', {
                     companyId,
                     trainId: purchase.trainId,
@@ -307,10 +413,8 @@ export class CompleteGameRun {
                     return
                 }
             }
-            if (
-                state.companies.filter((company) => company.floated).length <
-                (this.title.definition.info.id === 'the-old-prince' ? state.companies.length : 2)
-            ) {
+            const live = state.companies.filter((company) => company.floated && !company.closed)
+            if (live.length < this.title.policy.floatedTarget(state)) {
                 for (const company of state.companies) {
                     if (company.started) continue
                     for (const marketSpaceId of this.title.companies.startMarketSpaces(

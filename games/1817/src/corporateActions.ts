@@ -1,8 +1,4 @@
-import type {
-    HydratedEighteenSeventeenState,
-    EighteenSeventeenStateHandler,
-    EighteenSeventeenState
-} from './state.js'
+import type { EighteenSeventeenStateHandler, EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -11,15 +7,15 @@ import {
     HydratableAction,
     assert,
     type GameAction,
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext
+    type HydratedGameState
 } from '@tabletop/common'
 import {
     CashPayment,
+    CorporateStockActionsHandler,
     canTakeLoan,
     companyMarketSpace,
     controllingOwner,
+    corporateTurnOpen,
     finiteCashOwnedBy,
     isTakeLoan,
     recordStockAction,
@@ -28,6 +24,7 @@ import {
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRules } from './stockRules.js'
 
 export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: string): string[] {
     if (inClosingZone(state.stockMarket, companyId)) return []
@@ -43,28 +40,13 @@ export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: 
         .map((certificate) => certificate.id)
 }
 
-function corporateTurnOpen(
-    state: EighteenSeventeenState,
-    playerId: string,
-    companyId: string
-): boolean {
-    const turn = state.stockRound.turn
-    return (
-        state.machineState === 'StockRound' &&
-        !state.companyAuction &&
-        state.activePlayerIds.includes(playerId) &&
-        controllingOwner(state, companyId)?.playerId === playerId &&
-        (turn.corporateAction ? turn.corporateAction.companyId === companyId : !turn.acted)
-    )
-}
-
 export function canTakeCorporateLoan(
     state: EighteenSeventeenState,
     playerId: string,
     companyId: string
 ): boolean {
     return (
-        corporateTurnOpen(state, playerId, companyId) &&
+        corporateTurnOpen(state, playerId, companyId, EighteenSeventeenStockRules) &&
         !state.stockRound.turn.corporateAction?.boughtBack &&
         canTakeLoan(state, EighteenSeventeenLoanRules, playerId, companyId)
     )
@@ -76,7 +58,7 @@ export function buyBackReason(
     companyId: string,
     certificateIds: readonly string[]
 ): string | undefined {
-    if (!corporateTurnOpen(state, playerId, companyId))
+    if (!corporateTurnOpen(state, playerId, companyId, EighteenSeventeenStockRules))
         return 'Only a president may act for their company, in place of their own action.'
     const available = buyBackCertificateIds(state, companyId)
     if (
@@ -147,14 +129,6 @@ export function corporateActionOptions(
     })
 }
 
-export function corporateActionTypes(state: EighteenSeventeenState, playerId: string): string[] {
-    const options = corporateActionOptions(state, playerId)
-    return [
-        ...(options.some((option) => option.canBorrow) ? ['TakeLoan'] : []),
-        ...(options.some((option) => option.buyBack) ? ['BuyBackShares'] : [])
-    ]
-}
-
 export const BuyBackShares = Type.Object(
     {
         ...PlayerAction.properties,
@@ -213,52 +187,24 @@ export class HydratedBuyBackShares
  * In place of their own action, a player may act for one company they preside: take loans, then
  * buy back its market shares. Afterwards only finishing the turn remains.
  */
-export class CorporateActionsHandler implements EighteenSeventeenStateHandler {
-    constructor(private readonly handler: EighteenSeventeenStateHandler) {}
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext<HydratedEighteenSeventeenState>
-    ): boolean {
-        const state = context.gameState
-        if (isTakeLoan(action))
-            return (
-                action.source === ActionSource.User &&
-                canTakeCorporateLoan(state, action.playerId, action.companyId)
-            )
-        if (isBuyBackShares(action))
-            return (
-                action.source === ActionSource.User &&
+export function corporateActionsHandler(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
+    return new CorporateStockActionsHandler(handler, [
+        {
+            type: 'TakeLoan',
+            available: (state, playerId) =>
+                corporateActionOptions(state, playerId).some((option) => option.canBorrow),
+            isValid: (action, state) =>
+                isTakeLoan(action) && canTakeCorporateLoan(state, action.playerId, action.companyId)
+        },
+        {
+            type: 'BuyBackShares',
+            available: (state, playerId) =>
+                corporateActionOptions(state, playerId).some((option) => option.buyBack),
+            isValid: (action, state) =>
+                isBuyBackShares(action) &&
                 !buyBackReason(state, action.playerId, action.companyId, action.certificateIds)
-            )
-        if (
-            state.stockRound.turn.corporateAction &&
-            action.source === ActionSource.User &&
-            action.type !== 'FinishStockTurn'
-        )
-            return false
-        return this.handler.isValidAction(action, context)
-    }
-    validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedEighteenSeventeenState>
-    ): string[] {
-        const state = context.gameState
-        const actions = this.handler.validActionsForPlayer(playerId, context)
-        if (!actions.includes('FinishStockTurn')) return actions
-        const corporate = corporateActionTypes(state, playerId)
-        return state.stockRound.turn.corporateAction
-            ? [...corporate, 'FinishStockTurn']
-            : [...actions, ...corporate]
-    }
-    enter(context: MachineContext<HydratedEighteenSeventeenState>): void {
-        this.handler.enter(context)
-    }
-    onAction(
-        action: HydratedAction,
-        context: MachineContext<HydratedEighteenSeventeenState>
-    ): string {
-        return isTakeLoan(action) || isBuyBackShares(action)
-            ? 'StockRound'
-            : this.handler.onAction(action, context)
-    }
+        }
+    ])
 }

@@ -1,19 +1,36 @@
 <script lang="ts">
-    import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
-    import { ActionType, isDrawTile, isEndAuction, isMarketTile } from '@tabletop/fresh-fish'
+    import {
+        ActionType,
+        isDrawTile,
+        isEndAuction,
+        isMarketTile,
+        isPlaceDisk,
+        isPlaceMarket,
+        isPlaceStall,
+        isStallTile,
+        type GoodsType
+    } from '@tabletop/fresh-fish'
     import type { GameAction } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { createTimeAgo, GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
-    import AuctionResults from './AuctionResults.svelte'
+    import { getGoodsName } from '$lib/utils/goodsNames.js'
+    import Disk from './Disk.svelte'
+    import AuctionBids from './AuctionBids.svelte'
+    import { losingBids } from '$lib/utils/auctionBids.js'
+    import { auctionedGoodsById, groupByTimeLabel } from '$lib/utils/historyEntries.js'
+    import { PLAIN_PLAYER_NAME } from '$lib/utils/playerNames.js'
+    import WoodStall from './WoodStall.svelte'
+    import WoodMarket from './WoodMarket.svelte'
+    import { UNCLAIMED_STALL } from '$lib/utils/pieceColors.js'
+    import BagIcon from './BagIcon.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const timeAgo = createTimeAgo()
 
-    let gameSession = getGameSession() as FreshFishGameSession
+    let gameSession = getGameSession()
     let unhighlightTimeout: ReturnType<typeof setTimeout>
 
     let reversedActions = $derived.by(() => {
@@ -31,6 +48,13 @@
             )
         return reversed
     })
+
+    let auctionedGoods = $derived(auctionedGoodsById(gameSession.actions))
+    let groups = $derived(
+        groupByTimeLabel(reversedActions, (action) =>
+            action.createdAt ? timeAgo.format(action.createdAt) : 'Earlier'
+        )
+    )
 
     function highlight(action: GameAction) {
         if (gameSession.isViewingHistory) {
@@ -56,27 +80,17 @@
 </script>
 
 <div
-    class="rounded-lg border border-gray-700 text-center p-2 h-full flex flex-col justify-start items-left overflow-hidden min-h-[300px]"
+    class="h-full min-h-[300px] overflow-hidden rounded-md bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
 >
-    <div class="overflow-auto h-full">
-        <Timeline class="ms-1 text-left">
-            {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+    <div class="h-full overflow-auto px-1.5 pb-2">
+        {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
+            {@render marker('Game over', timeAgo.format(gameSession.game.finishedAt))}
+        {/if}
+        {#each groups as group (group.actions[0].id)}
+            <div class="when bg-gray-200 dark:bg-gray-800">{group.label}</div>
+            {#each group.actions as action (action.id)}
                 <div
-                    class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
-                ></div>
-                <TimelineItem
-                    defaultDivClass="hidden"
-                    title=""
-                    class="mb-5"
-                    date={timeAgo.format(gameSession.game.finishedAt)}
-                >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                        The game has ended.
-                    </p>
-                </TimelineItem>
-            {/if}
-            {#each reversedActions as action, i (action.id)}
-                <div
+                    class="entry bg-white/70 dark:bg-gray-700/45"
                     role="button"
                     tabindex={-1}
                     onfocus={() => {}}
@@ -87,55 +101,118 @@
                     onmouseover={() => highlight(action)}
                     onmouseleave={() => unhighlight()}
                 >
-                    <div
-                        class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
-                    ></div>
-                    <TimelineItem
-                        defaultDivClass="hidden"
-                        title=""
-                        class="mb-5"
-                        date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
-                    >
-                        {#snippet orientationSlot()}
-                            <div class="flex items-center">
-                                <div
-                                    class="dark:bg-gray-700 z-10 flex h-2 w-2 shrink-0 items-center justify-center rounded-full"
-                                ></div>
-                            </div>
-                        {/snippet}
-                        <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
+                    <div class="piece">
+                        {@render piece(action)}
+                    </div>
+                    <div class="min-w-0 text-sm leading-snug">
+                        {#if isEndAuction(action)}
+                            <PlayerName playerId={action.winnerId} {...PLAIN_PLAYER_NAME} /> won the
+                            {#if auctionedGoods.get(action.id)}
+                                {getGoodsName(auctionedGoods.get(action.id)!)} stall
+                            {:else}
+                                auction
+                            {/if}
+                            for ${action.highBid}
+                            {#if losingBids(action).length > 0}
+                                <div class="bids">
+                                    <AuctionBids {action} discSize={18} showNames />
+                                </div>
+                            {/if}
+                        {:else}
                             {#if action.playerId}
-                                <PlayerName playerId={action.playerId} />
+                                <PlayerName playerId={action.playerId} {...PLAIN_PLAYER_NAME} />
                             {/if}
                             {getDescriptionForAction(action)}
-                        </p>
-                        {#if isEndAuction(action)}
-                            <AuctionResults {action} />
                         {/if}
-                    </TimelineItem>
+                    </div>
                 </div>
             {/each}
-            <div
-                class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
-            ></div>
-            <TimelineItem
-                defaultDivClass="hidden"
-                title=""
-                class="mb-5"
-                date={timeAgo.format(gameSession.game.createdAt)}
-            >
-                {#snippet orientationSlot()}
-                    <div class="flex items-center">
-                        <div
-                            class="bg-primary-200 dark:bg-primary-900 z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-0 ring-white sm:ring-8 dark:ring-gray-900"
-                        ></div>
-                        <div class="hidden h-0.5 w-full bg-gray-200 sm:flex dark:bg-gray-700"></div>
-                    </div>
-                {/snippet}
-                <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
-                    The game was started
-                </p>
-            </TimelineItem>
-        </Timeline>
+        {/each}
+        {@render marker('Game started', timeAgo.format(gameSession.game.createdAt))}
     </div>
 </div>
+
+{#snippet marker(text: string, when: string)}
+    <div class="marker">
+        <span>{text}</span>
+        <span class="opacity-60">· {when}</span>
+    </div>
+{/snippet}
+
+{#snippet stallPiece(color: string, goodsType: GoodsType | undefined)}
+    <div class="tile">
+        <WoodStall size={28} showName={false} {color} {goodsType} />
+    </div>
+{/snippet}
+
+{#snippet piece(action: GameAction)}
+    {#if isPlaceDisk(action)}
+        <Disk color={gameSession.colors.getPlayerUiColor(action.playerId)} size={30} />
+    {:else if isPlaceStall(action)}
+        {@render stallPiece(gameSession.colors.getPlayerUiColor(action.playerId), action.goodsType)}
+    {:else if isPlaceMarket(action)}
+        <div class="tile">
+            <WoodMarket size={28} />
+        </div>
+    {:else if isDrawTile(action) && isStallTile(action.metadata?.chosenTile)}
+        {@render stallPiece(UNCLAIMED_STALL, action.metadata.chosenTile.goodsType)}
+    {:else if isDrawTile(action)}
+        <BagIcon size={28} />
+    {:else if isEndAuction(action)}
+        {@render stallPiece(
+            gameSession.colors.getPlayerUiColor(action.winnerId),
+            auctionedGoods.get(action.id)
+        )}
+    {/if}
+{/snippet}
+
+<style>
+    .when {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding: 8px 8px 4px;
+        font-size: 0.75rem;
+        color: rgb(107 114 128);
+    }
+    :global(.dark) .when {
+        color: rgb(156 163 175);
+    }
+    .entry {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+        padding: 6px 8px;
+        border-radius: 6px;
+    }
+    .entry:hover {
+        filter: brightness(1.08);
+    }
+    .piece {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+    }
+    .tile {
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+    .bids {
+        margin-top: 3px;
+        font-size: 0.8rem;
+    }
+    .marker {
+        padding: 10px 8px 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        color: rgb(107 114 128);
+    }
+    :global(.dark) .marker {
+        color: rgb(156 163 175);
+    }
+</style>

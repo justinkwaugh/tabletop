@@ -48,7 +48,7 @@ const FourPlayerPositions: readonly ScenarioPosition[] = [
     'transfers',
     'powers'
 ]
-const PlayerIds = ['alex', 'blair', 'casey', 'drew', 'elliot', 'fran']
+const PlayerIds = ['alex', 'blair', 'casey', 'drew', 'elliot', 'fran', 'gale']
 
 export function exampleGame<
     Raw extends EighteenXXState,

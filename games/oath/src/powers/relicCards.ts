@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { Banner } from '../model/oathEnums.js'
@@ -31,6 +32,8 @@ import {
 } from './vocabulary.js'
 import { cardChoicesAtYourSite } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
+import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { releaseRelic } from '../util/relics.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
@@ -73,7 +76,7 @@ registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', Powe
                 suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
             return matches ? undefined : `${ctx.particulars?.cardId} matches none of your advisers`
         },
-        supplyCost: () => 0
+        spendsNoSupply: () => true
     }
 })
 
@@ -311,12 +314,17 @@ registerModifier(BOOK_OF_RECORDS, powerIndexOf(BOOK_OF_RECORDS, PowerTiming.Modi
 })
 
 // "If you're victorious, gain one warband per enemy warband killed in this campaign." Either side.
+// Its Q&A: skulls and Bear Traps kill, and the warbands Hospital saves are not killed.
 const CURSED_CAULDRON = 'relic.cursed-cauldron'
 registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.BattlePlan), {
     hooks: {
         onOutcome: (ctx, victorious) => {
             if (!victorious) return undefined
-            const killed = ctx.state.campaign?.defeatKilled ?? 0
+            const campaign = ctx.state.campaign
+            assertExists(campaign, 'an outcome hook runs inside a Campaign')
+            const killed = isAtLeastOathRevision(ctx.state, OathRevision.CardFixes1)
+                ? enemyWarbandsKilledFor(ctx.state, campaign, ctx.campaign.side)
+                : (campaign.defeatKilled ?? 0)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, killed)
             return `Cursed Cauldron: gained ${gained} warbands, one per enemy warband killed`
         }
@@ -343,7 +351,7 @@ registerBattlePlan(STICKY_FIRE, powerIndexOf(STICKY_FIRE, PowerTiming.BattlePlan
 // "Players cannot target or take your banners or your other relics. In campaigns, banishing your pawn and favor adds one more [defenseDie]." Persistent.
 const CIRCLET = 'relic.circlet-of-command'
 registerPersistent(CIRCLET, powerIndexOf(CIRCLET, PowerTiming.Persistent), {
-    forbidsBannerTake: (ctx, actorId, banner, holderId) =>
+    forbidsBannerTake: (ctx, actorId, banner, _how, holderId) =>
         holderId !== undefined && ctx.ownerIds.includes(holderId) && actorId !== holderId
             ? `Circlet of Command: ${holderId}'s ${banner === Banner.PeoplesFavor ? "People's Favor" : 'Darkest Secret'} cannot be targeted or taken`
             : undefined,

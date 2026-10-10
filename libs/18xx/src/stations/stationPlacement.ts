@@ -1,3 +1,4 @@
+import type { RevenueCenter } from '../routes/route.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
@@ -56,6 +57,10 @@ export interface StationRules {
     ): number
     allowsDisconnected?(state: StationPlacementState, request: StationRequest): boolean
     placementLimit(state: StationPlacementState, companyId: string): number
+    /** Whether the company's network may continue through a revenue center, as its routes may. */
+    stopAllowed?(state: StationPlacementState, companyId: string, center: RevenueCenter): boolean
+    /** Whether a title placement, such as a private's token, keeps the station step open. */
+    holdsStationStep?(state: StationPlacementState, companyId: string): boolean
     pendingHomes(state: OperatingStationState): HomeStation[]
     /** Titles whose presidents choose a home city return the next operating company's choice. */
     homeChoice?(state: OperatingStationState): HomeStationChoice | undefined
@@ -113,7 +118,15 @@ export class StationPlacement {
             !this.openSlots(companyId, position.locationId, position.nodeId).includes(position.slot)
         )
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
-        const network = new TrackNetwork(this.mapState, this.state, companyId)
+        const network = new TrackNetwork(
+            this.mapState,
+            this.state,
+            companyId,
+            undefined,
+            undefined,
+            (locationId, nodeId) =>
+                this.rules.stopAllowed?.(this.state, companyId, { locationId, nodeId }) === false
+        )
         const connected = network.reaches(position.locationId, {
             kind: 'node',
             nodeId: position.nodeId

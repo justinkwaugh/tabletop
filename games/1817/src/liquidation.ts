@@ -18,10 +18,10 @@ import {
     type OperatingState,
     type StockMarket,
     type StockState,
-    type TrainState
+    type TrainState,
+    SystemActionFirstHandler
 } from '@tabletop/18xx'
 import { isLiquidationSpace } from './stockMarket.js'
-import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 export function isLiquidated(market: StockMarket, companyId: string): boolean {
     return isLiquidationSpace(companyMarketSpace(market, companyId))

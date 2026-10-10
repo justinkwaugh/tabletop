@@ -327,7 +327,9 @@ export class HydratedPlayFacedownAdviser
     private static changesTheDraw(hooks: ModifierHooks): boolean {
         return (
             hooks.supplyCost !== undefined ||
+            hooks.spendsNoSupply !== undefined ||
             hooks.drawCount !== undefined ||
+            hooks.setsDrawCount !== undefined ||
             hooks.drawRegion !== undefined ||
             hooks.drawsFromBottom === true ||
             hooks.revealsDraw === true ||

@@ -28,7 +28,8 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
         | {
               kind: 'location'
               locationIds: readonly string[]
-              choose(locationId: string): Promise<void>
+              /** Chooses a hex, with the city or town clicked within it when there was one. */
+              choose(locationId: string, nodeId?: string): Promise<void>
           }
         | {
               kind: 'confirm'

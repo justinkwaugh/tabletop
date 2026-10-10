@@ -29,11 +29,11 @@ import {
     settleCashPayments,
     sharesOwned,
     type FinancialState,
-    type OpenShare
+    type OpenShare,
+    SystemActionFirstHandler
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
-import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 import { eighteenSeventeenOptions } from './state.js'
 
 const NoShortsPhase = '8'

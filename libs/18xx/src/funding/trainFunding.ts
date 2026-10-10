@@ -43,7 +43,11 @@ export const FundingFields = {
 }
 export type FundingState = CompanyDecisionState & Type.Static<Type.TObject<typeof FundingFields>>
 export interface TrainFundingRules {
-    afterShareSale?(state: FundingState): void
+    /**
+     * What follows a funding sale. Funding previews run it on a shallow copy of the state, so it
+     * replaces nested state it changes.
+     */
+    afterShareSale?(state: FundingState, details: ShareSaleDetails): void
     includeMarketTrains: boolean
     sellInBlocks: boolean
     contributors(state: FundingState, companyId: string): Owner[]
@@ -85,7 +89,7 @@ export class EmergencyTrainFunding {
     applySale(details: ShareSaleDetails): void {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
         applyShareSale(this.state, details)
-        this.rules.afterShareSale?.(this.state)
+        this.rules.afterShareSale?.(this.state, details)
         for (const sale of details.sales)
             this.state.trainFunding.sales.push({
                 seller: details.seller,

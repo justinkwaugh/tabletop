@@ -1,5 +1,5 @@
 import { EighteenSeventeenLoanRules } from '@tabletop/1817'
-import type { CardAction } from './CompanyActionCard.svelte'
+import type { CardAction } from '@tabletop/18xx-ui'
 import type { EighteenSeventeenSession } from './session.svelte.js'
 
 /** Borrowing for a company, as each round's card offers it. */

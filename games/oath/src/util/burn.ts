@@ -1,4 +1,5 @@
 import { HydratedOathGameState } from '../model/gameState.js'
+import type { Suit } from '../model/oathEnums.js'
 import { receiveFavor } from './favor.js'
 import { persistentsInPlay } from './persistent.js'
 
@@ -11,7 +12,7 @@ export function burnedFavorTaker(state: HydratedOathGameState): string | undefin
     return undefined
 }
 
-/** R-10.4 — every burn routes through here so Vow of Renewal can claim it. */
+/** R-10.4 — every burn a player makes routes through here so Vow of Renewal can claim it. */
 export function burnFavor(state: HydratedOathGameState, count: number): string | undefined {
     if (count <= 0) return undefined
     const taker = burnedFavorTaker(state)
@@ -21,4 +22,19 @@ export function burnFavor(state: HydratedOathGameState, count: number): string |
     }
     state.favorSupply += count
     return undefined
+}
+
+/**
+ * R-10.3-H1 — favor a bank would pay the bandits is burned, as much as the bank holds. No player
+ * burns it, so Vow of Renewal ("whenever any player burns") does not take it.
+ */
+export function burnFavorFromBank(
+    state: HydratedOathGameState,
+    suit: Suit,
+    wanted: number
+): number {
+    const burned = Math.max(0, Math.min(wanted, state.favorBank[suit]))
+    state.favorBank[suit] -= burned
+    state.favorSupply += burned
+    return burned
 }

@@ -1,6 +1,8 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     RailwayMapState,
+    charterStationCost,
+    charterStationCounts,
     getCompany,
     homeStationId,
     nextOperatingCompany,
@@ -20,26 +22,13 @@ export const EighteenThirtyStationCosts: Readonly<Record<string, readonly number
     NYNH: [0, 40],
     BM: [0, 40]
 }
-export const EighteenThirtyStationCounts: Readonly<Record<string, number>> = Object.fromEntries(
-    Object.entries(EighteenThirtyStationCosts).map(([companyId, costs]) => [
-        companyId,
-        costs.length
-    ])
-)
+export const EighteenThirtyStationCounts = charterStationCounts(EighteenThirtyStationCosts)
 
 export const EighteenThirtyStationRules: StationRules = {
     map: EighteenThirtyMap,
     tileSet: EighteenThirtyTileSet,
-    placementCost(state, stationId) {
-        const station = state.stations.find((station) => station.id === stationId)
-        assertExists(station, 'A station placement requires a known station')
-        const used = state.stations.filter(
-            (entry) => entry.companyId === station.companyId && entry.status !== 'available'
-        ).length
-        const cost = EighteenThirtyStationCosts[station.companyId]?.[used]
-        assertExists(cost, 'Every 1830 station has a cost')
-        return cost
-    },
+    placementCost: (state, stationId) =>
+        charterStationCost(state, stationId, EighteenThirtyStationCosts),
     placementLimit: () => 1,
     // A floated company places its home station as it begins its first operating turn. With
     // several reserved cities, the first is used while its hex has no track; once track gives

@@ -11,7 +11,15 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
     )
 }
 
-export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNodeMapping[] {
+/**
+ * The node mappings preserving a tile's track and stops; ``townsBecomeCities`` lets a town map
+ * onto a city, as when a title promotes a town within its colour.
+ */
+export function tileUpgradeMappings(
+    before: TileFace,
+    after: TileFace,
+    options: { townsBecomeCities?: boolean } = {}
+): TileNodeMapping[] {
     const mappings: TileNodeMapping[] = []
     const cityTargets = trackLessCityTargets(before, after)
     function visit(index: number, mapping: Record<string, string>) {
@@ -22,7 +30,11 @@ export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNode
             return
         }
         for (const target of after.nodes) {
-            if (node.kind !== target.kind) continue
+            if (
+                node.kind !== target.kind &&
+                !(options.townsBecomeCities && node.kind === 'town' && target.kind === 'city')
+            )
+                continue
             if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id)
                 continue
             if (
@@ -62,9 +74,8 @@ function trackLessCityTargets(before: TileFace, after: TileFace): Map<string, st
 }
 
 export function preservesPath(path: TilePath, after: TileFace, mapping: TileNodeMapping): boolean {
-    const endpoints = path.endpoints.map(
-        (end): TileEndpoint =>
-            end.kind === 'node' ? { kind: 'node', nodeId: mapping[end.nodeId] } : end
+    const endpoints = path.endpoints.map((end): TileEndpoint =>
+        end.kind === 'node' ? { kind: 'node', nodeId: mapping[end.nodeId] } : end
     )
     const visited: TileEndpoint[] = []
     const queue = [endpoints[0]]

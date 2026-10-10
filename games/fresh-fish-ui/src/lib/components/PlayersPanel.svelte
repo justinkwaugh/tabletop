@@ -2,10 +2,9 @@
     import type { Player } from '@tabletop/common'
     import type { FreshFishPlayerState } from '@tabletop/fresh-fish'
     import PlayerState from '$lib/components/PlayerState.svelte'
-import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getGameSession() as FreshFishGameSession
+    let gameSession = getGameSession()
 
     type PlayerAndState = { player: Player; playerState: FreshFishPlayerState }
 
@@ -20,8 +19,8 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        return gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        return gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
     })
     function getPlayerForState(playerState: FreshFishPlayerState) {
@@ -29,7 +28,7 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
     }
 </script>
 
-<div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
+<div class="space-y-2.5 grow-0 shrink-0">
     {#each playersAndStates as playerAndState (playerAndState.playerState.playerId)}
         <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
     {/each}

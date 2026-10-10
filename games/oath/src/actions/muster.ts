@@ -15,6 +15,7 @@ import {
     anyRelaxesOccupancy,
     firstForbid,
     foldNumber,
+    foldSupplyCost,
     modifierSummary,
     ModifierUse,
     ModifierUses,
@@ -181,14 +182,7 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
         )
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
-        const cost = foldNumber(
-            'supplyCost',
-            MUSTER_SUPPLY_COST,
-            state,
-            playerId,
-            active,
-            particulars
-        )
+        const cost = foldSupplyCost(MUSTER_SUPPLY_COST, state, playerId, active, particulars)
         const forbidden = firstForbid(state, playerId, active, particulars)
         if (forbidden) return { cost, active, reason: forbidden }
         if (player.supply < cost) {

@@ -25,6 +25,8 @@ export function shroudedWoodChooser(
 // R-11.3 to R-11.13, R-9.2 — a named ignore beats a must; the player's secret flip rides the action.
 export interface SiteTravelTerms {
     cost: number
+    /** R-7.6.2 */
+    spendsNoSupply: boolean
     ignoresNarrowPass: boolean
     ignoresHiddenPlace: boolean
     notes: string[]
@@ -42,6 +44,7 @@ export function siteTravelTerms(
     const to = categoryAt(state, toSiteId)
     const terms: SiteTravelTerms = {
         cost: base,
+        spendsNoSupply: false,
         ignoresNarrowPass: false,
         ignoresHiddenPlace: false,
         notes: []
@@ -64,7 +67,7 @@ export function siteTravelTerms(
         )
     }
     if (from === 'buriedGiant' && flipSecret) {
-        terms.cost = 0
+        terms.spendsNoSupply = true
         terms.ignoresNarrowPass = true
         terms.notes.push(
             'Buried Giant: a secret flipped facedown, no Supply spent, ignoring the Narrow Pass'

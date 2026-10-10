@@ -12,7 +12,7 @@ import { CampaignTargetKind } from '../model/campaign.js'
 import { reliquarySlotId } from './setup.js'
 import { RELIQUARY_MODIFIERS } from '../data/reliquary.js'
 import { forceTotal } from './force.js'
-import { mandatoryModifiers } from './modifiers.js'
+import { mandatoryModifiers, type ModifierUse } from './modifiers.js'
 import { testBanners, testPlayer, testState, testVaultWithDiscards, openTurn } from '../testing/fixture.js'
 import { BRUTAL, CARELESS, DECADENT, GREEDY, hasTrait, uncoveredTraits } from './reliquaryTraits.js'
 import '../powers/index.js'
@@ -20,8 +20,15 @@ import { ongoingCampaign, required } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { modifierUse } from '../testing/choices.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
+import { OathRevision } from './revision.js'
 
 const RETURN = 'denizen.hearth.awaited-return'
+const STEED = 'denizen.nomad.a-fast-steed'
+const ENVOY = 'denizen.nomad.special-envoy'
+const PORTAL = 'denizen.arcane.portal'
 
 function reliquary(uncovered: number[] = []) {
     return range(0, 4)
@@ -125,6 +132,61 @@ describe('Decadent — Travel (R-6.6.2.a)', () => {
         new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c1' })).apply(s)
         expect(s.getPlayerState('ruler').supply).toBe(3)
         expect(s.getPlayerState('ruler').siteId).toBe('c1')
+    })
+})
+
+describe('Decadent — "spend no Supply" ignores its +1 (R-7.6.2)', () => {
+    const atRevision = OathRevision.CardFixes1
+    const before = OathRevision.PlanCostsAndSearchPlays
+    const giantAtH1 = { ...board([]).siteCards, h1: 'site.buried-giant' }
+
+    /** The Chancellor, Decadent and out of Supply, travels h1 to h2 in the Hinterland under each waiver. */
+    function waived(oathRevision: OathRevision) {
+        const plan = (state: Record<string, unknown>, ruler: Partial<OathPlayerState>, cards: string[], advisers: string[], modifiers: ModifierUse[], flipSecret = false) =>
+            HydratedTravel.plan(board([DECADENT], { oathRevision, ...state }, { siteId: 'h1', supply: 0, ...ruler }, cards, advisers), 'ruler', 'h2', modifiers, undefined, flipSecret)
+        return {
+            tents: plan({}, {}, [], [TENTS], [modifierUse(TENTS)]),
+            steed: plan({}, { warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }, [], [STEED], [modifierUse(STEED)]),
+            envoy: plan({}, {}, [], [ENVOY], [modifierUse(ENVOY)]),
+            portal: plan({}, {}, [PORTAL], [], [modifierUse(PORTAL)]),
+            giant: plan({ siteCards: giantAtH1 }, {}, [], [], [], true)
+        }
+    }
+
+    it('Tents, A Fast Steed, Special Envoy, Portal and a Buried Giant flip each spend nothing', () => {
+        for (const [waiver, plan] of Object.entries(waived(atRevision))) expect([waiver, plan.cost, plan.reason]).toEqual([waiver, 0, undefined])
+    })
+
+    it('with no waiver the +1 still applies', () => {
+        const plan = HydratedTravel.plan(board([DECADENT], { oathRevision: atRevision }, { siteId: 'h1', supply: 0 }), 'ruler', 'h2')
+        expect(plan.cost).toBe(4)
+        expect(plan.reason).toBe('costs 4 Supply, player has 0')
+    })
+
+    it('a Chancellor with no Supply travels to the Hinterland with Tents and spends none', () => {
+        const s = board([DECADENT], { oathRevision: atRevision }, { siteId: 'h1', supply: 0 }, [], [TENTS])
+        const action = new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'h2', modifiers: [modifierUse(TENTS)] }))
+        action.apply(s)
+        expect(s.getPlayerState('ruler').siteId).toBe('h2')
+        expect(s.getPlayerState('ruler').supply).toBe(0)
+        expect(action.metadata?.supplySpent).toBe(0)
+    })
+
+    it('R-X.4 — in a game created before revision 4 each waiver still costs the +1, so that Chancellor is refused', () => {
+        for (const [waiver, plan] of Object.entries(waived(before))) expect([waiver, plan.cost, plan.reason]).toEqual([waiver, 1, 'costs 1 Supply, player has 0'])
+    })
+
+    it('R-X.4 — each revision’s Travel with Tents replays unchanged', () => {
+        for (const [revision, supply] of [[before, 1], [atRevision, 2]]) {
+            const start = board([DECADENT], { oathRevision: revision }, { siteId: 'h1', supply: 2 }, [], [TENTS]).dehydrate()
+            const game = testGame(['ruler', 'other'])
+            const recorded = engine.runNext(buildAction(Travel, { playerId: 'ruler', siteId: 'h2', modifiers: [modifierUse(TENTS)] }), structuredClone(start), game)
+            expect(recorded.updatedState.players.find((p) => p.playerId === 'ruler')?.supply).toBe(supply)
+
+            let replayed = structuredClone(start)
+            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded.updatedState)
+        }
     })
 })
 

@@ -1,8 +1,8 @@
 <script lang="ts">
-    import type { MarketZone } from '../session/titlePresentation.js'
+    import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
     import { marketColors } from './marketColors.js'
 
-    let { zones }: { zones: readonly MarketZone[] } = $props()
+    let { zones, ledge }: { zones: readonly MarketZone[]; ledge?: MarketLedge } = $props()
 </script>
 
 <dl class="market-legend" aria-label="Market zones">
@@ -18,6 +18,10 @@
             <dd>{zone.description}</dd>
         </div>
     {/each}
+    {#if ledge}<div class="zone">
+            <dt><span class="swatch ledge" aria-hidden="true"></span>{ledge.name}</dt>
+            <dd>{ledge.description}</dd>
+        </div>{/if}
 </dl>
 
 <style>
@@ -46,6 +50,11 @@
     dd {
         margin: 0;
         color: var(--rail-muted, #887969);
+    }
+    .swatch.ledge {
+        height: 4px;
+        border: 0;
+        background: light-dark(#2f6fc0, #6aa8f0);
     }
     .swatch {
         width: 12px;

@@ -85,8 +85,8 @@ registerModifier(
                 ctx.particulars?.drawFrom === 'discard'
                     ? undefined
                     : 'you are not searching a discard pile',
-            supplyCost: () => 0,
-            drawCount: () => 1,
+            spendsNoSupply: () => true,
+            setsDrawCount: 1,
             drawsFromBottom: true
         }
     }

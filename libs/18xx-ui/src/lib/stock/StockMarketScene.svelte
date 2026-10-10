@@ -2,11 +2,15 @@
     import { marketColors, marketDarkLightness } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
-    import { type StockMarket as StockMarketModel, type Company } from '@tabletop/18xx'
+    import {
+        type StockMarket as StockMarketModel,
+        type StockMarketSpace,
+        type Company
+    } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { MarketZone } from '../session/titlePresentation.js'
+    import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
         marketTokenLayout,
@@ -24,6 +28,7 @@
         appearances,
         animation,
         zones = [],
+        ledge,
         cell = DefaultMarketCell,
         renderScale = 1
     }: {
@@ -32,11 +37,18 @@
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
         zones?: readonly MarketZone[]
+        ledge?: MarketLedge
         cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
     const rows = $derived(Math.max(...market.spaces.map((space) => space.row)) + 1)
+    const spaceRows = $derived(new Map(market.spaces.map((space) => [space.id, space.row])))
+    // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
+    function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
+        const target = space.moves[move]
+        return !target || spaceRows.get(target) !== space.row
+    }
     const banners = $derived(
         zones.flatMap(({ color, banner }) => {
             const zoneColumns = market.spaces
@@ -248,13 +260,17 @@
                 }}
             >
                 <strong>{space.price}</strong>
-                {#if !space.moves.right && space.moves.up}<svg
+                {#each ledge?.edges.filter((edge) => edge.spaceId === space.id) ?? [] as edge (edge.side)}<span
+                        class="ledge {edge.side}"
+                        aria-hidden="true"
+                    ></span>{/each}
+                {#if space.moves.up && leavesRow(space, 'right')}<svg
                         class="edge-arrow right"
                         viewBox="0 0 10 32"
                         role="img"
                         aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
                     >{/if}
-                {#if !space.moves.left && space.moves.down}<svg
+                {#if space.moves.down && leavesRow(space, 'left')}<svg
                         class="edge-arrow left"
                         viewBox="0 0 10 32"
                         role="img"
@@ -408,6 +424,23 @@
         outline: calc(2px * var(--render-scale)) solid
             light-dark(#796047, var(--rail-focus, #b8cddd));
         outline-offset: calc(-2px * var(--render-scale));
+    }
+    .ledge {
+        position: absolute;
+        z-index: 1;
+        background: light-dark(#2f6fc0, #6aa8f0);
+    }
+    .ledge.bottom {
+        left: calc(-1px * var(--render-scale));
+        right: calc(-1px * var(--render-scale));
+        bottom: calc(-2.5px * var(--render-scale));
+        height: calc(4px * var(--render-scale));
+    }
+    .ledge.right {
+        top: calc(-1px * var(--render-scale));
+        bottom: calc(-1px * var(--render-scale));
+        right: calc(-2.5px * var(--render-scale));
+        width: calc(4px * var(--render-scale));
     }
     strong {
         color: var(--price-ink);

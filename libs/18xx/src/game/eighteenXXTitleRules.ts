@@ -65,6 +65,8 @@ export interface EighteenXXTitleRules<
     privatePowerRules: PrivatePowerRules
     outOfTurnPrivatePowers?: boolean
     trackRules: TrackRules
+    /** Title actions in the track step that keep it open while one is still possible. */
+    additionalConstructionActions?: readonly string[]
     loanRules?: LoanRules
     cashCrisisRules?: CashCrisisRules
 }

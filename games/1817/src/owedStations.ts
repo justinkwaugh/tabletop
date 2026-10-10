@@ -15,11 +15,11 @@ import {
     finiteCashOwnedBy,
     privateOwningCompany,
     type StationState,
-    type StockState
+    type StockState,
+    SystemActionFirstHandler
 } from '@tabletop/18xx'
 import { StationPrice, TrainStationId, buyOwedStations, stationsOwed } from './stockRules.js'
 import { LiquidateCompany, isLiquidated } from './liquidation.js'
-import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 const Fields = Type.Object({
     type: Type.Literal('BuyOwedStations'),

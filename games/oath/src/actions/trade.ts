@@ -28,6 +28,7 @@ import {
 } from '../util/actionPayment.js'
 import {
     foldNumber,
+    foldSupplyCost,
     modifierContext,
     modifierSummary,
     ModifierUse,
@@ -238,14 +239,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, particulars)
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
-        const cost = foldNumber(
-            'supplyCost',
-            TRADE_SUPPLY_COST,
-            state,
-            playerId,
-            active,
-            particulars
-        )
+        const cost = foldSupplyCost(TRADE_SUPPLY_COST, state, playerId, active, particulars)
         if (player.supply < cost) {
             return { cost, active, reason: `costs ${cost} Supply, player has ${player.supply}` }
         }

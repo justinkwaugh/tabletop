@@ -6,7 +6,8 @@ export const marketColors: Record<string, string> = {
     brown: '#a77b52',
     green: '#9cccaa',
     blue: '#accbe9',
-    red: '#e8a59f'
+    red: '#e8a59f',
+    black: '#3b3b3b'
 }
 
-export const marketDarkLightness: Readonly<Record<string, number>> = { brown: 0.5 }
+export const marketDarkLightness: Readonly<Record<string, number>> = { brown: 0.5, black: 0.22 }

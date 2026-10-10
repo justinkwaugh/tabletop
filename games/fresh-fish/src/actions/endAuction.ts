@@ -4,6 +4,7 @@ import { AuctionParticipant, GameAction, HydratableAction } from '@tabletop/comm
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
+import { GoodsType } from '../definition/goodsType.js'
 
 export type EndAuction = Type.Static<typeof EndAuction>
 export const EndAuction = Type.Evaluate(
@@ -14,7 +15,13 @@ export const EndAuction = Type.Evaluate(
             winnerId: Type.String(),
             highBid: Type.Number(),
             revealsInfo: Type.Literal(true),
-            metadata: Type.Optional(Type.Object({ participants: Type.Array(AuctionParticipant) }))
+            metadata: Type.Optional(
+                Type.Object({
+                    participants: Type.Array(AuctionParticipant),
+                    // Optional: actions recorded before it was added have no goods type.
+                    goodsType: Type.Optional(Type.Enum(GoodsType))
+                })
+            )
         })
     ])
 )
@@ -29,7 +36,7 @@ export class HydratedEndAuction extends HydratableAction<typeof EndAuction> impl
     declare winnerId: string
     declare highBid: number
     declare revealsInfo: true
-    declare metadata?: { participants: AuctionParticipant[] }
+    declare metadata?: { participants: AuctionParticipant[]; goodsType?: GoodsType }
 
     constructor(data: EndAuction) {
         super(data, EndAuctionValidator)
@@ -44,6 +51,9 @@ export class HydratedEndAuction extends HydratableAction<typeof EndAuction> impl
         const winningPlayer = state.getPlayerState(this.winnerId)
         winningPlayer.money -= this.highBid
 
-        this.metadata = { participants: currentAuction.participants }
+        this.metadata = {
+            participants: currentAuction.participants,
+            goodsType: state.getChosenStallType()
+        }
     }
 }

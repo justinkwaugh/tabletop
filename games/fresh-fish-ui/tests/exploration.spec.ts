@@ -41,7 +41,8 @@ for (const scenario of [
     'runFailedHistoryExploration',
     'runPrivilegedExploration',
     'runCanonicalExplorationUndo',
-    'runSimulatedAuction'
+    'runSimulatedAuction',
+    'runManualSelectionUndo'
 ]) {
     test(scenario, async ({ page }) => {
         await page.goto('/')

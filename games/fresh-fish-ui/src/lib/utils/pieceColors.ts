@@ -1,0 +1,42 @@
+export const UNCLAIMED_STALL = '#8f9397'
+
+export const GRASS_LIGHT = '#78ac53'
+export const GRASS_DARK = '#6ba247'
+
+export const MARKET_LOT = '#73888c'
+export const MARKET_CANVAS_DARK = '#74808e'
+export const MARKET_CANVAS_LIGHT = '#c0c5ca'
+
+export const TRUCK_WOOD = '#d6b07a'
+export const TRUCK_GROUND = '#2a2c2f'
+
+export const LABEL_LIGHT = '#ecebe6'
+export const LABEL_DARK = '#2a1d0b'
+
+export const TRAY = '#0d1014'
+export const CHALKBOARD = '#33383b'
+
+export const PAINT_LIGHT = '#f3ead2'
+export const PAINT_DARK = '#4a3216'
+
+export function rgbOf(hex: string): [number, number, number] {
+    const value = hex.replace('#', '')
+    const channel = (start: number) => parseInt(value.slice(start, start + 2), 16)
+    return [channel(0), channel(2), channel(4)]
+}
+
+/** Perceived brightness, 0–255. */
+export function luminance([r, g, b]: readonly number[]): number {
+    return 0.299 * r + 0.587 * g + 0.114 * b
+}
+
+export function isLightColor(hex: string): boolean {
+    return luminance(rgbOf(hex)) > 170
+}
+
+export const GOODS_PAINT = {
+    fish: { body: '#5aa845', tail: '#4b9139' },
+    cheese: { front: '#efb238', top: '#f6cd6e', holes: '#b9761c' },
+    gelato: { scoop: '#dc84cc', cup: '#efe6d0' },
+    soda: { cup: '#38b4aa', lid: '#2a8f87', straw: '#e0609a' }
+} as const

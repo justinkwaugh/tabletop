@@ -21,6 +21,7 @@ import { listBackendHistory, switchBackend } from './lib/backendHistory.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
+import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
 import { type PublishContext } from './lib/publishCore.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
@@ -48,17 +49,23 @@ Commands:
   switch --backend --version=<v> [--service=backend|tasks]
   switch --frontend --version=<v>
                                Select specific published versions. Logic needs its UI too.
+  prune (--game=<id> | --frontend | --all) [--apply] [--grace-days=<n>]
+                               Delete artifact versions the manifest no longer references:
+                               keeps the current selection, the rollback history, and anything
+                               uploaded in the last ${DEFAULT_GRACE_DAYS} days. Prints the plan only unless
+                               --apply. Game and frontend deploys prune their own target
+                               afterwards unless --no-prune.
   preflight (--game=<id> | --frontend | --backend) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
                                since it, ending with whether a release is needed. Read-only.
-  release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
+  release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy] [--no-prune]
                                Bump the game's package versions, sync the manifest, commit,
                                tag, push, then deploy (unless --no-deploy). Requires a clean
                                working tree on a branch. <id> is the manifest gameId or
                                packageId. Without --logic only the UI is released; with
                                --logic both logic and UI are released.
-  deploy-game --game=<id> [--logic]
+  deploy-game --game=<id> [--logic] [--no-prune]
                                Build and deploy the game at HEAD, publish the manifest, and
                                invalidate the backend cache. Requires a clean tree, a release
                                tag on HEAD for each artifact, and an unpublished version.
@@ -67,11 +74,11 @@ Commands:
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
   build-logic <gameId>         Build a game logic bundle (rollup)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
-  release-frontend (--major | --minor | --patch) [--no-deploy]
+  release-frontend (--major | --minor | --patch) [--no-deploy] [--no-prune]
                                Bump the frontend package version, sync the manifest, commit,
                                tag frontend-v<version>, push, then deploy (unless --no-deploy).
   build-frontend               Build the frontend
-  deploy-frontend              Build and deploy the frontend at HEAD, publish the manifest, and
+  deploy-frontend [--no-prune]  Build and deploy the frontend at HEAD, publish the manifest, and
                                invalidate the backend cache. Same guards as deploy-game.
   release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
                                Bump the backend package version, commit, tag backend-v<version>,
@@ -177,7 +184,11 @@ const main = async () => {
             version: { type: 'string' },
             'logic-version': { type: 'string' },
             'ui-version': { type: 'string' },
-            json: { type: 'boolean' }
+            json: { type: 'boolean' },
+            all: { type: 'boolean' },
+            apply: { type: 'boolean' },
+            'grace-days': { type: 'string' },
+            'no-prune': { type: 'boolean' }
         }
     })
 
@@ -204,6 +215,9 @@ const main = async () => {
     const includeLogic = values.logic === true
 
     const deployByDefault = values['no-deploy'] !== true
+    const pruneAfter = async (scope: PruneScope) => {
+        if (values['no-prune'] !== true) await pruneAfterDeploy(context, scope)
+    }
     const historyTarget = () => {
         if (values.frontend === true && values.game === undefined)
             return { frontend: true as const }
@@ -251,6 +265,24 @@ const main = async () => {
         return
     }
 
+    if (command === 'prune') {
+        const targets = [
+            values.game !== undefined,
+            values.frontend === true,
+            values.all === true
+        ].filter(Boolean).length
+        if (targets !== 1) {
+            throw new Error('prune takes exactly one of --game=<id>, --frontend, or --all')
+        }
+        const scope: PruneScope = values.all === true ? { all: true } : historyTarget()
+        const graceDays = Number(values['grace-days'] ?? DEFAULT_GRACE_DAYS)
+        if (!Number.isInteger(graceDays) || graceDays < 0) {
+            throw new Error('--grace-days must be a whole number of days')
+        }
+        await prune(context, scope, { apply: values.apply === true, graceDays })
+        return
+    }
+
     if (command === 'preflight') {
         const targets = [
             values.game !== undefined,
@@ -277,12 +309,15 @@ const main = async () => {
             bump: resolveBumpType(command, values),
             deploy: deployByDefault
         })
+        if (deployByDefault) await pruneAfter({ game: requireGame(command, values.game) })
         return
     }
 
     if (command === 'deploy-game') {
         rejectBumpFlags(command, values, 'release-game')
-        await deployGame(context, { game: requireGame(command, values.game), includeLogic })
+        const game = requireGame(command, values.game)
+        await deployGame(context, { game, includeLogic })
+        await pruneAfter({ game })
         return
     }
 
@@ -291,12 +326,14 @@ const main = async () => {
             bump: resolveBumpType(command, values),
             deploy: deployByDefault
         })
+        if (deployByDefault) await pruneAfter({ frontend: true })
         return
     }
 
     if (command === 'deploy-frontend') {
         rejectBumpFlags(command, values, 'release-frontend')
         await deployFrontend(context)
+        await pruneAfter({ frontend: true })
         return
     }
 
@@ -335,6 +372,7 @@ const main = async () => {
     if (command === 'deploy-ui') {
         const gameId = requirePositionalGame(command, positionals[1])
         await deployGameArtifacts(context, gameId, ['ui'])
+        await pruneAfter({ game: gameId })
         return
     }
 
@@ -348,6 +386,7 @@ const main = async () => {
     if (command === 'deploy-logic') {
         const gameId = requirePositionalGame(command, positionals[1])
         await deployGameArtifacts(context, gameId, ['logic'])
+        await pruneAfter({ game: gameId })
         return
     }
 

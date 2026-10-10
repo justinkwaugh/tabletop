@@ -10,10 +10,13 @@ export function presidentTrainFundingRules(options: {
     sellInBlocks: boolean
     stockRules: Pick<StockRules, 'ownershipLimit'>
     protectsPresidency: TrainFundingRules['protectsPresidency']
+    /** What the title records of each sale, such as shares its president may protect. */
+    afterShareSale?: TrainFundingRules['afterShareSale']
 }): TrainFundingRules {
     return {
-        afterShareSale(state) {
+        afterShareSale(state, details) {
             reorderPendingOperatingCompanies(state, options.companyOrder(state))
+            options.afterShareSale?.(state, details)
         },
         includeMarketTrains: true,
         sellInBlocks: options.sellInBlocks,

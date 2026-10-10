@@ -60,6 +60,7 @@ export type {
 export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
 export type {
     CompanyColumn,
+    MarketLedge,
     MarketZone,
     MarketZoneBanner,
     PrivateTokenPresentation,
@@ -91,6 +92,9 @@ export { default as SelectionAuctionBidding } from './auctions/SelectionAuctionB
 export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.svelte'
 export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
+export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
+export { default as StockPanelHeading } from './stock/StockPanelHeading.svelte'
+export { default as CompanyActionPanel } from './stock/CompanyActionPanel.svelte'
 export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
@@ -104,6 +108,7 @@ export { MarketTokenSize } from './stock/marketTokenLayout.js'
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
 export { default as RouteBuilding } from './routes/RouteBuilding.svelte'
 export { runForHistoryStep } from './routes/runForHistoryStep.js'
 
@@ -112,3 +117,4 @@ export { actionForHistoryStep } from './table/actionForHistoryStep.js'
 
 export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
 export { default as StationBuilding } from './maps/StationBuilding.svelte'
+export type { HistoricalMapState } from './maps/historicalMap.js'

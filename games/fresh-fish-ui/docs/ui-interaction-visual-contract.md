@@ -6,7 +6,7 @@ Choosing a disk placement makes legal board cells interactive and displays place
 
 ## Coexistence and precedence
 
-Manual choice takes precedence over automatic selection within the current displayed position. Cancel clears manual selection. Automatic selection represents the current rules phase and never adds an Undo step: Undo reaches committed history.
+Manual choice is the one staged selection (`model/stagedSelection.ts`) and takes precedence over automatic selection within the current displayed position. Undo clears a manual choice before it undoes any action; there is no Cancel button. Automatic selection represents the current rules phase and never adds an Undo step: Undo reaches committed history.
 
 ## Shared visual state
 
@@ -20,4 +20,4 @@ The action panel owns instructions and the selected auction/placement tile image
 
 - Draw a stall tile as admin: the panel displays bidding and the drawn stall. Undo: the panel returns to the legal action choices with no stale stall image. Verified in the local hosted browser.
 - Start canonical Exploration during an auction and Undo the draw: bidding disappears, the tile returns to the bag, and earlier committed actions remain undoable. Automated Chromium coverage.
-- Choose disk placement, Cancel, and choose it again: board targets follow the manual choice. Publishing another position clears that choice. Verified across History navigation and return to Live in the local hosted browser.
+- Choose disk placement, press Undo, and choose it again: Undo returns to the action choices without undoing a committed action, and board targets follow the manual choice. Publishing another position clears that choice. Verified across History navigation and return to Live in the local hosted browser.

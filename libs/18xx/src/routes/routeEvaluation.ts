@@ -13,6 +13,7 @@ import { cityIsBlocked } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
+import type { TileNode } from '../tiles/tile.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
 import type {
@@ -37,6 +38,18 @@ export interface RouteRules {
     depot: TrainDepot
     revenueStage(state: TrainRunningState, train: TrainDefinition): readonly string[]
     requiresCity(train: TrainDefinition): boolean
+    /**
+     * A stop's own value for the company, from its printed value at the current stage, where a
+     * title changes it, such as a destination worth nothing on its first run.
+     */
+    stopRevenue?(
+        state: TrainRunningState,
+        companyId: string,
+        center: RevenueCenter,
+        printed: number
+    ): number
+    /** Whether the company may visit or pass through a revenue center, such as a rights hex. */
+    stopAllowed?(state: TrainRunningState, companyId: string, center: RevenueCenter): boolean
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
     /** What a route earns for each hex it passes through or stops in, once per route. */
@@ -57,6 +70,18 @@ export interface RouteRules {
         companyId: string,
         center: RevenueCenter
     ): string | undefined
+}
+/** A revenue center's value for a company's train: its printed stage value as the title adjusts it. */
+export function stopValue(
+    state: TrainRunningState,
+    rules: Pick<RouteRules, 'revenueStage' | 'stopRevenue'>,
+    companyId: string,
+    center: RevenueCenter,
+    node: Exclude<TileNode, { kind: 'junction' }>,
+    train: TrainDefinition
+): number {
+    const printed = routeRevenue(node.revenue, rules.revenueStage(state, train))
+    return rules.stopRevenue?.(state, companyId, center, printed) ?? printed
 }
 export type RouteEvaluationResult =
     { result: RouteResult; reason?: never } | { result?: never; reason: string }
@@ -112,6 +137,8 @@ export class RouteEvaluation {
             const key = JSON.stringify([visit.locationId, visit.nodeId])
             if (seen.has(key)) return { reason: 'A train cannot revisit a revenue center.' }
             seen.add(key)
+            if (this.rules.stopAllowed?.(this.state, companyId, visit) === false)
+                return { reason: 'This company may not use that revenue center.' }
             const isEnd =
                 trace.end.endpoint.kind === 'node' &&
                 trace.end.locationId === visit.locationId &&
@@ -171,7 +198,7 @@ export class RouteEvaluation {
             return {
                 locationId: visit.locationId,
                 nodeId: visit.nodeId,
-                amount: this.revenue(visit, definition),
+                amount: this.revenue(companyId, visit, definition),
                 bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
                 ...(bonusLabel ? { bonusLabel } : {}),
                 companyStation: this.state.stations.some(
@@ -291,7 +318,7 @@ export class RouteEvaluation {
             (visit) => train.distance.measure === 'revenue-centers' || visit.node.kind !== 'town'
         ).length
     }
-    private revenue(visit: RouteVisit, train: TrainDefinition): number {
-        return routeRevenue(visit.node.revenue, this.rules.revenueStage(this.state, train))
+    private revenue(companyId: string, visit: RouteVisit, train: TrainDefinition): number {
+        return stopValue(this.state, this.rules, companyId, visit, visit.node, train)
     }
 }
