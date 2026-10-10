@@ -127,11 +127,17 @@ export class PiecesAnimator {
         for (const { piece, source } of moves) {
             const node = this.elements.get(piece.key)
             if (!node) continue
-            gsap.set(node, {
-                x: source.center.x - piece.center.x,
-                y: source.center.y - piece.center.y
-            })
-            timeline.to(node, { x: 0, y: 0, duration: timing.move, ease: 'power2.inOut' }, 0)
+            gsap.set(node, { x: source.center.x, y: source.center.y })
+            timeline.to(
+                node,
+                {
+                    x: piece.center.x,
+                    y: piece.center.y,
+                    duration: timing.move,
+                    ease: 'power2.inOut'
+                },
+                0
+            )
         }
 
         // Tiles flip in response to the cylinder, so they wait for it to land.

@@ -39,6 +39,7 @@ None of these exist in History View or for players who are not acting: every rin
 ## Render ownership
 
 - Each reef board draws its own rings inside the same turned drawing as its art, so a ring's hit area always covers the square it rings, whatever the board's rotation. The open sea does the same for larva spaces.
+- Each piece's outer group places it (`translate` to its centre) and is the node GSAP animates; its drawing is centred on that group's origin, so scaling and flipping turn about the piece's centre.
 - Upright pieces on the turned open sea are counter-turned about their own centres; their positions still turn with the board.
 
 ## Motion

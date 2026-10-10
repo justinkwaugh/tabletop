@@ -118,23 +118,13 @@ const targetSquare = (label: string): Square | undefined => {
     return match ? { board: +match[1], row: +match[2] - 1, col: +match[3] - 1 } : undefined
 }
 
-// Where each colour's polyps lie, read from the reef boards' polyp images: a face's file names
-// its colour, and its position (before the board is turned) its square.
+// Where each colour's polyps lie on the reefs, read from the pieces' accessible names.
 async function squaresOfColor(page: Page, color: string): Promise<Set<string>> {
-    const squares = await page.locator('svg[aria-label^="Reef board"]').evaluateAll(
-        (boards, wanted) =>
-            boards.flatMap((svg) => {
-                const board = Number(svg.getAttribute('aria-label')?.split(' ')[2])
-                return [...svg.querySelectorAll('image')].flatMap((image) => {
-                    const href = image.getAttribute('href') ?? ''
-                    if (!new RegExp(`polyps/${wanted}-\\d+`).test(href)) return []
-                    const col = Math.round((Number(image.getAttribute('x')) - 138.9) / 144)
-                    const row = Math.round((Number(image.getAttribute('y')) - 159.1) / 143.4)
-                    return [`${board}:${row}:${col}`]
-                })
-            }),
-        color
-    )
+    const pieces = page.getByRole('img', { name: new RegExp(`^${color} polyp on board`) })
+    const squares = (await labelsOf(pieces)).flatMap((label) => {
+        const square = targetSquare(label)
+        return square ? [squareKey(square)] : []
+    })
     return new Set(squares)
 }
 

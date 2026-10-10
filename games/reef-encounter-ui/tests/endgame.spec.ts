@@ -19,5 +19,4 @@ test('the game ends when the open sea cannot be refilled, and shows the scores',
     await expect(actions).toContainText(/(wins|share the win) with \d+ points/)
     await expect(actions).toContainText('The game ended when the open sea could not be refilled.')
     await expect(actions.locator('tbody tr')).toHaveCount(2)
-
 })
