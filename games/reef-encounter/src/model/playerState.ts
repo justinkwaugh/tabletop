@@ -2,8 +2,8 @@ import { assert, assertExists, Color, Hydratable, PlayerState, Visibility } from
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
+    addCounts,
     CoralColor,
-    CoralColors,
     CoralCounts,
     coralCounts,
     totalCount
@@ -197,14 +197,25 @@ export class HydratedReefEncounterPlayerState
         return totalCount(this.getKnownScreenPolyps()) + this.getSecretScreenPolypCount()
     }
 
+    getScreenPolyps(): CoralCounts {
+        return addCounts(this.getKnownScreenPolyps(), this.getSecretScreenPolyps())
+    }
+
     getParrotfishPolyps(): CoralCounts {
-        const secret = this.getSecretParrotfishPolyps()
-        const known = this.getKnownParrotfishPolyps()
-        const total = coralCounts()
-        for (const color of CoralColors) {
-            total[color] = secret[color] + known[color]
-        }
-        return total
+        return addCounts(this.getKnownParrotfishPolyps(), this.getSecretParrotfishPolyps())
+    }
+
+    // The polyps a viewer can see: the known ones, with the secret ones when those are shown too.
+    visibleParrotfishPolyps(): CoralCounts | undefined {
+        return this.knownParrotfishPolyps
+            ? addCounts(this.knownParrotfishPolyps, this.secretParrotfishPolyps)
+            : undefined
+    }
+
+    visibleScreenPolyps(): CoralCounts | undefined {
+        return this.knownScreenPolyps
+            ? addCounts(this.knownScreenPolyps, this.secretScreenPolyps)
+            : undefined
     }
 
     getKnownParrotfishPolyps(): CoralCounts {

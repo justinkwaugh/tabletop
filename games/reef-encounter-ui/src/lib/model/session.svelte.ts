@@ -114,13 +114,11 @@ export class ReefEncounterGameSession extends GameSession<
         if (!this.canTake(ActionType.PlayLarvaCube)) return []
         const me = this.myPlayerId()
         const player = this.gameState.getPlayerState(me)
+        const screen = player.getScreenPolyps()
         return CoralColors.filter((color) => this.gameState.canPlayLarvaCube(me, color)).map(
             (color) => ({
                 color,
-                polypsToPlace:
-                    (player.knownScreenPolyps?.[color] ?? 0) +
-                    (player.secretScreenPolyps?.[color] ?? 0) +
-                    player.consumedPolyps[color]
+                polypsToPlace: screen[color] + player.consumedPolyps[color]
             })
         )
     })

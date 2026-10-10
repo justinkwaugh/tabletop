@@ -20,6 +20,10 @@ export function coralValues(coralTiles: readonly CoralTileState[]): CoralCounts 
     return values
 }
 
+export function parrotfishPoints(polyps: CoralCounts, values: CoralCounts): number {
+    return CoralColors.reduce((sum, color) => sum + polyps[color] * values[color], 0)
+}
+
 export function scoreBreakdown(
     player: HydratedReefEncounterPlayerState,
     values: CoralCounts,
@@ -28,7 +32,7 @@ export function scoreBreakdown(
     const parrotfishPolyps = player.getParrotfishPolyps()
     return {
         parrotfishPolyps,
-        total: CoralColors.reduce((sum, color) => sum + parrotfishPolyps[color] * values[color], 0),
+        total: parrotfishPoints(parrotfishPolyps, values),
         consumedPolyps: totalCount(player.consumedPolyps),
         larvaCubes: totalCount(player.getLarvaCubes()),
         screenPolyps: player.screenPolypCount(),

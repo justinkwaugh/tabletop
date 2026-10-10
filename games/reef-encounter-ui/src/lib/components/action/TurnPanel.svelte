@@ -16,10 +16,7 @@
     const consumedLeft = $derived(placing ? (me?.consumedPolyps[placing.color] ?? 0) : 0)
     const screenLeft = $derived.by(() => {
         if (!placing || !me) return 0
-        const onScreen =
-            (me.knownScreenPolyps?.[placing.color] ?? 0) +
-            (me.secretScreenPolyps?.[placing.color] ?? 0)
-        return Math.min(onScreen, placing.screenPolypsLeft)
+        return Math.min(me.getScreenPolyps()[placing.color], placing.screenPolypsLeft)
     })
 </script>
 

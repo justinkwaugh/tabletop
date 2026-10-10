@@ -59,6 +59,14 @@ export function totalCount(counts: CoralCounts): number {
     return CoralColors.reduce((total, color) => total + counts[color], 0)
 }
 
+export function addCounts(a: CoralCounts, b?: CoralCounts): CoralCounts {
+    const total = coralCounts()
+    for (const color of CoralColors) {
+        total[color] = a[color] + (b?.[color] ?? 0)
+    }
+    return total
+}
+
 export function countColors(colors: readonly CoralColor[]): CoralCounts {
     const counts = coralCounts()
     for (const color of colors) {

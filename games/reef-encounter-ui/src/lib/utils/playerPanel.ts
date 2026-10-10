@@ -1,6 +1,6 @@
 import {
     CoralColors,
-    coralCounts,
+    parrotfishPoints,
     type CoralColor,
     type CoralCounts,
     type HydratedReefEncounterPlayerState
@@ -27,13 +27,10 @@ export function playerPanelView(
     values: CoralCounts,
     parrotfishFed: boolean
 ): PlayerPanelView {
-    const parrotfish = player.knownParrotfishPolyps
-        ? combined(player.knownParrotfishPolyps, player.secretParrotfishPolyps)
-        : undefined
+    const parrotfish = player.visibleParrotfishPolyps()
+    const screen = player.visibleScreenPolyps()
     return {
-        screen: player.knownScreenPolyps
-            ? colorCounts(combined(player.knownScreenPolyps, player.secretScreenPolyps))
-            : undefined,
+        screen: screen ? colorCounts(screen) : undefined,
         hiddenScreenPolyps: player.secretScreenPolyps ? 0 : (player.secretScreenPolypCount ?? 0),
         larvaCubes: player.larvaCubes ? colorCounts(player.larvaCubes) : undefined,
         consumed: colorCounts(player.consumedPolyps),
@@ -41,17 +38,9 @@ export function playerPanelView(
         shrimpOnOpenSea: player.shrimpOnOpenSea,
         shrimpsInParrotfish: player.shrimpsInParrotfish,
         parrotfish: parrotfish ? colorCounts(parrotfish) : undefined,
-        parrotfishPoints: parrotfish ? points(parrotfish, values) : undefined,
+        parrotfishPoints: parrotfish ? parrotfishPoints(parrotfish, values) : undefined,
         hiddenParrotfishPolyps: !player.secretParrotfishPolyps && parrotfishFed ? 1 : 0
     }
-}
-
-function combined(shown: CoralCounts, secret?: CoralCounts): CoralCounts {
-    const total = coralCounts()
-    for (const color of CoralColors) {
-        total[color] = shown[color] + (secret?.[color] ?? 0)
-    }
-    return total
 }
 
 function colorCounts(counts: CoralCounts): ColorCount[] {
@@ -59,8 +48,4 @@ function colorCounts(counts: CoralCounts): ColorCount[] {
         color,
         count: counts[color]
     }))
-}
-
-function points(counts: CoralCounts, values: CoralCounts): number {
-    return CoralColors.reduce((sum, color) => sum + counts[color] * values[color], 0)
 }
