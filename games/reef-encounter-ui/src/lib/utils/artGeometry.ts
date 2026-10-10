@@ -73,29 +73,41 @@ export const AlgaPaint: Record<AlgaColor, string> = {
 
 export type BoardRotation = 0 | 90 | 180 | 270
 
-// Turns a board's image-pixel drawing so its bottom edge faces the given side of the table.
+// The table shows each board's grid with a narrow band of the surrounding water, enough for the
+// rock's edges and shadow, and the open sea without its outer margin.
+const BoardMargin = 48
+export const BoardView: BoundingBox = {
+    x: BoardGridOrigin.x - BoardMargin,
+    y: BoardGridOrigin.y - BoardMargin,
+    width: 6 * BoardSquare.width + 2 * BoardMargin,
+    height: 7 * BoardSquare.height + 2 * BoardMargin
+}
+export const OpenSeaView: BoundingBox = { x: 40, y: 50, width: 1495, height: 1040 }
+
+// Turns the board's view so its bottom edge faces the given side of the table.
 export function rotatedBoard(rotation: BoardRotation): {
     size: RectangleDimensions
     transform: string
 } {
-    const { width, height } = BoardImage
+    const { width, height } = BoardView
+    const toView = `translate(${-BoardView.x} ${-BoardView.y})`
     switch (rotation) {
         case 0:
-            return { size: { width, height }, transform: '' }
+            return { size: { width, height }, transform: toView }
         case 90:
             return {
                 size: { width: height, height: width },
-                transform: `translate(${height} 0) rotate(90)`
+                transform: `translate(${height} 0) rotate(90) ${toView}`
             }
         case 180:
             return {
                 size: { width, height },
-                transform: `translate(${width} ${height}) rotate(180)`
+                transform: `translate(${width} ${height}) rotate(180) ${toView}`
             }
         case 270:
             return {
                 size: { width: height, height: width },
-                transform: `translate(0 ${width}) rotate(270)`
+                transform: `translate(0 ${width}) rotate(270) ${toView}`
             }
     }
 }

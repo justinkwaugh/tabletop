@@ -9,7 +9,8 @@
         eatenShrimpSlot,
         ImageToTable,
         larvaSpace,
-        OpenSeaImage
+        OpenSeaImage,
+        OpenSeaView
     } from '$lib/utils/artGeometry.js'
     import { polypFaceUrl } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -29,9 +30,9 @@
 </script>
 
 <svg
-    viewBox="0 0 {OpenSeaImage.width} {OpenSeaImage.height}"
-    width={OpenSeaImage.width * ImageToTable}
-    height={OpenSeaImage.height * ImageToTable}
+    viewBox="{OpenSeaView.x} {OpenSeaView.y} {OpenSeaView.width} {OpenSeaView.height}"
+    width={OpenSeaView.width * ImageToTable}
+    height={OpenSeaView.height * ImageToTable}
     role="img"
     aria-label="Open sea"
 >
