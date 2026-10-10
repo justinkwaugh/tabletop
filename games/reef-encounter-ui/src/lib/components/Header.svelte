@@ -6,10 +6,8 @@
     const turnPlayerId = $derived(gameSession.gameState.activePlayerIds[0])
 </script>
 
-<div
-    class="flex h-[44px] max-sm:h-[32px] items-center justify-between px-4 max-sm:px-2 text-lg max-sm:text-sm"
->
-    <div>
+<div class="header reef-display">
+    <div class="flex items-center gap-1">
         {#if gameSession.isViewingHistory}
             History
         {:else if gameSession.gameState.result}
@@ -21,12 +19,46 @@
         {/if}
     </div>
     {#if gameSession.undoableAction}
-        <button
-            type="button"
-            class="rounded-md px-2 py-1 hover:bg-white/10"
-            onclick={() => gameSession.undo()}
-        >
-            Undo
-        </button>
+        <button type="button" class="undo" onclick={() => gameSession.undo()}>Undo</button>
     {/if}
 </div>
+
+<style>
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 44px;
+        padding-inline: 16px;
+        font-size: 20px;
+    }
+
+    .undo {
+        border-radius: 999px;
+        padding: 2px 14px;
+        font-size: 16px;
+        box-shadow: inset 0 0 0 2px var(--reef-line);
+    }
+
+    .undo:hover {
+        background: rgb(255 255 255 / 0.12);
+    }
+
+    .undo:focus-visible {
+        outline: 2px solid var(--reef-accent);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 639px) {
+        .header {
+            height: 32px;
+            padding-inline: 8px;
+            font-size: 16px;
+        }
+
+        .undo {
+            font-size: 14px;
+            padding: 1px 10px;
+        }
+    }
+</style>

@@ -112,6 +112,16 @@ export const ReefEncounterGameState = Type.Intersect([
 
 export const ReefEncounterGameStateValidator = Compile(ReefEncounterGameState)
 
+// Players feed their parrotfish in turn order at the start of the game, so whether a player's
+// parrotfish holds its hidden polyp yet is public.
+export function isParrotfishFed(state: ReefEncounterProjectedState, playerId: string): boolean {
+    if (state.machineState !== MachineState.ChoosingParrotfishPolyp) {
+        return true
+    }
+    const order = state.turnManager.turnOrder
+    return order.indexOf(playerId) < order.indexOf(state.activePlayerIds[0])
+}
+
 export const ReefEncounterProjectedState = Visibility.createProjectionSchema(ReefEncounterGameState)
 export type ReefEncounterProjectedState = Type.Static<typeof ReefEncounterProjectedState>
 const ReefEncounterProjectedStateValidator = Compile(ReefEncounterProjectedState)

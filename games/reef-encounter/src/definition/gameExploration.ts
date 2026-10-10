@@ -8,11 +8,11 @@ import {
 import { CoralColor, CoralColors, type CoralCounts, coralCounts } from '../components/colors.js'
 import {
     HydratedReefEncounterGameState,
+    isParrotfishFed,
     ReefEncounterGameStateValidator,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
 import { PolypsPerColor } from './initializer.js'
-import { MachineState } from './states.js'
 
 type ProjectedPlayer = ReefEncounterProjectedState['players'][number]
 
@@ -77,17 +77,8 @@ export class ReefEncounterGameExploration implements GameExploration<ReefEncount
         return {
             player,
             screen: player.secretScreenPolypCount,
-            parrotfish: this.hasFedParrotfish(state, player.playerId) ? 1 : 0
+            parrotfish: isParrotfishFed(state, player.playerId) ? 1 : 0
         }
-    }
-
-    // Players feed their parrotfish in turn order at the start of the game.
-    private hasFedParrotfish(state: ReefEncounterProjectedState, playerId: string): boolean {
-        if (state.machineState !== MachineState.ChoosingParrotfishPolyp) {
-            return true
-        }
-        const order = state.turnManager.turnOrder
-        return order.indexOf(playerId) < order.indexOf(state.activePlayerIds[0])
     }
 
     // Every polyp not in sight: on the boards, in the open sea, in the bonus spaces, in front

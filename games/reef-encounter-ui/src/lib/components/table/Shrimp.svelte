@@ -1,33 +1,25 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
 
-    let { center, size, color }: { center: Point; size: number; color: string } = $props()
+    let {
+        center,
+        size,
+        color,
+        upsideDown = false
+    }: { center: Point; size: number; color: string; upsideDown?: boolean } = $props()
 </script>
 
 <g
-    transform="translate({center.x - size / 2} {center.y - size / 2}) scale({size / 100})"
-    fill={color}
-    stroke="#1f2f2b"
-    stroke-width="2.5"
-    stroke-linejoin="round"
+    transform="translate({center.x} {center.y}) rotate({upsideDown ? 180 : 0}) scale({size /
+        100}) translate(-50 -50)"
 >
     <path
-        d="M44 18 C38 8 30 3 22 1 M56 18 C62 8 70 3 78 1"
-        fill="none"
-        stroke-width="2"
-        stroke-linecap="round"
-    ></path>
-    <path
-        d="M38 32 L28 30 M38 40 L27 42 M38 48 L29 53 M62 32 L72 30 M62 40 L73 42 M62 48 L71 53"
-        fill="none"
+        d="M50 4 C60 4 66 10 65 18 C64 25 60 28 58 30 C62 33 62 37 59 40 C63 43 63 48 59 51 C63 54 63 59 59 62 L60 70 L78 94 L71 92 L66 98 L59 93 L50 99 L41 93 L34 98 L29 92 L22 94 L40 70 L41 62 C37 59 37 54 41 51 C37 48 37 43 41 40 C38 37 38 33 42 30 C40 28 36 25 35 18 C34 10 40 4 50 4 Z"
+        fill={color}
+        stroke="#1f2f2b"
         stroke-width="2.5"
-        stroke-linecap="round"
+        stroke-linejoin="round"
     ></path>
-    <path d="M50 84 L37 98 Q50 103 63 98 Z"></path>
-    <ellipse cx="50" cy="76" rx="9" ry="8"></ellipse>
-    <ellipse cx="50" cy="64" rx="11" ry="8"></ellipse>
-    <ellipse cx="50" cy="51" rx="12.5" ry="8.5"></ellipse>
-    <ellipse cx="50" cy="31" rx="13" ry="17"></ellipse>
-    <circle cx="44.5" cy="20" r="2.2" fill="#1f2f2b" stroke="none"></circle>
-    <circle cx="55.5" cy="20" r="2.2" fill="#1f2f2b" stroke="none"></circle>
+    <circle cx="44" cy="14" r="3" fill="#1f2f2b"></circle>
+    <circle cx="56" cy="14" r="3" fill="#1f2f2b"></circle>
 </g>

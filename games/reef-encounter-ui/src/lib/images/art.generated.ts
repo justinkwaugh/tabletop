@@ -425,6 +425,10 @@ import image421 from './boards/board-2.jpg'
 import image422 from './boards/board-3.jpg'
 import image423 from './boards/board-4.jpg'
 import image424 from './open-sea.jpg'
+import image425 from './parrotfish/purple.jpg'
+import image426 from './parrotfish/red.jpg'
+import image427 from './parrotfish/yellow.jpg'
+import image428 from './parrotfish/green.jpg'
 
 export const PolypFaceUrls = {
     grey: [
@@ -855,3 +859,10 @@ export const CoralTileFaceUrls: Record<number, { starfish: string; plain: string
 export const BoardImageUrls = { 1: image420, 2: image421, 3: image422, 4: image423 }
 
 export const OpenSeaImageUrl = image424
+
+export const ParrotfishUrls: Record<string, string> = {
+    purple: image425,
+    red: image426,
+    yellow: image427,
+    green: image428
+}

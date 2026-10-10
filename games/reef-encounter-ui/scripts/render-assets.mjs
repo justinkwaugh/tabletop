@@ -239,6 +239,22 @@ for (const color of Colors) {
     })
 }
 
+// Each player's parrotfish, from the parrotfish box art, for the player panels: one fish of the
+// player's colour swimming level, in a strip at twice the panel's 320 by 120 size.
+const BoxArtScale = 2.278
+const ParrotfishCrops = {
+    purple: { file: 'Parrotfish_outside-Purple_Red.png', box: [320, 470, 760, 635] },
+    red: { file: 'Parrotfish_outside-Purple_Red.png', box: [640, 472, 1075, 637] },
+    yellow: { file: 'Parrotfish_outside-Yellow_Green.png', box: [320, 118, 760, 283] },
+    green: { file: 'Parrotfish_outside-Yellow_Green.png', box: [935, 470, 1375, 635] }
+}
+mkdirSync(path.join(images, 'parrotfish'), { recursive: true })
+for (const [color, { file, box }] of Object.entries(ParrotfishCrops)) {
+    const [x0, y0, x1, y1] = box.map((value) => Math.round(value * BoxArtScale))
+    convert(from(file), '-crop', `${x1 - x0}x${y1 - y0}+${x0}+${y0}`, '+repage',
+        '-filter', 'Lanczos', '-resize', '640x240!', Jpeg, path.join(images, 'parrotfish', `${color}.jpg`))
+}
+
 // The cover, from the user's colour-corrected copy of the CMYK original, at twice the catalog's
 // 340-pixel large-card height.
 convert(
@@ -272,6 +288,7 @@ const coralRefs = Object.fromEntries(
 )
 const boardRefs = [1, 2, 3, 4].map((id) => ref(`./boards/board-${id}.jpg`))
 const openSeaRef = ref('./open-sea.jpg')
+const parrotfishRefs = Object.keys(ParrotfishCrops).map((color) => [color, ref(`./parrotfish/${color}.jpg`)])
 lines.push(
     '',
     'export const PolypFaceUrls = {',
@@ -287,6 +304,8 @@ lines.push(
     `export const BoardImageUrls = { 1: ${boardRefs[0]}, 2: ${boardRefs[1]}, 3: ${boardRefs[2]}, 4: ${boardRefs[3]} }`,
     '',
     `export const OpenSeaImageUrl = ${openSeaRef}`,
+    '',
+    `export const ParrotfishUrls: Record<string, string> = { ${parrotfishRefs.map(([color, name]) => `${color}: ${name}`).join(', ')} }`,
     ''
 )
 writeFileSync(path.join(images, 'art.generated.ts'), lines.join('\n'))

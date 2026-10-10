@@ -86,7 +86,8 @@
     {#each shrimpsOnOpenSea as { playerId, seat } (playerId)}
         <ShrimpPiece
             center={eatenShrimpSlot(seat)}
-            size={110}
+            size={190}
+            upsideDown={seat % 2 === 0}
             color={gameSession.colors.getPlayerBgColorValue(playerId)}
         />
     {/each}
