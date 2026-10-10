@@ -32,13 +32,13 @@ import {
     hasManualReefSelection,
     popReefSelection,
     setReefSelection,
+    type PolypSource,
     type ReefSelection,
     type ShrimpIntent
 } from './stagedSelection.js'
 import { PiecesAnimator } from '$lib/animators/piecesAnimator.js'
 import { tablePieces, type TablePiece } from '$lib/utils/tablePieces.js'
 
-export type PolypSource = 'screen' | 'consumed'
 const PolypSources: readonly PolypSource[] = ['screen', 'consumed']
 
 export type EdibleCoral = { square: ReefSquare; color: CoralColor; squares: OffsetCoordinates[] }
@@ -137,11 +137,8 @@ export class ReefEncounterGameSession extends GameSession<
         )
     })
 
-    private chosenSource: PolypSource | undefined = $state()
     readonly placementSource: PolypSource | undefined = $derived(
-        this.chosenSource && this.placementSources.includes(this.chosenSource)
-            ? this.chosenSource
-            : this.placementSources[0]
+        this.selection.polypSource?.value ?? this.placementSources[0]
     )
 
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
@@ -286,7 +283,6 @@ export class ReefEncounterGameSession extends GameSession<
 
     resetAction() {
         this.selection = {}
-        this.chosenSource = undefined
     }
 
     override async undo() {
@@ -316,7 +312,9 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     choosePlacementSource(source: PolypSource) {
-        this.chosenSource = source
+        if (this.busy) return
+        assert(this.placementSources.includes(source), `No ${source} polyp to place`)
+        this.selection = setReefSelection(this.selection, 'polypSource', source)
     }
 
     async playLarvaCube(color: CoralColor) {
@@ -343,10 +341,12 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     startIntroducingShrimp() {
+        if (this.busy) return
         this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'introduce' })
     }
 
     pickUpShrimp(from: ReefSquare) {
+        if (this.busy) return
         this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'move', from })
     }
 
@@ -382,10 +382,12 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     chooseCylinderPayment(color: CoralColor) {
+        if (this.busy) return
         this.selection = setReefSelection(this.selection, 'cylinderPayment', color)
     }
 
     chooseCylinderAlga(alga: AlgaColor) {
+        if (this.busy) return
         this.selection = setReefSelection(this.selection, 'cylinderAlga', alga)
     }
 
@@ -401,6 +403,7 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     startChoosingCoralToEat() {
+        if (this.busy) return
         this.selection = setReefSelection(this.selection, 'eating', true)
     }
 

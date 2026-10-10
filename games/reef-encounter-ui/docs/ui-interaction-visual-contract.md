@@ -31,7 +31,7 @@ Coral tiles, larva cubes and cylinders on the open sea always stand upright, wha
 - **Cylinder payment and colour** (`cylinderPayment` and `cylinderAlga` stages). Producer: the panel. Consumers: the panel's prompt and the open sea's rings, which also decide precedence. Lifetime: cleared when the cylinder is played, by Undo (one stage per press), and on every new state.
 - **Choosing a coral to eat** (`eating` stage). Producer: the panel. Consumers: the board's red rings and the panel's prompt; it decides precedence. Lifetime: cleared when the coral is eaten, by Undo, and on every new state.
 - **First larva cube** (`firstLarvaCube` stage). Producer and consumer: the setup panel. Lifetime: cleared by the second choice's commit, by Undo, and on every new state.
-- **Polyp source** (screen or consumed). Producer and consumer: the turn panel; the board's rings follow it. Lifetime: cleared on every new state. Validity: when the chosen source has nothing left, the first available source applies instead.
+- **Polyp source** (`polypSource` stage: screen or consumed). Producer and consumer: the turn panel; the board's rings follow it. Until one is chosen, the first source with a polyp to place applies. Lifetime: cleared by Undo (one press returns to that default) and on every new state.
 
 None of these exist in History View or for players who are not acting: every ring and choice derives from the session's `canAct`, which is false there.
 
@@ -43,7 +43,7 @@ None of these exist in History View or for players who are not acting: every rin
 ## Motion
 
 - **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. Coral tiles a cylinder flips turn over once it has landed. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
-- While a change plays out the session ignores choices, so the board's rings and the action panel's buttons take no clicks until the table settles.
+- While a change plays out the session refuses every choice, staged or committed. To show it, the board's rings and the action panel's buttons take no pointer clicks until the table settles.
 - **Blinking** (local presentation). Each shrimp on the table blinks six to eight times a minute, in a rhythm and phase picked from the piece, so shrimps never blink together for long. Shrimps in the panels do not blink, and none blink under reduced motion.
 
 ## Verification scenarios

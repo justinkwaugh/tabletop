@@ -8,8 +8,11 @@ import {
 
 export type ShrimpIntent = { kind: 'introduce' } | { kind: 'move'; from: ReefSquare }
 
+export type PolypSource = 'screen' | 'consumed'
+
 export type ReefSelectionValues = {
     firstLarvaCube: CoralColor
+    polypSource: PolypSource
     shrimp: ShrimpIntent
     cylinderPayment: CoralColor
     cylinderAlga: AlgaColor
@@ -20,6 +23,7 @@ export type ReefSelection = StagedSelectionState<ReefSelectionValues>
 
 export const ReefStageOrder = [
     'firstLarvaCube',
+    'polypSource',
     'shrimp',
     'cylinderPayment',
     'cylinderAlga',
