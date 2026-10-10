@@ -32,6 +32,8 @@ import { boardOwnersOwnFirst, boardWarbandGroups, warbandGroupsAtSites } from '.
 import { countOf } from './warbands.js'
 import { pawnSiteId } from './pawn.js'
 import { siteLockedFor } from './locked.js'
+import { campaignAsIfSiteNow } from './freeActions.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.1, R-5.5.2 */
@@ -48,6 +50,8 @@ export interface CampaignParties {
     attackerSiteId: string
     /** Wild Allies, Captains, Vow of Union — sites whose warbands of the attacker's join their force. */
     forceSiteIds: readonly string[]
+    /** Wild Allies, Captains — the site named, one of `forceSiteIds`; absent when no card named one. */
+    asIfSiteId?: string
 }
 
 export function scopeOf(parties: Pick<CampaignParties, 'nonImperialPlayerIds'>): ImperialScope {
@@ -98,7 +102,8 @@ export function declaredParties(
         nonImperialPlayerIds: suspendedImperialsFor(state, attackerPlayerId, defenderPlayerId),
         targets,
         attackerSiteId: attackingSiteOf(state, attackerPlayerId),
-        forceSiteIds: forceSitesOf(state, attackerPlayerId)
+        forceSiteIds: forceSitesOf(state, attackerPlayerId),
+        asIfSiteId: campaignAsIfSiteNow(state, attackerPlayerId)
     }
     return { ...base, allyPlayerIds: compulsoryAllies(state, base) }
 }
@@ -277,11 +282,16 @@ export function collectDefendingForce(
     if (!defenderId) return []
 
     const sites = targetedSiteIds(parties)
-    const force = warbandGroupsAtSites(
-        state,
-        sites,
-        rulingWarbandOwners(state, defenderId, scopeOf(parties))
-    )
+    const owners = rulingWarbandOwners(state, defenderId, scopeOf(parties))
+    // R-5.5.1.a-H1 — the warbands at the site Captains or Wild Allies names join the attacking
+    // force and "do not get added to the defending force"; before revision 5 they were in both.
+    const ownersAt = (siteId: string): WarbandOwner[] => {
+        if (siteId !== parties.asIfSiteId) return owners
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) return owners
+        const attacking = forceSiteOwners(state, parties, siteId)
+        return owners.filter((owner) => !attacking.includes(owner))
+    }
+    const force = sites.flatMap((siteId) => warbandGroupsAtSites(state, [siteId], ownersAt(siteId)))
 
     const inTheBattle = (playerId: string) => {
         const siteId = pawnSiteId(state, playerId)
@@ -297,12 +307,33 @@ export function collectDefendingForce(
 }
 
 /**
- * R-5.5.2, R-10.9 — the sites the force reaches, then the board with the attacker's own warbands
- * first; R-5.5.1.a — the warbands at those sites are judged in the Campaign's scope (battleScopeOf).
+ * R-5.5.2, R-10.9 — whose warbands at a site the force reaches join it. The site Wild Allies or
+ * Captains names gives "your warbands there" whatever R-5.5.1.a's scope (R-5.5.1.a-H1, Captains'
+ * Q&A). Vow of Union's "sites you rule" are judged in the Campaign's scope (battleScopeOf), as its
+ * Q&A rules. A site that is both is the named one. Before revision 5 there is no scope, so every
+ * site gives the same owners.
+ */
+export function forceSiteOwners(
+    state: HydratedOathGameState,
+    parties: Pick<CampaignParties, 'attackerPlayerId' | 'asIfSiteId' | 'nonImperialPlayerIds'>,
+    siteId: string
+): WarbandOwner[] {
+    const attackerId = parties.attackerPlayerId
+    return siteId === parties.asIfSiteId
+        ? rulingWarbandOwners(state, attackerId)
+        : rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
+}
+
+/**
+ * R-5.5.2, R-10.9 — the sites the force reaches (forceSiteOwners), then the board with the
+ * attacker's own warbands first.
  */
 export function collectAttackingForce(
     state: HydratedOathGameState,
-    parties: Pick<CampaignParties, 'attackerPlayerId' | 'forceSiteIds' | 'nonImperialPlayerIds'>
+    parties: Pick<
+        CampaignParties,
+        'attackerPlayerId' | 'forceSiteIds' | 'asIfSiteId' | 'nonImperialPlayerIds'
+    >
 ): WarbandGroup[] {
     const attackerId = parties.attackerPlayerId
     const board = state.getPlayerState(attackerId).warbandsOnBoard
@@ -314,10 +345,8 @@ export function collectAttackingForce(
         }))
         .filter((group) => group.count > 0)
     return [
-        ...warbandGroupsAtSites(
-            state,
-            parties.forceSiteIds,
-            rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
+        ...parties.forceSiteIds.flatMap((siteId) =>
+            warbandGroupsAtSites(state, [siteId], forceSiteOwners(state, parties, siteId))
         ),
         ...onBoard
     ]

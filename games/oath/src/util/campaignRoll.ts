@@ -22,6 +22,7 @@ import {
     battleScopeOf,
     collectDefendingBandits,
     collectDefendingForce,
+    forceSiteOwners,
     type CampaignParties
 } from './campaign.js'
 import { attackingSiteOf } from './campaignSite.js'
@@ -32,7 +33,7 @@ import {
     removeWarbandsFrom,
     boardOwnersOwnFirst
 } from './force.js'
-import { rulesSite, rulingWarbandOwners, warbandsAt } from './rule.js'
+import { rulesSite, warbandsAt } from './rule.js'
 import { isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { BANDITS_PLAN_USER, plansUsedBy, sideOf, type ActiveBattlePlan } from './battlePlans.js'
@@ -52,7 +53,8 @@ export function partiesOf(state: HydratedOathGameState, campaign: CampaignState)
         nonImperialPlayerIds: campaign.nonImperialPlayerIds,
         targets: campaign.targets,
         attackerSiteId: attackingSiteOf(state, campaign.attackerPlayerId),
-        forceSiteIds: campaign.forceSiteIds
+        forceSiteIds: campaign.forceSiteIds,
+        asIfSiteId: campaign.asIfSiteId
     }
 }
 
@@ -182,13 +184,12 @@ export function attackingForceSources(
 ): LossSource[] {
     const attackerId = parties.attackerPlayerId
     const board = state.getPlayerState(attackerId).warbandsOnBoard
-    const siteOwners = rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
     return [
         ...boardOwnersOwnFirst(state, attackerId)
             .filter((owner) => countOf(board, owner) > 0)
             .map((owner): LossSource => ({ at: { kind: 'board', playerId: attackerId }, owner })),
         ...forceSiteIds.flatMap((siteId) =>
-            siteOwners
+            forceSiteOwners(state, parties, siteId)
                 .filter((owner) => countOf(warbandsAt(state, siteId), owner) > 0)
                 .map((owner): LossSource => ({ at: { kind: 'site', siteId }, owner }))
         )

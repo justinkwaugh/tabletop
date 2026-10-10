@@ -147,6 +147,8 @@ export const CampaignState = Type.Object({
     ignoreSkulls: Type.Optional(Type.Boolean()),
     /** Wild Allies, Captains, Vow of Union — sites whose warbands of the attacker's join their force. */
     forceSiteIds: Type.Array(Type.String(), { maxItems: 8 }),
+    /** Wild Allies, Captains — the site named, one of `forceSiteIds`. */
+    asIfSiteId: Type.Optional(Type.String()),
     attackerSiteId: Type.Optional(Type.String()),
     /** Hearts and Minds, Peace Envoy — "you're victorious now": nothing is rolled. */
     decidedVictor: Type.Optional(Type.Union([Type.Literal('attacker'), Type.Literal('defender')])),

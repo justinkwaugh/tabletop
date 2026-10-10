@@ -14,6 +14,8 @@ export const CampaignDeclaration = Type.Object({
     skullLossOrder: Type.Optional(Type.Array(LossSource, { maxItems: 16 })),
     attackerSiteId: Type.Optional(Type.String()),
     forceSiteIds: Type.Array(Type.String(), { maxItems: 8 }),
+    /** Wild Allies, Captains — the site named, one of `forceSiteIds`. */
+    asIfSiteId: Type.Optional(Type.String()),
     /** R-5.5.2.a — the Chancellor, then each Citizen who joined with the defender's permission. */
     allyPlayerIds: Type.Array(Type.String(), { maxItems: 8 })
 })

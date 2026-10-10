@@ -207,6 +207,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             skullLossOrder: this.skullLossOrder,
             attackerSiteId: asIfSiteId ?? attacker.siteId,
             forceSiteIds,
+            asIfSiteId,
             allyPlayerIds: [...parties.allyPlayerIds]
         }
 
@@ -242,7 +243,8 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             ),
             targets: declaration.targets,
             attackerSiteId: HydratedCampaign.declaredSiteOf(state, declaration),
-            forceSiteIds: declaration.forceSiteIds
+            forceSiteIds: declaration.forceSiteIds,
+            asIfSiteId: declaration.asIfSiteId
         }
     }
 
@@ -336,6 +338,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             // defending side, per its entry: R-10.28-H1).
             defenderPlansLocked: attackerPlans.locksEnemyPlans || undefined,
             forceSiteIds: declaration.forceSiteIds,
+            asIfSiteId: declaration.asIfSiteId,
             attackerSiteId: declaration.attackerSiteId,
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
