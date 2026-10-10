@@ -93,16 +93,23 @@ describe("Erie's whole-hex home", () => {
 
     it("upgrades Buffalo to #59 with Erie's station still in its city, once per rotation", () => {
         const game = erieOperates()
-        const choices = new TrackConstruction(
+        const construction = new TrackConstruction(
             { ...game.state, phaseId: '3' },
             EighteenThirtyTrackRules
-        ).choices('E11')
+        )
+        const choices = construction.choices('E11')
         expect(choices.length).toBeGreaterThan(0)
         expect(new Set(choices.map((choice) => choice.rotation)).size).toBe(choices.length)
         for (const choice of choices) {
             expect(choice.definitionId).toBe('18xx:59')
             expect(choice.nodeMapping).toEqual({ 'city-0': 'city-0', 'city-1': 'city-1' })
             expect(choice.movedStations).toEqual([])
+            expect(construction.stationsAfter(choice).stations).toContainEqual(
+                expect.objectContaining({
+                    id: 'ERIE:home',
+                    position: expect.objectContaining({ locationId: 'E11', nodeId: 'city-0' })
+                })
+            )
         }
     })
 })

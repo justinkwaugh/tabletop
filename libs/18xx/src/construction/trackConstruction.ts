@@ -168,9 +168,9 @@ export class TrackConstruction {
         const companyId = this.state.trackStep?.companyId
         if (!companyId || !this.canReach(locationId)) return []
         const choices: TrackLayDetails[] = []
-        const reservedNodeIds = this.state.stationReservations
-            .filter((reservation) => reservation.locationId === locationId)
-            .map((reservation) => reservation.nodeId)
+        const reservations = this.state.stationReservations.filter(
+            (reservation) => reservation.locationId === locationId
+        )
         for (const definition of this.rules.tileSet.definitions) {
             if (
                 !this.basicTileAllowed(locationId, definition) ||
@@ -199,7 +199,7 @@ export class TrackConstruction {
                     if (
                         result.details &&
                         !choices.some((choice) =>
-                            samePlacement(choice, result.details, reservedNodeIds)
+                            samePlacement(choice, result.details, reservations)
                         )
                     )
                         choices.push(result.details)
@@ -528,16 +528,15 @@ function reservationsAfterLay(
 function samePlacement(
     first: TrackLayDetails,
     second: TrackLayDetails,
-    reservedNodeIds: readonly string[]
+    reservations: readonly StationReservation[]
 ): boolean {
+    const reserved = ({ nodeMapping }: TrackLayDetails) =>
+        reservations.map(({ companyId, nodeId }) => [companyId, nodeMapping[nodeId]])
     return (
         first.definitionId === second.definitionId &&
         first.rotation === second.rotation &&
         sameMembers(first.movedStations, second.movedStations) &&
-        sameMembers(
-            reservedNodeIds.map((id) => first.nodeMapping[id]),
-            reservedNodeIds.map((id) => second.nodeMapping[id])
-        )
+        sameMembers(reserved(first), reserved(second))
     )
 }
 
