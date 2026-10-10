@@ -4,6 +4,8 @@ import type { MarketColor, ShopId } from '@tabletop/marracash'
 export type StallKind = 'tent' | 'rug'
 export type Segment = { from: Point; to: Point }
 
+export const WeavePatternId = 'marracash-stall-weave'
+
 export const StallShadowOffset = { x: 3, y: 4 }
 
 const RugShopIds: ReadonlySet<ShopId> = new Set<ShopId>([

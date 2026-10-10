@@ -1,1 +1,2 @@
-export const PackedEarthColor = '#ead6b6'
+export const PackedEarthPatternId = 'marracash-packed-earth'
+export const StreetDustPatternId = 'marracash-street-dust'

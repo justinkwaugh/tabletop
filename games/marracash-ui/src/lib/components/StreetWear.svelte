@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { StreetDustPatternId } from '$lib/utils/ground.js'
     import { BoardColumns, BoardRows } from '@tabletop/marracash'
     import { CellSize, WallThickness } from '$lib/utils/boardGeometry.js'
 
@@ -39,6 +40,13 @@
     {/each}
 </defs>
 
+<rect
+    x={street.x}
+    y={street.y}
+    width={street.width}
+    height={street.height}
+    fill="url(#{StreetDustPatternId})"
+></rect>
 {#each shadows as shadow (shadow.id)}
     <rect
         x={shadow.rect.x}

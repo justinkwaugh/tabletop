@@ -5,7 +5,8 @@
         canvasStripesId,
         StallShadowOffset,
         tentOutline,
-        tentRidge
+        tentRidge,
+        WeavePatternId
     } from '$lib/utils/stalls.js'
 
     const PoleRadius = 3.2
@@ -55,6 +56,7 @@
     stroke-width="1.5"
     stroke-linejoin="round"
 ></path>
+<path d={outline} fill="url(#{WeavePatternId})"></path>
 <rect
     x={shadedSide.x}
     y={shadedSide.y}

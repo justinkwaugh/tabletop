@@ -35,7 +35,8 @@
         TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
-    import { PackedEarthColor } from '$lib/utils/ground.js'
+    import { PackedEarthPatternId } from '$lib/utils/ground.js'
+    import TextureDefs from '$lib/components/TextureDefs.svelte'
 
     const gameSession = getGameSession()
 
@@ -179,6 +180,7 @@
         text-rendering="geometricPrecision"
     >
         <defs>
+            <TextureDefs />
             <!-- Every halo, marked by the candidate-halo class, glows softly round what it marks. -->
             <filter id="marracash-halo-glow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
@@ -199,11 +201,11 @@
                 y={WallThickness}
                 width={BoardColumns * CellSize}
                 height={BoardRows * CellSize}
-                fill={PackedEarthColor}
+                fill="url(#{PackedEarthPatternId})"
             ></rect>
             <StreetWear />
 
-            <CityGates groundFill={PackedEarthColor} />
+            <CityGates groundFill="url(#{PackedEarthPatternId})" />
 
             {#each Palms as palm (`${palm.row},${palm.col}`)}
                 <PalmTree coords={palm} />
