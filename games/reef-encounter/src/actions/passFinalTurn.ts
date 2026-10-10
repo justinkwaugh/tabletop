@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 
-// A player may let their final turn go by without eating.
 export type PassFinalTurn = Type.Static<typeof PassFinalTurn>
 export const PassFinalTurn = Type.Evaluate(
     Type.Intersect([

@@ -1,3 +1,4 @@
+import type { OffsetCoordinates } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { CoralColor, CoralColors } from '../components/colors.js'
 import type { ReefBoardId } from '../components/reefBoards.js'
@@ -56,7 +57,7 @@ function shrimpSquares(session: TestSession) {
     }))
 }
 
-function startWithOwnShrimps(squares: { row: number; col: number }[]) {
+function startWithOwnShrimps(squares: OffsetCoordinates[]) {
     const session = startOnBoardThree(corals)
     session.edit((draft) => {
         draft.shrimps = squares.map((coords) => ({

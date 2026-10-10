@@ -16,7 +16,6 @@ import { PolypsPerColor } from './initializer.js'
 
 type ProjectedPlayer = ReefEncounterProjectedState['players'][number]
 
-// A player whose secrets the projection hides, with how many each secret place holds.
 interface HiddenHolder {
     player: ProjectedPlayer
     screen: number
@@ -81,8 +80,6 @@ export class ReefEncounterGameExploration implements GameExploration<ReefEncount
         }
     }
 
-    // Every polyp not in sight: on the boards, in the open sea, in the bonus spaces, in front
-    // of a screen, or in a screen or parrotfish the viewer may look into.
     private unseenPolyps(state: ReefEncounterProjectedState): CoralColor[] {
         const seen = coralCounts()
         const add = (counts: CoralCounts | undefined) => {

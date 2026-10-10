@@ -5,8 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { CoralColor } from '../components/colors.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 
-// What the game's end reveals that no earlier action showed: the polyp each player fed their
-// parrotfish at setup, by player id.
+// No earlier action could show the polyp each player fed their parrotfish at setup.
 export type GameEndReveal = Type.Static<typeof GameEndReveal>
 export const GameEndReveal = Type.Object({
     setupParrotfish: Type.Record(Type.String(), Type.Enum(CoralColor))

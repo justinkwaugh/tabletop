@@ -8,13 +8,10 @@ import { byLayer, pieceChanges, tablePieces, type TablePiece } from '$lib/utils/
 
 type PiecesCallbacks = {
     gameId: () => string
-    // Presence only: draws the `to` pieces, with the leaving ones still in place, before the
-    // state swap.
+    // Presence only (Pattern B): no motion values pass through reactive state.
     show: (pieces: TablePiece[]) => void
-    // The pieces the transition ended on, kept until the reactive state catches up.
     settle: (pieces: TablePiece[]) => void
-    // Whether the action is the viewer's own, just taken: they know what it did, so it plays
-    // briskly and they may act again at once.
+    // The viewer already knows what their own action did, so it plays briskly with no hold.
     isOwnLiveAction: (action: GameAction) => boolean
 }
 
@@ -44,9 +41,6 @@ const FAST = {
     hold: 0
 }
 
-// Pieces are laid onto the table, lifted off it, or slid across it: a polyp drops onto its
-// square and an attacked one sinks away, a shrimp walks along its reef, the open sea's polyps
-// shuffle along their larva space as it fills.
 export class PiecesAnimator {
     private elements = new Map<string, SVGGElement>()
 
@@ -100,7 +94,7 @@ export class PiecesAnimator {
             const node = this.elements.get(piece.key)
             if (!node || flippedFrom.has(piece.key)) continue
             if (movedFrom.has(piece.key)) {
-                // Its moving copy slides away from here.
+                // The arriving copy slides from here instead.
                 gsap.set(node, { opacity: 0 })
                 continue
             }
@@ -140,8 +134,7 @@ export class PiecesAnimator {
             timeline.to(node, { x: 0, y: 0, duration: timing.move, ease: 'power2.inOut' }, 0)
         }
 
-        // Coral tiles a cylinder flips turn over once it has landed: the old face narrows to its
-        // edge and the new one widens from it.
+        // Tiles flip in response to the cylinder, so they wait for it to land.
         const flipAt = action ? timing.arrive : 0
         for (const { piece, from } of flips) {
             const oldFace = this.elements.get(from.key)

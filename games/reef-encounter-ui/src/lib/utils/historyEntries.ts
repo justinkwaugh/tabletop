@@ -7,7 +7,6 @@ export type HistoryEntry = {
     actions: GameAction[]
 }
 
-// Actions that put, take or move pieces on the table, and so have something to replay.
 const PieceMovingActions = new Set<string>([
     ActionType.PlacePolyp,
     ActionType.IntroduceShrimp,
@@ -44,14 +43,12 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return entries
 }
 
-// The History Step that led to the state on screen: its player's action and the System
-// Actions that followed it.
+// The History Step: the last player action and the System Actions that followed it.
 export function historyStep(actions: readonly GameAction[]): GameAction[] {
     const start = actions.findLastIndex((action) => action.playerId !== undefined)
     return actions.slice(Math.max(start, 0))
 }
 
-// The latest turn of a player who is not acting now: what the waiting view recounts.
 export function previousTurn(
     actions: readonly GameAction[],
     activePlayerIds: readonly string[]

@@ -102,7 +102,6 @@ export const ReefEncounterGameState = Type.Intersect([
         advanced: Type.Boolean(),
         algaSupply: AlgaCounts,
         endReason: Type.Optional(Type.Enum(GameEndReason)),
-        // The player whose turn ended the game, when the others get final turns.
         endingPlayerId: Type.Optional(Type.String()),
         // The alga cylinder space on the open-sea board holds at most one cylinder.
         openSeaAlga: Type.Optional(Type.Enum(AlgaColor)),
@@ -301,7 +300,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
-    // Weaker polyps that a coral of this colour could attack but for a shrimp protecting them.
     shrimpProtectedPolyps(boardId: ReefBoardId, color: CoralColor): OffsetCoordinates[] {
         const reef = this.reefOn(boardId)
         const shrimps = this.shrimpsOn(boardId)
@@ -318,7 +316,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             .map((polyp) => polyp.coords)
     }
 
-    // Why a polyp of this colour may not go on this square, or undefined when it may.
     placementBlocker(
         boardId: ReefBoardId,
         coords: OffsetCoordinates,
@@ -471,7 +468,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
-    // Why this cylinder may not lock this tile, or undefined when it may.
     lockBlocker(playerId: string, alga: AlgaColor, tileId: number): string | undefined {
         const player = this.getPlayerState(playerId)
         if (!player.shrimpOnOpenSea) {
@@ -665,8 +661,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
-    // Why a shrimp may not go on this square, or undefined when it may. A moving shrimp may
-    // also go on bare rock; a new one must go onto a coral.
+    // A moving shrimp may also go on bare rock; a new one must go onto a coral (rulebook p. 5).
     shrimpBlocker(playerId: string, square: ReefSquare, moving?: Shrimp): string | undefined {
         const reef = this.reefs.find((candidate) => candidate.boardId === square.boardId)
         if (!reef) {
@@ -717,7 +712,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return rockLeft ? undefined : GameEndReason.NoRockLeft
     }
 
-    // Each player's setup parrotfish polyp, which stays secret until the game ends.
     setupParrotfishColors(): Record<string, CoralColor> {
         return Object.fromEntries(
             this.players.flatMap((player) => {

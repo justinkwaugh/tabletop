@@ -2,10 +2,8 @@
     import type { Point } from '@tabletop/common'
     import { fnv1a } from '$lib/utils/hash.js'
 
-    // A wooden shrimp lying flat, seen from above: the outline is traced from the silhouettes
-    // printed on the open sea, in a box 100 long with the jagged end, where the googly eyes
-    // are stuck, at the top. `length` is the piece's end-to-end length. A shrimp on the table
-    // blinks, in its own rhythm picked from `blinkSeed`, so no two blink together for long.
+    // Traced from the silhouettes printed on the open sea; the wooden pieces' googly eyes sit
+    // at the jagged end.
     let {
         center,
         length,
@@ -20,7 +18,6 @@
         blinkSeed?: string
     } = $props()
 
-    // Six to eight blinks a minute, each starting partway through its cycle.
     const blink = $derived.by(() => {
         if (blinkSeed === undefined) {
             return undefined
@@ -40,7 +37,6 @@
         100}) translate(-50 -50)"
 >
     <path d={Outline} transform="translate(2.5 4)" fill="#0b2a26" fill-opacity="0.3"></path>
-    <!-- The wood's cut edge, a shade darker than the painted face -->
     <g transform="translate(1.2 2)">
         <path d={Outline} fill={color}></path>
         <path d={Outline} fill="#000" fill-opacity="0.35"></path>

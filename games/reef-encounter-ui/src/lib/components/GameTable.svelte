@@ -54,7 +54,7 @@
     </div>
 {/snippet}
 
-<!-- The session ignores choices while a change plays out, so they take no clicks until then. -->
+<!-- Shows that the session refuses choices while a change plays out. -->
 <div class="reef-table" class:settling={gameSession.busy}>
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}

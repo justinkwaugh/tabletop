@@ -6,7 +6,6 @@ import { ReefBoardIdSchema, type ReefBoardId } from '../components/reefBoards.js
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { PolypPlacement } from '../model/reef.js'
 
-// One polyp of the played cube's colour, from behind the screen or from the consumed polyps.
 export type PlacePolyp = Type.Static<typeof PlacePolyp>
 export const PlacePolyp = Type.Evaluate(
     Type.Intersect([

@@ -16,8 +16,7 @@
 
     let scrollContainer: HTMLDivElement | undefined = $state()
 
-    // While an entry replays, the session steps through history, so the list holds still on the
-    // actions it showed when the replay began.
+    // Replay steps the session through history, which would rewrite the list mid-replay.
     type Replay = { entryId: string; frozenActions: GameAction[]; frozenScrollTop: number }
     let replay = $state<Replay | undefined>()
 
@@ -25,7 +24,6 @@
         historyEntries(replay?.frozenActions ?? gameSession.actions).toReversed()
     )
 
-    // Shows the table as the entry's player left it.
     async function jumpTo(entry: HistoryEntry) {
         const index = entry.actions.at(-1)?.index
         if (index === undefined || replay) {
@@ -36,7 +34,6 @@
         scrollContainer?.scrollTo({ top: 0, behavior: 'auto' })
     }
 
-    // Plays the entry's actions on the table, then returns to where the viewer was.
     async function replayEntry(entry: HistoryEntry) {
         const start = entry.actions[0]?.index
         const end = entry.actions.at(-1)?.index

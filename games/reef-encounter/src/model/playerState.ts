@@ -205,7 +205,6 @@ export class HydratedReefEncounterPlayerState
         return addCounts(this.getKnownParrotfishPolyps(), this.getSecretParrotfishPolyps())
     }
 
-    // The polyps a viewer can see: the known ones, with the secret ones when those are shown too.
     visibleParrotfishPolyps(): CoralCounts | undefined {
         return this.knownParrotfishPolyps
             ? addCounts(this.knownParrotfishPolyps, this.secretParrotfishPolyps)

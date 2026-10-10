@@ -53,9 +53,8 @@ export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
     HydratedReefEncounterGameState
 > {
-    // The pieces drawn on the table. Each animated transition draws its own pieces, then keeps
-    // the ones it ended on, so a full-action replay keeps every placed piece until the reactive
-    // state catches up.
+    // A full-action replay animates several actions while gameState stays frozen, so pieces
+    // keep the last transition's result until gameState catches up.
     private settledPieces: TablePiece[] = $derived(tablePieces(this.gameState, this.game.id))
     private transitionPieces: TablePiece[] | undefined = $state()
     readonly tablePieces = $derived(this.transitionPieces ?? this.settledPieces)
@@ -93,7 +92,6 @@ export class ReefEncounterGameSession extends GameSession<
     readonly canFeedParrotfish = $derived(this.canTake(ActionType.FeedParrotfish))
     readonly canChooseLarvaCubes = $derived(this.canTake(ActionType.ChooseLarvaCubes))
 
-    // The dealt polyps behind the viewer's screen, one choice per colour.
     readonly feedableColors: CoralColor[] = $derived.by(() => {
         if (!this.canFeedParrotfish) return []
         const secret = this.myPlayerState?.secretScreenPolyps
@@ -179,8 +177,8 @@ export class ReefEncounterGameSession extends GameSession<
     )
     readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
     readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
-    // Any open shrimp or cylinder choice takes over the table until it commits or is undone.
     readonly choosingCoralToEat = $derived(this.selection.eating?.value === true)
+    // An open shrimp, cylinder or eating choice takes over the table (see the visual contract).
     readonly turnChoiceOpen = $derived(
         this.shrimpIntent !== undefined || this.choosingCylinder || this.choosingCoralToEat
     )
@@ -193,7 +191,6 @@ export class ReefEncounterGameSession extends GameSession<
             : []
     )
 
-    // The viewer's shrimps that may be picked up, while no other shrimp choice is open.
     readonly movableShrimps: ReefSquare[] = $derived.by(() => {
         if (!this.canTake(ActionType.MoveShrimp) || this.turnChoiceOpen) return []
         const me = this.myPlayerId()

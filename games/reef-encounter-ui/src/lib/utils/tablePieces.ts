@@ -19,16 +19,14 @@ import {
 import { polypFaceUrl } from './polypFaces.js'
 import { squareName } from './reefSquare.js'
 
-// Where a piece lies: on one reef board, or on the open sea. Positions are in that drawing's
-// image pixels.
+// Positions are in image pixels of the piece's drawing.
 export type PieceContainer = ReefBoardId | 'sea'
 
 type PieceBase = {
-    // Stable for as long as the piece stays put; a piece that moves or changes gets a new key.
+    // A piece that moves or changes gets a new key; the animator reads key changes as motion.
     key: string
     container: PieceContainer
     center: Point
-    // Where it lies, for screen readers: "on board 2, row 3, column 4".
     place: string
 }
 
@@ -37,11 +35,9 @@ export type PolypPiece = PieceBase & {
     color: CoralColor
     box: BoundingBox
     url: string
-    // The open-sea larva space a polyp waits in, outlined so overlapping polyps stay apart.
     larvaSpace?: CoralColor
 }
 export type ShrimpPiece = PieceBase & { kind: 'shrimp'; playerId: string; upsideDown: boolean }
-// A coral tile on the open sea: it never moves, but turns over when a cylinder flips it.
 export type CoralTilePiece = PieceBase & {
     kind: 'coralTile'
     tileId: number
@@ -55,7 +51,6 @@ export type CylinderPiece = PieceBase & { kind: 'cylinder'; color: AlgaColor; si
 
 export type TablePiece = PolypPiece | ShrimpPiece | CubePiece | CylinderPiece | CoralTilePiece
 
-// Drawn in this order, so shrimps lie on polyps and cylinders stand on coral tiles.
 const Layer: Record<TablePiece['kind'], number> = {
     coralTile: 0,
     polyp: 0,
@@ -64,8 +59,6 @@ const Layer: Record<TablePiece['kind'], number> = {
     shrimp: 2
 }
 
-// Every movable piece on the table: polyps and shrimps on the reefs; larva cubes, waiting
-// polyps, alga cylinders and eaten shrimps on the open sea.
 export function tablePieces(state: HydratedReefEncounterGameState, gameId: string): TablePiece[] {
     const pieces: TablePiece[] = []
     const centerOf = (box: BoundingBox): Point => ({
@@ -116,7 +109,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             const box = larvaSpacePolyp(larvaColor, index, polyps.length)
             pieces.push({
                 kind: 'polyp',
-                // A space's polyps fan out by how many there are, so they move when that changes.
+                // The fan's spacing depends on the count, so a polyp moves when the count changes.
                 key: `sea:polyp:${larvaColor}:${index}of${polyps.length}:${color}`,
                 container: 'sea',
                 center: centerOf(box),
@@ -175,7 +168,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 center: eatenShrimpSlot(seat),
                 place: 'on the open sea, eaten',
                 playerId,
-                // Lying on its silhouette, which alternate in direction.
+                // The printed silhouettes alternate in direction.
                 upsideDown: seat % 2 === 1
             })
         }
@@ -188,17 +181,13 @@ export function byLayer(pieces: TablePiece[]): TablePiece[] {
     return pieces.sort((a, b) => Layer[a.kind] - Layer[b.kind])
 }
 
-// A piece moving across its drawing: `source` is where it was, among the leaving pieces.
 export type PieceMove = { piece: TablePiece; source: TablePiece }
 
-// A coral tile turning over: `from` is its old face, among the leaving pieces.
 export type PieceFlip = { piece: CoralTilePiece; from: CoralTilePiece }
 
 export type PieceChanges = {
     arriving: TablePiece[]
     leaving: TablePiece[]
-    // Arrivals that are a piece moving across the same drawing: a polyp shifting along its larva
-    // space, or a shrimp moved along its reef.
     moves: PieceMove[]
     flips: PieceFlip[]
 }
@@ -225,7 +214,7 @@ export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiec
                 continue
             }
         }
-        const index = unmatched.findIndex((old) => sameThing(old, piece))
+        const index = unmatched.findIndex((old) => isSamePieceMoved(old, piece))
         if (index < 0) {
             arriving.push(piece)
             continue
@@ -236,7 +225,7 @@ export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiec
     return { arriving, leaving, moves, flips }
 }
 
-function sameThing(a: TablePiece, b: TablePiece): boolean {
+function isSamePieceMoved(a: TablePiece, b: TablePiece): boolean {
     if (a.container !== b.container || a.kind !== b.kind) {
         return false
     }
@@ -244,7 +233,7 @@ function sameThing(a: TablePiece, b: TablePiece): boolean {
         case 'shrimp':
             return b.kind === 'shrimp' && a.playerId === b.playerId
         case 'polyp':
-            // Only polyps on the open sea slide; on a reef a new polyp is a new tile.
+            // A polyp on a reef never moves; a different one there is a new tile.
             return (
                 b.kind === 'polyp' &&
                 a.larvaSpace !== undefined &&

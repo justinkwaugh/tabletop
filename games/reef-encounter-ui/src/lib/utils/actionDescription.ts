@@ -27,8 +27,7 @@ export const withArticle = (word: string): string => `${/^[aeiou]/.test(word) ? 
 const polyps = (colors: readonly CoralColor[]): string =>
     colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`
 
-// What an action did, as a phrase following its actor's name; `own` is "your" when the viewer
-// acted and "their" otherwise. Undefined for actions the history leaves out.
+// Undefined for actions the history leaves out.
 export function describeAction(action: GameAction, own: 'your' | 'their'): string | undefined {
     if (isFeedParrotfish(action)) {
         return action.color
@@ -94,7 +93,6 @@ export function describeAction(action: GameAction, own: 'your' | 'their'): strin
     return undefined
 }
 
-// What a system action did, as a whole sentence.
 export function describeSystemAction(action: GameAction): string | undefined {
     if (isRefillOpenSea(action)) {
         const refill = action.metadata
@@ -120,7 +118,6 @@ function placedPolyps(count: number, color: CoralColor, boardId: number, consume
         : `placed ${count} ${polyp} polyps on board ${boardId}`
 }
 
-// A player's phrase follows their name; a system phrase is a sentence of its own.
 export type Phrase = { text: string; playerId?: string }
 
 // Consecutive plain placements of one colour on one board merge into one phrase.

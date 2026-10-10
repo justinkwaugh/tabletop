@@ -3,7 +3,7 @@
     import Phrases from '$lib/components/Phrases.svelte'
     import { describeActions } from '$lib/utils/actionDescription.js'
     import { previousTurn } from '$lib/utils/historyEntries.js'
-    import { waitingActivity } from '$lib/utils/waitingStatus.js'
+    import { waitingActivity } from '$lib/utils/statusText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()

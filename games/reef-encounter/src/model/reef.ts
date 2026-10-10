@@ -28,7 +28,6 @@ export const Shrimp = Type.Object({
     coords: OffsetCoordinates
 })
 
-// A square on one of the reef boards in play.
 export type ReefSquare = Type.Static<typeof ReefSquare>
 export const ReefSquare = Type.Object({
     boardId: ReefBoardIdSchema,
@@ -84,7 +83,6 @@ export function coralAt(reef: Reef, coords: OffsetCoordinates): Polyp[] {
     return coral
 }
 
-// The distinct corals of one colour orthogonally next to a square.
 export function neighboringCorals(
     reef: Reef,
     coords: OffsetCoordinates,

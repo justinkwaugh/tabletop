@@ -12,8 +12,7 @@
     const right = $derived(`color-mix(in srgb, ${paint} 64%, black)`)
 </script>
 
-<!-- No outline: the three shaded faces shape the cube. Each face is stroked in its own colour so
-     no seam shows between them. -->
+<!-- Each face is stroked in its own colour to hide the anti-aliasing seam between faces. -->
 <g transform="translate({center.x} {center.y})" stroke-width="0.6" stroke-linejoin="round">
     <path d="M0 {-h} L{h} {-q} L0 0 L{-h} {-q} Z" fill={paint} stroke={paint}></path>
     <path d="M{-h} {-q} L0 0 L0 {h} L{-h} {q} Z" style:fill={left} style:stroke={left}></path>

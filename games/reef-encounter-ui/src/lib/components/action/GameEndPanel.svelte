@@ -3,7 +3,7 @@
     import { coralValues } from '@tabletop/reef-encounter'
     import PolypChip from '$lib/components/PolypChip.svelte'
     import { scoreTable } from '$lib/utils/scoreTable.js'
-    import { endReasonText } from '$lib/utils/waitingStatus.js'
+    import { endReasonText } from '$lib/utils/statusText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()

@@ -138,7 +138,6 @@ export function rotatedView(
     }
 }
 
-// Keeps a piece upright on a turned board.
 export function upright(rotation: BoardRotation, center: Point): string {
     return `rotate(${-rotation} ${center.x} ${center.y})`
 }

@@ -7,7 +7,6 @@ export function activateTurnPlayer(gameState: HydratedReefEncounterGameState) {
     gameState.activePlayerIds = [playerId]
 }
 
-// Ends the acting player's turn and reports whether everyone has now had one.
 export function endTurnInOrder(
     gameState: HydratedReefEncounterGameState,
     playerId: string

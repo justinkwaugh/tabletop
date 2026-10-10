@@ -32,9 +32,7 @@
     }
 </script>
 
-<!-- The outer group of each piece belongs to the animator; the inner one places it. Pieces
-     stand upright on the turned drawing, except polyps, which are square, and the shrimps eaten
-     onto the open sea, which lie on their printed silhouettes. -->
+<!-- GSAP owns each outer group's transform; the inner one places the piece. -->
 {#each pieces as piece (piece.key)}
     <g {@attach gameSession.piecesAnimator.attach(piece.key)} role="img" aria-label={label(piece)}>
         {#if piece.kind === 'coralTile'}
