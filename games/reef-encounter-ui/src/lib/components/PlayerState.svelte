@@ -145,7 +145,7 @@
     .panel {
         border-radius: 10px;
         overflow: hidden;
-        background: rgb(0 0 0 / 0.18);
+        background: rgb(0 0 0 / 0.26);
         box-shadow: inset 0 0 0 2px var(--reef-line);
         text-align: left;
     }

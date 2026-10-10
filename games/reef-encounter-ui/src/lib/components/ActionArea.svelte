@@ -31,7 +31,7 @@
         margin: 0 8px 8px;
         padding: 10px 14px 12px;
         border-radius: 8px;
-        background: rgb(0 0 0 / 0.16);
+        background: rgb(0 0 0 / 0.26);
         box-shadow: inset 0 0 0 2px var(--reef-line);
     }
 

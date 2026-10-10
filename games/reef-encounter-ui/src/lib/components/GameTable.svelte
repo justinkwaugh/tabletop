@@ -110,16 +110,18 @@
         --reef-deep: #24463c;
         --reef-teal: #3f6b5c;
         --reef-shallow: #4d7b6b;
+        --reef-water-top: #6c9f90;
+        --reef-water-bottom: #4f8373;
         --reef-sea: #8fbfae;
         --reef-line: rgb(255 255 255 / 0.85);
         --reef-ink: #f3faf7;
-        --reef-muted: #b7d3c9;
+        --reef-muted: #d2e6df;
         --reef-accent: #ef8f2e;
         font-family: 'Reef Nunito', 'Trebuchet MS', sans-serif;
         color: var(--reef-ink);
         background:
             radial-gradient(ellipse 70% 45% at 55% -8%, rgb(255 255 255 / 0.16), transparent 70%),
-            linear-gradient(180deg, var(--reef-teal), var(--reef-deep));
+            linear-gradient(180deg, var(--reef-water-top), var(--reef-water-bottom));
     }
 
     .reef-table :global(.reef-display) {
@@ -128,7 +130,7 @@
     }
 
     .history-controls {
-        background: rgb(0 0 0 / 0.18);
+        background: rgb(0 0 0 / 0.26);
     }
 
     .history-controls.framed {

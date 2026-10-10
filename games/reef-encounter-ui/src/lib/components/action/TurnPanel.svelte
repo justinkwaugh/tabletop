@@ -71,8 +71,8 @@
     <p class="detail">
         {screenLeft} more from behind your screen{consumedLeft > 0
             ? `, and up to ${consumedLeft} consumed`
-            : ''}.<span class="wide-only">
-            Ringed squares can take one; dashed orange squares attack a weaker polyp.</span
+            : ''}.{' '}<span class="wide-only"
+            >Ringed squares can take one; dashed orange squares attack a weaker polyp.</span
         >
     </p>
     {#if gameSession.placementSources.length > 1}

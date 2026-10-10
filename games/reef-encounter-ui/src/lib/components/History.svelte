@@ -44,7 +44,7 @@
 
     .entry {
         border-radius: 8px;
-        background: rgb(0 0 0 / 0.18);
+        background: rgb(0 0 0 / 0.26);
         box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
         padding: 8px 10px;
         text-align: left;
