@@ -10,6 +10,8 @@
         ImageToTable,
         rotatedView,
         BoardView,
+        ShrimpLength,
+        upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
     import { polypFaceUrl } from '$lib/utils/polypFaces.js'
@@ -72,11 +74,14 @@
         {/each}
         {#each shrimps as shrimp (`${shrimp.coords.row},${shrimp.coords.col}`)}
             {@const square = boardSquare(shrimp.coords)}
-            <ShrimpPiece
-                center={{ x: square.x + square.width / 2, y: square.y + square.height / 2 }}
-                size={square.width * 0.8}
-                color={gameSession.colors.getPlayerBgColorValue(shrimp.playerId)}
-            />
+            {@const center = { x: square.x + square.width / 2, y: square.y + square.height / 2 }}
+            <g transform={upright(rotation, center)}>
+                <ShrimpPiece
+                    {center}
+                    length={ShrimpLength}
+                    color={gameSession.colors.getPlayerBgColorValue(shrimp.playerId)}
+                />
+            </g>
         {/each}
         {#if pickedUp}
             {@const square = boardSquare(pickedUp)}

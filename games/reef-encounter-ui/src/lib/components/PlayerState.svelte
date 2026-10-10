@@ -35,7 +35,7 @@
 {#snippet shrimps(count: number)}
     <svg width={count * 16} height="26" viewBox="0 0 {count * 16} 26" aria-hidden="true">
         {#each { length: count } as _, index (index)}
-            <Shrimp center={{ x: index * 16 + 8, y: 13 }} size={26} color={paint} />
+            <Shrimp center={{ x: index * 16 + 8, y: 13 }} length={26} color={paint} />
         {/each}
     </svg>
 {/snippet}

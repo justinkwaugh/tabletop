@@ -73,6 +73,10 @@ export const AlgaSpace: Point = { x: 1377, y: 682 }
 const EatenShrimpSlotColumns = [1137, 1213, 1288, 1358, 1425]
 const EatenShrimpSlotCentreY = 930
 
+// A shrimp piece is as long as the silhouettes printed on the open sea, a little longer than a
+// reef square.
+export const ShrimpLength = 150
+
 export function eatenShrimpSlot(index: number): Point {
     return { x: EatenShrimpSlotColumns[index], y: EatenShrimpSlotCentreY }
 }

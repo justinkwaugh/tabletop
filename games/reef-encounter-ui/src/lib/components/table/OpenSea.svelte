@@ -15,6 +15,7 @@
         OpenSeaImage,
         OpenSeaView,
         rotatedView,
+        ShrimpLength,
         upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
@@ -131,8 +132,8 @@
         {#each shrimpsOnOpenSea as { playerId, seat } (playerId)}
             <ShrimpPiece
                 center={eatenShrimpSlot(seat)}
-                size={190}
-                upsideDown={seat % 2 === 0}
+                length={ShrimpLength}
+                upsideDown={seat % 2 === 1}
                 color={gameSession.colors.getPlayerBgColorValue(playerId)}
             />
         {/each}

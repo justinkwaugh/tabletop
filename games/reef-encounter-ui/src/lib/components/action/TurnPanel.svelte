@@ -191,7 +191,7 @@
                 onclick={() => gameSession.startIntroducingShrimp()}
             >
                 <svg width="22" height="34" viewBox="0 0 22 34" aria-hidden="true">
-                    <Shrimp center={{ x: 11, y: 17 }} size={32} color={myColor} />
+                    <Shrimp center={{ x: 11, y: 17 }} length={32} color={myColor} />
                 </svg>
                 <span class="choice-text">Introduce</span>
             </ChoiceButton>
