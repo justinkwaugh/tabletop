@@ -67,4 +67,4 @@ Manual (the end conditions take a long game to reach, so these were checked by h
 - attack rings: dashed orange with a light orange wash over the weaker polyp;
 - coral tiles turning over when a cylinder lands on the open sea;
 - the motion itself, including replay and undo;
-- locking a coral tile, which needs a shrimp on the open sea, is not yet checked.
+- locking a coral tile, after eating onto the open sea and buying a cylinder with a consumed polyp: the cylinder space and lockable tiles are ringed, the cylinder stands on the locked tile, and the other unlocked tile with the same large alga turns over.
