@@ -47,4 +47,11 @@
         outline: 2px solid var(--reef-accent);
         outline-offset: 2px;
     }
+    @media (max-width: 639px) {
+        .choice {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 2px;
+        }
+    }
 </style>

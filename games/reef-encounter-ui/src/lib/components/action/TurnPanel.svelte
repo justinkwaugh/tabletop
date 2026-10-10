@@ -71,7 +71,9 @@
     <p class="detail">
         {screenLeft} more from behind your screen{consumedLeft > 0
             ? `, and up to ${consumedLeft} consumed`
-            : ''}. Highlighted squares can take one; dashed orange squares attack a weaker polyp.
+            : ''}.<span class="wide-only">
+            Ringed squares can take one; dashed orange squares attack a weaker polyp.</span
+        >
     </p>
     {#if gameSession.placementSources.length > 1}
         <div class="choices" role="group" aria-label="Where the polyp comes from">
@@ -208,7 +210,9 @@
 {/if}
 
 {#if gameSession.takeableSpaces.length > 0}
-    <p class="detail end">Take a larva cube and its polyps from the open sea to end your turn.</p>
+    <p class="detail end wide-only">
+        Take a larva cube and its polyps from the open sea to end your turn.
+    </p>
 {/if}
 
 <style>
@@ -259,5 +263,24 @@
 
     .end {
         margin-top: 8px;
+    }
+    @media (max-width: 639px) {
+        .wide-only {
+            display: none;
+        }
+
+        .row {
+            gap: 4px 8px;
+            margin-top: 4px;
+        }
+
+        .label {
+            font-size: 12px;
+        }
+
+        .choices {
+            gap: 6px;
+            margin-top: 4px;
+        }
     }
 </style>
