@@ -41,7 +41,6 @@ import {
     validatePhaseChange,
     validateRailwayComponents,
     validateRouteStep,
-    validateStationStep,
     validateStockRound,
     validateTrainPurchaseStep,
     type TitleComponents
@@ -168,7 +167,6 @@ export const EighteenFortySixStateDefinition = defineEighteenXXState(
 function validate1846State(state: HydratedEighteenFortySixState, components: TitleComponents) {
     validateStockRound(state)
     validateOperatingSet(state)
-    validateStationStep(state)
     validateFinalResults(state)
     validateCompanyDecisions(state)
     validateRouteStep(state)

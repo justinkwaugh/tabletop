@@ -11,9 +11,11 @@ import {
     grantOwnershipLimitExemption,
     homeStationId,
     presidentCertificate,
+    releaseTrains,
     replaceStation,
     sameOwner,
     sharesStillToFloat,
+    trainsOwnedBy,
     type CompanyRules,
     type FormationState,
     type StockState
@@ -142,8 +144,10 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             assertExists(cash, 'PEIR requires a treasury')
             cash.amount = 0
-            state.trainInventory.trains = state.trainInventory.trains.filter(
-                (train) => !(train.status === 'owned' && sameOwner(train.owner, cash.owner))
+            releaseTrains(
+                state.trainInventory,
+                trainsOwnedBy(state, cash.owner).map((train) => train.id),
+                'removed'
             )
             closePrivate(state, 'KM')
         }

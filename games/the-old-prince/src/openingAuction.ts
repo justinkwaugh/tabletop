@@ -31,14 +31,13 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     lots(state) {
         return [
             ...TheOldPrincePrivateCatalog.lots(state).filter((lot) => lot.id !== 'KM'),
-            ...state.certificates
-                .filter((c) => c.kind === 'share')
-                .filter((c) => c.companyId === 'PEIR')
-                .map((c) => ({
-                    id: c.id,
-                    name: `PEIR ${c.number} · ${TheOldPrinceCompanies.find((company) => company.number === c.number)!.name}`,
-                    price: 80
-                }))
+            ...TheOldPrinceCompanies.filter((item) =>
+                state.companies.some((company) => company.id === item.companyId && !company.role)
+            ).map((item) => ({
+                id: `PEIR:share:${item.number}`,
+                name: `PEIR ${item.number} · ${item.name}`,
+                price: 80
+            }))
         ]
     },
     award(state, award) {

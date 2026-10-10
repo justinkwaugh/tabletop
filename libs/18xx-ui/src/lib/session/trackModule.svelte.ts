@@ -10,6 +10,7 @@ import {
     privateTrackConstruction,
     type EighteenXXState,
     type EighteenXXTitleRules,
+    type StationState,
     type TrackLayDetails,
     type TrackRequest
 } from '@tabletop/18xx'
@@ -133,15 +134,28 @@ export class TrackModule {
         this.tileFlightSelection = inFlight ? this.selection : undefined
     }
     // A confirmed placement stays on the map until the state that records it is published.
-    private committed = $state.raw<{ details: TrackLayDetails; state: TrackState }>()
-    displayedPreview = $derived.by(() => {
-        const { state } = this.session
-        const committed = this.committed?.state === state ? this.committed.details : undefined
-        return state.trackConsent?.details ?? this.preview ?? committed
-    })
-    displayedStations = $derived.by(() =>
-        this.displayedPreview ? this.construction.stationsAfter(this.displayedPreview) : undefined
+    private committed = $state.raw<{
+        details: TrackLayDetails
+        stations: StationState
+        state: TrackState
+    }>()
+    private displayedCommitted = $derived.by(() =>
+        this.committed?.state === this.session.state ? this.committed : undefined
     )
+    displayedPreview = $derived.by(
+        () =>
+            this.session.state.trackConsent?.details ??
+            this.preview ??
+            this.displayedCommitted?.details
+    )
+    // A confirmed placement keeps the stations it was confirmed with: the construction it is
+    // drawn over may by then include the lay.
+    displayedStations = $derived.by(() => {
+        const pending = this.session.state.trackConsent?.details ?? this.preview
+        return pending
+            ? this.construction.stationsAfter(pending)
+            : this.displayedCommitted?.stations
+    })
     constructionActions = $derived.by(() =>
         this.session.recordedActions.flatMap((action) => {
             const details =
@@ -220,7 +234,11 @@ export class TrackModule {
     async confirm() {
         const preview = this.preview
         assert(this.canBuild && preview, 'Choose a legal track placement')
-        const committed = { details: preview, state: this.session.state }
+        const committed = {
+            details: preview,
+            stations: this.construction.stationsAfter(preview),
+            state: this.session.state
+        }
         this.committed = committed
         try {
             await this.commit(preview)

@@ -8,6 +8,7 @@ import type { StockMarketChart } from '../stock/stockMarket.js'
 import {
     releaseTrains,
     type Train,
+    type TrainDestination,
     type TrainState,
     type TrainPurchaseState
 } from '../trains/train.js'
@@ -61,7 +62,7 @@ export interface PhaseRules {
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     /** Companies in discard order, starting from the operating company when there is one. */
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
-    discardDestination: 'market' | 'removed'
+    discardDestination: TrainDestination
 }
 export function marketDiscardOrder(
     market: StockMarketChart,

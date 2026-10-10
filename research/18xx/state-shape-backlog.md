@@ -87,7 +87,8 @@ mechanism below, plus the six implemented titles.
    `validateRailwayComponents` (map stations, depot, stations, market, finances), which
    every title runs, and the operating-sequence checks of `validateRailwayState`. 1846
    runs the components and the sequence checks its own sequence satisfies; it leaves out
-   the track-step, train-funding and earnings checks, because it keeps track construction
+   the track-step, station-step, train-funding and earnings checks, because it has no
+   station-placing state, keeps track construction
    open while shares can still be issued or redeemed, funds trains through its own
    emergency funding, and continues receivers' earnings through its own states. Its
    independents' 2-trains are declared depot `assignedTrains`: owned from purchase,
@@ -127,6 +128,10 @@ mechanism below, plus the six implemented titles.
       costs about ten bytes more at each mention, in State and in every Action naming it
       (about 1 KB more State in a finished 1817 game against 0.15 KB of counters), each
       new id would consume a draw from the game's randomness, and ids lose readability.
+    - A title's auction lots must not be read from certificates that can leave: TOP's PEIR
+      share lots come from the companies without a mainline or shortline role, which
+      setup fixes, so a lot is still named after its share is exchanged. History names a
+      lot from the auction's lots, not from the company names, which have no PEIR share.
     - History describes an Action from its metadata, not from current State, where the
       certificate may no longer exist. Share purchases, starts and private exchanges
       record the certificate's `shares`; a private's exchange effect records the received

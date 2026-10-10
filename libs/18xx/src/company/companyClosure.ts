@@ -10,7 +10,12 @@ import {
 import { StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
-import { trainsOwnedBy, releaseTrains, type TrainState } from '../trains/train.js'
+import {
+    trainsOwnedBy,
+    releaseTrains,
+    type TrainDestination,
+    type TrainState
+} from '../trains/train.js'
 
 export const CompanyClosure = Type.Object(
     {
@@ -38,7 +43,7 @@ type ClosureState = FinancialState & StationState & TrainState & { stockMarket: 
 export function closeShareCompany(
     state: ClosureState,
     companyId: string,
-    trainDestination: 'market' | 'removed'
+    trainDestination: TrainDestination
 ): CompanyClosure {
     const company = getCompany(state, companyId)
     const owner = { kind: 'company' as const, companyId }

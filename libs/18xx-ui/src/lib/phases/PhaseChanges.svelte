@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getCompany, controllingOwner } from '@tabletop/18xx'
+    import { getCompany, controllingOwner, isAdvancePhase } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
         $props()
@@ -7,6 +7,17 @@
     const change = $derived(gameState.phaseChange)
     const companyId = $derived(session.discard.companyId)
     const owner = $derived(companyId ? controllingOwner(gameState, companyId) : undefined)
+    const recordedEvents = $derived(
+        new Map(
+            session.actions
+                .slice(0, gameState.actionCount)
+                .flatMap((action) =>
+                    isAdvancePhase(action) && action.metadata
+                        ? [[action.metadata.event.id, action.metadata.event] as const]
+                        : []
+                )
+        )
+    )
 </script>
 
 <section aria-label="Phase changes">
@@ -52,9 +63,30 @@
         </div>
     {/if}
     {#if gameState.phaseEvents.length}<ol aria-label="Phase history">
-            {#each gameState.phaseEvents as event (event.id)}<li>
-                    Phase {event.fromPhaseId} → {event.toPhaseId}
-                </li>{/each}
+            {#each gameState.phaseEvents as occurrence (occurrence.id)}
+                {@const event = recordedEvents.get(occurrence.id)}
+                <li>
+                    Phase {occurrence.fromPhaseId} → {occurrence.toPhaseId}
+                    {#if event}
+                        {#if event.rustedTrains.length}
+                            · Rusted: {event.rustedTrains
+                                .map((train) => train.trainId)
+                                .join(', ')}{/if}
+                        {#if event.pendingRustTrainIds.length}
+                            · Rusts after its next operation: {event.pendingRustTrainIds.join(
+                                ', '
+                            )}{/if}
+                        {#each event.privateEffects as effect, index (index)}
+                            <div>
+                                {#if effect.kind === 'close'}Closed {effect.privateCompanyId}
+                                {:else if effect.kind === 'income'}{effect.privateCompanyId} revenue becomes
+                                    {effect.revenue}
+                                {:else}Exchanged {effect.privateCompanyId} for {effect.certificateId}{/if}
+                            </div>
+                        {/each}
+                    {/if}
+                </li>
+            {/each}
         </ol>{/if}
 </section>
 

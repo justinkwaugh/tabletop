@@ -169,7 +169,8 @@ export function historyDescription(
     companyName: (id: string) => string = (id) => id,
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges,
-    money: MoneyFormat = moneyFormat('$')
+    money: MoneyFormat = moneyFormat('$'),
+    lotName: (id: string) => string = companyName
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -178,7 +179,8 @@ export function historyDescription(
         companyName,
         playerName,
         companyChanges,
-        money
+        money,
+        lotName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -195,7 +197,8 @@ function describeShared(
     companyName: (id: string) => string,
     playerName: (id: string) => string,
     companyChanges: HistoryCompanyChanges | undefined,
-    money: MoneyFormat
+    money: MoneyFormat,
+    lotName: (id: string) => string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -454,7 +457,7 @@ function describeShared(
         }
     if (isReserveBid(action) || isRaiseAuctionBid(action))
         return {
-            text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${companyName(action.lotId)}`,
+            text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${lotName(action.lotId)}`,
             value: money(action.amount)
         }
     if (isContributeTrainFunds(action))
@@ -489,7 +492,7 @@ function describeShared(
     }
     if (isBuyAuctionLot(action))
         return {
-            text: `Bought ${companyName(action.lotId)}${awardExtras(action.metadata)}`,
+            text: `Bought ${lotName(action.lotId)}${awardExtras(action.metadata)}`,
             value: money(action.expectedPrice),
             important: true
         }
@@ -502,7 +505,7 @@ function describeShared(
             detail: awards
                 .map(
                     (award) =>
-                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}${awardExtras(award)}`
+                        `${playerName(award.playerId)} won ${lotName(award.lotId)} for ${money(award.price)}${awardExtras(award)}`
                 )
                 .join(' · '),
             important: !!awards.length,
@@ -510,9 +513,9 @@ function describeShared(
         }
     }
     if (isNominateLot(action))
-        return { text: `Auctioned ${companyName(action.lotId)}`, value: money(action.amount) }
+        return { text: `Auctioned ${lotName(action.lotId)}`, value: money(action.amount) }
     if (isBidForLot(action))
-        return { text: `Bid on ${companyName(action.lotId)}`, value: money(action.amount) }
+        return { text: `Bid on ${lotName(action.lotId)}`, value: money(action.amount) }
     if (isPassSelectionAuction(action) || isPassCompanyAuction(action)) return { text: 'Passed' }
     if (isResolveSelectionAuction(action)) {
         assertExists(action.metadata, 'Recorded selection auction resolution requires its outcome')
@@ -521,7 +524,7 @@ function describeShared(
             return {
                 text: 'Auction awarded',
                 detail: [
-                    `${playerName(resolution.award.playerId)} won ${companyName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
+                    `${playerName(resolution.award.playerId)} won ${lotName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
                     ...(resolution.removedLotIds ?? []).map((id) => `${companyName(id)} removed`)
                 ].join(' · '),
                 important: true

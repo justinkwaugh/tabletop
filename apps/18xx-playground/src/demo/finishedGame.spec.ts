@@ -9,7 +9,9 @@ import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
 import { historyStates } from '../../../../libs/18xx-ui/src/lib/table/historyStates.js'
 import { historyCash } from '../../../../libs/18xx-ui/src/lib/table/historyCash.js'
 import { expect, it } from 'vitest'
-import { isStartOperatingRound } from '@tabletop/18xx'
+import { isOfferAuctionLot, isStartOperatingRound } from '@tabletop/18xx'
+import { TheOldPrinceAuctionRules, TheOldPrinceNames } from '@tabletop/the-old-prince'
+import { auctionLotName } from '../../../../libs/18xx-ui/src/lib/table/auctionHistory.js'
 import { historyOperatingOrder } from '../../../../libs/18xx-ui/src/lib/table/historyOperatingOrder.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
@@ -211,6 +213,25 @@ it('replays the finished game and restores every history step in both directions
     expect(groups.filter((group) => group.kind === 'operation')).toHaveLength(91)
     for (const action of groupedActions)
         expect(historyDescription(action, state, topMarket).text).toBeTruthy()
+    // Every action is described with the title's names, and every lot the auction offered is
+    // still named once its certificate has been exchanged.
+    const lots = TheOldPrinceAuctionRules.lots(state)
+    const offered = actions.filter(isOfferAuctionLot)
+    expect(offered.some((action) => action.lotId.startsWith('PEIR:'))).toBe(true)
+    for (const action of offered) expect(lots.map((lot) => lot.id)).toContain(action.lotId)
+    for (const action of actions)
+        expect(
+            historyDescription(
+                action,
+                state,
+                topMarket,
+                TheOldPrinceNames.company,
+                (id) => id,
+                undefined,
+                moneyFormat('$'),
+                (id) => auctionLotName(id, state, lots, TheOldPrinceNames.company)
+            ).text
+        ).toBeTruthy()
     let restored = state
     for (const action of [...actions].reverse())
         restored = engine.undoProcessedAction({ state: restored, action })

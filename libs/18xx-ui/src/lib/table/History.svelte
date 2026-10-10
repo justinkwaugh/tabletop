@@ -6,6 +6,7 @@
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
+    import { auctionLotName } from './auctionHistory.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
     import { historyDescription, type TitleActionDescription } from './historyDescription.js'
@@ -80,7 +81,8 @@
             companyName,
             (id) => session.getPlayerName(id),
             companyChanges.get(action.id),
-            session.presentation.money
+            session.presentation.money,
+            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
         )
     }
     function describe(action: GameAction) {

@@ -156,7 +156,7 @@ export function mergerPrice(
     const a = EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
     const b = EighteenSeventeenMarket.companySpace(state.stockMarket, targetId).price
     const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
-    return mergerSpace(state, value).price
+    return mergerSpace(value).price
 }
 
 export type MergerPreview = {
@@ -197,7 +197,7 @@ export function mergerPreview(
     }
 }
 
-function mergerSpace(state: EighteenSeventeenState, value: number): StockMarketSpace {
+function mergerSpace(value: number): StockMarketSpace {
     const space = EighteenSeventeenMarket.spaces
         .filter((space) => space.price > 0 && space.price <= value)
         .reduce<StockMarketSpace | undefined>(
@@ -272,7 +272,7 @@ export function mergeCompanies(
     assertExists(targetPresident, 'A merged company has a president')
     const assets = transferCompanyAssets(state, targetId, companyId, { loans: true })
     const stations = moveCompanyStations(state, targetId, companyId)
-    placeStockMarker(state.stockMarket, companyId, mergerSpace(state, price).id)
+    placeStockMarker(state.stockMarket, companyId, mergerSpace(price).id)
     const newShareIds = convertCompany(state, companyId)
     const payments: CashPayment[] = []
     if (size === 2) {

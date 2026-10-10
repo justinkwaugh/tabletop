@@ -143,11 +143,9 @@
                     data-route-train={route.trainId}
                 >
                     <strong
-                        >{editor.rules.depot.trainDefinition(
-                            editor.state.trainInventory.trains.find(
-                                (train) => train.id === route.trainId
-                            )!.definitionId
-                        ).name}: {money(route.revenue)}</strong
+                        >{editor.rules.depot.trainDefinition(route.definitionId).name}: {money(
+                            route.revenue
+                        )}</strong
                     >
                     <span>{breakdown(route)}</span>
                     {#if !step.result}<button
