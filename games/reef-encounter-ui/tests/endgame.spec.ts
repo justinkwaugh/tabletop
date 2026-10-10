@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { actionPanel, createGame, playSetup } from './helpers'
+import { actionPanel, createGame, playSetup, settledCount } from './helpers'
 
 test('the game ends when the open sea cannot be refilled, and shows the scores', async ({
     page
@@ -10,7 +10,7 @@ test('the game ends when the open sea cannot be refilled, and shows the scores',
     const actions = actionPanel(page)
     // Taking the orange space every turn, with no orange cube ever played, empties the supply
     const orange = page.getByRole('button', { name: /^Take the orange larva cube/ })
-    while (await orange.count()) {
+    while (await settledCount(page, orange)) {
         await orange.click()
         await expect(actions).toContainText(/Grow your reefs|points/)
     }

@@ -1,5 +1,5 @@
-import { GameSession } from '@tabletop/frontend-components'
-import type { OffsetCoordinates } from '@tabletop/common'
+import { GameSession, type AnimationContext } from '@tabletop/frontend-components'
+import type { GameAction, OffsetCoordinates } from '@tabletop/common'
 import {
     ActionType,
     AlgaColors,
@@ -35,6 +35,8 @@ import {
     type ReefSelection,
     type ShrimpIntent
 } from './stagedSelection.js'
+import { PiecesAnimator } from '$lib/animators/piecesAnimator.js'
+import { tablePieces, type TablePiece } from '$lib/utils/tablePieces.js'
 
 export type PolypSource = 'screen' | 'consumed'
 const PolypSources: readonly PolypSource[] = ['screen', 'consumed']
@@ -51,6 +53,25 @@ export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
     HydratedReefEncounterGameState
 > {
+    // The pieces drawn on the table. Each animated transition draws its own pieces, then keeps
+    // the ones it ended on, so a full-action replay keeps every placed piece until the reactive
+    // state catches up.
+    private settledPieces: TablePiece[] = $derived(tablePieces(this.gameState, this.game.id))
+    private transitionPieces: TablePiece[] | undefined = $state()
+    readonly tablePieces = $derived(this.transitionPieces ?? this.settledPieces)
+
+    readonly piecesAnimator = new PiecesAnimator({
+        gameId: () => this.game.id,
+        show: (pieces) => {
+            this.transitionPieces = pieces
+        },
+        settle: (pieces) => {
+            this.settledPieces = pieces
+            this.transitionPieces = undefined
+        },
+        isOwnLiveAction: (action) => !this.isViewingHistory && action.playerId === this.myPlayer?.id
+    })
+
     private selection: ReefSelection = $state({})
     readonly hasManualSelection = $derived(hasManualReefSelection(this.selection))
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
@@ -249,6 +270,15 @@ export class ReefEncounterGameSession extends GameSession<
                 }
             })
     })
+
+    override async onGameStateChange(args: {
+        to: HydratedReefEncounterGameState
+        from?: HydratedReefEncounterGameState
+        action?: GameAction
+        animationContext: AnimationContext
+    }) {
+        await this.piecesAnimator.onGameStateChange(args)
+    }
 
     override beforeNewState() {
         this.resetAction()

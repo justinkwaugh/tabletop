@@ -25,11 +25,7 @@
         {#each reefRows as row, index (index)}
             <div class="flex gap-4">
                 {#each row as reef (reef.boardId)}
-                    <ReefBoard
-                        {reef}
-                        rotation={BoardRotationOnTable}
-                        shrimps={state.shrimps.filter((shrimp) => shrimp.boardId === reef.boardId)}
-                    />
+                    <ReefBoard {reef} rotation={BoardRotationOnTable} />
                 {/each}
             </div>
         {/each}

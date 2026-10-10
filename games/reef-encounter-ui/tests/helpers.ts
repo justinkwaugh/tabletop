@@ -58,20 +58,23 @@ export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
     const actions = actionPanel(page)
     for (let turn = 0; turn < maxTurns; turn++) {
         await expect(actions).toContainText('Grow your reefs')
-        if ((await actions.getByRole('button', { name: /^Pay a consumed/ }).count()) > 0) {
+        if (
+            (await settledCount(page, actions.getByRole('button', { name: /^Pay a consumed/ }))) > 0
+        ) {
             return
         }
         const cubes = actions.getByRole('button', { name: /^Play a \w+ larva cube$/ })
-        if ((await cubes.count()) > 0) {
+        if ((await settledCount(page, cubes)) > 0) {
             await cubes.first().click()
             let last: ReturnType<typeof squareIn>
             for (let placed = 0; placed < 6; placed++) {
                 const attacks = page.getByRole('button', { name: /^Attack with/ })
-                if ((await attacks.count()) > 0) {
+                if ((await settledCount(page, attacks)) > 0) {
                     await attacks.first().click()
                     continue
                 }
                 const places = page.getByRole('button', { name: /^Place a / })
+                await settled(page)
                 const labels = await places.evaluateAll((elements) =>
                     elements.map((element) => element.getAttribute('aria-label') ?? '')
                 )
@@ -145,7 +148,7 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
     const actions = actionPanel(page)
     for (let turn = 0; turn < maxTurns; turn++) {
         await expect(actions).toContainText('Grow your reefs')
-        if ((await actions.getByRole('button', { name: 'Eat a coral' }).count()) > 0) {
+        if ((await settledCount(page, actions.getByRole('button', { name: 'Eat a coral' }))) > 0) {
             return
         }
         const cubes = actions.getByRole('button', { name: /^Play a \w+ larva cube$/ })
@@ -157,7 +160,7 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
             const color = (await labelsOf(cubes))[best].split(' ')[2]
             await cubes.nth(best).click()
             const places = page.getByRole('button', { name: /^(Place|Attack with) a / })
-            for (let placed = 0; placed < 8 && (await places.count()) > 0; placed++) {
+            for (let placed = 0; placed < 8 && (await settledCount(page, places)) > 0; placed++) {
                 const coral = await squaresOfColor(page, color)
                 const index = (await labelsOf(places)).findIndex((label) => {
                     const square = targetSquare(label)
@@ -170,8 +173,11 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
             }
             const introduce = actions.getByRole('button', { name: 'Introduce a shrimp' })
             const hasShrimpOut =
-                (await page.getByRole('button', { name: /^Pick up your shrimp/ }).count()) > 0
-            if ((await introduce.count()) > 0 && !hasShrimpOut) {
+                (await settledCount(
+                    page,
+                    page.getByRole('button', { name: /^Pick up your shrimp/ })
+                )) > 0
+            if ((await settledCount(page, introduce)) > 0 && !hasShrimpOut) {
                 const coral = await squaresOfColor(page, color)
                 await introduce.click()
                 const spots = page.getByRole('button', { name: /^Put your shrimp on / })
@@ -188,4 +194,15 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
             .click()
     }
     throw new Error('No coral became edible within the turns played')
+}
+
+// The table ignores choices while a change plays out, and its rings still show the old state, so
+// anything that reads what is on offer waits for it to settle first.
+export async function settled(page: Page) {
+    await expect(page.locator('.reef-table.settling')).toHaveCount(0)
+}
+
+export async function settledCount(page: Page, locator: Locator) {
+    await settled(page)
+    return locator.count()
 }

@@ -1,25 +1,18 @@
 <script lang="ts">
-    import ShrimpPiece from './Shrimp.svelte'
-    import LarvaCube from './LarvaCube.svelte'
-    import AlgaCylinder from './AlgaCylinder.svelte'
+    import Pieces from './Pieces.svelte'
     import Target from './Target.svelte'
     import { CoralTileFaceUrls, OpenSeaImageUrl } from '$lib/images/art.generated.js'
     import {
         AlgaSpace,
         coralTileSlot,
-        eatenShrimpSlot,
         ImageToTable,
         larvaSpace,
-        larvaSpaceCube,
-        larvaSpacePolyp,
         OpenSeaImage,
         OpenSeaView,
         rotatedView,
-        ShrimpLength,
         upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
-    import { polypFaceUrl } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { rotation }: { rotation: BoardRotation } = $props()
@@ -31,12 +24,6 @@
         x: box.x + box.width / 2,
         y: box.y + box.height / 2
     })
-
-    const shrimpsOnOpenSea = $derived(
-        state.turnManager.turnOrder
-            .map((playerId, seat) => ({ playerId, seat }))
-            .filter(({ playerId }) => state.getPlayerState(playerId).shrimpOnOpenSea)
-    )
 </script>
 
 <svg
@@ -61,48 +48,10 @@
                     width={slot.width}
                     height={slot.height}
                 ></image>
-                {#if tile.cylinder}
-                    <AlgaCylinder center={center(slot)} size={56} color={tile.cylinder} />
-                {/if}
             </g>
         {/each}
 
-        {#if state.openSeaAlga}
-            <g transform={upright(rotation, AlgaSpace)}>
-                <AlgaCylinder center={AlgaSpace} size={64} color={state.openSeaAlga} />
-            </g>
-        {/if}
-
-        {#each state.openSea as space (space.larvaColor)}
-            {#if space.hasLarvaCube}
-                {@const cube = larvaSpaceCube(space.larvaColor)}
-                <g transform={upright(rotation, cube)}>
-                    <LarvaCube center={cube} size={44} color={space.larvaColor} />
-                </g>
-            {/if}
-            {#each space.polyps as polyp, index (index)}
-                {@const tile = larvaSpacePolyp(space.larvaColor, index, space.polyps.length)}
-                <image
-                    href={polypFaceUrl(
-                        polyp,
-                        `${gameSession.game.id}:sea:${space.larvaColor}:${index}`
-                    )}
-                    x={tile.x}
-                    y={tile.y}
-                    width={tile.width}
-                    height={tile.height}
-                ></image>
-                <rect
-                    x={tile.x}
-                    y={tile.y}
-                    width={tile.width}
-                    height={tile.height}
-                    fill="none"
-                    stroke="rgb(0 0 0 / 0.45)"
-                    stroke-width="2"
-                ></rect>
-            {/each}
-        {/each}
+        <Pieces container="sea" {rotation} />
 
         {#if gameSession.cylinderTargets.openSea}
             <Target
@@ -126,15 +75,6 @@
                 box={larvaSpace(larvaColor)}
                 label="Take the {larvaColor} larva cube and its polyps, ending your turn"
                 onselect={() => gameSession.takeOpenSeaSpace(larvaColor)}
-            />
-        {/each}
-
-        {#each shrimpsOnOpenSea as { playerId, seat } (playerId)}
-            <ShrimpPiece
-                center={eatenShrimpSlot(seat)}
-                length={ShrimpLength}
-                upsideDown={seat % 2 === 1}
-                color={gameSession.colors.getPlayerBgColorValue(playerId)}
             />
         {/each}
     </g>

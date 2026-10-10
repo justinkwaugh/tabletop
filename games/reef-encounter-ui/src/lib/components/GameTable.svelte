@@ -54,7 +54,8 @@
     </div>
 {/snippet}
 
-<div class="reef-table">
+<!-- The session ignores choices while a change plays out, so they take no clicks until then. -->
+<div class="reef-table" class:settling={gameSession.busy}>
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             {@render historyControls('band')}
@@ -122,6 +123,11 @@
         background:
             radial-gradient(ellipse 70% 45% at 55% -8%, rgb(255 255 255 / 0.16), transparent 70%),
             linear-gradient(180deg, var(--reef-water-top), var(--reef-water-bottom));
+    }
+
+    .reef-table.settling :global(.target),
+    .reef-table.settling :global(section[aria-label='Actions'] button) {
+        pointer-events: none;
     }
 
     .reef-table :global(.reef-display) {

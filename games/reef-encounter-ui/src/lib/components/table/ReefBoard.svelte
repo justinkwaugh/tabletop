@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { OffsetCoordinates } from '@tabletop/common'
-    import type { Reef, ReefSquare, Shrimp as ShrimpState } from '@tabletop/reef-encounter'
-    import ShrimpPiece from './Shrimp.svelte'
+    import type { Reef, ReefSquare } from '@tabletop/reef-encounter'
+    import Pieces from './Pieces.svelte'
     import Target from './Target.svelte'
     import { BoardImageUrls } from '$lib/images/art.generated.js'
     import {
@@ -10,18 +10,12 @@
         ImageToTable,
         rotatedView,
         BoardView,
-        ShrimpLength,
-        upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
     import { polypFaceUrl } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let {
-        reef,
-        shrimps,
-        rotation
-    }: { reef: Reef; shrimps: readonly ShrimpState[]; rotation: BoardRotation } = $props()
+    let { reef, rotation }: { reef: Reef; rotation: BoardRotation } = $props()
 
     const drawing = $derived(rotatedView(BoardView, rotation))
 
@@ -45,8 +39,6 @@
     )
     const where = (coords: OffsetCoordinates) =>
         `board ${reef.boardId}, row ${coords.row + 1}, column ${coords.col + 1}`
-    const place = (row: number, col: number) =>
-        `${gameSession.game.id}:${reef.boardId}:${row}:${col}`
 </script>
 
 <svg
@@ -62,27 +54,7 @@
             width={BoardImage.width}
             height={BoardImage.height}
         ></image>
-        {#each reef.polyps as polyp (`${polyp.coords.row},${polyp.coords.col}`)}
-            {@const square = boardSquare(polyp.coords)}
-            <image
-                href={polypFaceUrl(polyp.color, place(polyp.coords.row, polyp.coords.col))}
-                x={square.x}
-                y={square.y}
-                width={square.width}
-                height={square.height}
-            ></image>
-        {/each}
-        {#each shrimps as shrimp (`${shrimp.coords.row},${shrimp.coords.col}`)}
-            {@const square = boardSquare(shrimp.coords)}
-            {@const center = { x: square.x + square.width / 2, y: square.y + square.height / 2 }}
-            <g transform={upright(rotation, center)}>
-                <ShrimpPiece
-                    {center}
-                    length={ShrimpLength}
-                    color={gameSession.colors.getPlayerBgColorValue(shrimp.playerId)}
-                />
-            </g>
-        {/each}
+        <Pieces container={reef.boardId} {rotation} />
         {#if pickedUp}
             {@const square = boardSquare(pickedUp)}
             <rect
