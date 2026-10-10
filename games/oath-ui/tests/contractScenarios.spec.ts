@@ -4607,13 +4607,13 @@ test.describe('the Show menu', () => {
         })
     })
 
-    // Four relics at 70 px and their gaps take 304 px: the panel holds them on one line at 402 wide
-    // (328 px inside), not at 375 (303.5 px), where the Reliquary still starts its own line.
+    // Four relics at 69 px and their gaps take 300 px: the panel holds them on one line at 402 wide
+    // (328 px inside) and at 375 (303.5 px).
     for (const { viewport, oneLine } of [
         { viewport: { width: 402, height: 874 }, oneLine: true },
-        { viewport: { width: 375, height: 812 }, oneLine: false }
+        { viewport: { width: 375, height: 812 }, oneLine: true }
     ]) {
-        test(`at ${viewport.width} wide: the cards 70 px, the Reliquary on its own line, the chips 44 px tall`, async ({
+        test(`at ${viewport.width} wide: the cards 69 px, the Reliquary on its own line, the chips 44 px tall`, async ({
             page
         }) => {
             await page.setViewportSize(viewport)
@@ -4625,7 +4625,7 @@ test.describe('the Show menu', () => {
             expect(cards.map((card) => card.name)).toEqual(SHOWABLE)
             const [adviser, ...relics] = cards
             for (const card of cards) {
-                expect(card.height, `${card.name}: 70 tall`).toBeCloseTo(70, 0)
+                expect(card.height, `${card.name}: 69 tall`).toBeCloseTo(69, 0)
                 expect(card.inPanel, `${card.name}: inside the panel`).toBe(true)
             }
             expect(relics[0].left, 'the Reliquary starts its line').toBeCloseTo(adviser.left, 0)

@@ -17,7 +17,8 @@
     let pickedShow = $derived(shows.find((show) => letPeekKey(show.subject) === picked))
 
     const layout = new PhoneLayout()
-    let height = $derived(seat ? 56 : layout.narrow ? 70 : 100)
+    // 69 px on a phone: the four Reliquary relics and their gaps (300 px) fit a 375 px phone's panel.
+    let height = $derived(seat ? 56 : layout.narrow ? 69 : 100)
 
     // The facedown advisers, then the Reliquary relics in space order; the Reliquary takes its own
     // line on a phone and in the seat card.
