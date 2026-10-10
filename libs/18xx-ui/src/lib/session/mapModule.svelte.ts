@@ -42,6 +42,7 @@ type Track = Pick<
     | 'selection'
     | 'preview'
     | 'displayedPreview'
+    | 'displayedStations'
     | 'tileInFlight'
     | 'construction'
     | 'showChoices'
@@ -98,7 +99,7 @@ export class MapModule {
             : this.scene
     })
     displayedTokens = $derived.by(() => {
-        const preview = this.track.displayedPreview
+        const preview = this.track.displayedStations
         if (preview && !this.track.tileInFlight)
             return stationMapTokens(preview, this.view().stations)
         return this.stations.preview

@@ -21,8 +21,8 @@
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "IssueTreasuryShares": "5b34043d5d2d293a9a9cb475aef421125913722a7e1d72ccb706aa23cfb428bd",
-    "LayPrivateTile": "99868ba6bff81b26acad6efe4d8fc6e83c7f01689a6b5ca2dca2f6dd372c6660",
-    "LayTile": "249fc9b4fcffcbb7a93a12b1cdef9ef8b42628162e7801ea1e7b41d89d9c3378",
+    "LayPrivateTile": "4fac8ef2d632fc8411ba570c3ffc6cf77d09d5e79a66693d2c61cf478132ac5c",
+    "LayTile": "7be8e600597ab53b7ceea6acd275d1fb827fcd4590de5d72e71c470e115f03ca",
     "OfferAuctionLot": "3f9ca0e5cafb875a9b94c1d633a2dc24daac9f0c8fe494aa7626538806abea0c",
     "OfferPurchase": "407add6081302ddcebb53da5e91f3b8640c1dbccdf709289b00b11e9aea847e9",
     "PassAuction": "0787d832446a6a789d06e769e79b3f3ef5b630bebc1247a975940bb6979e64a1",
@@ -31,7 +31,7 @@
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveAuction": "cda20486395def21f8016c871ae29af489eca8e1c6abb1f195feae213ca9a8ca",
     "RespondToPurchaseOffer": "2a80cb1220166e3653cf3d2c16cd62120b8d23a728e0359199e93db0c1afcc27",
-    "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
+    "RespondToTrackConsent": "d444e2f54cdc5a40ef5bb8a6da767fb3c2b30cc1fa54469a8fc04b6cfde5601c",
     "RunTrains": "a00f6e3a70d2a6cc2c43e4ca917328530cbeaa7ccaae56993080a0c37791424a",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
@@ -3419,6 +3419,56 @@
               "locationId": {
                 "type": "string"
               },
+              "movedStations": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "companyId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "position": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "locationId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "nodeId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "slot": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "locationId",
+                        "nodeId",
+                        "slot"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "const": "placed",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "companyId",
+                    "id",
+                    "position",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
               "nodeMapping": {
                 "patternProperties": {
                   "^.*$": {
@@ -3549,132 +3599,6 @@
                   }
                 ]
               },
-              "stationReservations": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "companyId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "locationId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "nodeId": {
-                      "minLength": 1,
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "companyId",
-                    "locationId",
-                    "nodeId"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "stations": {
-                "items": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "status": {
-                          "const": "available",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "status"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "position": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "locationId": {
-                              "minLength": 1,
-                              "type": "string"
-                            },
-                            "nodeId": {
-                              "minLength": 1,
-                              "type": "string"
-                            },
-                            "slot": {
-                              "minimum": 0,
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "locationId",
-                            "nodeId",
-                            "slot"
-                          ],
-                          "type": "object"
-                        },
-                        "status": {
-                          "const": "placed",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "position",
-                        "status"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "status": {
-                          "const": "removed",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "status"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "type": "array"
-              },
               "terrainCost": {
                 "minimum": 0,
                 "type": "integer"
@@ -3686,11 +3610,10 @@
               "cost",
               "definitionId",
               "locationId",
+              "movedStations",
               "nodeMapping",
               "placement",
               "rotation",
-              "stationReservations",
-              "stations",
               "terrainCost"
             ],
             "type": "object"

@@ -102,9 +102,7 @@ describe("Erie's whole-hex home", () => {
         for (const choice of choices) {
             expect(choice.definitionId).toBe('18xx:59')
             expect(choice.nodeMapping).toEqual({ 'city-0': 'city-0', 'city-1': 'city-1' })
-            expect(choice.stations.find((station) => station.id === 'ERIE:home')).toMatchObject({
-                position: { locationId: 'E11', nodeId: 'city-0' }
-            })
+            expect(choice.movedStations).toEqual([])
         }
     })
 })

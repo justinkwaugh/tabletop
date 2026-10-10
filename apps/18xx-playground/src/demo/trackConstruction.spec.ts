@@ -323,12 +323,14 @@ it('flips paired faces as one physical piece and migrates renamed stations and r
     const construction = new TrackConstruction(state, { ...Shikoku1889TrackRules, tileSet })
     const details = first(construction.choices('E2'))
     expect(details.placement.pieceId).toBe(state.tileInventory.placements.E2.pieceId)
-    expect(details.stations.find((station) => station.id === 'IR:home')).toMatchObject({
-        position: { nodeId: 'renamed', slot: 0 }
+    expect(details.movedStations).toMatchObject([
+        { id: 'IR:home', position: { nodeId: 'renamed', slot: 0 } }
+    ])
+    expect(construction.stationsAfter(details).stationReservations).toContainEqual({
+        companyId: 'AR',
+        locationId: 'E2',
+        nodeId: 'renamed'
     })
-    expect(
-        details.stationReservations.find((reservation) => reservation.locationId === 'E2')?.nodeId
-    ).toBe('renamed')
     const after = construction.inventoryAfter(details)
     expect(Object.values(after.placements)).toHaveLength(1)
     expect(tileSet.counts(after).every((count) => count.available === 0)).toBe(true)

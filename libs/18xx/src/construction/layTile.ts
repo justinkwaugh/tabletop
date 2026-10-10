@@ -84,12 +84,14 @@ export function applyTrackLay(
     payer: Owner,
     countsAsOrdinaryLay: boolean
 ): TrackLayDetails {
-    const inventory = new TrackConstruction(state, rules, payer).inventoryAfter(details)
+    const construction = new TrackConstruction(state, rules, payer)
+    const inventory = construction.inventoryAfter(details)
+    const { stations, stationReservations } = construction.stationsAfter(details)
     if (details.cost)
         settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
     state.tileInventory = inventory
-    state.stations = details.stations
-    state.stationReservations = details.stationReservations
+    state.stations = stations
+    state.stationReservations = stationReservations
     if (countsAsOrdinaryLay) {
         assert(state.trackStep, 'An ordinary lay requires a track step')
         const color = rules.tileSet.definitions.find((tile) => tile.id === details.definitionId)!

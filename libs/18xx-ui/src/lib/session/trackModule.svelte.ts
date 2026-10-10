@@ -139,6 +139,9 @@ export class TrackModule {
         const committed = this.committed?.state === state ? this.committed.details : undefined
         return state.trackConsent?.details ?? this.preview ?? committed
     })
+    displayedStations = $derived.by(() =>
+        this.displayedPreview ? this.construction.stationsAfter(this.displayedPreview) : undefined
+    )
     constructionActions = $derived.by(() =>
         this.session.recordedActions.flatMap((action) => {
             const details =

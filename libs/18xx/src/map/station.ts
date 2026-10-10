@@ -26,19 +26,20 @@ export const StationPosition = Type.Object(
 )
 export type StationPosition = Type.Static<typeof StationPosition>
 const Identity = { id: Id, companyId: Id }
+export const PlacedStation = Type.Object(
+    { ...Identity, status: Type.Literal('placed'), position: StationPosition },
+    { additionalProperties: false }
+)
+export type PlacedStation = Type.Static<typeof PlacedStation>
 export const Station = Type.Union([
     Type.Object(
         { ...Identity, status: Type.Literal('available') },
         { additionalProperties: false }
     ),
-    Type.Object(
-        { ...Identity, status: Type.Literal('placed'), position: StationPosition },
-        { additionalProperties: false }
-    ),
+    PlacedStation,
     Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
 ])
 export type Station = Type.Static<typeof Station>
-export type PlacedStation = Extract<Station, { status: 'placed' }>
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation)

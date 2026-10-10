@@ -759,7 +759,7 @@
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
         reservations={[
-            ...(session.track.displayedPreview?.stationReservations ??
+            ...(session.track.displayedStations?.stationReservations ??
                 session.stations.displayState.stationReservations),
             ...powerReservations
         ]}

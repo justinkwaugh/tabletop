@@ -69,8 +69,7 @@ const tileDetails: PrivateTileOption['details'] = {
     cost: 0,
     terrainCost: 0,
     allowanceCost: 0,
-    stations: [],
-    stationReservations: []
+    movedStations: []
 }
 
 describe('PrivateActionsModule', () => {
@@ -166,7 +165,8 @@ describe('PrivateActionsModule', () => {
                 choices: () => [],
                 canReach: () => false,
                 evaluate: () => ({ reason: 'none' }),
-                inventoryAfter: () => ({ placements: [] }) as never
+                inventoryAfter: () => ({ placements: [] }) as never,
+                stationsAfter: () => ({ stations: [], stationReservations: [] })
             },
             commit: async () => {},
             undo: () => staged-- > 0

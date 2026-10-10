@@ -51,6 +51,7 @@ import {
     isOfferPurchase,
     isRespondToPurchaseOffer,
     nextOperatingCompany,
+    stationsAfterLay,
     type OfferPurchase,
     type RespondToPurchaseOffer,
     type ShareSaleDetails,
@@ -277,7 +278,8 @@ export class EighteenFortySixSession extends BaseSession {
                                 locationId: details.locationId,
                                 placement: details.placement,
                                 returnPrevious: true
-                            })
+                            }),
+                        stationsAfter: (details) => stationsAfterLay(inventory, details)
                     },
                     commit: async (details) => {
                         const { companyId, locationId, definitionId, rotation, nodeMapping } =
