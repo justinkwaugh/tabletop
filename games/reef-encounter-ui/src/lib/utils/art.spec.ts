@@ -40,7 +40,7 @@ describe('the official art', () => {
 
     it('has both faces of every coral tile', () => {
         for (const tile of CoralTiles) {
-            const faces = CoralTileFaceUrls[tile.id as keyof typeof CoralTileFaceUrls]
+            const faces = CoralTileFaceUrls[tile.id]
             for (const url of [faces.starfish, faces.plain]) {
                 expect(jpegSize(imagePath(url))).toEqual({ width: 199, height: 199 })
             }

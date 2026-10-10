@@ -1,50 +1,27 @@
 <script lang="ts">
-    import type { Player } from '@tabletop/common'
-    import type {
-        HydratedReefEncounterPlayerState,
-        ReefEncounterProjectedPlayerState
-    } from '@tabletop/reef-encounter'
+    import { assertExists } from '@tabletop/common'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let gameSession = getGameSession()
+    const gameSession = getGameSession()
 
-    type PlayerAndState = { player: Player; playerState: HydratedReefEncounterPlayerState }
-
-    let playersAndStates: PlayerAndState[] = $derived.by(() => {
-        const playersAndStates = gameSession.gameState.players.map((playerState) => {
-            return {
-                player: getPlayerForState(playerState),
-                playerState
-            }
+    const seats = $derived.by(() => {
+        const state = gameSession.gameState
+        const order = state.turnManager.turnOrder
+        const myIndex = gameSession.primaryGame.hotseat
+            ? -1
+            : order.indexOf(gameSession.myPlayer?.id ?? '')
+        const start = Math.max(myIndex, 0)
+        return [...order.slice(start), ...order.slice(0, start)].map((playerId) => {
+            const player = gameSession.game.players.find((candidate) => candidate.id === playerId)
+            assertExists(player, `No player ${playerId}`)
+            return { player, playerState: state.getPlayerState(playerId) }
         })
-
-        const playersAndStatesById = new Map(
-            playersAndStates.map((item) => [item.playerState.playerId, item])
-        )
-        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map((playerId) =>
-            playersAndStatesById.get(playerId)!
-        ) as PlayerAndState[]
-
-        // if not hotseat, rotate until user player is at top
-        if (gameSession.myPlayer && !gameSession.primaryGame.hotseat) {
-            const myPlayerId = gameSession.myPlayer.id
-            if (myPlayerId) {
-                while (turnOrderSorted[0].player.id !== myPlayerId) {
-                    turnOrderSorted.push(turnOrderSorted.shift()!)
-                }
-            }
-        }
-
-        return turnOrderSorted
     })
-    function getPlayerForState(playerState: ReefEncounterProjectedPlayerState) {
-        return gameSession.game.players.find((player) => player.id === playerState.playerId)
-    }
 </script>
 
-<div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
-    {#each playersAndStates as playerAndState (playerAndState.player.id)}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+<div class="space-y-2">
+    {#each seats as { player, playerState } (player.id)}
+        <PlayerState {player} {playerState} />
     {/each}
 </div>

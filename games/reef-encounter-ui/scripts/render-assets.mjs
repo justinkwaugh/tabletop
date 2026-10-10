@@ -278,7 +278,7 @@ lines.push(
     ...Colors.map((color) => `    ${color}: [${polypRefs[color].join(', ')}],`),
     '}',
     '',
-    'export const CoralTileFaceUrls = {',
+    'export const CoralTileFaceUrls: Record<number, { starfish: string; plain: string }> = {',
     ...Object.entries(coralRefs).map(
         ([id, r]) => `    ${id}: { starfish: ${r.starfish}, plain: ${r.plain} },`
     ),

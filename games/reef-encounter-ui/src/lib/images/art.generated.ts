@@ -839,7 +839,7 @@ export const PolypFaceUrls = {
     ]
 }
 
-export const CoralTileFaceUrls = {
+export const CoralTileFaceUrls: Record<number, { starfish: string; plain: string }> = {
     1: { starfish: image400, plain: image401 },
     2: { starfish: image402, plain: image403 },
     3: { starfish: image404, plain: image405 },

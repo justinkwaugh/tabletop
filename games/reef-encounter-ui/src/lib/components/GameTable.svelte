@@ -1,58 +1,65 @@
 <script lang="ts">
+    import { untrack } from 'svelte'
     import {
-        ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
-        GameSession
+        GameSession,
+        ScalingWrapper
     } from '@tabletop/frontend-components'
-
-    import History from '$lib/components/History.svelte'
-    import PlayersPanel from '$lib/components/PlayersPanel.svelte'
-    import Board from '$lib/components/Board.svelte'
-
-    import type { ReefEncounterGameSession } from '$lib/model/session.svelte'
     import type {
         HydratedReefEncounterGameState,
         ReefEncounterProjectedState
     } from '@tabletop/reef-encounter'
+    import History from '$lib/components/History.svelte'
+    import PlayersPanel from '$lib/components/PlayersPanel.svelte'
+    import Header from '$lib/components/Header.svelte'
+    import ActionArea from '$lib/components/ActionArea.svelte'
+    import Table from '$lib/components/table/Table.svelte'
+    import { ReefEncounterGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
     }: { gameSession: GameSession<ReefEncounterProjectedState, HydratedReefEncounterGameState> } =
         $props()
-    setGameSession(gameSession as ReefEncounterGameSession)
+
+    function ensureReefEncounterGameSession(
+        session: GameSession<ReefEncounterProjectedState, HydratedReefEncounterGameState>
+    ): ReefEncounterGameSession {
+        if (session instanceof ReefEncounterGameSession) {
+            return session
+        }
+        throw new Error('GameTable expected a ReefEncounterGameSession')
+    }
+
+    setGameSession(untrack(() => ensureReefEncounterGameSession(gameSession)))
 </script>
 
-<!-- Full Height and Width with 8px padding-->
-<div>
-    <DefaultTableLayout>
-        {#snippet sideContent()}
-            <DefaultSideContent>
-                {#snippet playersPanel()}
-                    <PlayersPanel />
-                {/snippet}
-                {#snippet history()}
-                    <History />
-                {/snippet}
-            </DefaultSideContent>
-        {/snippet}
-        {#snippet gameContent()}
-            <!--  Top part is not allowed to shrink -->
-            <div class="shrink-0">
-                {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
-                {:else}
-                    <!-- <InformationPanel /> -->
-                {/if}
-            </div>
-            <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
-              This allows the wrapper to scale to its bounds regardless of its content size-->
-            <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-left">
-                    <Board />
-                </ScalingWrapper>
-            </div>
-        {/snippet}
-    </DefaultTableLayout>
-</div>
+<DefaultTableLayout>
+    {#snippet sideContent()}
+        <DefaultSideContent>
+            {#snippet playersPanel()}
+                <PlayersPanel />
+            {/snippet}
+            {#snippet history()}
+                <History />
+            {/snippet}
+        </DefaultSideContent>
+    {/snippet}
+    {#snippet gameContent()}
+        <div class="shrink-0">
+            <Header />
+            <ActionArea />
+        </div>
+        <div class="relative grow-0 overflow-hidden" style="flex:1;">
+            <ScalingWrapper
+                justify="center"
+                controls="bottom-left"
+                coverBelowScale={0.45}
+                expandable
+            >
+                <Table />
+            </ScalingWrapper>
+        </div>
+    {/snippet}
+</DefaultTableLayout>
