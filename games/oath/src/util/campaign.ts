@@ -11,6 +11,7 @@ import {
     type WarbandGroup
 } from '../model/campaign.js'
 import { banditsPerSite } from './bandits.js'
+import type { CampaignDefender } from '../actions/campaign.js'
 import {
     persistentPawnDefenseBonus,
     persistentRelicDefenseBonus,
@@ -146,6 +147,24 @@ export function reasonNoCampaignAgainst(
     return found
         ? undefined
         : `no targets can be declared against ${defenderPlayerId ?? 'the bandits'}`
+}
+
+/** R-5.5.1, R-5.5.2 — the other players, and the bandits, a Campaign from the attacker's site may declare. */
+export function defendersOpenTo(state: HydratedOathGameState, attackerId: string): CampaignDefender[] {
+    const defenders: CampaignDefender[] = [
+        ...state.players
+            .filter((other) => other.playerId !== attackerId)
+            .map((other) => ({ kind: 'player' as const, playerId: other.playerId })),
+        { kind: 'bandits' }
+    ]
+    return defenders.filter(
+        (defender) =>
+            reasonNoCampaignAgainst(
+                state,
+                attackerId,
+                defender.kind === 'player' ? defender.playerId : undefined
+            ) === undefined
+    )
 }
 
 /** R-5.5.1, R-5.5.2 — Sneak Attack gives the opportunity, not an exemption. */

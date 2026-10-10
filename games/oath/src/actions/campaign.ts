@@ -26,9 +26,9 @@ import {
     collectAttackingForce,
     collectDefensePool,
     declaredParties,
+    defendersOpenTo,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
-    reasonNoCampaignAgainst,
     scopeOf,
     suspendedImperialsFor,
     type CampaignParties
@@ -496,21 +496,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
 
     /** R-5.5.1, R-5.5.2 */
     static legalDefenders(state: HydratedOathGameState, playerId: string): CampaignDefender[] {
-        const defenders: CampaignDefender[] = [
-            ...state.players
-                .filter((other) => other.playerId !== playerId)
-                .map((other) => ({ kind: 'player' as const, playerId: other.playerId })),
-            { kind: 'bandits' }
-        ]
-        return defenders.filter(
+        return defendersOpenTo(state, playerId).filter(
             (defender) =>
-                HydratedCampaign.reasonCannotChooseDefender(state, playerId, defender) ===
-                    undefined &&
-                reasonNoCampaignAgainst(
-                    state,
-                    playerId,
-                    defender.kind === 'player' ? defender.playerId : undefined
-                ) === undefined
+                HydratedCampaign.reasonCannotChooseDefender(state, playerId, defender) === undefined
         )
     }
 
