@@ -5,8 +5,6 @@ export type HistoryEntry = {
     // The player whose turn or setup choice this is; absent for the game's end.
     playerId?: string
     actions: GameAction[]
-    firstActionIndex: number
-    lastActionIndex: number
 }
 
 // Actions that put, take or move pieces on the table, and so have something to replay.
@@ -28,7 +26,7 @@ export function movesPieces(entry: HistoryEntry): boolean {
 // the open-sea refill) joining that player's entry; the game's end stands alone.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
-    actions.forEach((action, index) => {
+    for (const action of actions) {
         const current = entries.at(-1)
         const joinsCurrent =
             current !== undefined &&
@@ -36,15 +34,29 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             (action.playerId === undefined || action.playerId === current.playerId)
         if (joinsCurrent) {
             current.actions.push(action)
-            current.lastActionIndex = index
-            return
+            continue
         }
         entries.push({
             playerId: isEndGame(action) ? undefined : action.playerId,
-            actions: [action],
-            firstActionIndex: index,
-            lastActionIndex: index
+            actions: [action]
         })
-    })
+    }
     return entries
+}
+
+// The History Step that led to the state on screen: its player's action and the System
+// Actions that followed it.
+export function historyStep(actions: readonly GameAction[]): GameAction[] {
+    const start = actions.findLastIndex((action) => action.playerId !== undefined)
+    return actions.slice(Math.max(start, 0))
+}
+
+// The latest turn of a player who is not acting now: what the waiting view recounts.
+export function previousTurn(
+    actions: readonly GameAction[],
+    activePlayerIds: readonly string[]
+): HistoryEntry | undefined {
+    return historyEntries(actions).findLast(
+        (entry) => entry.playerId !== undefined && !activePlayerIds.includes(entry.playerId)
+    )
 }

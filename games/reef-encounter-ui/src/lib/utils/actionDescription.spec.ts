@@ -29,9 +29,12 @@ const played = (color: CoralColor): PlayLarvaCube => ({
     color
 })
 
+const texts = (...args: Parameters<typeof describeActions>) =>
+    describeActions(...args).map((phrase) => phrase.text)
+
 describe('describing a turn', () => {
     it('merges plain placements of one colour on one board', () => {
-        const phrases = describeActions(
+        const phrases = texts(
             [
                 played(CoralColor.Orange),
                 placed(CoralColor.Orange, 1),
@@ -48,7 +51,7 @@ describe('describing a turn', () => {
     })
 
     it('keeps an attack on its own line', () => {
-        const phrases = describeActions(
+        const phrases = texts(
             [placed(CoralColor.White, 1), placed(CoralColor.White, 1, CoralColor.Yellow)],
             'their'
         )
@@ -65,7 +68,9 @@ describe('describing a turn', () => {
             playerId: 'a',
             color: CoralColor.Grey
         }
-        expect(describeActions([feed], 'your')).toEqual(['fed a grey polyp to your parrotfish.'])
+        expect(describeActions([feed], 'your')).toEqual([
+            { text: 'fed a grey polyp to your parrotfish.', playerId: 'a' }
+        ])
         expect(capitalised('fed a grey polyp.')).toBe('Fed a grey polyp.')
     })
 })

@@ -47,14 +47,13 @@ export function describeAction(action: GameAction, own: 'your' | 'their'): strin
     if (isPlacePolyp(action)) {
         const placement = action.metadata
         if (!placement) return undefined
-        const source = action.fromConsumed ? 'consumed ' : ''
         const attack = placement.attacked
             ? `, consuming ${withArticle(placement.attacked)} polyp`
             : ''
         const growth = placement.extraGrowth
             ? `; a bonus ${placement.color} polyp grew beside it`
             : ''
-        return `placed ${withArticle(`${source}${placement.color}`)} polyp on board ${action.boardId}${attack}${growth}.`
+        return `${placedPolyps(1, placement.color, action.boardId, action.fromConsumed)}${attack}${growth}.`
     }
     if (isIntroduceShrimp(action)) {
         return `introduced a shrimp on board ${action.boardId}.`
@@ -114,27 +113,42 @@ export function describeSystemAction(action: GameAction): string | undefined {
     return undefined
 }
 
-// A turn's phrases, with consecutive plain placements of one colour on one board merged.
-export function describeActions(actions: readonly GameAction[], own: 'your' | 'their'): string[] {
-    const phrases: string[] = []
+function placedPolyps(count: number, color: CoralColor, boardId: number, consumed: boolean) {
+    const polyp = `${consumed ? 'consumed ' : ''}${color}`
+    return count === 1
+        ? `placed ${withArticle(polyp)} polyp on board ${boardId}`
+        : `placed ${count} ${polyp} polyps on board ${boardId}`
+}
+
+// A player's phrase follows their name; a system phrase is a sentence of its own.
+export type Phrase = { text: string; playerId?: string }
+
+// Consecutive plain placements of one colour on one board merge into one phrase.
+export function describeActions(actions: readonly GameAction[], own: 'your' | 'their'): Phrase[] {
+    const phrases: Phrase[] = []
     let run:
-        | { key: string; count: number; color: CoralColor; boardId: number; consumed: boolean }
+        | {
+              key: string
+              playerId?: string
+              count: number
+              color: CoralColor
+              boardId: number
+              consumed: boolean
+          }
         | undefined
     const closeRun = () => {
         if (run) {
-            const source = run.consumed ? 'consumed ' : ''
-            phrases.push(
-                run.count === 1
-                    ? `placed ${withArticle(`${source}${run.color}`)} polyp on board ${run.boardId}.`
-                    : `placed ${run.count} ${source}${run.color} polyps on board ${run.boardId}.`
-            )
+            phrases.push({
+                text: `${placedPolyps(run.count, run.color, run.boardId, run.consumed)}.`,
+                playerId: run.playerId
+            })
         }
         run = undefined
     }
     for (const action of actions) {
         const placement = isPlacePolyp(action) ? action.metadata : undefined
         if (isPlacePolyp(action) && placement && !placement.attacked && !placement.extraGrowth) {
-            const key = `${placement.color}:${action.boardId}:${action.fromConsumed}`
+            const key = `${action.playerId}:${placement.color}:${action.boardId}:${action.fromConsumed}`
             if (run?.key === key) {
                 run.count += 1
                 continue
@@ -142,6 +156,7 @@ export function describeActions(actions: readonly GameAction[], own: 'your' | 't
             closeRun()
             run = {
                 key,
+                playerId: action.playerId,
                 count: 1,
                 color: placement.color,
                 boardId: action.boardId,
@@ -150,8 +165,8 @@ export function describeActions(actions: readonly GameAction[], own: 'your' | 't
             continue
         }
         closeRun()
-        const phrase = action.playerId ? describeAction(action, own) : describeSystemAction(action)
-        if (phrase) phrases.push(phrase)
+        const text = action.playerId ? describeAction(action, own) : describeSystemAction(action)
+        if (text) phrases.push({ text, playerId: action.playerId })
     }
     closeRun()
     return phrases

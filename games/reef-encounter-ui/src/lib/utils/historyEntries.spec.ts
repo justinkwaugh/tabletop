@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/reef-encounter'
-import { historyEntries, movesPieces } from './historyEntries.js'
+import { historyEntries, historyStep, movesPieces, previousTurn } from './historyEntries.js'
 
 const action = (type: ActionType, playerId?: string): GameAction => ({
     id: `${type}-${playerId ?? 'system'}-${Math.random()}`,
@@ -24,8 +24,6 @@ describe('history entries', () => {
             ['a', 4],
             ['b', 1]
         ])
-        expect(entries[0].lastActionIndex).toBe(3)
-        expect(entries[1].firstActionIndex).toBe(4)
     })
 
     it('gives each setup choice by a different player its own entry', () => {
@@ -53,5 +51,25 @@ describe('history entries', () => {
             action(ActionType.MoveShrimp, 'a')
         ])
         expect([setup, trade, turn].map(movesPieces)).toEqual([false, false, true])
+    })
+
+    it('takes the History Step on screen from its player action through the system actions after it', () => {
+        const take = action(ActionType.TakeOpenSeaSpace, 'a')
+        const refill = action(ActionType.RefillOpenSea)
+        expect(historyStep([action(ActionType.PlacePolyp, 'a'), take, refill])).toEqual([
+            take,
+            refill
+        ])
+        expect(historyStep([refill])).toEqual([refill])
+    })
+
+    it("recounts the latest turn of a player who isn't acting now", () => {
+        const actions = [
+            action(ActionType.TakeOpenSeaSpace, 'a'),
+            action(ActionType.RefillOpenSea),
+            action(ActionType.PlayLarvaCube, 'b')
+        ]
+        expect(previousTurn(actions, ['b'])?.actions).toEqual(actions.slice(0, 2))
+        expect(previousTurn(actions, ['a', 'b'])).toBeUndefined()
     })
 })

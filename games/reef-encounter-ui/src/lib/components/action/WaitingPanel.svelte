@@ -1,25 +1,28 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import ActionDescription from '$lib/components/ActionDescription.svelte'
-    import { describeAction } from '$lib/utils/actionDescription.js'
+    import Phrases from '$lib/components/Phrases.svelte'
+    import { describeActions } from '$lib/utils/actionDescription.js'
+    import { previousTurn } from '$lib/utils/historyEntries.js'
     import { waitingActivity } from '$lib/utils/waitingStatus.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const activity = $derived(waitingActivity(gameSession.gameState.machineState))
-    const lastPlayerAction = $derived(
-        gameSession.actions.findLast(
-            (action) =>
-                action.playerId !== undefined && describeAction(action, 'their') !== undefined
-        )
+    const state = $derived(gameSession.gameState)
+    const activity = $derived(waitingActivity(state.machineState))
+    const lastTurn = $derived(previousTurn(gameSession.actions, state.activePlayerIds))
+    const phrases = $derived(
+        lastTurn
+            ? describeActions(
+                  lastTurn.actions,
+                  lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their'
+              )
+            : []
     )
 </script>
 
 {#if activity}
-    {#each gameSession.gameState.activePlayerIds as playerId (playerId)}
+    {#each state.activePlayerIds as playerId (playerId)}
         <p class="prompt"><PlayerName {playerId} /> {activity}</p>
     {/each}
 {/if}
-{#if lastPlayerAction}
-    <p class="detail"><ActionDescription action={lastPlayerAction} /></p>
-{/if}
+<Phrases {phrases} />

@@ -107,7 +107,7 @@
             {/if}
             <ul>
                 {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their') as phrase, index (index)}
-                    <li>{capitalised(phrase)}</li>
+                    <li>{capitalised(phrase.text)}</li>
                 {/each}
                 {#each setupParrotfish(entry) as [playerId, color] (playerId)}
                     <li>

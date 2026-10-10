@@ -26,6 +26,9 @@ test('a history entry shows the table as its player left it', async ({ page }) =
     await entries.nth(1).click()
     // History View shows the game up to that entry, so the later one leaves the list
     await expect(entries).toHaveCount(4)
+    // The action panel tells the step that led there: that player taking their larva cubes
+    await expect(actions).toContainText(/took (two \w+|an? \w+ and an? \w+) larva cubes?\./)
+    await expect(actions).not.toContainText('Grow your reefs')
 })
 
 test("Replay plays a turn's moves and returns to the live game", async ({ page }) => {

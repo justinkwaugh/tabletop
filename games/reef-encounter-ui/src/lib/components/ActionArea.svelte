@@ -2,6 +2,7 @@
     import FeedParrotfishPanel from './action/FeedParrotfishPanel.svelte'
     import LarvaCubePanel from './action/LarvaCubePanel.svelte'
     import WaitingPanel from './action/WaitingPanel.svelte'
+    import HistoryStepPanel from './action/HistoryStepPanel.svelte'
     import TurnPanel from './action/TurnPanel.svelte'
     import FinalTurnPanel from './action/FinalTurnPanel.svelte'
     import GameEndPanel from './action/GameEndPanel.svelte'
@@ -11,7 +12,9 @@
 </script>
 
 <section class="card" aria-label="Actions">
-    {#if gameSession.gameState.result && !gameSession.isViewingHistory}
+    {#if gameSession.isViewingHistory}
+        <HistoryStepPanel />
+    {:else if gameSession.gameState.result}
         <GameEndPanel />
     {:else if gameSession.canFeedParrotfish}
         <FeedParrotfishPanel />
