@@ -2480,9 +2480,84 @@ for (const viewport of [PICTURE_VIEWPORTS[0], PICTURE_VIEWPORTS[1]]) {
                 expect(rows[0].magnifier).toBeNull()
                 expect(rows[0].spaceLines).toBe(1)
             }
+            if (menu.open === 'Move warbands' && phone) {
+                // A row of number buttons is 44 px square on a phone.
+                for (const row of rows) {
+                    for (const button of row.buttons) {
+                        expect(button.width, `${button.label}: 44 wide`).toBeCloseTo(44, 0)
+                        expect(button.height, `${button.label}: 44 tall`).toBeCloseTo(44, 0)
+                    }
+                }
+            }
             expect(await clippedLabels(page)).toEqual([])
         })
     }
+}
+
+for (const viewport of [PICTURE_VIEWPORTS[0], PICTURE_VIEWPORTS[1], PICTURE_VIEWPORTS[3]]) {
+    const phone = viewport.width < 640
+    const narrow = viewport.width < 360
+    test(`Recover at ${viewport.width} wide: the picked banner’s price beside its tile, ringed${phone ? ', its count buttons and "Recover" 44 px' : ''}`, async ({
+        page
+    }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'recover')
+        await tile(page, 'Recover').click()
+        await page.getByRole('button', { name: /^Recover the People’s Favor: pay/ }).click()
+
+        const magnifier = grid(page).getByRole('button', { name: 'Enlarge the People’s Favor', exact: true })
+        await expect(magnifier).toBeVisible()
+        const tileImage = magnifier.locator('xpath=..').locator('img')
+        await tileImage.evaluate((image: HTMLImageElement) => image.decode().catch(() => undefined))
+        const drawn = await tileImage.evaluate((image: HTMLImageElement) => {
+            const probe = document.createElement('span')
+            probe.style.color = 'var(--oath-accent)'
+            document.body.append(probe)
+            const accent = getComputedStyle(probe).color
+            probe.remove()
+            return {
+                width: image.offsetWidth,
+                height: image.offsetHeight,
+                natural: image.naturalWidth / image.naturalHeight,
+                ringed: getComputedStyle(image).boxShadow.includes(accent),
+                pressable: image.closest('button') !== null
+            }
+        })
+        expect(drawn.width).toBe(narrow ? 88 : 112)
+        expect(drawn.height).toBe(narrow ? 44 : 56)
+        expect(drawn.natural).toBeCloseTo(2, 1)
+        expect(drawn.ringed, 'the tile wears the gold pick ring').toBe(true)
+        expect(drawn.pressable, 'the tile is not a button').toBe(false)
+
+        const tileBox = await boxOf(tileImage)
+        const line = grid(page).getByText(/^People’s Favor: pay how many\s*\?$/)
+        const lineBox = await boxOf(line)
+        expect(lineBox.x, 'the line is right of the tile').toBeGreaterThan(tileBox.x + tileBox.width)
+        expect(lineBox.y, 'the line is beside the tile').toBeLessThan(tileBox.y + tileBox.height)
+        const amounts = grid(page).getByRole('button', { name: /^pay \d+ favor$/ })
+        for (const amount of await amounts.all()) {
+            expect((await boxOf(amount)).x, 'a count button is right of the tile').toBeGreaterThan(tileBox.x + tileBox.width)
+            if (phone) {
+                const size = await amount.evaluate((button) =>
+                    button instanceof HTMLElement ? [button.offsetWidth, button.offsetHeight] : []
+                )
+                expect(size, 'a count button is 44 px square on a phone').toEqual([44, 44])
+            }
+        }
+
+        await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
+        const recover = grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true })
+        await expect(recover).toHaveText('Recover')
+        if (phone) {
+            const height = await recover.evaluate((button) => (button instanceof HTMLElement ? button.offsetHeight : 0))
+            expect(height, '"Recover" is 44 px tall on a phone').toBeGreaterThanOrEqual(44)
+        }
+        // Every label inside its button (a bank's count sits on its corner by design).
+        for (const button of [...(await amounts.all()), recover]) {
+            const fits = await button.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)
+            expect(fits, `${await button.getAttribute('aria-label')}: the label is inside its button`).toBe(true)
+        }
+    })
 }
 
 test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {

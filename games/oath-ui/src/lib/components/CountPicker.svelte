@@ -1,5 +1,6 @@
 <script lang="ts">
     // `gives`: the count is one the player gives, so the picked number is gold, as a cost is.
+    // On a phone each number is a 44 px square, the standard tap size.
     let {
         values,
         picked,
@@ -21,7 +22,7 @@
     {#each values as value (value)}
         <button
             type="button"
-            class="inline-flex h-8 w-9 items-center justify-center rounded-md border text-sm font-bold
+            class="inline-flex h-8 w-9 items-center justify-center rounded-md border text-sm font-bold max-sm:h-11 max-sm:w-11
                    disabled:opacity-40 {value === picked
                 ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
                 : 'border-oath-frame bg-oath-surface hover:border-oath-accent'}"
