@@ -25,3 +25,24 @@ export async function createGame(page: Page, playerCount = 3) {
 export function actionPanel(page: Page): Locator {
     return page.getByRole('region', { name: 'Actions' })
 }
+
+// Plays setup, each player taking two larva cubes of a colour they hold behind their screen,
+// so their first turn has polyps to place.
+export async function playSetup(page: Page, playerCount: number) {
+    const actions = actionPanel(page)
+    const held: string[] = []
+    for (let seat = 0; seat < playerCount; seat++) {
+        await expect(actions).toContainText('Feed one of your polyps')
+        const feeds = actions.getByRole('button', { name: /^Feed a / })
+        const label = await feeds.first().getAttribute('aria-label')
+        held.push(label?.split(' ')[2] ?? '')
+        await feeds.last().click()
+    }
+    for (let seat = 0; seat < playerCount; seat++) {
+        await expect(actions).toContainText('Take two larva cubes')
+        const cube = actions.getByRole('button', { name: `Take a ${held[seat]} larva cube` })
+        await cube.click()
+        await cube.click()
+    }
+    await expect(actions).toContainText('Grow your reefs')
+}

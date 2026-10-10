@@ -722,7 +722,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             .map((player) => player.playerId)
     }
 
-    private hasPolypToPlace(playerId: string, fromConsumed: boolean): boolean {
+    hasPolypToPlace(playerId: string, fromConsumed: boolean): boolean {
         const placing = this.turn.placing
         if (!placing) {
             return false

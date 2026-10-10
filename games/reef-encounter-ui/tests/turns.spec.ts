@@ -1,0 +1,36 @@
+import { expect, test } from '@playwright/test'
+import { actionPanel, createGame, playSetup } from './helpers'
+
+test('a turn plays a larva cube, places its polyps and ends by taking an open-sea space', async ({
+    page
+}) => {
+    await createGame(page, 2)
+    await playSetup(page, 2)
+    const actions = actionPanel(page)
+
+    await actions
+        .getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        .first()
+        .click()
+    await expect(actions).toContainText(/Place \w+ polyps on the reefs/)
+    const targets = page.getByRole('button', { name: /^(Place|Attack with) a / })
+    await expect(targets.first()).toBeVisible()
+
+    const remaining = async () =>
+        Number((await actions.innerText()).match(/(\d+) more from behind your screen/)?.[1])
+    const before = await remaining()
+    await targets.first().click()
+    await expect.poll(remaining).toBe(before - 1)
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect.poll(remaining).toBe(before)
+
+    // The harness banner names whose turn it is in hotseat play
+    const banner = page.getByText(/It.s your turn/)
+    const turnBanner = await banner.innerText()
+    await page
+        .getByRole('button', { name: /^Take the \w+ larva cube/ })
+        .first()
+        .click()
+    await expect(banner).not.toHaveText(turnBanner)
+    await expect(actions).toContainText('Grow your reefs')
+})

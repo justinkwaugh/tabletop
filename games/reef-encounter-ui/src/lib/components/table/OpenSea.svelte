@@ -2,12 +2,14 @@
     import ShrimpPiece from './Shrimp.svelte'
     import LarvaCube from './LarvaCube.svelte'
     import AlgaCylinder from './AlgaCylinder.svelte'
+    import Target from './Target.svelte'
     import { CoralTileFaceUrls, OpenSeaImageUrl } from '$lib/images/art.generated.js'
     import {
         AlgaSpace,
         coralTileSlot,
         eatenShrimpSlot,
         ImageToTable,
+        larvaSpace,
         larvaSpaceCube,
         larvaSpacePolyp,
         OpenSeaImage,
@@ -99,6 +101,14 @@
                     stroke-width="2"
                 ></rect>
             {/each}
+        {/each}
+
+        {#each gameSession.takeableSpaces as larvaColor (larvaColor)}
+            <Target
+                box={larvaSpace(larvaColor)}
+                label="Take the {larvaColor} larva cube and its polyps, ending your turn"
+                onselect={() => gameSession.takeOpenSeaSpace(larvaColor)}
+            />
         {/each}
 
         {#each shrimpsOnOpenSea as { playerId, seat } (playerId)}

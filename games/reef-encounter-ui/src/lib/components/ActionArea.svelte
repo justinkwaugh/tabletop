@@ -2,6 +2,7 @@
     import FeedParrotfishPanel from './action/FeedParrotfishPanel.svelte'
     import LarvaCubePanel from './action/LarvaCubePanel.svelte'
     import WaitingPanel from './action/WaitingPanel.svelte'
+    import TurnPanel from './action/TurnPanel.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -12,6 +13,8 @@
         <FeedParrotfishPanel />
     {:else if gameSession.canChooseLarvaCubes}
         <LarvaCubePanel />
+    {:else if gameSession.isTakingTurn}
+        <TurnPanel />
     {:else}
         <WaitingPanel />
     {/if}

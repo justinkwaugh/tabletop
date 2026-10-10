@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Reef, Shrimp as ShrimpState } from '@tabletop/reef-encounter'
     import ShrimpPiece from './Shrimp.svelte'
+    import Target from './Target.svelte'
     import { BoardImageUrls } from '$lib/images/art.generated.js'
     import {
         BoardImage,
@@ -22,6 +23,10 @@
     const drawing = $derived(rotatedView(BoardView, rotation))
 
     const gameSession = getGameSession()
+    const targets = $derived(
+        gameSession.placementTargets.filter((target) => target.boardId === reef.boardId)
+    )
+    const placing = $derived(gameSession.placing)
     const place = (row: number, col: number) =>
         `${gameSession.game.id}:${reef.boardId}:${row}:${col}`
 </script>
@@ -55,6 +60,17 @@
                 center={{ x: square.x + square.width / 2, y: square.y + square.height / 2 }}
                 size={square.width * 0.8}
                 color={gameSession.colors.getPlayerBgColorValue(shrimp.playerId)}
+            />
+        {/each}
+        {#each targets as target (`${target.coords.row},${target.coords.col}`)}
+            <Target
+                box={boardSquare(target.coords)}
+                tone={target.attack ? 'attack' : 'plain'}
+                label="{target.attack
+                    ? 'Attack with'
+                    : 'Place'} a {placing?.color} polyp on board {reef.boardId}, row {target.coords
+                    .row + 1}, column {target.coords.col + 1}"
+                onselect={() => gameSession.placePolyp(reef.boardId, target.coords)}
             />
         {/each}
     </g>
