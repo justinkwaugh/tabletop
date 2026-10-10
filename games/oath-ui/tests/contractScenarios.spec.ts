@@ -377,6 +377,141 @@ test('the grid lists the six majors and only the minors that can be taken, under
     for (const minor of await minors.all()) await expect(minor).not.toHaveAttribute('aria-disabled', 'true')
 })
 
+/** Each minor chip as drawn: its layout box, its label's lines and whether they stay inside its content box. */
+async function minorChips(page: Page) {
+    await expect(grid(page).locator('.minors button').first()).toBeVisible()
+    return grid(page)
+        .locator('.minors button')
+        .evaluateAll((chips: HTMLElement[]) =>
+            chips.map((chip) => {
+                const box = chip.getBoundingClientRect()
+                const style = getComputedStyle(chip)
+                const scale = box.width / chip.offsetWidth
+                const inset = (side: 'Left' | 'Right' | 'Top' | 'Bottom') =>
+                    (parseFloat(style.getPropertyValue(`padding-${side.toLowerCase()}`)) +
+                        parseFloat(style.getPropertyValue(`border-${side.toLowerCase()}-width`))) *
+                    scale
+                const text = document.createRange()
+                text.selectNodeContents(chip)
+                const lines = [...text.getClientRects()].filter((line) => line.width > 0)
+                const slack = 0.5
+                return {
+                    label: chip.textContent?.trim() ?? '',
+                    width: chip.offsetWidth,
+                    height: chip.offsetHeight,
+                    fontSize: style.fontSize,
+                    lines: new Set(lines.map((line) => Math.round(line.top))).size,
+                    inside: lines.every(
+                        (line) =>
+                            line.left >= box.left + inset('Left') - slack &&
+                            line.right <= box.right - inset('Right') + slack &&
+                            line.top >= box.top + inset('Top') - slack &&
+                            line.bottom <= box.bottom - inset('Bottom') + slack
+                    ),
+                    left: box.left,
+                    top: box.top,
+                    bottom: box.bottom
+                }
+            })
+        )
+}
+
+async function majorsBox(page: Page) {
+    const box = await grid(page).locator('.majors').boundingBox()
+    if (!box) throw Error('The majors are not drawn')
+    return box
+}
+
+const SEVEN_MINORS = [
+    'Adviser',
+    'Use a power',
+    'Peek',
+    'Show',
+    'Move warbands',
+    'Offer Citizenship',
+    'Exile Citizen'
+]
+
+function expectChipsFit(chips: Awaited<ReturnType<typeof minorChips>>, phone: boolean) {
+    for (const chip of chips) {
+        expect(chip.inside, `“${chip.label}” stays inside its button`).toBe(true)
+        expect(chip.width, `“${chip.label}” is the group’s one width`).toBe(chips[0].width)
+        if (phone) {
+            expect(chip.height, `“${chip.label}” is 44 px tall`).toBeGreaterThanOrEqual(44)
+            expect(chip.lines, `“${chip.label}” takes at most two lines`).toBeLessThanOrEqual(2)
+            expect(chip.fontSize).toBe('12px')
+        }
+    }
+}
+
+/** Rows of chips, by the top of each. */
+function rowsOf(chips: Awaited<ReturnType<typeof minorChips>>): number[] {
+    const rows = new Map<number, number>()
+    for (const chip of chips) rows.set(Math.round(chip.top), (rows.get(Math.round(chip.top)) ?? 0) + 1)
+    return [...rows.values()]
+}
+
+for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+    test(`on a phone ${viewport.width} wide the minors stand beside the majors, one per line, one width, each label inside its button`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'everyMinor')
+        await expect(grid(page).locator('.minors button')).toHaveText(SEVEN_MINORS)
+        const chips = await minorChips(page)
+        expectChipsFit(chips, true)
+        const majors = await majorsBox(page)
+        for (const [index, chip] of chips.entries()) {
+            expect(chip.left).toBeGreaterThan(majors.x + majors.width)
+            expect(chip.left).toBeCloseTo(chips[0].left, 0)
+            if (index > 0) expect(chip.top).toBeGreaterThan(chips[index - 1].bottom)
+        }
+    })
+}
+
+test('on a narrow phone the minors drop under the majors, two to a row at the widest label’s width, one line each', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    await openTable(page, 'everyMinor')
+    const chips = await minorChips(page)
+    expectChipsFit(chips, true)
+    const majors = await majorsBox(page)
+    for (const chip of chips) {
+        expect(chip.top).toBeGreaterThan(majors.y + majors.height)
+        expect(chip.lines).toBe(1)
+    }
+    expect(rowsOf(chips)).toEqual([2, 2, 2, 1])
+})
+
+for (const { viewport, perRow } of [
+    { viewport: { width: 812, height: 375 }, perRow: [4, 3] },
+    { viewport: { width: 667, height: 375 }, perRow: [3, 3, 1] }
+]) {
+    test(`held sideways at ${viewport.width} the minors stand under the majors, as many to a row as keep each word whole`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'everyMinor')
+        const chips = await minorChips(page)
+        expectChipsFit(chips, true)
+        const majors = await majorsBox(page)
+        for (const chip of chips) expect(chip.top).toBeGreaterThan(majors.y + majors.height)
+        expect(rowsOf(chips)).toEqual(perRow)
+    })
+}
+
+for (const viewport of [{ width: 402, height: 874 }, { width: 320, height: 568 }, { width: 667, height: 375 }]) {
+    test(`a Citizen’s “Exile yourself” stays inside its button at ${viewport.width} wide`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'selfExile')
+        await expect(grid(page).locator('.minors button').filter({ hasText: 'Exile yourself' })).toBeVisible()
+        expectChipsFit(await minorChips(page), true)
+    })
+}
+
+test('on a desktop the minors share the widest one’s width, each label on one line', async ({ page }) => {
+    await openTable(page, 'everyMinor')
+    const chips = await minorChips(page)
+    expectChipsFit(chips, false)
+    for (const chip of chips) expect(chip.lines).toBe(1)
+    expect(rowsOf(chips)).toEqual([7])
+})
+
 test('a free Travel due: one line beside Skip, Travel lit at no Supply, every other tile dimmed and saying the free Travel comes first', async ({ page }) => {
     await openTable(page, 'freeTravel')
     await expect(grid(page).locator('.due')).toHaveText(/^\s*Free Travel next\.\s*Skip\s*$/)

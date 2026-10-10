@@ -133,6 +133,7 @@ export type TableName =
     | 'warbandGiveAsked'
     | 'offerCitizenship'
     | 'offerCitizenshipToOne'
+    | 'everyMinor'
     | 'exileCitizens'
     | 'selfExile'
     | 'oathkeeperTie'
@@ -2113,6 +2114,64 @@ function offerCitizenshipTable(oneExile: boolean): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-6 — the Grand Scepter's holder offered every minor the rules allow together: a facedown
+ * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site he
+ * rules, Cole an Exile and Ann a Citizen.
+ */
+function everyMinorTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const relic = `${home}.relic.0`
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                supply: 7,
+                favor: 12,
+                secrets: 3,
+                relicIds: ['relic.grand-scepter'],
+                advisers: [
+                    { cardId: 'denizen.order.curfew', faceUp: false },
+                    { cardId: 'denizen.nomad.tents', faceUp: true }
+                ],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 }
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                warbandsInPersonalBank: { cole: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            warbandsBySite: { [home]: { [IMPERIAL_WARBANDS]: 2 } },
+            relicsBySite: { [home]: [{ slotId: relic }] },
+            vault: testVaultWithRelics({ ...RELIQUARY, [relic]: 'relic.cup-of-plenty' })
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
 /** R-6.7 — the Grand Scepter's holder may exile Cole (5 favor) or Ann, who holds the People's Favor (6). */
 function exileCitizensTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -2212,6 +2271,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     warbandGiveAsked: warbandGiveAskedTable,
     offerCitizenship: () => offerCitizenshipTable(false),
     offerCitizenshipToOne: () => offerCitizenshipTable(true),
+    everyMinor: everyMinorTable,
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,

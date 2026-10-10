@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import TokenText from '$lib/components/TokenText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
@@ -21,6 +22,9 @@
     } from '$lib/model/actionAvailability.js'
     import { actionImage } from '$lib/images/actionImages.js'
     import { unseenPeekSlots } from '$lib/model/relicKnowledge.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { BESIDE_GAP, CHIP_GAP, sidewaysChips, uprightChips } from '$lib/model/minorChips.js'
 
     // R-4.2 — the six majors are always listed, an unavailable one dimmed with why on a tap; a minor
     // is listed only when it can be taken.
@@ -49,6 +53,48 @@
     }
 
     let minors = $derived(MINOR_ACTIONS.filter(available))
+
+    // The minors share one width: on a desktop the widest label's; on a phone as `minorChips`
+    // sets them from the labels shown and the panel's width.
+    const CHIP = 'rounded border bg-oath-surface-raised px-2 py-1 text-[11px] font-medium'
+    const labelWidth = new ChoiceWidth()
+    const wordWidth = new ChoiceWidth()
+    const layout = new PhoneLayout()
+    let row = $state(0)
+    let majorsWidth = $state(0)
+
+    // A transform leaves layout alone, so the widths are read unscaled.
+    const measureRow: Attachment<HTMLElement> = (node) => {
+        const read = () => {
+            row = node.clientWidth
+        }
+        const observer = new ResizeObserver(read)
+        observer.observe(node)
+        read()
+        return () => observer.disconnect()
+    }
+    const measureMajors: Attachment<HTMLElement> = (node) => {
+        const read = () => {
+            majorsWidth = node.offsetWidth
+        }
+        const observer = new ResizeObserver(read)
+        observer.observe(node)
+        read()
+        return () => observer.disconnect()
+    }
+
+    let chips = $derived.by(() => {
+        const sizes = {
+            row,
+            majors: majorsWidth,
+            label: labelWidth.widest,
+            word: wordWidth.widest
+        }
+        if (layout.upright) return uprightChips(sizes, minors.length)
+        if (layout.sideways) return sidewaysChips(sizes, minors.length)
+        return undefined
+    })
+    let chipWidth = $derived(chips?.width ?? labelWidth.widest)
 
     // R-7.4 — where a card would make the action possible, Use a power is ringed while the reason
     // shows; the card is named only behind it.
@@ -159,8 +205,11 @@
     </div>
 {/if}
 
-<div class="actions">
-    <div class="majors flex flex-wrap gap-1.5">
+<!-- The panel's inner width, unscaled, so fitting the panel never changes the minors' layout. -->
+<div class="row" aria-hidden="true" {@attach measureRow}></div>
+
+<div class="actions" class:actions--beside={chips?.beside} style:--beside-gap="{BESIDE_GAP}px">
+    <div class="majors flex flex-wrap gap-1.5" {@attach measureMajors}>
         {#each MAJOR_ACTIONS as entry (entry.type)}
             {@const ok = available(entry)}
             {@const cost = tileCost(gameState, seat.playerId, entry)}
@@ -184,23 +233,40 @@
     </div>
 
     {#if minors.length > 0}
-        <div class="minors mt-1.5 flex flex-wrap gap-1.5">
+        <div
+            class="minors flex flex-wrap"
+            style:--chip-gap="{CHIP_GAP}px"
+            style:--columns={chips?.columns}
+        >
             {#each minors as entry (entry.type)}
                 {@const ring = ringed(entry)}
                 <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
                 <button
-                    class="rounded border bg-oath-surface-raised px-2 py-1 text-[11px] font-medium
-                           transition-colors hover:border-oath-accent cursor-pointer
+                    class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
                            {ring
                         ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
                         : 'border-oath-frame'}"
                     {...pointing(entry)}
                     aria-describedby={ring ? reasonId : undefined}
+                    style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
                     title={`${entry.label}. ${entry.summary}`}
                     onclick={() => take(entry)}
                 >
                     {entry.label}
                 </button>
+            {/each}
+        </div>
+        <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
+        <div class="ruler" aria-hidden="true">
+            {#each minors as entry (entry.type)}
+                <span class="chip {CHIP}"
+                    ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
+                    ></span
+                >
+                <span class="chip {CHIP}"
+                    ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
+                    ></span
+                >
             {/each}
         </div>
     {/if}
@@ -223,44 +289,69 @@
 </div>
 
 <style>
+    /* 100cqw is the width of FitBox's unscaled box; 26px is the action panel's padding and border. */
+    .row {
+        width: calc(100cqw - 26px);
+        height: 0;
+    }
+    .minors {
+        margin-top: var(--chip-gap);
+        gap: var(--chip-gap);
+    }
+    .ruler {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+    }
+    .ruler .chip {
+        display: block;
+    }
+
+    @media (max-width: 640px) and (orientation: portrait),
+        (max-height: 520px) and (orientation: landscape) {
+        .minors {
+            display: grid;
+            grid-template-columns: repeat(var(--columns, 1), max-content);
+            justify-content: start;
+        }
+        .chip {
+            min-height: 44px;
+            padding: 0 10px;
+            font-size: 12px;
+            line-height: 1.15;
+            white-space: normal;
+            overflow-wrap: normal;
+            hyphens: manual;
+            text-align: center;
+        }
+    }
+
     @media (max-width: 640px) and (orientation: portrait) {
-        .actions {
+        .actions--beside {
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
-            column-gap: 8px;
+            column-gap: var(--beside-gap);
             align-items: start;
-            overflow: hidden;
+        }
+        .actions--beside .minors {
+            margin-top: 0;
         }
         .majors {
             display: grid;
             grid-template-columns: repeat(3, 64px);
             gap: 5px;
+            width: max-content;
         }
         .majors :global(button) {
             width: 64px;
             padding-left: 2px;
             padding-right: 2px;
         }
-        /* `min-width: 0`: a flex container in a grid track otherwise sizes to
-           its longest chip and runs past the panel's edge. */
-        .minors {
-            margin-top: 0;
-            min-width: 0;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 5px;
-        }
-        .minors :global(button) {
-            min-height: 36px;
-            padding: 4px 6px;
-            font-size: 11px;
-            line-height: 1.15;
-            white-space: normal;
-            text-align: center;
-        }
     }
 
-    /* A phone held sideways: one row each for tiles and chips, and the strip in the header. */
+    /* A phone held sideways: one row of tiles, and the strip in the header. */
     @media (max-height: 520px) and (orientation: landscape) {
         .head {
             margin-bottom: 4px;
@@ -277,9 +368,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .actions {
-            display: block;
         }
         .majors {
             display: grid;
@@ -300,20 +388,6 @@
         }
         .majors :global(button span:last-of-type) {
             font-size: 9px;
-        }
-        .minors {
-            margin-top: 4px;
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 4px;
-        }
-        .minors :global(button) {
-            min-height: 34px;
-            padding: 2px 3px;
-            font-size: 9.5px;
-            line-height: 1.1;
-            white-space: normal;
-            text-align: center;
         }
     }
 </style>
