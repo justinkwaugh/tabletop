@@ -33,6 +33,7 @@ import { flipSiteFromVault } from '../util/hiddenInputs.js'
 import {
     isFreeTravelNow,
     payableWoodPicks,
+    shroudedWoodDestinations,
     woodPick,
     woodTravelPaysAtPick
 } from '../util/shroudedWood.js'
@@ -269,10 +270,9 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         if (payableWoodPicks(state, playerId, free).length > 0) return undefined
         const here = pawnSiteId(state, playerId)
         const cheapest = Math.min(
-            ...state
-                .allSiteIds()
-                .filter((siteId) => siteId !== here)
-                .map((siteId) => woodPick(state, playerId, siteId, free).cost)
+            ...shroudedWoodDestinations(state, playerId, here).map(
+                (siteId) => woodPick(state, playerId, siteId, free).cost
+            )
         )
         return `${chooser} would pick where you go, and you can pay for no site: the cheapest is ${cheapest} Supply, you have ${supply}`
     }

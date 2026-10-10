@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { ActionType, MachineState, PowerQuestionKind } from '@tabletop/oath'
+import { ActionType, HydratedTravel, MachineState, PowerQuestionKind, Region } from '@tabletop/oath'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { shroudedWoodState } from '$lib/testing/shroudedWoodTable.js'
 import { describeAction, rowActorOf, rowWarbandOwner } from './actionDescription.js'
-import { reasonActionUnavailable } from './actionAvailability.js'
+import { gridRefusal, reasonActionUnavailable } from './actionAvailability.js'
 import { actionName } from './actionCatalogue.js'
 
 afterEach(() => {
@@ -20,6 +20,17 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules, as the traveller re
         const session = openSessionOn(tableOf(shroudedWoodState(1, { inCradle: true })))
         expect(session.validActionTypes).not.toContain(ActionType.Travel)
         expect(session.humanizeReason(reasonActionUnavailable(session.gameState, 'Jacob', ActionType.Travel))).toBe('Cole would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
+    })
+
+    it('the Narrow Pass and The Hidden Place are picks like any other: with 1 Supply the tile is lit, as the engine allows', () => {
+        const state = shroudedWoodState(1)
+        state.siteCards = { ...state.siteCards, c1: 'site.narrow-pass', c2: 'site.the-hidden-place' }
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Jacob', {})).toBeUndefined()
+        const session = openSessionOn(tableOf(state))
+        expect(session.validActionTypes).toContain(ActionType.Travel)
+        expect(gridRefusal(session.gameState, 'Jacob', ActionType.Travel)).toBeUndefined()
+        session.chooseAction(ActionType.Travel)
+        expect(session.woodRegions?.map((r) => [r.region, r.cost, r.siteIds])).toEqual([[Region.Cradle, 0, ['c1', 'c2']]])
     })
 })
 
