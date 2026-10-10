@@ -14,6 +14,7 @@ import {
     isCampaignDefend,
     isCampaignResolveVictory,
     isCampaignSacrifice,
+    isCampaignSkullLosses,
     isCompleteRest,
     isEndActPhase,
     isForgoFreeAction,
@@ -46,6 +47,7 @@ import {
     type CampaignBattleMetadata,
     type CampaignPlacement,
     type CampaignTarget,
+    type WarbandGroup,
     Suit,
     type LetPeek,
     type PaidToll,
@@ -450,6 +452,9 @@ function describeActionCited(
             (chooser ? ` — ${nameOf(chooser)} chooses the defending side's losses` : '')
         )
     }
+    if (isCampaignSkullLosses(action)) {
+        return describeSkullLosses(action.metadata?.killed ?? action.kills, names.site)
+    }
     if (isCampaignDefeatKills(action)) {
         return `chose the defending side's losses, ${plural(action.metadata?.defeatKilled ?? 0, 'warband')} killed`
     }
@@ -749,6 +754,21 @@ function describePlay(play: SearchPlay): string {
 
 function describeTarget(target: CampaignTarget, site: HistoryNames['site']): string {
     return campaignTargetText(target, { site, relicSlot: () => 'a site' })
+}
+
+/** R-5.5.5 — where the skulls killed, as the attacker picked: the board is always their own. */
+function describeSkullLosses(killed: readonly WarbandGroup[], site: HistoryNames['site']): string {
+    const places = killed
+        .filter((group) => group.count > 0)
+        .map((group) => ({
+            count: group.count,
+            where: group.at.kind === 'board' ? 'on their board' : `at ${site(group.at.siteId)}`
+        }))
+    const total = places.reduce((sum, place) => sum + place.count, 0)
+    const [only, ...more] = places
+    if (!only) return `lost ${total} to skulls`
+    if (more.length === 0) return `lost ${total} to skulls, ${only.where}`
+    return `lost ${total} to skulls: ${places.map(({ count, where }) => `${count} ${where}`).join(', ')}`
 }
 
 function describeBattle(battle: CampaignBattleMetadata | undefined): string {

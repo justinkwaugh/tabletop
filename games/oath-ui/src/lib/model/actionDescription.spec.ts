@@ -67,6 +67,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.UseRestPower]: { cardId: CARD, powerIndex: 0 },
     [ActionType.CampaignSacrifice]: { sacrifice: 0 },
     [ActionType.CampaignDefeatKills]: { kills: [] },
+    [ActionType.CampaignSkullLosses]: { kills: [] },
     [ActionType.CampaignResolveVictory]: { placements: [], burnFavor: false },
     [ActionType.PlayFacedownAdviser]: { cardId: CARD, play: 'adviser' },
     [ActionType.UseActionPower]: { cardId: CARD },
@@ -127,10 +128,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 32 action types, and reaches no fallback', () => {
+    it('has a sentence for all 33 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(32)
+        expect(types).toHaveLength(33)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -139,6 +140,16 @@ describe('the history tab describes every action', () => {
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
         }
+    })
+
+    it('R-5.5.5 — the skulls’ losses name where they fell, one place or each place', () => {
+        const names = { ...nameOf, site: (slotId: string) => ({ 'slot.cradle.0': 'Plains', 'slot.cradle.1': 'River' })[slotId] ?? slotId }
+        const board = { at: { kind: 'board', playerId: 'p1' }, owner: 'p1' }
+        const at = (siteId: string) => ({ at: { kind: 'site', siteId }, owner: 'p1' })
+        const losses = (killed: Array<Record<string, unknown>>) =>
+            describeAction(action({ type: ActionType.CampaignSkullLosses, playerId: 'p1', kills: killed, metadata: { killed } }), names)
+        expect(losses([{ ...board, count: 2 }])).toBe('lost 2 to skulls, on their board')
+        expect(losses([{ ...board, count: 1 }, { ...at('slot.cradle.0'), count: 1 }, { ...at('slot.cradle.1'), count: 1 }])).toBe('lost 3 to skulls: 1 on their board, 1 at Plains, 1 at River')
     })
 
     it('R-10.2 — names the free action given up', () => {
