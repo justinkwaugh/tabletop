@@ -46,6 +46,28 @@ export function larvaSpace(color: CoralColor): BoundingBox {
     return { ...LarvaSpaceOrigins[color], ...LarvaSpaceSize }
 }
 
+// Polyps in a larva space are as large as on the reef boards, so more than two overlap, fanned
+// out to the space's right edge clear of its colour square and larva cube.
+const LarvaPolypSpan = { left: 54, right: 338 }
+
+export function larvaSpacePolyp(color: CoralColor, index: number, count: number): BoundingBox {
+    const area = larvaSpace(color)
+    const size = BoardSquare.width
+    const room = LarvaPolypSpan.right - LarvaPolypSpan.left - size
+    const step = count > 1 ? Math.min(size + 6, room / (count - 1)) : 0
+    return {
+        x: area.x + LarvaPolypSpan.left + index * step,
+        y: area.y + (area.height - size) / 2,
+        width: size,
+        height: size
+    }
+}
+
+export function larvaSpaceCube(color: CoralColor): Point {
+    const area = larvaSpace(color)
+    return { x: area.x + 30, y: area.y + area.height - 44 }
+}
+
 export const AlgaSpace: Point = { x: 1377, y: 682 }
 
 const EatenShrimpSlotColumns = [1137, 1213, 1288, 1358, 1425]

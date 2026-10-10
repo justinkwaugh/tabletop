@@ -8,7 +8,8 @@
         coralTileSlot,
         eatenShrimpSlot,
         ImageToTable,
-        larvaSpace,
+        larvaSpaceCube,
+        larvaSpacePolyp,
         OpenSeaImage,
         OpenSeaView
     } from '$lib/utils/artGeometry.js'
@@ -17,10 +18,6 @@
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
-
-    const LarvaPolypSize = 90
-    const LarvaPolypGap = 6
-    const LarvaPolypLeft = 60
 
     const shrimpsOnOpenSea = $derived(
         state.turnManager.turnOrder
@@ -62,25 +59,34 @@
     {/if}
 
     {#each state.openSea as space (space.larvaColor)}
-        {@const area = larvaSpace(space.larvaColor)}
         {#if space.hasLarvaCube}
             <LarvaCube
-                center={{ x: area.x + 32, y: area.y + 150 }}
+                center={larvaSpaceCube(space.larvaColor)}
                 size={44}
                 color={space.larvaColor}
             />
         {/if}
         {#each space.polyps as polyp, index (index)}
+            {@const tile = larvaSpacePolyp(space.larvaColor, index, space.polyps.length)}
             <image
                 href={polypFaceUrl(
                     polyp,
                     `${gameSession.game.id}:sea:${space.larvaColor}:${index}`
                 )}
-                x={area.x + LarvaPolypLeft + index * (LarvaPolypSize + LarvaPolypGap)}
-                y={area.y + (area.height - LarvaPolypSize) / 2 + 10}
-                width={LarvaPolypSize}
-                height={LarvaPolypSize}
+                x={tile.x}
+                y={tile.y}
+                width={tile.width}
+                height={tile.height}
             ></image>
+            <rect
+                x={tile.x}
+                y={tile.y}
+                width={tile.width}
+                height={tile.height}
+                fill="none"
+                stroke="rgb(0 0 0 / 0.45)"
+                stroke-width="2"
+            ></rect>
         {/each}
     {/each}
 
