@@ -96,11 +96,42 @@
         }
     }
 
-    async function postToDevServer(endpoint: string, body: unknown) {
+    // A saved recording or a pending request, picked for deletion from the menu.
+    let scenarioToDelete: { endpoint: string; id: string; noun: string } | undefined =
+        $state(undefined)
+    let deleteScenarioOpen = $derived(scenarioToDelete !== undefined)
+
+    function selectScenarioToDelete(event: Event, endpoint: string, id: string, noun: string) {
+        event.stopPropagation()
+        scenariosOpen = false
+        scenarioToDelete = { endpoint, id, noun }
+    }
+
+    async function deleteScenario() {
+        const doomed = scenarioToDelete
+        scenarioToDelete = undefined
+        if (!doomed) return
+        try {
+            await sendToDevServer(
+                `${doomed.endpoint}?id=${encodeURIComponent(doomed.id)}`,
+                'DELETE'
+            )
+        } catch (error) {
+            scenarioError = error instanceof Error ? error.message : String(error)
+        }
+        await refreshRecordings()
+    }
+
+    function postToDevServer(endpoint: string, body: unknown) {
+        return sendToDevServer(endpoint, 'POST', body)
+    }
+
+    async function sendToDevServer(endpoint: string, method: 'POST' | 'DELETE', body?: unknown) {
         const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            method,
+            ...(body === undefined
+                ? {}
+                : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         })
         if (response.status === 404) {
             throw new Error("Add harnessScenarioFiles() to this title's vite.config.ts")
@@ -424,7 +455,10 @@
                                     Saved
                                 </div>
                                 {#each savedScenarios as scenario (scenario.id)}
-                                    {@render scenarioItem(scenario)}
+                                    {@render scenarioItem(scenario, {
+                                        endpoint: HARNESS_SCENARIO_ENDPOINT,
+                                        noun: 'saved scenario'
+                                    })}
                                 {/each}
                             {/if}
                             {#if requestedScenarios.length > 0}
@@ -434,10 +468,22 @@
                                     Requested
                                 </div>
                                 {#each requestedScenarios as request (request.id)}
-                                    <div class="px-3 py-2 opacity-60">
-                                        <div class="font-semibold">{request.label}</div>
-                                        <div class="text-xs">Waiting to be recorded</div>
-                                    </div>
+                                    <li class="flex items-stretch">
+                                        <div class="flex-1 px-3 py-2 opacity-60">
+                                            <div class="font-semibold">{request.label}</div>
+                                            <div class="text-xs">Waiting to be recorded</div>
+                                        </div>
+                                        {@render deleteButton(
+                                            `Withdraw ${request.label}`,
+                                            (event) =>
+                                                selectScenarioToDelete(
+                                                    event,
+                                                    HARNESS_SCENARIO_REQUEST_ENDPOINT,
+                                                    request.id,
+                                                    'scenario request'
+                                                )
+                                        )}
+                                    </li>
                                 {/each}
                             {/if}
                             {#if recordingsAvailable}
@@ -582,11 +628,37 @@
     </Modal>
 {/if}
 
-{#snippet scenarioItem(scenario: HarnessScenario)}
-    <DropdownItem class="w-full px-3 py-2 text-left" onclick={() => runScenario(scenario)}>
-        <div class="font-semibold">{scenario.label}</div>
-        <div class="text-xs opacity-75">{scenario.description}</div>
-    </DropdownItem>
+{#snippet scenarioItem(scenario: HarnessScenario, deletable?: { endpoint: string; noun: string })}
+    {#if deletable}
+        <li class="flex items-stretch">
+            <button
+                type="button"
+                class="flex-1 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600"
+                onclick={() => runScenario(scenario)}
+            >
+                <div class="font-semibold">{scenario.label}</div>
+                <div class="text-xs opacity-75">{scenario.description}</div>
+            </button>
+            {@render deleteButton(`Delete ${scenario.label}`, (event) =>
+                selectScenarioToDelete(event, deletable.endpoint, scenario.id, deletable.noun)
+            )}
+        </li>
+    {:else}
+        <DropdownItem class="w-full px-3 py-2 text-left" onclick={() => runScenario(scenario)}>
+            <div class="font-semibold">{scenario.label}</div>
+            <div class="text-xs opacity-75">{scenario.description}</div>
+        </DropdownItem>
+    {/if}
+{/snippet}
+
+{#snippet deleteButton(label: string, onclick: (event: Event) => void)}
+    <button
+        type="button"
+        aria-label={label}
+        title={label}
+        class="px-3 hover:bg-gray-100 dark:hover:bg-gray-600"
+        {onclick}><TrashBinSolid class="h-4" /></button
+    >
 {/snippet}
 
 {#if scenarioForm}
@@ -642,6 +714,15 @@
             </div>
         </form>
     </Modal>
+{/if}
+
+{#if scenarioToDelete}
+    <DeleteModal
+        bind:open={deleteScenarioOpen}
+        noun={scenarioToDelete.noun}
+        oncancel={() => (scenarioToDelete = undefined)}
+        onconfirm={deleteScenario}
+    />
 {/if}
 
 {#if gameToDelete}

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import {
+    deleteJsonFile,
     listJsonFiles,
     saveScenarioRecording,
     saveScenarioRequest,
@@ -71,5 +72,24 @@ describe('scenario recording files', () => {
         expect(await listJsonFiles(scenarioRequestFolder(dir))).toEqual({
             'four-way-tie.json': { id: 'four-way-tie' }
         })
+    })
+
+    test('deletes a file by id, and an id with no file is already deleted', async () => {
+        await saveScenarioRecording(dir, JSON.stringify({ id: 'old-duel' }))
+
+        await deleteJsonFile(dir, 'old-duel', 'A scenario recording')
+        await deleteJsonFile(dir, 'never-saved', 'A scenario recording')
+
+        expect(await listJsonFiles(dir)).toEqual({})
+    })
+
+    test.each(['../.gitignore', '', null])('refuses to delete the id %j', async (id) => {
+        await saveScenarioRecording(dir, JSON.stringify({ id: 'kept' }))
+
+        await expect(deleteJsonFile(dir, id, 'A scenario recording')).rejects.toThrow(
+            'lowercase letters, digits and dashes'
+        )
+        expect(Object.keys(await listJsonFiles(dir))).toEqual(['kept.json'])
+        expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('*\n')
     })
 })

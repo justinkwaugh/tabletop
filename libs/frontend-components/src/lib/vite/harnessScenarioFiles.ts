@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import {
@@ -8,7 +8,7 @@ import {
 
 const FILE_ID = /^[a-z0-9][a-z0-9-]*$/
 
-// Lets the dev harness list and save scenario recordings, and requests for new ones, in the
+// Lets the dev harness list, save and delete scenario recordings, and requests for new ones, in the
 // title's own folder. It exists only while the dev server runs, and the folder ignores itself, so
 // everything in it stays local.
 export function harnessScenarioFiles({
@@ -17,17 +17,28 @@ export function harnessScenarioFiles({
     return {
         name: 'tabletop-harness-scenario-files',
         apply: 'serve',
+        // The harness fetches recordings itself, so the dev server has no reason to watch them;
+        // watching would reload the page every time one is saved, requested or deleted.
+        config(userConfig) {
+            const root = resolve(userConfig.root ?? process.cwd())
+            return { server: { watch: { ignored: [join(resolve(root, dir), '**')] } } }
+        },
         configureServer(server) {
             const recordings = resolve(server.config.root, dir)
             server.middlewares.use(
                 HARNESS_SCENARIO_ENDPOINT,
-                jsonFolder((body) => saveScenarioRecording(recordings, body), recordings)
+                jsonFolder(
+                    (body) => saveScenarioRecording(recordings, body),
+                    recordings,
+                    'A scenario recording'
+                )
             )
             server.middlewares.use(
                 HARNESS_SCENARIO_REQUEST_ENDPOINT,
                 jsonFolder(
                     (body) => saveScenarioRequest(recordings, body),
-                    scenarioRequestFolder(recordings)
+                    scenarioRequestFolder(recordings),
+                    'A scenario request'
                 )
             )
         }
@@ -71,11 +82,10 @@ async function saveJsonFile(
     noun: string
 ): Promise<string> {
     const content: unknown = JSON.parse(body)
-    const id =
-        typeof content === 'object' && content !== null && 'id' in content ? content.id : undefined
-    if (typeof id !== 'string' || !FILE_ID.test(id)) {
-        throw new Error(`${noun} needs an id of lowercase letters, digits and dashes`)
-    }
+    const id = checkedId(
+        typeof content === 'object' && content !== null && 'id' in content ? content.id : undefined,
+        noun
+    )
     await mkdir(dir, { recursive: true })
     const ignore = join(recordings, '.gitignore')
     await access(ignore).catch(() => writeFile(ignore, '*\n'))
@@ -84,11 +94,33 @@ async function saveJsonFile(
     return file
 }
 
+// Deletes the file for id; an id that names no file is already gone, so it succeeds.
+export async function deleteJsonFile(dir: string, id: unknown, noun: string): Promise<string> {
+    const file = join(dir, `${checkedId(id, noun)}.json`)
+    await rm(file, { force: true })
+    return file
+}
+
+function checkedId(id: unknown, noun: string): string {
+    if (typeof id !== 'string' || !FILE_ID.test(id)) {
+        throw new Error(`${noun} needs an id of lowercase letters, digits and dashes`)
+    }
+    return id
+}
+
 function jsonFolder(
     save: (body: string) => Promise<string>,
-    dir: string
+    dir: string,
+    noun: string
 ): Connect.NextHandleFunction {
     return (request, response) => {
+        if (request.method === 'DELETE') {
+            const id = new URL(request.url ?? '/', 'http://localhost').searchParams.get('id')
+            deleteJsonFile(dir, id, noun)
+                .then((file) => respond(response, 200, { file }))
+                .catch((error: unknown) => respond(response, 400, failure(error)))
+            return
+        }
         if (request.method === 'GET') {
             listJsonFiles(dir)
                 .then((files) => respond(response, 200, files))
