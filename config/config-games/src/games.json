@@ -58,5 +58,9 @@
   {
     "gameId": "hill-country-grocers",
     "packageId": "hill-country-grocers"
+  },
+  {
+    "gameId": "napoleons-triumph",
+    "packageId": "napoleons-triumph"
   }
 ]
