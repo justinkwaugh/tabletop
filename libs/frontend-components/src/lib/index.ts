@@ -22,6 +22,7 @@ export { default as HistoryKeyControls } from './components/HistoryKeyControls.s
 export { default as GameUI } from './components/GameUI.svelte'
 export * from './harness/harnessContext.js'
 export * from './harness/harnessScenarios.js'
+export * from './harness/harnessScenarioRecording.js'
 export * from './persistence/gameStore.js'
 export * from './persistence/indexedDbGameStore.js'
 export * from './services/authorizationService.js'

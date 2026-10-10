@@ -36,6 +36,10 @@
             "types": "./dist/utils/dynamicComponent.d.ts",
             "svelte": "./dist/utils/dynamicComponent.js",
             "import": "./dist/utils/dynamicComponent.js"
+        },
+        "./vite/harnessScenarioFiles": {
+            "types": "./dist/vite/harnessScenarioFiles.d.ts",
+            "import": "./dist/vite/harnessScenarioFiles.js"
         }
     },
     "files": [

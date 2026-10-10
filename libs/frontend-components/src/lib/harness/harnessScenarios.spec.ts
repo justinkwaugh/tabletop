@@ -20,8 +20,13 @@ import {
     type MachineContext,
     type UninitializedGameState
 } from '@tabletop/common'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { runHarnessScenario, type HarnessScenario } from './harnessScenarios.js'
+import {
+    recordGame,
+    recordedScenarios,
+    type HarnessScenarioRecording
+} from './harnessScenarioRecording.js'
 
 const CountdownSchema = Type.Object({
     ...GameState.properties,
@@ -119,17 +124,25 @@ const countdownInfo: GameInfo = {
 
 const countdown = { info: countdownInfo, runtime: async () => countdownRuntime }
 
+// The same game on a runtime that takes reproduction seeds.
+const seededRuntime: GameRuntime<CountdownState, HydratedCountdownState> = {
+    ...countdownRuntime,
+    randomnessVersion: 1
+}
+
 class RecordingGameService {
     readonly games = new Map<string, Game>()
     saved: { game: Game; state: GameState; actions: GameAction[] } | undefined
 
-    async createGame(partial: Partial<Game>): Promise<Game> {
-        const engine = new GameEngine(countdownRuntime)
-        const initialized = countdownRuntime.initializer.initializeGame(partial, {
+    constructor(private readonly runtime = countdownRuntime) {}
+
+    async createGame(partial: Partial<Game>, options?: { masterSeed?: string }): Promise<Game> {
+        const engine = new GameEngine(this.runtime)
+        const initialized = this.runtime.initializer.initializeGame(partial, {
             info: countdownInfo,
-            runtime: countdownRuntime
+            runtime: this.runtime
         })
-        const { startedGame, initialState } = engine.startGame(initialized)
+        const { startedGame, initialState } = engine.startGame(initialized, options?.masterSeed)
         const game = { ...startedGame, state: initialState }
         this.games.set(game.id, game)
         return game
@@ -204,5 +217,88 @@ describe('runHarnessScenario', () => {
             })
         ).rejects.toThrow('Scenario count-to--1 ended the game before reaching its state')
         expect(gameService.saved).toBeUndefined()
+    })
+})
+
+async function playAndRecord(runtime: typeof countdownRuntime) {
+    const gameService = new RecordingGameService(runtime)
+    await runHarnessScenario({
+        scenario: scenario(1),
+        definition: { info: countdownInfo, runtime: async () => runtime },
+        gameService,
+        owner
+    })
+    const saved = gameService.saved
+    assertExists(saved)
+    const recording = recordGame({
+        id: 'one-left',
+        label: 'One left',
+        description: 'The countdown shows one',
+        recordedWith: countdownInfo.metadata.version,
+        ...saved
+    })
+    return { saved, recording }
+}
+
+async function replay(recording: unknown, runtime: typeof countdownRuntime) {
+    const [recorded] = recordedScenarios({ 'one-left.json': recording })
+    assertExists(recorded)
+    const gameService = new RecordingGameService(runtime)
+    await runHarnessScenario({
+        scenario: recorded,
+        definition: { info: countdownInfo, runtime: async () => runtime },
+        gameService,
+        owner
+    })
+    assertExists(gameService.saved)
+    return gameService.saved
+}
+
+describe('scenario recordings', () => {
+    test.each([
+        ['a legacy seed', countdownRuntime],
+        ['a reproduction seed', seededRuntime]
+    ])('replay a recorded game with %s to the same game', async (_seedKind, runtime) => {
+        const { saved, recording } = await playAndRecord(runtime)
+        expect(recording.moves).toEqual(
+            saved.actions.map((action) => ({
+                id: action.id,
+                type: 'step',
+                playerId: action.playerId
+            }))
+        )
+
+        const replayed = await replay(JSON.parse(JSON.stringify(recording)), runtime)
+
+        expect(replayed.game.seed).toBe(saved.game.seed)
+        expect(replayed.state.masterSeed).toBe(saved.state.masterSeed)
+        expect(replayed.game.players.map((player) => player.id)).toEqual(
+            saved.game.players.map((player) => player.id)
+        )
+        expect(replayed.state.actionChecksum).toBe(saved.state.actionChecksum)
+        expect(replayed.state.activePlayerIds).toEqual(saved.state.activePlayerIds)
+    })
+
+    test('records a reproduction seed when the game has one', async () => {
+        const { recording } = await playAndRecord(seededRuntime)
+        expect(recording.seed).toEqual({ masterSeed: expect.any(String) })
+    })
+
+    test('leaves out a file that is not a recording', () => {
+        const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+        expect(recordedScenarios({ 'old.json': { format: 2 } })).toEqual([])
+        expect(report).toHaveBeenCalledOnce()
+        report.mockRestore()
+    })
+
+    test('names the move a recording can no longer play', async () => {
+        const { recording } = await playAndRecord(countdownRuntime)
+        const broken: HarnessScenarioRecording = {
+            ...recording,
+            moves: [recording.moves[0], { type: 'jump', playerId: recording.seats[0].id }]
+        }
+        await expect(replay(broken, countdownRuntime)).rejects.toThrow(
+            'Scenario one-left move 2 (jump) was rejected'
+        )
     })
 })
