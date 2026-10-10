@@ -1,10 +1,13 @@
 import type { BoundingBox, Point } from '@tabletop/common'
-import type {
-    AlgaColor,
-    CoralColor,
-    HydratedReefEncounterGameState,
-    ReefBoardId
+import {
+    faceUp,
+    type AlgaColor,
+    type CoralColor,
+    type CoralTileFace,
+    type HydratedReefEncounterGameState,
+    type ReefBoardId
 } from '@tabletop/reef-encounter'
+import { CoralTileFaceUrls } from '$lib/images/art.generated.js'
 import {
     AlgaSpace,
     boardSquare,
@@ -37,13 +40,28 @@ export type PolypPiece = PieceBase & {
     larvaSpace?: CoralColor
 }
 export type ShrimpPiece = PieceBase & { kind: 'shrimp'; playerId: string; upsideDown: boolean }
+// A coral tile on the open sea: it never moves, but turns over when a cylinder flips it.
+export type CoralTilePiece = PieceBase & {
+    kind: 'coralTile'
+    tileId: number
+    face: CoralTileFace
+    starfishSideUp: boolean
+    box: BoundingBox
+    url: string
+}
 export type CubePiece = PieceBase & { kind: 'cube'; color: CoralColor }
 export type CylinderPiece = PieceBase & { kind: 'cylinder'; color: AlgaColor; size: number }
 
-export type TablePiece = PolypPiece | ShrimpPiece | CubePiece | CylinderPiece
+export type TablePiece = PolypPiece | ShrimpPiece | CubePiece | CylinderPiece | CoralTilePiece
 
 // Drawn in this order, so shrimps lie on polyps and cylinders stand on coral tiles.
-const Layer: Record<TablePiece['kind'], number> = { polyp: 0, cube: 1, cylinder: 1, shrimp: 2 }
+const Layer: Record<TablePiece['kind'], number> = {
+    coralTile: 0,
+    polyp: 0,
+    cube: 1,
+    cylinder: 1,
+    shrimp: 2
+}
 
 // Every movable piece on the table: polyps and shrimps on the reefs; larva cubes, waiting
 // polyps, alga cylinders and eaten shrimps on the open sea.
@@ -124,6 +142,20 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
         })
     }
     state.coralTiles.forEach((tile, index) => {
+        const box = coralTileSlot(index)
+        const faces = CoralTileFaceUrls[tile.tileId]
+        pieces.push({
+            kind: 'coralTile',
+            key: `sea:coralTile:${tile.tileId}:${tile.starfishSideUp ? 'starfish' : 'plain'}`,
+            container: 'sea',
+            center: centerOf(box),
+            place: '',
+            tileId: tile.tileId,
+            face: faceUp(tile),
+            starfishSideUp: tile.starfishSideUp,
+            box,
+            url: tile.starfishSideUp ? faces.starfish : faces.plain
+        })
         if (tile.cylinder) {
             pieces.push({
                 kind: 'cylinder',
@@ -161,12 +193,16 @@ export function byLayer(pieces: TablePiece[]): TablePiece[] {
 // A piece moving across its drawing: `source` is where it was, among the leaving pieces.
 export type PieceMove = { piece: TablePiece; source: TablePiece }
 
+// A coral tile turning over: `from` is its old face, among the leaving pieces.
+export type PieceFlip = { piece: CoralTilePiece; from: CoralTilePiece }
+
 export type PieceChanges = {
     arriving: TablePiece[]
     leaving: TablePiece[]
     // Arrivals that are a piece moving across the same drawing: a polyp shifting along its larva
     // space, or a shrimp moved along its reef.
     moves: PieceMove[]
+    flips: PieceFlip[]
 }
 
 export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiece[]): PieceChanges {
@@ -177,8 +213,20 @@ export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiec
 
     const unmatched = [...leaving]
     const moves: PieceMove[] = []
+    const flips: PieceFlip[] = []
     const arriving: TablePiece[] = []
     for (const piece of arrivals) {
+        if (piece.kind === 'coralTile') {
+            const index = unmatched.findIndex(
+                (old) => old.kind === 'coralTile' && old.tileId === piece.tileId
+            )
+            const old = unmatched[index]
+            if (old?.kind === 'coralTile') {
+                flips.push({ piece, from: old })
+                unmatched.splice(index, 1)
+                continue
+            }
+        }
         const index = unmatched.findIndex((old) => sameThing(old, piece))
         if (index < 0) {
             arriving.push(piece)
@@ -187,7 +235,7 @@ export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiec
         moves.push({ piece, source: unmatched[index] })
         unmatched.splice(index, 1)
     }
-    return { arriving, leaving, moves }
+    return { arriving, leaving, moves, flips }
 }
 
 function sameThing(a: TablePiece, b: TablePiece): boolean {

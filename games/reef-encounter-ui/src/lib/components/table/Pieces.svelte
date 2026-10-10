@@ -23,6 +23,11 @@
                 return `${piece.color} larva cube ${piece.place}`
             case 'cylinder':
                 return `${piece.color} alga cylinder ${piece.place}`
+            case 'coralTile': {
+                const { stronger, weaker, largeAlga, smallAlga } = piece.face
+                const starfish = piece.starfishSideUp ? ', starfish side up' : ''
+                return `Coral tile ${piece.tileId}: ${stronger} beats ${weaker}; ${largeAlga} and ${smallAlga} algae${starfish}`
+            }
         }
     }
 </script>
@@ -32,7 +37,16 @@
      onto the open sea, which lie on their printed silhouettes. -->
 {#each pieces as piece (piece.key)}
     <g {@attach gameSession.piecesAnimator.attach(piece.key)} role="img" aria-label={label(piece)}>
-        {#if piece.kind === 'polyp'}
+        {#if piece.kind === 'coralTile'}
+            <image
+                href={piece.url}
+                x={piece.box.x}
+                y={piece.box.y}
+                width={piece.box.width}
+                height={piece.box.height}
+                transform={upright(rotation, piece.center)}
+            ></image>
+        {:else if piece.kind === 'polyp'}
             <image
                 href={piece.url}
                 x={piece.box.x}

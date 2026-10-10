@@ -18,10 +18,31 @@ type PiecesCallbacks = {
     isOwnLiveAction: (action: GameAction) => boolean
 }
 
-const ACTION = { leave: 0.25, arrive: 0.3, arriveAfterLeaving: 0.15, move: 0.45, hold: 0.45 }
-const OWN = { leave: 0.15, arrive: 0.2, arriveAfterLeaving: 0.08, move: 0.25, hold: 0 }
+const ACTION = {
+    leave: 0.25,
+    arrive: 0.3,
+    arriveAfterLeaving: 0.15,
+    move: 0.45,
+    flipHalf: 0.2,
+    hold: 0.45
+}
+const OWN = {
+    leave: 0.15,
+    arrive: 0.2,
+    arriveAfterLeaving: 0.08,
+    move: 0.25,
+    flipHalf: 0.15,
+    hold: 0
+}
 // Undo and history steps: every path ends within 200ms.
-const FAST = { leave: 0.15, arrive: 0.15, arriveAfterLeaving: 0, move: 0.18, hold: 0 }
+const FAST = {
+    leave: 0.15,
+    arrive: 0.15,
+    arriveAfterLeaving: 0,
+    move: 0.18,
+    flipHalf: 0.09,
+    hold: 0
+}
 
 // Pieces are laid onto the table, lifted off it, or slid across it: a polyp drops onto its
 // square and an attacked one sinks away, a shrimp walks along its reef, the open sea's polyps
@@ -58,7 +79,10 @@ export class PiecesAnimator {
         }
         const gameId = this.callbacks.gameId()
         const toPieces = tablePieces(to, gameId)
-        const { arriving, leaving, moves } = pieceChanges(tablePieces(from, gameId), toPieces)
+        const { arriving, leaving, moves, flips } = pieceChanges(
+            tablePieces(from, gameId),
+            toPieces
+        )
         if (arriving.length + leaving.length === 0) {
             return
         }
@@ -70,10 +94,11 @@ export class PiecesAnimator {
         const timing = !action ? FAST : this.callbacks.isOwnLiveAction(action) ? OWN : ACTION
         const timeline = animationContext.actionTimeline
         const movedFrom = new Set(moves.map(({ source }) => source.key))
+        const flippedFrom = new Set(flips.map(({ from }) => from.key))
 
         for (const piece of leaving) {
             const node = this.elements.get(piece.key)
-            if (!node) continue
+            if (!node || flippedFrom.has(piece.key)) continue
             if (movedFrom.has(piece.key)) {
                 // Its moving copy slides away from here.
                 gsap.set(node, { opacity: 0 })
@@ -113,6 +138,27 @@ export class PiecesAnimator {
                 y: source.center.y - piece.center.y
             })
             timeline.to(node, { x: 0, y: 0, duration: timing.move, ease: 'power2.inOut' }, 0)
+        }
+
+        // Coral tiles a cylinder flips turn over once it has landed: the old face narrows to its
+        // edge and the new one widens from it.
+        const flipAt = action ? timing.arrive : 0
+        for (const { piece, from } of flips) {
+            const oldFace = this.elements.get(from.key)
+            const newFace = this.elements.get(piece.key)
+            if (!oldFace || !newFace) continue
+            gsap.set([oldFace, newFace], { transformOrigin: 'center center' })
+            gsap.set(newFace, { scaleX: 0 })
+            timeline.to(
+                oldFace,
+                { scaleX: 0, duration: timing.flipHalf, ease: 'power1.in' },
+                flipAt
+            )
+            timeline.to(
+                newFace,
+                { scaleX: 1, duration: timing.flipHalf, ease: 'power1.out' },
+                flipAt + timing.flipHalf
+            )
         }
 
         if (timing.hold > 0) {

@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { faceUp } from '@tabletop/reef-encounter'
     import Pieces from './Pieces.svelte'
     import Target from './Target.svelte'
-    import { CoralTileFaceUrls, OpenSeaImageUrl } from '$lib/images/art.generated.js'
+    import { OpenSeaImageUrl } from '$lib/images/art.generated.js'
     import {
         AlgaSpace,
         coralTileSlot,
@@ -11,7 +10,6 @@
         OpenSeaImage,
         OpenSeaView,
         rotatedView,
-        upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -21,10 +19,6 @@
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
     const drawing = $derived(rotatedView(OpenSeaView, rotation))
-    const center = (box: { x: number; y: number; width: number; height: number }) => ({
-        x: box.x + box.width / 2,
-        y: box.y + box.height / 2
-    })
 </script>
 
 <svg
@@ -37,27 +31,6 @@
     <g transform={drawing.transform}>
         <image href={OpenSeaImageUrl} width={OpenSeaImage.width} height={OpenSeaImage.height}
         ></image>
-
-        {#each state.coralTiles as tile, index (tile.tileId)}
-            {@const slot = coralTileSlot(index)}
-            {@const faces = CoralTileFaceUrls[tile.tileId]}
-            {@const face = faceUp(tile)}
-            <g
-                transform={upright(rotation, center(slot))}
-                role="img"
-                aria-label="Coral tile {tile.tileId}: {face.stronger} beats {face.weaker}; {face.largeAlga} and {face.smallAlga} algae{tile.starfishSideUp
-                    ? ', starfish side up'
-                    : ''}"
-            >
-                <image
-                    href={tile.starfishSideUp ? faces.starfish : faces.plain}
-                    x={slot.x}
-                    y={slot.y}
-                    width={slot.width}
-                    height={slot.height}
-                ></image>
-            </g>
-        {/each}
 
         <Pieces container="sea" {rotation} />
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { CoralColor } from '@tabletop/reef-encounter'
-import { pieceChanges, type PolypPiece, type ShrimpPiece, type TablePiece } from './tablePieces.js'
+import { AlgaColor, CoralColor } from '@tabletop/reef-encounter'
+import {
+    pieceChanges,
+    type CoralTilePiece,
+    type PolypPiece,
+    type ShrimpPiece,
+    type TablePiece
+} from './tablePieces.js'
 
 const shrimp = (
     key: string,
@@ -29,12 +35,35 @@ const polyp = (key: string, color: CoralColor, x: number, larvaSpace?: CoralColo
     larvaSpace
 })
 
+const tile = (key: string, tileId: number): CoralTilePiece => ({
+    kind: 'coralTile',
+    key,
+    container: 'sea',
+    center: { x: 0, y: 0 },
+    place: '',
+    tileId,
+    face: {
+        stronger: CoralColor.Pink,
+        weaker: CoralColor.Grey,
+        largeAlga: AlgaColor.Blue,
+        smallAlga: AlgaColor.Red
+    },
+    starfishSideUp: true,
+    box: { x: 0, y: 0, width: 10, height: 10 },
+    url: ''
+})
+
 const keys = (pieces: TablePiece[]) => pieces.map((piece) => piece.key)
 
 describe('pieceChanges', () => {
     it('finds nothing when the pieces stay put', () => {
         const pieces = [shrimp('a', 'p1', 0), polyp('b', CoralColor.Pink, 1)]
-        expect(pieceChanges(pieces, pieces)).toEqual({ arriving: [], leaving: [], moves: [] })
+        expect(pieceChanges(pieces, pieces)).toEqual({
+            arriving: [],
+            leaving: [],
+            moves: [],
+            flips: []
+        })
     })
 
     it('slides a shrimp moved along its reef', () => {
@@ -81,5 +110,17 @@ describe('pieceChanges', () => {
             ['1of2', '1of1']
         ])
         expect(keys(arriving)).toEqual(['2of2'])
+    })
+
+    it('turns a flipped coral tile over in place', () => {
+        const { arriving, leaving, flips } = pieceChanges(
+            [tile('1:starfish', 1), tile('2:starfish', 2)],
+            [tile('1:plain', 1), tile('2:starfish', 2)]
+        )
+        expect(flips.map(({ piece, from }) => [piece.key, from.key])).toEqual([
+            ['1:plain', '1:starfish']
+        ])
+        expect(arriving).toEqual([])
+        expect(keys(leaving)).toEqual(['1:starfish'])
     })
 })

@@ -42,7 +42,7 @@ None of these exist in History View or for players who are not acting: every rin
 
 ## Motion
 
-- **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
+- **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. Coral tiles a cylinder flips turn over once it has landed. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
 - While a change plays out the session ignores choices, so the board's rings and the action panel's buttons take no clicks until the table settles.
 - **Blinking** (local presentation). Each shrimp on the table blinks six to eight times a minute, in a rhythm and phase picked from the piece, so shrimps never blink together for long. Shrimps in the panels do not blink, and none blink under reduced motion.
 
@@ -59,6 +59,6 @@ Automated, in `tests/`:
 - `history.spec.ts`: a history entry's header shows the table as its player left it, in History View; Replay plays a turn's moves and returns to the live game, and setup entries, which move no pieces, offer no Replay.
 - `shrimps.spec.ts`: Introduce hides the open-sea rings and rings polyps; a pick-up closes on Undo without undoing anything; a shrimp left on bare rock shows the warning and no space; sending it behind the screen restores the spaces.
 
-`src/lib/utils/tablePieces.spec.ts` covers how changes are read: slides, lifts and lands, attacks.
+`src/lib/utils/tablePieces.spec.ts` covers how changes are read: slides, lifts and lands, attacks, tile flips.
 
 Manual: the motion itself, including replay and undo; the final-turn panel (the end conditions take a long game to reach); attack rings show dashed orange on a weaker polyp joined to a coral of at least two (the cylinder test attacks, but does not check the ring's look); locking a coral tile needs a shrimp on the open sea.
