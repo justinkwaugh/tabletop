@@ -32,6 +32,12 @@
             ? ', or on one of those tiles to lock it'
             : ''}. Undo goes back a step.
     </p>
+    {#if gameSession.lockingLastTile !== undefined}
+        <p class="warning">
+            Tile {gameSession.lockingLastTile} is the last unlocked coral tile: locking it ends the game,
+            and every other player then has one final turn.
+        </p>
+    {/if}
 {:else if gameSession.cylinderPayment}
     <p class="prompt reef-display">Choose the cylinder's colour</p>
     <p class="detail">
@@ -256,12 +262,6 @@
 
     .arrow {
         color: var(--reef-muted);
-    }
-
-    .warning {
-        margin-top: 8px;
-        font-size: 14px;
-        color: #ffd29a;
     }
 
     .end {

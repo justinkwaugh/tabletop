@@ -39,13 +39,15 @@ export const CoralEaten = Type.Object({
     color: Type.Enum(CoralColor),
     polyps: Type.Number(),
     returnedToBag: Type.Number(),
-    shrimpToOpenSea: Type.Boolean()
+    shrimpToOpenSea: Type.Boolean(),
+    startsFinalTurns: Type.Optional(Type.Literal(true))
 })
 
 export type AlgaPlayed = Type.Static<typeof AlgaPlayed>
 export const AlgaPlayed = Type.Object({
     flippedTileIds: Type.Array(Type.Number()),
-    replacedCylinder: Type.Optional(Type.Enum(AlgaColor))
+    replacedCylinder: Type.Optional(Type.Enum(AlgaColor)),
+    startsFinalTurns: Type.Optional(Type.Literal(true))
 })
 
 export type PolypPlacement = Type.Static<typeof PolypPlacement>

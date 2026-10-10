@@ -3,6 +3,7 @@
     import type { GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import {
+        finalTurnEntries,
         historyEntries,
         isSetupEntry,
         movesPieces,
@@ -22,6 +23,7 @@
     const entries = $derived(
         historyEntries(replay?.frozenActions ?? gameSession.actions).toReversed()
     )
+    const finalTurns = $derived(finalTurnEntries(entries.toReversed()))
 
     async function jumpTo(entry: HistoryEntry) {
         const index = entry.actions.at(-1)?.index
@@ -67,6 +69,9 @@
     {#each entries as entry, index (entry.actions[0].id)}
         {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
             <h4 class="divider reef-display">Setup</h4>
+        {/if}
+        {#if finalTurns.has(entry) && (index === 0 || !finalTurns.has(entries[index - 1]))}
+            <h4 class="divider reef-display">Final turns</h4>
         {/if}
         {@const lastAt = entry.actions.at(-1)?.createdAt}
         {@const replaying = replay?.entryId === entry.actions[0].id}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isEndGame } from '../actions/endGame.js'
+import { isEatCoral } from '../actions/eatCoral.js'
+import { isPlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
 import { AlgaColor, CoralColor, coralCounts } from '../components/colors.js'
 import { ReefBoards } from '../components/reefBoards.js'
 import { GameEndReason } from '../model/gameState.js'
@@ -65,9 +67,12 @@ describe('locking the last coral tile', () => {
         const session = startOnBoardThree([], [], 3)
         const [first, second, third] = session.state.turnManager.turnOrder
         lastTileLeft(session)
+        expect(session.hydrated().lockingStartsFinalTurns(1)).toBe(true)
 
-        lockLastTile(session)
+        const lock = lockLastTile(session).find((action) => isPlayAlgaCylinder(action))
 
+        expect(isPlayAlgaCylinder(lock) && lock.metadata?.startsFinalTurns).toBe(true)
+        expect(session.hydrated().lastFinalTurnPlayerId()).toBe(third)
         expect(session.state.machineState).toBe(MachineState.FinalTurns)
         expect(session.state.endReason).toBe(GameEndReason.AllTilesLocked)
         expect(session.state.endingPlayerId).toBe(first)
@@ -94,9 +99,11 @@ describe('eating the fourth shrimp', () => {
             player.shrimpsInParrotfish = 2
             player.shrimpsBehindScreen = 0
         })
+        expect(session.hydrated().eatingStartsFinalTurns(first)).toBe(true)
 
-        eat(session)
+        const eaten = eat(session).find((action) => isEatCoral(action))
 
+        expect(isEatCoral(eaten) && eaten.metadata?.startsFinalTurns).toBe(true)
         expect(session.state.machineState).toBe(MachineState.FinalTurns)
         expect(session.state.endReason).toBe(GameEndReason.FourShrimpsEaten)
         expect(session.currentPlayerId()).toBe(second)
@@ -119,8 +126,9 @@ describe('final turns', () => {
         const session = startFinalTurns()
         const bag = session.state.polypBag.remaining
 
-        eat(session)
+        const eaten = eat(session).find((action) => isEatCoral(action))
 
+        expect(isEatCoral(eaten) && eaten.metadata?.startsFinalTurns).toBeUndefined()
         expect(session.state.polypBag.remaining).toBe(bag + 5)
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
         const eater = session.state.players.find(

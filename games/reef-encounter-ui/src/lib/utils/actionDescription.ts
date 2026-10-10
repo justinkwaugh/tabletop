@@ -1,4 +1,5 @@
 import type { GameAction } from '@tabletop/common'
+import { startsFinalTurns } from './historyEntries.js'
 import {
     isChooseLarvaCubes,
     isEatCoral,
@@ -164,6 +165,9 @@ export function describeActions(actions: readonly GameAction[], own: 'your' | 't
         closeRun()
         const text = action.playerId ? describeAction(action, own) : describeSystemAction(action)
         if (text) phrases.push({ text, playerId: action.playerId })
+        if (startsFinalTurns(action)) {
+            phrases.push({ text: 'That ends the game: every other player has one final turn.' })
+        }
     }
     closeRun()
     return phrases

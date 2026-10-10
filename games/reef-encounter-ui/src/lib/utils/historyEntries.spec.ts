@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/reef-encounter'
 import {
+    finalTurnEntries,
     historyEntries,
     historyStep,
     isSetupEntry,
@@ -86,5 +87,20 @@ describe('history entries', () => {
             action(ActionType.PlayLarvaCube, 'a')
         ])
         expect([feed, cubes, turn].map(isSetupEntry)).toEqual([true, true, false])
+    })
+
+    it('marks the entries after the move that started the final turns', () => {
+        const lock = {
+            ...action(ActionType.PlayAlgaCylinder, 'a'),
+            metadata: { flippedTileIds: [], startsFinalTurns: true }
+        }
+        const entries = historyEntries([
+            action(ActionType.PlayLarvaCube, 'b'),
+            lock,
+            action(ActionType.PassFinalTurn, 'b'),
+            action(ActionType.EndGame)
+        ])
+        expect([...finalTurnEntries(entries)].map((entry) => entry.playerId)).toEqual(['b'])
+        expect(finalTurnEntries(entries.slice(0, 1)).size).toBe(0)
     })
 })

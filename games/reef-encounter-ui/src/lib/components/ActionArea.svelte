@@ -6,12 +6,17 @@
     import TurnPanel from './action/TurnPanel.svelte'
     import FinalTurnPanel from './action/FinalTurnPanel.svelte'
     import GameEndPanel from './action/GameEndPanel.svelte'
+    import FinalTurnsBanner from './action/FinalTurnsBanner.svelte'
+    import { MachineState } from '@tabletop/reef-encounter'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
 </script>
 
 <section class="card" aria-label="Actions">
+    {#if gameSession.gameState.machineState === MachineState.FinalTurns}
+        <FinalTurnsBanner />
+    {/if}
     {#if gameSession.isViewingHistory}
         <HistoryStepPanel />
     {:else if gameSession.gameState.result}
@@ -38,6 +43,12 @@
         box-shadow: inset 0 0 0 2px var(--reef-line);
     }
 
+    .card :global(.warning) {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #ffd29a;
+    }
+
     .card :global(.prompt) {
         font-size: 18px;
     }
@@ -50,6 +61,12 @@
     @media (max-width: 639px) {
         .card {
             padding: 8px 10px 10px;
+        }
+
+        .card :global(.warning) {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #ffd29a;
         }
 
         .card :global(.prompt) {

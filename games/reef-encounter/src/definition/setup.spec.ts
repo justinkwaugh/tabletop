@@ -167,7 +167,7 @@ describe('what each player sees during setup', () => {
         expect(view.polypBag.remaining).toBe(session.state.polypBag.remaining)
     })
 
-    it('shows larva cubes, shrimps and eaten polyps openly unless the game is Concealed', () => {
+    it('shows larva cubes, shrimps and eaten polyps openly unless Concealed, and the setup deal and feed never', () => {
         const open = startSession()
         feedEveryParrotfish(open)
         chooseEveryLarvaCube(open)
@@ -181,6 +181,8 @@ describe('what each player sees during setup', () => {
         expect(seenOpenly?.shrimpsBehindScreen).toBe(4)
         expect(seenOpenly?.knownParrotfishPolyps).toBeDefined()
         expect(seenOpenly?.shrimpsInParrotfish).toBe(0)
+        expect(seenOpenly?.secretScreenPolyps).toBeUndefined()
+        expect(seenOpenly?.secretParrotfishPolyps).toBeUndefined()
 
         const seenConcealed = project(concealed, asPlayer(first)).players.find(
             (p) => p.playerId === second
@@ -190,6 +192,8 @@ describe('what each player sees during setup', () => {
         expect(seenConcealed?.knownParrotfishPolyps).toBeUndefined()
         expect(seenConcealed?.shrimpsInParrotfish).toBeUndefined()
         expect(seenConcealed?.shrimpOnOpenSea).toBe(false)
+        expect(seenConcealed?.secretScreenPolyps).toBeUndefined()
+        expect(seenConcealed?.secretParrotfishPolyps).toBeUndefined()
         expect(
             project(concealed, asPlayer(second)).players.find((p) => p.playerId === second)
                 ?.larvaCubes

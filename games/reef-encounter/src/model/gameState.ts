@@ -533,6 +533,9 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             }
         }
         this.endAction()
+        if (this.startsFinalTurns(playerId)) {
+            played.startsFinalTurns = true
+        }
         return played
     }
 
@@ -572,7 +575,32 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         const shrimpToOpenSea = !player.shrimpOnOpenSea
         player.eat(color, coral.length - returnedToBag)
         this.turn.acted = true
-        return { color, polyps: coral.length, returnedToBag, shrimpToOpenSea }
+        const eaten: CoralEaten = { color, polyps: coral.length, returnedToBag, shrimpToOpenSea }
+        if (this.startsFinalTurns(playerId)) {
+            eaten.startsFinalTurns = true
+        }
+        return eaten
+    }
+
+    // Eating a fourth shrimp ends the game and starts the final turns (rulebook p. 11).
+    eatingStartsFinalTurns(playerId: string): boolean {
+        const player = this.getPlayerState(playerId)
+        const eaten = (player.shrimpOnOpenSea ? 1 : 0) + player.getShrimpsInParrotfish()
+        return this.machineState === MachineState.TakingTurn && eaten + 1 >= ShrimpsPerPlayer
+    }
+
+    // Locking the last coral tile ends the game and starts the final turns (rulebook p. 11).
+    lockingStartsFinalTurns(tileId: number): boolean {
+        const unlocked = this.coralTiles.filter((tile) => !tile.cylinder)
+        return unlocked.length === 1 && unlocked[0].tileId === tileId
+    }
+
+    // The final turns run round the table and end with the player before the one who ended it.
+    lastFinalTurnPlayerId(): string | undefined {
+        if (this.endingPlayerId === undefined) return undefined
+        const order = this.turnManager.turnOrder
+        const ending = order.indexOf(this.endingPlayerId)
+        return order[(ending + order.length - 1) % order.length]
     }
 
     // A coral of exactly that many may still be eaten, feeding the parrotfish nothing
@@ -744,6 +772,14 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     }
 
     // Polyps in corals the player's shrimps sit on; a coral never has two shrimps.
+    private startsFinalTurns(playerId: string): boolean {
+        const reason =
+            this.machineState === MachineState.TakingTurn
+                ? this.gameEndReachedBy(playerId)
+                : undefined
+        return reason === GameEndReason.AllTilesLocked || reason === GameEndReason.FourShrimpsEaten
+    }
+
     private guardedPolyps(playerId: string): number {
         return this.shrimps
             .filter((shrimp) => shrimp.playerId === playerId)

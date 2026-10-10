@@ -256,6 +256,16 @@ export class ReefEncounterGameSession extends GameSession<
     readonly canPassFinalTurn = $derived(this.canTake(ActionType.PassFinalTurn))
 
     // Each coral the viewer may feed their parrotfish, named by the square of their shrimp on it.
+    readonly lockingLastTile: number | undefined = $derived(
+        this.cylinderTargets.tileIds.find((tileId) =>
+            this.gameState.lockingStartsFinalTurns(tileId)
+        )
+    )
+
+    readonly eatingStartsFinalTurns = $derived(
+        this.choosingCoralToEat && this.gameState.eatingStartsFinalTurns(this.myPlayerId())
+    )
+
     readonly edibleCorals: EdibleCoral[] = $derived.by(() => {
         if (!this.choosingCoralToEat || !this.canEatCoral) return []
         const me = this.myPlayerId()

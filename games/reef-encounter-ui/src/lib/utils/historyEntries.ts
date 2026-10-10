@@ -1,5 +1,5 @@
 import type { GameAction } from '@tabletop/common'
-import { ActionType, isEndGame } from '@tabletop/reef-encounter'
+import { ActionType, isEatCoral, isEndGame, isPlayAlgaCylinder } from '@tabletop/reef-encounter'
 
 export type HistoryEntry = {
     // The player whose turn or setup choice this is; absent for the game's end.
@@ -62,4 +62,18 @@ export function previousTurn(
     return historyEntries(actions).findLast(
         (entry) => entry.playerId !== undefined && !activePlayerIds.includes(entry.playerId)
     )
+}
+
+export function startsFinalTurns(action: GameAction): boolean {
+    return (
+        (isEatCoral(action) || isPlayAlgaCylinder(action)) &&
+        action.metadata?.startsFinalTurns === true
+    )
+}
+
+// The players' entries after the one whose action started the final turns.
+export function finalTurnEntries(entries: readonly HistoryEntry[]): Set<HistoryEntry> {
+    const start = entries.findIndex((entry) => entry.actions.some(startsFinalTurns))
+    if (start < 0) return new Set()
+    return new Set(entries.slice(start + 1).filter((entry) => entry.playerId !== undefined))
 }

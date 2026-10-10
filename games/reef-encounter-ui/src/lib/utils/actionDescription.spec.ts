@@ -3,6 +3,7 @@ import { ActionSource } from '@tabletop/common'
 import {
     ActionType,
     CoralColor,
+    type EatCoral,
     type FeedParrotfish,
     type PlayLarvaCube,
     type PlacePolyp
@@ -72,5 +73,26 @@ describe('describing a turn', () => {
             { text: 'fed a grey polyp to your parrotfish.', playerId: 'a' }
         ])
         expect(capitalised('fed a grey polyp.')).toBe('Fed a grey polyp.')
+    })
+
+    it('says when a move starts the final turns', () => {
+        const eat: EatCoral = {
+            ...base(),
+            type: ActionType.EatCoral,
+            playerId: 'a',
+            boardId: 1,
+            coords: { row: 0, col: 0 },
+            metadata: {
+                color: CoralColor.Pink,
+                polyps: 6,
+                returnedToBag: 4,
+                shrimpToOpenSea: false,
+                startsFinalTurns: true
+            }
+        }
+        expect(describeActions([eat], 'their').map((phrase) => phrase.text)).toEqual([
+            'fed a coral of 6 pink polyps to their parrotfish, 4 of them going back into the bag.',
+            'That ends the game: every other player has one final turn.'
+        ])
     })
 })
