@@ -56,7 +56,7 @@ For read-only production evidence (logs, Cloud Tasks queues, Firestore records, 
 
 ### Harness scenarios
 
-To fulfil scenario requests from a dev harness, or to record a harness scenario, use `.agents/skills/harness-scenarios/SKILL.md`.
+To add the Scenarios menu or coded scenarios to a title's dev harness, read `docs/harness-scenarios.md`. To fulfil scenario requests, or to record a harness scenario, use `.agents/skills/harness-scenarios/SKILL.md`.
 
 ### Animation
 
