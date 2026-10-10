@@ -45,9 +45,9 @@
         style:background-image="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})"
     >
         <h3
-            class="plaque reef-display {gameSession.colors.getPlayerBgColor(
-                player.id
-            )} {gameSession.colors.getPlayerTextColor(player.id)}"
+            class="plaque reef-display"
+            style:background={gameSession.colors.getPlayerBgColorValue(player.id)}
+            style:color={gameSession.colors.getPlayerTextColorValue(player.id)}
         >
             {player.name}
         </h3>
