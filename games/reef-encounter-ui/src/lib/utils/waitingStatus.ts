@@ -1,4 +1,4 @@
-import { MachineState } from '@tabletop/reef-encounter'
+import { GameEndReason, MachineState } from '@tabletop/reef-encounter'
 
 const Activities: Partial<Record<MachineState, string>> = {
     [MachineState.ChoosingParrotfishPolyp]: 'is feeding one of their polyps to their parrotfish.',
@@ -9,4 +9,15 @@ const Activities: Partial<Record<MachineState, string>> = {
 
 export function waitingActivity(machineState: MachineState): string | undefined {
     return Activities[machineState]
+}
+
+const EndReasons: Record<GameEndReason, string> = {
+    [GameEndReason.AllTilesLocked]: 'The game ended when the last coral tile was locked.',
+    [GameEndReason.FourShrimpsEaten]: 'The game ended when a parrotfish ate its fourth shrimp.',
+    [GameEndReason.NoRockLeft]: 'The game ended when no rock was left to grow on.',
+    [GameEndReason.Shortage]: 'The game ended when the open sea could not be refilled.'
+}
+
+export function endReasonText(reason: GameEndReason | undefined): string | undefined {
+    return reason ? EndReasons[reason] : undefined
 }

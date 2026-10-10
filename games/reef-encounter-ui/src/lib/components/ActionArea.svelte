@@ -4,13 +4,16 @@
     import WaitingPanel from './action/WaitingPanel.svelte'
     import TurnPanel from './action/TurnPanel.svelte'
     import FinalTurnPanel from './action/FinalTurnPanel.svelte'
+    import GameEndPanel from './action/GameEndPanel.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
 </script>
 
 <section class="card" aria-label="Actions">
-    {#if gameSession.canFeedParrotfish}
+    {#if gameSession.gameState.result && !gameSession.isViewingHistory}
+        <GameEndPanel />
+    {:else if gameSession.canFeedParrotfish}
         <FeedParrotfishPanel />
     {:else if gameSession.canChooseLarvaCubes}
         <LarvaCubePanel />
