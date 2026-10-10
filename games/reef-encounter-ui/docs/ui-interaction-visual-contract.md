@@ -55,7 +55,7 @@ Automated, in `tests/`:
 - `cylinders.spec.ts`: after an attack yields a consumed polyp, paying and choosing a colour ring the cylinder circle and hide the larva-space rings; Undo steps back through both choices; playing it ends the choice.
 - `turns.spec.ts` also trades a larva cube for a polyp and undoes it.
 - `eating.spec.ts`: after growing a coral of five under the player's shrimp, Eat a coral rings it and hides the larva-space rings; Undo closes the choice; eating feeds the parrotfish and puts the shrimp on the open sea.
-- `history.spec.ts`: a history entry's header shows the table as its player left it, in History View.
+- `history.spec.ts`: a history entry's header shows the table as its player left it, in History View; Replay plays a turn's moves and returns to the live game, and setup entries, which move no pieces, offer no Replay.
 - `shrimps.spec.ts`: Introduce hides the open-sea rings and rings polyps; a pick-up closes on Undo without undoing anything; a shrimp left on bare rock shows the warning and no space; sending it behind the screen restores the spaces.
 
 `src/lib/utils/tablePieces.spec.ts` covers how changes are read: slides, lifts and lands, attacks.

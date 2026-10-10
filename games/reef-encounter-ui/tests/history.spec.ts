@@ -27,3 +27,32 @@ test('a history entry shows the table as its player left it', async ({ page }) =
     // History View shows the game up to that entry, so the later one leaves the list
     await expect(entries).toHaveCount(4)
 })
+
+test("Replay plays a turn's moves and returns to the live game", async ({ page }) => {
+    await createGame(page, 2)
+    await playSetup(page, 2)
+    const actions = actionPanel(page)
+    await actions
+        .getByRole('button', { name: /^Play a \w+ larva cube$/ })
+        .first()
+        .click()
+    await page
+        .getByRole('button', { name: /^(Place|Attack with) a / })
+        .first()
+        .click()
+    await page
+        .getByRole('button', { name: /^Take the \w+ larva cube/ })
+        .first()
+        .click()
+    await expect(actions).toContainText('Grow your reefs')
+
+    await page.getByRole('tab', { name: 'History' }).click()
+    // Setup choices move no pieces, so only the turn replays
+    const replays = page.getByRole('button', { name: /^Replay \w+'s moves$/ })
+    await expect(replays).toHaveCount(1)
+    await replays.click()
+    await expect(page.getByText('Replaying')).toBeVisible()
+    await expect(page.getByText('Replaying')).toHaveCount(0, { timeout: 15_000 })
+    await expect(actions).toContainText('Grow your reefs')
+    await expect(replays).toHaveCount(1)
+})

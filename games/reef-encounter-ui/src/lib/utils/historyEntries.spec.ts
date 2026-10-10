@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/reef-encounter'
-import { historyEntries } from './historyEntries.js'
+import { historyEntries, movesPieces } from './historyEntries.js'
 
 const action = (type: ActionType, playerId?: string): GameAction => ({
     id: `${type}-${playerId ?? 'system'}-${Math.random()}`,
@@ -43,5 +43,15 @@ describe('history entries', () => {
             action(ActionType.EndGame)
         ])
         expect(entries.map((entry) => entry.playerId)).toEqual(['a', undefined])
+    })
+
+    it('replays only entries that move pieces on the table', () => {
+        const [setup, trade, turn] = historyEntries([
+            action(ActionType.FeedParrotfish, 'a'),
+            action(ActionType.ChooseLarvaCubes, 'a'),
+            action(ActionType.ExchangeLarvaCube, 'b'),
+            action(ActionType.MoveShrimp, 'a')
+        ])
+        expect([setup, trade, turn].map(movesPieces)).toEqual([false, false, true])
     })
 })

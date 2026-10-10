@@ -1,5 +1,5 @@
 import type { GameAction } from '@tabletop/common'
-import { isEndGame } from '@tabletop/reef-encounter'
+import { ActionType, isEndGame } from '@tabletop/reef-encounter'
 
 export type HistoryEntry = {
     // The player whose turn or setup choice this is; absent for the game's end.
@@ -7,6 +7,21 @@ export type HistoryEntry = {
     actions: GameAction[]
     firstActionIndex: number
     lastActionIndex: number
+}
+
+// Actions that put, take or move pieces on the table, and so have something to replay.
+const PieceMovingActions = new Set<string>([
+    ActionType.PlacePolyp,
+    ActionType.IntroduceShrimp,
+    ActionType.MoveShrimp,
+    ActionType.EatCoral,
+    ActionType.PlayAlgaCylinder,
+    ActionType.TakeOpenSeaSpace,
+    ActionType.RefillOpenSea
+])
+
+export function movesPieces(entry: HistoryEntry): boolean {
+    return entry.actions.some((action) => PieceMovingActions.has(action.type))
 }
 
 // One entry per stretch of actions by one player, with the system actions they caused (such as
