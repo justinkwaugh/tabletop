@@ -1,25 +1,23 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { ActionType, CardKind, Region } from '@tabletop/oath'
-    import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import { ActionType } from '@tabletop/oath'
     import CountPicker from '$lib/components/CountPicker.svelte'
     import { range } from '@tabletop/common'
-    import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
-    import { cardName, regionName, siteName } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
     let busy = $derived(gameSession.busy)
 
+    // R-1.23.1 — the start site is picked on the lit map (`BoardSitesLayer`), not in the panel.
     let choosing = $derived(gameSession.validActionTypes.includes(ActionType.SetupChoice))
-    let legalSites = $derived(gameSession.setup.sites)
     let siteId = $derived(gameSession.setup.siteId)
     let adviserCardId = $derived(gameSession.setup.adviserCardId)
     let hand = $derived(gameSession.setup.hand)
@@ -27,22 +25,6 @@
     let tapped = $derived(gameSession.setup.tapped)
     let ordering = $derived(gameSession.setup.ordering)
     let splitWhole = $derived(gameSession.setup.splitWhole)
-
-    // R-1.23.1 — the start sites by region in the board's order; one legal site is taken for the player.
-    const REGIONS = [Region.Cradle, Region.Provinces, Region.Hinterland]
-    let siteGroups = $derived(
-        legalSites.length < 2
-            ? []
-            : REGIONS.map((region) => ({
-                  region,
-                  sites: legalSites.filter((site) => gameState.regionOf(site) === region)
-              })).filter((group) => group.sites.length > 0)
-    )
-
-    function siteImage(slotId: string): string {
-        const cardId = gameState.siteCardAt(slotId)
-        return (cardId ? cardImage(cardId) : undefined) ?? cardBack(CardKind.Site)
-    }
 </script>
 
 <div>
@@ -115,32 +97,6 @@
                     {busy}
                     height={100}
                 />
-            </div>
-        {/if}
-        {#if !ordering && siteGroups.length > 0}
-            <div
-                class="mb-2 flex w-fit max-w-full flex-col gap-1.5"
-                role="list"
-                aria-label="Start sites"
-            >
-                {#each siteGroups as group (group.region)}
-                    <h4
-                        class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
-                    >
-                        {regionName(group.region)}
-                    </h4>
-                    {#each group.sites as slotId (slotId)}
-                        <MenuToggleRow
-                            image={siteImage(slotId)}
-                            name={siteName(gameState, slotId)}
-                            tag="start here"
-                            on={siteId === slotId}
-                            points={{ kind: 'site', slotId }}
-                            disabled={busy}
-                            onclick={() => gameSession.setup.chooseSite(slotId)}
-                        />
-                    {/each}
-                {/each}
             </div>
         {/if}
         {#if siteId && adviserCardId && !splitWhole}

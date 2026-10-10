@@ -134,6 +134,7 @@ import {
     type TravelWay,
     type SiteFavor,
     type BannerBid,
+    type MapPick,
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
@@ -214,7 +215,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.actionPowers,
             this.citizenship,
             this.consent,
-            this.campaign
+            this.campaign,
+            this.setup
         ]
     }
 
@@ -898,7 +900,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (!playerId) return []
         const sites = this.selectableSites
         const pick = this.setup.boardPick
-        if (pick) return sites.map((slotId) => ({ slotId, intent: 'start', label: pick.label }))
+        if (pick) {
+            return sites.map((slotId) => ({
+                slotId,
+                intent: 'start',
+                label: pick.label,
+                picked: slotId === pick.picked,
+                pickable: pick.pickable && slotId !== pick.picked
+            }))
+        }
         switch (this.selection.action) {
             case ActionType.Campaign:
                 return sites.map((slotId) => ({
@@ -933,8 +943,29 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
+    // Setup dims the map only while the start site is open to a pick, not for the pick alone.
     get mapDimmed(): boolean {
-        return this.siteOffers.some((offer) => offer.intent !== 'moveWarbands')
+        return this.siteOffers.some((offer) =>
+            offer.intent === 'start' ? offer.pickable : offer.intent !== 'moveWarbands'
+        )
+    }
+
+    /**
+     * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
+     * sites, all of them until the send, so the frame and its chips hold while the discards are
+     * ordered; or Travel's destinations.
+     */
+    get mapPick(): MapPick | undefined {
+        if (this.setup.boardPick) {
+            const sites = this.setup.sites
+            return { kind: 'start', sites, choosing: sites.length > 1 }
+        }
+        const destinations = this.siteOffers.flatMap((offer) =>
+            offer.intent === 'travel' ? [offer.slotId] : []
+        )
+        return destinations.length > 0
+            ? { kind: 'travel', sites: destinations, choosing: true }
+            : undefined
     }
 
     // R-5.3.2 — Trade's legality is per option, so a card is offered if either is legal;

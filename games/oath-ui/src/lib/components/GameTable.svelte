@@ -21,18 +21,20 @@
     import VisionSeenOverlay from '$lib/components/VisionSeenOverlay.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import FocusChooser from '$lib/components/FocusChooser.svelte'
-    import TravelFraming from '$lib/components/TravelFraming.svelte'
+    import MapPickFraming from '$lib/components/MapPickFraming.svelte'
     import { MachineState } from '@tabletop/oath'
     import type { BoundingBox } from '@tabletop/common'
     import {
         allSitesFrameRect,
         focusRect,
         siteFocusRect,
+        siteRowsFrameRect,
         travelFrameRect,
         type FocusView
     } from '$lib/definitions/boardFocusAreas.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
-    import type { TravelFrame } from '$lib/model/travelOnTheMap.js'
+    import type { MapPick } from '$lib/model/actionOffers.js'
+    import type { MapFrame } from '$lib/model/travelOnTheMap.js'
 
     import type { HydratedOathGameState, OathProjectedState } from '@tabletop/oath'
     import { setGameSession, toOathSession } from '$lib/model/sessionContext.svelte.js'
@@ -49,8 +51,8 @@
     let boardFocus = $state<{
         key: string
         view: FocusView | undefined
-        /** What a Travel on a phone framed: its step, not the player, chose this focus. */
-        travel?: TravelFrame
+        /** What a pick on the map framed on a phone: its step, not the player, chose this focus. */
+        mapPick?: MapFrame
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
 
@@ -82,28 +84,32 @@
         focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
     }
 
-    // Travel on a phone frames the lit map while the step is open (upright one region, sideways
-    // every site), and gives back the view it found when the step closes, unless a pan or zoom
-    // by hand took the view over first.
+    // A pick on the map on a phone (Travel, Setup's start site) frames the lit map while the step
+    // is open (upright one region, sideways Travel's every site or Setup's rows of start sites),
+    // and gives back the view it found when the step closes, unless a pan or zoom by hand took
+    // the view over first.
     const layout = new PhoneLayout()
-    let travelOnMap = $derived(
-        layout.phone && oath.siteOffers.some((offer) => offer.intent === 'travel')
-    )
+    let mapPick = $derived(layout.phone ? oath.mapPick : undefined)
 
-    function frameTravel(frame: TravelFrame) {
+    function frameRect(pick: MapPick, frame: MapFrame): BoundingBox {
+        if (frame !== 'all') return travelFrameRect(frame)
+        return pick.kind === 'start' ? siteRowsFrameRect(pick.sites) : allSitesFrameRect()
+    }
+
+    function frameMapPick(pick: MapPick, frame: MapFrame) {
         if (!wrapper) return
         const restore =
-            boardFocus?.travel !== undefined ? boardFocus.restore : wrapper.captureView()
-        boardFocus = { key: `travel:${frame}`, view: undefined, travel: frame, restore }
-        wrapper.focusRect(frame === 'all' ? allSitesFrameRect() : travelFrameRect(frame), {
+            boardFocus?.mapPick !== undefined ? boardFocus.restore : wrapper.captureView()
+        boardFocus = { key: `map-pick:${frame}`, view: undefined, mapPick: frame, restore }
+        wrapper.focusRect(frameRect(pick, frame), {
             animate: true,
             maxScale: FOCUS_MAX_SCALE,
             padding: FOCUS_PADDING
         })
     }
 
-    function releaseTravelFrame() {
-        if (boardFocus?.travel === undefined) return
+    function releaseMapPickFrame() {
+        if (boardFocus?.mapPick === undefined) return
         const { restore } = boardFocus
         boardFocus = undefined
         restore({ animate: true })
@@ -231,13 +237,15 @@
                     <Board />
                     {#snippet overlay()}
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
-                        {#if travelOnMap}
-                            {#key layout.upright}
-                                <TravelFraming
+                        {#if mapPick}
+                            {@const pick = mapPick}
+                            {#key `${layout.upright}:${pick.kind}`}
+                                <MapPickFraming
+                                    {pick}
                                     upright={layout.upright}
-                                    framed={boardFocus?.travel}
-                                    onframe={frameTravel}
-                                    onrelease={releaseTravelFrame}
+                                    framed={boardFocus?.mapPick}
+                                    onframe={(frame) => frameMapPick(pick, frame)}
+                                    onrelease={releaseMapPickFrame}
                                 />
                             {/key}
                         {/if}

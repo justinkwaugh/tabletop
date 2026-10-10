@@ -17,6 +17,7 @@ import {
     banksFocusRect,
     regionFocusRect,
     siteFocusRect,
+    siteRowsFrameRect,
     travelFrameRect
 } from './boardFocusAreas.js'
 
@@ -122,5 +123,16 @@ describe('Travel on a phone frames the lit sites (Choose a Travel destination)',
         for (const slotId of mapSlotsFor(Region.Hinterland)) {
             expect(disjoint(rect, rectOf(CARD_STRIP_RECTS, slotId))).toBe(true)
         }
+    })
+
+    it('Setup sideways frames the rows its start sites stand in: the top row for three, and for one', () => {
+        const top = [Region.Cradle, Region.Provinces, Region.Hinterland].map((region) => mapSlotsFor(region)[0])
+        const rect = siteRowsFrameRect(top)
+        for (const slotId of top) expect(contains(rect, rectOf(SITE_SLOT_RECTS, slotId))).toBe(true)
+        for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {
+            const second = rectOf(SITE_SLOT_RECTS, mapSlotsFor(region)[1])
+            expect(rect.y + rect.height).toBeLessThan(second.y + second.height / 2)
+        }
+        expect(siteRowsFrameRect([top[0]])).toEqual(rect)
     })
 })

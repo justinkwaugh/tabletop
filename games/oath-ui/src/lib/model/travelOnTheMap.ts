@@ -27,8 +27,8 @@ export function travelChip(ways: readonly TravelWay[]): TravelChip | undefined {
 
 export type RegionCount = { region: Region; count: number }
 
-/** What a Travel on a phone frames: one region held upright, every site held sideways. */
-export type TravelFrame = Region | 'all'
+/** What a pick on the map frames on a phone: one region held upright, every lit site sideways. */
+export type MapFrame = Region | 'all'
 
 const BOARD_ORDER: readonly Region[] = [Region.Cradle, Region.Provinces, Region.Hinterland]
 
@@ -43,7 +43,7 @@ export function regionCounts(
     }))
 }
 
-/** The region a Travel on a phone opens on: the pawn's, else the first with a destination. */
+/** The region a pick on the map opens on: the pawn's, else the first with a lit site. */
 export function openingRegion(
     pawnRegion: Region | undefined,
     counts: readonly RegionCount[]

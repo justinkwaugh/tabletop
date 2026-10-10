@@ -6,7 +6,8 @@
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
 
     // Rule 1 — a card on the board is for looking: a press enlarges it and never chooses it,
-    // except a lit Travel destination on a phone, where the map is the menu (`onpick`).
+    // except a lit start site at Setup and a lit Travel destination on a phone, where the map is
+    // the menu (`onpick`).
     let {
         cardId,
         back,

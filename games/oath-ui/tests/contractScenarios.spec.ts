@@ -2846,88 +2846,237 @@ test('scenario 5: a Campaign target is a row with its picture, a tap adds it and
     await expect(undo).toHaveCount(0)
 })
 
-test('scenario 2: an Exile chooses a start site from the rows, and a tap on another moves the choice', async ({ page }) => {
+/** R-1.23.1 — the start sites of the setup fixture: the top site of each region, faceup. */
+const TOP_CRADLE = 'slot.cradle.0'
+const START_SITES = [TOP_CRADLE, 'slot.hinterland.0', 'slot.provinces.0']
+const startSitesList = (page: Page) => page.getByRole('list', { name: 'Start sites' })
+const pickedSites = (page: Page) => page.locator('.site .board-card.picked')
+const startHere = (page: Page, slotId: string) => siteAt(page, slotId).getByText('start here', { exact: true })
+const siteMagnifiers = (page: Page) => page.locator('.site').getByRole('button', { name: /^Enlarge / })
+
+async function exileAtSetup(page: Page) {
     await openTable(page, 'setup')
     await call(page, 'seatMakesSetupChoice')
-    const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
-    await expect(sites.first()).toBeVisible()
-    expect(await sites.count()).toBeGreaterThan(1)
-    await sites.nth(0).click()
-    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
-    await expect(sites.nth(0).getByText('start here')).toBeVisible()
-    await expect(sites.nth(1).getByText('start here')).toBeHidden()
-    await sites.nth(1).click()
-    await expect(sites.nth(1)).toHaveAttribute('aria-pressed', 'true')
-    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
-    await expect(sites.nth(0).getByText('start here')).toBeHidden()
-    await expect(sites.nth(1).getByText('start here')).toBeVisible()
+    await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
+}
+
+test('scenario 2: an Exile picks a start site on the map: a click on a lit site rings it with "start here", and a click on another moves the pick', async ({ page }) => {
+    await exileAtSetup(page)
+    await expect(startSitesList(page)).toHaveCount(0)
+    expect(await litSlots(page)).toEqual(START_SITES)
+    await expect(dimmedSites(page)).toHaveCount(5)
+    await expect(page.getByText('start here', { exact: true })).toHaveCount(0)
+    for (const slotId of START_SITES) await expect(siteMagnifier(page, slotId)).toHaveCount(1)
+
+    await siteCard(page, TOP_CRADLE).click()
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+    await expect(preview(page)).toHaveCount(0)
+    await expect(pickedSites(page)).toHaveCount(1)
+    await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+    await expect(startHere(page, TOP_CRADLE)).toBeVisible()
+    await expect(page.getByText('start here', { exact: true })).toHaveCount(1)
+    await expect(siteMagnifier(page, TOP_CRADLE)).toHaveCount(0)
+    await expect(siteMagnifiers(page)).toHaveCount(2)
+    expect(await litSlots(page)).toEqual(START_SITES)
+    await expect(dimmedSites(page)).toHaveCount(5)
+
+    await siteCard(page, 'slot.provinces.0').click()
+    await expect(siteCard(page, 'slot.provinces.0')).toHaveClass(/picked/)
+    await expect(pickedSites(page)).toHaveCount(1)
+    await expect(startHere(page, 'slot.provinces.0')).toBeVisible()
+    await expect(startHere(page, TOP_CRADLE)).toHaveCount(0)
+    expect((await call(page, 'tableFacts')).siteOf.me).toBeUndefined()
 })
 
-/** The start-site rows share the widest row's width, which a pick does not change, and stretch across nothing. */
-for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
-    test(`scenario 2: the start-site rows are one width and fit their names at ${viewport.width}`, async ({ page }) => {
+/** The panel keeps the hand and its line; the start sites are on the map at every width. */
+for (const viewport of [{ width: 1280, height: 900 }, { width: 402, height: 874 }, { width: 375, height: 812 }]) {
+    test(`scenario 2: no start-site rows in the panel at ${viewport.width}, only the hand and its line`, async ({ page }) => {
         await page.setViewportSize(viewport)
-        await openTable(page, 'setup')
-        await call(page, 'seatMakesSetupChoice')
-        const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
-        await expect(sites.first()).toBeVisible()
-        const widths = async () => sites.evaluateAll((rows) => rows.map((row) => row instanceof HTMLElement ? row.offsetWidth : 0))
-        const before = await widths()
-        expect(new Set(before).size).toBe(1)
-        const room = await page.getByRole('list', { name: 'Start sites' }).evaluate((list) => list.parentElement?.clientWidth ?? 0)
-        expect(before[0]).toBeLessThan(room)
-        if (viewport.width < 640) {
-            const heights = await sites.evaluateAll((rows) => rows.map((row) => row instanceof HTMLElement ? row.offsetHeight : 0))
-            for (const height of heights) expect(height).toBeGreaterThanOrEqual(44)
-        }
-        await sites.nth(0).click()
-        await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
-        expect(await widths()).toEqual(before)
+        await exileAtSetup(page)
+        await expect(startSitesList(page)).toHaveCount(0)
+        await expect(panelCards(page)).toHaveCount(3)
+        await expect(magnifiers(page)).toHaveCount(3)
+        await expect(grid(page)).not.toContainText(/cradle|provinces|hinterland/i)
+        if (viewport.width === 402) expect(await panelScale(page)).toBe(1)
     })
 }
 
-test('scenario 2: the other sites dim; a card kept first stays marked, and the site picked after takes the ring off the map', async ({
+test('scenario 2: a card kept first stays marked; the site picked after stays ringed with "start here", the other start sites go dark and nothing dims', async ({
     page
 }) => {
-    await openTable(page, 'setup')
-    await call(page, 'seatMakesSetupChoice')
-    await expect(page.getByRole('list', { name: 'Start sites' })).toBeVisible()
-    const lit = await boardOffers(page).count()
-    expect(lit).toBeGreaterThan(1)
-    expect(await dimmedSites(page).count()).toBeGreaterThan(0)
-    expect(lit + (await dimmedSites(page).count())).toBe(await page.locator('.site').count())
+    await exileAtSetup(page)
+    expect(await litSlots(page)).toEqual(START_SITES)
+    expect((await boardOffers(page).count()) + (await dimmedSites(page).count())).toBe(await page.locator('.site').count())
 
     const card = grid(page).locator('button[aria-pressed]').first()
     await card.click()
     await expect(card).toHaveAttribute('aria-pressed', 'true')
-    await expect(boardOffers(page)).toHaveCount(lit)
-    await page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]').first().click()
-    await expect(boardOffers(page)).toHaveCount(0)
-    await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(page.getByText('Pick a start site.', { exact: true })).toBeVisible()
+    await expect(boardOffers(page)).toHaveCount(3)
+    await siteCard(page, 'slot.hinterland.0').click()
     await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+    expect(await litSlots(page)).toEqual(['slot.hinterland.0'])
+    await expect(siteCard(page, 'slot.hinterland.0')).toHaveClass(/picked/)
+    await expect(startHere(page, 'slot.hinterland.0')).toBeVisible()
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(siteMagnifiers(page)).toHaveCount(0)
 })
 
-test('scenario 2: Undo unwinds an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
-    await openTable(page, 'setup')
-    await call(page, 'seatMakesSetupChoice')
-    const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
-    await expect(sites.first()).toBeVisible()
-    const litBefore = await boardOffers(page).count()
-    expect(litBefore).toBeGreaterThan(1)
-    const pickedSites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed="true"]')
-
-    await sites.nth(0).click()
-    await expect(pickedSites).toHaveCount(1)
-    await panelCards(page).filter({ hasNotText: /start here/ }).first().click()
+test('scenario 2: Undo takes back the last tap: the site tapped after the card first, then the card, and the lit map returns', async ({ page }) => {
+    await exileAtSetup(page)
+    const card = grid(page).locator('button[aria-pressed]').first()
+    await card.click()
+    await siteCard(page, 'slot.provinces.0').click()
     await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
     await expect(stepBacks(page)).toHaveCount(0)
+
     const undo = undoButton(page)
     await undo.click()
-    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toHaveCount(0)
-    await expect(pickedSites).toHaveCount(1)
+    await expect(page.getByText('Pick a start site.', { exact: true })).toBeVisible()
+    await expect(pickedSites(page)).toHaveCount(0)
+    await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(1)
+    expect(await litSlots(page)).toEqual(START_SITES)
+    await expect(dimmedSites(page)).toHaveCount(5)
+
     await undo.click()
-    await expect(pickedSites).toHaveCount(0)
-    await expect(boardOffers(page)).toHaveCount(litBefore)
+    await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
+    await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
+    await expect(undo).toHaveCount(0)
+})
+
+test('scenario 1: the Chancellor’s site is ringed with "start here" and cannot be picked; a click enlarges it, and nothing dims', async ({ page }) => {
+    await openTable(page, 'setup')
+    await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+    expect(await litSlots(page)).toEqual([TOP_CRADLE])
+    await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+    await expect(startHere(page, TOP_CRADLE)).toBeVisible()
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(siteMagnifiers(page)).toHaveCount(0)
+    await expect(startSitesList(page)).toHaveCount(0)
+
+    await siteCard(page, TOP_CRADLE).click()
+    await expect(preview(page)).toBeVisible()
+    await expect(undoButton(page)).toHaveCount(0)
+})
+
+/** On a phone the lit map is the start sites' menu, framed as Travel's. */
+for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+    test.describe(`scenario 2 on a ${viewport.width} px phone held upright`, () => {
+        test.use({ viewport, hasTouch: true })
+
+        test('the map opens framed on the Cradle under three region chips; the start sites lit, the facedown ones dimmed', async ({ page }) => {
+            await exileAtSetup(page)
+            for (const region of ['Cradle', 'Provinces', 'Hinterland']) {
+                await expect(regionChip(page, region)).toHaveAccessibleName(`${region}: 1 start site`)
+            }
+            await expect(regionChip(page, 'Cradle')).toHaveAttribute('aria-pressed', 'true')
+            await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+            expect(await onScreen(page, siteCard(page, 'slot.provinces.0'))).toBe(false)
+            const chipRow = await boxOf(regionChips(page))
+            expect(chipRow.y + chipRow.height).toBeLessThan((await boxOf(siteCard(page, TOP_CRADLE))).y)
+            expect(await litSlots(page)).toEqual(START_SITES)
+            await expect(dimmedSites(page)).toHaveCount(5)
+            await expect(page.getByText('start here', { exact: true })).toHaveCount(0)
+            const face = await boxOf(siteMagnifier(page, TOP_CRADLE).locator('.site-magnifier__face'))
+            expect(face.width).toBeCloseTo(28, 0)
+            expect(face.height).toBeCloseTo(28, 0)
+        })
+
+        test('a tap on a lit site rings it with "start here" on its card; a chip and a tap in another region move the pick', async ({ page }) => {
+            await exileAtSetup(page)
+            await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+            await siteCard(page, TOP_CRADLE).tap()
+            await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+            await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+            const chip = await boxOf(siteAt(page, TOP_CRADLE).locator('.travel-cost'))
+            expect(inside(chip, await boxOf(siteCard(page, TOP_CRADLE)))).toBe(true)
+            await expect(startHere(page, TOP_CRADLE)).toBeVisible()
+            await expect(preview(page)).toHaveCount(0)
+
+            await regionChip(page, 'Provinces').tap()
+            await expect(regionChip(page, 'Provinces')).toHaveAttribute('aria-pressed', 'true')
+            await expect.poll(() => onScreen(page, siteCard(page, 'slot.provinces.0'))).toBe(true)
+            await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+            await siteCard(page, 'slot.provinces.0').tap()
+            await expect(siteCard(page, 'slot.provinces.0')).toHaveClass(/picked/)
+            await expect(pickedSites(page)).toHaveCount(1)
+            await expect(startHere(page, 'slot.provinces.0')).toBeVisible()
+        })
+
+        test('a start site’s magnifier enlarges it and picks nothing', async ({ page }) => {
+            await exileAtSetup(page)
+            await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+            await siteMagnifier(page, TOP_CRADLE).tap()
+            await expect(preview(page)).toBeVisible()
+            await page.touchscreen.tap(20, 20)
+            await expect(preview(page)).toHaveCount(0)
+            await expect(pickedSites(page)).toHaveCount(0)
+            await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
+        })
+
+        test('the discards replace the hand; the pick stays ringed under the chips, and the map undims', async ({ page }) => {
+            await exileAtSetup(page)
+            await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+            await siteCard(page, TOP_CRADLE).tap()
+            await panelCards(page).first().tap()
+            await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+            await expect(panelCards(page)).toHaveCount(2)
+            expect(await litSlots(page)).toEqual([TOP_CRADLE])
+            await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+            await expect(dimmedSites(page)).toHaveCount(0)
+            await expect(regionChips(page)).toBeVisible()
+            expect(await onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+        })
+
+        test('the Chancellor: the map opens framed on the Cradle with no chips, his site ringed with "start here"', async ({ page }) => {
+            await openTable(page, 'setup')
+            await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+            await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
+            await expect(regionChips(page)).toHaveCount(0)
+            await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+            await expect(startHere(page, TOP_CRADLE)).toBeVisible()
+            await expect(dimmedSites(page)).toHaveCount(0)
+            await expect(siteMagnifiers(page)).toHaveCount(0)
+        })
+    })
+}
+
+test.describe('scenario 2 on a phone held sideways', () => {
+    test.use({ viewport: { width: 812, height: 375 }, hasTouch: true })
+
+    // The start sites' row across the board's width, where Travel's every-site frame draws it about 0.78 as wide.
+    async function rowFillsTheBoard(page: Page): Promise<boolean> {
+        const [first, last, view] = [
+            await boxOf(siteCard(page, TOP_CRADLE)),
+            await boxOf(siteCard(page, 'slot.hinterland.0')),
+            await boxOf(boardView(page))
+        ]
+        return last.x + last.width - first.x > 0.9 * view.width
+    }
+
+    test('the three start sites are framed at once with no chips; a tap picks one', async ({ page }) => {
+        await exileAtSetup(page)
+        await expect(regionChips(page)).toHaveCount(0)
+        await expect(startSitesList(page)).toHaveCount(0)
+        for (const slotId of START_SITES) {
+            await expect.poll(() => onScreen(page, siteCard(page, slotId))).toBe(true)
+        }
+        await expect.poll(() => rowFillsTheBoard(page)).toBe(true)
+        await siteCard(page, 'slot.hinterland.0').tap()
+        await expect(siteCard(page, 'slot.hinterland.0')).toHaveClass(/picked/)
+        await expect(startHere(page, 'slot.hinterland.0')).toBeVisible()
+    })
+
+    test('the Chancellor’s site is framed in its row with no chips', async ({ page }) => {
+        await openTable(page, 'setup')
+        await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
+        await expect(regionChips(page)).toHaveCount(0)
+        for (const slotId of START_SITES) {
+            await expect.poll(() => onScreen(page, siteCard(page, slotId))).toBe(true)
+        }
+        await expect.poll(() => rowFillsTheBoard(page)).toBe(true)
+        await expect(siteCard(page, TOP_CRADLE)).toHaveClass(/picked/)
+    })
 })
 
 const favorOn = (page: Page, n: number, site: string) =>
@@ -3185,7 +3334,7 @@ test('scenario 48: History View offers no choice; a click enlarges, the seat, th
 
     await page.getByRole('button', { name: 'go to current' }).click()
     await expect(prompt).toBeVisible()
-    await expect(page.getByRole('list', { name: 'Start sites' })).toBeVisible()
+    await expect(boardOffers(page)).toHaveCount(3)
     await expect(cradle).toHaveAttribute('aria-pressed', 'true')
 })
 

@@ -1,38 +1,43 @@
 <script lang="ts">
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
+    import type { Region } from '@tabletop/oath'
+    import type { MapPick } from '$lib/model/actionOffers.js'
     import { regionName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { openingRegion, regionCounts, type TravelFrame } from '$lib/model/travelOnTheMap.js'
+    import { openingRegion, regionCounts, type MapFrame } from '$lib/model/travelOnTheMap.js'
 
-    // Travel on a phone: the map is the menu, so the step frames it. Upright, one region at a
-    // time, opening on the pawn's region (or the first with a destination), with a chip per
-    // region naming its count; a chip reframes and chooses nothing. Sideways, every site at once.
+    // A pick on the map on a phone (Travel, Setup's start site): the map is the menu, so the step
+    // frames it. Upright, one region at a time, opening on the pawn's region (or the first with a
+    // lit site), with a chip per region naming its count; a chip reframes and chooses nothing.
+    // Setup's one legal site (the Chancellor's) is framed with no chips. Sideways, the lit map at
+    // once, with no chips.
     let {
+        pick,
         upright,
         framed,
         onframe,
         onrelease
     }: {
+        pick: MapPick
         upright: boolean
-        framed: TravelFrame | undefined
-        onframe: (frame: TravelFrame) => void
+        framed: MapFrame | undefined
+        onframe: (frame: MapFrame) => void
         onrelease: () => void
     } = $props()
 
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    let counts = $derived(
-        regionCounts(
-            gameSession.siteOffers
-                .filter((offer) => offer.intent === 'travel')
-                .map((offer) => offer.slotId),
-            (slotId) => gameState.regionOf(slotId)
-        )
-    )
+    let counts = $derived(regionCounts(pick.sites, (slotId) => gameState.regionOf(slotId)))
 
-    function opening(): TravelFrame | undefined {
+    function chipLabel(region: Region, count: number): string {
+        const name = regionName(region)
+        if (pick.kind === 'travel') return `${name}: ${count} to travel to`
+        return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
+    }
+
+    function opening(): MapFrame | undefined {
         if (!upright) return 'all'
         const seatId = gameSession.liveTurnSeatId
         const siteId = seatId ? gameState.getPlayerState(seatId).siteId : undefined
@@ -47,8 +52,8 @@
     }
 </script>
 
-<div class="travel-framing" {@attach frameWhileOpen}>
-    {#if upright}
+<div class="map-pick-framing" {@attach frameWhileOpen}>
+    {#if upright && pick.choosing}
         <div class="chips" role="group" aria-label="Frame the map on a region">
             {#each counts.filter(({ count }) => count > 0) as { region, count } (region)}
                 <button
@@ -56,7 +61,7 @@
                     class="chip"
                     class:chip--on={framed === region}
                     aria-pressed={framed === region}
-                    aria-label="{regionName(region)}: {count} to travel to"
+                    aria-label={chipLabel(region, count)}
                     onclick={() => onframe(region)}
                 >
                     {regionName(region)} <span class="chip__count">{count}</span>
@@ -67,7 +72,7 @@
 </div>
 
 <style>
-    .travel-framing {
+    .map-pick-framing {
         display: contents;
     }
     /* Along the map's top edge, clear of the framed sites, as the desktop's focus views sit. */

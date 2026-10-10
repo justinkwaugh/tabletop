@@ -16,9 +16,35 @@ import {
     type TravelTerms
 } from '@tabletop/oath'
 
-export type BoardPick = { sites: string[]; label: string }
+/**
+ * R-1.23.1 — Setup's start sites on the map: lit while the pick is open (`pickable`), the one
+ * picked marked; once the discards are asked, or when one site is legal, the pick alone.
+ */
+export type BoardPick = {
+    sites: string[]
+    label: string
+    picked: string | undefined
+    pickable: boolean
+}
+
+/** A choice made by tapping the map, as a phone frames it: the sites its frame and chips count. */
+export type MapPick = {
+    kind: 'start' | 'travel'
+    sites: string[]
+    /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
+    choosing: boolean
+}
+
 export type SiteOffer =
-    | { slotId: string; intent: 'start'; label: string }
+    | {
+          slotId: string
+          intent: 'start'
+          label: string
+          /** The site picked so far: ringed and marked with the label. */
+          picked: boolean
+          /** A tap on the map picks it. */
+          pickable: boolean
+      }
     | {
           slotId: string
           intent: 'travel'

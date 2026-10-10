@@ -74,8 +74,9 @@ export function siteFocusRect(slotId: string): BoundingBox {
 
 const ALL_SITES = union(Object.values(SITE_SLOT_RECTS))
 
-/** Travel on a phone held upright: a region's sites, from the top site row to the bottom one, so
- *  every region is framed at one zoom (the Cradle has two sites, the others three). */
+/** A pick on the map on a phone held upright (Travel, Setup): a region's sites, from the top site
+ *  row to the bottom one, so every region is framed at one zoom (the Cradle has two sites, the
+ *  others three). */
 export function travelFrameRect(region: Region): BoundingBox {
     const column = union(mapSlotsFor(region).flatMap((slotId) => present(slotId, SITE_SLOT_RECTS)))
     return padded({ x: column.x, y: ALL_SITES.y, width: column.width, height: ALL_SITES.height })
@@ -84,6 +85,15 @@ export function travelFrameRect(region: Region): BoundingBox {
 /** Travel on a phone held sideways: every site at once. */
 export function allSitesFrameRect(): BoundingBox {
     return padded(ALL_SITES)
+}
+
+/** Setup on a phone held sideways: the rows of sites the start sites stand in (in a first game
+ *  the map's top row), so the Chancellor's one site is framed as an Exile's three are. */
+export function siteRowsFrameRect(slotIds: readonly string[]): BoundingBox {
+    const rows = new Set(
+        slotIds.flatMap((slotId) => present(slotId, SITE_SLOT_RECTS)).map((r) => r.y)
+    )
+    return padded(union(Object.values(SITE_SLOT_RECTS).filter((rect) => rows.has(rect.y))))
 }
 
 export function focusRect(view: Exclude<FocusView, 'full'>): BoundingBox {
