@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { PlayerStatus, PowerTiming, Suit, TradeOption, powerIndexOf, reliquarySlotId } from '@tabletop/oath'
+import {
+    OathRevision,
+    PlayerStatus,
+    PowerTiming,
+    Suit,
+    TradeOption,
+    powerIndexOf,
+    reliquarySlotId
+} from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { tradeRows } from './tradeRows.js'
 
@@ -141,5 +149,36 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
             gain: 0,
             sideFavor: 0
         })
+    })
+
+    const POVERTY = 'denizen.beast.vow-of-poverty'
+    const declared = [{ cardId: SIGNAL, powerIndex: powerIndexOf(SIGNAL, PowerTiming.Modifier) }]
+    const withAdvisers = (advisers: string[], state: Record<string, unknown> = {}) =>
+        site(
+            {
+                status: PlayerStatus.Chancellor,
+                advisers: [...HEARTH_ADVISERS, ...advisers].map((cardId) => ({ cardId, faceUp: true }))
+            },
+            {
+                chancellorPlayerId: 'p1',
+                favorBank: banks(),
+                reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) })),
+                oathRevision: OathRevision.EngineFixes2,
+                ...state
+            }
+        )
+    const secretsAtBinders = (rows: ReturnType<typeof tradeRows>) =>
+        rows.find((row) => row.cardId === BINDERS)?.choices.find((c) => c.option === TradeOption.ForSecrets)
+
+    it('counts none for a Vow of Poverty holder, whom Careless gives nothing', () => {
+        expect(secretsAtBinders(tradeRows(withAdvisers([POVERTY]), 'p1', []))).toMatchObject({ sideFavor: 0 })
+    })
+
+    it('counts Secret Signal’s one more favor, as far as the bank holds (R-9.3)', () => {
+        expect(secretsAtBinders(tradeRows(withAdvisers([SIGNAL]), 'p1', declared))).toMatchObject({
+            sideFavor: 2
+        })
+        const bankOfOne = withAdvisers([SIGNAL], { favorBank: banks({ [Suit.Hearth]: 1 }) })
+        expect(secretsAtBinders(tradeRows(bankOfOne, 'p1', declared))).toMatchObject({ sideFavor: 1 })
     })
 })
