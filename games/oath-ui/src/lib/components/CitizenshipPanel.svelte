@@ -7,11 +7,10 @@
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { range } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { CardKind, type Banner } from '@tabletop/oath'
+    import type { Banner } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
-    import { cardChoices, type CardChoice } from '$lib/model/cardChoice.js'
-    import { cardName, reliquaryLabel } from '$lib/model/names.js'
+    import { cardChoices, reliquaryRelicChoice, type CardChoice } from '$lib/model/cardChoice.js'
 
     // R-6.6.1, R-9.6 — the offer hands the turn to the Exile, and its terms bind. Undo backs out
     // of it one pick at a time: a term, the relic, the Exile, then the action.
@@ -27,14 +26,7 @@
 
     // R-6.4-H1 — a face to the Scepter's holder, who knows every Reliquary relic; a back to anyone else.
     function relicAt(slotId: string): CardChoice {
-        const known = gameSession.knownRelicAt(slotId)
-        return known
-            ? { key: slotId, cardId: known, label: cardName(known) }
-            : {
-                  key: slotId,
-                  back: CardKind.Relic,
-                  label: `Facedown relic on ${reliquaryLabel(slotId)}`
-              }
+        return reliquaryRelicChoice(slotId, (slot) => gameSession.knownRelicAt(slot))
     }
 
     function toggleBanner(term: 'givenBanners' | 'askedBanners', banner: Banner) {

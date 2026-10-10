@@ -13,6 +13,7 @@ import {
     IMPERIAL_WARBANDS,
     LetPeek,
     LetPeekSubjectKind,
+    isLetPeek,
     MachineState,
     MoveWarbands,
     OathRevision,
@@ -37,6 +38,7 @@ import {
     mapSlotsFor,
     reliquarySlotId,
     type CitizenshipTransfer,
+    type LetPeekSubject,
     type OathPlayerState,
     type OathProjectedState,
     type PowerQuestion,
@@ -135,6 +137,8 @@ export type TableName =
     | 'offerCitizenship'
     | 'offerCitizenshipToOne'
     | 'everyMinor'
+    | 'show'
+    | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
     | 'oathkeeperTie'
@@ -2187,6 +2191,63 @@ function everyMinorTable(): PlayedTable {
     return tableOf(state)
 }
 
+const SWARM = 'denizen.beast.insect-swarm'
+const FORCED_LABOR = 'denizen.order.forced-labor'
+
+/**
+ * R-6.1, R-6.6.1, R-9.4 — what Show offers: Jacob, the Chancellor, holds the Grand Scepter from an
+ * earlier turn, knows every Reliquary relic (R-6.4-H1) and has Insect Swarm facedown; Cole is an
+ * Exile with Forced Labor facedown, and Ann a Citizen. `on` is the seat whose Act Phase it is.
+ */
+function showTable(on: 'jacob' | 'cole'): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter'],
+                advisers: [{ cardId: SWARM, faceUp: false }],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                secrets: 1,
+                advisers: [{ cardId: FORCED_LABOR, faceUp: false }],
+                warbandsInPersonalBank: { cole: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY)
+        }
+    )
+    openTurn(state, on)
+    state.activePlayerIds = [on]
+    return tableOf(state)
+}
+
 /** R-6.7 — the Grand Scepter's holder may exile Cole (5 favor) or Ann, who holds the People's Favor (6). */
 function exileCitizensTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -2287,6 +2348,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     offerCitizenship: () => offerCitizenshipTable(false),
     offerCitizenshipToOne: () => offerCitizenshipTable(true),
     everyMinor: everyMinorTable,
+    show: () => showTable('jacob'),
+    showOne: () => showTable('cole'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
@@ -2479,6 +2542,14 @@ export function letPeekState(): { open: boolean; staged: boolean; action?: strin
         staged: table.letPeekIsStaged,
         action: table.selection.action
     }
+}
+
+/** The last Action sent, when it let another player peek: whom, and what (R-6.1, R-6.6.1). */
+export function lastLetPeek(): { toPlayerId: string; subject: LetPeekSubject } | undefined {
+    const action = current().actions.at(-1)
+    return isLetPeek(action)
+        ? { toPlayerId: action.toPlayerId, subject: action.subject }
+        : undefined
 }
 
 /** The seat on screen travels, sent as its own client would send it (R-5.6). */

@@ -787,4 +787,17 @@ describe('the seat card’s let-peek picker draft (docs/user-interactions.md)', 
         expect(draft.open).toBe(false)
         expect(draft.hasManualSelection()).toBe(false)
     })
+
+    it('the card picked in it is the next pick: Undo takes it back, then closes the picker', () => {
+        const draft = picker()
+        draft.toggle()
+        expect(draft.subject).toBeUndefined()
+        draft.pick('denizen.arcane.tutor')
+        expect(draft.subject).toBe('denizen.arcane.tutor')
+        expect(draft.back()).toBe(true)
+        expect(draft.subject).toBeUndefined()
+        expect(draft.open).toBe(true)
+        expect(draft.back()).toBe(true)
+        expect(draft.open).toBe(false)
+    })
 })

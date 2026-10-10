@@ -751,14 +751,50 @@ export class ConsentDraft extends OneStepDraft<string[]> {
     }
 }
 
-/** R-9.4 — outside this seat's Act Phase the seat card opens the let-peek picker on its own; opening it is the pick. */
-export class SeatCardPeekDraft extends OneStepDraft<true> {
+type SeatCardPeekValueByStage = { open: true; subject: string }
+
+const SEAT_CARD_PEEK_STAGE_ORDER = ['open', 'subject'] as const
+const _seatCardPeekStagesAreCovered: StagesCover<
+    SeatCardPeekValueByStage,
+    typeof SEAT_CARD_PEEK_STAGE_ORDER
+> = true
+void _seatCardPeekStagesAreCovered
+
+/**
+ * R-9.4 — outside this seat's Act Phase the seat card opens the let-peek picker on its own:
+ * opening it is one pick, and the card to show is the next.
+ */
+export class SeatCardPeekDraft implements PanelDraft {
+    private flow = new StagedFlow<SeatCardPeekValueByStage>(SEAT_CARD_PEEK_STAGE_ORDER)
+
     get open(): boolean {
-        return this.stored === true
+        return this.flow.value('open') === true
+    }
+
+    /** The key of the card tapped to show (`letPeekKey`), if any. */
+    get subject(): string | undefined {
+        return this.flow.value('subject')
     }
 
     toggle(): void {
         if (this.open) this.reset()
-        else this.store(true)
+        else this.flow.set('open', true)
+    }
+
+    pick(key: string): void {
+        assert(this.open, 'A card to show is picked in the open picker')
+        this.flow.set('subject', key)
+    }
+
+    hasManualSelection(): boolean {
+        return this.flow.hasManualSelection()
+    }
+
+    back(): boolean {
+        return this.flow.back() !== undefined
+    }
+
+    reset(): void {
+        this.flow.reset()
     }
 }

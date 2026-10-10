@@ -4483,3 +4483,226 @@ test.describe('power questions', () => {
         }
     })
 })
+
+/**
+ * The Show menu (R-6.1, R-6.6.1, R-9.4): the cards this seat may show as images, its facedown
+ * advisers then the Reliquary relics in space order; a tap rings one, and "To:" lists the chips of
+ * the players who may see it; a chip shows it.
+ */
+test.describe('the Show menu', () => {
+    const SHOWABLE = ['Insect Swarm', 'Ring of Devotion', 'Cup of Plenty', 'Skeleton Key', 'Brass Horse']
+    const picker = (page: Page) => page.locator('.let-peek-picker')
+    const showCard = (page: Page, name: string) =>
+        picker(page).locator('button[aria-pressed]').filter({ has: page.getByRole('img', { name, exact: true }) })
+    const chips = (page: Page) => picker(page).getByRole('button', { name: /^Show .+ to \w+$/ })
+
+    /** Each card and chip of the picker as drawn, in layout pixels (a tall panel is scaled to fit). */
+    async function shown(page: Page) {
+        await expect(picker(page).locator('img').first()).toBeVisible()
+        await picker(page)
+            .locator('img')
+            .evaluateAll((images: HTMLImageElement[]) =>
+                Promise.all(images.map((image) => image.decode().catch(() => undefined)))
+            )
+        return picker(page).evaluate((root: HTMLElement) => {
+            const frame = root.getBoundingClientRect()
+            const scale = frame.width / root.offsetWidth
+            const edge = (root.closest('.panel') ?? root.closest('.let-peek') ?? root).getBoundingClientRect()
+            const local = (rect: DOMRect) => ({
+                left: (rect.left - frame.left) / scale,
+                top: (rect.top - frame.top) / scale,
+                right: (rect.right - frame.left) / scale,
+                bottom: (rect.bottom - frame.top) / scale,
+                width: rect.width / scale,
+                height: rect.height / scale,
+                inPanel: rect.left >= edge.left - 0.5 && rect.right <= edge.right + 0.5
+            })
+            const cards = [...root.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')].map((button) => {
+                const image = button.querySelector('img')
+                if (!image) throw Error('A card to show has no image')
+                return {
+                    name: image.alt,
+                    picked: button.getAttribute('aria-pressed') === 'true',
+                    ...local(image.getBoundingClientRect())
+                }
+            })
+            const chipButtons = [
+                ...root.querySelectorAll<HTMLButtonElement>('button:not([aria-pressed]):not(.magnifier)')
+            ]
+            const chips = chipButtons.map((button) => {
+                const outer = button.getBoundingClientRect()
+                return {
+                    name: button.getAttribute('aria-label') ?? '',
+                    text: button.textContent?.trim() ?? '',
+                    title: button.getAttribute('title'),
+                    inside: [...button.querySelectorAll('*')].every((child) => {
+                        const inner = child.getBoundingClientRect()
+                        return (
+                            inner.left >= outer.left - 0.5 &&
+                            inner.right <= outer.right + 0.5 &&
+                            inner.top >= outer.top - 0.5 &&
+                            inner.bottom <= outer.bottom + 0.5
+                        )
+                    }),
+                    ...local(outer)
+                }
+            })
+            return { cards, chips }
+        })
+    }
+
+    test('at 1280: the adviser then the Reliquary relics, faces, 100 px, one line, none ringed; a tap rings one and “To:” shows who may see it; a chip shows it', async ({
+        page
+    }) => {
+        await openTable(page, 'show')
+        await minor(page, 'Show').click()
+        await expect(grid(page).getByText(/^Show .+ to$/)).toHaveCount(0)
+
+        const before = await shown(page)
+        // R-6.4-H1 — the Scepter's holder knows every Reliquary relic, so each is its face.
+        expect(before.cards.map((card) => card.name)).toEqual(SHOWABLE)
+        expect(before.cards.filter((card) => card.picked)).toEqual([])
+        expect(before.chips).toEqual([])
+        await expect(picker(page).getByText('To:', { exact: true })).toHaveCount(0)
+        for (const card of before.cards) {
+            expect(card.height, `${card.name}: 100 tall`).toBeCloseTo(100, 0)
+            expect(card.top, `${card.name}: on the first card’s line`).toBeCloseTo(before.cards[0].top, 0)
+            expect(card.inPanel, `${card.name}: inside the panel`).toBe(true)
+        }
+        await expect(picker(page).locator('button.magnifier')).toHaveCount(SHOWABLE.length)
+        await expect(picker(page).getByRole('button', { name: 'Enlarge Cup of Plenty', exact: true })).toBeVisible()
+
+        // R-6.1, R-9.4 — an adviser may be shown to every other player.
+        await showCard(page, 'Insect Swarm').click()
+        await expect(showCard(page, 'Insect Swarm')).toHaveAttribute('aria-pressed', 'true')
+        await expect(picker(page).getByText('To:', { exact: true })).toBeVisible()
+        await expect(chips(page)).toHaveText(['cole', 'ann'])
+        expect(await chips(page).evaluateAll((buttons) => buttons.map((b) => b.getAttribute('aria-label')))).toEqual([
+            'Show Insect Swarm to cole',
+            'Show Insect Swarm to ann'
+        ])
+
+        // R-6.6.1 — a relic only to an Exile: the Citizen has no chip.
+        await showCard(page, 'Cup of Plenty').click()
+        await expect(showCard(page, 'Insect Swarm')).toHaveAttribute('aria-pressed', 'false')
+        await expect(chips(page)).toHaveText(['cole'])
+        const relicChip = picker(page).getByRole('button', {
+            name: 'Show the relic on Reliquary space 2 to cole',
+            exact: true
+        })
+        await expect(relicChip).toBeVisible()
+        const after = await shown(page)
+        for (const chip of after.chips) {
+            expect(chip.inside, `${chip.name}: the chip inside its button`).toBe(true)
+            expect(chip.title, `${chip.name}: no hover text`).toBeNull()
+            expect(chip.top, `${chip.name}: under the cards`).toBeGreaterThan(
+                Math.max(...after.cards.map((card) => card.bottom))
+            )
+        }
+
+        await relicChip.click()
+        await expect.poll(() => call(page, 'lastLetPeek')).toEqual({
+            toPlayerId: 'cole',
+            subject: { kind: 'reliquary', slotId: 'reliquary.1' }
+        })
+    })
+
+    // Four relics at 70 px and their gaps take 304 px: the panel holds them on one line at 402 wide
+    // (328 px inside), not at 375 (303.5 px), where the Reliquary still starts its own line.
+    for (const { viewport, oneLine } of [
+        { viewport: { width: 402, height: 874 }, oneLine: true },
+        { viewport: { width: 375, height: 812 }, oneLine: false }
+    ]) {
+        test(`at ${viewport.width} wide: the cards 70 px, the Reliquary on its own line, the chips 44 px tall`, async ({
+            page
+        }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'show')
+            await minor(page, 'Show').click()
+            await showCard(page, 'Insect Swarm').click()
+
+            const { cards, chips: drawn } = await shown(page)
+            expect(cards.map((card) => card.name)).toEqual(SHOWABLE)
+            const [adviser, ...relics] = cards
+            for (const card of cards) {
+                expect(card.height, `${card.name}: 70 tall`).toBeCloseTo(70, 0)
+                expect(card.inPanel, `${card.name}: inside the panel`).toBe(true)
+            }
+            expect(relics[0].left, 'the Reliquary starts its line').toBeCloseTo(adviser.left, 0)
+            for (const relic of relics) {
+                expect(relic.top, `${relic.name}: under the adviser`).toBeGreaterThan(adviser.bottom)
+                if (oneLine) {
+                    expect(relic.top, `${relic.name}: on the Reliquary’s one line`).toBeCloseTo(relics[0].top, 0)
+                }
+            }
+            expect(drawn.map((chip) => chip.text)).toEqual(['cole', 'ann'])
+            for (const chip of drawn) {
+                expect(chip.height, `${chip.name}: 44 tall`).toBeGreaterThanOrEqual(44)
+                expect(chip.inside, `${chip.name}: the chip inside its button`).toBe(true)
+                expect(chip.inPanel, `${chip.name}: inside the panel`).toBe(true)
+            }
+        })
+    }
+
+    test('one card to show starts ringed with its chips, and Undo then closes the menu', async ({ page }) => {
+        await openTable(page, 'showOne')
+        await minor(page, 'Show').click()
+        await expect(showCard(page, 'Forced Labor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(chips(page)).toHaveText(['jacob', 'ann'])
+        await expect(chips(page).first()).toHaveAccessibleName('Show Forced Labor to jacob')
+
+        await undoButton(page).click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: true })
+    })
+
+    test('Undo takes back the picked card, then closes the menu', async ({ page }) => {
+        await openTable(page, 'show')
+        await minor(page, 'Show').click()
+        await showCard(page, 'Skeleton Key').click()
+        await expect(chips(page)).toHaveText(['cole'])
+
+        await undoButton(page).click()
+        await expect(picker(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
+        await expect(chips(page)).toHaveCount(0)
+        expect(await call(page, 'letPeekState')).toEqual({ open: true, staged: true, action: 'letPeek' })
+
+        await undoButton(page).click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: true })
+    })
+
+    test('off the clock, the seat card’s picker: the same cards at 56 px, the Reliquary on its own line, 44 px chips; Undo unpicks, then closes', async ({
+        page
+    }) => {
+        await openTable(page, 'showOne')
+        expect(await call(page, 'viewOffTheClock')).toBe('jacob')
+        await page.getByRole('button', { name: 'Let another peek', exact: true }).click()
+        await expect(page.locator('.let-peek .let-peek-picker')).toHaveCount(1)
+        await expect(picker(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
+
+        await showCard(page, 'Cup of Plenty').click()
+        await expect(chips(page)).toHaveText(['cole'])
+        await expect(chips(page)).toHaveAccessibleName('Show the relic on Reliquary space 2 to cole')
+
+        const { cards, chips: drawn } = await shown(page)
+        expect(cards.map((card) => card.name)).toEqual(SHOWABLE)
+        const [adviser, ...relics] = cards
+        for (const card of cards) {
+            expect(card.height, `${card.name}: 56 tall`).toBeCloseTo(56, 0)
+            expect(card.inPanel, `${card.name}: inside the seat card`).toBe(true)
+        }
+        for (const relic of relics) {
+            expect(relic.top, `${relic.name}: under the adviser`).toBeGreaterThan(adviser.bottom)
+            expect(relic.top, `${relic.name}: on the Reliquary’s one line`).toBeCloseTo(relics[0].top, 0)
+        }
+        for (const chip of drawn) {
+            expect(chip.height, `${chip.name}: 44 tall`).toBeGreaterThanOrEqual(44)
+            expect(chip.inside, `${chip.name}: the chip inside its button`).toBe(true)
+        }
+
+        await undoButton(page).click()
+        await expect(chips(page)).toHaveCount(0)
+        expect(await call(page, 'letPeekState')).toEqual({ open: true, staged: false })
+        await undoButton(page).click()
+        expect(await call(page, 'letPeekState')).toEqual({ open: false, staged: false })
+    })
+})

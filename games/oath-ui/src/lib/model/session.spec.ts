@@ -392,3 +392,51 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
         expect(session.letPeekOpen).toBe(false)
     })
 })
+
+/** The Show menu takes the card first: a tap picks it, the only one starts picked, and Undo takes it back. */
+describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
+    const TUTOR = 'denizen.arcane.tutor'
+    const WOLVES = 'denizen.beast.wolves'
+    function table(myAdvisers: string[]) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: myAdvisers.map((cardId) => ({ cardId, faceUp: false }))
+                }),
+                testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1' })
+            ],
+            { machineState: MachineState.ActPhase }
+        )
+        openTurn(state, 'me')
+        return openSessionOn(tableOf(state))
+    }
+
+    it('in your Act Phase, two cards start unpicked; a tap picks one, a tap on another moves it, and Undo takes it back before the menu', async () => {
+        const session = table([TUTOR, WOLVES])
+        session.toggleLetPeek()
+        expect(session.letPeekPicked).toBeUndefined()
+
+        session.pickLetPeekSubject(TUTOR)
+        expect(session.letPeekPicked).toBe(TUTOR)
+        session.pickLetPeekSubject(WOLVES)
+        expect(session.letPeekPicked).toBe(WOLVES)
+
+        await session.undo()
+        expect(session.letPeekPicked).toBeUndefined()
+        expect(session.letPeekOpen).toBe(true)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+    })
+
+    it('one card to show starts picked and stores nothing, so Undo closes the menu', async () => {
+        const session = table([TUTOR])
+        session.toggleLetPeek()
+        expect(session.letPeekPicked).toBe(TUTOR)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+        expect(session.hasManualDraft).toBe(false)
+    })
+})

@@ -116,6 +116,7 @@ import {
     type MajorEventContext
 } from './majorEvents.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
+import { letPeekKey } from './letPeekChoices.js'
 import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
 import {
     adviserDiscardFirstOptions,
@@ -177,7 +178,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly actionPowers = new ActionPowersDraft(this)
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
-    readonly seatCardPeek = new SeatCardPeekDraft(this)
+    readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
     readonly visionsSeen = new VisionsSeen(this)
@@ -543,6 +544,23 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveSeatId
         if (!playerId || !this.canLetPeek) return []
         return HydratedLetPeek.legalShows(this.gameState, playerId)
+    }
+
+    /** R-6.1, R-9.4 — the card the Show menu shows: the one tapped, or the only one (`letPeekKey`). */
+    get letPeekPicked(): string | undefined {
+        if (!this.letPeekOpen) return undefined
+        const keys = this.letPeekShows.map((show) => letPeekKey(show.subject))
+        const manual = this.letPeekIsStaged
+            ? this.selection.value('option')
+            : this.seatCardPeek.subject
+        if (manual !== undefined && keys.includes(manual)) return manual
+        return keys.length === 1 ? keys[0] : undefined
+    }
+
+    pickLetPeekSubject(key: string): void {
+        if (!this.letPeekOpen) return
+        if (this.letPeekIsStaged) this.selection.set('option', key)
+        else this.seatCardPeek.pick(key)
     }
 
     toggleLetPeek(): void {
