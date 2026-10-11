@@ -1,13 +1,20 @@
 <script lang="ts">
     import { W, H } from '$lib/utils/boardGeometry.js'
-    import { fade } from 'svelte/transition'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import type { LandMood } from '$lib/model/landMood.js'
 
     const MAX_MOTES = 24
-    const MOTE_FADE_MS = 2500
+    const MOTE_FADE_SECONDS = 2.5
 
     const session = getGameSession()
-    const count = $derived(Math.round(session.landMood.drought * MAX_MOTES))
+    const moodLight = session.landMoodAnimator
+
+    // A mote shows once the drought reaches its share of the dust; the land mood animator fades it.
+    function moteShown(index: number) {
+        return (mood: LandMood) => ({
+            autoAlpha: index < Math.round(mood.drought * MAX_MOTES) ? 1 : 0
+        })
+    }
 
     // Fixed per-mote variety, so the motes never move in step and the pattern stays stable as
     // their number grows or shrinks.
@@ -27,10 +34,9 @@
 </script>
 
 <div class="dust" aria-hidden="true" style="left: 10px; top: 10px; width: {W}px; height: {H}px">
-    {#each { length: count } as _, index (index)}
-        <!-- Motes come and go gradually as the drought changes; the fade sits on its own wrapper
-             because each mote's drift already owns its opacity. -->
-        <div transition:fade={{ duration: session.easesAmbientChanges ? MOTE_FADE_MS : 0 }}>
+    {#each { length: MAX_MOTES } as _, index (index)}
+        <!-- The fade sits on its own wrapper because each mote's drift already owns its opacity. -->
+        <div {@attach moodLight.ambient(MOTE_FADE_SECONDS, moteShown(index))}>
             <div class="drift" style={moteStyle(index)}>
                 <div class="mote" style="animation-duration: {3 + (index % 5) * 0.7}s"></div>
             </div>

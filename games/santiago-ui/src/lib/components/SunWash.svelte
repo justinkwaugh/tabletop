@@ -6,25 +6,42 @@
     const SUNLIGHT = 0.45
 
     const session = getGameSession()
-    const mood = $derived(session.landMood)
-    const layerStyle = $derived(
-        `left: 10px; top: 10px; width: ${W}px; height: ${H}px; ` +
-            `transition-duration: ${session.easesAmbientChanges ? MOOD_EASE_SECONDS : 0}s`
-    )
+    const moodLight = session.landMoodAnimator
+    const layerStyle = `left: 10px; top: 10px; width: ${W}px; height: ${H}px`
 </script>
 
-<div class="light sun-wash" aria-hidden="true" style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"></div>
-<div class="light lush" aria-hidden="true" style="{layerStyle}; opacity: {mood.lush * SUNLIGHT}"></div>
-<div class="light bleach" aria-hidden="true" style="{layerStyle}; opacity: {mood.drought * 0.35}"></div>
-<div class="light glare" aria-hidden="true" style="{layerStyle}; opacity: {mood.drought * SUNLIGHT}"></div>
+<!-- The land mood animator sets the mood layers' opacity, and settles them whenever the shown mood
+     changes. -->
+<div
+    class="light sun-wash"
+    aria-hidden="true"
+    style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"
+    {@attach () => moodLight.settle(session.landMood)}
+></div>
+<div
+    class="light lush"
+    aria-hidden="true"
+    style={layerStyle}
+    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.lush * SUNLIGHT }))}
+></div>
+<div
+    class="light bleach"
+    aria-hidden="true"
+    style={layerStyle}
+    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.drought * 0.35 }))}
+></div>
+<div
+    class="light glare"
+    aria-hidden="true"
+    style={layerStyle}
+    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.drought * SUNLIGHT }))}
+></div>
 
 <style>
     .light {
         position: absolute;
         pointer-events: none;
         border-radius: 14px;
-        transition-property: opacity;
-        transition-timing-function: ease-in-out;
     }
     .sun-wash {
         mix-blend-mode: soft-light;
@@ -36,13 +53,6 @@
                 rgba(255, 220, 150, 0) 85%
             ),
             linear-gradient(rgba(255, 236, 185, 0.35), rgba(255, 236, 185, 0.35));
-    }
-    /* The light still follows the land, but snaps to it rather than fading over the board. The
-       inline duration would otherwise win. */
-    @media (prefers-reduced-motion: reduce) {
-        .light {
-            transition-duration: 0s !important;
-        }
     }
     /* Thriving land: a richer, golden warmth. */
     .lush {

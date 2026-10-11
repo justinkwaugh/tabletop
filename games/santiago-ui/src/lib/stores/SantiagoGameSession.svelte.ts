@@ -31,6 +31,7 @@ import { BribePopAnimator } from '$lib/animators/bribePopAnimator.svelte.js'
 import { FieldPopAnimator } from '$lib/animators/fieldPopAnimator.svelte.js'
 import { BoardPreview } from '$lib/model/boardPreview.svelte.js'
 import { DroughtDustAnimator } from '$lib/animators/droughtDustAnimator.svelte.js'
+import { LandMoodAnimator } from '$lib/animators/landMoodAnimator.svelte.js'
 import { actionBarView, type ActionBarView } from '$lib/model/actionBarView.js'
 import { landMood, type LandMood } from '$lib/model/landMood.js'
 import {
@@ -67,6 +68,7 @@ export class SantiagoGameSession extends GameSession<
     readonly fieldPop = new FieldPopAnimator(this)
     readonly boardPreview = new BoardPreview()
     readonly droughtDust = new DroughtDustAnimator(this)
+    readonly landMoodAnimator = new LandMoodAnimator(this)
     readonly birds = new BirdDirector(this)
 
     chosenAction: string | undefined = $state(undefined)
@@ -78,10 +80,6 @@ export class SantiagoGameSession extends GameSession<
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
-    // The land's mood eases into a change a played move made; undo, a step through history and a
-    // silent restoration change it at once. Each change of visible state starts with it off, and
-    // an animated move turns it on.
-    easesAmbientChanges = $state(false)
     // Set from the developer harness's mood tuner to preview the light on any board.
     moodOverride: LandMood | undefined = $state(undefined)
 
@@ -92,7 +90,7 @@ export class SantiagoGameSession extends GameSession<
     override async onGameStateChange({
         to: _to,
         from: _from,
-        action,
+        action: _action,
         animationContext: _animationContext
     }: {
         to: HydratedSantiagoGameState
@@ -100,7 +98,6 @@ export class SantiagoGameSession extends GameSession<
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        if (action) this.easesAmbientChanges = true
         this.chosenAction = undefined
         this.bidValue = 0
         this.proposalAmount = 1
@@ -121,11 +118,11 @@ export class SantiagoGameSession extends GameSession<
         newState: HydratedSantiagoGameState,
         oldState?: HydratedSantiagoGameState
     ) {
-        this.easesAmbientChanges = false
         try {
             await super.notifyStateChangeListeners(newState, oldState)
         } catch (error) {
             this.clearAnimationPreviews()
+            this.landMoodAnimator.settle(this.landMood)
             throw error
         }
     }

@@ -577,7 +577,8 @@
          {@attach attachAnimator(canalBuild)}
          {@attach attachAnimator(bribePop)}
          {@attach attachAnimator(fieldPop)}
-         {@attach attachAnimator(droughtDust)}>
+         {@attach attachAnimator(droughtDust)}
+         {@attach attachAnimator(session.landMoodAnimator)}>
         <defs>
             <clipPath id="canalReveal">
                 <rect x="0" y="0" width={W} height={H}
