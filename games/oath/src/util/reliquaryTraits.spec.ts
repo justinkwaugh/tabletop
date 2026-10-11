@@ -436,6 +436,58 @@ describe('Secret Signal under Vow of Poverty — no favor from the Trade, so not
     })
 })
 
+/** The favor shown before a Trade for secrets is the favor the Trade then gains beside its own. */
+describe('sideFavor under Vow of Poverty and with Secret Signal', () => {
+    const SIGNAL = 'denizen.arcane.secret-signal'
+    const counted = (s: ReturnType<typeof board>, modifiers: ModifierUse[] = []) =>
+        HydratedTrade.sideFavor(
+            s,
+            'ruler',
+            INN,
+            TradeOption.ForSecrets,
+            HydratedTrade.plan(s, 'ruler', INN, TradeOption.ForSecrets, modifiers).active
+        )
+    // A Trade for secrets places 2 favor on the card and gains none of its own.
+    const gainedBeside = (s: ReturnType<typeof board>, modifiers: ModifierUse[] = []) => {
+        const before = s.getPlayerState('ruler').favor
+        new HydratedTrade(
+            buildAction(Trade, { playerId: 'ruler', cardId: INN, option: TradeOption.ForSecrets, modifiers })
+        ).apply(s)
+        return s.getPlayerState('ruler').favor - before + 2
+    }
+    const both = (make: () => ReturnType<typeof board>, modifiers: ModifierUse[] = []) => [
+        counted(make(), modifiers),
+        gainedBeside(make(), modifiers)
+    ]
+    const hearth = (favor: number) => ({ favorBank: { ...board([]).favorBank, [Suit.Hearth]: favor } })
+
+    it('Vow of Poverty withholds Careless’s favor from revision 5, and the count says none', () => {
+        const vowed = (oathRevision: number) => () =>
+            board([CARELESS], { oathRevision }, {}, [INN], [RETURN, POVERTY])
+        expect(both(vowed(OathRevision.EngineFixes2))).toEqual([0, 0])
+        expect(both(vowed(OathRevision.CardFixes1))).toEqual([1, 1])
+    })
+
+    it('Secret Signal adds its one more favor to the count', () => {
+        const make = () => board([CARELESS], {}, {}, [INN], [RETURN, SIGNAL])
+        expect(both(make, [modifierUse(SIGNAL)])).toEqual([2, 2])
+    })
+
+    it('with one favor in the bank, Careless takes it and the count is 1 (R-9.3)', () => {
+        const make = () => board([CARELESS], hearth(1), {}, [INN], [RETURN, SIGNAL])
+        expect(both(make, [modifierUse(SIGNAL)])).toEqual([1, 1])
+    })
+
+    it('Vow of Poverty with Secret Signal: Secret Signal is refused, and nothing is counted', () => {
+        const make = () =>
+            board([CARELESS], { oathRevision: OathRevision.EngineFixes2 }, {}, [INN], [RETURN, POVERTY, SIGNAL])
+        expect(HydratedTrade.plan(make(), 'ruler', INN, TradeOption.ForSecrets, [modifierUse(SIGNAL)]).reason).toBe(
+            `${SIGNAL}: you cannot gain favor from Trade (Vow of Poverty)`
+        )
+        expect(both(make)).toEqual([0, 0])
+    })
+})
+
 describe('Greedy — Search (R-6.6.2.a)', () => {
     it('draws two more, without being declared', () => {
         expect(HydratedSearch.drawCount(board([]), 'ruler')).toBe(3)

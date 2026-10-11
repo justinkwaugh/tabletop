@@ -232,6 +232,10 @@ registerModifier(
                 )
             },
             tradeFavor: (base) => (base === 1 ? 2 : base),
+            // Its after-hook below gains one more beside a Trade for secrets; the count shown before
+            // the Trade reads it here, capped with Careless's at the bank (R-9.3).
+            tradeSideFavor: (base, ctx) =>
+                ctx.particulars?.tradeOption === 'forSecrets' ? base + 1 : base,
             // Careless gave this Trade for secrets its one favor first; a bank that had none to give has none now (R-9.3).
             after: (ctx) => {
                 if (ctx.particulars?.tradeOption !== 'forSecrets') return undefined
