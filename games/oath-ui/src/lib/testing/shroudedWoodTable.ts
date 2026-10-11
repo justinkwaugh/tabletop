@@ -32,8 +32,8 @@ const FIXTURE_SLOTS: Record<Region, string[]> = {
 }
 
 /**
- * R-11.7 — Jacob, the Chancellor with Decadent uncovered (R-6.6.2.a), stands at a Shrouded Wood
- * that Cole, an Exile, rules with one warband: the first Provinces site, or with `inCradle` the
+ * R-11.7 — Dana, the Chancellor with Decadent uncovered (R-6.6.2.a), stands at a Shrouded Wood
+ * that Rhys, an Exile, rules with one warband: the first Provinces site, or with `inCradle` the
  * first Cradle site, the two swapping cards. `onBoard` deals onto the engine's map slots.
  */
 export function shroudedWoodState(
@@ -62,7 +62,7 @@ export function shroudedWoodState(
     const state = testState(
         [
             testPlayer({
-                playerId: 'Jacob',
+                playerId: 'Dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: wood,
@@ -70,24 +70,24 @@ export function shroudedWoodState(
                 warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
             }),
             testPlayer({
-                playerId: 'Cole',
+                playerId: 'Rhys',
                 color: Color.Red,
                 siteId: slotsOf(Region.Hinterland)[2],
                 supply: 5,
-                warbandsOnBoard: { Cole: 3 }
+                warbandsOnBoard: { Rhys: 3 }
             })
         ],
         {
             oathRevision,
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'Jacob',
+            chancellorPlayerId: 'Dana',
             reliquary: [0, 2, 3].map((i) => ({ slotId: reliquarySlotId(i) })),
             ...(onBoard ? { map: allMapSlots() } : {}),
             siteCards,
-            warbandsBySite: { [wood]: { Cole: 1 } }
+            warbandsBySite: { [wood]: { Rhys: 1 } }
         }
     )
-    openTurn(state, 'Jacob')
-    state.activePlayerIds = ['Jacob']
+    openTurn(state, 'Dana')
+    state.activePlayerIds = ['Dana']
     return state
 }

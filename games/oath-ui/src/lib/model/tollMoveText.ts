@@ -61,7 +61,7 @@ function storyClause(record: PowerMoveToll, names: HistoryNames): string {
 
 /**
  * The move and, once settled, the toll's story; `cost` follows the move while the question is
- * open ("…on Jacob, placing a secret on it").
+ * open ("…on Dana, placing a secret on it").
  */
 export function tollMoveText(
     record: PowerMoveToll,
@@ -88,12 +88,12 @@ export function tollStoryText(
     return nameSeats(storyClause(record, names), names, viewerId, record.moverPlayerId)
 }
 
-/** A toll inside another row, what happened then the card: "paid Cole 1 favor (Toll Roads)". */
+/** A toll inside another row, what happened then the card: "paid Rhys 1 favor (Toll Roads)". */
 export function paidTollClause(toll: PaidToll): string {
     return `${givenFavor(toll)} (${cardName(toll.cardId)})`
 }
 
-/** Forced Labor on Oracle, after the power's summary: "paid Cole 1 favor (Forced Labor)". */
+/** Forced Labor on Oracle, after the power's summary: "paid Rhys 1 favor (Forced Labor)". */
 export function tollsGivenText(
     tolls: readonly PaidToll[],
     names: HistoryNames,

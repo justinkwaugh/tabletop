@@ -22,7 +22,7 @@ function travellerSession(state: ReturnType<typeof shroudedWoodState>) {
 describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () => {
     it('lists only the regions the ruler can pick, each with what the pick costs', () => {
         const session = travellerSession(shroudedWoodState(2))
-        expect(session.shroudedWoodChooser).toBe('Cole')
+        expect(session.shroudedWoodChooser).toBe('Rhys')
         const regions = session.woodRegions
         expect(regions).toEqual([
             { region: Region.Cradle, cost: 0, base: 2, foldedBy: [DECADENT], siteIds: ['c1', 'c2'] },
@@ -45,7 +45,7 @@ describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () =
         expect(woodCommonCost(cradleWood)).toBe(2)
 
         const state = shroudedWoodState(0)
-        state.getPlayerState('Jacob').freeTravelAtAction = state.actionCount
+        state.getPlayerState('Dana').freeTravelAtAction = state.actionCount
         const session = travellerSession(state)
         expect(session.woodTravelIsFree).toBe(true)
         expect(session.woodRegions?.map((r) => r.region)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
@@ -54,7 +54,7 @@ describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () =
 
     it('a game created before the revision keeps the old panel', () => {
         const session = travellerSession(shroudedWoodState(2, { oathRevision: OathRevision.EngineFixes2 }))
-        expect(session.shroudedWoodChooser).toBe('Cole')
+        expect(session.shroudedWoodChooser).toBe('Rhys')
         expect(session.woodRegions).toBeUndefined()
     })
 })
@@ -62,7 +62,7 @@ describe('R-11.7 — the traveller leaving a Shrouded Wood an enemy rules', () =
 describe('R-11.7 — the ruler picks where the traveller goes', () => {
     function rulerSession(supply: number) {
         const state = shroudedWoodState(supply)
-        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Jacob' })])
+        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Dana' })])
         const session = openSessionOn(table)
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         return { session, sent }
@@ -70,7 +70,7 @@ describe('R-11.7 — the ruler picks where the traveller goes', () => {
 
     it('is offered only the sites the traveller can pay for, by region with the cost', async () => {
         const { session, sent } = rulerSession(2)
-        expect(session.myPlayer?.id).toBe('Cole')
+        expect(session.myPlayer?.id).toBe('Rhys')
         expect(session.question.woodDestinations).toEqual(['c1', 'c2', 'p2', 'p3'])
         expect(session.question.woodRegions.map((r) => [r.region, r.cost, r.siteIds])).toEqual([
             [Region.Cradle, 0, ['c1', 'c2']],
@@ -89,17 +89,17 @@ describe('R-11.7 — the ruler picks where the traveller goes', () => {
 describe('R-11.7, Toll Roads — the ruler’s pick into a site whose ruler holds Toll Roads', () => {
     const TOLL_ROADS = 'denizen.order.toll-roads'
 
-    /** Cole also rules p2, which holds Toll Roads; Jacob has `favor`. */
+    /** Rhys also rules p2, which holds Toll Roads; Dana has `favor`. */
     function tollState(favor: number, oathRevision: number = OathRevision.UiBatch1) {
         const state = shroudedWoodState(2, { oathRevision })
         state.denizensBySite = { ...state.denizensBySite, p2: [TOLL_ROADS] }
-        state.warbandsBySite = { ...state.warbandsBySite, p2: { Cole: 1 } }
-        state.getPlayerState('Jacob').favor = favor
+        state.warbandsBySite = { ...state.warbandsBySite, p2: { Rhys: 1 } }
+        state.getPlayerState('Dana').favor = favor
         return state
     }
 
     function rulerSession(state: ReturnType<typeof shroudedWoodState>) {
-        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Jacob' })])
+        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Dana' })])
         return openSessionOn(table)
     }
 
@@ -110,13 +110,13 @@ describe('R-11.7, Toll Roads — the ruler’s pick into a site whose ruler hold
     })
 
     it('the grid names the cheapest Supply among the sites whose toll the traveller can pay', () => {
-        // Decadent's 0 into the Cradle, whose two sites Cole rules: with no favor Jacob cannot be sent there.
+        // Decadent's 0 into the Cradle, whose two sites Rhys rules: with no favor Dana cannot be sent there.
         const state = tollState(0)
-        state.getPlayerState('Jacob').supply = 1
+        state.getPlayerState('Dana').supply = 1
         state.denizensBySite = { ...state.denizensBySite, p2: [], c1: [TOLL_ROADS] }
-        state.warbandsBySite = { ...state.warbandsBySite, p2: {}, c1: { Cole: 1 }, c2: { Cole: 1 } }
+        state.warbandsBySite = { ...state.warbandsBySite, p2: {}, c1: { Rhys: 1 }, c2: { Rhys: 1 } }
         const session = openSessionOn(tableOf(state))
-        const refusal = gridRefusal(session.gameState, 'Jacob', ActionType.Travel)
+        const refusal = gridRefusal(session.gameState, 'Dana', ActionType.Travel)
         expect(refusal).toEqual({ cause: 'supply', needs: 2, has: 1 })
         expect(refusal && refusal.cause !== 'engine' ? refusalWords(refusal) : undefined).toBe('Needs 2 Supply; you have 1.')
     })
@@ -128,9 +128,9 @@ describe('R-11.7, Toll Roads — the ruler’s pick into a site whose ruler hold
 
     it('when every site takes a favor the traveller does not have, the grid says the favor', () => {
         const state = tollState(0)
-        state.warbandsBySite = Object.fromEntries(Object.keys(state.siteCards).map((siteId) => [siteId, { Cole: 1 }]))
+        state.warbandsBySite = Object.fromEntries(Object.keys(state.siteCards).map((siteId) => [siteId, { Rhys: 1 }]))
         const session = openSessionOn(tableOf(state))
-        const refusal = gridRefusal(session.gameState, 'Jacob', ActionType.Travel)
+        const refusal = gridRefusal(session.gameState, 'Dana', ActionType.Travel)
         expect(refusal).toEqual({ cause: 'favor', has: 0 })
         expect(refusal && refusal.cause !== 'engine' ? refusalWords(refusal) : undefined).toBe('Needs 1 favor; you have 0.')
     })

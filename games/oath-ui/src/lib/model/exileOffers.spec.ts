@@ -24,14 +24,14 @@ function board(citizenFavor = 10) {
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
             }),
             testPlayer({
-                playerId: 'cole',
+                playerId: 'rhys',
                 color: Color.Red,
                 status: PlayerStatus.Citizen,
                 siteId: 'c1',
                 favor: citizenFavor,
                 secrets: 1,
                 warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
-                warbandsInPersonalBank: { cole: 14 }
+                warbandsInPersonalBank: { rhys: 14 }
             }),
             testPlayer({
                 playerId: 'ann',
@@ -49,21 +49,21 @@ function board(citizenFavor = 10) {
 describe('the price on each exile button (R-6.7, R-6.8)', () => {
     it('R-6.7 — each Citizen the holder may exile, with the favor it gives them: one more for the People’s Favor', () => {
         expect(exileCitizenOffers(board(), CHANCELLOR)).toEqual([
-            { citizenPlayerId: 'cole', favor: 5 },
+            { citizenPlayerId: 'rhys', favor: 5 },
             { citizenPlayerId: 'ann', favor: 6 }
         ])
     })
 
     it('R-6.7 — offers no Citizen to a player without the Grand Scepter', () => {
-        expect(exileCitizenOffers(board(), 'cole')).toEqual([])
+        expect(exileCitizenOffers(board(), 'rhys')).toEqual([])
     })
 
     it('R-6.8 — exiling yourself gives the Grand Scepter’s holder one favor per secret and board warband', () => {
-        expect(selfExileOffer(board(), 'cole')).toEqual({ favor: 3, holderId: CHANCELLOR })
+        expect(selfExileOffer(board(), 'rhys')).toEqual({ favor: 3, holderId: CHANCELLOR })
     })
 
     it('R-6.8 — offers no price to a player who cannot pay it, or holds the Scepter', () => {
-        expect(selfExileOffer(board(2), 'cole')).toBeUndefined()
+        expect(selfExileOffer(board(2), 'rhys')).toBeUndefined()
         expect(selfExileOffer(board(), CHANCELLOR)).toBeUndefined()
     })
 

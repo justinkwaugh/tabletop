@@ -19,16 +19,16 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules, as the traveller re
     it('with no site payable, the Travel tile says why', () => {
         const session = openSessionOn(tableOf(shroudedWoodState(1, { inCradle: true })))
         expect(session.validActionTypes).not.toContain(ActionType.Travel)
-        expect(session.humanizeReason(reasonActionUnavailable(session.gameState, 'Jacob', ActionType.Travel))).toBe('Cole would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
+        expect(session.humanizeReason(reasonActionUnavailable(session.gameState, 'Dana', ActionType.Travel))).toBe('Rhys would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
     })
 
     it('the Narrow Pass and The Hidden Place are picks like any other: with 1 Supply the tile is lit, as the engine allows', () => {
         const state = shroudedWoodState(1)
         state.siteCards = { ...state.siteCards, c1: 'site.narrow-pass', c2: 'site.the-hidden-place' }
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Jacob', {})).toBeUndefined()
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Dana', {})).toBeUndefined()
         const session = openSessionOn(tableOf(state))
         expect(session.validActionTypes).toContain(ActionType.Travel)
-        expect(gridRefusal(session.gameState, 'Jacob', ActionType.Travel)).toBeUndefined()
+        expect(gridRefusal(session.gameState, 'Dana', ActionType.Travel)).toBeUndefined()
         session.chooseAction(ActionType.Travel)
         expect(session.woodRegions?.map((r) => [r.region, r.cost, r.siteIds])).toEqual([[Region.Cradle, 0, ['c1', 'c2']]])
     })
@@ -36,51 +36,51 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules, as the traveller re
 
 describe('R-11.7 — the History of a Travel the ruler settles', () => {
     const SITES: Record<string, string> = { 'slot.provinces.1': 'Great Slum', 'slot.hinterland.0': 'Mountain', 'slot.cradle.0': 'Drowned City', 'slot.hinterland.1': 'The Hidden Place' }
-    const names = { player: (playerId: string) => playerId, site: (slotId: string) => SITES[slotId] ?? slotId, seats: ['Jacob', 'Cole'] }
+    const names = { player: (playerId: string) => playerId, site: (slotId: string) => SITES[slotId] ?? slotId, seats: ['Dana', 'Rhys'] }
 
     function row(fields: { type: ActionType; playerId?: string } & Record<string, unknown>): GameAction {
         return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields }
     }
 
-    const travel = (metadata: Record<string, unknown>) => row({ type: ActionType.Travel, playerId: 'Jacob', modifiers: [], metadata: { fromSiteId: 'slot.provinces.0', destinationChooser: 'Cole', supplyRemaining: 2, ...metadata } })
+    const travel = (metadata: Record<string, unknown>) => row({ type: ActionType.Travel, playerId: 'Dana', modifiers: [], metadata: { fromSiteId: 'slot.provinces.0', destinationChooser: 'Rhys', supplyRemaining: 2, ...metadata } })
 
     function pick(siteId: string, supplySpent: number, extra: Record<string, unknown> = {}): GameAction {
         return row({
             type: ActionType.AnswerQuestion,
-            playerId: 'Cole',
+            playerId: 'Rhys',
             answer: { kind: PowerQuestionKind.ShroudedWoodDestination, siteId },
             metadata: {
                 cardId: 'site.shrouded-wood',
                 kind: PowerQuestionKind.ShroudedWoodDestination,
-                summary: `sent Jacob to ${siteId}, who paid ${supplySpent} Supply`,
+                summary: `sent Dana to ${siteId}, who paid ${supplySpent} Supply`,
                 resumeMachineState: MachineState.ActPhase,
                 last: true,
-                woodPick: { travelerPlayerId: 'Jacob', siteId, supplySpent, supplyRemaining: 0, ...extra }
+                woodPick: { travelerPlayerId: 'Dana', siteId, supplySpent, supplyRemaining: 0, ...extra }
             }
         })
     }
 
     it('the Travel names no cost, and the pick is the traveller’s row, word for word', () => {
-        expect(describeAction(travel({ paysAtPick: true, supplySpent: 0 }), names, 'Jacob')).toBe('set out from the Shrouded Wood; Cole picks where')
-        expect(describeAction(travel({ supplySpent: 2 }), names, 'Jacob')).toBe('left the Shrouded Wood, spending 2 Supply — Cole chooses where')
+        expect(describeAction(travel({ paysAtPick: true, supplySpent: 0 }), names, 'Dana')).toBe('set out from the Shrouded Wood; Rhys picks where')
+        expect(describeAction(travel({ supplySpent: 2 }), names, 'Dana')).toBe('left the Shrouded Wood, spending 2 Supply — Rhys chooses where')
 
         const slum = pick('slot.provinces.1', 2)
-        expect(rowActorOf(slum)).toBe('Jacob')
-        expect(describeAction(slum, names, 'Jacob')).toBe("left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply")
-        expect(describeAction(slum, names, 'Cole')).toBe('left the Shrouded Wood for the Great Slum (your pick), paying 2 Supply')
-        expect(describeAction(pick('slot.hinterland.0', 3), names, 'Jacob')).toBe("left the Shrouded Wood for the Mountain (Cole's pick), paying 3 Supply")
-        expect(describeAction(pick('slot.cradle.0', 0), names, 'Jacob')).toBe("left the Shrouded Wood for the Drowned City (Cole's pick), paying no Supply")
+        expect(rowActorOf(slum)).toBe('Dana')
+        expect(describeAction(slum, names, 'Dana')).toBe("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply")
+        expect(describeAction(slum, names, 'Rhys')).toBe('left the Shrouded Wood for the Great Slum (your pick), paying 2 Supply')
+        expect(describeAction(pick('slot.hinterland.0', 3), names, 'Dana')).toBe("left the Shrouded Wood for the Mountain (Rhys's pick), paying 3 Supply")
+        expect(describeAction(pick('slot.cradle.0', 0), names, 'Dana')).toBe("left the Shrouded Wood for the Drowned City (Rhys's pick), paying no Supply")
     })
 
     it('a site whose name prints its own article is not given another', () => {
-        expect(describeAction(pick('slot.hinterland.1', 3), names, 'Jacob')).toBe("left the Shrouded Wood for The Hidden Place (Cole's pick), paying 3 Supply")
+        expect(describeAction(pick('slot.hinterland.1', 3), names, 'Dana')).toBe("left the Shrouded Wood for The Hidden Place (Rhys's pick), paying 3 Supply")
     })
 
     it('Tyrant’s kill is a clause of the pick’s row, in the colour of the warband killed', () => {
-        const tyrant = pick('slot.provinces.1', 2, { notes: ['Tyrant killed a warband at slot.provinces.1'], warbandOwner: 'Cole' })
-        expect(describeAction(tyrant, names, 'Jacob')).toBe("left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply; Tyrant killed a warband at the Great Slum")
+        const tyrant = pick('slot.provinces.1', 2, { notes: ['Tyrant killed a warband at slot.provinces.1'], warbandOwner: 'Rhys' })
+        expect(describeAction(tyrant, names, 'Dana')).toBe("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply; Tyrant killed a warband at the Great Slum")
         const own = (playerId: string) => `${playerId}'s own`
-        expect(rowWarbandOwner(tyrant, own)).toBe('Cole')
-        expect(rowWarbandOwner(pick('slot.provinces.1', 2), own)).toBe("Jacob's own")
+        expect(rowWarbandOwner(tyrant, own)).toBe('Rhys')
+        expect(rowWarbandOwner(pick('slot.provinces.1', 2), own)).toBe("Dana's own")
     })
 })

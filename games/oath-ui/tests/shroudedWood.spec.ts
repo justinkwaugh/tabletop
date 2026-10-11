@@ -54,21 +54,21 @@ for (const { name, viewport, phone } of SIZES) {
                 [/^cradle\s*0 Supply\s*Decadent$/i, /^provinces\s*2 Supply\s*$/i],
                 { useInnerText: true }
             )
-            const button = panel(page).getByRole('button', { name: /^Travel:\s*Cole\s*picks where$/ })
+            const button = panel(page).getByRole('button', { name: /^Travel:\s*Rhys\s*picks where$/ })
             const [buttonBox, panelBox] = [await boxOf(page, button), await boxOf(page, panel(page))]
             expect(buttonBox.width).toBeLessThan(panelBox.width * 0.7)
             if (phone) expect(buttonBox.height).toBeGreaterThanOrEqual(44)
 
             await button.click()
-            await expect(panel(page).getByText(/^Pick where\s*Jacob\s*goes\.$/)).toBeVisible()
+            await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
             const facts = await call(page, 'tableFacts')
-            expect(facts.seatId).toBe('Cole')
-            expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
+            expect(facts.seatId).toBe('Rhys')
+            expect(facts.siteOf.Dana).toBe('slot.provinces.0')
         })
 
         test('the ruler is offered only the sites the traveller can pay for, by region with the cost', async ({ page }) => {
             await openTable(page, 'woodRuler')
-            await expect(panel(page).getByText(/^Pick where\s*Jacob\s*goes\.$/)).toBeVisible()
+            await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
             await expect(panel(page)).not.toContainText('has 2 Supply')
 
             const cradle = panel(page).getByRole('group', { name: 'Sites in the Cradle' })
@@ -97,7 +97,7 @@ for (const { name, viewport, phone } of SIZES) {
             }
 
             await provinces.getByRole('button', { name: 'Great Slum' }).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
         })
 
         test('Toll Roads: the ruler sees the toll site marked, and the pick waits on the traveller', async ({ page }) => {
@@ -121,16 +121,16 @@ for (const { name, viewport, phone } of SIZES) {
             // The table passes to the traveller, asked before anything is paid or moved.
             await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
             const facts = await call(page, 'tableFacts')
-            expect(facts.seatId).toBe('Jacob')
-            expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
-            expect(facts.favorOf.Jacob).toBe(2)
+            expect(facts.seatId).toBe('Dana')
+            expect(facts.siteOf.Dana).toBe('slot.provinces.0')
+            expect(facts.favorOf.Dana).toBe(2)
         })
 
         /** The traveller's Toll Roads question, in the question form, its Pay and Refuse at a standard size. */
         async function tollQuestion(page: Page) {
-            expect((await openTable(page, 'woodTollAsked')).seatId).toBe('Jacob')
+            expect((await openTable(page, 'woodTollAsked')).seatId).toBe('Dana')
             await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
-            await expect(panel(page).locator('.question-line')).toHaveText(/^Pay\s*Cole\s*1\?$/)
+            await expect(panel(page).locator('.question-line')).toHaveText(/^Pay\s*Rhys\s*1\?$/)
             const pay = panel(page).getByRole('button', { name: 'Pay', exact: true })
             const refuse = panel(page).getByRole('button', { name: 'Refuse', exact: true })
             const [payBox, refuseBox, panelBox] = [await boxOf(page, pay), await boxOf(page, refuse), await boxOf(page, panel(page))]
@@ -147,12 +147,12 @@ for (const { name, viewport, phone } of SIZES) {
         test('Toll Roads at the pick: the traveller pays or refuses before any Supply is paid', async ({ page }) => {
             const { pay } = await tollQuestion(page)
             await pay.click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
             const facts = await call(page, 'tableFacts')
-            expect(facts.favorOf).toMatchObject({ Jacob: 1 })
+            expect(facts.favorOf).toMatchObject({ Dana: 1 })
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(page.locator('.history')).toContainText("left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply; paid Cole 1 (Toll Roads)")
+                await expect(page.locator('.history')).toContainText("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply; paid Rhys 1 (Toll Roads)")
             }
         })
 
@@ -161,8 +161,8 @@ for (const { name, viewport, phone } of SIZES) {
             await refuse.click()
             await expect(refuse).toHaveCount(0)
             const facts = await call(page, 'tableFacts')
-            expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
-            expect(facts.favorOf).toMatchObject({ Jacob: 2 })
+            expect(facts.siteOf.Dana).toBe('slot.provinces.0')
+            expect(facts.favorOf).toMatchObject({ Dana: 2 })
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
                 await expect(page.locator('.history')).toContainText('refused Toll Roads and stayed at the Shrouded Wood')

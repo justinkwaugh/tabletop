@@ -73,7 +73,7 @@ describe('warband figure coverage', () => {
         expect(siteBanditsImage({ banditsHolderId: 'ann', banditsImperial: false }, colorOf)).toBe(
             banditWarbandImage(Color.Blue)
         )
-        for (const holderId of ['ann', 'jacob']) {
+        for (const holderId of ['ann', 'dana']) {
             expect(siteBanditsImage({ banditsHolderId: holderId, banditsImperial: true }, colorOf)).toBe(
                 imperialBanditWarbandImage()
             )

@@ -31,7 +31,7 @@ const PALANQUIN = 'denizen.order.palanquin'
 const ORACLE = 'denizen.nomad.oracle'
 const HORSE = 'relic.brass-horse'
 
-const NAMES: Record<string, string> = { p1: 'Cole', p2: 'Jacob', p3: 'Anna' }
+const NAMES: Record<string, string> = { p1: 'Rhys', p2: 'Dana', p3: 'Anna' }
 const SITES: Record<string, string> = { c1: 'Great Slum', c2: 'River', p1: 'Plains', h1: 'Mountain', 'slot.provinces.1': 'Great Slum' }
 const names = {
     player: (playerId: string) => NAMES[playerId] ?? playerId,
@@ -46,7 +46,7 @@ function row(action: GameAction, viewer?: string): string {
     return `${name} ${describeAction(action, names, viewer)}`
 }
 
-/** Cole (p1) rules the Great Slum (c1), which holds Toll Roads; Jacob (p2) is at the River (c2). */
+/** Rhys (p1) rules the Great Slum (c1), which holds Toll Roads; Dana (p2) is at the River (c2). */
 function table(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}): HydratedOathGameState {
     const s = testState(
         [
@@ -78,42 +78,42 @@ function answer(s: HydratedOathGameState, playerId: string, given: QuestionAnswe
     return a
 }
 
-const jacob: PowerChoice = { kind: PowerChoiceKind.Player, playerId: 'p2' }
+const dana: PowerChoice = { kind: PowerChoiceKind.Player, playerId: 'p2' }
 
 function record(fields: { type: ActionType; playerId: string } & Record<string, unknown>): GameAction {
     return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields }
 }
 
 describe('Toll Roads on a power’s move: the History tells the whole story', () => {
-    it('the Whistle’s own row is short while Jacob is asked', () => {
+    it('the Whistle’s own row is short while Dana is asked', () => {
         const s = table()
-        expect(row(use(s, 'p1', WHISTLE, [jacob]))).toBe('Cole used the Whistle on Jacob, placing a secret on it')
+        expect(row(use(s, 'p1', WHISTLE, [dana]))).toBe('Rhys used the Whistle on Dana, placing a secret on it')
     })
 
     it('paid: the answer carries the whole story, from the mover', () => {
         const s = table()
-        use(s, 'p1', WHISTLE, [jacob])
+        use(s, 'p1', WHISTLE, [dana])
         const paid = answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true })
-        expect(row(paid)).toBe("Cole used the Whistle on Jacob; Jacob paid Cole 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
-        expect(row(paid, 'p2')).toBe("Cole used the Whistle on you; you paid Cole 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
-        expect(row(paid, 'p1')).toBe("You used the Whistle on Jacob; Jacob paid you 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
+        expect(row(paid)).toBe("Rhys used the Whistle on Dana; Dana paid Rhys 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
+        expect(row(paid, 'p2')).toBe("Rhys used the Whistle on you; you paid Rhys 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
+        expect(row(paid, 'p1')).toBe("You used the Whistle on Dana; Dana paid you 1 favor (Toll Roads) and went to the Great Slum, taking the Whistle's 1 secret")
     })
 
     it('refused', () => {
         const s = table()
-        use(s, 'p1', WHISTLE, [jacob])
-        expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: false }))).toBe('Cole used the Whistle on Jacob; Jacob refused Toll Roads and stayed at the River')
+        use(s, 'p1', WHISTLE, [dana])
+        expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: false }))).toBe('Rhys used the Whistle on Dana; Dana refused Toll Roads and stayed at the River')
     })
 
     it('no favor: one row says so', () => {
         const s = table({ p2: { favor: 0 } })
-        expect(row(use(s, 'p1', WHISTLE, [jacob]))).toBe('Cole used the Whistle on Jacob; Jacob had no favor for Toll Roads and stayed at the River')
+        expect(row(use(s, 'p1', WHISTLE, [dana]))).toBe('Rhys used the Whistle on Dana; Dana had no favor for Toll Roads and stayed at the River')
     })
 
     it('a banish paid, with and without the burn that waited on it', () => {
         for (const [burnFavor, line] of [
-            [true, 'Cole banished Jacob; Jacob paid Cole 1 favor (Toll Roads) and went to the Great Slum; Cole burned 1 favor'],
-            [false, 'Cole banished Jacob; Jacob paid Cole 1 favor (Toll Roads) and went to the Great Slum']
+            [true, 'Rhys banished Dana; Dana paid Rhys 1 favor (Toll Roads) and went to the Great Slum; Rhys burned 1 favor'],
+            [false, 'Rhys banished Dana; Dana paid Rhys 1 favor (Toll Roads) and went to the Great Slum']
         ] as const) {
             const s = table({ p1: { siteId: 'c2' } }, {
                 campaign: {
@@ -136,28 +136,28 @@ describe('Toll Roads on a power’s move: the History tells the whole story', ()
             })
             const spoils = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'p1', placements: [], banishToSiteId: 'c1', burnFavor }))
             spoils.apply(s)
-            expect(row(spoils)).toBe('Cole took the spoils')
+            expect(row(spoils)).toBe('Rhys took the spoils')
             expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true }))).toBe(line)
         }
     })
 
     it('Palanquin refused: neither moved', () => {
         const s = table({ p1: { siteId: 'c2', advisers: [{ cardId: PALANQUIN, faceUp: true }] } })
-        expect(row(use(s, 'p1', PALANQUIN, [jacob, { kind: PowerChoiceKind.Site, siteId: 'c1' }]))).toBe('Cole used Palanquin on Jacob, placing a favor on it')
-        expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: false }))).toBe('Cole used Palanquin on Jacob; Jacob refused Toll Roads, and neither moved')
+        expect(row(use(s, 'p1', PALANQUIN, [dana, { kind: PowerChoiceKind.Site, siteId: 'c1' }]))).toBe('Rhys used Palanquin on Dana, placing a favor on it')
+        expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: false }))).toBe('Rhys used Palanquin on Dana; Dana refused Toll Roads, and neither moved')
     })
 
     it("the Shrouded Wood ruler's pick, after a power moves the pawn", () => {
         for (const [pay, line] of [
-            [true, 'Cole sent Jacob from the Shrouded Wood; Jacob paid Cole 1 favor (Toll Roads) and went to the Great Slum'],
-            [false, 'Cole sent Jacob from the Shrouded Wood; Jacob refused Toll Roads and stayed at the Shrouded Wood']
+            [true, 'Rhys sent Dana from the Shrouded Wood; Dana paid Rhys 1 favor (Toll Roads) and went to the Great Slum'],
+            [false, 'Rhys sent Dana from the Shrouded Wood; Dana refused Toll Roads and stayed at the Shrouded Wood']
         ] as const) {
-            // Cole's Palanquin carries Jacob out of Cole's Shrouded Wood (c2); Cole picks the Great Slum.
+            // Rhys's Palanquin carries Dana out of Rhys's Shrouded Wood (c2); Rhys picks the Great Slum.
             const s = table({ p1: { siteId: 'c2', advisers: [{ cardId: PALANQUIN, faceUp: true }] } }, { siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' }, warbandsBySite: { c1: { p1: 2 }, c2: { p1: 1 } } })
-            use(s, 'p1', PALANQUIN, [jacob, { kind: PowerChoiceKind.Site, siteId: 'p1' }])
+            use(s, 'p1', PALANQUIN, [dana, { kind: PowerChoiceKind.Site, siteId: 'p1' }])
             const woodNames = { ...names, site: (slotId: string) => (slotId === 'c2' ? 'Shrouded Wood' : names.site(slotId)) }
             const pick = answer(s, 'p1', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' })
-            expect(`Cole ${describeAction(pick, woodNames)}`).toBe('Cole sent Jacob from the Shrouded Wood')
+            expect(`Rhys ${describeAction(pick, woodNames)}`).toBe('Rhys sent Dana from the Shrouded Wood')
             const answered = answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay })
             expect(`${names.player(rowActorOf(answered) ?? '')} ${describeAction(answered, woodNames)}`).toBe(line)
         }
@@ -165,37 +165,37 @@ describe('Toll Roads on a power’s move: the History tells the whole story', ()
 
     it('a site whose name prints its own article keeps it: "The Hidden Place", never "the The Hidden Place"', () => {
         const s = table()
-        use(s, 'p1', WHISTLE, [jacob])
+        use(s, 'p1', WHISTLE, [dana])
         const hidden = { ...names, site: (slotId: string) => (slotId === 'c1' ? 'The Hidden Place' : names.site(slotId)) }
         const paid = answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true })
-        expect(`Cole ${describeAction(paid, hidden)}`).toBe("Cole used the Whistle on Jacob; Jacob paid Cole 1 favor (Toll Roads) and went to The Hidden Place, taking the Whistle's 1 secret")
+        expect(`Rhys ${describeAction(paid, hidden)}`).toBe("Rhys used the Whistle on Dana; Dana paid Rhys 1 favor (Toll Roads) and went to The Hidden Place, taking the Whistle's 1 secret")
     })
 
-    it("the Shrouded Wood ruler's pick on Jacob's own Travel: the toll first, then the Travel's row with its Supply", () => {
+    it("the Shrouded Wood ruler's pick on Dana's own Travel: the toll first, then the Travel's row with its Supply", () => {
         const wood = { siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' }, warbandsBySite: { c1: { p1: 2 }, c2: { p1: 1 } } }
         const woodNames = { ...names, site: (slotId: string) => (slotId === 'c2' ? 'Shrouded Wood' : names.site(slotId)) }
         const woodRow = (action: GameAction) => `${names.player(rowActorOf(action) ?? '')} ${describeAction(action, woodNames)}`
         for (const [pay, line] of [
-            [true, "Jacob left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply; paid Cole 1 favor (Toll Roads)"],
-            [false, 'Cole sent Jacob from the Shrouded Wood; Jacob refused Toll Roads and stayed at the Shrouded Wood']
+            [true, "Dana left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply; paid Rhys 1 favor (Toll Roads)"],
+            [false, 'Rhys sent Dana from the Shrouded Wood; Dana refused Toll Roads and stayed at the Shrouded Wood']
         ] as const) {
             const s = table({}, wood)
             openTurn(s, 'p2')
             new HydratedTravel(buildAction(Travel, { playerId: 'p2' })).apply(s)
-            expect(woodRow(answer(s, 'p1', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' }))).toBe('Cole sent Jacob from the Shrouded Wood')
+            expect(woodRow(answer(s, 'p1', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' }))).toBe('Rhys sent Dana from the Shrouded Wood')
             expect(woodRow(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay }))).toBe(line)
         }
     })
 
     it('Brass Horse: its user pays as they travel', () => {
         const horse = record({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.TravelFreeTo, siteId: 'slot.provinces.1' }, metadata: { cardId: HORSE, kind: PowerQuestionKind.TravelFreeTo, summary: `travelled to slot.provinces.1 for no Supply; paid p1 1 favor (${TOLL_ROADS})`, resumeMachineState: 'actPhase', last: true } })
-        expect(row(horse)).toBe('Jacob Brass Horse: travelled to Great Slum for no Supply; paid Cole 1 favor (Toll Roads)')
+        expect(row(horse)).toBe('Dana Brass Horse: travelled to Great Slum for no Supply; paid Rhys 1 favor (Toll Roads)')
     })
 
     it('Oracle names the Forced Labor toll it paid, to its ruler or burned', () => {
         const oracle = (payeeId?: string) =>
             record({ type: ActionType.UseActionPower, playerId: 'p2', cardId: ORACLE, powerIndex: powerIndexOf(ORACLE, PowerTiming.Action), metadata: { summary: 'Oracle: drew the next Vision; keep it or discard it as if p2 had searched', tollsGiven: [{ cardId: FORCED_LABOR, payeeId }] } })
-        expect(row(oracle('p1'))).toBe('Jacob used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Jacob had searched; paid Cole 1 favor (Forced Labor)')
-        expect(row(oracle())).toBe('Jacob used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Jacob had searched; burned 1 favor (Forced Labor)')
+        expect(row(oracle('p1'))).toBe('Dana used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Dana had searched; paid Rhys 1 favor (Forced Labor)')
+        expect(row(oracle())).toBe('Dana used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Dana had searched; burned 1 favor (Forced Labor)')
     })
 })
