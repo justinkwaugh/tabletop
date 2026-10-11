@@ -57,6 +57,13 @@ export async function saveScenarioFile(dir: string, body: string): Promise<strin
 }
 
 const MAX_SCENARIO_BYTES = 20 * 1024 * 1024
+const LOCAL_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+
+// The dev server may listen on every network address so other devices can play, but only a browser
+// on this machine may write into the repository.
+export function isLocalAddress(address: string | undefined): boolean {
+    return address !== undefined && LOCAL_ADDRESSES.has(address)
+}
 
 // Only JSON requests: a web page can send a cross-site form post here without asking, but a JSON
 // one makes the browser ask the dev server first, which by default answers only localhost pages.
@@ -65,6 +72,12 @@ export function saveRoute(dir: string): Connect.NextHandleFunction {
         if (request.method !== 'POST') {
             response.statusCode = 405
             response.end()
+            return
+        }
+        if (!isLocalAddress(request.socket.remoteAddress)) {
+            respond(response, 403, {
+                error: 'Scenarios can be saved only from a browser on the machine running the dev server'
+            })
             return
         }
         const contentType = request.headers['content-type']?.split(';')[0].trim()

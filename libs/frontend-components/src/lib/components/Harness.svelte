@@ -43,7 +43,7 @@
     } = $props()
     // Scenarios saved since the page loaded, which the dev page's file list catches up with only on
     // the next load; one saved again under the same id replaces the file's entry.
-    let savedSinceLoad: ListedHarnessScenario[] = $state([])
+    let savedSinceLoad: ListedHarnessScenario[] = $state.raw([])
     let listed = $derived.by(() => {
         const saved = new Set(savedSinceLoad.map((entry) => entry.id))
         const loaded = scenarios ? listedScenarios(scenarios) : []

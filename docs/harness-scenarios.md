@@ -27,7 +27,7 @@ import { harnessScenarioFiles } from '@tabletop/frontend-components/vite/harness
 plugins: [sveltekit(), harnessScenarioFiles()],
 ```
 
-It runs only under `vite dev`, writes into `scenarios/`, and does nothing else. Without it, the menu still lists and opens scenarios, and saving reports that the plugin is missing. None of this reaches a published UI Artifact.
+It runs only under `vite dev`, writes into `scenarios/`, and does nothing else. It accepts saves only from a browser on the machine running the dev server, so another device reaching the dev server over the network can open scenarios but not write them. Without it, the menu still lists and opens scenarios, and saving reports that the plugin is missing. None of this reaches a published UI Artifact.
 
 Add a test that loads every scenario file, such as Santiago's [`scenarioFiles.test.ts`](../games/santiago-ui/src/lib/dev/scenarioFiles.test.ts). A rules or state change that leaves a scenario unloadable then fails the tests rather than the menu; make that scenario again, or delete it.
 

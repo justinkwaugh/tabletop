@@ -3,7 +3,7 @@ import { createServer, request, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { saveRoute, saveScenarioFile } from './harnessScenarioFiles.js'
+import { isLocalAddress, saveRoute, saveScenarioFile } from './harnessScenarioFiles.js'
 
 describe('saveScenarioFile', () => {
     let root: string
@@ -123,4 +123,17 @@ describe('saveRoute', () => {
         expect(status).toBe(413)
         await expect(readdir(dir)).rejects.toThrow()
     })
+})
+
+describe('isLocalAddress', () => {
+    test.each(['127.0.0.1', '::1', '::ffff:127.0.0.1'])('accepts %s', (address) => {
+        expect(isLocalAddress(address)).toBe(true)
+    })
+
+    test.each(['100.64.0.7', '192.168.1.20', '::ffff:10.0.0.5', undefined])(
+        'refuses %s',
+        (address) => {
+            expect(isLocalAddress(address)).toBe(false)
+        }
+    )
 })
