@@ -1,5 +1,7 @@
 import { GameStorage, Role, UserStatus, Visibility, type User } from '@tabletop/common'
 import {
+    DrawSchema,
+    PlaySchema,
     PrivateHandHost,
     info,
     p2,
@@ -16,7 +18,9 @@ import { HarnessGameService } from '$lib/harness/harnessGameService.svelte.js'
 import { HarnessLibraryService } from '$lib/harness/harnessLibraryService.js'
 import type { GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
+import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 import { GameSession } from './gameSession.svelte.js'
+import type { GameSessionView } from './gameSessionView.js'
 import { settle, uiRuntime } from './tests/privateHandSession.fixture.js'
 
 type PerspectiveSession = GameSession<SharedState, HydratedPrivateHandState>
@@ -54,6 +58,29 @@ class HostRemote extends DummyRemoteApiService {
     }
 }
 
+class UnpersistedGameService extends HarnessGameService {
+    override async saveGameLocally() {}
+}
+
+const playDrawsForNextPlayer: GameUIRuntime<SharedState, HydratedPrivateHandState> = {
+    ...uiRuntime,
+    stateHandlers: {
+        playing: {
+            ...uiRuntime.stateHandlers.playing,
+            onAction(action, context) {
+                const next = uiRuntime.stateHandlers.playing.onAction(action, context)
+                if (action.type === 'play') {
+                    context.addSystemAction(DrawSchema, {
+                        playerId: context.gameState.activePlayerIds[0],
+                        revealsInfo: true
+                    })
+                }
+                return next
+            }
+        }
+    }
+}
+
 const disposers: Array<() => void> = []
 
 afterEach(() => {
@@ -64,12 +91,14 @@ async function openSession({
     hotseat,
     userId,
     activePlayerIds = ['p1'],
-    hostPerspective
+    hostPerspective,
+    runtime = uiRuntime
 }: {
     hotseat: boolean
     userId: string
     activePlayerIds?: string[]
     hostPerspective?: Visibility.Perspective
+    runtime?: GameUIRuntime<SharedState, HydratedPrivateHandState>
 }) {
     const host = new PrivateHandHost()
     host.game.hotseat = hotseat
@@ -89,7 +118,7 @@ async function openSession({
         info: { ...info, thumbnailUrl: '' },
         runtime: async () => ({ ...uiRuntime, sessionClass: GameSession })
     })
-    const gameService = new HarnessGameService(library, authorization)
+    const gameService = new UnpersistedGameService(library, authorization)
     const chatService = new HarnessChatService()
     const bridgedContext = new BridgedContext({
         authorizationService: authorization,
@@ -103,7 +132,7 @@ async function openSession({
         notificationService: new DummyNotificationService(),
         chatService,
         api: new HostRemote(host, userPerspective),
-        runtime: uiRuntime,
+        runtime,
         game: structuredClone(host.game),
         state: loaded.currentState,
         actions: [...loaded.actions],
@@ -283,5 +312,51 @@ describe('GameSession perspectiveIn(state) for a state not yet published', () =>
             player: session.myPlayer,
             isMyTurn: true
         })
+    })
+})
+
+describe('GameSession incomingGameState', () => {
+    test('is where a transition ends while gameState still shows where it began', async () => {
+        const { session } = await openSession({
+            hotseat: true,
+            userId: 'p1',
+            runtime: playDrawsForNextPlayer
+        })
+        const view: GameSessionView<SharedState, HydratedPrivateHandState> = session
+        const before = view.gameState
+        const release = Promise.withResolvers<void>()
+        const firstStep = Promise.withResolvers<void>()
+        const observed: Array<{
+            step: number
+            incoming: number
+            visible: number
+            incomingActive: string[]
+        }> = []
+        view.addGameStateChangeListener(async ({ to }) => {
+            observed.push({
+                step: to.actionCount,
+                incoming: view.incomingGameState.actionCount,
+                visible: view.gameState.actionCount,
+                incomingActive: [...view.incomingGameState.activePlayerIds]
+            })
+            firstStep.resolve()
+            await release.promise
+        })
+
+        await view.applyAction(view.createPlayerAction(PlaySchema, { cardId: 'r1' }))
+        await firstStep.promise
+        expect(view.gameState).toBe(before)
+        expect(view.incomingGameState.actionCount).toBe(2)
+        expect(view.incomingGameState.activePlayerIds).toEqual(['p1'])
+        expect(view.perspectiveIn(view.incomingGameState).player?.id).toBe('p1')
+
+        release.resolve()
+        await settle(session)
+        expect(observed).toEqual([
+            { step: 1, incoming: 2, visible: 0, incomingActive: ['p1'] },
+            { step: 2, incoming: 2, visible: 0, incomingActive: ['p1'] }
+        ])
+        expect(view.gameState.actionCount).toBe(2)
+        expect(view.incomingGameState).toBe(view.gameState)
     })
 })

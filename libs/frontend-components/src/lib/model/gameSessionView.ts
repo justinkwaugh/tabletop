@@ -37,6 +37,8 @@ export type GameSessionView<
     | 'forkGame'
     | 'game'
     | 'gameState'
+    | 'incomingGameState'
+    | 'perspectiveIn'
     | 'getPlayerName'
     | 'hasCompleteHistory'
     | 'hasUnreadMessages'
