@@ -140,6 +140,13 @@
                 {/if}
                 {#each offers.sites as site (site.siteId)}
                     {@const picked = isSitePicked(value, key, site.siteId)}
+                    {@const counts = siteCounts(
+                        gameState,
+                        giver,
+                        receiver,
+                        transfer,
+                        site.siteId
+                    )}
                     <MenuToggleRow
                         image={siteImage(site)}
                         name={siteName(gameState, site.siteId)}
@@ -147,16 +154,9 @@
                         disabled={busy}
                         width={widths[key]}
                         onclick={() =>
-                            onchange(withSitePicked(value, key, site.siteId, site.counts, !picked))}
+                            onchange(withSitePicked(value, key, site.siteId, counts, !picked))}
                     />
                     {#if picked && moving.owner !== undefined && moving.held > 0}
-                        {@const counts = siteCounts(
-                            gameState,
-                            giver,
-                            receiver,
-                            transfer,
-                            site.siteId
-                        )}
                         {@const count = siteWarbandsIn(transfer, site.siteId)}
                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1 pl-2">
                             <span>

@@ -3170,7 +3170,7 @@ test.describe('the exchange editor', () => {
         await expect(pieces(page, 'jacob')).toHaveCount(6)
     })
 
-    test('two sites share one board: the second site’s count stops at the warbands the first leaves', async ({ page }) => {
+    test('two sites share one board: the second site’s count stops at the warbands the first leaves; the Crown’s 0 alone is picked at once', async ({ page }) => {
         await openPower(page, 'exchangeDeed')
         await chip(page, DEED_WRITER, 'cole').click()
         await site(page, 'Plains').click()
@@ -3180,6 +3180,10 @@ test.describe('the exchange editor', () => {
         await expect(slums).toHaveCount(4)
         await expect(slums.nth(2)).toBeDisabled()
         await expect(slums.nth(3)).toBeDisabled()
+        await expect(slums.nth(2)).toHaveAttribute('aria-pressed', 'false')
+        await expect(slums.nth(3)).toHaveAttribute('aria-pressed', 'false')
+        await expect(answer(page, 'Use')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
     })
 
     test('Tinker’s Fair: Vow of Silence keeps its holder’s secret in the row, not tappable; every relic is listed', async ({ page }) => {
