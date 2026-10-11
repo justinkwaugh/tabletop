@@ -1781,16 +1781,16 @@ function usePowerTable(): PlayedTable {
 }
 
 /**
- * Witch's Bargain in Jacob's advisers, in a game created at revision 7: Jacob (5 favor, 3 secrets),
- * Cole (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Cole
- * the only player there. With Vow of Silence too, Jacob cannot give anyone secrets.
+ * Witch's Bargain in Dana's advisers, in a game created at revision 7: Dana (5 favor, 3 secrets),
+ * Rhys (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Rhys
+ * the only player there. With Vow of Silence too, Dana cannot give anyone secrets.
  */
 function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
@@ -1802,7 +1802,7 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
                 ]
             }),
             testPlayer({
-                playerId: 'cole',
+                playerId: 'rhys',
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: home,
@@ -1820,15 +1820,15 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
         ],
         {
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
             oathRevision: OathRevision.EngineFixes3
         }
     )
-    openTurn(state, 'jacob')
-    state.activePlayerIds = ['jacob']
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
@@ -2783,7 +2783,7 @@ const SKULL_FACE = { swords: 2, hollowSwords: 0, skulls: 1 }
 const SWORD_FACE = { swords: 1, hollowSwords: 0, skulls: 0 }
 
 /**
- * R-5.5.5, revision 7 — jacob (the Chancellor) campaigns against cole, his force on his board and at
+ * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, his force on his board and at
  * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for his pick, or,
  * at `sacrifice`, a battle that needs 3 sacrificed, so the defeat would be the default half.
  */
@@ -2799,7 +2799,7 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
     const state = testState(
         [
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: here,
@@ -2807,25 +2807,25 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 }
             }),
             testPlayer({
-                playerId: 'cole',
+                playerId: 'rhys',
                 color: Color.Red,
                 siteId: here,
-                warbandsOnBoard: { cole: 4 },
-                warbandsInPersonalBank: { cole: 10 }
+                warbandsOnBoard: { rhys: 4 },
+                warbandsInPersonalBank: { rhys: 10 }
             })
         ],
         {
             machineState:
                 step === 'skulls' ? MachineState.CampaignSkullLosses : MachineState.CampaignSacrifice,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             warbandsBySite: Object.fromEntries(
                 forceSiteIds.map((siteId) => [siteId, { [IMPERIAL_WARBANDS]: 2 }])
             ),
             campaign: {
-                attackerPlayerId: 'jacob',
-                defenderPlayerId: 'cole',
+                attackerPlayerId: 'dana',
+                defenderPlayerId: 'rhys',
                 nonImperialPlayerIds: [],
                 allyPlayerIds: [],
                 targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
@@ -2838,7 +2838,7 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
                 ],
                 defense: 7,
                 swords: step === 'skulls' ? skulls * 2 + 1 : 5,
-                defendingForce: [{ at: { kind: 'board', playerId: 'cole' }, owner: 'cole', count: 4 }],
+                defendingForce: [{ at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }],
                 defendingBandits: 0,
                 pendingSkullLosses: step === 'skulls' ? { skulls } : undefined,
                 ...campaignRecords(),
@@ -2847,14 +2847,14 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
         }
     )
     state.oathRevision = OathRevision.EngineFixes3
-    openTurn(state, 'jacob')
-    state.activePlayerIds = ['jacob']
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
 /**
- * Second Wind out of turn, revision 7 — ann won a Sneak Attack during cole's turn with Second Wind,
- * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at jacob's site, which he rules).
+ * Second Wind out of turn, revision 7 — ann won a Sneak Attack during rhys's turn with Second Wind,
+ * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which he rules).
  */
 function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): PlayedTable {
     const [tribunal] = mapSlotsFor(Region.Provinces)
@@ -2862,7 +2862,7 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
     const travel = action === ActionType.Travel
     const state = testState(
         [
-            testPlayer({ playerId: 'cole', color: Color.Red, siteId: tribunal, supply: 1 }),
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: tribunal, supply: 1 }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Blue,
@@ -2876,7 +2876,7 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
                 ]
             }),
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: slum,
@@ -2885,7 +2885,7 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
         ],
         {
             machineState: MachineState.PowerQuestion,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             warbandsBySite: { [tribunal]: { ann: 2 }, [slum]: { [IMPERIAL_WARBANDS]: 3 } },
@@ -2898,14 +2898,14 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
                         action
                     }
                 ],
-                askingPlayerId: 'cole',
+                askingPlayerId: 'rhys',
                 resumeMachineState: MachineState.ActPhase
             },
-            heldTurn: { queue: [], askingPlayerId: 'cole', resumeMachineState: MachineState.ActPhase }
+            heldTurn: { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
         }
     )
     state.oathRevision = OathRevision.EngineFixes3
-    openTurn(state, 'cole')
+    openTurn(state, 'rhys')
     state.activePlayerIds = ['ann']
     const ann = state.getPlayerState('ann')
     if (travel) ann.freeTravelAtAction = state.actionCount
@@ -2919,9 +2919,9 @@ const BRASS_HORSE = 'relic.brass-horse'
 type DrumScene = 'whistle' | 'citizen' | 'toll' | 'horse'
 
 /**
- * Dragonskin Drum on a power's move (revision 7): Jacob holds the Drum at the River; Cole, with the
+ * Dragonskin Drum on a power's move (revision 7): Dana holds the Drum at the River; Rhys, with the
  * Whistle, rules the Great Slum (with Toll Roads there in 'toll'); Ann is the Chancellor, and in
- * 'citizen' Jacob is her Citizen. In 'horse' Jacob has used Brass Horse and picks where to go.
+ * 'citizen' Dana is her Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
  */
 function drumState(scene: DrumScene) {
     const citizen = scene === 'citizen'
@@ -2929,7 +2929,7 @@ function drumState(scene: DrumScene) {
     const state = testState(
         [
             testPlayer({
-                playerId: 'Jacob',
+                playerId: 'Dana',
                 color: Color.Blue,
                 status: citizen ? PlayerStatus.Citizen : PlayerStatus.Exile,
                 siteId: RIVER,
@@ -2937,17 +2937,17 @@ function drumState(scene: DrumScene) {
                 favor: 4,
                 secrets: 2,
                 relicIds: horse ? [DRUM, BRASS_HORSE] : [DRUM],
-                warbandsOnBoard: citizen ? { [IMPERIAL_WARBANDS]: 2 } : { Jacob: 2 }
+                warbandsOnBoard: citizen ? { [IMPERIAL_WARBANDS]: 2 } : { Dana: 2 }
             }),
             testPlayer({
-                playerId: 'Cole',
+                playerId: 'Rhys',
                 color: Color.Red,
                 siteId: GREAT_SLUM,
                 supply: 3,
                 favor: 3,
                 secrets: 2,
                 relicIds: [WHISTLE],
-                warbandsOnBoard: { Cole: 9 }
+                warbandsOnBoard: { Rhys: 9 }
             }),
             testPlayer({
                 playerId: 'Ann',
@@ -2961,7 +2961,7 @@ function drumState(scene: DrumScene) {
         {
             machineState: horse ? MachineState.PowerQuestion : MachineState.ActPhase,
             chancellorPlayerId: 'Ann',
-            oathkeeperPlayerId: 'Cole',
+            oathkeeperPlayerId: 'Rhys',
             oathRevision: OathRevision.EngineFixes3,
             map: allMapSlots(),
             siteCards: {
@@ -2973,41 +2973,41 @@ function drumState(scene: DrumScene) {
                 [GREAT_SLUM]: scene === 'toll' ? ['denizen.order.toll-roads'] : [],
                 [RIVER]: []
             },
-            warbandsBySite: { [GREAT_SLUM]: { Cole: 2 } },
+            warbandsBySite: { [GREAT_SLUM]: { Rhys: 2 } },
             pendingQuestions: horse
                 ? {
                       queue: [
                           {
                               kind: PowerQuestionKind.TravelFreeTo,
                               cardId: BRASS_HORSE,
-                              askedPlayerId: 'Jacob',
+                              askedPlayerId: 'Dana',
                               siteIds: [GREAT_SLUM]
                           }
                       ],
-                      askingPlayerId: 'Jacob',
+                      askingPlayerId: 'Dana',
                       resumeMachineState: MachineState.ActPhase
                   }
                 : undefined
         }
     )
-    const turn = horse ? 'Jacob' : 'Cole'
+    const turn = horse ? 'Dana' : 'Rhys'
     openTurn(state, turn)
-    state.activePlayerIds = horse ? ['Jacob'] : [turn]
+    state.activePlayerIds = horse ? ['Dana'] : [turn]
     state.vault = testVaultWithRelics({})
     return state
 }
 
-/** Cole uses the Whistle on Jacob, who then holds the Drum at the Great Slum (or is first asked Toll Roads). */
+/** Rhys uses the Whistle on Dana, who then holds the Drum at the Great Slum (or is first asked Toll Roads). */
 function drumTable(scene: DrumScene): PlayedTable {
     const table = tableOf(drumState(scene))
     if (scene === 'horse') return table
     return played(table, [
         createAction(UseActionPower, {
             ...envelope(table),
-            playerId: 'Cole',
+            playerId: 'Rhys',
             cardId: WHISTLE,
             powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
-            choices: [{ kind: PowerChoiceKind.Player, playerId: 'Jacob' }]
+            choices: [{ kind: PowerChoiceKind.Player, playerId: 'Dana' }]
         })
     ])
 }

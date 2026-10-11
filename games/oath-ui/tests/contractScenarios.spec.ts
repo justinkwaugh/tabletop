@@ -5836,7 +5836,7 @@ test.describe('the skulls’ losses, picked after the roll', () => {
         page
     }) => {
         await openTable(page, 'skullLosses')
-        expect((await call(page, 'tableFacts')).seatId).toBe('jacob')
+        expect((await call(page, 'tableFacts')).seatId).toBe('dana')
         await expect(grid(page).locator('h3')).toHaveText('Battle')
         await expect(grid(page)).toContainText('Skulls: pick 2 to kill.')
         await expect(grid(page).getByText('on your board', { exact: true })).toBeVisible()
@@ -5877,7 +5877,7 @@ test.describe('the skulls’ losses, picked after the roll', () => {
             .poll(async () => (await call(page, 'tableFacts')).machineState)
             .not.toBe('CampaignSkullLosses')
         const after = await call(page, 'tableFacts')
-        expect(after.boardOf.jacob).toEqual({ imperial: 2 })
+        expect(after.boardOf.dana).toEqual({ imperial: 2 })
         expect(after.warbandsAt[PLAINS]).toEqual({ imperial: 1 })
     })
 
@@ -5889,7 +5889,7 @@ test.describe('the skulls’ losses, picked after the roll', () => {
         await expect(piece).not.toHaveClass(/ring-oath-accent/)
         await expect(piece.locator('img')).toHaveCSS('opacity', '1')
 
-        await offerToCole(page)
+        await offerToRhys(page)
         await answer(page, 'you give 1 favor').click()
         await expect(answer(page, 'you give 1 favor')).toHaveClass(/ring-oath-accent/)
         await expect(answer(page, 'you give 1 favor')).not.toHaveClass(/ring-oath-danger/)
@@ -5910,8 +5910,8 @@ test.describe('the skulls’ losses, picked after the roll', () => {
 
     test('the defender waits on the attacker', async ({ page }) => {
         await openTable(page, 'skullLosses')
-        expect(await call(page, 'viewOffTheClock')).toBe('cole')
-        await expectWaitingOn(page, ['jacob'])
+        expect(await call(page, 'viewOffTheClock')).toBe('rhys')
+        await expectWaitingOn(page, ['dana'])
     })
 
     for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
@@ -5993,7 +5993,7 @@ test.describe('Second Wind out of turn: the free Travel, then the free Campaign'
     }) => {
         await openTable(page, 'freeTravelAsked')
         expect((await call(page, 'tableFacts')).seatId).toBe('ann')
-        await expect.poll(() => turnBar(page)).toEqual(["cole's turn is paused", 'Act Phase'])
+        await expect.poll(() => turnBar(page)).toEqual(["rhys's turn is paused", 'Act Phase'])
         await expect(question(page)).toHaveText('Travel now? Free.')
         await expect(grid(page).locator('.question-form').getByRole('img', { name: 'Second Wind' })).toBeVisible()
         await expect(grid(page).getByRole('button', { name: /^(Travel|Skip)$/ })).toHaveCount(2)
@@ -6009,10 +6009,10 @@ test.describe('Second Wind out of turn: the free Travel, then the free Campaign'
         await siteCard(page, SLUM).click()
         await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.ann).toBe(SLUM)
         await expect(question(page)).toHaveText('Campaign now? Free.')
-        await expect.poll(() => turnBar(page)).toEqual(["cole's turn is paused", 'Act Phase'])
+        await expect.poll(() => turnBar(page)).toEqual(["rhys's turn is paused", 'Act Phase'])
 
         await answer(page, 'Campaign').click()
-        await expect(grid(page)).toContainText('Against jacob.')
+        await expect(grid(page)).toContainText('Against dana.')
         await undoButton(page).click()
         await expect(question(page)).toHaveText('Campaign now? Free.')
     })
@@ -6024,7 +6024,7 @@ test.describe('Second Wind out of turn: the free Travel, then the free Campaign'
         expect((await call(page, 'tableFacts')).siteOf.ann).not.toBe(SLUM)
         await answer(page, 'Skip').click()
         await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
-        expect((await call(page, 'tableFacts')).seatId).toBe('cole')
+        expect((await call(page, 'tableFacts')).seatId).toBe('rhys')
         await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
     })
 
@@ -6033,12 +6033,12 @@ test.describe('Second Wind out of turn: the free Travel, then the free Campaign'
         await expect(question(page)).toHaveText('Campaign now? Free.')
         await expect(grid(page).getByRole('button', { name: /^(Campaign|Skip)$/ })).toHaveCount(2)
         await answer(page, 'Campaign').click()
-        await expect(grid(page)).toContainText('Against jacob.')
+        await expect(grid(page)).toContainText('Against dana.')
     })
 
     test('the other seats wait on the holder, and the turn player’s bar reads paused', async ({ page }) => {
         await openTable(page, 'freeTravelAsked')
-        expect(await call(page, 'viewOffTheClock')).toBe('cole')
+        expect(await call(page, 'viewOffTheClock')).toBe('rhys')
         await expectWaitingOn(page, ['ann'])
         await expect.poll(() => turnBar(page)).toEqual(['Your turn is paused', 'Act Phase'])
     })
@@ -6074,8 +6074,8 @@ const leftoverPieces = (page: Page) => bargainEntry(page).locator('[data-leftove
 const bargainUse = (page: Page) => bargainEntry(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true })
 
 /**
- * Witch's Bargain, revision 7 (its Q&A: several players in one use). Jacob (5 favor, 3 secrets),
- * Cole (4, 2) and Ann (1, 1) share his site: "With:" and their chips, then two rows of his pieces
+ * Witch's Bargain, revision 7 (its Q&A: several players in one use). Dana (5 favor, 3 secrets),
+ * Rhys (4, 2) and Ann (1, 1) share his site: "With:" and their chips, then two rows of his pieces
  * for each picked player.
  */
 test.describe('Witch’s Bargain: the players at your site, then your pieces for each', () => {
@@ -6085,24 +6085,24 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         await openTable(page, 'witchsBargain')
         await usePower(page).click()
         await expect(bargainEntry(page)).toContainText('With:')
-        for (const name of ['cole', 'ann']) {
+        for (const name of ['rhys', 'ann']) {
             await expect(bargainChip(page, name)).toHaveAttribute('aria-pressed', 'false')
         }
         await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(0)
         await expect(bargainUse(page)).toHaveCount(0)
 
-        await bargainChip(page, 'cole').click()
-        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
-        await expect(secretPieces(page, 'cole')).toHaveCount(3)
-        const secrets = await secretPieces(page, 'cole').all()
+        await bargainChip(page, 'rhys').click()
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'true')
+        await expect(secretPieces(page, 'rhys')).toHaveCount(3)
+        const secrets = await secretPieces(page, 'rhys').all()
         await expect(secrets[0]).toBeEnabled()
         await expect(secrets[1]).toBeEnabled()
         // The 3rd secret is the one the cost places.
         await expect(secrets[2]).toBeDisabled()
         for (const piece of secrets) expect(await layoutSizeOf(piece)).toEqual({ width: 34, height: 32 })
         // 5 favor: two pairs, each one button holding both pieces, and the 5th alone, never a button.
-        await expect(favorPairs(page, 'cole')).toHaveCount(2)
-        for (const pair of await favorPairs(page, 'cole').all()) {
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
+        for (const pair of await favorPairs(page, 'rhys').all()) {
             await expect(pair).toBeEnabled()
             await expect(pair.locator('img')).toHaveCount(2)
             expect(await layoutSizeOf(pair)).toEqual({ width: 54, height: 32 })
@@ -6111,22 +6111,22 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         await expect(leftoverPieces(page).locator('xpath=ancestor-or-self::button')).toHaveCount(0)
         await expect(bargainUse(page)).toHaveCount(0)
 
-        await answer(page, 'give cole 1 secret for 2 favor').click()
+        await answer(page, 'give rhys 1 secret for 2 favor').click()
         await expect(bargainUse(page)).toBeVisible()
         await expect(bargainUse(page).locator('.text-oath-accent')).toBeVisible()
-        await answer(page, 'give cole 2 favor for 1 secret').click()
-        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'true')
-        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveClass(/ring-oath-accent/)
+        await answer(page, 'give rhys 2 favor for 1 secret').click()
+        await expect(answer(page, 'give rhys 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'give rhys 2 favor for 1 secret')).toHaveClass(/ring-oath-accent/)
 
         // Undo takes back the last pick, one at a time.
         await undoButton(page).click()
-        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
-        await expect(answer(page, 'give cole 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'give rhys 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
+        await expect(answer(page, 'give rhys 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'true')
         await undoButton(page).click()
-        await expect(answer(page, 'give cole 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'false')
+        await expect(answer(page, 'give rhys 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'false')
         await expect(bargainUse(page)).toHaveCount(0)
         await undoButton(page).click()
-        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'false')
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'false')
         await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(0)
     })
 
@@ -6135,25 +6135,25 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
     }) => {
         await openTable(page, 'witchsBargain')
         await usePower(page).click()
-        await bargainChip(page, 'cole').click()
+        await bargainChip(page, 'rhys').click()
         await bargainChip(page, 'ann').click()
         await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(2)
-        // One favor buys none of Jacob's secrets; her last secret can be taken for a pair.
+        // One favor buys none of Dana's secrets; her last secret can be taken for a pair.
         for (const piece of await secretPieces(page, 'ann').all()) await expect(piece).toBeDisabled()
         const annPairs = await favorPairs(page, 'ann').all()
         await expect(annPairs[0]).toBeEnabled()
         await expect(annPairs[1]).toBeDisabled()
 
-        await answer(page, 'give cole 2 secrets for 4 favor').click()
-        await answer(page, 'give cole 2 favor for 1 secret').click()
+        await answer(page, 'give rhys 2 secrets for 4 favor').click()
+        await answer(page, 'give rhys 2 favor for 1 secret').click()
         await answer(page, 'give ann 2 favor for 1 secret').click()
-        // Ann's pair leaves Cole no second one.
-        await expect(answer(page, 'give cole 4 favor for 2 secrets')).toBeDisabled()
+        // Ann's pair leaves Rhys no second one.
+        await expect(answer(page, 'give rhys 4 favor for 2 secrets')).toBeDisabled()
         await bargainUse(page).click()
         await expect.poll(async () => (await call(page, 'tableFacts')).secretsOn[WITCHS_BARGAIN]).toBe(1)
         const facts = await call(page, 'tableFacts')
-        expect(facts.secretsOf).toEqual({ jacob: 2, cole: 3, ann: 0 })
-        expect(facts.favorOf).toEqual({ jacob: 5, cole: 2, ann: 3 })
+        expect(facts.secretsOf).toEqual({ dana: 2, rhys: 3, ann: 0 })
+        expect(facts.favorOf).toEqual({ dana: 5, rhys: 2, ann: 3 })
     })
 
     test('one other player at your site: their chip starts picked and their rows open; a tap keeps them; Use waits for a count', async ({
@@ -6162,36 +6162,36 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         await openTable(page, 'witchsBargainOneOther')
         await usePower(page).click()
         await expect(bargainChip(page, 'ann')).toHaveCount(0)
-        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
-        await expect(bargainChip(page, 'cole')).toHaveClass(/ring-oath-accent/)
-        await expect(bargainEntry(page).locator('[data-bargain-with="cole"]')).toHaveCount(1)
-        await expect(secretPieces(page, 'cole')).toHaveCount(3)
-        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'true')
+        await expect(bargainChip(page, 'rhys')).toHaveClass(/ring-oath-accent/)
+        await expect(bargainEntry(page).locator('[data-bargain-with="rhys"]')).toHaveCount(1)
+        await expect(secretPieces(page, 'rhys')).toHaveCount(3)
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
         await expect(bargainUse(page)).toHaveCount(0)
 
-        // The pick is required: a tap on the one chip does not drop Cole.
-        await bargainChip(page, 'cole').click()
-        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
-        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        // The pick is required: a tap on the one chip does not drop Rhys.
+        await bargainChip(page, 'rhys').click()
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'true')
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
         await expect(bargainUse(page)).toHaveCount(0)
 
-        await answer(page, 'give cole 2 favor for 1 secret').click()
+        await answer(page, 'give rhys 2 favor for 1 secret').click()
         await expect(bargainUse(page)).toBeVisible()
-        // Undo takes back the pair; Cole stays picked.
+        // Undo takes back the pair; Rhys stays picked.
         await undoButton(page).click()
-        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
-        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'give rhys 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'true')
         await expect(bargainUse(page)).toHaveCount(0)
     })
 
     test('with Vow of Silence there is no secrets row; the favor row stays', async ({ page }) => {
         await openTable(page, 'witchsBargainSilenced')
         await usePower(page).click()
-        await bargainChip(page, 'cole').click()
+        await bargainChip(page, 'rhys').click()
         await expect(bargainEntry(page).locator('[data-bargain-row="secrets"]')).toHaveCount(0)
-        await expect(secretPieces(page, 'cole')).toHaveCount(0)
+        await expect(secretPieces(page, 'rhys')).toHaveCount(0)
         await expect(bargainEntry(page).locator('[data-bargain-row="pairs"]')).toHaveCount(1)
-        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
     })
 
     for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
@@ -6199,10 +6199,10 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
             await page.setViewportSize(viewport)
             await openTable(page, 'witchsBargain')
             await usePower(page).click()
-            await bargainChip(page, 'cole').click()
+            await bargainChip(page, 'rhys').click()
             await bargainChip(page, 'ann').click()
             const panel = await boxOf(grid(page))
-            for (const name of ['cole', 'ann']) {
+            for (const name of ['rhys', 'ann']) {
                 const chip = bargainChip(page, name)
                 expect((await layoutSizeOf(chip))?.height, `${name}'s chip`).toBeGreaterThanOrEqual(44)
                 for (const piece of await secretPieces(page, name).all()) {
@@ -6219,10 +6219,10 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
             }
             // The chips share one width.
             const widths = await Promise.all(
-                ['cole', 'ann'].map(async (name) => (await layoutSizeOf(bargainChip(page, name)))?.width)
+                ['rhys', 'ann'].map(async (name) => (await layoutSizeOf(bargainChip(page, name)))?.width)
             )
             expect(widths[0]).toBe(widths[1])
-            await answer(page, 'give cole 1 secret for 2 favor').click()
+            await answer(page, 'give rhys 1 secret for 2 favor').click()
             const use = bargainUse(page)
             await use.scrollIntoViewIfNeeded()
             expect((await layoutSizeOf(use))?.height).toBeGreaterThanOrEqual(44)
@@ -6241,8 +6241,8 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
     const lineToken = (page: Page) => grid(page).locator('.question-line img[alt="warband"]')
 
     test('after the Whistle the holder is asked "Gain 1 [warband]?" beside the Drum; Gain adds it, and the History says so after the move', async ({ page }) => {
-        expect((await openTable(page, 'drumAsked')).seatId).toBe('Jacob')
-        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+        expect((await openTable(page, 'drumAsked')).seatId).toBe('Dana')
+        expect((await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
         await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
         await expect(grid(page).locator('.question-line')).toHaveText('Gain 1?')
         await expect(lineToken(page)).toHaveAttribute('src', /warband\.blue/)
@@ -6257,28 +6257,28 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
         await expect(skip).not.toHaveClass(/border-oath-primary-border/)
 
         await gain.click()
-        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ Jacob: 3 })
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Dana).toEqual({ Dana: 3 })
         await page.getByRole('tab', { name: 'History' }).click()
         const rows = page.locator('.history .timeline-item')
         await expect(rows.nth(0)).toContainText('+1 (Dragonskin Drum)')
         await expect(rows.nth(0).locator('img[alt="warband"]')).toHaveAttribute('src', /warband\.blue/)
-        await expect(rows.nth(0)).toContainText('Jacob')
-        await expect(rows.nth(1)).toContainText('used Whistle, placing 1 on it: Jacob travelled to Great Slum')
+        await expect(rows.nth(0)).toContainText('Dana')
+        await expect(rows.nth(1)).toContainText('used Whistle, placing 1 on it: Dana travelled to Great Slum')
     })
 
     test('Skip gains nothing', async ({ page }) => {
         await openTable(page, 'drumAsked')
         await answers(page).skip.click()
         await expect(answers(page).skip).toHaveCount(0)
-        expect((await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ Jacob: 2 })
+        expect((await call(page, 'tableFacts')).boardOf.Dana).toEqual({ Dana: 2 })
         await page.getByRole('tab', { name: 'History' }).click()
         await expect(page.locator('.history .timeline-item').nth(0)).toContainText('skipped the Dragonskin Drum')
     })
 
     test('the mover reads only who they are waiting on', async ({ page }) => {
         await openTable(page, 'drumAsked')
-        expect(await call(page, 'viewOffTheClock')).toBe('Cole')
-        await expect(grid(page)).toContainText('Waiting on Jacob.')
+        expect(await call(page, 'viewOffTheClock')).toBe('Rhys')
+        await expect(grid(page)).toContainText('Waiting on Dana.')
         await expect(answers(page).gain).toHaveCount(0)
         await expect(answers(page).skip).toHaveCount(0)
     })
@@ -6287,7 +6287,7 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
         await openTable(page, 'drumAskedCitizen')
         await expect(lineToken(page)).toHaveAttribute('src', /warband\.purple/)
         await answers(page).gain.click()
-        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ imperial: 3 })
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Dana).toEqual({ imperial: 3 })
         await page.getByRole('tab', { name: 'History' }).click()
         await expect(page.locator('.history .timeline-item').nth(0).locator('img[alt="warband"]')).toHaveAttribute('src', /warband\.purple/)
     })
@@ -6303,14 +6303,14 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
         await openTable(page, 'drumAfterToll')
         await grid(page).getByRole('button', { name: 'Refuse', exact: true }).click()
         await expect.poll(async () => await call(page, 'openQuestionKind')).toBeUndefined()
-        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.2')
+        expect((await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.2')
     })
 
     test('after Brass Horse its user is asked the same question once they arrive', async ({ page }) => {
         await openTable(page, 'drumAfterBrassHorse')
         await grid(page).getByRole('button', { name: /Travel to/ }).click()
         await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
-        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+        expect((await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
         await expect(answers(page).gain).toBeVisible()
     })
 
