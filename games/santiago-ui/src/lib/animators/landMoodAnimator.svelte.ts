@@ -16,7 +16,7 @@ function sameMood(a: LandMood, b: LandMood) {
 // Owns the land's light and dust motes. After a played move they ease toward the mood the move
 // leaves, over seconds; the tween runs beside the shared timeline rather than on it, since a
 // timeline that long would hold up play. Any other change of the shown mood, from undo, a step
-// through history, a silent restoration or the mood tuner, is applied at once. See the visual
+// through history or a silent restoration, is applied at once. See the visual
 // contract's "The land's mood".
 export class LandMoodAnimator extends StateAnimator {
     private readonly ambients = new Set<Ambient>()
@@ -47,7 +47,7 @@ export class LandMoodAnimator extends StateAnimator {
     }
 
     override async onGameStateChange({ to, action }: StateChange) {
-        if (!action || this.gameSession.moodOverride) return
+        if (!action) return
         const incoming = this.gameSession.incomingGameState
         if (to.actionCount < incoming.actionCount) return
         const target = landMood(incoming)

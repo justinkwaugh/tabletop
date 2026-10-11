@@ -80,11 +80,9 @@ export class SantiagoGameSession extends GameSession<
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
-    // Set from the developer harness's mood tuner to preview the light on any board.
-    moodOverride: LandMood | undefined = $state(undefined)
 
     get landMood(): LandMood {
-        return this.moodOverride ?? landMood(this.gameState)
+        return landMood(this.gameState)
     }
 
     override async onGameStateChange({
