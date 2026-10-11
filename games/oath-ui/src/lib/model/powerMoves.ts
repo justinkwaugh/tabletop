@@ -153,15 +153,18 @@ export function withoutLastPick(picks: readonly MovePick[]): MovePick[] {
     const last = picks.at(-1)
     if (!last) return []
     const rest = picks.slice(0, -1)
-    if (last.to) return [...rest, { from: last.from, count: last.count }]
-    if (last.count !== undefined) return [...rest, { from: last.from }]
-    return rest
+    if (last.to) return withoutEmptyTail([...rest, picked(last.from, last.count)])
+    if (last.count !== undefined) return withoutEmptyTail([...rest, picked(last.from)])
+    return withoutEmptyTail(rest)
 }
 
 /** A tap on a From: picks it, or clears the move when it is the one picked. */
 export function withFrom(picks: readonly MovePick[], index: number, from: MoveFrom): MovePick[] {
     const current = picks[index]?.from
-    return [...picks.slice(0, index), ...(current && sameFrom(current, from) ? [] : [{ from }])]
+    return withoutEmptyTail([
+        ...picksBefore(picks, index),
+        ...(current && sameFrom(current, from) ? [] : [{ from }])
+    ])
 }
 
 /** A tap on the Nth warband sets N; a tap on the current count clears it. */
@@ -174,18 +177,41 @@ export function withCount(
 ): MovePick[] {
     const pick = picks[index] ?? { from }
     return [
-        ...picks.slice(0, index),
-        { from: pick.from ?? from, count: tapped === shown ? undefined : tapped }
+        ...picksBefore(picks, index),
+        picked(pick.from ?? from, tapped === shown ? undefined : tapped)
     ]
 }
 
+/**
+ * A tap on a To. The From is kept though the panel may have made it (it anchors the To); a count
+ * the panel made is not, so Undo takes the To and then the From.
+ */
 export function withTo(
     picks: readonly MovePick[],
     index: number,
     from: MoveFrom,
-    count: number,
     to: MoveTo
 ): MovePick[] {
     const pick = picks[index] ?? { from }
-    return [...picks.slice(0, index), { from: pick.from ?? from, count: pick.count ?? count, to }]
+    return [...picksBefore(picks, index), { ...picked(pick.from ?? from, pick.count), to }]
+}
+
+/** The picks of the moves before `index`, one per move: a move the panel made from no pick keeps its place. */
+function picksBefore(picks: readonly MovePick[], index: number): MovePick[] {
+    return Array.from({ length: index }, (_, i) => picks[i] ?? {})
+}
+
+function picked(from: MoveFrom | undefined, count?: number): MovePick {
+    return { ...(from ? { from } : {}), ...(count !== undefined ? { count } : {}) }
+}
+
+/** Empty picks at the end say nothing; dropped, so Undo never takes back nothing. */
+function withoutEmptyTail(picks: MovePick[]): MovePick[] {
+    let end = picks.length
+    while (end > 0 && isEmptyPick(picks[end - 1])) end--
+    return picks.slice(0, end)
+}
+
+function isEmptyPick(pick: MovePick | undefined): boolean {
+    return !pick?.from && pick?.count === undefined && !pick?.to
 }

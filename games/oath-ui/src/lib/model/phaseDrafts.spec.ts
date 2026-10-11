@@ -23,6 +23,7 @@ import {
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
+import { withFrom } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -562,15 +563,14 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
     const toBoard = { kind: 'board' as const }
 
     // The sheet's scene: four at the first site, two at the second, one at the third; the board empty.
-    function using() {
+    function using(
+        warbandsBySite: Record<string, Record<string, number>> = { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } }
+    ) {
         const session = opened(
             table(
                 MachineState.ActPhase,
                 { warbandsOnBoard: {}, advisers: [{ cardId: MESSENGER, faceUp: true }] },
-                {
-                    denizensBySite: { c1: [], c2: [], h1: [] },
-                    warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } }
-                }
+                { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite }
             )
         )
         session.chooseAction(ActionType.UseActionPower)
@@ -653,6 +653,26 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
         expect(draft.picksOf(USE).moves).toEqual([])
         expect(draft.hasManualSelection()).toBe(false)
         expect(draft.back()).toBe(false)
+    })
+
+    it('a move made from no pick keeps its place: a From tapped for the next move is that move’s From', () => {
+        // One ruled site holding two, the board empty: the first move has one option at each pick.
+        const { draft, power, moves } = using({ c1: { [ME]: 2 } })
+        const made = { from: at('c1'), count: 1, to: toBoard }
+        expect(moves().whole).toEqual([made])
+        expect(moves().open?.sources).toEqual([{ ...board, count: 1 }])
+        expect(moves().open?.from).toBeUndefined()
+
+        // The board is the second move's From; its count and its To (the one ruled site) have one
+        // option each, so the second move is whole and the first is still the one the panel made.
+        draft.setMoves(USE, withFrom(draft.picksOf(USE).moves, 1, board))
+        expect(moves().whole).toEqual([made, { from: board, count: 1, to: toSite('c1') }])
+        expect(draft.choicesFor(power)).toHaveLength(3)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(moves().whole).toEqual([made])
+        expect(draft.picksComplete(power)).toBe(true)
     })
 
     it('after the 16th whole move no From opens; the engine takes all 16', () => {

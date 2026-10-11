@@ -122,7 +122,6 @@
                 />
             </div>
             {#if open.count !== undefined}
-                {@const count = open.count}
                 <div class={ROW}>
                     <span class="text-oath-text-muted">To:</span>
                     <div class="flex flex-wrap gap-1.5">
@@ -134,7 +133,7 @@
                                 on={open.to !== undefined && sameTo(open.to, to)}
                                 disabled={busy}
                                 width={toWidth}
-                                onclick={() => onchange(withTo(picks, index, from, count, to))}
+                                onclick={() => onchange(withTo(picks, index, from, to))}
                             />
                         {/each}
                     </div>
