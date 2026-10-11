@@ -57,6 +57,7 @@ import {
     type PowerChoicePicks
 } from './powerChoices.js'
 import { samePowerUse } from './powerUse.js'
+import { addableCount, tappedCount } from './exchangeTerms.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
@@ -699,9 +700,7 @@ export class CitizenshipDraft implements PanelDraft {
                 toId,
                 favor ? { favor: count } : { secrets: count }
             ) === undefined
-        let addable = held
-        while (addable > 0 && !allowed(addable)) addable--
-        return { held, addable, picked: this.offerTerms[term] }
+        return { held, addable: addableCount(held, allowed), picked: this.offerTerms[term] }
     }
 
     /** A tap on the Nth token sets the count to N; a tap on the token at the count sets 0. */
@@ -709,7 +708,7 @@ export class CitizenshipDraft implements PanelDraft {
         if (!this.termsOpen) return
         const row = this.tokenRow(term)
         if (count < 1 || count > row.addable) return
-        this.pickTerms({ ...this.offerTerms, [term]: count === row.picked ? 0 : count })
+        this.pickTerms({ ...this.offerTerms, [term]: tappedCount(row.picked, count) })
     }
 
     toggleRelic(term: 'givenRelics' | 'askedRelics', relicId: string, on: boolean): void {

@@ -159,6 +159,7 @@ export type TableName =
     | 'tavernSongs'
     | 'usurperWins'
     | 'deedWriter'
+    | ExchangeScene
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -1862,19 +1863,30 @@ function tavernSongsTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-10.8: Deed Writer at the seat's site, which the seat rules, opens an exchange with Ann. */
+/**
+ * R-10.8: Deed Writer at the seat's site, which the seat rules, opens an exchange with Ann; each
+ * has warbands on their board to move into a site the other hands over.
+ */
 function deedWriterTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const away = mapSlotId(Region.Provinces, 0)
     const state = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7, favor: 2 }),
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 7,
+                favor: 2,
+                warbandsOnBoard: { me: 3 }
+            }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: away,
-                favor: 2
+                favor: 2,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
             })
         ],
         {
@@ -1889,6 +1901,109 @@ function deedWriterTable(): PlayedTable {
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
     state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+type ExchangeScene =
+    'exchangeDeed' | 'exchangeDeedEmptyBoard' | 'exchangeTinkers' | 'exchangeGathering'
+
+const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
+
+/**
+ * R-10.8 — Jacob, the Chancellor, at Plains with Deed Writer or Tinker's Fair; he rules Plains and
+ * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Cole, an
+ * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
+ * Citizen. `exchangeDeedEmptyBoard`: Cole holds no Crown and his board is empty.
+ * `exchangeTinkers`: Cole holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
+ * Jacob, who holds 2 advisers of 3; Cole holds Vow of Peace (locked), Tents and a facedown card.
+ */
+function exchangeTable(scene: ExchangeScene): PlayedTable {
+    const [home, slums] = mapSlotsFor(Region.Cradle)
+    const mountain = mapSlotId(Region.Provinces, 0)
+    const crowned = scene !== 'exchangeDeedEmptyBoard'
+    const card =
+        scene === 'exchangeTinkers' ? 'denizen.hearth.tinkers-fair' : 'denizen.hearth.deed-writer'
+    const gathering = scene === 'exchangeGathering'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter', CUP],
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                advisers: gathering
+                    ? [faceup('denizen.order.longbows'), faceup('denizen.hearth.herald')]
+                    : [],
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                siteId: home,
+                favor: 1,
+                secrets: 1,
+                relicIds: crowned ? ['relic.bandit-crown'] : [],
+                warbandsOnBoard: crowned ? { cole: 2 } : {},
+                advisers: gathering
+                    ? [
+                          faceup('denizen.hearth.vow-of-peace'),
+                          faceup('denizen.nomad.tents'),
+                          { cardId: 'denizen.order.scouts', faceUp: false }
+                      ]
+                    : scene === 'exchangeTinkers'
+                      ? [faceup(VOW_OF_SILENCE)]
+                      : []
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                secrets: 1,
+                warbandsOnBoard: { ann: 2 }
+            })
+        ],
+        {
+            machineState: gathering ? MachineState.PowerQuestion : MachineState.ActPhase,
+            oathRevision: OathRevision.UiBatch1,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            vault: testVaultWithRelics(RELIQUARY),
+            siteCards: {
+                [home]: 'site.plains',
+                [slums]: 'site.great-slums',
+                [mountain]: 'site.mountain'
+            },
+            denizensBySite: { [home]: gathering ? [] : [card], [slums]: [], [mountain]: [] },
+            warbandsBySite: {
+                [home]: { [IMPERIAL_WARBANDS]: 2 },
+                [slums]: { [IMPERIAL_WARBANDS]: 1 },
+                [mountain]: { cole: 1 }
+            },
+            ...(gathering && {
+                pendingQuestions: {
+                    queue: [
+                        {
+                            kind: PowerQuestionKind.GatheringFloor,
+                            cardId: 'denizen.nomad.the-gathering',
+                            askedPlayerId: 'jacob',
+                            siteId: home
+                        }
+                    ],
+                    askingPlayerId: 'jacob',
+                    resumeMachineState: MachineState.ActPhase
+                }
+            })
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
     return tableOf(state)
 }
 
@@ -3109,6 +3224,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     tavernSongs: tavernSongsTable,
     usurperWins: usurperWinsTable,
     deedWriter: deedWriterTable,
+    exchangeDeed: () => exchangeTable('exchangeDeed'),
+    exchangeDeedEmptyBoard: () => exchangeTable('exchangeDeedEmptyBoard'),
+    exchangeTinkers: () => exchangeTable('exchangeTinkers'),
+    exchangeGathering: () => exchangeTable('exchangeGathering'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,

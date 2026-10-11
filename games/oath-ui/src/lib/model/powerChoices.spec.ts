@@ -9,6 +9,7 @@ import {
     optionIndexOf,
     picksComplete,
     powerChoicesFrom,
+    withOptionPick,
     withSeveralCount
 } from './powerChoices.js'
 
@@ -129,5 +130,40 @@ describe('openCountCeiling — how far an open count runs (Witch\'s Bargain)', (
 
     it('offers nothing to a viewer with no seat', () => {
         expect(openCountCeiling(holding([]), undefined)).toBe(0)
+    })
+})
+
+describe('an exchange choice — the player, then terms that name something, every site counted', () => {
+    const deal: LegalChoice = {
+        spec: { kind: PowerChoiceKind.Exchange, min: 1, max: 1, allows: { sites: true } },
+        options: [
+            { kind: PowerChoiceKind.Exchange, withPlayerId: 'cole', terms: {} },
+            { kind: PowerChoiceKind.Exchange, withPlayerId: 'ann', terms: {} }
+        ]
+    }
+    const withCole = { ...emptyPicks(), option: { 0: 0 } }
+
+    it('"Use" waits for terms that name something', () => {
+        expect(picksComplete([deal], emptyPicks())).toBe(false)
+        expect(picksComplete([deal], withCole)).toBe(false)
+        const named = { ...withCole, terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } } }
+        expect(picksComplete([deal], named)).toBe(true)
+        expect(powerChoicesFrom([deal], named)).toEqual([
+            { kind: PowerChoiceKind.Exchange, withPlayerId: 'cole', terms: { fromProposer: { favor: 1 } } }
+        ])
+    })
+
+    it('"Use" waits for every picked site to have its count', () => {
+        const uncounted = {
+            ...withCole,
+            terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: ['c1'] } }
+        }
+        expect(picksComplete([deal], uncounted)).toBe(false)
+    })
+
+    it('another player picked drops the terms written for the last one', () => {
+        const named = { ...withCole, terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } } }
+        expect(withOptionPick(named, deal, 0, 1).terms).toEqual({})
+        expect(withOptionPick(named, deal, 0, 0).terms).toEqual(named.terms)
     })
 })

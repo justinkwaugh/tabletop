@@ -2,7 +2,6 @@
     import {
         PowerChoiceKind,
         exchangeAllowanceOf,
-        type ExchangeTerms,
         type LegalChoice,
         type PowerChoice,
         type WarbandOwner
@@ -13,6 +12,8 @@
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import BargainPicker from '$lib/components/BargainPicker.svelte'
+    import WithChips from '$lib/components/WithChips.svelte'
+    import { noExchangePicks, type ExchangePicks } from '$lib/model/exchangeTerms.js'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -26,6 +27,7 @@
     import {
         allowsSeveral,
         emptyPicks,
+        exchangePartners,
         favorBankSuits,
         NO_OPTION,
         openCountCeiling,
@@ -152,7 +154,7 @@
     function setCount(legal: LegalChoice, i: number, count: number) {
         picks = withCount(picks, legal, i, count)
     }
-    function setTerms(i: number, value: ExchangeTerms) {
+    function setTerms(i: number, value: ExchangePicks) {
         picks = { ...picks, terms: { ...picks.terms, [i]: value } }
     }
     function toggleSeveral(i: number, j: number, on: boolean) {
@@ -186,6 +188,30 @@
                     disabled={busy}
                 />
             </div>
+        {:else if legal.spec.kind === PowerChoiceKind.Exchange}
+            {@const partners = exchangePartners(legal.options)}
+            <WithChips
+                playerIds={partners}
+                picked={option?.kind === PowerChoiceKind.Exchange ? option.withPlayerId : undefined}
+                onpick={(playerId) =>
+                    setOption(
+                        legal,
+                        i,
+                        playerId === undefined ? NO_OPTION : partners.indexOf(playerId)
+                    )}
+                {busy}
+            />
+            {#if option?.kind === PowerChoiceKind.Exchange && gameSession.myPlayer}
+                <div class="mt-1">
+                    <ExchangeEditor
+                        proposerId={gameSession.myPlayer.id}
+                        counterpartyId={option.withPlayerId}
+                        allows={exchangeAllowanceOf(legal.spec)}
+                        value={picks.terms[i] ?? noExchangePicks()}
+                        onchange={(value) => setTerms(i, value)}
+                    />
+                </div>
+            {/if}
         {:else if legal.spec.kind === PowerChoiceKind.FavorBank}
             {@const banks = favorBankSuits(legal.options)}
             <div class="text-oath-text-muted mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
@@ -275,17 +301,6 @@
                         {/each}
                     </select>
                 </label>
-            {/if}
-            {#if option?.kind === PowerChoiceKind.Exchange && gameSession.myPlayer}
-                <div class="mt-1">
-                    <ExchangeEditor
-                        proposerId={gameSession.myPlayer.id}
-                        counterpartyId={option.withPlayerId}
-                        allows={exchangeAllowanceOf(legal.spec)}
-                        value={picks.terms[i] ?? {}}
-                        onchange={(value) => setTerms(i, value)}
-                    />
-                </div>
             {/if}
             {#if option?.kind === PowerChoiceKind.Warbands}
                 {@const max = option.group.count}

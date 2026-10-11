@@ -14,6 +14,7 @@ import {
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { noExchangePicks } from './exchangeTerms.js'
 
 afterEach(() => {
     disposeSessions()
@@ -53,6 +54,8 @@ function asked(
     return { session, draft: session.question, sent }
 }
 
+const favorOne = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+
 const floor = (): PowerQuestion => ({
     kind: PowerQuestionKind.GatheringFloor,
     cardId: 'denizen.nomad.the-gathering',
@@ -74,12 +77,12 @@ describe('the question draft (docs/user-interactions.md)', () => {
     it('choosing the partner clears the terms written for the last one', () => {
         const { draft } = asked(floor())
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
-        expect(draft.floorTerms).toEqual({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms(favorOne)
+        expect(draft.floorTerms).toEqual(favorOne)
 
         draft.chooseFloorWith('bo')
         expect(draft.floorWith).toBe('bo')
-        expect(draft.floorTerms).toEqual({})
+        expect(draft.floorTerms).toEqual(noExchangePicks())
     })
 
     it('Undo untaps the Pilgrimage stack one card at a time', async () => {
@@ -113,10 +116,10 @@ describe('the question draft (docs/user-interactions.md)', () => {
     it('clearing the partner clears the terms under it', () => {
         const { draft } = asked(floor())
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms(favorOne)
         draft.chooseFloorWith(undefined)
         expect(draft.floorWith).toBeUndefined()
-        expect(draft.floorTerms).toEqual({})
+        expect(draft.floorTerms).toEqual(noExchangePicks())
         expect(draft.hasManualSelection()).toBe(false)
     })
 })
@@ -142,7 +145,10 @@ describe('the question draft builds each answer', () => {
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.GatheringFloor })
 
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms({ ...favorOne, uncountedSiteIds: ['c1'] })
+        expect(draft.acceptComplete).toBe(false)
+        expect(draft.acceptRefusedBecause).toBeUndefined()
+        draft.setFloorTerms(favorOne)
         expect(draft.acceptComplete).toBe(true)
         await draft.accept()
         expect(sent).toHaveBeenLastCalledWith({

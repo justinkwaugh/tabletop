@@ -102,6 +102,7 @@
         {@const reason = reasonFor(p)}
         {@const name = cardName(p.cardId)}
         {@const cost = useCost(p)}
+        {@const complete = draft.picksComplete(p)}
         <div
             class="border-t border-oath-divider pt-1.5 flex gap-2 items-start"
             data-action-power={p.cardId}
@@ -130,15 +131,15 @@
                         />
                     </div>
                 {/if}
-                {#if draft.picksComplete(p)}
-                    {#if reason}
-                        <p class="text-[11px] text-oath-danger">
-                            <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-                        </p>
-                    {/if}
+                <!-- "Use" waits for complete picks; complete picks the engine refuses show its reason instead. -->
+                {#if complete && reason}
+                    <p class="text-[11px] text-oath-danger">
+                        <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                    </p>
+                {:else if complete}
                     <button
                         class="mt-1 inline-flex items-center gap-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs max-sm:min-h-11"
-                        disabled={busy || !!reason}
+                        disabled={busy}
                         aria-label={cost ? `Use, paying ${cost}` : undefined}
                         onclick={() => draft.use(p)}
                     >

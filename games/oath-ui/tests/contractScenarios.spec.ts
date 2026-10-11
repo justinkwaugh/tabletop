@@ -3068,16 +3068,174 @@ test('scenario 15: a peek shows its actor the notice, "Only you see this." over 
 test('an exchange editor heads the seat’s side "You give" and the other "<chip> gives"; a site given says who moves in', async ({ page }) => {
     await openTable(page, 'deedWriter')
     await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
-    const heads = grid(page).locator('.border-t > div:first-child')
     await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
-    await expect(heads.filter({ hasText: /gives$/ })).toHaveText(['ann gives'])
+    await expect(grid(page).getByText(/^ann\s*gives$/)).toHaveCount(1)
     await expect(grid(page)).not.toContainText('me gives')
 
-    await grid(page).getByRole('checkbox', { name: 'c1' }).check()
-    await expect(grid(page).getByText('ann moves in', { exact: true })).toBeVisible()
-    await grid(page).getByRole('checkbox', { name: 'p1' }).check()
+    await grid(page).getByRole('button', { name: 'c1', exact: true }).click()
+    await expect(grid(page).getByText(/^ann\s*moves in$/)).toBeVisible()
+    await grid(page).getByRole('button', { name: 'p1', exact: true }).click()
     await expect(grid(page).getByText('You move in', { exact: true })).toBeVisible()
     await expect(grid(page).getByRole('button', { name: 'ann gives 1 favor', exact: true })).toBeVisible()
+})
+
+/**
+ * R-10.8 — the exchange editor (Deed Writer, Tinker's Fair, The Gathering): the player by chip,
+ * picks starting empty; only the rows the engine accepts are listed; counts as rows of pieces;
+ * "Use" and "Propose" only once the terms are complete, one red line when complete terms are
+ * refused.
+ */
+test.describe('the exchange editor', () => {
+    const DEED_WRITER = 'denizen.hearth.deed-writer'
+    const row = (page: Page, cardId: string) => grid(page).locator(`[data-action-power="${cardId}"]`)
+    const red = (page: Page) => grid(page).locator('.text-oath-danger')
+    const chip = (page: Page, cardId: string, name: string) =>
+        row(page, cardId).getByRole('button', { name, exact: true })
+    const site = (page: Page, name: string) => grid(page).getByRole('button', { name, exact: true })
+    const pieces = (page: Page, who: string) =>
+        grid(page).getByRole('button', { name: new RegExp(`^${who} moves \\d in from their board$`) })
+
+    async function openPower(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+    }
+
+    test('Deed Writer: "With:" chips, none picked; no "Use" and no red line before the terms', async ({ page }) => {
+        await openPower(page, 'exchangeDeed')
+        await expect(row(page, DEED_WRITER).locator('select')).toHaveCount(0)
+        await expect(row(page, DEED_WRITER).getByText('With:', { exact: true })).toBeVisible()
+        await expect(chip(page, DEED_WRITER, 'cole')).toHaveAttribute('aria-pressed', 'false')
+        await expect(chip(page, DEED_WRITER, 'ann')).toHaveAttribute('aria-pressed', 'false')
+        await expect(grid(page).getByText('You give', { exact: true })).toHaveCount(0)
+        await expect(answer(page, 'Use')).toHaveCount(0)
+
+        await chip(page, DEED_WRITER, 'cole').click()
+        await expect(chip(page, DEED_WRITER, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
+        await expect(answer(page, 'Use')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+    })
+
+    test('Deed Writer to a Bandit Crown holder: a site is a row with its picture; its count starts empty, runs from 0, and the exchange moves no warbands in', async ({ page }) => {
+        await openPower(page, 'exchangeDeed')
+        await chip(page, DEED_WRITER, 'cole').click()
+        const plains = site(page, 'Plains')
+        await expect(plains).toHaveAttribute('aria-pressed', 'false')
+        await expect(plains.locator('img')).toHaveCount(1)
+        await expect(site(page, 'Great Slum')).toBeVisible()
+        await expect(site(page, 'Mountain')).toBeVisible()
+
+        await plains.click()
+        await expect(plains).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByText(/^cole\s*moves in$/)).toBeVisible()
+        await expect(pieces(page, 'cole')).toHaveCount(2)
+        await expect(grid(page).getByRole('button', { name: /^cole moves \d in from their board$/, pressed: true })).toHaveCount(0)
+        await expect(answer(page, 'Use')).toHaveCount(0)
+
+        const one = grid(page).getByRole('button', { name: 'cole moves 1 in from their board', exact: true })
+        await one.click()
+        await expect(one).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'Use')).toBeVisible()
+        await one.click()
+        await expect(one).toHaveAttribute('aria-pressed', 'false')
+        await expect(answer(page, 'Use')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
+
+        const home = (await call(page, 'tableFacts')).siteOf.jacob
+        if (!home) throw Error('Jacob stands at a site')
+        await answer(page, 'Use').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('cole')
+        await answer(page, 'Accept').click()
+        await expect.poll(async () => (await call(page, 'openQuestionKind')) ?? 'none').toBe('none')
+        const facts = await call(page, 'tableFacts')
+        expect(Object.values(facts.warbandsAt[home] ?? {}).reduce((sum, n) => sum + n, 0)).toBe(0)
+        expect(facts.boardOf.jacob).toEqual({ imperial: 8 })
+        expect(facts.boardOf.cole).toEqual({ cole: 2 })
+    })
+
+    test('Deed Writer refuses no row it lists: no site between the Chancellor and a Citizen; none to an empty board without the Crown', async ({ page }) => {
+        await openPower(page, 'exchangeDeed')
+        await chip(page, DEED_WRITER, 'ann').click()
+        await expect(grid(page).getByText(/^ann\s*gives$/)).toBeVisible()
+        for (const name of ['Plains', 'Great Slum', 'Mountain']) await expect(site(page, name)).toHaveCount(0)
+        await expect(grid(page).getByRole('button', { name: 'ann gives 1 favor', exact: true })).toBeVisible()
+
+        await openPower(page, 'exchangeDeedEmptyBoard')
+        await chip(page, DEED_WRITER, 'cole').click()
+        await expect(site(page, 'Plains')).toHaveCount(0)
+        await expect(site(page, 'Great Slum')).toHaveCount(0)
+        await expect(site(page, 'Mountain')).toBeVisible()
+        await site(page, 'Mountain').click()
+        await expect(grid(page).getByText('You move in', { exact: true })).toBeVisible()
+        await expect(pieces(page, 'jacob')).toHaveCount(6)
+    })
+
+    test('two sites share one board: the second site’s count stops at the warbands the first leaves', async ({ page }) => {
+        await openPower(page, 'exchangeDeed')
+        await chip(page, DEED_WRITER, 'cole').click()
+        await site(page, 'Plains').click()
+        await grid(page).getByRole('button', { name: 'cole moves 2 in from their board', exact: true }).click()
+        await site(page, 'Great Slum').click()
+        const slums = pieces(page, 'cole')
+        await expect(slums).toHaveCount(4)
+        await expect(slums.nth(2)).toBeDisabled()
+        await expect(slums.nth(3)).toBeDisabled()
+    })
+
+    test('Tinker’s Fair: Vow of Silence keeps its holder’s secret in the row, not tappable; every relic is listed', async ({ page }) => {
+        await openPower(page, 'exchangeTinkers')
+        await chip(page, 'denizen.hearth.tinkers-fair', 'cole').click()
+        await expect(grid(page).getByRole('button', { name: 'cole gives 1 secret', exact: true })).toBeDisabled()
+        await expect(grid(page).getByRole('button', { name: 'cole gives 1 favor', exact: true })).toBeEnabled()
+        await expect(grid(page).getByRole('button', { name: 'jacob gives 2 secrets', exact: true })).toBeEnabled()
+        for (const name of ['The Grand Scepter', 'Cup of Plenty', 'Bandit Crown']) {
+            await expect(panelCards(page).filter({ has: page.getByRole('img', { name, exact: true }) })).toHaveCount(1)
+        }
+    })
+
+    test('The Gathering: a faceup locked adviser is not listed; too many advisers for the room is the one red line, and "Propose" hides', async ({ page }) => {
+        await openTable(page, 'exchangeGathering')
+        await grid(page).getByRole('button', { name: 'cole', exact: true }).click()
+        await expect(panelCards(page).filter({ has: page.getByRole('img', { name: 'Vow of Peace', exact: true }) })).toHaveCount(0)
+        const tents = panelCards(page).filter({ has: page.getByRole('img', { name: 'Tents', exact: true }) })
+        await expect(tents).toHaveCount(1)
+        const facedown = panelCards(page).filter({ has: page.getByRole('img', { name: 'the facedown adviser in row 3', exact: true }) })
+        await expect(facedown).toHaveCount(1)
+        await expect(answer(page, 'Propose')).toHaveCount(0)
+
+        await tents.click()
+        await expect(answer(page, 'Propose')).toBeVisible()
+        await facedown.click()
+        await expect(answer(page, 'Propose')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(1)
+        await expect(red(page)).toContainText('cannot hold 2 more advisers')
+        await facedown.click()
+        await expect(red(page)).toHaveCount(0)
+        await expect(answer(page, 'Propose')).toBeVisible()
+    })
+
+    test.describe('on a 375 px phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the sides stack; site rows share one width; site rows and pieces are 44 px; every label inside its button', async ({ page }) => {
+            await openPower(page, 'exchangeDeed')
+            await chip(page, DEED_WRITER, 'cole').click()
+            await site(page, 'Plains').click()
+            await panelImagesLoaded(page)
+            const give = await boxOf(grid(page).getByText('You give', { exact: true }))
+            const gets = await boxOf(grid(page).getByText(/^cole\s*gives$/))
+            expect(gets.y).toBeGreaterThan(give.y + 44)
+            expect(Math.abs(give.x - gets.x)).toBeLessThan(1)
+            const plains = await layoutSizeOf(site(page, 'Plains'))
+            expect(plains?.height).toBeGreaterThanOrEqual(44)
+            expect((await layoutSizeOf(site(page, 'Great Slum')))?.width).toBe(plains?.width)
+            for (const name of ['cole moves 1 in from their board', 'jacob gives 1 favor', 'cole gives 1 secret']) {
+                expect(await layoutSizeOf(answer(page, name))).toEqual({ width: 44, height: 44 })
+            }
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+        })
+    })
 })
 
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
