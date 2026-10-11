@@ -7,7 +7,6 @@
     let {
         label,
         pressed = undefined,
-        number = false,
         width,
         disabled,
         onclick,
@@ -17,8 +16,6 @@
         label?: string
         /** Whether it is the step's choice; absent for an option that is never left marked. */
         pressed?: boolean
-        /** A number with its symbol: bold and closer padded, so a row of five fits a phone's line. */
-        number?: boolean
         width: ChoiceWidth
         disabled: boolean
         onclick: () => void
@@ -28,8 +25,8 @@
 
 <button
     type="button"
-    class="rounded-md border py-1.5 text-[15px] disabled:opacity-40 max-sm:min-h-11
-           {number ? 'px-2 font-bold' : 'px-3 font-semibold'} {pressed
+    class="rounded-md border px-3 py-1.5 text-[15px] font-semibold disabled:opacity-40 max-sm:min-h-11
+           {pressed
         ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
         : 'border-oath-frame bg-oath-surface'}"
     aria-pressed={pressed}

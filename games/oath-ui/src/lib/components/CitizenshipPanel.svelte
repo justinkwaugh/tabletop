@@ -9,6 +9,7 @@
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { cardImage } from '$lib/images/cardImages.js'
+    import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { bannerPreview } from '$lib/model/bannerPreview.js'
     import { cardName } from '$lib/model/names.js'
     import { reliquaryRelicChoice, type CardChoice } from '$lib/model/cardChoice.js'
@@ -90,7 +91,7 @@
     {/each}
     {#if favor.held > 0}
         <TokenRow
-            token="favor"
+            image={favorToken()}
             {...favor}
             label={(n) => `${terms.giver} give ${n} favor`}
             ontap={(n) => offer.tapToken(terms.favor, n)}
@@ -99,7 +100,7 @@
     {/if}
     {#if secrets.held > 0}
         <TokenRow
-            token="secrets"
+            image={secretToken()}
             {...secrets}
             label={(n) => `${terms.giver} give ${n} ${n === 1 ? 'secret' : 'secrets'}`}
             ontap={(n) => offer.tapToken(terms.secrets, n)}

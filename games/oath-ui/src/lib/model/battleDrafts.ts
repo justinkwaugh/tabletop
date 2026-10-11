@@ -241,11 +241,22 @@ export class VictoryDraft implements PanelDraft {
             .filter((placement) => placement.count > 0)
     }
 
+    /** One owner's warbands in the force: a row draws a piece for each. */
+    forceOf(owner: WarbandOwner): number {
+        return countOf(this.forceBoard, owner)
+    }
+
     ceilingAt(siteId: string, owner: WarbandOwner): number {
         const elsewhere = this.capturedSites
             .filter((other) => other !== siteId)
             .reduce((sum, other) => sum + this.countAt(other, owner), 0)
-        return Math.max(0, countOf(this.forceBoard, owner) - elsewhere)
+        return Math.max(0, this.forceOf(owner) - elsewhere)
+    }
+
+    /** A tap on a row's Nth warband places N, and on the one at its count places none. */
+    tapWarband(siteId: string, owner: WarbandOwner, n: number): void {
+        if (n < 1 || n > this.ceilingAt(siteId, owner)) return
+        this.setPlaceCount(siteId, owner, n === this.countAt(siteId, owner) ? 0 : n)
     }
 
     /** One row's count; with one row the tap is the step's choice and moves on, unless it is the last. */

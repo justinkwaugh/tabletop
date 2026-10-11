@@ -1,10 +1,10 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { range } from '@tabletop/common'
     import { CardKind, type WarbandOwner } from '@tabletop/oath'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import MenuCount from '$lib/components/MenuCount.svelte'
     import SpoilsOption from '$lib/components/SpoilsOption.svelte'
+    import TokenRow from '$lib/components/TokenRow.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { widthAtHeight } from '$lib/images/cardShape.js'
@@ -31,7 +31,6 @@
     let manyOwners = $derived(spoils.forceOwners.length > 1)
 
     const PICTURE_HEIGHT = 56
-    const numbersWidth = new ChoiceWidth()
     const relicWidth = new ChoiceWidth()
     const pawnWidth = new ChoiceWidth()
     const sendWidth = new ChoiceWidth()
@@ -78,10 +77,8 @@
     <p class="mb-1.5 text-sm">Place warbands: {spoils.placedTotal} of {spoils.forceAvailable}.</p>
     <div class="flex flex-col gap-1.5" role="list" aria-label="Warbands on the sites taken">
         {#each spoils.warbandRows as row (row.siteId + row.owner)}
-            {@const count = spoils.countAt(row.siteId, row.owner)}
-            {@const figure = warbandFigure(gameSession.warbandColor(row.owner))}
-            <!-- The site's picture and name, then its numbers: on one line on a desktop, each
-                 row's numbers starting at the same place, and under the site on a phone. -->
+            <!-- The site's picture and name, then its warbands: on one line on a desktop, each
+                 row's warbands starting at the same place, and under the site on a phone. -->
             <div
                 role="listitem"
                 class="flex w-fit max-w-full items-center gap-x-3.5 gap-y-2 rounded-md bg-oath-surface-raised px-2 py-1.5
@@ -99,27 +96,16 @@
                             >{/if}</span
                     >
                 </span>
-                <span class="flex flex-wrap gap-1.5">
-                    <!-- R-5.5.7.I — "any number of your warbands, even zero". -->
-                    {#each range(0, spoils.ceilingAt(row.siteId, row.owner) + 1) as n (n)}
-                        <SpoilsOption
-                            label={placeLabel(row.siteId, row.owner, n)}
-                            pressed={n === count}
-                            number
-                            width={numbersWidth}
-                            disabled={busy}
-                            onclick={() => spoils.setPlaceCount(row.siteId, row.owner, n)}
-                        >
-                            {n}{#if n > 0}<img
-                                    class="h-[18px] w-auto"
-                                    src={figure.src}
-                                    width={figure.width}
-                                    height={figure.height}
-                                    alt=""
-                                />{/if}
-                        </SpoilsOption>
-                    {/each}
-                </span>
+                <!-- R-5.5.7.I — "any number of your warbands, even zero": none ringed is 0. -->
+                <TokenRow
+                    image={warbandFigure(gameSession.warbandColor(row.owner))}
+                    held={spoils.forceOf(row.owner)}
+                    addable={spoils.ceilingAt(row.siteId, row.owner)}
+                    picked={spoils.countAt(row.siteId, row.owner)}
+                    label={(n) => placeLabel(row.siteId, row.owner, n)}
+                    ontap={(n) => spoils.tapWarband(row.siteId, row.owner, n)}
+                    {busy}
+                />
             </div>
         {/each}
     </div>

@@ -111,6 +111,22 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
         spoils.setPlaceCount('c1', ME, 1)
         expect(spoils.ceilingAt('c2', ME)).toBe(3)
     })
+
+    it('a tap on the Nth warband places N, a tap on the count places none, and one past the ceiling is no pick', () => {
+        const spoils = won()
+        expect(spoils.forceOf(ME)).toBe(4)
+        spoils.tapWarband('c1', ME, 3)
+        expect(spoils.placeCounts).toEqual({ c1: 3, c2: 1 })
+        spoils.tapWarband('c1', ME, 3)
+        expect(spoils.placeCounts).toEqual({ c1: 0, c2: 1 })
+        spoils.tapWarband('c1', ME, 3)
+        expect(spoils.ceilingAt('c2', ME)).toBe(1)
+        spoils.tapWarband('c2', ME, 2)
+        spoils.tapWarband('c2', ME, 0)
+        expect(spoils.placeCounts).toEqual({ c1: 3, c2: 1 })
+        spoils.tapWarband('c2', ME, 1)
+        expect(spoils.placeCounts).toEqual({ c1: 3, c2: 0 })
+    })
 })
 
 /**
@@ -182,6 +198,15 @@ describe('the spoils one step at a time', () => {
         expect(spoils.back()).toBe(true)
         expect(spoils.countAt('c1', ME)).toBe(1)
         expect(spoils.back()).toBe(false)
+    })
+
+    it('with one row, a tap on the marked warband places none and moves on', () => {
+        const spoils = won([PAWN, SITES[0]]).victory
+        expect(spoils.countAt('c1', ME)).toBe(1)
+        spoils.tapWarband('c1', ME, 1)
+        expect(spoils.step).toBe('pawn')
+        expect(spoils.countAt('c1', ME)).toBe(0)
+        expect(spoils.placements).toEqual([])
     })
 
     it('with several rows, a tap sets a count and Next moves on; Next alone accepts the default', () => {

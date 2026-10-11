@@ -10,7 +10,7 @@ const FREE_COUNT = /type="(?:range|number)"/g
 
 /**
  * Contract, "Choose a count": every count is a row of number buttons (a Citizenship offer's favor
- * and secrets a row of tokens), never a slider or a field.
+ * and secrets and the spoils' warbands a row of pieces), never a slider or a field.
  */
 describe('count controls', () => {
     it('no component draws a slider or a number field', () => {

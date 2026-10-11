@@ -1531,7 +1531,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(answer(page, 'Continue')).toBeVisible()
     })
 
-    test('the spoils: the warbands first, in short words, the site’s picture beside its numbers and no hint on the 0', async ({
+    test('the spoils: the warbands first, in short words, the site’s picture beside its warbands and no hint', async ({
         page
     }) => {
         await openTable(page, 'spoils')
@@ -1547,7 +1547,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
     })
 })
 
-/** The spoils' option buttons, the number buttons of the warbands step among them. */
+/** The warbands step's pieces: the Nth places N. */
 const placeButtons = (page: Page) => grid(page).getByRole('button', { name: /^Place \d+ warbands? at / })
 const placeButton = (page: Page, n: number, row = 0) =>
     grid(page)
@@ -1567,7 +1567,7 @@ const titledSpoilsButtons = (page: Page) => grid(page).locator('button[title]:no
 
 /** Scenario 64: the spoils one step at a time, in the Law's order (R-5.5.7). */
 test.describe('scenario 64: the spoils one step at a time', () => {
-    test('the warbands step: the site’s picture and name, the numbers with the warband symbol, 1 already marked, and Next', async ({
+    test('the warbands step: the site’s picture and name, a warband piece per warband in the force, the first ringed, and Next', async ({
         page
     }) => {
         await openTable(page, 'spoils')
@@ -1575,19 +1575,49 @@ test.describe('scenario 64: the spoils one step at a time', () => {
         await expect(rows).toHaveCount(1)
         await expect(rows.first().getByRole('button', { name: /^Enlarge / })).toHaveCount(1)
         await expect(rows.first().locator('img').first()).toBeVisible()
-        await expect(placeButtons(page)).toHaveCount(5)
-        for (let n = 0; n <= 4; n++) {
-            const button = placeButton(page, n)
-            await expect(button).toHaveText(String(n))
-            await expect(button).toHaveAttribute('aria-pressed', n === 1 ? 'true' : 'false')
-            await expect(button.locator('img')).toHaveCount(n === 0 ? 0 : 1)
+        await expect(placeButtons(page)).toHaveCount(4)
+        await expect(placeButton(page, 0)).toHaveCount(0)
+        await expect(placeButton(page, 5)).toHaveCount(0)
+        for (let n = 1; n <= 4; n++) {
+            const piece = placeButton(page, n)
+            await expect(piece).toHaveText('')
+            await expect(piece.locator('img')).toHaveCount(1)
+            await expect(piece).toBeEnabled()
+            await expect(piece).toHaveAttribute('aria-pressed', n === 1 ? 'true' : 'false')
+            if (n === 1) await expect(piece).toHaveClass(/ring-oath-accent/)
+            else await expect(piece).not.toHaveClass(/ring-oath-accent/)
         }
         await expect(answer(page, 'Next')).toBeVisible()
         await expect(titledSpoilsButtons(page)).toHaveCount(0)
         expect(await clippedLabels(page)).toEqual([])
     })
 
-    test('a number moves on to the pawn, picked on the map; a lit site moves on to the favor, whose two buttons send', async ({
+    test('with one row, a tap on the 3rd places 3 and moves on; a tap on the ringed count places none', async ({ page }) => {
+        await openTable(page, 'spoils')
+        await placeButton(page, 3).click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 3')
+        await undoButton(page).click()
+        await expect(spoilsStepCount(page)).toHaveText('1 of 3')
+        await expect(grid(page)).toContainText('Place warbands: 3 of 4.')
+        for (let n = 1; n <= 4; n++) {
+            await expect(placeButton(page, n)).toHaveAttribute('aria-pressed', n <= 3 ? 'true' : 'false')
+        }
+
+        await placeButton(page, 3).click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 3')
+        await undoButton(page).click()
+        await expect(grid(page)).toContainText('Place warbands: 0 of 4.')
+        for (let n = 1; n <= 4; n++) {
+            await expect(placeButton(page, n)).toHaveAttribute('aria-pressed', 'false')
+        }
+        await answer(page, 'Next').click()
+        await leavePawn(page).click()
+        await takeSpoils(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+        expect((await call(page, 'tableFacts')).warbandsAt[SPOILS_SITE]?.att ?? 0).toBe(0)
+    })
+
+    test('a tap on the 2nd warband moves on to the pawn, picked on the map; a lit site moves on to the favor, whose two buttons send', async ({
         page
     }) => {
         await openTable(page, 'spoils')
@@ -1675,7 +1705,8 @@ test.describe('scenario 64: the spoils one step at a time', () => {
         await placeButton(page, 2, 0).click()
         await expect(spoilsStepCount(page)).toHaveText('1 of 2')
         await expect(grid(page)).toContainText('Place warbands: 3 of 4.')
-        await expect(placeButton(page, 3, 1)).toHaveCount(0)
+        await expect(placeButton(page, 2, 1)).toBeEnabled()
+        await expect(placeButton(page, 3, 1)).toBeDisabled()
         await answer(page, 'Next').click()
 
         await expect(spoilsStepCount(page)).toHaveText('2 of 2')
@@ -1698,6 +1729,39 @@ test.describe('scenario 64: the spoils one step at a time', () => {
         expect(facts.warbandsAt[SPOILS_SITE]?.att).toBe(2)
         expect(facts.warbandsAt['slot.provinces.1']?.att).toBe(1)
     })
+
+    test('a warband the other site holds cannot be tapped and keeps its place; none past the force is drawn', async ({
+        page
+    }) => {
+        await openTable(page, 'spoilsRelicHunter')
+        await placeButton(page, 3, 0).click()
+        await expect(grid(page)).toContainText('Place warbands: 4 of 4.')
+        for (const row of [0, 1]) {
+            const pieces = grid(page)
+                .getByRole('list', { name: 'Warbands on the sites taken' })
+                .getByRole('listitem')
+                .nth(row)
+                .getByRole('button', { name: /^Place \d+ warbands? at / })
+            await expect(pieces).toHaveCount(4)
+            await expect(placeButton(page, 5, row)).toHaveCount(0)
+        }
+        for (let n = 1; n <= 4; n++) {
+            await expect(placeButton(page, n, 0)).toHaveAttribute('aria-pressed', n <= 3 ? 'true' : 'false')
+            if (n <= 3) await expect(placeButton(page, n, 0)).toBeEnabled()
+            else await expect(placeButton(page, n, 0)).toBeDisabled()
+            await expect(placeButton(page, n, 1)).toHaveAttribute('aria-pressed', n === 1 ? 'true' : 'false')
+            if (n === 1) await expect(placeButton(page, n, 1)).toBeEnabled()
+            else await expect(placeButton(page, n, 1)).toBeDisabled()
+        }
+
+        await placeButton(page, 3, 0).click()
+        await expect(grid(page)).toContainText('Place warbands: 1 of 4.')
+        for (let n = 1; n <= 4; n++) {
+            await expect(placeButton(page, n, 0)).toHaveAttribute('aria-pressed', 'false')
+            await expect(placeButton(page, n, 1)).toBeEnabled()
+        }
+        await expect(spoilsStepCount(page)).toHaveText('1 of 2')
+    })
 })
 
 for (const viewport of [
@@ -1707,15 +1771,14 @@ for (const viewport of [
     test.describe(`scenario 64 on a phone held upright, ${viewport.width} wide`, () => {
         test.use({ viewport, hasTouch: true })
 
-        test('the numbers and the pawn’s button are a standard size, 44 px tall, never the panel’s width', async ({
+        test('the warband pieces are 44 px square and the pawn’s button 44 px tall, never the panel’s width', async ({
             page
         }) => {
             await openTable(page, 'spoils')
             const panelWidth = (await layoutSizeOf(grid(page)))?.width ?? 0
-            for (let n = 0; n <= 4; n++) {
-                const size = await layoutSizeOf(placeButton(page, n))
-                expect(size?.height).toBe(44)
-                expect(size?.width ?? 0).toBeLessThan(panelWidth / 2)
+            await expect(placeButtons(page)).toHaveCount(4)
+            for (let n = 1; n <= 4; n++) {
+                expect(await layoutSizeOf(placeButton(page, n))).toEqual({ width: 44, height: 44 })
             }
             expect(await clippedLabels(page)).toEqual([])
             expect(await wrappedLabels(page)).toEqual([])
