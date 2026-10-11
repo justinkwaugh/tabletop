@@ -94,8 +94,8 @@
                                 />
                             {/each}
                         </g>
-                        <g filter="url(#{SHADOW})">
-                            {#each scene.sprites as sprite (sprite.group.key)}
+                        {#each scene.sprites as sprite (sprite.group.key)}
+                            <g filter="url(#{SHADOW})">
                                 {#each sprite.blocks as block (block.unit.id)}
                                     <Block
                                         x={block.centre.x}
@@ -105,8 +105,8 @@
                                         face={gameSession.visibleFace(block.unit)}
                                     />
                                 {/each}
-                            {/each}
-                        </g>
+                            </g>
+                        {/each}
                         {#each scene.arrows as arrow, index (index)}
                             {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle}) scale(${arrow.scale})`}
                             {@const shaft = arrow.shaft

@@ -288,6 +288,7 @@
                     controls="bottom-left"
                     expandable
                     maxScale={1.4}
+                    renderAtViewScale
                     insetTop={boardCovered}
                     coverBelowScale={0.4}
                     onManualViewChange={() => (restoreView = undefined)}

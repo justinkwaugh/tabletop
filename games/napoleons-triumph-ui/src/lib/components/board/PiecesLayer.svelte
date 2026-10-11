@@ -25,55 +25,54 @@
     }
 </script>
 
-<g filter="url(#nt-contact-shadow)">
-    {#each sprites as sprite (sprite.group.key)}
-        {@const colors = gameSession.armyColors(sprite.group.playerId)}
-        {@const selectable = gameSession.canSelect(sprite.group)}
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <g
-            class:nt-selectable={selectable}
-            role={selectable ? 'button' : undefined}
-            tabindex={selectable ? 0 : undefined}
-            aria-label={selectable ? 'Select these pieces' : undefined}
-            data-commander={sprite.group.commander?.id ?? 'detached'}
-            data-group={sprite.group.key}
-            onclick={(event) => select(event, sprite)}
-            onkeydown={(event) => event.key === 'Enter' && select(event, sprite)}
-        >
-            {#each sprite.blocks as block (block.unit.id)}
-                {@const {
-                    pickable,
-                    role: battleRole,
-                    roleMark,
-                    dimmed,
-                    moved
-                } = gameSession.blockMark(block.unit, sprite.group.key)}
-                <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-                <g
-                    class:nt-selectable={pickable}
-                    role={pickable ? 'button' : undefined}
-                    tabindex={pickable ? 0 : undefined}
-                    aria-label={pickable ? 'Choose this unit' : undefined}
-                    aria-pressed={pickable ? battleRole !== undefined : undefined}
-                    onclick={(event) => tap(event, sprite, block.unit.id, pickable)}
-                    onkeydown={(event) =>
-                        event.key === 'Enter' && tap(event, sprite, block.unit.id, pickable)}
-                >
-                    <Block
-                        x={block.centre.x}
-                        y={block.centre.y}
-                        angle={block.angle}
-                        {colors}
-                        face={gameSession.visibleFace(block.unit)}
-                        {dimmed}
-                        {moved}
-                        {roleMark}
-                    />
-                </g>
-            {/each}
-        </g>
-    {/each}
-</g>
+{#each sprites as sprite (sprite.group.key)}
+    {@const colors = gameSession.armyColors(sprite.group.playerId)}
+    {@const selectable = gameSession.canSelect(sprite.group)}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <g
+        filter="url(#nt-contact-shadow)"
+        class:nt-selectable={selectable}
+        role={selectable ? 'button' : undefined}
+        tabindex={selectable ? 0 : undefined}
+        aria-label={selectable ? 'Select these pieces' : undefined}
+        data-commander={sprite.group.commander?.id ?? 'detached'}
+        data-group={sprite.group.key}
+        onclick={(event) => select(event, sprite)}
+        onkeydown={(event) => event.key === 'Enter' && select(event, sprite)}
+    >
+        {#each sprite.blocks as block (block.unit.id)}
+            {@const {
+                pickable,
+                role: battleRole,
+                roleMark,
+                dimmed,
+                moved
+            } = gameSession.blockMark(block.unit, sprite.group.key)}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <g
+                class:nt-selectable={pickable}
+                role={pickable ? 'button' : undefined}
+                tabindex={pickable ? 0 : undefined}
+                aria-label={pickable ? 'Choose this unit' : undefined}
+                aria-pressed={pickable ? battleRole !== undefined : undefined}
+                onclick={(event) => tap(event, sprite, block.unit.id, pickable)}
+                onkeydown={(event) =>
+                    event.key === 'Enter' && tap(event, sprite, block.unit.id, pickable)}
+            >
+                <Block
+                    x={block.centre.x}
+                    y={block.centre.y}
+                    angle={block.angle}
+                    {colors}
+                    face={gameSession.visibleFace(block.unit)}
+                    {dimmed}
+                    {moved}
+                    {roleMark}
+                />
+            </g>
+        {/each}
+    </g>
+{/each}
 {#if gameSession.selectedSprite}
     {@const sprite = gameSession.selectedSprite}
     <circle
