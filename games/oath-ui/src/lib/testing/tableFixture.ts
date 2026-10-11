@@ -1912,12 +1912,12 @@ type ExchangeScene =
 const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
 
 /**
- * R-10.8 — Jacob, the Chancellor, at Plains with Deed Writer or Tinker's Fair; he rules Plains and
- * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Cole, an
+ * R-10.8 — Dana, the Chancellor, at Plains with Deed Writer or Tinker's Fair; he rules Plains and
+ * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Rhys, an
  * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
- * Citizen. `exchangeDeedEmptyBoard`: Cole holds no Crown and his board is empty.
- * `exchangeTinkers`: Cole holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
- * Jacob, who holds 2 advisers of 3; Cole holds Vow of Peace (locked), Tents and a facedown card.
+ * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and his board is empty.
+ * `exchangeTinkers`: Rhys holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
+ * Dana, who holds 2 advisers of 3; Rhys holds Vow of Peace (locked), Tents and a facedown card.
  */
 function exchangeTable(scene: ExchangeScene): PlayedTable {
     const [home, slums] = mapSlotsFor(Region.Cradle)
@@ -1929,7 +1929,7 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
     const state = testState(
         [
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
@@ -1944,13 +1944,13 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
                 ...RELIQUARY_KNOWN
             }),
             testPlayer({
-                playerId: 'cole',
+                playerId: 'rhys',
                 color: Color.Red,
                 siteId: home,
                 favor: 1,
                 secrets: 1,
                 relicIds: crowned ? ['relic.bandit-crown'] : [],
-                warbandsOnBoard: crowned ? { cole: 2 } : {},
+                warbandsOnBoard: crowned ? { rhys: 2 } : {},
                 advisers: gathering
                     ? [
                           faceup('denizen.hearth.vow-of-peace'),
@@ -1974,7 +1974,7 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
         {
             machineState: gathering ? MachineState.PowerQuestion : MachineState.ActPhase,
             oathRevision: OathRevision.UiBatch1,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             vault: testVaultWithRelics(RELIQUARY),
             siteCards: {
@@ -1986,7 +1986,7 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
             warbandsBySite: {
                 [home]: { [IMPERIAL_WARBANDS]: 2 },
                 [slums]: { [IMPERIAL_WARBANDS]: 1 },
-                [mountain]: { cole: 1 }
+                [mountain]: { rhys: 1 }
             },
             ...(gathering && {
                 pendingQuestions: {
@@ -1994,24 +1994,24 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
                         {
                             kind: PowerQuestionKind.GatheringFloor,
                             cardId: 'denizen.nomad.the-gathering',
-                            askedPlayerId: 'jacob',
+                            askedPlayerId: 'dana',
                             siteId: home
                         }
                     ],
-                    askingPlayerId: 'jacob',
+                    askingPlayerId: 'dana',
                     resumeMachineState: MachineState.ActPhase
                 }
             })
         }
     )
-    openTurn(state, 'jacob')
-    state.activePlayerIds = ['jacob']
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
 /**
- * Messenger: Jacob, the Chancellor, stands at the Ancient City (4 Imperial warbands) and rules
- * the Steppe (2) and the Marshes (1); his board is empty. Cole, an Exile, is at the Mountain.
+ * Messenger: Dana, the Chancellor, stands at the Ancient City (4 Imperial warbands) and rules
+ * the Steppe (2) and the Marshes (1); his board is empty. Rhys, an Exile, is at the Mountain.
  */
 function messengerTable(): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
@@ -2019,7 +2019,7 @@ function messengerTable(): PlayedTable {
     const state = testState(
         [
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: city,
@@ -2029,11 +2029,11 @@ function messengerTable(): PlayedTable {
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
                 advisers: [faceup('denizen.order.messenger')]
             }),
-            testPlayer({ playerId: 'cole', color: Color.Red, siteId: mountain, favor: 2, secrets: 1 })
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: mountain, favor: 2, secrets: 1 })
         ],
         {
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: {
                 [city]: 'site.ancient-city',
@@ -2045,20 +2045,20 @@ function messengerTable(): PlayedTable {
             warbandsBySite: {
                 [city]: { [IMPERIAL_WARBANDS]: 4 },
                 [steppe]: { [IMPERIAL_WARBANDS]: 2 },
-                [mountain]: { cole: 1 },
+                [mountain]: { rhys: 1 },
                 [marshes]: { [IMPERIAL_WARBANDS]: 1 }
             }
         }
     )
-    openTurn(state, 'jacob')
-    state.activePlayerIds = ['jacob']
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
 /**
  * A game from before revision 5, where a Citizen could hold their own warbands beside Imperial
  * ones: Ann, a Citizen with Messenger, has 2 of hers and 1 Imperial on her board, and 3 of each
- * at the Steppe. Jacob is the Chancellor.
+ * at the Steppe. Dana is the Chancellor.
  */
 function messengerTwoOwnersTable(): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
@@ -2074,7 +2074,7 @@ function messengerTwoOwnersTable(): PlayedTable {
                 advisers: [faceup('denizen.order.messenger')]
             }),
             testPlayer({
-                playerId: 'jacob',
+                playerId: 'dana',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: city,
@@ -2084,7 +2084,7 @@ function messengerTwoOwnersTable(): PlayedTable {
         {
             machineState: MachineState.ActPhase,
             oathRevision: OathRevision.CardFixes1,
-            chancellorPlayerId: 'jacob',
+            chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: { [city]: 'site.ancient-city', [steppe]: 'site.steppe' },
             denizensBySite: { [city]: [], [steppe]: [] },

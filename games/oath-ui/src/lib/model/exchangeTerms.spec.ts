@@ -34,17 +34,17 @@ const ADVISERS = ['denizen.order.longbows', 'denizen.hearth.herald', 'denizen.or
 const faceup = (cardId: string): AdviserRow => ({ cardId, faceUp: true })
 
 /**
- * 'jacob' is the Chancellor and rules c1 and c2 (Imperial warbands); 'cole' is an Exile;
+ * 'dana' is the Chancellor and rules c1 and c2 (Imperial warbands); 'rhys' is an Exile;
  * 'ann' is a Citizen with Imperial warbands on her board.
  */
 function table(
-    seats: { jacob?: Partial<OathPlayerState>; cole?: Partial<OathPlayerState>; ann?: Partial<OathPlayerState> } = {},
+    seats: { dana?: Partial<OathPlayerState>; rhys?: Partial<OathPlayerState>; ann?: Partial<OathPlayerState> } = {},
     oathRevision: OathRevision = OathRevision.UiBatch1
 ) {
     return testState(
         [
-            testPlayer({ playerId: 'jacob', color: Color.Red, status: PlayerStatus.Chancellor, favor: 4, secrets: 2, ...seats.jacob }),
-            testPlayer({ playerId: 'cole', color: Color.Purple, favor: 1, secrets: 1, warbandsOnBoard: { cole: 2 }, ...seats.cole }),
+            testPlayer({ playerId: 'dana', color: Color.Red, status: PlayerStatus.Chancellor, favor: 4, secrets: 2, ...seats.dana }),
+            testPlayer({ playerId: 'rhys', color: Color.Purple, favor: 1, secrets: 1, warbandsOnBoard: { rhys: 2 }, ...seats.rhys }),
             testPlayer({ playerId: 'ann', color: Color.Blue, status: PlayerStatus.Citizen, favor: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, ...seats.ann })
         ],
         {
@@ -59,90 +59,90 @@ const sitesOffered = (state: ReturnType<typeof table>, from: string, to: string)
 
 describe('exchangeOffers — Deed Writer’s sites, read from the engine’s own check of each row', () => {
     it('a Bandit Crown holder’s count runs from 0 (its Q&A: "not zero unless they have the Bandit Crown")', () => {
-        const s = table({ cole: { relicIds: [CROWN] } })
-        expect(sitesOffered(s, 'jacob', 'cole')).toEqual([
+        const s = table({ rhys: { relicIds: [CROWN] } })
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([
             { siteId: 'c1', counts: [0, 1, 2] },
             { siteId: 'c2', counts: [0, 1, 2] }
         ])
     })
 
     it('a Crown holder with no warbands on their board is offered 0 alone', () => {
-        const s = table({ cole: { relicIds: [CROWN], warbandsOnBoard: {} } })
-        expect(sitesOffered(s, 'jacob', 'cole')).toEqual([
+        const s = table({ rhys: { relicIds: [CROWN], warbandsOnBoard: {} } })
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([
             { siteId: 'c1', counts: [0] },
             { siteId: 'c2', counts: [0] }
         ])
     })
 
     it('without the Crown a count runs from 1 to the warbands on the receiver’s board', () => {
-        const s = table({ cole: { warbandsOnBoard: { cole: 3 } } })
-        expect(sitesOffered(s, 'jacob', 'cole')).toEqual([
+        const s = table({ rhys: { warbandsOnBoard: { rhys: 3 } } })
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([
             { siteId: 'c1', counts: [1, 2, 3] },
             { siteId: 'c2', counts: [1, 2, 3] }
         ])
-        expect(warbandsToMoveIn(s, 'cole')).toEqual({ owner: 'cole', held: 3 })
+        expect(warbandsToMoveIn(s, 'rhys')).toEqual({ owner: 'rhys', held: 3 })
     })
 
     it('no site goes to a receiver who already rules it: the Chancellor and a Citizen (from revision 5)', () => {
-        expect(sitesOffered(table(), 'jacob', 'ann')).toEqual([])
-        expect(sitesOffered(table({}, OathRevision.CardFixes1), 'jacob', 'ann')).toEqual([
+        expect(sitesOffered(table(), 'dana', 'ann')).toEqual([])
+        expect(sitesOffered(table({}, OathRevision.CardFixes1), 'dana', 'ann')).toEqual([
             { siteId: 'c1', counts: [1, 2] },
             { siteId: 'c2', counts: [1, 2] }
         ])
     })
 
     it('no site goes to a receiver with no warbands on their board and no Crown', () => {
-        expect(sitesOffered(table({ cole: { warbandsOnBoard: {} } }), 'jacob', 'cole')).toEqual([])
+        expect(sitesOffered(table({ rhys: { warbandsOnBoard: {} } }), 'dana', 'rhys')).toEqual([])
     })
 
     it('a site row names its faceup card for its picture', () => {
         const s = table()
-        expect(exchangeOffers(s, 'jacob', 'cole', DEED_WRITER_ALLOWS, 'jacob').sites.map((site) => site.cardId)).toEqual([
+        expect(exchangeOffers(s, 'dana', 'rhys', DEED_WRITER_ALLOWS, 'dana').sites.map((site) => site.cardId)).toEqual([
             s.siteCardAt('c1'),
             s.siteCardAt('c2')
         ])
     })
 
     it('two sites share one board: each count stops at what the other leaves (R-10.8)', () => {
-        const s = table({ cole: { warbandsOnBoard: { cole: 4 } } })
-        expect(siteCounts(s, 'jacob', 'cole', { sites: [{ siteId: 'c1', warbands: 3 }] }, 'c2')).toEqual([1])
-        expect(siteCounts(s, 'jacob', 'cole', { sites: [{ siteId: 'c2', warbands: 1 }] }, 'c1')).toEqual([1, 2, 3])
-        expect(siteCounts(s, 'jacob', 'cole', { sites: [{ siteId: 'c1', warbands: 4 }] }, 'c2')).toEqual([])
+        const s = table({ rhys: { warbandsOnBoard: { rhys: 4 } } })
+        expect(siteCounts(s, 'dana', 'rhys', { sites: [{ siteId: 'c1', warbands: 3 }] }, 'c2')).toEqual([1])
+        expect(siteCounts(s, 'dana', 'rhys', { sites: [{ siteId: 'c2', warbands: 1 }] }, 'c1')).toEqual([1, 2, 3])
+        expect(siteCounts(s, 'dana', 'rhys', { sites: [{ siteId: 'c1', warbands: 4 }] }, 'c2')).toEqual([])
     })
 
     it('sites are offered only where the card admits them', () => {
-        expect(exchangeOffers(table(), 'jacob', 'cole', TINKERS_FAIR_ALLOWS, 'jacob').sites).toEqual([])
+        expect(exchangeOffers(table(), 'dana', 'rhys', TINKERS_FAIR_ALLOWS, 'dana').sites).toEqual([])
     })
 })
 
 describe('exchangeOffers — favor, secrets, relics and advisers', () => {
     it('Vow of Silence: its holder’s secrets stay in the row and none can be added', () => {
-        const s = table({ cole: { secrets: 2, advisers: [faceup(VOW_OF_SILENCE)] } })
-        const offers = exchangeOffers(s, 'cole', 'jacob', TINKERS_FAIR_ALLOWS, 'jacob')
+        const s = table({ rhys: { secrets: 2, advisers: [faceup(VOW_OF_SILENCE)] } })
+        const offers = exchangeOffers(s, 'rhys', 'dana', TINKERS_FAIR_ALLOWS, 'dana')
         expect(offers.secrets).toEqual({ held: 2, addable: 0 })
         expect(offers.favor).toEqual({ held: 1, addable: 1 })
-        expect(exchangeOffers(s, 'jacob', 'cole', {}, 'jacob').secrets).toEqual({ held: 2, addable: 2 })
+        expect(exchangeOffers(s, 'dana', 'rhys', {}, 'dana').secrets).toEqual({ held: 2, addable: 2 })
     })
 
     it('Tinker’s Fair keeps every relic either player holds', () => {
-        const s = table({ cole: { relicIds: [CROWN, CUP] } })
-        expect(exchangeOffers(s, 'cole', 'jacob', TINKERS_FAIR_ALLOWS, 'jacob').relicIds).toEqual([CROWN, CUP])
-        expect(exchangeOffers(s, 'cole', 'jacob', {}, 'jacob').relicIds).toEqual([])
+        const s = table({ rhys: { relicIds: [CROWN, CUP] } })
+        expect(exchangeOffers(s, 'rhys', 'dana', TINKERS_FAIR_ALLOWS, 'dana').relicIds).toEqual([CROWN, CUP])
+        expect(exchangeOffers(s, 'rhys', 'dana', {}, 'dana').relicIds).toEqual([])
     })
 
     it('The Gathering: a faceup locked adviser is not listed; a facedown one stays (R-7.2.2, R-9.4)', () => {
         const s = table({
-            cole: { advisers: [faceup(VOW_OF_PEACE), faceup(TENTS), { cardId: MARRIAGE, faceUp: false }] }
+            rhys: { advisers: [faceup(VOW_OF_PEACE), faceup(TENTS), { cardId: MARRIAGE, faceUp: false }] }
         })
-        expect(exchangeOffers(s, 'cole', 'jacob', GATHERING_ALLOWS, 'jacob').advisers.map((a) => a.row)).toEqual([1, 2])
+        expect(exchangeOffers(s, 'rhys', 'dana', GATHERING_ALLOWS, 'dana').advisers.map((a) => a.row)).toEqual([1, 2])
     })
 
     it('no adviser that counts toward the limit is listed for a receiver with no room (R-7.2.1)', () => {
-        const advisers = { cole: { advisers: [faceup(TENTS)] } }
-        const full = table({ ...advisers, jacob: { advisers: ADVISERS.map(faceup) } })
-        expect(exchangeOffers(full, 'cole', 'jacob', GATHERING_ALLOWS, 'jacob').advisers).toEqual([])
-        const room = table({ ...advisers, jacob: { advisers: ADVISERS.slice(0, 2).map(faceup) } })
-        expect(exchangeOffers(room, 'cole', 'jacob', GATHERING_ALLOWS, 'jacob').advisers.map((a) => a.row)).toEqual([0])
+        const advisers = { rhys: { advisers: [faceup(TENTS)] } }
+        const full = table({ ...advisers, dana: { advisers: ADVISERS.map(faceup) } })
+        expect(exchangeOffers(full, 'rhys', 'dana', GATHERING_ALLOWS, 'dana').advisers).toEqual([])
+        const room = table({ ...advisers, dana: { advisers: ADVISERS.slice(0, 2).map(faceup) } })
+        expect(exchangeOffers(room, 'rhys', 'dana', GATHERING_ALLOWS, 'dana').advisers.map((a) => a.row)).toEqual([0])
     })
 })
 
