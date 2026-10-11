@@ -18,9 +18,19 @@
             <PlayerName playerId={turnPlayerId} possessive={true} /> turn
         {/if}
     </div>
-    {#if gameSession.canUndo}
-        <button type="button" class="undo" onclick={() => gameSession.undo()}>Undo</button>
-    {/if}
+    <div class="flex items-center gap-2">
+        {#if gameSession.canUndo}
+            <button type="button" class="undo" onclick={() => gameSession.undo()}>Undo</button>
+        {/if}
+        <button
+            type="button"
+            class="aid"
+            aria-label="Player aid"
+            aria-expanded={gameSession.playerAidOpen}
+            class:open={gameSession.playerAidOpen}
+            onclick={() => gameSession.togglePlayerAid()}>?</button
+        >
+    </div>
 </div>
 
 <style>
@@ -40,11 +50,27 @@
         box-shadow: inset 0 0 0 2px var(--reef-line);
     }
 
-    .undo:hover {
+    .aid {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        font-size: 18px;
+        line-height: 1;
+        box-shadow: inset 0 0 0 2px var(--reef-line);
+    }
+
+    .aid.open {
+        background: var(--reef-ink);
+        color: var(--reef-deep);
+    }
+
+    .undo:hover,
+    .aid:not(.open):hover {
         background: rgb(255 255 255 / 0.12);
     }
 
-    .undo:focus-visible {
+    .undo:focus-visible,
+    .aid:focus-visible {
         outline: 2px solid var(--reef-accent);
         outline-offset: 2px;
     }
@@ -59,6 +85,12 @@
         .undo {
             font-size: 14px;
             padding: 1px 10px;
+        }
+
+        .aid {
+            width: 24px;
+            height: 24px;
+            font-size: 15px;
         }
     }
 </style>

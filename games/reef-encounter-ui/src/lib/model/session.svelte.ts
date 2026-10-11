@@ -71,6 +71,16 @@ export class ReefEncounterGameSession extends GameSession<
         isOwnLiveAction: (action) => !this.isViewingHistory && action.playerId === this.myPlayer?.id
     })
 
+    playerAidOpen = $state(false)
+
+    togglePlayerAid() {
+        this.playerAidOpen = !this.playerAidOpen
+    }
+
+    closePlayerAid() {
+        this.playerAidOpen = false
+    }
+
     private selection: ReefSelection = $state({})
     readonly hasManualSelection = $derived(hasManualReefSelection(this.selection))
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)

@@ -146,16 +146,18 @@ export class PiecesAnimator {
             const oldFace = this.elements.get(from.key)
             const newFace = this.elements.get(piece.key)
             if (!oldFace || !newFace) continue
+            // A tile turns about the screen's vertical axis, whichever way its drawing is turned.
+            const scale = oldFace.dataset.across === 'y' ? 'scaleY' : 'scaleX'
             gsap.set([oldFace, newFace], { transformOrigin: 'center center' })
-            gsap.set(newFace, { scaleX: 0 })
+            gsap.set(newFace, { [scale]: 0 })
             timeline.to(
                 oldFace,
-                { scaleX: 0, duration: timing.flipHalf, ease: 'power1.in' },
+                { [scale]: 0, duration: timing.flipHalf, ease: 'power1.in' },
                 flipAt
             )
             timeline.to(
                 newFace,
-                { scaleX: 1, duration: timing.flipHalf, ease: 'power1.out' },
+                { [scale]: 1, duration: timing.flipHalf, ease: 'power1.out' },
                 flipAt + timing.flipHalf
             )
         }

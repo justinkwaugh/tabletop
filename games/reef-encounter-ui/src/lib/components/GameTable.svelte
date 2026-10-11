@@ -18,6 +18,7 @@
     import Header from '$lib/components/Header.svelte'
     import ActionArea from '$lib/components/ActionArea.svelte'
     import Table from '$lib/components/table/Table.svelte'
+    import PlayerAid from '$lib/components/PlayerAid.svelte'
     import { ReefEncounterGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import ComicNeueBold from '$lib/fonts/ComicNeue-Bold-Latin.woff2'
@@ -37,7 +38,8 @@
         throw new Error('GameTable expected a ReefEncounterGameSession')
     }
 
-    setGameSession(untrack(() => ensureReefEncounterGameSession(gameSession)))
+    const reefSession = untrack(() => ensureReefEncounterGameSession(gameSession))
+    setGameSession(reefSession)
 </script>
 
 <CustomFont fontFamily="Reef Comic Neue" url={ComicNeueBold} format="woff2" fontWeight="bold" />
@@ -93,14 +95,19 @@
                 <ActionArea />
             </div>
             <div class="relative grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper
-                    justify="center"
-                    controls="bottom-left"
-                    coverBelowScale={0.3}
-                    expandable
-                >
-                    <Table />
-                </ScalingWrapper>
+                <div class="h-full w-full" inert={reefSession.playerAidOpen}>
+                    <ScalingWrapper
+                        justify="center"
+                        controls="bottom-left"
+                        coverBelowScale={0.3}
+                        expandable
+                    >
+                        <Table />
+                    </ScalingWrapper>
+                </div>
+                {#if reefSession.playerAidOpen}
+                    <PlayerAid />
+                {/if}
             </div>
         {/snippet}
     </DefaultTableLayout>

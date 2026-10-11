@@ -39,6 +39,7 @@
     <g
         {@attach gameSession.piecesAnimator.attach(piece.key)}
         transform="translate({piece.center.x} {piece.center.y})"
+        data-across={rotation % 180 === 0 ? 'x' : 'y'}
         role="img"
         aria-label={label(piece)}
     >

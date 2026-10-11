@@ -19,6 +19,8 @@ How the action panel and the table share the acting player's choices. Follow `do
 
 Coral tiles, larva cubes and cylinders on the open sea always stand upright, whatever the board's turn, so a coral tile reads as printed: stronger coral across the top, algae at the lower left.
 
+- **Player aid.** Trigger: the round ? button at the right of the turn header. The English reference card from the game opens over the board, which takes no input while it is open; Escape, a click outside the card or the button again closes it, and focus returns to the button.
+
 ## Coexistence and precedence
 
 - A shrimp choice (_Introducing_ or _Moving a shrimp_) wins over everything else on the table: while one is open, no placement rings, open-sea rings or shrimp pick-up rings show, and the panel shows only the shrimp prompt.
@@ -44,7 +46,7 @@ None of these exist in History View or for players who are not acting: every rin
 
 ## Motion
 
-- **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. Coral tiles a cylinder flips turn over once it has landed. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
+- **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. Coral tiles a cylinder flips turn over once it has landed, about the screen's vertical axis whichever way the open sea is turned. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
 - While a change plays out the session refuses every choice, staged or committed. To show it, the board's rings and the action panel's buttons take no pointer clicks until the table settles.
 - **Blinking** (local presentation). Each shrimp on the table blinks six to eight times a minute, in a rhythm and phase picked from the piece, so shrimps never blink together for long. Shrimps in the panels do not blink, and none blink under reduced motion.
 
@@ -57,7 +59,7 @@ Automated, in `tests/`:
 - `cylinders.spec.ts`: after an attack yields a consumed polyp, paying and choosing a colour ring the cylinder circle and hide the larva-space rings; Undo steps back through both choices; playing it ends the choice.
 - `turns.spec.ts` also trades a larva cube for a polyp and undoes it.
 - `eating.spec.ts`: after growing a coral of five under the player's shrimp, Eat a coral rings it and hides the larva-space rings; Undo closes the choice; eating feeds the parrotfish and puts the shrimp on the open sea.
-- `accessibility.spec.ts`: the boards and open sea are labelled groups whose pieces, coral tiles (by which coral beats which) and rings carry names; the panel's cube icons are named.
+- `accessibility.spec.ts`: the boards and open sea are labelled groups whose pieces, coral tiles (by which coral beats which) and rings carry names; the panel's cube icons are named; the player aid opens from the header and closes with Escape or a click outside.
 - `history.spec.ts`: a history entry's header shows the table as its player left it, in History View, where the action panel tells the step that led there; Replay plays a turn's moves and returns to the live game, and setup entries, which move no pieces, offer no Replay.
 - `shrimps.spec.ts`: Introduce hides the open-sea rings and rings polyps; a pick-up closes on Undo without undoing anything; a shrimp left on bare rock shows the warning and no space; sending it behind the screen restores the spaces.
 

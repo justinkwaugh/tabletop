@@ -30,3 +30,23 @@ test('the table names its pieces, coral tiles and choices for screen readers', a
             .first()
     ).toBeVisible()
 })
+
+test('the player aid opens from the header and closes with Escape or a click outside', async ({
+    page
+}) => {
+    await createGame(page, 2)
+    const aidButton = page.getByRole('button', { name: 'Player aid' })
+    await aidButton.click()
+    const aid = page.getByRole('dialog', { name: 'Player aid' })
+    await expect(aid.getByRole('img', { name: /^Reference card\./ })).toBeVisible()
+    await expect(aidButton).toHaveAttribute('aria-expanded', 'true')
+    await page.keyboard.press('Escape')
+    await expect(aid).toHaveCount(0)
+
+    await aidButton.click()
+    await page.mouse.click(5, (page.viewportSize()?.height ?? 1000) - 5)
+    await expect(aid).toBeVisible()
+    const box = (await aid.boundingBox())!
+    await page.mouse.click(box.x - 20, box.y + box.height / 2)
+    await expect(aid).toHaveCount(0)
+})
