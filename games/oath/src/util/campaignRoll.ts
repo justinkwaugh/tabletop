@@ -3,6 +3,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
 import {
     type CampaignState,
+    type HeldForHospital,
     type LossSource,
     type RolledAttackFace,
     type RolledDefenseFace,
@@ -302,11 +303,21 @@ export function enemyWarbandsKilledFor(
 ): number {
     const tally = campaign.enemyWarbandsKilled
     const killed = !tally ? 0 : side === BattlePlanSide.Attacker ? tally.attacker : tally.defender
+    const keeps = hospitalKeeps(state, campaign)
     const heldToDie = (campaign.heldForHospital ?? [])
         .filter((held) => sideOf(campaign, held.playerId) !== side)
-        .filter((held) => !rulesSite(state, held.playerId, held.siteId))
+        .filter((held) => !keeps(held))
         .reduce((total, held) => total + held.count, 0)
     return killed + heldToDie
+}
+
+/** Hospital — "if you still rule it", judged in the Campaign's scope (R-5.5.1.a), for the tally and the end alike. */
+function hospitalKeeps(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): (held: HeldForHospital) => boolean {
+    const scope = battleScopeOf(state, partiesOf(state, campaign))
+    return (held) => rulesSite(state, held.playerId, held.siteId, scope)
 }
 
 /** R-5.5.3-H1 — the bandits' compelled plans have no user, and the bandits always defend. */
@@ -404,9 +415,9 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
     const campaign = state.campaign
     assertExists(campaign, 'only a Campaign in progress can end')
     // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
-    const scope = battleScopeOf(state, partiesOf(state, campaign))
+    const keeps = hospitalKeeps(state, campaign)
     for (const held of campaign.heldForHospital ?? []) {
-        if (rulesSite(state, held.playerId, held.siteId, scope)) {
+        if (keeps(held)) {
             addWarbandsToSite(state, held.siteId, held.owner, held.count)
         } else {
             killWarbands(state, held.owner, held.count)

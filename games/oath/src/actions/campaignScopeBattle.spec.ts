@@ -32,6 +32,7 @@ const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 const WARNING_SIGNALS = 'denizen.nomad.warning-signals'
 const WILD_MOUNTS = 'denizen.nomad.wild-mounts'
 const HOSPITAL = 'denizen.hearth.hospital'
+const CAULDRON = 'relic.cursed-cauldron'
 const WOLVES = 'denizen.beast.wolves'
 const EXTRA_PROVISIONS = 'denizen.hearth.extra-provisions'
 const ENCIRCLEMENT = 'denizen.order.encirclement'
@@ -161,6 +162,26 @@ describe('R-5.5.1.a — a Citizen the Chancellor attacks shares none of the Empi
         Object.assign(ongoingCampaign(s), { swords: 9, defense: 0 })
         finish(s, 'chan')
         expect(warbandsAt(s, 'c1')['cit'] ?? 0).toBe(0)
+    })
+
+    it("Cursed Cauldron counts the warbands Hospital cannot keep at a site held only by the Empire's warbands", () => {
+        const s = table({ oathRevision: atRevision })
+        s.warbandsBySite.c1 = { cit: 1, [IMPERIAL_WARBANDS]: 1 }
+        s.denizensBySite.c1 = [HOSPITAL]
+        Object.assign(s.getPlayerState('chan'), { relicIds: [CAULDRON], warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 } })
+        const citizenBank = s.getPlayerState('cit').warbandsInPersonalBank['cit'] ?? 0
+        openTurn(s, 'chan')
+        new HydratedCampaign(buildAction(Campaign, { playerId: 'chan', defender: { kind: 'player', playerId: 'cit' }, targets: atC1, attackDice: 2, plans: [battlePlanUse(CAULDRON)] })).apply(s)
+        defend([battlePlanUse(HOSPITAL)], 'cit').apply(s)
+        Object.assign(ongoingCampaign(s), { swords: 9, defense: 0 })
+        new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'chan', sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })).apply(s)
+        defendingSideChooses(s)
+        const victory = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'chan', placements: [], burnFavor: false }))
+        victory.apply(s)
+
+        const killed = (s.getPlayerState('cit').warbandsInPersonalBank['cit'] ?? 0) - citizenBank
+        expect(killed).toBeGreaterThan(0)
+        expect(victory.metadata?.triggered).toContain(`Cursed Cauldron: gained ${killed} warbands, one per enemy warband killed`)
     })
 })
 
