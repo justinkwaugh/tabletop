@@ -6,6 +6,7 @@ import {
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    CURRENT_OATH_REVISION,
     ConsentRequestKind,
     HydratedCampaignSacrifice,
     HydratedOathGameState,
@@ -154,6 +155,11 @@ export type TableName =
     | 'deedWriter'
     | 'woodTraveller'
     | 'woodRuler'
+    | 'banditCrown'
+    | 'banditCrownChancellor'
+    | 'banditCrownExile'
+    | 'banditCrownCampaign'
+    | 'banditCrownFive'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -2467,7 +2473,120 @@ function woodRulerTable(): PlayedTable {
     return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Jacob' })])
 }
 
+const BANDIT_CROWN = 'relic.bandit-crown'
+
+/** The empty Provinces site the Bandit Crown's tables enlarge, dealt the Great Slums. */
+const CROWN_SITE = mapSlotId(Region.Provinces, 1)
+
+type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five'
+
+/**
+ * R-7.6.5 with R-6.6.3 — the Bandit Crown in a new game: Jacob the Chancellor, Ann a Citizen,
+ * Cole an Exile and the Exile Bea on the clock. The Empire's warbands hold the top Provinces
+ * site and Cole's the top Cradle site; every other site is empty. 'campaign': Ann, holding the
+ * Crown, has declared against Jacob (R-5.5.1.a suspends her). 'five': Bea, Dov and Wes are
+ * Citizens too, and Cole is on the clock.
+ */
+function banditCrownTable(scene: CrownScene): PlayedTable {
+    const holderId = {
+        citizen: 'ann',
+        chancellor: 'jacob',
+        exile: 'cole',
+        campaign: 'ann',
+        five: 'ann'
+    }[scene]
+    const crown = (playerId: string) => (playerId === holderId ? [BANDIT_CROWN] : [])
+    const citizen = (playerId: string, color: Color) =>
+        testPlayer({
+            playerId,
+            color,
+            status: PlayerStatus.Citizen,
+            siteId: mapSlotId(Region.Hinterland, 0),
+            relicIds: crown(playerId)
+        })
+    const plains = mapSlotId(Region.Provinces, 0)
+    const home = mapSlotId(Region.Cradle, 0)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: plains,
+                relicIds: crown('jacob'),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            }),
+            citizen('ann', Color.Blue),
+            ...(scene === 'five'
+                ? [
+                      citizen('bea', Color.Yellow),
+                      citizen('dov', Color.Black),
+                      citizen('wes', Color.White)
+                  ]
+                : [
+                      testPlayer({
+                          playerId: 'bea',
+                          color: Color.Yellow,
+                          siteId: mapSlotId(Region.Cradle, 1)
+                      })
+                  ]),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                siteId: home,
+                relicIds: crown('cole'),
+                warbandsOnBoard: { cole: 4 }
+            })
+        ],
+        {
+            oathRevision: CURRENT_OATH_REVISION,
+            machineState:
+                scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [CROWN_SITE]: 'site.great-slums' },
+            denizensBySite: { [CROWN_SITE]: [] },
+            warbandsBySite: { [plains]: { [IMPERIAL_WARBANDS]: 2 }, [home]: { cole: 1 } },
+            campaign:
+                scene === 'campaign'
+                    ? {
+                          attackerPlayerId: 'ann',
+                          defenderPlayerId: 'jacob',
+                          nonImperialPlayerIds: ['ann'],
+                          allyPlayerIds: [],
+                          targets: [{ kind: CampaignTargetKind.Site, siteId: plains }],
+                          attackPool: 2,
+                          defensePool: 2,
+                          attackRoll: [],
+                          defenseRoll: [],
+                          defense: 0,
+                          swords: 0,
+                          defendingForce: [
+                              {
+                                  at: { kind: 'site', siteId: plains },
+                                  owner: IMPERIAL_WARBANDS,
+                                  count: 2
+                              }
+                          ],
+                          defendingBandits: 0,
+                          pendingDefenderPlans: { queue: ['jacob'] },
+                          ...campaignRecords()
+                      }
+                    : undefined
+        }
+    )
+    const onTheClock = scene === 'campaign' ? 'jacob' : scene === 'five' ? 'cole' : 'bea'
+    openTurn(state, scene === 'campaign' ? 'ann' : onTheClock)
+    state.activePlayerIds = [onTheClock]
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
+    banditCrown: () => banditCrownTable('citizen'),
+    banditCrownChancellor: () => banditCrownTable('chancellor'),
+    banditCrownExile: () => banditCrownTable('exile'),
+    banditCrownCampaign: () => banditCrownTable('campaign'),
+    banditCrownFive: () => banditCrownTable('five'),
     warbandGiveAsked: warbandGiveAskedTable,
     offerCitizenship: () => offerCitizenshipTable('two'),
     offerCitizenshipToOne: () => offerCitizenshipTable('one'),

@@ -5419,3 +5419,112 @@ test.describe('card power text: none in a panel; every panel card has its magnif
         await expect(preview(page)).toBeVisible()
     })
 })
+
+/** Scenario 13: the Bandit Crown's figure on the map and the enlarged site's words (R-7.6.5, R-6.6.3, R-5.5.1.a). */
+const CROWN_SITE = 'slot.provinces.1'
+const IMPERIAL_PURPLE = '#943c80'
+const boardBandits = (page: Page) => page.locator('.piece-row .bandits')
+const previewBandits = (page: Page) => preview(page).locator('.piece', { hasText: 'bandits serve' })
+const previewRuledBy = (page: Page) => preview(page).locator('.piece', { hasText: 'ruled by' })
+const chipsIn = (piece: Locator) => piece.locator('span.rounded')
+
+/** The body fill of a bandit figure's picture. */
+async function figureBody(figure: Locator): Promise<string | undefined> {
+    const src = (await figure.getAttribute('src')) ?? ''
+    return decodeURIComponent(src).match(/<path fill="(#[0-9a-f]{6})"/)?.[1]
+}
+
+async function enlargeCrownSite(page: Page) {
+    await (await uncovered(page, `.site[data-slot="${CROWN_SITE}"] .board-card`)).click()
+    await expect(preview(page)).toBeVisible()
+}
+
+test.describe('scenario 13: the Bandit Crown’s bandits on the map and the enlarged site', () => {
+    test('a Citizen holder’s bandits are the Empire’s purple, named Imperial warbands, with no hover', async ({ page }) => {
+        await openTable(page, 'banditCrown')
+        const figures = boardBandits(page)
+        expect(await figures.count()).toBeGreaterThan(1)
+        for (const figure of await figures.all()) {
+            const picture = figure.locator('img')
+            expect(await figureBody(picture)).toBe(IMPERIAL_PURPLE)
+            await expect(picture).toHaveAttribute('alt', 'Bandits serving as Imperial warbands')
+            await expect(figure).not.toHaveAttribute('title')
+        }
+    })
+
+    test('the enlarged site draws the board’s figure, names the holder alone, and every Imperial player who rules it as chips', async ({
+        page
+    }) => {
+        await openTable(page, 'banditCrown')
+        await enlargeCrownSite(page)
+        const bandits = previewBandits(page)
+        await expect(bandits).toHaveText(/^\s*bandits serve\s+ann\s+here\s*$/i)
+        expect(await chipsIn(bandits).allTextContents()).toEqual(['ann'])
+        expect(await figureBody(bandits.locator('img'))).toBe(IMPERIAL_PURPLE)
+        expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['jacob', 'ann'])
+    })
+
+    test('a Chancellor holder: the same purple; the bandits serve the Chancellor, and both Imperial players rule', async ({
+        page
+    }) => {
+        await openTable(page, 'banditCrownChancellor')
+        for (const figure of await boardBandits(page).all()) {
+            expect(await figureBody(figure.locator('img'))).toBe(IMPERIAL_PURPLE)
+        }
+        await enlargeCrownSite(page)
+        expect(await chipsIn(previewBandits(page)).allTextContents()).toEqual(['jacob'])
+        expect(await figureBody(previewBandits(page).locator('img'))).toBe(IMPERIAL_PURPLE)
+        expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['jacob', 'ann'])
+    })
+
+    test('an Exile holder is unchanged: her colour, hers alone, named as her chip', async ({ page }) => {
+        await openTable(page, 'banditCrownExile')
+        const red = decodeURIComponent((await boardBandits(page).first().locator('img').getAttribute('src')) ?? '')
+        for (const figure of await boardBandits(page).all()) {
+            expect(await figureBody(figure.locator('img'))).toBe('#e7665b')
+            await expect(figure.locator('img')).toHaveAttribute('alt', 'Bandits serving as warbands')
+        }
+        await enlargeCrownSite(page)
+        expect(decodeURIComponent((await previewBandits(page).locator('img').getAttribute('src')) ?? '')).toBe(red)
+        expect(await chipsIn(previewBandits(page)).allTextContents()).toEqual(['cole'])
+        expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['cole'])
+    })
+
+    test('while her Campaign against the Chancellor suspends the Citizen holder, the bandits are hers alone, in her colour', async ({
+        page
+    }) => {
+        await openTable(page, 'banditCrownCampaign')
+        for (const figure of await boardBandits(page).all()) {
+            expect(await figureBody(figure.locator('img'))).toBe('#63a3d5')
+            await expect(figure.locator('img')).toHaveAttribute('alt', 'Bandits serving as warbands')
+        }
+        await enlargeCrownSite(page)
+        expect(await figureBody(previewBandits(page).locator('img'))).toBe('#63a3d5')
+        expect(await chipsIn(previewBandits(page)).allTextContents()).toEqual(['ann'])
+        expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['ann'])
+    })
+})
+
+for (const viewport of [
+    { width: 402, height: 874 },
+    { width: 375, height: 812 }
+]) {
+    test.describe(`scenario 13 on a phone held upright, ${viewport.width} wide`, () => {
+        test.use({ viewport, hasTouch: true })
+
+        test('five Imperial players’ chips wrap between chips, each whole inside the enlarged site’s box', async ({ page }) => {
+            await openTable(page, 'banditCrownFive')
+            await siteCard(page, CROWN_SITE).tap()
+            await expect(preview(page)).toBeVisible()
+            const ruledBy = previewRuledBy(page)
+            const chips = chipsIn(ruledBy)
+            expect(await chips.allTextContents()).toEqual(['jacob', 'ann', 'bea', 'dov', 'wes'])
+            const box = await boxOf(ruledBy.locator('xpath=..'))
+            const lineHeight = (await boxOf(chipsIn(previewBandits(page)))).height
+            for (const chip of await boxesOf(chips)) {
+                expect(inside(chip, box)).toBe(true)
+                expect(chip.height, 'a chip on one line').toBeLessThan(lineHeight * 1.5)
+            }
+        })
+    })
+}
