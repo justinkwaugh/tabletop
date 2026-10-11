@@ -16,7 +16,9 @@ import { OathRevision } from '../util/revision.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
 import { HydratedTravel, Travel } from '../actions/travel.js'
-import { payableWoodPicks } from '../util/shroudedWood.js'
+import { payableWoodPicks, woodPick } from '../util/shroudedWood.js'
+import { reliquarySlotId } from '../util/setup.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import {
     CampaignResolveVictory,
     HydratedCampaignResolveVictory
@@ -503,11 +505,29 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
         expect(HydratedTravel.canDoTravel(s, 'jacob')).toBe(true)
     })
 
-    it('the cheapest Supply named is over the sites whose toll Jacob can pay', () => {
-        const { s } = leave()
-        s.getPlayerState('jacob').favor = 0
-        s.getPlayerState('jacob').supply = 1
+    it('the cheapest Supply named is over the sites whose toll Jacob can pay: a Cradle site at 0 he has no favor for is out of reach', () => {
+        // Jacob is the Chancellor with Decadent uncovered (R-6.6.2.a): 0 Supply into the Cradle, 2 into the Provinces.
+        // Cole rules the Wood and both Cradle sites, Toll Roads among them; Jacob has no favor and 1 Supply.
+        const s = testState(
+            [
+                testPlayer({ playerId: 'jacob', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 0, supply: 1, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
+                testPlayer({ playerId: 'cole', color: Color.Red, siteId: 'h3', supply: 4, warbandsOnBoard: { cole: 3 } })
+            ],
+            {
+                oathRevision: atRevision,
+                chancellorPlayerId: 'jacob',
+                reliquary: [0, 2, 3].map((i) => ({ slotId: reliquarySlotId(i) })),
+                siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.shrouded-wood', p2: 'site.great-slums', p3: 'site.marshes', h1: 'site.mountain', h2: 'site.steppe', h3: 'site.wastes' },
+                denizensBySite: { c1: [TOLL_ROADS], c2: [], p1: [], p2: [], p3: [], h1: [], h2: [], h3: [] },
+                warbandsBySite: { c1: { cole: 1 }, c2: { cole: 1 }, p1: { cole: 1 } }
+            }
+        )
+        openTurn(s, 'jacob')
+        expect(['c1', 'c2'].map((siteId) => woodPick(s, 'jacob', siteId, false).cost)).toEqual([0, 0])
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, 'jacob', {})).toBe('cole would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
+        expect(HydratedTravel.canDoTravel(s, 'jacob')).toBe(false)
+        s.getPlayerState('jacob').favor = 1
+        expect(HydratedTravel.canDoTravel(s, 'jacob')).toBe(true)
     })
 
     it('R-X.4 — before the revision the Travel pays 2 up front and the pick moves Jacob with no toll', () => {
