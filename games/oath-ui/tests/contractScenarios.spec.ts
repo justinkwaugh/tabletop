@@ -592,6 +592,29 @@ async function isAmber(locator: ReturnType<Page['locator']>, property: ColourPro
     return red - blue > 40
 }
 
+const STONE_800 = { red: 41, green: 37, blue: 36 }
+const STONE_700 = { red: 68, green: 64, blue: 59 }
+const AMBER_300 = { red: 255, green: 210, blue: 48 }
+
+async function expectColour(
+    locator: ReturnType<Page['locator']>,
+    property: ColourProperty,
+    expected: { red: number; green: number; blue: number }
+) {
+    const actual = await rgbOf(locator, property)
+    for (const channel of ['red', 'green', 'blue'] as const) {
+        expect(Math.abs(actual[channel] - expected[channel]), `${property} ${channel}`).toBeLessThanOrEqual(2)
+    }
+}
+
+/** The palette's primary: a stone-800 fill inside an amber-300 border, with amber-300 text. */
+async function expectPrimary(locator: ReturnType<Page['locator']>) {
+    await expectColour(locator, 'backgroundColor', STONE_800)
+    await expectColour(locator, 'color', AMBER_300)
+    await expectColour(locator, 'borderTopColor', AMBER_300)
+    expect(await locator.evaluate((element) => parseFloat(getComputedStyle(element).borderTopWidth))).toBeGreaterThan(0)
+}
+
 test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oath’s palette on the dark page', async ({
     page
 }) => {
@@ -620,8 +643,163 @@ test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oa
     await call(page, 'seatTravels', 'slot.cradle.1')
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await expect(undo).toBeVisible()
-    expect(await isAmber(undo, 'backgroundColor')).toBe(true)
-    expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
+    await expectPrimary(undo)
+    await undo.hover()
+    await expectColour(undo, 'backgroundColor', STONE_700)
+    await expectColour(undo, 'color', AMBER_300)
+
+    await openTable(page, 'warbandMoveAsked')
+    await expectPrimary(answer(page, 'Allow'))
+})
+
+type TextToken = 'text' | 'text-muted' | 'heading' | 'accent' | 'danger'
+const TEXT_TOKENS: TextToken[] = ['text', 'text-muted', 'heading', 'accent', 'danger']
+
+/** The element's text in reading order, each run of one colour joined and named by the palette token it wears. */
+async function tokenRuns(locator: ReturnType<Page['locator']>) {
+    return locator.evaluate((element, tokens) => {
+        const probe = document.createElement('span')
+        element.append(probe)
+        const tokenOf = new Map<string, string>()
+        for (const token of tokens) {
+            probe.style.color = `var(--oath-${token})`
+            tokenOf.set(getComputedStyle(probe).color, token)
+        }
+        probe.remove()
+        const runs: [string, string][] = []
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const text = node.textContent?.trim()
+            if (!text || !node.parentElement) continue
+            const colour = getComputedStyle(node.parentElement).color
+            const token = tokenOf.get(colour) ?? colour
+            const last = runs.at(-1)
+            if (last && last[1] === token) last[0] = `${last[0]} ${text}`
+            else runs.push([text, token])
+        }
+        return runs
+    }, TEXT_TOKENS)
+}
+
+/** docs/ui-interaction-visual-contract.md, Palette: a cost is `accent`; a gain stays `text`, a note and "→" `text-muted`. */
+test.describe('palette: every cost in the action panel is accent', () => {
+    test('the cost line under each action in the grid, and in the line under it', async ({ page }) => {
+        await openTable(page, 'trade')
+        for (const [label, cost] of [
+            ['Search', '2–4 Supply'],
+            ['Muster', '1 Supply'],
+            ['Trade', '1 Supply'],
+            ['Recover', '1 Supply'],
+            ['Campaign', '2 Supply'],
+            ['Travel', '1–4 Supply']
+        ]) {
+            expect(await tokenRuns(tile(page, label))).toEqual([
+                [label, 'text'],
+                [cost, 'accent']
+            ])
+        }
+        await tile(page, 'Travel').hover()
+        expect((await tokenRuns(reasonLine(page))).slice(0, 3)).toEqual([
+            ['Travel', 'text'],
+            ['1–4 Supply', 'accent'],
+            [expect.stringMatching(/^— /), 'text-muted']
+        ])
+    })
+
+    test('Search: the Supply is accent, the draw a muted note', async ({ page }) => {
+        await openTable(page, 'trade')
+        await tile(page, 'Search').click()
+        const deck = grid(page).getByRole('button', { name: /^Search the world deck: spend 2 Supply, draw 3$/ })
+        expect(await tokenRuns(deck)).toEqual([
+            ['2 Supply', 'accent'],
+            ['draw 3', 'text-muted']
+        ])
+    })
+
+    test('Search with a toll: the Supply, the "+" and the favor given are all accent', async ({ page }) => {
+        await openTable(page, 'searchToll')
+        await tile(page, 'Search').click()
+        const deck = grid(page).getByRole('button', {
+            name: /^Search the world deck: spend 2 Supply, give 1 favor to ann, draw 3$/
+        })
+        await expect(deck.locator('img')).toHaveCount(1)
+        expect(await tokenRuns(deck)).toEqual([
+            ['2 Supply + 1', 'accent'],
+            ['draw 3', 'text-muted']
+        ])
+    })
+
+    test('Trade: what is paid is accent, the arrow muted, the gain text and the bank note muted', async ({ page }) => {
+        await openTable(page, 'trade')
+        await tile(page, 'Trade').click()
+        const forFavor = grid(page).getByRole('button', {
+            name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank'
+        })
+        expect(await tokenRuns(forFavor)).toEqual([
+            ['1', 'accent'],
+            ['→', 'text-muted'],
+            ['3', 'text']
+        ])
+        const forSecrets = grid(page).getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })
+        expect(await tokenRuns(forSecrets)).toEqual([
+            ['2', 'accent'],
+            ['→', 'text-muted'],
+            ['2', 'text']
+        ])
+        const bankEmpty = grid(page).getByRole('button', { name: /^Trade with Assassin: pay 1 secret, get 0 favor/ })
+        expect(await tokenRuns(bankEmpty)).toEqual([
+            ['1', 'accent'],
+            ['→ 0 bank empty', 'text-muted']
+        ])
+    })
+
+    test('Muster: the favor placed is accent, the arrow muted, the warbands text', async ({ page }) => {
+        await openTable(page, 'trade')
+        await tile(page, 'Muster').click()
+        const muster = grid(page).getByRole('button', { name: /^Muster at Book Binders: place 1 favor, get \d warbands?$/ })
+        expect(await tokenRuns(muster)).toEqual([
+            ['1', 'accent'],
+            ['→', 'text-muted'],
+            [expect.stringMatching(/^\d$/), 'text']
+        ])
+    })
+
+    test('Recover: a banner’s least bid is accent and "or more" is not', async ({ page }) => {
+        await openTable(page, 'trade')
+        await tile(page, 'Recover').click()
+        const peoples = grid(page)
+            .getByRole('list', { name: 'Banners to recover' })
+            .getByRole('button', { name: /^Recover the People’s Favor: pay \d+ favor or more$/ })
+        expect(await tokenRuns(peoples)).toEqual([
+            [expect.stringMatching(/^\d+$/), 'accent'],
+            ['or more', 'text']
+        ])
+    })
+
+    test('Recover: a relic’s whole price is accent, its joiners with it', async ({ page }) => {
+        await openTable(page, 'relics')
+        await tile(page, 'Recover').click()
+        const relic = grid(page)
+            .getByRole('list', { name: 'Relics to recover' })
+            .getByRole('button', { name: /: place 3 favor in the Order bank$/ })
+        expect(await tokenRuns(relic)).toEqual([['3 to', 'accent']])
+    })
+
+    test('Campaign: the cost beside the heading is accent', async ({ page }) => {
+        await openTable(page, 'campaign')
+        await tile(page, 'Campaign').click()
+        expect(await tokenRuns(grid(page).locator('h3').filter({ hasText: 'Campaign' }))).toEqual([
+            ['Campaign', 'heading'],
+            ['2 Supply', 'accent']
+        ])
+    })
+
+    test('Use a power: what the card costs is accent', async ({ page }) => {
+        await openTable(page, 'cardOpensSearch')
+        await usePower(page).click()
+        const cost = actionCard(page, 'denizen.beast.mushrooms').locator('p')
+        expect(await tokenRuns(cost)).toEqual([['put 1 on it', 'accent']])
+    })
 })
 
 test('scenario 40: panel text shows favor as its token, the word only as the token’s name', async ({ page }) => {

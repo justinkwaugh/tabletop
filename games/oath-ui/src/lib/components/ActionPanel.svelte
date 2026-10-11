@@ -158,7 +158,7 @@
                         </p>
                     {/if}
                     <button
-                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
+                        class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                         disabled={busy || !!woodReason}
                         onclick={() => gameSession.travelFromShroudedWood()}
                     >

@@ -38,7 +38,7 @@
 {/if}
 <div class="flex flex-col gap-1">
     <button
-        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!reveal}
         title={gameSession.humanizeReason(reveal)}
         onclick={() => draft.playVision(SearchPlay.RevealedVision)}
@@ -46,7 +46,7 @@
         Reveal it as your Vision
     </button>
     <button
-        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!adviser}
         title={gameSession.humanizeReason(adviser)}
         onclick={() => draft.playVision(SearchPlay.Adviser)}

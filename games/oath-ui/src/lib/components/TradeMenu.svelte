@@ -41,6 +41,7 @@
                         <MenuCount
                             count={choice.pay}
                             image={forFavor ? secretToken() : favorToken()}
+                            cost
                         />
                         <span class="text-oath-text-muted">→</span>
                         <MenuCount

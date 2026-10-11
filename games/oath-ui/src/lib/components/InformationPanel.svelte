@@ -87,7 +87,7 @@
             <button
                 type="button"
                 class="ml-auto shrink-0 self-center rounded-lg bg-oath-primary text-oath-primary-text
-                       hover:bg-oath-primary-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold"
+                       border-[1.5px] border-oath-primary-border hover:bg-oath-primary-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold"
                 disabled={busy}
                 title={undoTooltip}
                 onclick={undo}>Undo</button

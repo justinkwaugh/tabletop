@@ -177,7 +177,7 @@
             {#if needed > 0}
                 <button
                     class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                           px-2 py-1.5 text-sm font-semibold"
+                           border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
                     disabled={busy || !!winBlockedBecause}
                     onclick={() => losses.win()}
                 >
@@ -307,7 +307,7 @@
         <div class="flex gap-2">
             <button
                 class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       px-2 py-1.5 text-sm font-semibold"
+                       border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!spoils.blockedBecause}
                 onclick={() => spoils.takeSpoils(false)}
             >
