@@ -1,13 +1,14 @@
 <script lang="ts">
     import type { CardKind } from '@tabletop/oath'
-    import type { Attachment } from 'svelte/attachments'
     import CardImage from '$lib/components/CardImage.svelte'
     import type { CardPreview } from '$lib/model/cardPreview.svelte.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
+    import { boardZoom } from '$lib/model/boardZoom.js'
 
     // Rule 1 — a card on the board is for looking: a press enlarges it and never chooses it,
     // except a lit site where the map is the menu (`onpick`): Setup's start site, a Travel
-    // destination, the spoils' banish, and on a desktop the Shrouded Wood ruler's pick.
+    // destination, the spoils' banish, and on a desktop the Shrouded Wood ruler's pick. That
+    // pick is a button laid over the card, so the keyboard reaches it and Enter or Space picks.
     let {
         cardId,
         back,
@@ -21,7 +22,8 @@
         picked = false,
         title,
         previewSlotId,
-        onpick
+        onpick,
+        pickLabel
     }: {
         cardId?: string
         back?: CardKind
@@ -39,6 +41,8 @@
         previewSlotId?: string
         /** A press chooses this card instead of enlarging it. */
         onpick?: () => void
+        /** The pick's accessible name: the site and its chip ("Great Slum, 2 Supply"). */
+        pickLabel?: string
     } = $props()
 
     let preview = $derived<CardPreview>({
@@ -52,21 +56,9 @@
 
     // R-9.4 — the caller's label never names a facedown card.
     let tooltip = $derived(title ?? label)
-
-    const picks =
-        (pick: () => void): Attachment<HTMLElement> =>
-        (node) => {
-            const press = (event: MouseEvent) => {
-                event.preventDefault()
-                event.stopPropagation()
-                pick()
-            }
-            node.addEventListener('click', press)
-            return () => node.removeEventListener('click', press)
-        }
 </script>
 
-<!-- Not a control: the keyboard reaches the panel's rows, never the table's cards. -->
+<!-- Not a control itself: the keyboard reaches the panel's rows, and a pick on the map's button. -->
 <div
     class="board-card"
     class:offered
@@ -80,9 +72,21 @@
         preview,
         enabled: onpick === undefined && (cardId !== undefined || back !== undefined)
     }}
-    {@attach onpick ? picks(onpick) : undefined}
 >
     <CardImage {cardId} {back} {label} {width} />
+    {#if onpick}
+        <button
+            type="button"
+            class="board-card__pick"
+            aria-label={pickLabel ?? label}
+            {@attach boardZoom}
+            onclick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onpick()
+            }}
+        ></button>
+    {/if}
 </div>
 
 <style>
@@ -96,6 +100,23 @@
 
     .board-card.pickable {
         cursor: pointer;
+    }
+
+    /* Over the whole card and unseen: only the browser's focus ring shows, and the card's tooltip. */
+    .board-card__pick {
+        position: absolute;
+        inset: 0;
+        padding: 0;
+        border: 0;
+        border-radius: inherit;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    /* The browser's focus ring at screen size whatever the board's zoom, just outside the gold ring. */
+    .board-card__pick:focus-visible {
+        outline-width: calc(2px / var(--board-zoom, 1));
+        outline-offset: calc(4px + 3px / var(--board-zoom, 1));
     }
 
     .board-card.offered {

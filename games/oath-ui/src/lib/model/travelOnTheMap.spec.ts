@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Region } from '@tabletop/oath'
-import { openingRegion, regionCounts, travelChip, woodChip } from './travelOnTheMap.js'
+import { chipWords, openingRegion, regionCounts, travelChip, woodChip } from './travelOnTheMap.js'
 import type { TravelWay } from './actionOffers.js'
 
 describe('the cost chip on a site the Shrouded Wood’s ruler may pick (R-11.7)', () => {
@@ -53,6 +53,18 @@ describe('the cost chip on a lit site (Choose a Travel destination)', () => {
 
     it('no way to pay, no chip', () => {
         expect(travelChip([])).toBeUndefined()
+    })
+
+    it('reads in words for a lit site’s accessible name: each way its Supply and tokens, "or" between two', () => {
+        const words = (chip: ReturnType<typeof travelChip>) => (chip ? chipWords(chip) : undefined)
+        expect(words(travelChip([way(2)]))).toBe('2 Supply')
+        expect(words(travelChip([way(2, { tolls: ['denizen.order.toll-roads'] })]))).toBe('2 Supply + 1 favor')
+        expect(
+            words(travelChip([way(2, { tolls: ['denizen.order.toll-roads', 'denizen.order.toll-roads'] })]))
+        ).toBe('2 Supply + 2 favor')
+        expect(words(travelChip([way(2), way(0, { flipSecret: true })]))).toBe('2 Supply or 0 Supply + 1 secret')
+        expect(chipWords(woodChip(2, true))).toBe('2 Supply + 1 favor')
+        expect(chipWords({ words: 'banish' })).toBe('banish')
     })
 })
 

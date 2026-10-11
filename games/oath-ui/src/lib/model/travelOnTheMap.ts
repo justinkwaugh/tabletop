@@ -25,6 +25,19 @@ export function travelChip(ways: readonly TravelWay[]): TravelChip | undefined {
     }
 }
 
+/** The chip in words, as a lit site's accessible name reads it: "2 Supply", "2 Supply + 1 favor or 0 Supply + 1 secret". */
+export function chipWords(chip: TravelChip): string {
+    if ('words' in chip) return chip.words
+    return chip.ways
+        .map(
+            (way) =>
+                `${way.cost} Supply` +
+                (way.favor > 0 ? ` + ${way.favor} favor` : '') +
+                (way.secret ? ' + 1 secret' : '')
+        )
+        .join(' or ')
+}
+
 /**
  * R-11.7 — a site the Shrouded Wood's ruler may pick: the traveller's Supply in words, as one way
  * paid in Supply alone reads, or its number and the favor where Toll Roads will ask (R-7.1.4).

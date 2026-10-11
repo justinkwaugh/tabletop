@@ -9,6 +9,7 @@
     import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import {
+        chipWords,
         travelChip,
         woodChip,
         type ChipWay,
@@ -161,6 +162,9 @@
             previewSlotId={slotId}
             title={text.title}
             {onpick}
+            pickLabel={text.chip === undefined
+                ? restingLabel(slotId)
+                : `${restingLabel(slotId)}, ${chipWords(text.chip)}`}
         />
 
         {#if text.chip !== undefined}

@@ -3160,6 +3160,68 @@ async function exileAtSetup(page: Page) {
     await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
 }
 
+/** A lit site's name as its magnifier gives it ("Enlarge Great Slum"). */
+async function siteNameOf(page: Page, slotId: string): Promise<string> {
+    const label = await siteMagnifier(page, slotId).getAttribute('aria-label')
+    if (!label) throw Error(`${slotId} has no magnifier`)
+    return label.replace(/^Enlarge /, '')
+}
+
+/** The button that picks a lit site, by its accessible name; the magnifier's is "Enlarge …". */
+const sitePick = (page: Page, slotId: string, name: string) =>
+    siteAt(page, slotId).getByRole('button', { name, exact: true })
+
+/** Tab until `target` has the focus; false if it never does. */
+async function tabTo(page: Page, target: Locator): Promise<boolean> {
+    for (let press = 0; press < 160; press++) {
+        await page.keyboard.press('Tab')
+        if (await target.evaluate((element) => element === document.activeElement)) return true
+    }
+    return false
+}
+
+/** Rule 1 — a pick on the map is a keyboard control too: a lit site is a button named by its site and its chip. */
+test.describe('a lit site picked on the map, by keyboard', () => {
+    test('Travel: Tab reaches a lit site, named "<site>, 1 Supply", with the browser’s focus ring; Enter travels; an unlit site is not a control', async ({
+        page
+    }) => {
+        await openTable(page, 'actPhase')
+        await tile(page, 'Travel').click()
+        await expect(travelPrompt(page)).toBeVisible()
+        const lit = sitePick(page, 'slot.cradle.1', `${await siteNameOf(page, 'slot.cradle.1')}, 1 Supply`)
+        await expect(lit).toHaveCount(1)
+        await expect(siteAt(page, 'slot.cradle.0').getByRole('button')).toHaveCount(0)
+
+        expect(await tabTo(page, lit)).toBe(true)
+        expect(await lit.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('auto')
+        await page.keyboard.press('Enter')
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        await expect(boardOffers(page)).toHaveCount(0)
+    })
+
+    test('Setup: Space on a lit start site picks it, as a click does', async ({ page }) => {
+        await exileAtSetup(page)
+        const site = sitePick(page, 'slot.provinces.0', await siteNameOf(page, 'slot.provinces.0'))
+        await expect(site).toHaveCount(1)
+        await site.focus()
+        await page.keyboard.press(' ')
+        await expect(startHere(page, 'slot.provinces.0')).toBeVisible()
+        await expect(siteCard(page, 'slot.provinces.0')).toHaveClass(/picked/)
+    })
+
+    test('the spoils: Enter on a lit site banishes the pawn there, named "<site>, banish"', async ({ page }) => {
+        await openTable(page, 'spoils')
+        await placeButton(page, 2).click()
+        await expect(banishPrompt(page)).toBeVisible()
+        const [banishTo] = await litSlots(page)
+        const site = sitePick(page, banishTo, `${await siteNameOf(page, banishTo)}, banish`)
+        await expect(site).toHaveCount(1)
+        await site.focus()
+        await page.keyboard.press('Enter')
+        await expect(spoilsStepCount(page)).toHaveText('3 of 3')
+    })
+})
+
 test('scenario 2: an Exile picks a start site on the map: a click on a lit site rings it with "start here", and a click on another moves the pick', async ({ page }) => {
     await exileAtSetup(page)
     await expect(startSitesList(page)).toHaveCount(0)

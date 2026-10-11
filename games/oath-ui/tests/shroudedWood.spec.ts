@@ -201,6 +201,21 @@ test.describe('the Shrouded Wood ruler’s pick on a desktop at 1280', () => {
         await expect(page.locator('.board-card.offered')).toHaveCount(0)
     })
 
+    test('by keyboard: each lit site is a button named by the site and the traveller’s price; Enter sends the pick', async ({ page }) => {
+        await openTable(page, 'woodRulerToll')
+        await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
+        const nameOf = async (slotId: string) =>
+            ((await siteAt(page, slotId).getByRole('button', { name: /^Enlarge / }).getAttribute('aria-label')) ?? '').replace(/^Enlarge /, '')
+        const pick = async (slotId: string, chip: string) =>
+            siteAt(page, slotId).getByRole('button', { name: `${await nameOf(slotId)}, ${chip}`, exact: true })
+        await expect(await pick('slot.provinces.1', '2 Supply + 1 favor')).toHaveCount(1)
+        const free = await pick('slot.provinces.2', '2 Supply')
+        await expect(free).toHaveCount(1)
+        await free.focus()
+        await page.keyboard.press('Enter')
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.2')
+    })
+
     test('Toll Roads: the toll site’s chip carries the favor, and a click passes the pick to the traveller', async ({ page }) => {
         await openTable(page, 'woodRulerToll')
         await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
