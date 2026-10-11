@@ -17,7 +17,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Bandit Crown:** in a game created before revision 5 (R-X.4), the bandits serving a Chancellor or Citizen holder are that holder's alone: the other Imperial players do not rule the sites they hold, and those sites are not Imperial sites; the Q&A makes them Imperial warbands.
 - **The Grand Scepter:** in a game created before revision 5 (R-X.4), one given in an exchange on a turn another player took it is locked for its new holder until the turn ends; its Q&A lets a given Scepter be used at once.
 - **Gambling Hall:** the favor bank is chosen before the roll.
-- **Witch's Bargain:** deals with one player per use; the Q&A allows several.
+- **Witch's Bargain:** in a game created before revision 7 (R-X.4) it deals with one player per use, though its Q&A allows several, and its user may give away the secret its cost placed, leaving fewer than none.
 - **Land Warden:** the second card played gets no When Played choices, no Deep Woods or Wastes relic, and cannot use a space freed by Crop Rotation or the Great Slum, nor be played to another site by New Growth or the People's Favor. In a game created before revision 3 (R-X.4) it takes none of the Search's modifiers, so Book of Records' holder gains favor for it, and Wild Cry and Welcoming Party look at the kept card only. A When Played power that draws a hidden card (Family Heirloom, Pilgrimage, the citizenship relic takes) is not resolved for it, and the action records that in `secondWhenPlayed`; the table offers only the second plays the engine accepts.
 - **Salad Days:** accepts an empty favor bank (R-7.1.3).
 - **The Tribunal:** its exchange binds what changes hands at once, not promises of later actions (R-7.6.3-H1).

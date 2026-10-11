@@ -10,6 +10,7 @@ import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
 import { describeWarbands } from './warbands.js'
 import { choiceSpecsFor, effectFor } from '../powers/registry.js'
+import { isAtLeastOathRevision, type OathRevision } from './revision.js'
 
 export { PowerChoice, PowerChoiceKind }
 
@@ -30,6 +31,10 @@ export interface ChoiceSpec {
     sequential?: true
     what?: string
     allows?: ExchangeAllowance
+    /** R-X.4 — asked only in a game created at this revision or later. */
+    fromRevision?: OathRevision
+    /** R-X.4 — asked only in a game created before this revision. */
+    beforeRevision?: OathRevision
 }
 
 export function exchangeAllowanceOf(spec: ChoiceSpec): ExchangeAllowance {
@@ -74,6 +79,16 @@ export function defaultDomain(kind: PowerChoiceKind): ChoiceDomain {
                 Object.values(Region).map((region) => ({ kind: PowerChoiceKind.Region, region }))
         case PowerChoiceKind.Count:
             return () => [{ kind: PowerChoiceKind.Count, n: 0 }]
+        case PowerChoiceKind.Bargain:
+            return (state, playerId) =>
+                state.players
+                    .filter((p) => p.playerId !== playerId)
+                    .map((p) => ({
+                        kind: PowerChoiceKind.Bargain,
+                        playerId: p.playerId,
+                        secretsGiven: 0,
+                        pairsGiven: 0
+                    }))
         case PowerChoiceKind.Exchange:
             return (state, playerId) =>
                 state.players
@@ -126,6 +141,16 @@ export function facedownAdviserChoices(player: HydratedOathPlayerState): PowerCh
     )
 }
 
+/** R-X.4 — the choices a power asks in a game of this state's revision, in declaration order. */
+export function choiceSpecsAt(state: HydratedOathGameState, power: CardPower): ChoiceSpec[] {
+    return choiceSpecsFor(power).filter(
+        (spec) =>
+            (spec.fromRevision === undefined || isAtLeastOathRevision(state, spec.fromRevision)) &&
+            (spec.beforeRevision === undefined ||
+                !isAtLeastOathRevision(state, spec.beforeRevision))
+    )
+}
+
 function domainOf(spec: ChoiceSpec): ChoiceDomain {
     return spec.domain ?? defaultDomain(spec.kind)
 }
@@ -171,7 +196,7 @@ export function legalChoices(
     power: CardPower,
     earlier: readonly PowerChoice[] = []
 ): LegalChoice[] {
-    const specs = choiceSpecsFor(power)
+    const specs = choiceSpecsAt(state, power)
     const readingFor = readingStates(state, playerId, power, specs, earlier)
     return specs.map((spec) => ({
         spec,
@@ -203,6 +228,8 @@ function keyOf(choice: PowerChoice): string {
             return `exchange:${choice.withPlayerId}`
         case PowerChoiceKind.Count:
             return 'count'
+        case PowerChoiceKind.Bargain:
+            return `bargain:${choice.playerId}`
     }
 }
 
@@ -213,7 +240,7 @@ export function reasonChoicesInvalid(
     power: CardPower,
     choices: readonly PowerChoice[] | undefined
 ): string | undefined {
-    const specs = choiceSpecsFor(power)
+    const specs = choiceSpecsAt(state, power)
     const all = choices ?? []
     const given = [...all]
 
@@ -321,6 +348,8 @@ function describeChoice(choice: PowerChoice): string {
             return `an exchange with ${choice.withPlayerId}`
         case PowerChoiceKind.Count:
             return `${choice.n}`
+        case PowerChoiceKind.Bargain:
+            return `the exchanges with ${choice.playerId}`
     }
 }
 function describe(x: ChoiceSpec | PowerChoice): string {

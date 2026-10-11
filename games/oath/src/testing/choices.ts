@@ -29,6 +29,11 @@ export function player(playerId: string): PowerChoice {
     return { kind: PowerChoiceKind.Player, playerId }
 }
 
+/** Witch's Bargain, from revision 7: one player's exchanges. */
+export function bargain(playerId: string, secretsGiven: number, pairsGiven: number): PowerChoice {
+    return { kind: PowerChoiceKind.Bargain, playerId, secretsGiven, pairsGiven }
+}
+
 export function card(cardId: string): PowerChoice {
     return { kind: PowerChoiceKind.Card, cardId }
 }
