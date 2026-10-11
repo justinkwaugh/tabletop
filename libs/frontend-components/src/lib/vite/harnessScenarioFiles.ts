@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import { HARNESS_SCENARIO_ENDPOINT } from '../harness/harnessScenarioEndpoint.js'
 
@@ -12,15 +12,17 @@ export function harnessScenarioFiles({ dir = 'scenarios' }: { dir?: string } = {
         name: 'tabletop-harness-scenario-files',
         apply: 'serve',
         configureServer(server) {
-            server.middlewares.use(
-                HARNESS_SCENARIO_ENDPOINT,
-                // Vite keeps the dev page's list of scenario files from when it first compiled it,
-                // so a save marks everything for recompiling, and the next page load lists the new
-                // file.
-                saveRoute(resolve(server.config.root, dir), () =>
+            const scenarios = resolve(server.config.root, dir)
+            // Vite keeps the dev page's list of scenario files from when it first compiled it, so
+            // any scenario file added, changed or removed, by a save or by anyone else, marks
+            // everything for recompiling, and the next page load lists the folder as it is.
+            server.watcher.add(scenarios)
+            server.watcher.on('all', (_event, path) => {
+                if (path.startsWith(`${scenarios}${sep}`) && path.endsWith('.json')) {
                     server.moduleGraph.invalidateAll()
-                )
-            )
+                }
+            })
+            server.middlewares.use(HARNESS_SCENARIO_ENDPOINT, saveRoute(scenarios))
         }
     }
 }
@@ -41,7 +43,7 @@ export async function saveScenarioFile(dir: string, body: string): Promise<strin
     return file
 }
 
-function saveRoute(dir: string, saved: () => void): Connect.NextHandleFunction {
+function saveRoute(dir: string): Connect.NextHandleFunction {
     return (request, response) => {
         if (request.method !== 'POST') {
             response.statusCode = 405
@@ -52,10 +54,7 @@ function saveRoute(dir: string, saved: () => void): Connect.NextHandleFunction {
         request.on('data', (chunk: Buffer) => chunks.push(chunk))
         request.on('end', () => {
             saveScenarioFile(dir, Buffer.concat(chunks).toString('utf8'))
-                .then((file) => {
-                    saved()
-                    respond(response, 200, { file })
-                })
+                .then((file) => respond(response, 200, { file }))
                 .catch((error: unknown) =>
                     respond(response, 400, {
                         error: error instanceof Error ? error.message : String(error)
