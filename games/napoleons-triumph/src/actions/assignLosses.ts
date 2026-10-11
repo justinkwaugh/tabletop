@@ -1,0 +1,57 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { GameAction } from '@tabletop/common'
+import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
+import { DecisionKind } from '../model/attack.js'
+import { assignExcessLosses, assignOddLoss, nextDecision } from '../model/attackDecisions.js'
+import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { legal } from '../model/legality.js'
+import { CombatMetadata, combatMetadata } from './lossRecord.js'
+
+export type AssignLosses = Type.Static<typeof AssignLosses>
+export const AssignLosses = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.AssignLosses),
+            playerId: Type.String(),
+            metadata: Type.Optional(CombatMetadata),
+            allocation: Type.Record(Type.String(), Type.Integer({ minimum: 1 }))
+        })
+    ])
+)
+
+export const AssignLossesValidator = Compile(AssignLosses)
+
+export function isAssignLosses(action?: GameAction): action is AssignLosses {
+    return action?.type === ActionType.AssignLosses
+}
+
+export class HydratedAssignLosses
+    extends NapoleonsTriumphAction<typeof AssignLosses>
+    implements AssignLosses
+{
+    declare type: ActionType.AssignLosses
+    declare playerId: string
+    declare metadata?: CombatMetadata
+    declare allocation: Record<string, number>
+
+    constructor(data: AssignLosses) {
+        super(data, AssignLossesValidator)
+    }
+
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        const decision = nextDecision(state)
+        if (decision?.kind === DecisionKind.OddLoss) {
+            const [unitId, ...rest] = Object.keys(this.allocation)
+            legal(
+                rest.length === 0 && this.allocation[unitId] === 1,
+                'An odd loss is one step on one unit'
+            )
+            this.metadata = combatMetadata(assignOddLoss(state, this.playerId, unitId))
+            return
+        }
+        this.metadata = combatMetadata(assignExcessLosses(state, this.playerId, this.allocation))
+    }
+}

@@ -840,6 +840,68 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]> {
+        let query = this.games
+            .where('status', '==', GameStatus.Finished)
+            .orderBy(FieldPath.documentId())
+        if (afterGameId) query = query.startAfter(afterGameId)
+        try {
+            const snapshot = await this.readQuery(query.limit(limit))
+            this.recordRead('game', Math.max(1, snapshot.size))
+            return snapshot.docs.map((document) => this.normalizeGame(document.data()))
+        } catch (error) {
+            this.handleError(error, afterGameId ?? 'finished')
+            throw Error('unreachable')
+        }
+    }
+
+    async readStateFromStorage(gameId: string): Promise<GameState | undefined> {
+        try {
+            return await this.getGameState(gameId)
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
+    async recordFinalScores({
+        gameId,
+        finishedAt,
+        finalScores
+    }: {
+        gameId: string
+        finishedAt: Date
+        finalScores: Record<string, number>
+    }): Promise<boolean> {
+        try {
+            return await this.cacheService.lockWhileWriting(
+                [GameCacheKeys.game(gameId), GameCacheKeys.revision(gameId)],
+                async (locks) =>
+                    this.runTransaction(async (transaction) => {
+                        const existingGame = (
+                            await this.readDocument(this.games.doc(gameId), transaction)
+                        ).data()
+                        this.recordRead('game')
+                        if (
+                            existingGame?.status !== GameStatus.Finished ||
+                            existingGame.finalScores !== undefined ||
+                            existingGame.finishedAt?.getTime() !== finishedAt.getTime()
+                        )
+                            return false
+                        await this.protectChangedLists(locks, existingGame, {
+                            ...existingGame,
+                            finalScores
+                        })
+                        transaction.update(this.games.doc(gameId), { finalScores })
+                        return true
+                    })
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
     @Timed('store.addActionsToGame')
     async addActionsToGame({
         game,
