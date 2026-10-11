@@ -345,7 +345,7 @@ describe('Toll Roads on Brass Horse — its user pays as they travel', () => {
         const answer = answerQuestion(s, 'jacob', { kind: PowerQuestionKind.TravelFreeTo, siteId: 'c1' })
         expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'c1', favor: 3, supply: 6 })
         expect(s.getPlayerState('cole').favor).toBe(4)
-        expect(answer.metadata?.summary).toBe(`travelled to the c1 for no Supply, paying cole 1 favor (${TOLL_ROADS})`)
+        expect(answer.metadata?.summary).toBe(`travelled to c1 for no Supply; paid cole 1 favor (${TOLL_ROADS})`)
     })
 
     it('hides a site its user cannot pay for, and with none left travels as normal', () => {

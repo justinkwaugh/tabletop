@@ -378,8 +378,9 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const { notes } = travelByPower(state, playerId, siteId)
             const after = notes.length ? ` (${notes.join('; ')})` : ''
             if (!toll) return `travelled to ${siteId} for no Supply${after}`
-            const paying = toll.payeeId ? `paying ${toll.payeeId}` : 'burning'
-            return `travelled to the ${siteId} for no Supply, ${paying} 1 favor (${toll.cardId})${after}`
+            // The History's form for a toll inside a row: what was paid, then the card.
+            const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
+            return `travelled to ${siteId} for no Supply; ${paid} 1 favor (${toll.cardId})${after}`
         }
     },
     [PowerQuestionKind.RerollDice]: {
