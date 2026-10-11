@@ -34,8 +34,9 @@ type PlaceCounts = Record<string, Partial<Record<WarbandOwner, number>>>
 type PawnChoice = { kind: 'leave' } | { kind: 'site'; siteId: string } | { kind: 'wood' }
 
 /**
- * Each step's picks are a stage and the step's end is the next, so Undo returns to a step with
- * its picks still marked, then takes those back. The favor's buttons send; they store nothing.
+ * The warbands' and the relics' steps are each a pick stage and an end stage, so Undo returns to
+ * them with their picks still marked, then clears those. The pawn's one tap is its stage, so Undo
+ * returns to the pawn's step bare. The favor's buttons send; they store nothing.
  */
 type VictoryValueByStage = {
     counts: PlaceCounts
