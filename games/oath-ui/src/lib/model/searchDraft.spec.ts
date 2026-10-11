@@ -406,3 +406,124 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 })
+
+const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+const NEW_GROWTH = 'denizen.beast.new-growth'
+const INN = 'denizen.hearth.wayside-inn'
+const carrying = (cardId: string) => ({ pendingSearchModifiers: [{ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) }] })
+const FULL_ELSEWHERE = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.elsewhere-${i}`)
+
+/** Each site play is judged on exactly what it sends: the site played to, the card discarded first, the Search's carried modifiers. */
+describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is judged on the play it sends', () => {
+    it("the People's Favor's holder at their own full site plays there once a card there is discarded first", async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD })
+        draft.keep(TENTS)
+        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.placementReason).toMatch(/c1 is at its capacity of 3/)
+
+        // A card discarded at another site frees no room here.
+        expect(draft.discardFirstOptions).toEqual(FULL)
+        draft.setDiscardFirst(FULL[1])
+        expect(draft.placementReason).toBeUndefined()
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, discardFirstCardId: FULL[1] }))
+        expect(sent).toHaveBeenCalledWith(expect.not.objectContaining({ toSiteId: expect.anything() }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('the holder with room at their own site is refused another site that is full, until a card there is discarded first', async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: [], c2: FULL, p1: [] }, banners: FAVOR_HELD })
+        draft.keep(TENTS)
+        draft.setToSite('c2')
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.placement).toBeUndefined()
+        expect(draft.placementReason).toMatch(/c2 is at its capacity of 3/)
+
+        draft.setDiscardFirst(FULL[0])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, toSiteId: 'c2', discardFirstCardId: FULL[0] }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('Crop Rotation carried: a card discarded first opens a full site', async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(CROP_ROTATION) })
+        draft.keep(TENTS)
+        expect(draft.otherSites).toEqual([])
+        expect(draft.discardFirstOptions).toEqual(FULL)
+        draft.setDiscardFirst(FULL[2])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[2] }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('New Growth carried: a Hearth card plays to a site in another region; a Nomad card is offered no site play', async () => {
+        const table = { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(NEW_GROWTH) }
+        const { session, draft, sent } = searchingWith([INN, TUTOR], [], table)
+        draft.keep(INN)
+        expect(draft.otherSites).toContain('p1')
+        draft.setToSite('p1')
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: INN, play: SearchPlay.Site, toSiteId: 'p1' }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+
+        const nomad = searchingWith([TENTS, TUTOR], [], table).draft
+        nomad.keep(TENTS)
+        expect(nomad.otherSites).toEqual([])
+        expect(nomad.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
+    })
+
+    it('New Growth carried: a full Great Slum played to opens with a card there discarded first', async () => {
+        const { session, draft, sent } = searchingWith([INN, TUTOR], [], {
+            siteCards: { c1: 'c1', c2: 'c2', p1: 'site.great-slums', p2: 'p2', p3: 'p3', h1: 'h1', h2: 'h2', h3: 'h3' },
+            denizensBySite: { c1: FULL, c2: [], p1: FULL_ELSEWHERE },
+            ...carrying(NEW_GROWTH)
+        })
+        draft.keep(INN)
+        expect(draft.otherSites).toContain('p1')
+        draft.setToSite('p1')
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.placementReason).toMatch(/p1 is at its capacity of 3/)
+
+        expect(draft.discardFirstOptions).toEqual(FULL_ELSEWHERE)
+        draft.setDiscardFirst(FULL_ELSEWHERE[0])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, toSiteId: 'p1', discardFirstCardId: FULL_ELSEWHERE[0] }))
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('a player with nothing that opens a full site is offered no card to discard first and no site play', async () => {
+        const { draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+        draft.keep(TENTS)
+        expect(draft.discardFirstOptions).toEqual([])
+        expect(draft.otherSites).toEqual([])
+        draft.setDiscardFirst(FULL[0])
+        expect(draft.discardFirst).toBeUndefined()
+        expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+    })
+
+    it("Land Warden: the holder at their own full site pairs a facedown adviser with the site play a discard first opens", async () => {
+        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD, ...WARDEN_CARRIED })
+        draft.keep(TENTS)
+        const facedown = draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)
+        expect(facedown).toBeDefined()
+        draft.setSecondPlay(facedown?.key)
+        expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
+
+        draft.setDiscardFirst(FULL[0])
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                play: SearchPlay.Site,
+                discardFirstCardId: FULL[0],
+                secondPlay: { cardId: TUTOR, play: SearchPlay.Adviser, faceUp: false }
+            })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+})

@@ -211,6 +211,40 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
         expect(action.toSiteId).toBe('c2')
         expect(action.discardFirstCardId).toBe(WAYSIDE_INN)
     })
+
+    it('at their own full site, the site play opens once a card there is picked to discard first, and is sent with it', async () => {
+        const ERRAND_BOY = 'denizen.beast.errand-boy'
+        const here = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+        const there = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.elsewhere-${i}`)
+        const state = testState(
+            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: ERRAND_BOY, faceUp: false }] })],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: here, c2: there, p1: [] },
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: 'me' },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
+            }
+        )
+        openTurn(state, 'me')
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+
+        await session.chooseAdviserPlay(ERRAND_BOY, SearchPlay.Site)
+        expect(session.adviserPlayReason).toMatch(/c1 is at its capacity/)
+        // A card discarded at another site frees no room here.
+        expect(session.adviserDiscardFirstOptions).toEqual(here)
+        session.setAdviserDiscardFirst(here[0])
+        expect(session.adviserPlayReason).toBeUndefined()
+
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.discardFirstCardId).toBe(here[0])
+        expect(action.toSiteId).toBeUndefined()
+    })
 })
 
 describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', () => {
