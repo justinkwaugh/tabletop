@@ -29,7 +29,8 @@ export type BoardPick = {
 
 /** A choice made by tapping the map, as a phone frames it: the sites its frame and chips count. */
 export type MapPick = {
-    kind: 'start' | 'travel'
+    /** Setup's start site, a Travel destination, or where the spoils banish the defeated pawn. */
+    kind: 'start' | 'travel' | 'banish'
     sites: string[]
     /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
     choosing: boolean
@@ -56,6 +57,8 @@ export type SiteOffer =
       }
     | { slotId: string; intent: 'target'; targeted: boolean }
     | { slotId: string; intent: 'moveWarbands' }
+    /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
+    | { slotId: string; intent: 'banish' }
 
 /** R-5.4.2 — every amount the engine accepts, lowest first. */
 /** R-1.16 — favor the Chancellor places on one site at setup. */

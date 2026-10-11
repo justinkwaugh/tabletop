@@ -1531,30 +1531,227 @@ test.describe('scenario 62: the Campaign’s words', () => {
         await expect(answer(page, 'Continue')).toBeVisible()
     })
 
-    test('the spoils: what is taken in short words, the banish with the defender’s chip, and the two buttons at one width', async ({
+    test('the spoils: the warbands first, in short words, the site’s picture beside its numbers and no hint on the 0', async ({
         page
     }) => {
         await openTable(page, 'spoils')
         await expect(grid(page).locator('h3')).toHaveText('Spoils')
+        await expect(spoilsStepCount(page)).toHaveText('1 of 3')
         await expect(grid(page)).not.toContainText('You were victorious')
-        const list = grid(page).locator('ul')
-        await expect(list).toContainText(/ · 0 warbands/)
-        await expect(list).toContainText('The People')
-        await expect(list).toContainText(/def's\s+pawn\s+and\s+favor/i)
-        await expect(list).not.toContainText('their pawn sent away')
-        await expect(grid(page)).toContainText('Place warbands: 0 of 4.')
+        await expect(grid(page)).toContainText('Place warbands: 1 of 4.')
         await expect(grid(page)).not.toContainText('This is how you come to rule them')
-        await expect(grid(page)).toContainText(/Banish def to:/i)
-        await expect(grid(page).locator('select option').first()).toHaveText('nowhere')
+        await expect(grid(page)).not.toContainText('bandits')
+        await expect(grid(page).locator('select')).toHaveCount(0)
+        await expect(grid(page).locator('ul')).toHaveCount(0)
+        await expect(answer(page, 'Take spoils')).toHaveCount(0)
+    })
+})
 
-        const take = answer(page, 'Take spoils')
-        const burn = grid(page).getByRole('button', { name: /^Take and burn 2/ })
+/** The spoils' option buttons, the number buttons of the warbands step among them. */
+const placeButtons = (page: Page) => grid(page).getByRole('button', { name: /^Place \d+ warbands? at / })
+const placeButton = (page: Page, n: number, row = 0) =>
+    grid(page)
+        .getByRole('list', { name: 'Warbands on the sites taken' })
+        .getByRole('listitem')
+        .nth(row)
+        .getByRole('button', { name: new RegExp(`^Place ${n} warbands? at `) })
+const spoilsStepCount = (page: Page) => grid(page).getByText(/^\d of \d$/)
+const leavePawn = (page: Page) => grid(page).getByRole('button', { name: /^Leave it at / })
+const banishPrompt = (page: Page) => grid(page).getByText(/^Tap a lit site to banish\s+def's\s+pawn there\.$/i)
+const takeSpoils = (page: Page) => answer(page, 'Take spoils')
+const takeAndBurn = (page: Page) => grid(page).getByRole('button', { name: /^Take and burn 2/ })
+const SPOILS_SITE = 'slot.provinces.0'
+
+/** The tooltips on the spoils' own controls; the magnifiers keep theirs. */
+const titledSpoilsButtons = (page: Page) => grid(page).locator('button[title]:not(.magnifier)')
+
+/** Scenario 64: the spoils one step at a time, in the Law's order (R-5.5.7). */
+test.describe('scenario 64: the spoils one step at a time', () => {
+    test('the warbands step: the site’s picture and name, the numbers with the warband symbol, 1 already marked, and Next', async ({
+        page
+    }) => {
+        await openTable(page, 'spoils')
+        const rows = grid(page).getByRole('list', { name: 'Warbands on the sites taken' }).getByRole('listitem')
+        await expect(rows).toHaveCount(1)
+        await expect(rows.first().getByRole('button', { name: /^Enlarge / })).toHaveCount(1)
+        await expect(rows.first().locator('img').first()).toBeVisible()
+        await expect(placeButtons(page)).toHaveCount(5)
+        for (let n = 0; n <= 4; n++) {
+            const button = placeButton(page, n)
+            await expect(button).toHaveText(String(n))
+            await expect(button).toHaveAttribute('aria-pressed', n === 1 ? 'true' : 'false')
+            await expect(button.locator('img')).toHaveCount(n === 0 ? 0 : 1)
+        }
+        await expect(answer(page, 'Next')).toBeVisible()
+        await expect(titledSpoilsButtons(page)).toHaveCount(0)
+        expect(await clippedLabels(page)).toEqual([])
+    })
+
+    test('a number moves on to the pawn, picked on the map; a lit site moves on to the favor, whose two buttons send', async ({
+        page
+    }) => {
+        await openTable(page, 'spoils')
+        await placeButton(page, 2).click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 3')
+        await expect(banishPrompt(page)).toBeVisible()
+        await expect(leavePawn(page)).toBeVisible()
+        await expect(placeButtons(page)).toHaveCount(0)
+
+        const lit = await litSlots(page)
+        expect(lit.length).toBeGreaterThan(1)
+        expect(lit).not.toContain(SPOILS_SITE)
+        for (const slotId of lit) {
+            await expect(siteAt(page, slotId).locator('.travel-cost')).toHaveText('banish')
+            await expect(siteMagnifier(page, slotId)).toHaveCount(1)
+        }
+        await expect(dimmedSites(page)).not.toHaveCount(0)
+
+        const [banishTo] = lit
+        await (await uncovered(page, `.site[data-slot="${banishTo}"] .board-card`)).click()
+        await expect(spoilsStepCount(page)).toHaveText('3 of 3')
+        await expect(boardOffers(page)).toHaveCount(0)
+        await expect(dimmedSites(page)).toHaveCount(0)
+        await expect(grid(page)).toContainText(/def's\s+favor/i)
+
+        const take = takeSpoils(page)
+        const burn = takeAndBurn(page)
         await expect(take).toBeVisible()
         await expect(burn).toBeVisible()
         expect(await widthOf(take)).toBe(await widthOf(burn))
         expect(await pairLayout(take, burn)).toBe('side by side')
+        expect(await backgroundOf(take)).toBe(await primaryBackground(page))
+        await expect(titledSpoilsButtons(page)).toHaveCount(0)
+
+        await take.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.def).toBe(banishTo)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.warbandsAt[SPOILS_SITE]?.att).toBe(2)
+        expect(facts.favorOf.def).toBe(4)
+        expect(facts.campaignUnderway).toBe(false)
+    })
+
+    test('"Leave it" keeps the pawn where it stands; the burn sends the default warband', async ({ page }) => {
+        await openTable(page, 'spoils')
+        await answer(page, 'Next').click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 3')
+        await leavePawn(page).click()
+        await expect(spoilsStepCount(page)).toHaveText('3 of 3')
+        await takeAndBurn(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.siteOf.def).toBe(SPOILS_SITE)
+        expect(facts.favorOf.def).toBe(2)
+        expect(facts.warbandsAt[SPOILS_SITE]?.att).toBe(1)
+    })
+
+    test('Undo steps back one step at a time, each with its choice still marked, then to the default', async ({ page }) => {
+        await openTable(page, 'spoils')
+        await expect(undoButton(page)).toHaveCount(0)
+        await placeButton(page, 3).click()
+        await (await uncovered(page, '.board-card.offered')).click()
+        await expect(spoilsStepCount(page)).toHaveText('3 of 3')
+
+        await undoButton(page).click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 3')
+        await expect(boardOffers(page)).not.toHaveCount(0)
+        await undoButton(page).click()
+        await expect(spoilsStepCount(page)).toHaveText('1 of 3')
+        await expect(placeButton(page, 3)).toHaveAttribute('aria-pressed', 'true')
+        await expect(boardOffers(page)).toHaveCount(0)
+        await undoButton(page).click()
+        await expect(placeButton(page, 1)).toHaveAttribute('aria-pressed', 'true')
+        await expect(undoButton(page)).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).campaignUnderway).toBe(true)
+    })
+
+    test('two sites taken: a row each, 1 on each, Next to move on; the relic last, with "Take spoils" once it is chosen', async ({
+        page
+    }) => {
+        await openTable(page, 'spoilsRelicHunter')
+        await expect(spoilsStepCount(page)).toHaveText('1 of 2')
+        await expect(grid(page)).toContainText('Place warbands: 2 of 4.')
+        await expect(placeButton(page, 1, 0)).toHaveAttribute('aria-pressed', 'true')
+        await expect(placeButton(page, 1, 1)).toHaveAttribute('aria-pressed', 'true')
+        await placeButton(page, 2, 0).click()
+        await expect(spoilsStepCount(page)).toHaveText('1 of 2')
+        await expect(grid(page)).toContainText('Place warbands: 3 of 4.')
+        await expect(placeButton(page, 3, 1)).toHaveCount(0)
+        await answer(page, 'Next').click()
+
+        await expect(spoilsStepCount(page)).toHaveText('2 of 2')
+        await expect(grid(page)).toContainText('Cup of Plenty')
+        const keep = answer(page, 'Keep it')
+        const bottom = answer(page, 'Bottom of the relic deck')
+        await expect(keep).toHaveAttribute('aria-pressed', 'false')
+        await expect(bottom).toHaveAttribute('aria-pressed', 'false')
+        expect(await widthOf(keep)).toBe(await widthOf(bottom))
+        await expect(takeSpoils(page)).toHaveCount(0)
+        await expect(answer(page, 'Next')).toHaveCount(0)
+        await bottom.click()
+        await expect(spoilsStepCount(page)).toHaveText('2 of 2')
+        await expect(bottom).toHaveAttribute('aria-pressed', 'true')
+        await expect(takeSpoils(page)).toBeVisible()
+
+        await takeSpoils(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.warbandsAt[SPOILS_SITE]?.att).toBe(2)
+        expect(facts.warbandsAt['slot.provinces.1']?.att).toBe(1)
     })
 })
+
+for (const viewport of [
+    { width: 402, height: 874 },
+    { width: 375, height: 812 }
+]) {
+    test.describe(`scenario 64 on a phone held upright, ${viewport.width} wide`, () => {
+        test.use({ viewport, hasTouch: true })
+
+        test('the numbers and the pawn’s button are a standard size, 44 px tall, never the panel’s width', async ({
+            page
+        }) => {
+            await openTable(page, 'spoils')
+            const panelWidth = (await layoutSizeOf(grid(page)))?.width ?? 0
+            for (let n = 0; n <= 4; n++) {
+                const size = await layoutSizeOf(placeButton(page, n))
+                expect(size?.height).toBe(44)
+                expect(size?.width ?? 0).toBeLessThan(panelWidth / 2)
+            }
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+
+            await placeButton(page, 2).tap()
+            await expect(banishPrompt(page)).toBeVisible()
+            const leave = await layoutSizeOf(leavePawn(page))
+            expect(leave?.height).toBe(44)
+            expect(leave?.width ?? 0).toBeLessThan(panelWidth * 0.8)
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+        })
+
+        test('the pawn’s step frames the map on its region under region chips; a tap on a lit site banishes it there', async ({
+            page
+        }) => {
+            await openTable(page, 'spoils')
+            await placeButton(page, 1).tap()
+            await expect(banishPrompt(page)).toBeVisible()
+            await expect(regionChip(page, 'Provinces')).toHaveAttribute('aria-pressed', 'true')
+            await expect(regionChip(page, 'Provinces')).toHaveAccessibleName(/^Provinces: \d+ to banish to$/)
+            const lit = (await litSlots(page)).filter((slotId) => slotId.startsWith('slot.provinces.'))
+            expect(lit.length).toBeGreaterThan(0)
+            const [banishTo] = lit
+            await expect.poll(() => onScreen(page, siteCard(page, banishTo))).toBe(true)
+            const chip = await boxOf(siteAt(page, banishTo).locator('.travel-cost'))
+            expect(inside(chip, await boxOf(siteCard(page, banishTo)))).toBe(true)
+
+            await siteCard(page, banishTo).tap()
+            await expect(spoilsStepCount(page)).toHaveText('3 of 3')
+            await expect(regionChips(page)).toHaveCount(0)
+            await takeSpoils(page).tap()
+            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.def).toBe(banishTo)
+        })
+    })
+}
 
 const CAMPAIGN_STEPS = [
     'campaignTwoDefenders',
@@ -1591,6 +1788,14 @@ async function completeCampaignStep(page: Page, name: (typeof CAMPAIGN_STEPS)[nu
             await pickCount(page, 0, 1)
             await pickCount(page, 1, 1)
             await expect(answer(page, 'Kill')).toBeVisible()
+            return
+        case 'spoils':
+            // The warbands and the pawn come first; the favor's two buttons send.
+            expect(await clippedLabels(page)).toEqual([])
+            await answer(page, 'Next').click()
+            expect(await clippedLabels(page)).toEqual([])
+            await leavePawn(page).click()
+            await expect(takeSpoils(page)).toBeVisible()
             return
         default:
             return

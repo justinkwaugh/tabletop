@@ -29,20 +29,37 @@ import type { OathGameSession } from './session.svelte.js'
 
 /** Keyed by site, then by warband owner. */
 type PlaceCounts = Record<string, Partial<Record<WarbandOwner, number>>>
-type Spoils = {
-    placeCounts: PlaceCounts
-    bottomSlots: string[]
-    banishSiteId?: string
-    /** R-11.7 — banished from a Shrouded Wood whose ruler chooses the site. */
-    banishByWood?: boolean
-}
-type VictoryValueByStage = { spoils: Spoils }
 
-const VICTORY_STAGE_ORDER = ['spoils'] as const
+/** R-5.5.7.III, R-11.7 — the defeated pawn left, banished to a site, or left to the Wood's ruler. */
+type PawnChoice = { kind: 'leave' } | { kind: 'site'; siteId: string } | { kind: 'wood' }
+
+/**
+ * Each step's picks are a stage and the step's end is the next, so Undo returns to a step with
+ * its picks still marked, then takes those back. The favor's buttons send; they store nothing.
+ */
+type VictoryValueByStage = {
+    counts: PlaceCounts
+    warbands: true
+    relicPicks: Record<string, 'keep' | 'bottom'>
+    relics: true
+    pawn: PawnChoice
+}
+
+const VICTORY_STAGE_ORDER = ['counts', 'warbands', 'relicPicks', 'relics', 'pawn'] as const
 const _victoryStagesAreCovered: StagesCover<VictoryValueByStage, typeof VICTORY_STAGE_ORDER> = true
 void _victoryStagesAreCovered
 
-/** R-5.5.7 — the attacker's spoils: warbands onto the sites taken, and Relic Hunter's bottomed relics. */
+/** R-5.5.7's sections, in the Law's order. */
+export type SpoilsStep = 'warbands' | 'relics' | 'pawn' | 'favor'
+
+/** One owner's warbands onto one site taken. */
+export type WarbandRow = { siteId: string; owner: WarbandOwner }
+
+/**
+ * R-5.5.7 — the attacker's spoils, one step at a time in the Law's order: warbands onto the sites
+ * taken (I), Relic Hunter's relics (II), the defeated pawn (III), then the favor, whose two buttons
+ * send everything as one action. A step with nothing to choose is skipped.
+ */
 export class VictoryDraft implements PanelDraft {
     private flow = new StagedFlow<VictoryValueByStage>(VICTORY_STAGE_ORDER)
 
@@ -58,25 +75,87 @@ export class VictoryDraft implements PanelDraft {
             : undefined
     }
 
-    private get spoils(): Spoils {
-        return this.flow.value('spoils') ?? { placeCounts: {}, bottomSlots: [] }
-    }
-
     private get targets() {
         return this.playerId ? (this.session.gameState.campaign?.targets ?? []) : []
     }
 
-    get capturedSites() {
-        return this.targets.flatMap((target) =>
-            target.kind === CampaignTargetKind.Site ? [target.siteId] : []
-        )
+    get steps(): SpoilsStep[] {
+        if (!this.playerId) return []
+        const steps: SpoilsStep[] = []
+        if (this.warbandRows.length > 0) steps.push('warbands')
+        if (this.relicTargets.length > 0) steps.push('relics')
+        if (this.banishSites.length > 0 || this.woodChooses) steps.push('pawn')
+        if (this.mayBurnFavor) steps.push('favor')
+        return steps
     }
 
-    // R-10.9, R-5.5.7.I — "from your force", so the board is the ceiling, owner by owner.
+    /** The first step not yet taken; none when there is nothing to choose. */
+    get step(): SpoilsStep | undefined {
+        return this.steps.find((step) => !this.taken(step))
+    }
+
+    /** From 1; 0 with no step. */
+    get stepNumber(): number {
+        const step = this.step
+        return step === undefined ? 0 : this.steps.indexOf(step) + 1
+    }
+
+    get isLastStep(): boolean {
+        const step = this.step
+        return step !== undefined && step === this.steps[this.steps.length - 1]
+    }
+
+    private taken(step: SpoilsStep): boolean {
+        switch (step) {
+            case 'warbands':
+                return this.flow.value('warbands') === true
+            case 'relics':
+                return this.flow.value('relics') === true
+            case 'pawn':
+                return this.pawnChosen
+            case 'favor':
+                return false
+        }
+    }
+
+    /** "Next": a step with several rows to set, or the warbands' default to accept, not the last. */
+    get nextShown(): boolean {
+        if (this.isLastStep) return false
+        if (this.step === 'warbands') return true
+        return this.step === 'relics' && this.relicTargets.length > 1 && this.relicsChosen
+    }
+
+    next(): void {
+        if (!this.nextShown) return
+        if (this.step === 'warbands') this.flow.set('warbands', true)
+        else if (this.step === 'relics') this.flow.set('relics', true)
+    }
+
+    /** "Take spoils" closing a last step that is not the favor's, once its picks are made. */
+    get sendShown(): boolean {
+        const step = this.step
+        if (step === undefined) return this.playerId !== undefined
+        if (!this.isLastStep) return false
+        if (step === 'warbands') return true
+        return step === 'relics' && this.relicsChosen
+    }
+
+    // R-5.5.7.I — in the map's order: the Cradle, the Provinces, the Hinterland, each top to bottom.
+    get capturedSites(): string[] {
+        const taken = this.targets.flatMap((target) =>
+            target.kind === CampaignTargetKind.Site ? [target.siteId] : []
+        )
+        return this.session.gameState.allSiteIds().filter((siteId) => taken.includes(siteId))
+    }
+
+    // R-10.9, R-5.5.7.I — "from your force", so the board is the ceiling, owner by owner; the
+    // player's own warbands first.
     get forceOwners(): WarbandOwner[] {
+        const playerId = this.playerId
         return warbandEntries(this.forceBoard)
             .filter(([, count]) => count > 0)
             .map(([owner]) => owner)
+            .sort((a, b) => Number(b === playerId) - Number(a === playerId))
     }
 
     get forceAvailable() {
@@ -88,9 +167,50 @@ export class VictoryDraft implements PanelDraft {
         return playerId ? this.session.gameState.getPlayerState(playerId).warbandsOnBoard : {}
     }
 
+    // R-7.1.4-H1, R-9.2 — Ring of Devotion leaves zero the one legal count, so nothing to choose.
+    private get mayPlace(): boolean {
+        const playerId = this.playerId
+        const [siteId] = this.capturedSites
+        const [owner] = this.forceOwners
+        if (playerId === undefined || siteId === undefined || owner === undefined) return false
+        return (
+            HydratedCampaignResolveVictory.reasonCannotResolveVictory(
+                this.session.gameState,
+                playerId,
+                { placements: [{ siteId, owner, count: 1 }], burnFavor: false }
+            ) === undefined
+        )
+    }
+
+    get warbandRows(): WarbandRow[] {
+        if (!this.mayPlace) return []
+        return this.capturedSites.flatMap((siteId) =>
+            this.forceOwners.map((owner) => ({ siteId, owner }))
+        )
+    }
+
+    /** 1 warband at each site taken while the force lasts, in the map's order; any number may follow. */
+    private get defaultCounts(): PlaceCounts {
+        if (!this.mayPlace) return {}
+        const left = new Map(
+            this.forceOwners.map((owner) => [owner, countOf(this.forceBoard, owner)])
+        )
+        const counts: PlaceCounts = {}
+        for (const siteId of this.capturedSites) {
+            const owner = this.forceOwners.find((candidate) => (left.get(candidate) ?? 0) > 0)
+            if (owner === undefined) break
+            left.set(owner, (left.get(owner) ?? 0) - 1)
+            counts[siteId] = { [owner]: 1 }
+        }
+        return counts
+    }
+
     countAt(siteId: string, owner: WarbandOwner): number {
-        return this.capturedSites.includes(siteId) && this.forceOwners.includes(owner)
-            ? (this.spoils.placeCounts[siteId]?.[owner] ?? 0)
+        const counts = this.flow.value('counts') ?? this.defaultCounts
+        return this.mayPlace &&
+            this.capturedSites.includes(siteId) &&
+            this.forceOwners.includes(owner)
+            ? (counts[siteId]?.[owner] ?? 0)
             : 0
     }
 
@@ -120,16 +240,6 @@ export class VictoryDraft implements PanelDraft {
             .filter((placement) => placement.count > 0)
     }
 
-    get relicTargets() {
-        return this.targets.flatMap((t) =>
-            t.kind === CampaignTargetKind.SiteRelic ? [t.slotId] : []
-        )
-    }
-
-    get bottomSlots() {
-        return this.spoils.bottomSlots.filter((slotId) => this.relicTargets.includes(slotId))
-    }
-
     ceilingAt(siteId: string, owner: WarbandOwner): number {
         const elsewhere = this.capturedSites
             .filter((other) => other !== siteId)
@@ -137,42 +247,65 @@ export class VictoryDraft implements PanelDraft {
         return Math.max(0, countOf(this.forceBoard, owner) - elsewhere)
     }
 
+    /** One row's count; with one row the tap is the step's choice and moves on, unless it is the last. */
     setPlaceCount(siteId: string, owner: WarbandOwner, count: number): void {
+        if (this.step !== 'warbands') return
         if (!this.capturedSites.includes(siteId) || !this.forceOwners.includes(owner)) return
-        const placeCounts = {
-            ...this.spoils.placeCounts,
-            [siteId]: {
-                ...this.spoils.placeCounts[siteId],
-                [owner]: Math.max(0, Math.min(count, this.ceilingAt(siteId, owner)))
-            }
+        const counts: PlaceCounts = Object.fromEntries(
+            this.capturedSites.map((site) => [
+                site,
+                Object.fromEntries(this.forceOwners.map((o) => [o, this.countAt(site, o)]))
+            ])
+        )
+        counts[siteId] = {
+            ...counts[siteId],
+            [owner]: Math.max(0, Math.min(count, this.ceilingAt(siteId, owner)))
         }
-        this.flow.set('spoils', { ...this.spoils, placeCounts })
+        this.flow.set('counts', counts)
+        if (this.warbandRows.length === 1 && !this.isLastStep) this.flow.set('warbands', true)
     }
 
-    setBottom(slotId: string, bottom: boolean): void {
-        if (!this.relicTargets.includes(slotId)) return
-        const rest = this.bottomSlots.filter((s) => s !== slotId)
-        const bottomSlots = bottom ? [...rest, slotId] : rest
-        this.flow.set('spoils', { ...this.spoils, bottomSlots })
-    }
-
-    /** R-11.7 — the defeated pawn stands at a Shrouded Wood whose enemy ruler chooses where it goes. */
-    get woodChooses(): boolean {
-        const defenderId = this.session.gameState.campaign?.defenderPlayerId
-        return (
-            this.playerId !== undefined &&
-            this.mayBurnFavor &&
-            defenderId !== undefined &&
-            shroudedWoodChooser(this.session.gameState, defenderId) !== undefined
+    // Relic Hunter — "you may put any relics you take on the bottom of the relic deck".
+    get relicTargets() {
+        return this.targets.flatMap((t) =>
+            t.kind === CampaignTargetKind.SiteRelic ? [t.slotId] : []
         )
     }
 
-    get banishByWood(): boolean {
-        return this.woodChooses && this.spoils.banishByWood === true
+    /** Keep it or the bottom of the relic deck; none until tapped. */
+    relicChoice(slotId: string): 'keep' | 'bottom' | undefined {
+        return this.relicTargets.includes(slotId)
+            ? this.flow.value('relicPicks')?.[slotId]
+            : undefined
     }
 
-    setBanishByWood(on: boolean): void {
-        if (this.woodChooses) this.flow.set('spoils', { ...this.spoils, banishByWood: on })
+    private get relicsChosen(): boolean {
+        return this.relicTargets.every((slotId) => this.relicChoice(slotId) !== undefined)
+    }
+
+    get bottomSlots() {
+        return this.relicTargets.filter((slotId) => this.relicChoice(slotId) === 'bottom')
+    }
+
+    /** One relic's choice; with one relic the tap is the step's choice and moves on, unless it is the last. */
+    setRelic(slotId: string, bottom: boolean): void {
+        if (this.step !== 'relics' || !this.relicTargets.includes(slotId)) return
+        const choice: 'keep' | 'bottom' = bottom ? 'bottom' : 'keep'
+        this.flow.set('relicPicks', { ...this.flow.value('relicPicks'), [slotId]: choice })
+        if (this.relicTargets.length === 1 && !this.isLastStep) this.flow.set('relics', true)
+    }
+
+    /** R-11.7 — the defeated pawn stands at a Shrouded Wood whose enemy ruler chooses where it goes. */
+    get woodRuler(): string | undefined {
+        const defenderId = this.session.gameState.campaign?.defenderPlayerId
+        if (this.playerId === undefined || !this.mayBurnFavor || defenderId === undefined) {
+            return undefined
+        }
+        return shroudedWoodChooser(this.session.gameState, defenderId)
+    }
+
+    get woodChooses(): boolean {
+        return this.woodRuler !== undefined
     }
 
     /** R-5.5.7.III — the sites the engine accepts the defeated pawn being sent to. */
@@ -190,14 +323,52 @@ export class VictoryDraft implements PanelDraft {
         )
     }
 
-    get banishSite(): string | undefined {
-        const siteId = this.spoils.banishSiteId
-        return siteId !== undefined && this.banishSites.includes(siteId) ? siteId : undefined
+    /** The sites lit on the map while the pawn's step is open: a tap banishes it there. */
+    get mapSites(): string[] {
+        return this.step === 'pawn' ? this.banishSites : []
     }
 
-    setBanishSite(siteId: string | undefined): void {
-        if (siteId !== undefined && !this.banishSites.includes(siteId)) return
-        this.flow.set('spoils', { ...this.spoils, banishSiteId: siteId })
+    private get pawnChoice(): PawnChoice | undefined {
+        return this.flow.value('pawn')
+    }
+
+    private get pawnChosen(): boolean {
+        const choice = this.pawnChoice
+        switch (choice?.kind) {
+            case undefined:
+                return false
+            case 'leave':
+                return true
+            case 'site':
+                return this.banishSites.includes(choice.siteId)
+            case 'wood':
+                return this.woodChooses
+        }
+    }
+
+    get banishSite(): string | undefined {
+        const choice = this.pawnChoice
+        return choice?.kind === 'site' && this.banishSites.includes(choice.siteId)
+            ? choice.siteId
+            : undefined
+    }
+
+    get banishByWood(): boolean {
+        return this.woodChooses && this.pawnChoice?.kind === 'wood'
+    }
+
+    leavePawn(): void {
+        if (this.step === 'pawn') this.flow.set('pawn', { kind: 'leave' })
+    }
+
+    banishTo(siteId: string): void {
+        if (this.step === 'pawn' && this.banishSites.includes(siteId)) {
+            this.flow.set('pawn', { kind: 'site', siteId })
+        }
+    }
+
+    letWoodRulerChoose(): void {
+        if (this.step === 'pawn' && this.woodChooses) this.flow.set('pawn', { kind: 'wood' })
     }
 
     get blockedBecause(): string | undefined {
@@ -228,8 +399,9 @@ export class VictoryDraft implements PanelDraft {
         return HydratedCampaignResolveVictory.favorToBurn(this.session.gameState)
     }
 
+    /** The last choice: the favor's two buttons, or "Take spoils" closing an earlier last step. */
     async takeSpoils(burnFavor: boolean): Promise<void> {
-        if (!this.playerId) return
+        if (!this.playerId || !(this.step === 'favor' || this.sendShown)) return
         await this.session.resolveCampaignVictory(
             this.placements,
             burnFavor,

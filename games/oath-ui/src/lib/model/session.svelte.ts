@@ -896,6 +896,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     get siteOffers(): SiteOffer[] {
+        // R-5.5.7.III — the spoils' pawn step, which a Sneak Attack may open off the seat's turn.
+        const banish = this.victory.mapSites
+        if (banish.length > 0) return banish.map((slotId) => ({ slotId, intent: 'banish' }))
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         const sites = this.selectableSites
@@ -953,13 +956,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /**
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
-     * ordered; or Travel's destinations.
+     * ordered; Travel's destinations; or where the spoils banish the defeated pawn.
      */
     get mapPick(): MapPick | undefined {
         if (this.setup.boardPick) {
             const sites = this.setup.sites
             return { kind: 'start', sites, choosing: sites.length > 1 }
         }
+        const banish = this.victory.mapSites
+        if (banish.length > 0) return { kind: 'banish', sites: banish, choosing: banish.length > 1 }
         const destinations = this.siteOffers.flatMap((offer) =>
             offer.intent === 'travel' ? [offer.slotId] : []
         )

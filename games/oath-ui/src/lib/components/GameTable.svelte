@@ -84,8 +84,9 @@
         focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
     }
 
-    // A pick on the map on a phone (Travel, Setup's start site) frames the lit map while the step
-    // is open (upright one region, sideways Travel's every site or Setup's rows of start sites),
+    // A pick on the map on a phone (Travel, Setup's start site, the spoils' banish) frames the lit
+    // map while the step is open (upright one region, sideways every site or Setup's rows of start
+    // sites),
     // and gives back the view it found when the step closes, unless a pan or zoom by hand took
     // the view over first.
     const layout = new PhoneLayout()

@@ -20,12 +20,16 @@
 
     let offers = $derived(gameSession.siteOffers)
 
-    // The lit map is Setup's start-site menu, and on a phone Travel's: a tap on a lit site picks it.
+    // The lit map is Setup's start-site menu, the spoils' banish, and on a phone Travel's: a tap
+    // on a lit site picks it.
     const layout = new PhoneLayout()
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
         if (offer?.intent === 'start' && offer.pickable) {
             return () => gameSession.setup.chooseSite(offer.slotId)
+        }
+        if (offer?.intent === 'banish') {
+            return () => gameSession.victory.banishTo(offer.slotId)
         }
         if (offer?.intent === 'travel' && layout.phone) {
             return () => void gameSession.pickTravelSite(offer.slotId)
@@ -77,6 +81,8 @@
                     title: 'Warbands may move from your board onto this site',
                     chip: undefined
                 }
+            case 'banish':
+                return { title: resting, chip: { words: 'banish' } }
             case undefined:
                 return { title: resting, chip: undefined }
         }
@@ -106,7 +112,9 @@
     {@const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }}
     {@const text = offerText(slotId, offer)}
     {@const onpick = pickOnMap(offer)}
-    {@const onPhoneMap = layout.phone && (offer?.intent === 'travel' || offer?.intent === 'start')}
+    {@const onPhoneMap =
+        layout.phone &&
+        (offer?.intent === 'travel' || offer?.intent === 'start' || offer?.intent === 'banish')}
 
     <div
         class="site"

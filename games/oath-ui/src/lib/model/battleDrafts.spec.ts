@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color, assert } from '@tabletop/common'
 import {
+    Banner,
     CampaignTargetKind,
     MachineState,
     PowerTiming,
@@ -68,7 +69,7 @@ const SITES = [
     { kind: CampaignTargetKind.Site, siteId: 'c2' }
 ] as const
 
-/** R-5.5.7 — one entry holds every count and every bottomed relic, so Undo clears them together. */
+/** R-5.5.7.I — the warbands step holds its counts as one entry, over a default of one per site. */
 describe('the spoils draft (docs/user-interactions.md)', () => {
     const won = () =>
         battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME).victory
@@ -76,16 +77,16 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
     it('a count on one site keeps the counts on the others', () => {
         const spoils = won()
         spoils.setPlaceCount('c1', ME, 2)
-        spoils.setPlaceCount('c2', ME, 1)
-        expect(spoils.placeCounts).toEqual({ c1: 2, c2: 1 })
+        spoils.setPlaceCount('c2', ME, 0)
+        expect(spoils.placeCounts).toEqual({ c1: 2, c2: 0 })
     })
 
-    it('Undo clears every count at once', () => {
+    it("Undo takes back the step's counts at once, to the default", () => {
         const spoils = won()
         spoils.setPlaceCount('c1', ME, 2)
-        spoils.setPlaceCount('c2', ME, 1)
+        spoils.setPlaceCount('c2', ME, 0)
         expect(spoils.back()).toBe(true)
-        expect(spoils.placeCounts).toEqual({ c1: 0, c2: 0 })
+        expect(spoils.placeCounts).toEqual({ c1: 1, c2: 1 })
         expect(spoils.back()).toBe(false)
     })
 
@@ -100,7 +101,7 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
         spoils.setPlaceCount('p1', ME, 1)
         expect(spoils.hasManualSelection()).toBe(false)
         spoils.setPlaceCount('c1', ME, 9)
-        expect(spoils.placeCounts.c1).toBe(4)
+        expect(spoils.placeCounts.c1).toBe(3)
     })
 
     it('recounting a site lowers the ceiling left for the others', () => {
@@ -109,6 +110,195 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
         expect(spoils.ceilingAt('c2', ME)).toBe(1)
         spoils.setPlaceCount('c1', ME, 1)
         expect(spoils.ceilingAt('c2', ME)).toBe(3)
+    })
+})
+
+/**
+ * R-5.5.7 — the spoils one step at a time, in the Law's order: the warbands on the sites taken,
+ * then the relics, then the defender's pawn, then the favor. A step with nothing to choose is
+ * skipped; the last choice sends everything as one action.
+ */
+describe('the spoils one step at a time', () => {
+    const RELIC_SLOT = 'c1.relic.0'
+    const won = (targets: CampaignState['targets'], board: Record<string, number> = { [ME]: 4 }) => {
+        const session = battle(MachineState.CampaignVictory, { attackerVictorious: true, targets }, ME)
+        session.gameState.getPlayerState(ME).warbandsOnBoard = board
+        session.gameState.relicsBySite = { c1: [{ slotId: RELIC_SLOT }] }
+        return session
+    }
+    const RELIC = { kind: CampaignTargetKind.SiteRelic, slotId: RELIC_SLOT } as const
+    const PAWN = { kind: CampaignTargetKind.PawnAndFavor } as const
+
+    it("lists the steps in the Law's order and skips one with nothing to choose", () => {
+        expect(won([PAWN, ...SITES]).victory.steps).toEqual(['warbands', 'pawn', 'favor'])
+        expect(won([RELIC, SITES[0]]).victory.steps).toEqual(['warbands', 'relics'])
+        expect(won([SITES[0]], {}).victory.steps).toEqual([])
+        expect(
+            won([{ kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }]).victory.steps
+        ).toEqual([])
+        const spoils = won([PAWN, ...SITES]).victory
+        expect(spoils.step).toBe('warbands')
+        expect(spoils.stepNumber).toBe(1)
+    })
+
+    it('a force that cannot place warbands at sites (Ring of Devotion) skips the warbands step and places none', () => {
+        const session = won([PAWN, ...SITES])
+        session.gameState.getPlayerState(ME).relicIds = ['relic.ring-of-devotion']
+        expect(session.victory.steps).toEqual(['pawn', 'favor'])
+        expect(session.victory.placements).toEqual([])
+    })
+
+    it('starts with 1 warband at each site taken when the force holds enough', () => {
+        const spoils = won([...SITES]).victory
+        expect(spoils.placeCounts).toEqual({ c1: 1, c2: 1 })
+        expect(spoils.placedTotal).toBe(2)
+        expect(spoils.hasManualSelection()).toBe(false)
+    })
+
+    it("with fewer warbands than sites, fills the sites in the map's order", () => {
+        const spoils = won([SITES[1], SITES[0]], { [ME]: 1 }).victory
+        expect(spoils.placeCounts).toEqual({ c1: 1, c2: 0 })
+    })
+
+    it("fills the default from the player's own warbands first, then the Empire's", () => {
+        const spoils = won([...SITES], { [IMPERIAL_WARBANDS]: 1, [ME]: 1 }).victory
+        expect(spoils.forceOwners).toEqual([ME, IMPERIAL_WARBANDS])
+        expect(spoils.placements).toEqual([
+            { siteId: 'c1', owner: ME, count: 1 },
+            { siteId: 'c2', owner: IMPERIAL_WARBANDS, count: 1 }
+        ])
+    })
+
+    it('with one row, a tap on a number moves on; Undo returns with that number still marked', () => {
+        const spoils = won([PAWN, SITES[0]]).victory
+        expect(spoils.warbandRows).toEqual([{ siteId: 'c1', owner: ME }])
+        expect(spoils.nextShown).toBe(true)
+        spoils.setPlaceCount('c1', ME, 3)
+        expect(spoils.step).toBe('pawn')
+        expect(spoils.stepNumber).toBe(2)
+        expect(spoils.back()).toBe(true)
+        expect(spoils.step).toBe('warbands')
+        expect(spoils.countAt('c1', ME)).toBe(3)
+        expect(spoils.back()).toBe(true)
+        expect(spoils.countAt('c1', ME)).toBe(1)
+        expect(spoils.back()).toBe(false)
+    })
+
+    it('with several rows, a tap sets a count and Next moves on; Next alone accepts the default', () => {
+        const spoils = won([PAWN, ...SITES]).victory
+        spoils.setPlaceCount('c2', ME, 0)
+        expect(spoils.step).toBe('warbands')
+        expect(spoils.nextShown).toBe(true)
+        spoils.next()
+        expect(spoils.step).toBe('pawn')
+        expect(spoils.placeCounts).toEqual({ c1: 1, c2: 0 })
+
+        const fresh = won([PAWN, ...SITES]).victory
+        fresh.next()
+        expect(fresh.step).toBe('pawn')
+        expect(fresh.placeCounts).toEqual({ c1: 1, c2: 1 })
+        expect(fresh.back()).toBe(true)
+        expect(fresh.step).toBe('warbands')
+        expect(fresh.back()).toBe(false)
+    })
+
+    it('a relic starts with no choice; with one relic a tap moves on, and the choice is sent', async () => {
+        const session = won([RELIC, SITES[0], PAWN])
+        const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
+        const spoils = session.victory
+        spoils.next()
+        expect(spoils.step).toBe('relics')
+        expect(spoils.relicChoice(RELIC_SLOT)).toBeUndefined()
+        expect(spoils.nextShown).toBe(false)
+        spoils.setRelic(RELIC_SLOT, true)
+        expect(spoils.step).toBe('pawn')
+        expect(spoils.back()).toBe(true)
+        expect(spoils.step).toBe('relics')
+        expect(spoils.relicChoice(RELIC_SLOT)).toBe('bottom')
+        spoils.setRelic(RELIC_SLOT, true)
+        spoils.leavePawn()
+        expect(spoils.step).toBe('favor')
+        await spoils.takeSpoils(false)
+        expect(sent).toHaveBeenCalledWith(
+            [{ siteId: 'c1', owner: ME, count: 1 }],
+            false,
+            [RELIC_SLOT],
+            undefined,
+            false
+        )
+    })
+
+    it('the last step is not left by a tap: its "Take spoils" sends, once its picks are made', async () => {
+        const session = won([RELIC, SITES[0]])
+        const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
+        const spoils = session.victory
+        spoils.setPlaceCount('c1', ME, 2)
+        expect(spoils.step).toBe('relics')
+        expect(spoils.isLastStep).toBe(true)
+        expect(spoils.sendShown).toBe(false)
+        spoils.setRelic(RELIC_SLOT, false)
+        expect(spoils.step).toBe('relics')
+        expect(spoils.relicChoice(RELIC_SLOT)).toBe('keep')
+        expect(spoils.sendShown).toBe(true)
+        expect(spoils.nextShown).toBe(false)
+        await spoils.takeSpoils(false)
+        expect(sent).toHaveBeenCalledWith(
+            [{ siteId: 'c1', owner: ME, count: 2 }],
+            false,
+            [],
+            undefined,
+            false
+        )
+    })
+
+    it('with nothing to choose, "Take spoils" is all there is', () => {
+        const spoils = won([SITES[0]], {}).victory
+        expect(spoils.step).toBeUndefined()
+        expect(spoils.sendShown).toBe(true)
+    })
+
+    it('a lit site banishes the pawn there and moves on; Undo returns to the pawn', async () => {
+        const session = won([PAWN, SITES[0]])
+        const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
+        const spoils = session.victory
+        spoils.next()
+        expect(spoils.step).toBe('pawn')
+        expect(spoils.mapSites).toContain('c2')
+        expect(spoils.mapSites).not.toContain('c1')
+        spoils.banishTo('c1')
+        expect(spoils.step).toBe('pawn')
+        spoils.banishTo('c2')
+        expect(spoils.step).toBe('favor')
+        expect(spoils.mapSites).toEqual([])
+        expect(spoils.back()).toBe(true)
+        expect(spoils.step).toBe('pawn')
+        spoils.banishTo('c2')
+        await spoils.takeSpoils(true)
+        expect(sent).toHaveBeenCalledWith(
+            [{ siteId: 'c1', owner: ME, count: 1 }],
+            true,
+            [],
+            'c2',
+            false
+        )
+    })
+
+    it('the lit sites are offered on the map while the pawn step is open, and the rest dims', () => {
+        const session = won([PAWN, SITES[0]])
+        expect(session.siteOffers).toEqual([])
+        session.victory.next()
+        const offers = session.siteOffers
+        expect(offers.map((offer) => offer.slotId)).toEqual(session.victory.mapSites)
+        expect(offers.every((offer) => offer.intent === 'banish')).toBe(true)
+        expect(session.mapDimmed).toBe(true)
+        expect(session.mapPick).toEqual({
+            kind: 'banish',
+            sites: session.victory.mapSites,
+            choosing: true
+        })
+        session.victory.leavePawn()
+        expect(session.siteOffers).toEqual([])
+        expect(session.mapPick).toBeUndefined()
     })
 })
 
@@ -153,15 +343,19 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
 })
 
 describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
-    it('lists no site: the Wood\'s ruler chooses, and the banish is sent for them to answer', async () => {
+    it('lights no site: "Let <ruler> choose" moves on, and the banish is sent for them to answer', async () => {
         const session = battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [{ kind: CampaignTargetKind.PawnAndFavor }] }, ME)
         session.gameState.siteCards = { ...session.gameState.siteCards, c1: 'site.shrouded-wood' }
         session.gameState.warbandsBySite = { ...session.gameState.warbandsBySite, c1: { [ME]: 1 } }
         const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
         const spoils = session.victory
         expect(spoils.woodChooses).toBe(true)
+        expect(spoils.woodRuler).toBe(ME)
+        expect(spoils.step).toBe('pawn')
         expect(spoils.banishSites).toEqual([])
-        spoils.setBanishByWood(true)
+        expect(spoils.mapSites).toEqual([])
+        spoils.letWoodRulerChoose()
+        expect(spoils.step).toBe('favor')
         await spoils.takeSpoils(false)
         expect(sent).toHaveBeenCalledWith([], false, [], undefined, true)
     })
@@ -262,6 +456,7 @@ describe('R-5.5.7.I — spoils from a board holding two owners\' warbands (R-6.6
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 2, [IMPERIAL_WARBANDS]: 1 }
         const spoils = session.victory
         expect(spoils.forceOwners).toEqual([ME, IMPERIAL_WARBANDS])
+        spoils.setPlaceCount('c1', ME, 0)
         spoils.setPlaceCount('c1', IMPERIAL_WARBANDS, 5)
         spoils.setPlaceCount('c2', ME, 2)
         expect(spoils.placements).toEqual([
@@ -286,9 +481,9 @@ describe('R-5.5.7.III — banishing the defeated pawn', () => {
         expect(spoils.banishSites).not.toContain('c1')
         expect(spoils.banishSites).toContain('c2')
 
-        spoils.setBanishSite('c1')
+        spoils.banishTo('c1')
         expect(spoils.banishSite).toBeUndefined()
-        spoils.setBanishSite('c2')
+        spoils.banishTo('c2')
         expect(spoils.banishSite).toBe('c2')
         await spoils.takeSpoils(false)
         expect(sent).toHaveBeenCalledWith([], false, [], 'c2', false)

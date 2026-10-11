@@ -2,13 +2,12 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists, range } from '@tabletop/common'
-    import { CardKind, MachineState, type WarbandGroup } from '@tabletop/oath'
-    import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import { MachineState, type WarbandGroup } from '@tabletop/oath'
     import CountPicker from '$lib/components/CountPicker.svelte'
+    import SpoilsSteps from '$lib/components/SpoilsSteps.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, siteName, relicSiteName } from '$lib/model/names.js'
-    import { spoilsSummary } from '$lib/model/spoils.js'
+    import { siteName } from '$lib/model/names.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.5's sacrifice, then R-5.5.7's spoils: each needs the roll, or the surviving force, first.
@@ -20,7 +19,6 @@
         return campaign
     })
     let attackerId = $derived(campaign.attackerPlayerId)
-    let defenderId = $derived(campaign.defenderPlayerId)
     let isAttacker = $derived(gameSession.myPlayer?.id === attackerId)
 
     // The heading names the step; the turn bar names whose turn it is.
@@ -33,7 +31,14 @@
     )
 
     let busy = $derived(gameSession.busy)
+
+    // R-5.5.7 — the spoils' steps shown, as dots and "N of M", when there is more than one.
     let spoils = $derived(gameSession.victory)
+    let spoilsSteps = $derived(
+        isAttacker && gameState.machineState === MachineState.CampaignVictory
+            ? spoils.steps.length
+            : 0
+    )
 
     // R-5.5.5.b, R-5.5.5.c — the exact winning sacrifice, or zero.
     let losses = $derived(gameSession.attackerLosses)
@@ -53,12 +58,7 @@
     let winRefusedBecause = $derived(losses.winRefusedBecause)
     let loseRefusedBecause = $derived(losses.loseRefusedBecause)
 
-    let spoilsList = $derived(
-        spoilsSummary(gameState, campaign.targets, spoils.placeCounts, defenderId)
-    )
-
     const battleWidth = new ChoiceWidth()
-    const spoilsWidth = new ChoiceWidth()
 </script>
 
 {#snippet groupName(group: WarbandGroup)}
@@ -88,7 +88,23 @@
 {/snippet}
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">{heading}</h3>
+    <div class="mb-2 flex items-center gap-2.5">
+        <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger">{heading}</h3>
+        {#if spoilsSteps > 1}
+            <span class="flex items-center gap-1" aria-hidden="true">
+                {#each range(1, spoilsSteps) as n (n)}
+                    <span
+                        class="rounded-full {n === spoils.stepNumber
+                            ? 'h-2.5 w-2.5 bg-oath-accent ring-2 ring-oath-accent-soft'
+                            : n < spoils.stepNumber
+                              ? 'h-1.5 w-1.5 bg-oath-accent'
+                              : 'h-1.5 w-1.5 bg-oath-text-muted/50'}"
+                    ></span>
+                {/each}
+            </span>
+            <span class="text-xs text-oath-text-muted">{spoils.stepNumber} of {spoilsSteps}</span>
+        {/if}
+    </div>
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}
@@ -184,143 +200,6 @@
             {/if}
         </div>
     {:else if gameState.machineState === MachineState.CampaignVictory}
-        <ul class="mb-2 list-disc pl-5 text-sm text-oath-text">
-            {#each spoilsList as item, index (index)}
-                <li>
-                    {#if item.kind === 'pawn'}<PlayerName playerId={item.playerId} possessive /> pawn
-                        and favor{:else}{item.text}{/if}
-                </li>
-            {/each}
-        </ul>
-        {#if spoils.relicTargets.length > 0}
-            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1">Tap to put a relic on the bottom of the relic deck.</div>
-                <CardChoiceRow
-                    choices={spoils.relicTargets.map((slotId) => {
-                        const known = gameSession.knownRelicAt(slotId)
-                        const at = relicSiteName(gameState, slotId)
-                        return known
-                            ? { key: slotId, cardId: known, label: `${cardName(known)} at ${at}` }
-                            : { key: slotId, back: CardKind.Relic, label: `the relic at ${at}` }
-                    })}
-                    picked={spoils.bottomSlots}
-                    onpick={(slotId) =>
-                        spoils.setBottom(slotId, !spoils.bottomSlots.includes(slotId))}
-                    {busy}
-                    height={80}
-                />
-            </div>
-        {/if}
-        {#if spoils.capturedSites.length > 0 && spoils.forceOwners.length > 0}
-            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1">
-                    Place warbands: {spoils.placedTotal} of {spoils.forceAvailable}.
-                </div>
-                {#each spoils.capturedSites as siteId (siteId)}
-                    {#each spoils.forceOwners as owner (owner)}
-                        {@const count = spoils.countAt(siteId, owner)}
-                        {@const ceiling = spoils.ceilingAt(siteId, owner)}
-                        <div class="mb-1 flex items-center gap-2">
-                            <span class="grow"
-                                >{siteName(gameState, siteId)}{spoils.forceOwners.length > 1
-                                    ? ` — ${gameSession.warbandOwnerName(owner)}`
-                                    : ''}</span
-                            >
-                            <button
-                                type="button"
-                                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                                disabled={busy || count <= 0}
-                                onclick={() => spoils.setPlaceCount(siteId, owner, count - 1)}
-                            >
-                                −
-                            </button>
-                            <span class="w-6 text-center font-semibold">{count}</span>
-                            <button
-                                type="button"
-                                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                                disabled={busy || count >= ceiling}
-                                onclick={() => spoils.setPlaceCount(siteId, owner, count + 1)}
-                            >
-                                +
-                            </button>
-                        </div>
-                    {/each}
-                {/each}
-            </div>
-        {/if}
-
-        {#if spoils.woodChooses && defenderId !== undefined}
-            <label class="mb-2 flex items-center gap-2 text-xs">
-                <input
-                    type="checkbox"
-                    checked={spoils.banishByWood}
-                    disabled={busy}
-                    onchange={(e) => spoils.setBanishByWood(e.currentTarget.checked)}
-                />
-                <span
-                    >Banish <PlayerName playerId={defenderId} />; the Wood's ruler picks where</span
-                >
-            </label>
-        {/if}
-        {#if spoils.banishSites.length > 0 && defenderId !== undefined}
-            <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-oath-text-muted"
-                    >Banish <PlayerName playerId={defenderId} /> to:</span
-                >
-                <select
-                    disabled={busy}
-                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
-                    value={spoils.banishSite ?? ''}
-                    onchange={(e) => spoils.setBanishSite(e.currentTarget.value || undefined)}
-                >
-                    <option value="">nowhere</option>
-                    {#each spoils.banishSites as siteId (siteId)}
-                        <option value={siteId}>{siteName(gameState, siteId)}</option>
-                    {/each}
-                </select>
-            </label>
-        {/if}
-        <!-- The reason the spoils are refused takes the buttons' place. -->
-        {#if spoils.blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(spoils.blockedBecause) ?? ''} />
-            </p>
-        {:else}
-            <!-- One width for the two, the wider one's; one per line when the two do not fit. -->
-            <div class="flex flex-wrap gap-2">
-                <button
-                    class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
-                    style:min-width="{spoilsWidth.widest}px"
-                    disabled={busy}
-                    onclick={() => spoils.takeSpoils(false)}
-                >
-                    <span class="inline-block w-max" {@attach spoilsWidth.measure}>Take spoils</span
-                    >
-                </button>
-                {#if spoils.mayBurnFavor}
-                    <!-- R-5.5.7.III — "may burn half their favor" is a choice, so a second button. -->
-                    <button
-                        class="burn shrink-0 rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
-                               px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
-                        style:min-width="{spoilsWidth.widest}px"
-                        disabled={busy}
-                        title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
-                        onclick={() => spoils.takeSpoils(true)}
-                    >
-                        <span class="inline-block w-max" {@attach spoilsWidth.measure}
-                            ><TokenText text={`Take and burn ${spoils.burnAmount} favor`} /></span
-                        >
-                    </button>
-                {/if}
-            </div>
-        {/if}
+        <SpoilsSteps />
     {/if}
 </div>
-
-<style>
-    /* The burnt favor: the token as the text draws it, scorched. */
-    .burn :global(img) {
-        filter: sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.7) contrast(1.3);
-    }
-</style>

@@ -134,6 +134,7 @@ export type TableName =
     | 'sacrificeMixed'
     | 'wonOutright'
     | 'spoils'
+    | 'spoilsRelicHunter'
     | QuestionTableName
     | 'warbandGiveAsked'
     | 'offerCitizenship'
@@ -1307,7 +1308,7 @@ const HORSE_ARCHERS = 'denizen.nomad.horse-archers'
  * the top Provinces site, which 'def' rules: the defender's plans, the attacker's plans after the
  * Citizens answered, the sacrifice (one group, two, or none needed) and the spoils.
  */
-function battleTable(step: BattleStep): PlayedTable {
+function battleState(step: BattleStep): HydratedOathGameState {
     const site = mapSlotId(Region.Provinces, 0)
     const mixed = step === 'sacrificeMixed'
     const rolled = {
@@ -1364,7 +1365,11 @@ function battleTable(step: BattleStep): PlayedTable {
             }[step],
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
-            siteCards: fixtureSitesOnTheBoard(),
+            // The spoils draw the site taken: a printed site with no power that acts on them.
+            siteCards:
+                step === 'spoils'
+                    ? { ...fixtureSitesOnTheBoard(), [site]: 'site.steppe' }
+                    : fixtureSitesOnTheBoard(),
             warbandsBySite: { [site]: { def: 1 } },
             banners: testBanners({ [Banner.PeoplesFavor]: 'def' }),
             pendingCampaign:
@@ -1416,6 +1421,32 @@ function battleTable(step: BattleStep): PlayedTable {
     )
     openTurn(state, 'att')
     state.activePlayerIds = [step === 'defenderPlans' ? 'def' : 'att']
+    return state
+}
+
+function battleTable(step: BattleStep): PlayedTable {
+    return tableOf(battleState(step))
+}
+
+/**
+ * R-5.5.7, Relic Hunter — the spoils of the same battle when 'att' took the top two Provinces
+ * sites and the relic lying at the first (seen, as the targeted relics are), but not the pawn.
+ */
+function spoilsRelicHunterTable(): PlayedTable {
+    const state = battleState('spoils')
+    const [first, second] = mapSlotsFor(Region.Provinces)
+    const slotId = `${first}.relic.0`
+    state.siteCards = { ...state.siteCards, [second]: 'site.plains' }
+    state.relicsBySite = { [first]: [{ slotId }] }
+    state.vault = testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' })
+    state.getPlayerState('att').peekedRelics = { [slotId]: 'relic.cup-of-plenty' }
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is fought mid-Campaign')
+    campaign.targets = [
+        { kind: CampaignTargetKind.Site, siteId: first },
+        { kind: CampaignTargetKind.Site, siteId: second },
+        { kind: CampaignTargetKind.SiteRelic, slotId }
+    ]
     return tableOf(state)
 }
 
@@ -2509,6 +2540,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     sacrificeMixed: () => battleTable('sacrificeMixed'),
     wonOutright: () => battleTable('wonOutright'),
     spoils: () => battleTable('spoils'),
+    spoilsRelicHunter: spoilsRelicHunterTable,
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,
