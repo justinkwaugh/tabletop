@@ -10,6 +10,7 @@ import {
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 const FADE = 0.3
+const OFFER_FADE = 0.25
 const FLOW_START = 0.15
 const FLOW = 0.7
 const REVEAL_PAD = CANAL_HALF_THICKNESS + 2
@@ -21,6 +22,9 @@ type RevealBox = { x: number; y: number; width: number; height: number }
 // overwrites them with its own state. See the visual contract's "Canal construction".
 export class CanalBuildAnimator extends StateAnimator {
     canals: CanalSegment[] | undefined = $state.raw(undefined)
+    // Spots offered once the transition ends, rendered beside the current ones so they can fade in
+    // before the state publishes.
+    offered: CanalSegment[] | undefined = $state.raw(undefined)
     revealingKey: string | undefined = $state(undefined)
 
     private revealRect: SVGRectElement | undefined
@@ -38,6 +42,7 @@ export class CanalBuildAnimator extends StateAnimator {
 
     clearPreview() {
         this.canals = undefined
+        this.offered = undefined
         this.revealingKey = undefined
         gsap.killTweensOf(this.faded)
         if (this.faded.length > 0) gsap.set(this.faded, { clearProps: 'opacity' })
@@ -45,7 +50,35 @@ export class CanalBuildAnimator extends StateAnimator {
         this.faded = []
     }
 
-    override async onGameStateChange({ to, from, action, animationContext }: StateChange) {
+    override async onGameStateChange(change: StateChange) {
+        await this.revealBuiltCanal(change)
+        await this.fadeInOfferedSpots(change)
+    }
+
+    // Spots the transition newly offers fade in once it ends: after a build's flow when a move
+    // was played, quickly on undo or a step through history. A silent restoration runs no
+    // animators, so its spots appear as they are.
+    private async fadeInOfferedSpots({ to, from, action, animationContext }: StateChange) {
+        if (!from) return
+        if (action && to.actionCount < this.gameSession.incomingGameState.actionCount) return
+        const shown = this.offered ?? this.gameSession.visibleSegments
+        const shownKeys = new Set(shown.map(segmentKey))
+        const added = this.gameSession
+            .visibleSegmentsIn(this.gameSession.incomingGameState)
+            .filter((seg) => !shownKeys.has(segmentKey(seg)))
+        if (added.length === 0) return
+
+        this.offered = [...shown, ...added]
+        await tick()
+        const nodes = added.flatMap((seg) => this.surveyNodes.get(segmentKey(seg)) ?? [])
+        if (nodes.length === 0) return
+        gsap.set(nodes, { opacity: 0 })
+        const timeline = action ? animationContext.finalTimeline : animationContext.actionTimeline
+        timeline.to(nodes, { opacity: 1, duration: action ? OFFER_FADE : FALLBACK_DURATION, ease: 'power1.out' }, 0)
+        this.faded.push(...nodes)
+    }
+
+    private async revealBuiltCanal({ to, from, action, animationContext }: StateChange) {
         if (!from) return
         const built = to.board.canals.find((seg) => !from.board.canals.some((old) => isSameSegment(old, seg)))
         if (!built) return
