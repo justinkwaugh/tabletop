@@ -22,12 +22,12 @@
     let parts = $derived(tokenParts(text, { warbands: warbandColor !== undefined, seats }))
 </script>
 
-<!-- `PlayerName` reads "you" and "your" for the viewer; inside a line, in lower case. -->
+<!-- `PlayerName` reads "you" and "your" for the viewer; inside a line in lower case, starting it capitalized. -->
 {#each parts as part, i (i)}
     {#if part.kind === 'text'}{part.text}{:else if part.kind === 'seat'}<PlayerName
             playerId={part.playerId}
             possessive={part.possessive}
-            capitalization={part.playerId === seats?.viewerId ? 'none' : 'capitalize'}
+            capitalization={part.playerId === seats?.viewerId && i > 0 ? 'none' : 'capitalize'}
         />{:else if part.kind === 'suit'}<img
             class="token-text__mark"
             src={suitImage(part.suit)}

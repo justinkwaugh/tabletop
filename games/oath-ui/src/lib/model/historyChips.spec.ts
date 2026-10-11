@@ -117,7 +117,7 @@ describe('a History row names every seat inside it by its chip', () => {
                 chip(BOB),
                 text(' for their pawn and '),
                 { kind: 'favor', count: undefined },
-                text(' — Citizens are asked to join the defence')
+                text('; Citizens may join the defense')
             ])
         }
     })
@@ -151,12 +151,12 @@ describe("the reader's own seat is their chip, which reads “you”", () => {
         const won = [
             text('sacrificed '),
             { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
-            text(' and won the battle — '),
+            text(' and won the battle; '),
             chip(BOB)
         ]
-        expect(row(sacrificed, BOB)).toEqual([...won, text(" choose the defending side's losses")])
-        expect(row(sacrificed, CASS)).toEqual([...won, text(" chooses the defending side's losses")])
-        expect(row(sacrificed, undefined)).toEqual([...won, text(" chooses the defending side's losses")])
+        expect(row(sacrificed, BOB)).toEqual([...won, text(" pick the defense's losses")])
+        expect(row(sacrificed, CASS)).toEqual([...won, text(" picks the defense's losses")])
+        expect(row(sacrificed, undefined)).toEqual([...won, text(" picks the defense's losses")])
     })
 
     it("an engine summary's “is” and “your own” stay as today, around the reader's chip", () => {

@@ -49,11 +49,6 @@ export function ownForcePlaceName(
         : where
 }
 
-/** A site inside a History sentence: "the Great Slum", but a name that prints its own article as printed. */
-export function siteInLine(name: string): string {
-    return name.startsWith('a ') || name.startsWith('The ') ? name : `the ${name}`
-}
-
 export function relicSiteName(gameState: HydratedOathGameState, slotId: string): string {
     const found = gameState.findRelicSlot(slotId)
     assertExists(found, `${slotId} is not a relic slot at a site`)
@@ -268,7 +263,9 @@ function seatPattern(playerId: string, after = '', flags = ''): RegExp {
 const VIEWER_VERBS: readonly (readonly [string, string])[] = [
     [' is', ' are'],
     [' has', ' have'],
-    [' chooses', ' choose']
+    [' chooses', ' choose'],
+    [' picks', ' pick'],
+    [' gains', ' gain']
 ]
 
 function agreeWithViewer(text: string, viewerId: string, subject: string): string {

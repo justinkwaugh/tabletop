@@ -1,8 +1,16 @@
 import { mount, tick, unmount } from 'svelte'
-import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
-    AnswerQuestion,
+    ActionSource,
+    Color,
+    assertExists,
+    calculateActionChecksum,
+    createAction,
+    range,
+    type GameAction
+} from '@tabletop/common'
+import {
     ActionType,
+    AnswerQuestion,
     Banner,
     CampaignDefend,
     CampaignSacrifice,
@@ -187,6 +195,9 @@ export type TableName =
     | 'drumAfterBrassHorse'
     | 'messenger'
     | 'messengerTwoOwners'
+    | 'historyAct'
+    | 'historyCampaign'
+    | 'historyDeals'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -3219,6 +3230,288 @@ function drumTable(scene: DrumScene): PlayedTable {
     ])
 }
 
+/** The History's rows for each scene, oldest first, as their records hold them. */
+type HistoryScene = 'act' | 'campaign' | 'deals'
+
+/**
+ * The History's words, read from records alone: Ann (blue, on the clock) reads the rows of Dana
+ * (a red Exile) and Rhys (the purple Chancellor). The rows are the records the engine wrote, each
+ * stamped a few minutes apart, so the History shows them as a game would.
+ */
+function historyWordsTable(scene: HistoryScene): PlayedTable {
+    const [slum, hidden] = mapSlotsFor(Region.Cradle)
+    const [plains, saltFlats] = mapSlotsFor(Region.Provinces)
+    const [mine, wood] = mapSlotsFor(Region.Hinterland)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'ann', color: Color.Blue, siteId: plains, favor: 4 }),
+            testPlayer({ playerId: 'dana', color: Color.Red, siteId: slum, favor: 3 }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: saltFlats,
+                favor: 5
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'rhys',
+            map: allMapSlots(),
+            siteCards: {
+                [slum]: 'site.great-slums',
+                [hidden]: 'site.the-hidden-place',
+                [plains]: 'site.plains',
+                [saltFlats]: 'site.salt-flats',
+                [mine]: 'site.mine',
+                [wood]: 'site.shrouded-wood'
+            }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    const battle = { attackPool: 6, defensePool: 4, defense: 4, swords: 5, skullsKilled: 0 }
+    const rows: Record<
+        HistoryScene,
+        ({ type: ActionType; playerId: string } & Record<string, unknown>)[]
+    > = {
+        act: [
+            {
+                type: ActionType.Recover,
+                playerId: 'dana',
+                target: { kind: 'banner', banner: Banner.PeoplesFavor },
+                amountPaid: 3,
+                metadata: { supplySpent: 1, amountPaid: 3 }
+            },
+            {
+                type: ActionType.Muster,
+                playerId: 'dana',
+                cardId: 'denizen.order.council-seat',
+                metadata: { supplySpent: 1, warbandsGained: 2, warbandOwner: 'dana' }
+            },
+            {
+                type: ActionType.Trade,
+                playerId: 'rhys',
+                cardId: 'denizen.hearth.tavern-songs',
+                option: 'forSecrets',
+                metadata: {
+                    supplySpent: 1,
+                    matchingAdvisers: 0,
+                    favorGained: 1,
+                    secretsGained: 0,
+                    modifiers: ['reliquary.careless'],
+                    modifierNotes: ['Careless: gained 1 favor']
+                }
+            },
+            {
+                type: ActionType.SearchResolve,
+                playerId: 'dana',
+                keptCardId: 'denizen.beast.wolves',
+                discardOrder: [],
+                play: SearchPlay.Adviser,
+                faceUp: false,
+                metadata: {
+                    discardedCardIds: [],
+                    discardedCount: 0,
+                    discardPileRegion: Region.Cradle,
+                    favorGained: 0
+                }
+            },
+            {
+                type: ActionType.Search,
+                playerId: 'dana',
+                drawFrom: SearchSource.WorldDeck,
+                metadata: {
+                    supplySpent: 2,
+                    cardsDrawn: 3,
+                    visionsDrawn: 0,
+                    tollsPaid: ['denizen.order.forced-labor: gave a favor to rhys']
+                }
+            },
+            {
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: slum,
+                metadata: {
+                    supplySpent: 2,
+                    supplyRemaining: 1,
+                    tollsPaid: ['denizen.order.toll-roads: gave a favor to rhys'],
+                    modifiers: ['relic.dragonskin-drum'],
+                    modifierNotes: ['Dragonskin Drum: gained 1 warband']
+                }
+            }
+        ],
+        campaign: [
+            {
+                type: ActionType.Campaign,
+                playerId: 'dana',
+                defender: { kind: 'player', playerId: 'rhys' },
+                targets: [
+                    { kind: CampaignTargetKind.Site, siteId: plains },
+                    { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor },
+                    { kind: CampaignTargetKind.PawnAndFavor }
+                ],
+                attackDice: 6,
+                plans: [
+                    {
+                        cardId: 'denizen.order.field-promotion',
+                        powerIndex: powerIndexOf(
+                            'denizen.order.field-promotion',
+                            PowerTiming.BattlePlan
+                        )
+                    }
+                ],
+                metadata: {
+                    supplySpent: 2,
+                    battle: { ...battle, defense: 0, swords: 0, awaitingDefender: true }
+                }
+            },
+            {
+                type: ActionType.CampaignDefend,
+                playerId: 'rhys',
+                plans: [],
+                metadata: { ...battle, plansUsed: [] }
+            },
+            {
+                type: ActionType.CampaignSacrifice,
+                playerId: 'dana',
+                sacrifice: 1,
+                metadata: {
+                    attack: 6,
+                    defense: 4,
+                    attackerVictorious: true,
+                    sacrificed: 1,
+                    awaitingLossesOf: 'rhys'
+                }
+            },
+            {
+                type: ActionType.CampaignDefeatKills,
+                playerId: 'rhys',
+                kills: [
+                    { at: { kind: 'site', siteId: plains }, owner: IMPERIAL_WARBANDS, count: 2 }
+                ],
+                metadata: { defeatKilled: 2 }
+            },
+            {
+                type: ActionType.CampaignResolveVictory,
+                playerId: 'dana',
+                placements: [{ siteId: plains, owner: 'dana', count: 2 }],
+                banishToSiteId: saltFlats,
+                burnFavor: true,
+                metadata: {
+                    warbandsPlaced: 2,
+                    relicsTaken: [],
+                    bannersSeized: [Banner.PeoplesFavor],
+                    seizeBurned: 2,
+                    banishedToSiteId: saltFlats,
+                    favorBurned: 3,
+                    defenderPlayerId: 'rhys',
+                    triggered: ['Field Promotion: dana gained 3 warbands']
+                }
+            }
+        ],
+        deals: [
+            {
+                type: ActionType.SetupChoice,
+                playerId: 'rhys',
+                siteId: saltFlats,
+                adviserCardId: 'denizen.order.scouts',
+                discardOrder: [],
+                siteFavor: [
+                    { siteCardId: 'site.salt-flats', favor: 2 },
+                    { siteCardId: 'site.mine', favor: 2 }
+                ],
+                metadata: { discardPileRegion: Region.Cradle }
+            },
+            {
+                type: ActionType.AnswerQuestion,
+                playerId: 'ann',
+                answer: { kind: PowerQuestionKind.PlayOrDiscardVision, play: SearchPlay.Adviser },
+                metadata: {
+                    cardId: 'denizen.discord.false-prophet',
+                    kind: PowerQuestionKind.PlayOrDiscardVision,
+                    summary: 'played vision.faith (adviser)',
+                    resumeMachineState: MachineState.ActPhase,
+                    last: true
+                }
+            },
+            {
+                type: ActionType.OfferCitizenship,
+                playerId: 'rhys',
+                exilePlayerId: 'dana',
+                reliquarySlotId: reliquarySlotId(1),
+                terms: { fromScepterHolder: { favor: 2 }, fromExile: { secrets: 1 } }
+            },
+            {
+                type: ActionType.AnswerQuestion,
+                playerId: 'rhys',
+                answer: { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: hidden },
+                metadata: {
+                    cardId: 'site.shrouded-wood',
+                    kind: PowerQuestionKind.ShroudedWoodDestination,
+                    summary: `sent dana to ${hidden}`,
+                    resumeMachineState: MachineState.ActPhase,
+                    last: true,
+                    woodPick: {
+                        travelerPlayerId: 'dana',
+                        siteId: hidden,
+                        supplySpent: 2,
+                        supplyRemaining: 3
+                    }
+                }
+            },
+            {
+                type: ActionType.UseActionPower,
+                playerId: 'dana',
+                cardId: 'denizen.hearth.deed-writer',
+                powerIndex: powerIndexOf('denizen.hearth.deed-writer', PowerTiming.Action),
+                choices: [
+                    {
+                        kind: PowerChoiceKind.Exchange,
+                        withPlayerId: 'ann',
+                        terms: {
+                            fromProposer: { favor: 2 },
+                            fromCounterparty: { sites: [{ siteId: plains, warbands: 2 }] }
+                        }
+                    }
+                ],
+                metadata: { summary: 'Deed Writer: proposed a binding exchange to ann' }
+            },
+            {
+                type: ActionType.AnswerQuestion,
+                playerId: 'ann',
+                answer: { kind: PowerQuestionKind.Exchange, accept: true },
+                metadata: {
+                    cardId: 'denizen.hearth.deed-writer',
+                    kind: PowerQuestionKind.Exchange,
+                    summary: "accepted dana's exchange",
+                    resumeMachineState: MachineState.ActPhase,
+                    last: true
+                }
+            }
+        ]
+    }
+    const recorded = rows[scene]
+    // Five minutes apart, the last one just now.
+    const actions = recorded.map((fields, index): GameAction => ({
+        id: `history-${scene}-${index}`,
+        gameId: state.gameId,
+        source: ActionSource.User,
+        index,
+        createdAt: new Date(Date.now() - (recorded.length - 1 - index) * 5 * 60_000),
+        ...fields
+    }))
+    // The session checks the state's count and checksum against the history it is given.
+    const recordedState = {
+        ...table.state,
+        actionCount: actions.length,
+        actionChecksum: calculateActionChecksum(0, actions)
+    }
+    return { state: recordedState, actions }
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     drumAsked: () => drumTable('whistle'),
     drumAskedCitizen: () => drumTable('citizen'),
@@ -3328,7 +3621,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     oracleToll: () => oracleTable(4),
     oracleNoFavor: () => oracleTable(0),
     messenger: messengerTable,
-    messengerTwoOwners: messengerTwoOwnersTable
+    messengerTwoOwners: messengerTwoOwnersTable,
+    historyAct: () => historyWordsTable('act'),
+    historyCampaign: () => historyWordsTable('campaign'),
+    historyDeals: () => historyWordsTable('deals')
 }
 
 /** Every table a scenario can open. */

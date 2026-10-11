@@ -61,24 +61,24 @@ describe('R-11.7 — the History of a Travel the ruler settles', () => {
     }
 
     it('the Travel names no cost, and the pick is the traveller’s row, word for word', () => {
-        expect(describeAction(travel({ paysAtPick: true, supplySpent: 0 }), names, 'Dana')).toBe('set out from the Shrouded Wood; Rhys picks where')
-        expect(describeAction(travel({ supplySpent: 2 }), names, 'Dana')).toBe('left the Shrouded Wood, spending 2 Supply — Rhys chooses where')
+        expect(describeAction(travel({ paysAtPick: true, supplySpent: 0 }), names, 'Dana')).toBe('set out from Shrouded Wood; Rhys picks where')
+        expect(describeAction(travel({ supplySpent: 2 }), names, 'Dana')).toBe('left Shrouded Wood, spending 2 Supply; Rhys picks where')
 
         const slum = pick('slot.provinces.1', 2)
         expect(rowActorOf(slum)).toBe('Dana')
-        expect(describeAction(slum, names, 'Dana')).toBe("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply")
-        expect(describeAction(slum, names, 'Rhys')).toBe('left the Shrouded Wood for the Great Slum (your pick), paying 2 Supply')
-        expect(describeAction(pick('slot.hinterland.0', 3), names, 'Dana')).toBe("left the Shrouded Wood for the Mountain (Rhys's pick), paying 3 Supply")
-        expect(describeAction(pick('slot.cradle.0', 0), names, 'Dana')).toBe("left the Shrouded Wood for the Drowned City (Rhys's pick), paying no Supply")
+        expect(describeAction(slum, names, 'Dana')).toBe("traveled from Shrouded Wood to Great Slum (Rhys's pick), spending 2 Supply")
+        expect(describeAction(slum, names, 'Rhys')).toBe('traveled from Shrouded Wood to Great Slum (your pick), spending 2 Supply')
+        expect(describeAction(pick('slot.hinterland.0', 3), names, 'Dana')).toBe("traveled from Shrouded Wood to Mountain (Rhys's pick), spending 3 Supply")
+        expect(describeAction(pick('slot.cradle.0', 0), names, 'Dana')).toBe("traveled from Shrouded Wood to Drowned City (Rhys's pick)")
     })
 
     it('a site whose name prints its own article is not given another', () => {
-        expect(describeAction(pick('slot.hinterland.1', 3), names, 'Dana')).toBe("left the Shrouded Wood for The Hidden Place (Rhys's pick), paying 3 Supply")
+        expect(describeAction(pick('slot.hinterland.1', 3), names, 'Dana')).toBe("traveled from Shrouded Wood to The Hidden Place (Rhys's pick), spending 3 Supply")
     })
 
     it('Tyrant’s kill is a clause of the pick’s row, in the colour of the warband killed', () => {
         const tyrant = pick('slot.provinces.1', 2, { notes: ['Tyrant killed a warband at slot.provinces.1'], warbandOwner: 'Rhys' })
-        expect(describeAction(tyrant, names, 'Dana')).toBe("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply; Tyrant killed a warband at the Great Slum")
+        expect(describeAction(tyrant, names, 'Dana')).toBe("traveled from Shrouded Wood to Great Slum (Rhys's pick), spending 2 Supply; killed 1 warband at Great Slum (Tyrant)")
         const own = (playerId: string) => `${playerId}'s own`
         expect(rowWarbandOwner(tyrant, own)).toBe('Rhys')
         expect(rowWarbandOwner(pick('slot.provinces.1', 2), own)).toBe("Dana's own")

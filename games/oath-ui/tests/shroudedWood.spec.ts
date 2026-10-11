@@ -148,7 +148,7 @@ for (const { name, viewport, phone } of SIZES) {
             expect(facts.favorOf).toMatchObject({ Dana: 1 })
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(page.locator('.history')).toContainText("left the Shrouded Wood for the Great Slum (Rhys's pick), paying 2 Supply; paid Rhys 1 (Toll Roads)")
+                await expect(page.locator('.history')).toContainText("traveled from Shrouded Wood to Great Slum (Rhys's pick), spending 2 Supply; paid Rhys 1 (Toll Roads)")
             }
         })
 
@@ -161,7 +161,7 @@ for (const { name, viewport, phone } of SIZES) {
             expect(facts.favorOf).toMatchObject({ Dana: 2 })
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(page.locator('.history')).toContainText('refused Toll Roads and stayed at the Shrouded Wood')
+                await expect(page.locator('.history')).toContainText('refused Toll Roads and stayed at Shrouded Wood')
             }
         })
     })

@@ -2569,7 +2569,7 @@ test.describe('scenario 4 with a toll', () => {
         await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe(tolled)
         await page.getByRole('tab', { name: 'History' }).click()
         const row = page.getByRole('tabpanel', { name: 'History' }).getByRole('listitem').first()
-        await expect(row).toContainText(/travelled to .+, spending \d Supply; 1\s*to ann \(Toll Roads\)/)
+        await expect(row).toContainText(/traveled to .+, spending \d Supply; paid ann 1\s*\(Toll Roads\)/)
         await expect(row.getByRole('img', { name: 'favor' })).toBeVisible()
     })
 
@@ -4755,11 +4755,55 @@ test('scenario 63: a seat named inside a History line is its colour chip, for ev
     await page.getByRole('tab', { name: 'History' }).click()
     const sacrificed = page.locator('.history p').filter({ hasText: 'sacrificed' })
     expect(await rowChips(page, 'sacrificed')).toEqual(['Att', 'you'])
-    await expect(sacrificed).toContainText("you choose the defending side's losses")
+    await expect(sacrificed).toContainText("you pick the defense's losses")
 
     expect(await call(page, 'viewOffTheClock')).toBe('att')
     expect(await rowChips(page, 'sacrificed')).toEqual(['You', 'Def'])
-    await expect(sacrificed).toContainText("def chooses the defending side's losses")
+    await expect(sacrificed).toContainText("def picks the defense's losses")
+})
+
+/** Scenario 65: the History says what each row did from its record, a card's part as what happened then the card. */
+test.describe('scenario 65: the History’s words', () => {
+    const history = (page: Page) => page.locator('.history')
+
+    test('an Act Phase: the tolls paid, then their card; the Drum’s gain; a facedown play; Careless’s favor; the banner’s price', async ({ page }) => {
+        await openTable(page, 'historyAct')
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('traveled to Great Slum, spending 2 Supply; paid rhys 1 (Toll Roads); gained 1 (Dragonskin Drum)')
+        expect(await rowChips(page, 'traveled to')).toEqual(['Dana', 'Rhys'])
+        await expect(history(page)).toContainText('searched the world deck, spending 2 Supply; paid rhys 1 (Forced Labor)')
+        await expect(history(page)).toContainText('kept a card and played it as an adviser, facedown')
+        await expect(history(page)).toContainText('traded at Tavern Songs for 0, spending 1 Supply; gained 1 (Careless)')
+        await expect(history(page)).toContainText('mustered 2 at Council Seat, spending 1 Supply')
+        await expect(history(page)).toContainText('recovered the People’s Favor for 3')
+        await expect(history(page)).not.toContainText(/travelled|defence| — /)
+    })
+
+    test('a Campaign: its cost, plans and dice; the defense’s losses picked by a chip; the spoils step by step; "against <chip>"', async ({ page }) => {
+        await openTable(page, 'historyCampaign')
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('spending 2 Supply, using Field Promotion; 6 attack dice against 4 defense dice')
+        await expect(history(page)).toContainText('used no battle plans; 5 swords against 4 defense')
+        await expect(history(page)).toContainText("sacrificed 1 and won the battle; rhys picks the defense's losses")
+        await expect(history(page)).toContainText("picked the defense's losses: 2 killed")
+        await expect(history(page)).toContainText('took the spoils: placed 2 at Plains; seized the People’s Favor, burning 2 from it; banished rhys to Salt Flats; burned 3 from rhys; gained 3 (Field Promotion)')
+        expect(await rowChips(page, 'took the spoils')).toEqual(['Dana', 'Rhys', 'Rhys'])
+        const won = page.locator('[data-major-event="campaignWon"]')
+        await expect(won).toContainText('against rhys')
+        await expect(won.locator('.text-xs span[style*="background-color"]').first()).toHaveText(/rhys/i)
+    })
+
+    test('deals and the rest: the offer’s terms on its row, the Wood’s pick as the traveller’s Travel, False Prophet, a short bank', async ({ page }) => {
+        await openTable(page, 'historyDeals')
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('used Deed Writer: offered you 2 for Plains (2 move in)')
+        expect(await rowChips(page, 'used Deed Writer')).toEqual(['Dana', 'you'])
+        await expect(history(page)).toContainText("Deed Writer: accepted dana's exchange")
+        await expect(history(page)).toContainText("traveled from Shrouded Wood to The Hidden Place (rhys's pick), spending 2 Supply")
+        await expect(history(page)).toContainText('offered dana Citizenship, the relic on Reliquary space 2 and 2, for 1')
+        await expect(history(page)).toContainText('False Prophet: 1 on Vision of Faith died; played it as an adviser, facedown')
+        await expect(history(page)).toContainText('started at Salt Flats and kept a card facedown, discarding 2 to the Cradle pile; placed 4: Salt Flats 2, Mine 2')
+    })
 })
 
 test('scenario 59: every seat is told a Vision was seen, the drawer too; each clears it for itself, and it stays cleared on reopening', async ({ page }) => {
@@ -6144,7 +6188,7 @@ test.describe('Toll Roads when a power moves another player', () => {
         expect((await call(page, 'tableFacts')).favorOf).toMatchObject({ Dana: 3, Rhys: 4 })
         await page.getByRole('tab', { name: 'History' }).click()
         const history = page.locator('.history')
-        await expect(history).toContainText("used the Whistle on Dana; Dana paid you 1 (Toll Roads) and went to the Great Slum, taking the Whistle's 1")
+        await expect(history).toContainText("used the Whistle on Dana; Dana paid you 1 (Toll Roads) and went to Great Slum, taking the Whistle's 1")
         await expect(history).toContainText('used the Whistle on Dana, placing 1 on it')
     })
 
@@ -6631,7 +6675,7 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
         await expect(rows.nth(0)).toContainText('+1 (Dragonskin Drum)')
         await expect(rows.nth(0).locator('img[alt="warband"]')).toHaveAttribute('src', /warband\.blue/)
         await expect(rows.nth(0)).toContainText('Dana')
-        await expect(rows.nth(1)).toContainText('used Whistle, placing 1 on it: Dana travelled to Great Slum')
+        await expect(rows.nth(1)).toContainText('used Whistle, placing 1 on it: Dana traveled to Great Slum')
     })
 
     test('Skip gains nothing', async ({ page }) => {

@@ -1185,7 +1185,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return {
             viewerId: this.myPlayer?.id,
             nameOf: (playerId) => this.getPlayerName(playerId),
-            oathType: this.gameState.oathType
+            oathType: this.gameState.oathType,
+            // The framed rows draw every seat they name as its chip.
+            seatsById: true
         }
     }
 
