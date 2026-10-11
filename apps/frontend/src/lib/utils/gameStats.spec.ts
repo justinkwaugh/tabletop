@@ -3,6 +3,7 @@ import { PlayOutcome } from '@tabletop/common'
 import {
     calendarMonthIn,
     countOf,
+    formatAverage,
     formatRate,
     formatRecord,
     monthlyPlays,
@@ -16,6 +17,8 @@ describe('game stats presentation', () => {
         expect(formatRecord({ wins: 45, ties: 3, losses: 52 })).toBe('45–3–52')
         expect(countOf(1, 'opponent')).toBe('1 opponent')
         expect(countOf(4, 'opponent')).toBe('4 opponents')
+        expect(formatAverage(2)).toBe('2')
+        expect(formatAverage(1.94)).toBe('1.9')
     })
 
     it('lists every month from the first through the last, across years', () => {

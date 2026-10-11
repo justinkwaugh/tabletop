@@ -127,5 +127,9 @@ _Avoid_: Shared win, Draw
 **Opponent**:
 Another User who is a Player in the same Counted Game.
 
+**Finish**:
+A Player's position in a Counted Game that recorded final scores: first for every recorded winner, then the remaining Players in order of final score, with equal scores sharing a position.
+_Avoid_: Rank, Placement
+
 **Even Odds**:
 The win rate a User would have if every Player in each of their Counted Games were equally likely to win. A tied Outcome among several winners counts as an equal fraction of a win.

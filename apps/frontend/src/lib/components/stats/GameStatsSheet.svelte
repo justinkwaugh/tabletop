@@ -2,6 +2,7 @@
     import { createTimeAgo } from '@tabletop/frontend-components'
     import {
         countOf,
+        formatAverage,
         formatRate,
         formatRecord,
         localMonth,
@@ -24,6 +25,9 @@
         summary.averageDays < 1
             ? 'under a day per game on average'
             : `${countOf(Math.round(summary.averageDays), 'day')} per game on average`,
+        ...(scope.scores
+            ? [`best score ${scope.scores.best}, average ${formatAverage(scope.scores.average)}`]
+            : []),
         ...(summary.tournamentPlays > 0
             ? [
                   `${countOf(summary.tournamentPlays, 'tournament table')}, ${summary.tournamentWins} won`
@@ -61,6 +65,15 @@
             <dd class="value">{summary.bestWinStreak}</dd>
             <dd class="note">currently {summary.currentWinStreak}</dd>
         </div>
+        {#if summary.finishes}
+            <div class="figure">
+                <dt>average finish</dt>
+                <dd class="value">{formatAverage(summary.finishes.average)}</dd>
+                <dd class="note">
+                    at {formatAverage(summary.finishes.averagePlayerCount)}-player tables
+                </dd>
+            </div>
+        {/if}
     </dl>
 
     <div class="panels">
@@ -156,7 +169,8 @@
     }
     .figures {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
     }
     .figure {
         display: flex;
@@ -283,6 +297,7 @@
     }
     @media (max-width: 850px) {
         .figures {
+            grid-auto-flow: row;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             row-gap: 14px;
         }

@@ -179,4 +179,64 @@ describe('user game stats', () => {
             { titleId: 'kaivai', finishedAt: START + 3 * DAY, outcome: PlayOutcome.Tied }
         ])
     })
+
+    it('places recorded winners first and other Players by final score', () => {
+        const users = ['me', 'ann', 'bo', 'cy']
+        const scored = (day: number, winners: string[], points: number[]) =>
+            finished(day, winners, {
+                users,
+                finalScores: Object.fromEntries(
+                    users.map((user, index) => [`player-${user}`, points[index]])
+                )
+            })
+        const finishOf = (game: GameStatsSource) => summarize([game]).total?.finishes?.average
+
+        expect(finishOf(scored(1, ['me'], [9, 7, 5, 3]))).toBe(1)
+        expect(finishOf(scored(2, ['ann'], [7, 9, 5, 3]))).toBe(2)
+        expect(finishOf(scored(3, ['ann'], [3, 9, 5, 7]))).toBe(4)
+        expect(finishOf(scored(4, ['ann'], [5, 9, 5, 3]))).toBe(2)
+        expect(finishOf(scored(5, ['ann'], [9, 9, 5, 3]))).toBe(2)
+        expect(finishOf(scored(6, ['me', 'ann'], [9, 9, 5, 3]))).toBe(1)
+        expect(finishOf(scored(7, ['bo', 'cy'], [4, 6, 9, 9]))).toBe(4)
+    })
+
+    it('averages finishes over scored games only and reports the table size they were played at', () => {
+        const stats = summarize([
+            finished(1, ['me'], {
+                finalScores: { 'player-me': 9, 'player-ann': 4, 'player-bo': 2 }
+            }),
+            finished(2, ['ann'], {
+                users: ['me', 'ann'],
+                finalScores: { 'player-me': 1, 'player-ann': 6 }
+            }),
+            finished(3, ['bo'])
+        ])
+        expect(stats.total?.plays).toBe(3)
+        expect(stats.total?.finishes).toEqual({ average: 1.5, averagePlayerCount: 2.5 })
+        expect(summarize([finished(1, ['me'])]).total?.finishes).toBeUndefined()
+    })
+
+    it('reports best and average score per title, never across titles', () => {
+        const stats = summarize([
+            finished(1, ['me'], {
+                finalScores: { 'player-me': 9, 'player-ann': 4, 'player-bo': 2 }
+            }),
+            finished(2, ['ann'], {
+                finalScores: { 'player-me': -3, 'player-ann': 4, 'player-bo': 2 }
+            }),
+            finished(3, ['me'], {
+                typeId: 'indonesia',
+                finalScores: { 'player-me': 900, 'player-ann': 400, 'player-bo': 200 }
+            }),
+            finished(4, ['bo'], { typeId: 'container' })
+        ])
+        expect(
+            Object.fromEntries(stats.titles.map((title) => [title.titleId, title.scores]))
+        ).toEqual({
+            freshfish: { best: 9, average: 3 },
+            indonesia: { best: 900, average: 900 },
+            container: undefined
+        })
+        expect(stats.total).not.toHaveProperty('scores')
+    })
 })

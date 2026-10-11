@@ -34,12 +34,13 @@
                 summary: total,
                 monthlyPlays: monthlyPlays(countedGames, localMonth)
             },
-            ...titles.map(({ titleId, summary }) => ({
+            ...titles.map(({ titleId, summary, scores }) => ({
                 id: titleId,
                 name: libraryService.getNameForTitle(titleId),
                 thumbnailUrl: libraryService.getThumbnailForTitle(titleId),
                 playsNote: `since ${monthName(localMonth(summary.firstFinishedAt), 'short')}`,
                 summary,
+                scores,
                 monthlyPlays: monthlyPlays(
                     countedGames.filter((game) => game.titleId === titleId),
                     localMonth

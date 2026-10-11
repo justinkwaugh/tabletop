@@ -2,7 +2,8 @@ import {
     assertExists,
     PlayOutcome,
     type CountedGame,
-    type GameStatsSummary
+    type GameStatsSummary,
+    type TitleGameStats
 } from '@tabletop/common'
 
 export type CalendarMonth = string
@@ -15,6 +16,7 @@ export type GameStatsScope = {
     thumbnailUrl?: string
     playsNote: string
     summary: GameStatsSummary
+    scores?: TitleGameStats['scores']
     monthlyPlays: MonthlyPlays[]
 }
 
@@ -57,6 +59,10 @@ export function formatRate(rate: number): string {
 
 export function formatRecord(summary: Pick<GameStatsSummary, 'wins' | 'ties' | 'losses'>): string {
     return `${summary.wins}–${summary.ties}–${summary.losses}`
+}
+
+export function formatAverage(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
 export function countOf(count: number, noun: string): string {
