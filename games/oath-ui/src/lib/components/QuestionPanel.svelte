@@ -20,6 +20,7 @@
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName, listed, siteName, transferText } from '$lib/model/names.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -31,6 +32,9 @@
     let mine = $derived(draft.mine)
     // Brass Horse's sites are equal choices, one width.
     const siteWidth = new ChoiceWidth()
+    // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel is made on the lit
+    // map on a desktop (`BoardSitesLayer`), as Travel's is; a phone lists the sites here.
+    const layout = new PhoneLayout()
 
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
@@ -187,7 +191,11 @@
             </div>
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination && mine.travel}
-        <QuestionWoodPick question={mine} />
+        {#if layout.phone}
+            <QuestionWoodPick question={mine} />
+        {:else}
+            <p class="text-sm">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
+        {/if}
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
         <p class="text-sm mb-2">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
         <div class="flex flex-wrap gap-1">

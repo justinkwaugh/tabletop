@@ -126,6 +126,7 @@ import {
 } from './adviserPlacements.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
+    dimsTheMap,
     reasonCannotRecoverBanner,
     recoverableBanners,
     recoverableRelicSlots,
@@ -899,6 +900,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         // R-5.5.7.III — the spoils' pawn step, which a Sneak Attack may open off the seat's turn.
         const banish = this.victory.mapSites
         if (banish.length > 0) return banish.map((slotId) => ({ slotId, intent: 'banish' }))
+        // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel, asked off his turn.
+        const wood = this.question.woodRegions
+        if (wood.length > 0) {
+            return wood.flatMap(({ cost, foldedBy, siteIds }) =>
+                siteIds.map((slotId) => ({
+                    slotId,
+                    intent: 'wood',
+                    cost,
+                    foldedBy,
+                    toll: this.question.woodTollAt(slotId)
+                }))
+            )
+        }
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         const sites = this.selectableSites
@@ -948,9 +962,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     // Setup dims the map only while the start site is open to a pick, not for the pick alone.
     get mapDimmed(): boolean {
-        return this.siteOffers.some((offer) =>
-            offer.intent === 'start' ? offer.pickable : offer.intent !== 'moveWarbands'
-        )
+        return dimsTheMap(this.siteOffers)
     }
 
     /**
@@ -1325,7 +1337,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * A lit site tapped on the map, as a phone picks Travel: with one way to pay and no toll it
+     * A lit site tapped on the map, where Travel is picked: with one way to pay and no toll it
      * travels at once; with more, or a toll, its ways open in the panel, so a toll's payee is on
      * a button before anything is paid (R-7.1.4). Undo unwinds the open ways.
      */

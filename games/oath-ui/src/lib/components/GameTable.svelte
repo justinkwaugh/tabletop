@@ -88,7 +88,7 @@
     // map while the step is open (upright one region, sideways every site or Setup's rows of start
     // sites),
     // and gives back the view it found when the step closes, unless a pan or zoom by hand took
-    // the view over first.
+    // the view over first. A desktop frames nothing: the whole board stays in view.
     const layout = new PhoneLayout()
     let mapPick = $derived(layout.phone ? oath.mapPick : undefined)
 

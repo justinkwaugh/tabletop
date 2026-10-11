@@ -15,7 +15,6 @@
     import RecoverMenu from '$lib/components/RecoverMenu.svelte'
     import SearchMenu from '$lib/components/SearchMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
-    import TravelMenu from '$lib/components/TravelMenu.svelte'
     import TravelWays from '$lib/components/TravelWays.svelte'
     import WoodTravelPanel from '$lib/components/WoodTravelPanel.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
@@ -46,11 +45,10 @@
     let selection = $derived(gameSession.selection)
     let chosen = $derived(selection.action)
 
-    // On a phone Travel picks on the lit map: the panel keeps one line, or the picked site's ways.
+    // Travel picks on the lit map at every width: the panel keeps one line, or the picked site's
+    // ways, laid out for the phone held upright or for a wider panel.
     const layout = new PhoneLayout()
-    let travelOnMap = $derived(
-        chosen === ActionType.Travel && layout.phone && gameSession.travelRows.length > 0
-    )
+    let travelOnMap = $derived(chosen === ActionType.Travel && gameSession.travelRows.length > 0)
     let travelWaysOpen = $derived(travelOnMap ? gameSession.travelWaysOpen : undefined)
 
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
@@ -136,12 +134,6 @@
                         rulerId={gameSession.shroudedWoodChooser}
                         regions={gameSession.woodRegions}
                     />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Travel && gameSession.travelRows.length > 0 && !travelOnMap}
-                <div class="mb-2">
-                    <TravelMenu />
                 </div>
             {/if}
 

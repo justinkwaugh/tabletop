@@ -8,10 +8,11 @@
     import { destinationName, tollFavor, travelSpoken } from '$lib/model/travelWords.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-11.12, R-7.1.4 — a destination picked on a phone's map with more than one way to pay:
-    // the site, and a button per way, each as wide as the widest label; Undo closes it. Held
-    // sideways the site, its name and the ways stand on one row; held upright the name
-    // alone tops the site's picture, drawn as large as fits, with the ways stacked to its right.
+    // R-11.12, R-7.1.4 — a destination picked on the map with more than one way to pay, or a
+    // toll: the site, and a button per way, each as wide as the widest label; Undo closes it. On
+    // a desktop and on a phone held sideways the site, its name and the ways stand on one row;
+    // held upright the name alone tops the site's picture, drawn as large as fits, with the ways
+    // stacked to its right.
     let { row, upright }: { row: TravelRow; upright: boolean } = $props()
 
     let gameSession = getGameSession()

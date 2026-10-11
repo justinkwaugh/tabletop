@@ -157,7 +157,7 @@ export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.SelfExile
 ])
 
-/** Travel on a phone, where the lit map is the menu. */
+/** Travel, where the lit map is the menu at every width. */
 export const TRAVEL_ON_THE_MAP_PROMPT = 'Tap a lit site.'
 
 /** The staged action's bar reads the action's name, the word on its tile. */

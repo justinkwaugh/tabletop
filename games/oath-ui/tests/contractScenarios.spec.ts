@@ -61,19 +61,20 @@ test.describe('on touch', () => {
         await expect(preview(page)).toHaveCount(0)
     })
 
-    test('scenario 44: a tap on an offered site enlarges it and travels nowhere; the next tap closes it', async ({
+    test('scenario 44: a tap on a lit Travel site’s magnifier enlarges it and travels nowhere; the next tap closes it', async ({
         page
     }) => {
         await openTable(page, 'actPhase')
         await tile(page, 'Travel').click()
-        await (await uncovered(page, '.board-card.offered')).tap()
+        await expect(page.getByText('Tap a lit site.', { exact: true })).toBeVisible()
+        await (await uncovered(page, '.site .site-magnifier')).tap()
         await expect(preview(page)).toBeVisible()
         expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
 
         await page.touchscreen.tap(20, 20)
         await expect(preview(page)).toHaveCount(0)
         expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
-        await expect(page.getByRole('list', { name: 'Destinations in the Cradle' })).toBeVisible()
+        await expect(page.getByText('Tap a lit site.', { exact: true })).toBeVisible()
     })
 
     test('scenario 41: with Muster chosen, a tap on a ringed denizen enlarges it and musters nothing', async ({ page }) => {
@@ -178,16 +179,16 @@ test('scenario 41: with Recover chosen, a click on a banner on the rail or on it
 
 test('scenario 44: the click that closes an enlarged card does nothing else, even over a menu row', async ({ page }) => {
     await openTable(page, 'actPhase')
-    await tile(page, 'Travel').click()
-    const go = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('button').first()
+    await tile(page, 'Search').click()
+    const go = page.getByRole('list', { name: 'Sources to search' }).getByRole('button').first()
     await expect(go).toBeVisible()
     const row = await go.boundingBox()
-    if (!row) throw Error('The destination’s button is on screen')
+    if (!row) throw Error('The source’s button is on screen')
     await (await uncovered(page, '.board-card')).click()
     await expect(preview(page)).toBeVisible()
     await page.mouse.click(row.x + row.width / 2, row.y + row.height / 2)
     await expect(preview(page)).toHaveCount(0)
-    expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+    expect((await call(page, 'tableFacts')).machineState).toBe('ActPhase')
     await expect(go).toBeVisible()
 })
 
@@ -1914,9 +1915,8 @@ test.describe('scenario 32: waiting on a send', () => {
         page
     }) => {
         await openTable(page, 'actPhase')
-        const destination = page
-            .getByRole('list', { name: 'Destinations in the Cradle' })
-            .getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
+        // On a desktop too the lit map is Travel's menu: a click on a site with one way to pay sends it.
+        const destination = page.locator('.site[data-slot="slot.cradle.1"] .board-card.offered')
 
         await tile(page, 'Travel').click()
         await expect(destination).toHaveCount(1)
@@ -2275,24 +2275,25 @@ test('scenario 39: under Careless a Trade for secrets shows the favor it also gi
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - 2 + 1)
 })
 
-test('scenario 4: Travel lists every affordable destination under its region, a button travels', async ({ page }) => {
+test('scenario 4: on a desktop at 1280 the panel reads "Tap a lit site."; Undo puts Travel down, and a click on a lit site travels', async ({ page }) => {
+    expect(page.viewportSize()?.width).toBe(1280)
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
-    const cradle = page.getByRole('list', { name: 'Destinations in the Cradle' })
-    await expect(cradle.getByRole('listitem')).toHaveCount(1)
-    const go = cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
-    await expect(go).toBeVisible()
+    await expect(travelPrompt(page)).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /^Travel to / })).toHaveCount(0)
     await expect(dimmedSites(page).first()).toBeVisible()
     await expect(stepBacks(page)).toHaveCount(0)
 
     await undoButton(page).click()
-    await expect(cradle).toHaveCount(0)
+    await expect(travelPrompt(page)).toHaveCount(0)
+    await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
     await expect(undoButton(page)).toHaveCount(0)
     await tile(page, 'Travel').click()
-    await go.click()
+    await siteCard(page, 'slot.cradle.1').click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
-    await expect(cradle).toHaveCount(0)
+    await expect(boardOffers(page)).toHaveCount(0)
+    await expect(travelPrompt(page)).toHaveCount(0)
 })
 
 const destinations = (page: Page, region: string) =>
@@ -2549,12 +2550,19 @@ test.describe('scenario 4 with a toll', () => {
     const tollWay = (page: Page) =>
         grid(page).getByRole('button', { name: /give 1 favor to ann \(Toll Roads\)$/ })
 
-    test('on a desktop the bar reads Travel, the way reads its favor and the payee chip, and no note names the card', async ({ page }) => {
+    test('on a desktop a click on the toll site opens its way, which reads its favor and the payee chip, and no note names the card', async ({ page }) => {
         await openTable(page, 'travelToll')
         await tile(page, 'Travel').click()
-        await expect(grid(page).locator('.bg-oath-accent-soft').first()).toHaveText('Travel')
+        await expect(travelPrompt(page)).toBeVisible()
+        const chip = siteAt(page, tolled).locator('.travel-cost')
+        await expect(chip).toHaveText(/^\s*\d\+$/)
+        await expect(chip.getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect(tollWay(page)).toHaveCount(0)
+
+        await siteCard(page, tolled).click()
         await expect(tollWay(page)).toHaveCount(1)
-        await expect(tollWay(page)).toContainText(/\d Supply\s*\+\s*1\s*to\s*ann/)
+        await expect(tollWay(page)).toContainText(/\d Supply\s*\+ 1\s*to\s*ann/)
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
         await expect(grid(page)).not.toContainText('Toll Roads')
 
         await tollWay(page).click()
@@ -2591,54 +2599,78 @@ test.describe('scenario 4 with a toll', () => {
     })
 })
 
-test('scenario 4: on a desktop the regions stand side by side as columns in the board’s order, each region’s destinations stacked, costs in gold', async ({ page }) => {
+/** On a desktop too the lit map is Travel's menu, and the board keeps the whole map in view, as Setup's does. */
+test('scenario 4: on a desktop the panel shows no region tiles and the map is not framed', async ({ page }) => {
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
+    await expect(travelPrompt(page)).toBeVisible()
+    for (const region of ['Cradle', 'Provinces', 'Hinterland']) {
+        await expect(destinations(page, region)).toHaveCount(0)
+    }
+    await expect(grid(page).getByRole('list', { name: /^Destinations in the / })).toHaveCount(0)
+    await expect(grid(page).locator('img')).toHaveCount(0)
     await expect(regionChips(page)).toHaveCount(0)
-    const [cradle, provinces, hinterland] = [
-        await boxOf(destinations(page, 'Cradle')),
-        await boxOf(destinations(page, 'Provinces')),
-        await boxOf(destinations(page, 'Hinterland'))
-    ]
-    expect(provinces.y).toBeCloseTo(cradle.y, 0)
-    expect(hinterland.y).toBeCloseTo(cradle.y, 0)
-    expect(provinces.x).toBeGreaterThan(cradle.x + cradle.width - 1)
-    expect(hinterland.x).toBeGreaterThan(provinces.x + provinces.width - 1)
-
-    const [top, middle, bottom] = await boxesOf(destinations(page, 'Provinces').getByRole('listitem'))
-    expect(middle.x).toBeCloseTo(top.x, 0)
-    expect(bottom.x).toBeCloseTo(top.x, 0)
-    expect(middle.y).toBeGreaterThan(top.y + top.height - 1)
-    expect(bottom.y).toBeGreaterThan(middle.y + middle.height - 1)
-
-    const go = destinations(page, 'Cradle').getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
-    // Rule G: the cost is in the accent, amber-300.
-    await expect(go.getByText('1 Supply')).toHaveCSS('color', 'oklch(0.879 0.169 91.605)')
-    const [art] = await boxesOf(destinations(page, 'Cradle').locator('img'))
-    expect(art.width / art.height).toBeCloseTo(1313 / 1016, 1)
+    const legal = await call(page, 'legalTravelDestinations')
+    for (const slotId of legal) {
+        expect(await onScreen(page, siteCard(page, slotId))).toBe(true)
+    }
 })
 
-test('scenario 4: on a desktop a destination with two ways to pay keeps its tile, with a button per way under the name, each as wide as the wider label', async ({ page }) => {
+test('scenario 4: on a desktop every legal destination is lit with its Supply in a gold chip and a magnifier; the rest of the map dims', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    await expect(travelPrompt(page)).toBeVisible()
+    const legal = await call(page, 'legalTravelDestinations')
+    expect(legal.length).toBeGreaterThan(1)
+    expect(await litSlots(page)).toEqual([...legal].sort())
+    for (const slotId of legal) {
+        const chip = siteAt(page, slotId).locator('.travel-cost')
+        await expect(chip).toHaveText(/^\d Supply$/)
+        // Rule G: the cost is gold, amber-400 behind dark text.
+        await expect(chip).toHaveCSS('background-color', 'rgb(251, 191, 36)')
+        await expect(siteMagnifier(page, slotId)).toHaveCount(1)
+    }
+    await expect(siteAt(page, 'slot.cradle.1').locator('.travel-cost')).toHaveText('1 Supply')
+    await expect(dimmedSites(page)).toHaveCount((await page.locator('.site').count()) - legal.length)
+})
+
+test('scenario 4: on a desktop a click on a site with two ways to pay opens its ways in the panel and travels nowhere; Undo closes them, a way travels', async ({ page }) => {
     await openTable(page, 'leavingBuriedGiant')
     await tile(page, 'Travel').click()
-    const item = destinations(page, 'Provinces').getByRole('listitem').first()
-    const ways = item.getByRole('button')
-    await expect(ways).toHaveCount(2)
-    await expect(ways.first()).toHaveAccessibleName(/^Travel to .+: spend 2 Supply$/)
-    const flip = ways.last()
-    await expect(flip).toHaveAccessibleName(/^Travel to .+: spend no Supply, flip a secret facedown$/)
-    // The map's chip reads both ways on a desktop too.
+    await expect(travelPrompt(page)).toBeVisible()
+    const legal = await call(page, 'legalTravelDestinations')
+    // The map's chip reads both ways.
     const chip = siteAt(page, 'slot.provinces.0').locator('.travel-cost')
     await expect(chip).toHaveText('2 or 0+')
     await expect(chip.getByRole('img', { name: 'secret' })).toBeVisible()
     await expect(siteAt(page, 'slot.hinterland.0').locator('.travel-cost')).toHaveText('0+')
-    const [supply, flipped] = await boxesOf(ways)
-    expect(flipped.x).toBeCloseTo(supply.x, 0)
-    expect(flipped.y).toBeGreaterThan(supply.y + supply.height - 1)
-    expect(flipped.width).toBeCloseTo(supply.width, 0)
-    const text = await boxOf(item.locator('.tile__text'))
-    expect(flipped.x + flipped.width).toBeLessThanOrEqual(text.x + text.width + 0.5)
 
+    await siteCard(page, 'slot.provinces.0').click()
+    const supply = grid(page).getByRole('button', { name: /^Travel to .+: spend 2 Supply$/ })
+    const flip = grid(page).getByRole('button', {
+        name: /^Travel to .+: spend no Supply, flip a secret facedown$/
+    })
+    await expect(supply).toHaveText('2 Supply')
+    await expect(flip).toBeVisible()
+    await expect(travelPrompt(page)).toHaveCount(0)
+    expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+    expect(await litSlots(page)).toEqual([...legal].sort())
+    await expect(siteCard(page, 'slot.provinces.0')).toHaveClass(/picked/)
+
+    // As on a phone held sideways: the site's picture, its name and the ways on one row.
+    const ways = grid(page).locator('.ways')
+    const picture = await boxOf(ways.locator('.ways__art'))
+    const [one, other] = [await boxOf(supply), await boxOf(flip)]
+    expect(other.y).toBeCloseTo(one.y, 0)
+    expect(other.width).toBeCloseTo(one.width, 0)
+    expect(picture.x + picture.width).toBeLessThan(one.x)
+
+    await undoButton(page).click()
+    await expect(supply).toHaveCount(0)
+    await expect(travelPrompt(page)).toBeVisible()
+    expect(await litSlots(page)).toEqual([...legal].sort())
+
+    await siteCard(page, 'slot.provinces.0').click()
     await flip.click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.provinces.0')
 })
@@ -3389,9 +3421,9 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
 })
 
 test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
-    await openTable(page, 'actPhase')
-    await tile(page, 'Travel').click()
-    const row = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('listitem').first()
+    await openTable(page, 'trade')
+    await tile(page, 'Trade').click()
+    const row = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem').first()
     const pointed = page.locator('.board-card.offered.pointed')
     await expect(pointed).toHaveCount(0)
     await row.hover()
@@ -3469,7 +3501,7 @@ test('scenario 54: the focus views sit in one line along the top of the map on a
 test('scenario 45: choosing a focus leaves the staged action, the lit sites and the panel unchanged', async ({ page }) => {
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
-    await expect(page.getByRole('list', { name: 'Destinations in the Cradle' })).toBeVisible()
+    await expect(travelPrompt(page)).toBeVisible()
     const panelBefore = await grid(page).innerText()
     const offeredBefore = await boardOffers(page).count()
     const stagedBefore = (await call(page, 'tableFacts')).staged
@@ -3481,22 +3513,22 @@ test('scenario 45: choosing a focus leaves the staged action, the lit sites and 
     expect((await call(page, 'tableFacts')).staged).toBe(stagedBefore)
 })
 
-test('scenario 46: in full screen the panel is docked above the board, a Travel goes from it, and a card enlarges inside', async ({ page }) => {
+test('scenario 46: in full screen the panel is docked above the board, Travel is chosen from it and picked on the map, and a card enlarges inside', async ({ page }) => {
     await openTable(page, 'actPhase')
     await page.mouse.move(800, 600)
     await page.keyboard.press('f')
     const dialog = page.locator('dialog[aria-label="Full screen view"]')
     await expect(dialog).toHaveCount(1)
     await dialog.locator('.majors button').filter({ hasText: 'Travel' }).click()
-    const cradle = dialog.getByRole('list', { name: 'Destinations in the Cradle' })
-    await expect(cradle).toBeVisible()
-    await dialog.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Provinces' }).click()
-    await expect(dialog.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Provinces' })).toHaveAttribute('aria-pressed', 'true')
-    await dialog.locator('.board-card').first().click()
+    await expect(dialog.getByText('Tap a lit site.', { exact: true })).toBeVisible()
+    const focusCradle = dialog.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Cradle' })
+    await focusCradle.click()
+    await expect(focusCradle).toHaveAttribute('aria-pressed', 'true')
+    await dialog.locator('.board-card:not(.offered)').first().click()
     await expect(dialog.locator('.card-preview')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog.locator('.card-preview')).toHaveCount(0)
-    await cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ }).click()
+    await dialog.locator('.site[data-slot="slot.cradle.1"] .board-card.offered').click()
     await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
 })
 
@@ -3552,7 +3584,8 @@ async function backdropOverOffer(page: Page, backdrop: string) {
 test('scenario 47: a press outside an open seat or the goals closes it and reaches nothing under it', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Travel').click()
-    const destinations = page.getByRole('list', { name: /^Destinations in the / }).first()
+    // The press outside lands over a lit site, which a press reaching it would travel to.
+    const destinations = travelPrompt(page)
     await expect(destinations).toBeVisible()
     const before = await call(page, 'tableFacts')
 
@@ -4130,21 +4163,26 @@ test('scenario 56: two cards that make a Travel possible are two rows; one says 
     await expect(tents).not.toContainText('ends your Act Phase')
 
     await tents.getByRole('button', { name: 'Travel with Tents', exact: true }).click()
-    const cradle = grid(page).getByRole('list', { name: 'Destinations in the Cradle' })
-    await expect(cradle).toBeVisible()
-    await expect(grid(page).getByRole('list', { name: 'Destinations in the Provinces' })).toHaveCount(0)
-    await expect(grid(page).getByRole('list', { name: 'Destinations in the Hinterland' })).toHaveCount(0)
-    const ways = cradle.getByRole('button', { name: /^Travel to / })
-    await expect(ways).toHaveCount(await cradle.getByRole('button', { name: /^Travel to .*: spend no Supply/ }).count())
-    expect(await ways.count()).toBeGreaterThan(0)
+    await expect(travelPrompt(page)).toBeVisible()
+    const withTents = await litSlots(page)
+    expect(withTents.length).toBeGreaterThan(0)
+    expect(withTents.every((slotId) => slotId.startsWith('slot.cradle.'))).toBe(true)
+    for (const slotId of withTents) {
+        await expect(siteAt(page, slotId).locator('.travel-cost')).toHaveText('0 Supply')
+    }
     await expect(stepBacks(page)).toHaveCount(0)
     await undoButton(page).click()
 
     await actionCard(page, 'denizen.nomad.special-envoy').getByRole('button', { name: 'Travel with Special Envoy', exact: true }).click()
-    await expect(grid(page).getByRole('list', { name: 'Destinations in the Provinces' })).toBeVisible()
-    await expect(grid(page).getByRole('list', { name: 'Destinations in the Hinterland' })).toBeVisible()
-    const first = grid(page).getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('button', { name: /^Travel to .*: spend no Supply$/ }).first()
-    await first.click()
+    await expect(travelPrompt(page)).toBeVisible()
+    const withEnvoy = await litSlots(page)
+    expect(withEnvoy.some((slotId) => slotId.startsWith('slot.provinces.'))).toBe(true)
+    expect(withEnvoy.some((slotId) => slotId.startsWith('slot.hinterland.'))).toBe(true)
+    const [free] = withEnvoy.filter((slotId) => slotId.startsWith('slot.cradle.'))
+    if (free === undefined) throw Error('A Cradle site is lit')
+    await expect(siteAt(page, free).locator('.travel-cost')).toHaveText('0 Supply')
+    await siteCard(page, free).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).not.toBe('slot.cradle.0')
     const facts = await call(page, 'tableFacts')
     expect(facts.siteOf.me).not.toBe('slot.cradle.0')
     expect(facts.machineState).not.toBe('ActPhase')

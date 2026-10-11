@@ -25,6 +25,14 @@ export function travelChip(ways: readonly TravelWay[]): TravelChip | undefined {
     }
 }
 
+/**
+ * R-11.7 — a site the Shrouded Wood's ruler may pick: the traveller's Supply in words, as one way
+ * paid in Supply alone reads, or its number and the favor where Toll Roads will ask (R-7.1.4).
+ */
+export function woodChip(cost: number, toll: boolean): TravelChip {
+    return toll ? { ways: [{ cost, favor: 1, secret: false }] } : { words: `${cost} Supply` }
+}
+
 export type RegionCount = { region: Region; count: number }
 
 /** What a pick on the map frames on a phone: one region held upright, every lit site sideways. */

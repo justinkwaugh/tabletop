@@ -4,11 +4,16 @@
     import BoardCard from '$lib/components/BoardCard.svelte'
     import SiteMagnifier from '$lib/components/SiteMagnifier.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
-    import { siteName, slotLabel } from '$lib/model/names.js'
+    import { cardName, siteName, slotLabel } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { SiteOffer } from '$lib/model/actionOffers.js'
+    import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
-    import { travelChip, type ChipWay, type TravelChip } from '$lib/model/travelOnTheMap.js'
+    import {
+        travelChip,
+        woodChip,
+        type ChipWay,
+        type TravelChip
+    } from '$lib/model/travelOnTheMap.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { SITE_SLOT_RECTS, SITE_TOKEN_RADIUS, fitRect } from '$lib/definitions/boardGeometry.js'
@@ -18,11 +23,16 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    let offers = $derived(gameSession.siteOffers)
-
-    // The lit map is Setup's start-site menu, the spoils' banish, and on a phone Travel's: a tap
-    // on a lit site picks it.
+    // The lit map is Setup's start-site menu, the spoils' banish and Travel's, at every width: a
+    // tap on a lit site picks it. On a desktop it is the Shrouded Wood ruler's too; a phone keeps
+    // that pick in the panel, so its map lights nothing for it.
     const layout = new PhoneLayout()
+    let offers = $derived(
+        layout.phone
+            ? gameSession.siteOffers.filter((offer) => offer.intent !== 'wood')
+            : gameSession.siteOffers
+    )
+    let dimmed = $derived(dimsTheMap(offers))
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
         if (offer?.intent === 'start' && offer.pickable) {
@@ -31,8 +41,11 @@
         if (offer?.intent === 'banish') {
             return () => gameSession.victory.banishTo(offer.slotId)
         }
-        if (offer?.intent === 'travel' && layout.phone) {
+        if (offer?.intent === 'travel') {
             return () => void gameSession.pickTravelSite(offer.slotId)
+        }
+        if (offer?.intent === 'wood') {
+            return () => void gameSession.question.sendThrough(offer.slotId)
         }
         return undefined
     }
@@ -83,6 +96,17 @@
                 }
             case 'banish':
                 return { title: resting, chip: { words: 'banish' } }
+            case 'wood': {
+                // R-11.7 — what the traveller pays there; the card that changed it is named here.
+                const note =
+                    offer.foldedBy.length > 0 ? ` (${offer.foldedBy.map(cardName).join(', ')})` : ''
+                return {
+                    title: `${siteName(gameState, slotId)} — ${offer.cost} Supply${note}${
+                        offer.toll ? ' · toll 1 favor' : ''
+                    }`,
+                    chip: woodChip(offer.cost, offer.toll)
+                }
+            }
             case undefined:
                 return { title: resting, chip: undefined }
         }
@@ -118,7 +142,7 @@
 
     <div
         class="site"
-        class:dimmed={gameSession.mapDimmed && !offer}
+        class:dimmed={dimmed && !offer}
         class:targeted
         class:on-map={onPhoneMap}
         data-slot={slotId}

@@ -4,9 +4,10 @@
     import { boardZoom } from '$lib/model/boardZoom.js'
     import { cardPreview, type CardPreview } from '$lib/model/cardPreview.svelte.js'
 
-    // Rule 4 — a tap on a lit start site picks it, and on a phone a tap on a lit Travel
-    // destination travels; the magnifier straddling its top-left corner enlarges the site
-    // instead, as a panel card's magnifier does.
+    // Rule 4 — a tap on a lit start site picks it, a tap on a lit Travel destination travels,
+    // and on a desktop a tap on a site the Shrouded Wood's ruler may pick sends the pick; the
+    // magnifier straddling its top-left corner enlarges the site instead, as a panel card's
+    // magnifier does.
     let { preview, label }: { preview: CardPreview; label: string } = $props()
 
     const owner = {}

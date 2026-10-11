@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { Region } from '@tabletop/oath'
-import { openingRegion, regionCounts, travelChip } from './travelOnTheMap.js'
+import { openingRegion, regionCounts, travelChip, woodChip } from './travelOnTheMap.js'
 import type { TravelWay } from './actionOffers.js'
+
+describe('the cost chip on a site the Shrouded Wood’s ruler may pick (R-11.7)', () => {
+    it('reads the traveller’s Supply in words, as a Travel paid in Supply alone does', () => {
+        expect(woodChip(2, false)).toEqual({ words: '2 Supply' })
+        expect(woodChip(0, false)).toEqual({ words: '0 Supply' })
+    })
+
+    it('a site where Toll Roads will ask the traveller reads its number and the favor (R-7.1.4)', () => {
+        expect(woodChip(2, true)).toEqual({ ways: [{ cost: 2, favor: 1, secret: false }] })
+    })
+})
 
 const way = (cost: number, terms: Partial<TravelWay> = {}): TravelWay => ({
     tolls: [],

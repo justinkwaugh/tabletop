@@ -52,13 +52,26 @@ export type SiteOffer =
           cost: number | undefined
           toll: string
           ways: TravelWay[]
-          /** Its ways to pay are open in the panel, as a phone's map pick opens them. */
+          /** Its ways to pay are open in the panel, as a map pick opens them. */
           picked: boolean
       }
     | { slotId: string; intent: 'target'; targeted: boolean }
     | { slotId: string; intent: 'moveWarbands' }
     /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
     | { slotId: string; intent: 'banish' }
+    /**
+     * R-11.7 — a site the Shrouded Wood's ruler may send the traveller to on their own Travel: what
+     * the traveller pays there, the cards that changed it (Decadent), and whether Toll Roads will
+     * ask them (R-7.1.4). A tap on the map sends the pick; a desktop lights these, a phone does not.
+     */
+    | { slotId: string; intent: 'wood'; cost: number; foldedBy: string[]; toll: boolean }
+
+/** Choosing among sites dims the rest of the map: Setup only while its start site is open to a pick. */
+export function dimsTheMap(offers: readonly SiteOffer[]): boolean {
+    return offers.some((offer) =>
+        offer.intent === 'start' ? offer.pickable : offer.intent !== 'moveWarbands'
+    )
+}
 
 /** R-5.4.2 — every amount the engine accepts, lowest first. */
 /** R-1.16 — favor the Chancellor places on one site at setup. */
