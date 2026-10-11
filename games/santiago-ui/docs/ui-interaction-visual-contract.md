@@ -66,7 +66,7 @@ Paper texture paints behind content within an isolated stacking context. It may 
 
 ## Verification scenarios
 
-- With a planted field on the board, summon a flock from the console: birds enter from the board's edge without popping in, settle inside the field, peck in place, occasionally hop fields one at a time, and leave as a group. Summon again and step into history: the flock startles away, as it does when the field dries out. Hide the tab mid-visit and return: the flock is gone and a new idle timer runs. With reduced motion on, summoning returns false. Manual browser verification; the simulation and scheduling are covered by unit tests.
+- With a planted field on the board, summon a flock with **Summon birds** in the developer harness's mood tuner: birds enter from the board's edge without popping in, settle inside the field, peck in place, occasionally hop fields one at a time, and leave as a group. Summon again and step into history: the flock startles away, as it does when the field dries out. Hide the tab mid-visit and return: the flock is gone and a new idle timer runs. With reduced motion on, summoning returns false. Manual browser verification; the simulation and scheduling are covered by unit tests.
 
 - Start a private-money protected Game and select the acting player: exactly their balance is delivered, three opponent badges show question marks in a four-player Game, the public tile count remains visible, and a submitted bid reduces the owner's money. Automated browser test, at desktop and narrow viewport sizes.
 - Switch to Host View and then Spectator: canonical bag and balances are available only in Host View; Spectator restores an empty bag representation and four question marks. Exploration stays disabled. Automated browser test.
