@@ -229,7 +229,7 @@
                 <ScalingWrapper
                     bind:this={wrapper}
                     justify="center"
-                    controls="bottom-left"
+                    controls="bottom-right"
                     coverBelowScale={0.3}
                     maxScale={FOCUS_MAX_SCALE}
                     expandable

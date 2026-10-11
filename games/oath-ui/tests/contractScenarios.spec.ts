@@ -3990,6 +3990,97 @@ test('scenario 54: the focus views sit in one line along the top of the map on a
     await expect(page.getByRole('button', { name: 'Zoom the board here' })).toBeVisible()
 })
 
+/** A box once the board's view has stopped moving: two reads a frame apart agree. */
+async function settledBox(locator: Locator): Promise<Box> {
+    const read: { last: Box | null } = { last: null }
+    await expect
+        .poll(async () => {
+            const box = await locator.boundingBox()
+            const same = box !== null && JSON.stringify(box) === JSON.stringify(read.last)
+            read.last = box
+            return same
+        })
+        .toBe(true)
+    if (!read.last) throw Error('The element is laid out')
+    return read.last
+}
+
+/** The wrapper's zoom in, zoom out and full screen, one group. */
+const zoomButtons = (page: Page) => page.locator('[aria-label="Zoom in"]').locator('..')
+
+/** The zoom buttons sit flush in the bottom-right corner of the board's area. */
+async function expectInBottomRight(page: Page, buttons: Box) {
+    const area = await settledBox(page.locator('.scaling-surface').first())
+    expect(Math.abs(buttons.x + buttons.width - (area.x + area.width))).toBeLessThan(1)
+    expect(Math.abs(buttons.y + buttons.height - (area.y + area.height))).toBeLessThan(1)
+}
+
+/**
+ * Setup at the board's rest view, in a window of `viewport`: a seat waiting on the one setting up.
+ * On a phone the seat setting up has its start site framed, as a pick on the map is while its step
+ * is open. The table opens on a desktop, where nothing is framed and the board rests, and the window
+ * then takes the phone's size: a board at rest stays at rest.
+ */
+async function setupAtRest(page: Page, viewport: { width: number; height: number }) {
+    await openTable(page, 'setup')
+    const { seatId } = await call(page, 'tableFacts')
+    if (seatId === undefined) throw Error('A seat sets up')
+    expect(await call(page, 'viewOffTheClock')).not.toBe(seatId)
+    await expectWaitingOn(page, [seatId])
+    await settledBox(page.locator('.board-surface'))
+    await page.setViewportSize(viewport)
+}
+
+test.describe('the board’s zoom buttons sit in its bottom-right corner, clear of the rail’s goals', () => {
+    test('on a phone held sideways, 812 by 375, at Setup’s rest view they cover no part of the goals', async ({
+        page
+    }) => {
+        await setupAtRest(page, { width: 812, height: 375 })
+        const area = await settledBox(page.locator('.scaling-surface').first())
+        const goals = await settledBox(page.locator('.rail-goals'))
+        expect(overlaps(goals, area)).toBe(true)
+        const buttons = await settledBox(zoomButtons(page))
+        expect(overlaps(buttons, goals)).toBe(false)
+        await expectInBottomRight(page, buttons)
+    })
+
+    // Held upright, Setup frames the seat's start site with the rail off screen, so the board at rest
+    // under a "Keep one." of three cards is the Search's.
+    test('on a phone held upright, 375 by 812, under “Keep one.” and panned to the board’s left edge, they cover no part of the Oath’s box', async ({
+        page
+    }) => {
+        await page.setViewportSize({ width: 375, height: 812 })
+        await openTable(page, 'searching')
+        await expect(grid(page).getByText('Keep one.', { exact: true })).toBeVisible()
+        const surface = page.locator('.scaling-surface').first()
+        await surface.scrollIntoViewIfNeeded()
+        const area = await settledBox(surface)
+        const board = await settledBox(page.locator('.board-surface'))
+        // A pan by hand that brings the board's left edge to the area's left edge.
+        const start = { x: area.x + area.width / 2, y: area.y + area.height / 2 }
+        await page.mouse.move(start.x, start.y)
+        await page.mouse.down()
+        await page.mouse.move(start.x + (area.x - board.x), start.y, { steps: 12 })
+        await page.mouse.up()
+        const panned = await settledBox(page.locator('.board-surface'))
+        expect(Math.abs(panned.x - area.x)).toBeLessThan(2)
+
+        const oath = await settledBox(page.locator('.rail-goals .box').first())
+        expect(overlaps(oath, area)).toBe(true)
+        const buttons = await settledBox(zoomButtons(page))
+        expect(overlaps(buttons, oath)).toBe(false)
+        await expectInBottomRight(page, buttons)
+    })
+
+    test('on a desktop, 1280 by 900, they sit under the board', async ({ page }) => {
+        await setupAtRest(page, { width: 1280, height: 900 })
+        const board = await settledBox(page.locator('.board-surface'))
+        const buttons = await settledBox(zoomButtons(page))
+        expect(buttons.y).toBeGreaterThanOrEqual(board.y + board.height)
+        await expectInBottomRight(page, buttons)
+    })
+})
+
 test('scenario 45: choosing a focus leaves the staged action, the lit sites and the panel unchanged', async ({ page }) => {
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
