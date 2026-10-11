@@ -32,18 +32,24 @@ import {
     reasonPersistentForbidsFaceupVision,
     reasonPersistentForbidsSecretCost,
     reasonPersistentForbidsBannerTake,
-    reasonPersistentForbidsRelicTake
+    reasonPersistentForbidsRelicTake,
+    persistentRefusesBannerTake,
+    persistentRefusesRelicTake,
+    persistentRefusesSecretCost
 } from './persistent.js'
 import { categoryAt, homelandPayout } from './sitePowers.js'
 import { takeRelicsFrom } from './relics.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
-/** R-5.1.4.IV — two faceup advisers whose suits each match one of the target's. */
-export function conspiracyMatchIsValid(
+/** R-5.1.4.IV — "at least two advisers that match the suit of any of their advisers". */
+const CONSPIRACY_MATCHES_NEEDED = 2
+
+/** R-5.1.4.IV — how many of the player's faceup advisers match a suit of the target's faceup advisers. */
+export function conspiracyMatchCount(
     state: HydratedOathGameState,
     playerId: string,
     targetPlayerId: string
-): boolean {
+): number {
     const target = state.getPlayerState(targetPlayerId)
 
     const targetSuits = new Set(
@@ -53,12 +59,91 @@ export function conspiracyMatchIsValid(
             .filter((suit) => suit !== undefined)
     )
 
-    const matching = [...targetSuits].reduce(
+    return [...targetSuits].reduce(
         (count, suit) => count + advisersOfSuit(state, playerId, suit),
         0
     )
+}
 
-    return matching >= 2
+/** R-5.1.4.IV — two faceup advisers whose suits each match one of the target's. */
+export function conspiracyMatchIsValid(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetPlayerId: string
+): boolean {
+    return conspiracyMatchCount(state, playerId, targetPlayerId) >= CONSPIRACY_MATCHES_NEEDED
+}
+
+/** A prize the target holds, the card whose persistent power forbids taking it, and its refusal. */
+export interface ConspiracyTakeGuard {
+    take: ConspiracyTake
+    cardId: string
+    reason: string
+}
+
+/**
+ * Why the Conspiracy's take from a player at the site is refused, by cause, in the order
+ * `reasonCannotPlayConspiracy` checks: the secret, a power barring secret costs (Spell Breaker),
+ * the match, then the prizes (none held, or every one guarded).
+ */
+export type ConspiracyTakeRefusal =
+    | { cause: 'secret'; has: number }
+    | { cause: 'secretCost'; cardId: string }
+    | { cause: 'match'; needs: number; has: number }
+    | { cause: 'nothingHeld' }
+    | { cause: 'guarded'; guards: ConspiracyTakeGuard[] }
+
+/** The first cause that refuses every take from a player at the site; none when some take is open. */
+export function conspiracyTakeRefusal(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetPlayerId: string
+): ConspiracyTakeRefusal | undefined {
+    const secrets = state.getPlayerState(playerId).secrets
+    // R-7.1.2.a — facedown secrets cannot pay a cost.
+    if (secrets < 1) return { cause: 'secret', has: secrets }
+    const barred = persistentRefusesSecretCost(state, playerId)
+    if (barred) return { cause: 'secretCost', cardId: barred.cardId }
+    const matching = conspiracyMatchCount(state, playerId, targetPlayerId)
+    if (matching < CONSPIRACY_MATCHES_NEEDED) {
+        return { cause: 'match', needs: CONSPIRACY_MATCHES_NEEDED, has: matching }
+    }
+
+    const prizes = conspiracyPrizesHeld(state, targetPlayerId)
+    if (prizes.length === 0) return { cause: 'nothingHeld' }
+    const guards: ConspiracyTakeGuard[] = []
+    for (const take of prizes) {
+        const guard = conspiracyTakeGuard(state, playerId, targetPlayerId, take)
+        if (!guard) return undefined
+        guards.push({ take, ...guard })
+    }
+    return { cause: 'guarded', guards }
+}
+
+/** R-5.1.4.IV — "any one relic or banner" the target holds. */
+function conspiracyPrizesHeld(
+    state: HydratedOathGameState,
+    targetPlayerId: string
+): ConspiracyTake[] {
+    const relics = state
+        .getPlayerState(targetPlayerId)
+        .relicIds.map((cardId): ConspiracyTake => ({ kind: 'relic', cardId }))
+    const banners = Object.values(Banner)
+        .filter((banner) => bannerHolder(state, banner) === targetPlayerId)
+        .map((banner): ConspiracyTake => ({ kind: 'banner', banner }))
+    return [...relics, ...banners]
+}
+
+// As `reasonCannotTakeByConspiracy` judges a prize the target holds.
+function conspiracyTakeGuard(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetPlayerId: string,
+    take: ConspiracyTake
+) {
+    return take.kind === 'relic'
+        ? persistentRefusesRelicTake(state, playerId, targetPlayerId, take.cardId)
+        : persistentRefusesBannerTake(state, playerId, take.banner, 'seize', targetPlayerId)
 }
 
 export function reasonCannotPlayConspiracy(
