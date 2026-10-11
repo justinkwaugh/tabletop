@@ -69,6 +69,8 @@ export const OathGameState = Type.Object({
 
     /** Grand Scepter — "You cannot use this if you took it on this turn" (R-6.4, R-6.6.1, R-6.7). */
     grandScepterTakenOnTurnStart: Type.Optional(Type.Number()),
+    /** Who took it on that turn; one given to them in an exchange is not taken (its Q&A). R-X.4: from revision 5. */
+    grandScepterTakenBy: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
 
     /** An enum, never the pool's ids: public state must not enumerate the deck (R-9.4). */
     setupVariant: Type.Optional(Type.Enum(SetupVariant)),
@@ -180,6 +182,7 @@ export class HydratedOathGameState
     declare restResolvedForTurnStart?: number
     declare pendingSearchModifiers?: PowerUse[]
     declare grandScepterTakenOnTurnStart?: number
+    declare grandScepterTakenBy?: string[]
     declare setupVariant?: SetupVariant
     declare map: Record<Region, string[]>
     declare siteCards: Record<string, string>

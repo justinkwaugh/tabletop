@@ -6,7 +6,7 @@ import { afterRelicsTakenPersistent } from './persistent.js'
 /** R-6.4 — taking the Grand Scepter is recorded, since it cannot be used that turn. */
 export function takeRelic(state: HydratedOathGameState, playerId: string, cardId: string): void {
     state.getPlayerState(playerId).relicIds.push(cardId)
-    if (cardId === GRAND_SCEPTER_ID) recordGrandScepterTaken(state)
+    if (cardId === GRAND_SCEPTER_ID) recordGrandScepterTaken(state, playerId)
 }
 
 /** Relic Thief — "After a player takes any relics": every take, however it is made, is reported. */
