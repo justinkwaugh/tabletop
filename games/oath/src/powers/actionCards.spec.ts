@@ -17,9 +17,11 @@ import { answerQuestion } from '../testing/steps.js'
 import { actionPowerUse, bank, boardWarbands, card, player, site, siteWarbands } from '../testing/choices.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { spectator } from '../testing/projection.js'
+import { OathRevision } from '../util/revision.js'
 
 const JINX = 'denizen.arcane.jinx'
 const MEMORY_OF_NATURE = 'denizen.beast.memory-of-nature'
+const FORGOTTEN_VAULT = 'denizen.arcane.forgotten-vault'
 
 /** Powerless beast denizens, enough to fill every map slot beside Memory of Nature. */
 const TEST_BEASTS = Array.from({ length: 23 }, (_, i) => `denizen.test.beast-${i + 1}`)
@@ -170,7 +172,7 @@ describe('Arcane', () => {
         expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.RestPhase)
     })
 
-    it('Forgotten Vault — places by default, burns on a yes, never below the floor', () => {
+    it('Forgotten Vault — in a game created before revision 8: places by default, burns on a yes, a burn at the last secret burns nothing', () => {
         const place = board(['denizen.arcane.forgotten-vault'])
         actionPowerUse('ruler', 'denizen.arcane.forgotten-vault').apply(place)
         expect(place.banners[Banner.DarkestSecret].value).toBe(2)
@@ -181,10 +183,34 @@ describe('Arcane', () => {
         expect(burn.banners[Banner.DarkestSecret].value).toBe(2)
 
         const floor = board(['denizen.arcane.forgotten-vault'])
+        floor.oathRevision = OathRevision.EngineFixes3
         const a = actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [{ kind: PowerChoiceKind.Yes }])
         a.apply(floor)
         expect(floor.banners[Banner.DarkestSecret].value).toBe(1)
         expect(a.metadata?.summary).toMatch(/burned 0/)
+    })
+
+    it('Forgotten Vault — from revision 8, a burn at the last secret is refused ("not last"); a place there and a burn above it are not', () => {
+        const atRevision = (value: number) => {
+            const s = board([FORGOTTEN_VAULT])
+            s.oathRevision = OathRevision.EngineFixes4
+            s.banners[Banner.DarkestSecret].value = value
+            return s
+        }
+        const burnAt = atRevision(1)
+        const before = burnAt.dehydrate()
+        expect(() => actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burnAt)).toThrow(
+            /only its last secret, which cannot be burned/
+        )
+        expect(burnAt.dehydrate()).toEqual(before)
+
+        const burn = atRevision(2)
+        actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burn)
+        expect(burn.banners[Banner.DarkestSecret].value).toBe(1)
+
+        const place = atRevision(1)
+        actionPowerUse('ruler', FORGOTTEN_VAULT).apply(place)
+        expect(place.banners[Banner.DarkestSecret].value).toBe(2)
     })
 })
 
