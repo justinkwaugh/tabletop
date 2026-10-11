@@ -99,5 +99,65 @@ for (const { name, viewport, phone } of SIZES) {
             await provinces.getByRole('button', { name: 'Great Slum' }).click()
             await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
         })
+
+        test('Toll Roads: the ruler sees the toll site marked, and the pick waits on the traveller', async ({ page }) => {
+            await openTable(page, 'woodRulerToll')
+            const provinces = panel(page).getByRole('group', { name: 'Sites in the Provinces' })
+            await expect(provinces.getByRole('button')).toHaveText([/^\s*Great Slum\s*·\s*toll\s*1\s*$/, 'River'])
+            const mark = provinces.getByRole('button').first().locator('.favor-cost')
+            await expect(mark.locator('img[alt="favor"]')).toBeVisible()
+            // The toll's count is gold, as a cost is.
+            const gold = await page.evaluate(() => {
+                const probe = document.createElement('span')
+                probe.style.color = 'var(--oath-accent)'
+                document.querySelector('.panel')?.append(probe)
+                const color = getComputedStyle(probe).color
+                probe.remove()
+                return color
+            })
+            await expect(mark.locator('.favor-cost__count')).toHaveCSS('color', gold)
+
+            await provinces.getByRole('button', { name: /^Great Slum/ }).click()
+            // The table passes to the traveller, asked before anything is paid or moved.
+            await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+            const facts = await call(page, 'tableFacts')
+            expect(facts.seatId).toBe('Jacob')
+            expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
+            expect(facts.favorOf.Jacob).toBe(2)
+        })
+
+        test('Toll Roads at the pick: the traveller pays or refuses before any Supply is paid', async ({ page }) => {
+            expect((await openTable(page, 'woodTollAsked')).seatId).toBe('Jacob')
+            await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+            await expect(panel(page).locator('.question-line')).toHaveText(/^Pay\s*Cole\s*1\?$/)
+            const pay = panel(page).getByRole('button', { name: 'Pay', exact: true })
+            const refuse = panel(page).getByRole('button', { name: 'Refuse', exact: true })
+            const [payBox, refuseBox, panelBox] = [await boxOf(page, pay), await boxOf(page, refuse), await boxOf(page, panel(page))]
+            // One width for the two, the wider label's, never stretched across the panel.
+            expect(Math.abs(payBox.width - refuseBox.width)).toBeLessThan(1)
+            expect(payBox.width + refuseBox.width).toBeLessThan(panelBox.width * 0.6)
+            if (phone) {
+                expect(payBox.height).toBeGreaterThanOrEqual(44)
+                expect(refuseBox.height).toBeGreaterThanOrEqual(44)
+            }
+
+            await pay.click()
+            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+            const facts = await call(page, 'tableFacts')
+            expect(facts.favorOf).toMatchObject({ Jacob: 1 })
+            if (!phone) {
+                await page.getByRole('tab', { name: 'History' }).click()
+                await expect(page.locator('.history')).toContainText("left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply; paid Cole 1 (Toll Roads)")
+            }
+        })
+
+        test('Toll Roads at the pick: refused, the traveller stays in the Wood and pays nothing', async ({ page }) => {
+            await openTable(page, 'woodTollAsked')
+            await panel(page).getByRole('button', { name: 'Refuse', exact: true }).click()
+            await expect(panel(page).getByRole('button', { name: 'Refuse', exact: true })).toHaveCount(0)
+            const facts = await call(page, 'tableFacts')
+            expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
+            expect(facts.favorOf).toMatchObject({ Jacob: 2 })
+        })
     })
 }

@@ -5,7 +5,7 @@ import {
     type PowerMoveToll
 } from '@tabletop/oath'
 import { assertExists } from '@tabletop/common'
-import { cardName, nameSeats, plural } from '$lib/model/names.js'
+import { cardName, nameSeats, plural, siteInLine } from '$lib/model/names.js'
 import type { HistoryNames } from '$lib/model/actionDescription.js'
 
 /** A relic is "the Whistle"; a denizen is named bare ("Palanquin"). */
@@ -19,7 +19,7 @@ function moveClause(record: PowerMoveToll, names: HistoryNames): string {
         case PowerMoveKind.Banish:
             return `banished ${record.movedPlayerId}`
         case PowerMoveKind.ShroudedWood:
-            return `sent ${record.movedPlayerId} from the ${names.site(record.fromSiteId)}`
+            return `sent ${record.movedPlayerId} from ${siteInLine(names.site(record.fromSiteId))}`
         case PowerMoveKind.Whistle:
         case PowerMoveKind.Palanquin:
             return `used ${powerName(record.powerCardId)} on ${record.movedPlayerId}`
@@ -43,17 +43,17 @@ function storyClause(record: PowerMoveToll, names: HistoryNames): string {
                     ? `, taking ${powerName(record.powerCardId)}'s ${plural(secrets, 'secret')}`
                     : ''
             return both
-                ? `${moved} ${givenFavor(record.toll)} (${card}), and both went to the ${names.site(record.toSiteId)}${notes}`
-                : `${moved} ${givenFavor(record.toll)} (${card}) and went to the ${names.site(record.toSiteId)}${taking}${notes}`
+                ? `${moved} ${givenFavor(record.toll)} (${card}), and both went to ${siteInLine(names.site(record.toSiteId))}${notes}`
+                : `${moved} ${givenFavor(record.toll)} (${card}) and went to ${siteInLine(names.site(record.toSiteId))}${taking}${notes}`
         }
         case PowerMoveTollOutcome.Refused:
             return both
                 ? `${moved} refused ${card}, and neither moved`
-                : `${moved} refused ${card} and stayed at the ${names.site(record.fromSiteId)}`
+                : `${moved} refused ${card} and stayed at ${siteInLine(names.site(record.fromSiteId))}`
         case PowerMoveTollOutcome.NoFavor:
             return both
                 ? `${moved} had no favor for ${card}, and neither moved`
-                : `${moved} had no favor for ${card} and stayed at the ${names.site(record.fromSiteId)}`
+                : `${moved} had no favor for ${card} and stayed at ${siteInLine(names.site(record.fromSiteId))}`
         case PowerMoveTollOutcome.Asked:
             return ''
     }
@@ -88,16 +88,17 @@ export function tollStoryText(
     return nameSeats(storyClause(record, names), names, viewerId, record.moverPlayerId)
 }
 
-/** Forced Labor on Oracle: "and paying Cole 1 favor (Forced Labor)". */
+/** A toll inside another row, what happened then the card: "paid Cole 1 favor (Toll Roads)". */
+export function paidTollClause(toll: PaidToll): string {
+    return `${givenFavor(toll)} (${cardName(toll.cardId)})`
+}
+
+/** Forced Labor on Oracle, after the power's summary: "paid Cole 1 favor (Forced Labor)". */
 export function tollsGivenText(
     tolls: readonly PaidToll[],
     names: HistoryNames,
     viewerId: string | undefined,
     actorId: string | undefined
 ): string {
-    const clauses = tolls.map(
-        (toll) =>
-            `${toll.payeeId ? `paying ${toll.payeeId}` : 'burning'} 1 favor (${cardName(toll.cardId)})`
-    )
-    return nameSeats(clauses.join(' and '), names, viewerId, actorId)
+    return nameSeats(tolls.map(paidTollClause).join('; '), names, viewerId, actorId)
 }

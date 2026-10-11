@@ -379,6 +379,15 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
+    /** Toll Roads — the Shrouded Wood's traveller would be asked to pay at that site, so its pick says so. */
+    woodTollAt(siteId: string): boolean {
+        const question = this.question
+        return (
+            question?.kind === PowerQuestionKind.ShroudedWoodDestination &&
+            powerMoveToll(this.session.gameState, question.travelerPlayerId, siteId) !== undefined
+        )
+    }
+
     async travelTo(siteId: string): Promise<void> {
         await this.send({ kind: PowerQuestionKind.TravelFreeTo, siteId })
     }

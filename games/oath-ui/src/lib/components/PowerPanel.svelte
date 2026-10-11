@@ -1,5 +1,6 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
     import { cardPower, powerKey, type LegalPowerUse, type PowerUseKey } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
@@ -114,7 +115,9 @@
                 {#each draft.tollsOf(p) as toll (toll.cardId)}
                     <p class="mt-1 text-sm">
                         <FavorCost sign="+" count={1} />
-                        {toll.payeeId ? `to ${gameSession.getPlayerName(toll.payeeId)}` : 'burned'}
+                        {#if toll.payeeId}to <PlayerName
+                                playerId={toll.payeeId}
+                            />{:else}burned{/if}
                     </p>
                 {/each}
                 {#if p.choices.length > 0}

@@ -6,12 +6,14 @@ import {
     CampaignTargetKind,
     HydratedAnswerQuestion,
     HydratedCampaignResolveVictory,
+    HydratedTravel,
     HydratedUseActionPower,
     OathRevision,
     PlayerStatus,
     PowerChoiceKind,
     PowerQuestionKind,
     PowerTiming,
+    Travel,
     UseActionPower,
     powerIndexOf,
     type HydratedOathGameState,
@@ -161,15 +163,39 @@ describe('Toll Roads on a power’s move: the History tells the whole story', ()
         }
     })
 
+    it('a site whose name prints its own article keeps it: "The Hidden Place", never "the The Hidden Place"', () => {
+        const s = table()
+        use(s, 'p1', WHISTLE, [jacob])
+        const hidden = { ...names, site: (slotId: string) => (slotId === 'c1' ? 'The Hidden Place' : names.site(slotId)) }
+        const paid = answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true })
+        expect(`Cole ${describeAction(paid, hidden)}`).toBe("Cole used the Whistle on Jacob; Jacob paid Cole 1 favor (Toll Roads) and went to The Hidden Place, taking the Whistle's 1 secret")
+    })
+
+    it("the Shrouded Wood ruler's pick on Jacob's own Travel: the toll first, then the Travel's row with its Supply", () => {
+        const wood = { siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' }, warbandsBySite: { c1: { p1: 2 }, c2: { p1: 1 } } }
+        const woodNames = { ...names, site: (slotId: string) => (slotId === 'c2' ? 'Shrouded Wood' : names.site(slotId)) }
+        const woodRow = (action: GameAction) => `${names.player(rowActorOf(action) ?? '')} ${describeAction(action, woodNames)}`
+        for (const [pay, line] of [
+            [true, "Jacob left the Shrouded Wood for the Great Slum (Cole's pick), paying 2 Supply; paid Cole 1 favor (Toll Roads)"],
+            [false, 'Cole sent Jacob from the Shrouded Wood; Jacob refused Toll Roads and stayed at the Shrouded Wood']
+        ] as const) {
+            const s = table({}, wood)
+            openTurn(s, 'p2')
+            new HydratedTravel(buildAction(Travel, { playerId: 'p2' })).apply(s)
+            expect(woodRow(answer(s, 'p1', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' }))).toBe('Cole sent Jacob from the Shrouded Wood')
+            expect(woodRow(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay }))).toBe(line)
+        }
+    })
+
     it('Brass Horse: its user pays as they travel', () => {
-        const horse = record({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.TravelFreeTo, siteId: 'slot.provinces.1' }, metadata: { cardId: HORSE, kind: PowerQuestionKind.TravelFreeTo, summary: `travelled to the slot.provinces.1 for no Supply, paying p1 1 favor (${TOLL_ROADS})`, resumeMachineState: 'actPhase', last: true } })
-        expect(row(horse)).toBe('Jacob Brass Horse: travelled to the Great Slum for no Supply, paying Cole 1 favor (Toll Roads)')
+        const horse = record({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.TravelFreeTo, siteId: 'slot.provinces.1' }, metadata: { cardId: HORSE, kind: PowerQuestionKind.TravelFreeTo, summary: `travelled to slot.provinces.1 for no Supply; paid p1 1 favor (${TOLL_ROADS})`, resumeMachineState: 'actPhase', last: true } })
+        expect(row(horse)).toBe('Jacob Brass Horse: travelled to Great Slum for no Supply; paid Cole 1 favor (Toll Roads)')
     })
 
     it('Oracle names the Forced Labor toll it paid, to its ruler or burned', () => {
         const oracle = (payeeId?: string) =>
             record({ type: ActionType.UseActionPower, playerId: 'p2', cardId: ORACLE, powerIndex: powerIndexOf(ORACLE, PowerTiming.Action), metadata: { summary: 'Oracle: drew the next Vision; keep it or discard it as if p2 had searched', tollsGiven: [{ cardId: FORCED_LABOR, payeeId }] } })
-        expect(row(oracle('p1'))).toBe('Jacob used Oracle, placing 2 secrets on it and paying Cole 1 favor (Forced Labor): drew the next Vision; keep it or discard it as if Jacob had searched')
-        expect(row(oracle())).toBe('Jacob used Oracle, placing 2 secrets on it and burning 1 favor (Forced Labor): drew the next Vision; keep it or discard it as if Jacob had searched')
+        expect(row(oracle('p1'))).toBe('Jacob used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Jacob had searched; paid Cole 1 favor (Forced Labor)')
+        expect(row(oracle())).toBe('Jacob used Oracle, placing 2 secrets on it: drew the next Vision; keep it or discard it as if Jacob had searched; burned 1 favor (Forced Labor)')
     })
 })

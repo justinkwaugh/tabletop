@@ -27,9 +27,10 @@
         color: var(--oath-accent);
         font-weight: 600;
     }
+    /* No larger than the text beside it. */
     .favor-cost__token {
         display: inline-block;
         width: auto;
-        height: 1.2em;
+        height: 1.1em;
     }
 </style>

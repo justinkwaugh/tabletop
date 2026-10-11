@@ -1,4 +1,3 @@
-import { assertExists } from '@tabletop/common'
 import {
     ActionType,
     Banner,
@@ -17,7 +16,7 @@ import {
     reasonFreeActionComesFirst,
     usableFavor,
     shroudedWoodChooser,
-    shroudedWoodDestinations,
+    tollPayableWoodSites,
     isFreeTravelNow,
     woodPick,
     woodTravelPaysAtPick,
@@ -232,17 +231,18 @@ function sharedCause(
 
 function woodCause(gameState: HydratedOathGameState, playerId: string): KnownRefusal | undefined {
     const player = gameState.getPlayerState(playerId)
-    const here = player.siteId
-    assertExists(here, `${playerId}'s pawn must be at a site`)
+    if (!woodTravelPaysAtPick(gameState)) {
+        const needs = HydratedTravel.shroudedWoodCost(gameState, playerId)
+        return player.supply < needs ? { cause: 'supply', needs, has: player.supply } : undefined
+    }
+    // R-11.7, Toll Roads — as `reasonCannotLeaveShroudedWood` counts it: the sites whose toll the
+    // traveller can pay, the cheapest of them; none at all when each needs a favor they lack.
+    const sites = tollPayableWoodSites(gameState, playerId)
+    if (sites.length === 0) return { cause: 'favor', has: usableFavor(gameState, playerId) }
     const free = isFreeTravelNow(gameState, playerId)
-    // R-11.7 — the cheapest site the ruler may pick, as `reasonCannotLeaveShroudedWood` counts it.
-    const needs = woodTravelPaysAtPick(gameState)
-        ? Math.min(
-              ...shroudedWoodDestinations(gameState, playerId, here).map(
-                  (siteId) => woodPick(gameState, playerId, siteId, free).cost
-              )
-          )
-        : HydratedTravel.shroudedWoodCost(gameState, playerId)
+    const needs = Math.min(
+        ...sites.map((siteId) => woodPick(gameState, playerId, siteId, free).cost)
+    )
     return player.supply < needs ? { cause: 'supply', needs, has: player.supply } : undefined
 }
 

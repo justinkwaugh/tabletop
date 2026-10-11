@@ -1,6 +1,7 @@
 import { mount, tick, unmount } from 'svelte'
 import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
+    AnswerQuestion,
     Banner,
     CampaignDefend,
     CampaignSacrifice,
@@ -159,6 +160,8 @@ export type TableName =
     | 'deedWriter'
     | 'woodTraveller'
     | 'woodRuler'
+    | 'woodRulerToll'
+    | 'woodTollAsked'
     | 'banditCrown'
     | 'banditCrownChancellor'
     | 'banditCrownExile'
@@ -2480,6 +2483,41 @@ function woodRulerTable(): PlayedTable {
     return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Jacob' })])
 }
 
+/**
+ * R-11.7, Toll Roads — the Wood ruler's tables, with Cole also ruling the Great Slum, which holds
+ * Toll Roads, and Jacob holding 2 favor.
+ */
+function woodTollState(): HydratedOathGameState {
+    const state = shroudedWoodState(2, { onBoard: true })
+    const slum = mapSlotsFor(Region.Provinces)[1]
+    state.denizensBySite = { ...state.denizensBySite, [slum]: ['denizen.order.toll-roads'] }
+    state.warbandsBySite = { ...state.warbandsBySite, [slum]: { Cole: 1 } }
+    state.getPlayerState('Jacob').favor = 2
+    return state
+}
+
+/** Jacob has set out from Cole's Wood; Cole picks, the Great Slum marked with its toll. */
+function woodRulerTollTable(): PlayedTable {
+    const table = tableOf(woodTollState())
+    return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Jacob' })])
+}
+
+/** Cole picked the Great Slum: Jacob is asked for the toll before paying any Supply. */
+function woodTollAskedTable(): PlayedTable {
+    const table = tableOf(woodTollState())
+    return played(table, [
+        createAction(Travel, { ...envelope(table), playerId: 'Jacob' }),
+        createAction(AnswerQuestion, {
+            ...envelope(table),
+            playerId: 'Cole',
+            answer: {
+                kind: PowerQuestionKind.ShroudedWoodDestination,
+                siteId: mapSlotsFor(Region.Provinces)[1]
+            }
+        })
+    ])
+}
+
 const BANDIT_CROWN = 'relic.bandit-crown'
 
 /** The empty Provinces site the Bandit Crown's tables enlarge, dealt the Great Slums. */
@@ -2756,6 +2794,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     deedWriter: deedWriterTable,
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
+    woodRulerToll: woodRulerTollTable,
+    woodTollAsked: woodTollAskedTable,
     tollAsked: tollAskedTable,
     oracleToll: () => oracleTable(4),
     oracleNoFavor: () => oracleTable(0)

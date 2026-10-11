@@ -48,6 +48,7 @@ import {
     type CampaignTarget,
     Suit,
     type LetPeek,
+    type PaidToll,
     type ShroudedWoodPick,
     type Search,
     type UseActionPower,
@@ -65,6 +66,7 @@ import {
     plural,
     reliquaryLabel,
     nameIds,
+    siteInLine,
     stripRules,
     suitName,
     warbandsOf,
@@ -78,7 +80,12 @@ import {
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
 import type { WarbandWhose } from '$lib/model/tokenText.js'
-import { tollMoveText, tollStoryText, tollsGivenText } from '$lib/model/tollMoveText.js'
+import {
+    paidTollClause,
+    tollMoveText,
+    tollStoryText,
+    tollsGivenText
+} from '$lib/model/tollMoveText.js'
 
 // Past tense with no leading capital or possessive about the actor: `PlayerName` renders "You" first.
 // R-9.4 — a card is named only where the game showed it, recorded as `playedCardId`.
@@ -486,12 +493,11 @@ function describeActionCited(
         const cost = printedCost(action.cardId, action.powerIndex)
         const toll = action.metadata?.tollMove
         if (toll) return tollMoveText(toll, names, viewerId, cost)
+        // Forced Labor on Oracle — what the power did, then the toll with its card.
         const tolls = action.metadata?.tollsGiven ?? []
         const paying =
-            tolls.length > 0
-                ? `${cost ? ' and' : ','} ${tollsGivenText(tolls, names, viewerId, action.playerId)}`
-                : ''
-        return `used ${cardName(action.cardId)}${cost}${paying}${powerEffect(action, names, viewerId)}`
+            tolls.length > 0 ? `; ${tollsGivenText(tolls, names, viewerId, action.playerId)}` : ''
+        return `used ${cardName(action.cardId)}${cost}${powerEffect(action, names, viewerId)}${paying}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -523,7 +529,12 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
-        if (meta?.woodPick) return describeWoodPick(meta.woodPick, action.playerId, names, viewerId)
+        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover).
+        if (meta?.woodPick) {
+            const toll = meta.tollMove
+            const rulerId = toll?.moverPlayerId ?? action.playerId
+            return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
+        }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
@@ -596,16 +607,16 @@ function describeWoodPick(
     pick: ShroudedWoodPick,
     rulerId: string,
     names: HistoryNames,
-    viewerId: string | undefined
+    viewerId: string | undefined,
+    toll?: PaidToll
 ): string {
-    const site = (slotId: string) => {
-        const name = names.site(slotId)
-        return name.startsWith('a ') || name.startsWith('The ') ? name : `the ${name}`
-    }
+    const site = (slotId: string) => siteInLine(names.site(slotId))
     const paid = pick.supplySpent > 0 ? String(pick.supplySpent) : 'no'
+    // Toll Roads, paid before the Supply, then what fired at the site.
+    const tollClause = toll ? `; ${paidTollClause(toll)}` : ''
     const notes = (pick.notes ?? []).map((note) => `; ${nameIds(note, site)}`).join('')
     return nameSeats(
-        `left the Shrouded Wood for ${site(pick.siteId)} (${rulerId}'s pick), paying ${paid} Supply${notes}`,
+        `left the Shrouded Wood for ${site(pick.siteId)} (${rulerId}'s pick), paying ${paid} Supply${tollClause}${notes}`,
         names,
         viewerId,
         pick.travelerPlayerId

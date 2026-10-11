@@ -11,6 +11,7 @@
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
     import QuestionStackOrder from '$lib/components/QuestionStackOrder.svelte'
     import QuestionToll from '$lib/components/QuestionToll.svelte'
+    import FavorCost from '$lib/components/FavorCost.svelte'
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
     import QuestionWoodPick from '$lib/components/QuestionWoodPick.svelte'
@@ -166,15 +167,21 @@
             {#snippet line()}Travel where? Free.{/snippet}
             <div class="flex flex-wrap gap-1.5">
                 {#each mine.siteIds as siteId (siteId)}
+                    {@const toll = draft.travelTollAt(siteId)}
                     <MenuChoice
-                        label="Travel to {siteName(gameState, siteId)}"
+                        label="Travel to {siteName(gameState, siteId)}{toll
+                            ? ', paying 1 favor'
+                            : ''}"
                         disabled={busy}
                         width={siteWidth}
                         onclick={() => draft.travelTo(siteId)}
                     >
-                        {siteName(gameState, siteId)}{#if draft.travelTollAt(siteId)}<TokenText
-                                text=" · +1 favor"
-                            />{/if}
+                        <span class="whitespace-nowrap"
+                            >{siteName(gameState, siteId)}{#if toll}{' · '}<FavorCost
+                                    sign="+"
+                                    count={1}
+                                />{/if}</span
+                        >
                     </MenuChoice>
                 {/each}
             </div>
@@ -190,7 +197,9 @@
                     disabled={busy}
                     onclick={() => draft.sendThrough(siteId)}
                 >
-                    {siteName(gameState, siteId)}
+                    {siteName(gameState, siteId)}{#if draft.woodTollAt(siteId)}<span
+                            class="whitespace-nowrap">{' · toll '}<FavorCost count={1} /></span
+                        >{/if}
                 </button>
             {/each}
         </div>

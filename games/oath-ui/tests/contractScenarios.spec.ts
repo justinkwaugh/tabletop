@@ -5585,14 +5585,15 @@ test.describe('Toll Roads when a power moves another player', () => {
     test.describe('on a phone', () => {
         test.use({ viewport: { width: 375, height: 812 } })
 
-        test('Pay and Refuse share the row', async ({ page }) => {
+        test('Pay and Refuse are a standard size: one width, side by side, 44 px tall, never stretched', async ({ page }) => {
             await openTable(page, 'tollAsked')
             const { pay, refuse } = answers(page)
             await expect(pay).toBeVisible()
-            const [payBox, refuseBox] = [await pay.boundingBox(), await refuse.boundingBox()]
+            const [payBox, refuseBox, panelBox] = [await pay.boundingBox(), await refuse.boundingBox(), await grid(page).boundingBox()]
             expect(payBox?.width).toBeCloseTo(refuseBox?.width ?? 0, 0)
             expect(payBox?.y).toBeCloseTo(refuseBox?.y ?? 0, 0)
-            expect(payBox?.width ?? 0).toBeGreaterThan(90)
+            expect(payBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+            expect((payBox?.width ?? 999) + (refuseBox?.width ?? 999)).toBeLessThan((panelBox?.width ?? 0) * 0.6)
         })
     })
 })

@@ -1,13 +1,15 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind, PowerQuestionKind, type PowerQuestion } from '@tabletop/oath'
+    import FavorCost from '$lib/components/FavorCost.svelte'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { regionName, siteName } from '$lib/model/names.js'
     import { woodCostNoteShort } from '$lib/model/woodTravel.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-11.7 — the traveller's own Travel: only the sites they can pay for, by region and price.
+    // R-11.7 — the traveller's own Travel: only the sites they can pay for, by region and price;
+    // a site where Toll Roads will ask the traveller reads "· toll 1 [favor]".
     let {
         question
     }: { question: Extract<PowerQuestion, { kind: PowerQuestionKind.ShroudedWoodDestination }> } =
@@ -68,7 +70,12 @@
                                 alt=""
                                 class="h-[34px] w-11 shrink-0 rounded object-cover max-sm:h-7 max-sm:w-9"
                             />
-                            <span>{siteName(gameState, slotId)}</span>
+                            <span
+                                >{siteName(gameState, slotId)}{#if draft.woodTollAt(slotId)}<span
+                                        class="whitespace-nowrap"
+                                        >{' · toll '}<FavorCost count={1} /></span
+                                    >{/if}</span
+                            >
                         </span>
                     </button>
                 {/each}
