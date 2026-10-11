@@ -4,7 +4,7 @@ The **Scenarios** menu in a title's dev harness opens a game at a state worth te
 
 Scenario files are committed, so the team shares them. There are two ways to make one:
 
-- **Save a game.** Play to an interesting moment, then choose **Save this game as a scenario…** and give it a label and a description. The file is written into `scenarios/`, ready to commit.
+- **Save a game.** Play to an interesting moment, then choose **Save this game as a scenario…** and give it a label and a description. The file is written into `scenarios/`, ready to commit. The label names the file, so saving under an existing scenario's label replaces that scenario.
 - **Describe a game.** Ask an AI coding assistant in the repo for the state you want, for example "a Löwenherz game where one player holds two Renegades and it's their turn to choose an action". It follows [`.agents/skills/harness-scenarios/SKILL.md`](../.agents/skills/harness-scenarios/SKILL.md), which `AGENTS.md` points to: it writes a move policy that plays a game to that state, writes the scenario file, and proves the state shows everything you described. A person can follow the guide too.
 
 ## Set up a title

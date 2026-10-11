@@ -215,17 +215,17 @@
         savingScenario = true
     }
 
+    // A label names its file, so saving under a scenario's label replaces that scenario.
     function scenarioId(label: string) {
-        const base =
+        return (
             label
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '') || 'scenario'
-        const taken = new Set(listed.map((entry) => entry.id))
-        let id = base
-        for (let n = 2; taken.has(id); n++) id = `${base}-${n}`
-        return id
+        )
     }
+    let saveId = $derived(scenarioId(saveLabel.trim()))
+    let replacedScenario = $derived(listed.find((entry) => entry.id === saveId))
 
     async function saveScenario() {
         saveError = undefined
@@ -249,7 +249,7 @@
             state,
             actions
         })
-        const id = scenarioId(saveLabel.trim())
+        const id = saveId
         await postScenarioFile({ id, scenario })
         savedSinceLoad = [...savedSinceLoad.filter((entry) => entry.id !== id), { id, scenario }]
     }
@@ -543,6 +543,11 @@
                     placeholder="What this scenario sets up"
                 /></Label
             >
+            {#if replacedScenario}
+                <div class="text-sm text-amber-600 dark:text-amber-400">
+                    Saving replaces the scenario “{replacedScenario.scenario.label}”.
+                </div>
+            {/if}
             {#if saveError}
                 <div class="text-sm text-red-500" role="alert">{saveError}</div>
             {/if}
