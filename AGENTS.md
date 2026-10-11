@@ -56,7 +56,7 @@ For read-only production evidence (logs, Cloud Tasks queues, Firestore records, 
 
 ### Harness scenarios
 
-To add the Scenarios menu or coded scenarios to a title's dev harness, read `docs/harness-scenarios.md`. To make a saved scenario from a description, use `.agents/skills/harness-scenarios/SKILL.md`.
+To set up the Scenarios menu in a title's dev harness, read `docs/harness-scenarios.md`. To make a scenario from a description, use `.agents/skills/harness-scenarios/SKILL.md`.
 
 ### Animation
 

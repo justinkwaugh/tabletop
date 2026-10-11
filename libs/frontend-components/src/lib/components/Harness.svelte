@@ -24,17 +24,33 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
-    import { runHarnessScenario, type HarnessScenario } from '$lib/harness/harnessScenarios.js'
-    import { recordGame, recordedScenarios } from '$lib/harness/harnessScenarioRecording.js'
+    import {
+        listedScenarios,
+        scenarioFile,
+        scenarioGame,
+        type ListedHarnessScenario
+    } from '$lib/harness/harnessScenarioFile.js'
     import { HARNESS_SCENARIO_ENDPOINT } from '$lib/harness/harnessScenarioEndpoint.js'
 
     let {
         definition,
-        scenarios = []
+        scenarios
     }: {
         definition: GameUiDefinition<GameState, HydratedGameState>
-        scenarios?: HarnessScenario[]
+        // The title's scenario files as its dev page loads them, by path; passing them, even none,
+        // shows the Scenarios menu.
+        scenarios?: Record<string, unknown>
     } = $props()
+    // Scenarios saved since the page loaded, which the dev page's file list catches up with only on
+    // the next load; one saved again under the same id replaces the file's entry.
+    let savedSinceLoad: ListedHarnessScenario[] = $state([])
+    let listed = $derived.by(() => {
+        const saved = new Set(savedSinceLoad.map((entry) => entry.id))
+        const loaded = scenarios ? listedScenarios(scenarios) : []
+        return [...loaded.filter((entry) => !saved.has(entry.id)), ...savedSinceLoad].toSorted(
+            (a, b) => a.scenario.label.localeCompare(b.scenario.label)
+        )
+    })
     const appContext = createHarnessAppContext(definition)
     setAppContext(appContext)
 
@@ -53,68 +69,18 @@
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
-        void refreshRecordings()
     })
 
-    // Recordings come from the title's dev server when it has harnessScenarioFiles() installed;
-    // without it, the harness offers no saved scenarios and no saving.
-    let recordingsAvailable = $state(false)
-    let savedScenarios: HarnessScenario[] = $state([])
-
-    async function refreshRecordings() {
-        const recordings = await listRecordings()
-        recordingsAvailable = recordings !== undefined
-        savedScenarios = recordings ? recordedScenarios(recordings) : []
-    }
-
-    async function listRecordings(): Promise<Record<string, unknown> | undefined> {
-        try {
-            const response = await fetch(HARNESS_SCENARIO_ENDPOINT)
-            const listed = response.headers.get('Content-Type')?.includes('application/json')
-            if (!response.ok || !listed) return undefined
-            const recordings: unknown = await response.json()
-            return typeof recordings === 'object' && recordings !== null
-                ? Object.fromEntries(Object.entries(recordings))
-                : undefined
-        } catch {
-            return undefined
-        }
-    }
-
-    // A saved scenario picked for deletion from the menu.
-    let recordingToDelete: string | undefined = $state(undefined)
-    let deleteRecordingOpen = $derived(recordingToDelete !== undefined)
-
-    function selectRecordingToDelete(event: Event, id: string) {
-        event.stopPropagation()
-        scenariosOpen = false
-        recordingToDelete = id
-    }
-
-    async function deleteRecording() {
-        const id = recordingToDelete
-        recordingToDelete = undefined
-        if (!id) return
-        try {
-            await sendToDevServer(
-                `${HARNESS_SCENARIO_ENDPOINT}?id=${encodeURIComponent(id)}`,
-                'DELETE'
-            )
-        } catch (error) {
-            scenarioError = error instanceof Error ? error.message : String(error)
-        }
-        await refreshRecordings()
-    }
-
-    async function sendToDevServer(endpoint: string, method: 'POST' | 'DELETE', body?: unknown) {
-        const response = await fetch(endpoint, {
-            method,
-            ...(body === undefined
-                ? {}
-                : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    async function postScenarioFile(body: unknown) {
+        const response = await fetch(HARNESS_SCENARIO_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         })
         if (response.status === 404) {
-            throw new Error("Add harnessScenarioFiles() to this title's vite.config.ts")
+            throw new Error(
+                "Add harnessScenarioFiles() to this title's vite.config.ts to save scenarios"
+            )
         }
         if (!response.ok) {
             const failure: unknown = await response.json()
@@ -213,29 +179,26 @@
     }
 
     let scenariosOpen = $state(false)
-    let runningScenario: string | undefined = $state(undefined)
+    let openingScenario: string | undefined = $state(undefined)
     let scenarioError: string | undefined = $state(undefined)
 
-    async function runScenario(scenario: HarnessScenario) {
+    // Opens a fresh local copy, so playing on never changes the scenario file.
+    async function openScenario({ id, scenario }: ListedHarnessScenario) {
         const sessionUser = authorizationService.getSessionUser()
         scenariosOpen = false
-        if (!sessionUser?.username || runningScenario) return
-        runningScenario = scenario.id
+        if (!sessionUser?.username || openingScenario) return
+        openingScenario = id
         scenarioError = undefined
         try {
-            const game = await runHarnessScenario({
-                scenario,
-                definition,
-                gameService,
-                owner: { id: sessionUser.id, name: sessionUser.username }
-            })
+            const copy = scenarioGame(scenario, { id: sessionUser.id, name: sessionUser.username })
+            await gameService.saveGameLocally(copy)
             await gameService.loadGames()
-            await loadGame(game.id)
+            await loadGame(copy.game.id)
         } catch (error) {
-            console.error(`Scenario ${scenario.id} failed`, error)
+            console.error(`Scenario ${id} could not be opened`, error)
             scenarioError = `${scenario.label}: ${error instanceof Error ? error.message : String(error)}`
         } finally {
-            runningScenario = undefined
+            openingScenario = undefined
         }
     }
 
@@ -252,13 +215,13 @@
         savingScenario = true
     }
 
-    function recordingId(label: string) {
+    function scenarioId(label: string) {
         const base =
             label
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '') || 'scenario'
-        const taken = new Set([...scenarios, ...savedScenarios].map((scenario) => scenario.id))
+        const taken = new Set(listed.map((entry) => entry.id))
         let id = base
         for (let n = 2; taken.has(id); n++) id = `${base}-${n}`
         return id
@@ -269,7 +232,6 @@
         try {
             await saveCurrentGame()
             savingScenario = false
-            await refreshRecordings()
         } catch (error) {
             saveError = error instanceof Error ? error.message : String(error)
         }
@@ -279,16 +241,17 @@
         assertExists(gameSession, 'Open a game to save it as a scenario')
         const { game, actions } = await gameService.loadGame(gameSession.game.id)
         assertExists(game?.state, 'The current game could not be loaded')
-        const recording = recordGame({
-            id: recordingId(saveLabel.trim()),
+        const { state, ...record } = game
+        const scenario = scenarioFile({
             label: saveLabel.trim(),
             description: saveDescription.trim(),
-            recordedWith: definition.info.metadata.version,
-            game,
-            state: game.state,
+            game: record,
+            state,
             actions
         })
-        await sendToDevServer(HARNESS_SCENARIO_ENDPOINT, 'POST', recording)
+        const id = scenarioId(saveLabel.trim())
+        await postScenarioFile({ id, scenario })
+        savedSinceLoad = [...savedSinceLoad.filter((entry) => entry.id !== id), { id, scenario }]
     }
 
     async function loadGame(gameId: string) {
@@ -398,38 +361,33 @@
                             style="transform: translateY(-2px) scale(1.5);">+</span
                         >
                     </Button>
-                    {#if scenarios.length > 0 || recordingsAvailable}
+                    {#if scenarios}
                         <Button
                             size="xs"
                             color="alternative"
                             class="ms-1"
-                            disabled={!!runningScenario}
-                            onclick={() => void refreshRecordings()}
-                            >{runningScenario ? 'Building…' : 'Scenarios'}<ChevronDownOutline
+                            disabled={!!openingScenario}
+                            >{openingScenario ? 'Opening…' : 'Scenarios'}<ChevronDownOutline
                                 class="ms-2"
                             /></Button
                         ><Dropdown simple={true} class="max-w-[22rem]" bind:isOpen={scenariosOpen}>
-                            {#each scenarios as scenario (scenario.id)}
-                                {@render scenarioItem(scenario)}
-                            {/each}
-                            {#if savedScenarios.length > 0}
-                                <div
-                                    class="px-3 pt-2 pb-1 text-xs uppercase tracking-wide opacity-60"
-                                >
-                                    Saved
-                                </div>
-                                {#each savedScenarios as scenario (scenario.id)}
-                                    {@render scenarioItem(scenario, true)}
-                                {/each}
-                            {/if}
-                            {#if recordingsAvailable}
+                            {#each listed as entry (entry.id)}
                                 <DropdownItem
-                                    class="w-full px-3 py-2 text-left font-semibold"
-                                    disabled={!gameSession}
-                                    onclick={openSaveScenario}
-                                    >Save this game as a scenario…</DropdownItem
+                                    class="w-full px-3 py-2 text-left"
+                                    onclick={() => openScenario(entry)}
                                 >
-                            {/if}
+                                    <div class="font-semibold">{entry.scenario.label}</div>
+                                    <div class="text-xs opacity-75">
+                                        {entry.scenario.description}
+                                    </div>
+                                </DropdownItem>
+                            {/each}
+                            <DropdownItem
+                                class="w-full px-3 py-2 text-left font-semibold"
+                                disabled={!gameSession}
+                                onclick={openSaveScenario}
+                                >Save this game as a scenario…</DropdownItem
+                            >
                         </Dropdown>
                     {/if}
                 </div>
@@ -559,39 +517,6 @@
     </Modal>
 {/if}
 
-{#snippet scenarioItem(scenario: HarnessScenario, deletable = false)}
-    {#if deletable}
-        <li class="flex items-stretch">
-            <button
-                type="button"
-                class="flex-1 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600"
-                onclick={() => runScenario(scenario)}
-            >
-                <div class="font-semibold">{scenario.label}</div>
-                <div class="text-xs opacity-75">{scenario.description}</div>
-            </button>
-            {@render deleteButton(`Delete ${scenario.label}`, (event) =>
-                selectRecordingToDelete(event, scenario.id)
-            )}
-        </li>
-    {:else}
-        <DropdownItem class="w-full px-3 py-2 text-left" onclick={() => runScenario(scenario)}>
-            <div class="font-semibold">{scenario.label}</div>
-            <div class="text-xs opacity-75">{scenario.description}</div>
-        </DropdownItem>
-    {/if}
-{/snippet}
-
-{#snippet deleteButton(label: string, onclick: (event: Event) => void)}
-    <button
-        type="button"
-        aria-label={label}
-        title={label}
-        class="px-3 hover:bg-gray-100 dark:hover:bg-gray-600"
-        {onclick}><TrashBinSolid class="h-4" /></button
-    >
-{/snippet}
-
 {#if savingScenario}
     <Modal
         bind:open={savingScenario}
@@ -627,15 +552,6 @@
             </div>
         </form>
     </Modal>
-{/if}
-
-{#if recordingToDelete}
-    <DeleteModal
-        bind:open={deleteRecordingOpen}
-        noun="saved scenario"
-        oncancel={() => (recordingToDelete = undefined)}
-        onconfirm={deleteRecording}
-    />
 {/if}
 
 {#if gameToDelete}
