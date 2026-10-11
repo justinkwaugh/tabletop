@@ -41,6 +41,8 @@ import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
+import { MAX_SITE_CAPACITY } from '../data/sites.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -426,12 +428,18 @@ registerEffect(
     }
 )
 
+/**
+ * One favor per pick, as many picks as X can reach: every card the map holds (R-2.1.1's slots, each
+ * holding no more than the largest capacity a site prints, R-2.8.1).
+ */
+const MEMORY_OF_NATURE_PICKS = TOTAL_MAP_SLOTS * MAX_SITE_CAPACITY
+
 // "Action: Move a total of X[favor] from any favor banks to the [suit:beast] bank. X is the number of [suit:beast] cards on the map."
 registerEffect(
     'denizen.beast.memory-of-nature',
     powerIndexOf('denizen.beast.memory-of-nature', PowerTiming.Action),
     {
-        choices: Array.from({ length: 8 }, () =>
+        choices: Array.from({ length: MEMORY_OF_NATURE_PICKS }, () =>
             optional(PowerChoiceKind.FavorBank, { what: 'a source bank' })
         ),
         reasonCannotResolve: (ctx) => {
