@@ -244,6 +244,8 @@ function recordedNotes(action: GameAction): readonly string[] {
         return action.metadata?.planNotes ?? []
     }
     if (isCampaignResolveVictory(action)) return action.metadata?.triggered ?? []
+    // R-5.5.8 — the plans and the end that waited on a banish's answer (Toll Roads, the Shrouded Wood).
+    if (isAnswerQuestion(action)) return action.metadata?.triggered ?? []
     return []
 }
 

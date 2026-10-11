@@ -30,6 +30,7 @@ const WHISTLE = 'relic.whistle'
 const PALANQUIN = 'denizen.order.palanquin'
 const ORACLE = 'denizen.nomad.oracle'
 const HORSE = 'relic.brass-horse'
+const SLANDER = 'denizen.discord.slander'
 
 const NAMES: Record<string, string> = { p1: 'Rhys', p2: 'Dana', p3: 'Anna' }
 const SITES: Record<string, string> = { c1: 'Great Slum', c2: 'River', p1: 'Plains', h1: 'Mountain', 'slot.provinces.1': 'Great Slum' }
@@ -139,6 +140,51 @@ describe('Toll Roads on a power’s move: the History tells the whole story', ()
             expect(row(spoils)).toBe('Rhys took the spoils')
             expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true }))).toBe(line)
         }
+    })
+
+    it("a banish under Slander: the plan's burn follows the answer, in the answer's row (R-5.5.7.III, R-5.5.8)", () => {
+        const won = (state: Record<string, unknown> = {}, over: Record<string, Record<string, unknown>> = {}) =>
+            table({ p1: { siteId: 'c2' }, ...over }, {
+                campaign: {
+                    attackerPlayerId: 'p1',
+                    defenderPlayerId: 'p2',
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 4,
+                    defensePool: 1,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 2,
+                    swords: 5,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    ...campaignRecords(),
+                    plansUsed: [SLANDER],
+                    plansUsedBy: { p1: [SLANDER] },
+                    attackerVictorious: true
+                },
+                ...state
+            })
+        const spoils = (s: HydratedOathGameState, fields: Record<string, unknown>) => {
+            const action = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'p1', placements: [], burnFavor: true, ...fields }))
+            action.apply(s)
+            return action
+        }
+
+        const s = won()
+        expect(row(spoils(s, { banishToSiteId: 'c1' }))).toBe('Rhys took the spoils')
+        expect(row(answer(s, 'p2', { kind: PowerQuestionKind.PayTravelToll, pay: true }))).toBe(
+            'Rhys banished Dana; Dana paid Rhys 1 favor (Toll Roads) and went to the Great Slum; Rhys burned 1 favor; Slander: Dana burned all 2 of their favor'
+        )
+
+        // Out of Rhys's Shrouded Wood (c2), Rhys picks the Mountain, where no toll is asked.
+        const wood = won({ siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' }, warbandsBySite: { c1: { p1: 2 }, c2: { p1: 1 } } }, { p1: { siteId: 'c1' } })
+        expect(row(spoils(wood, { banish: true }))).toBe('Rhys took the spoils')
+        // The fixture's site ids are not slot ids, so the pick's own words keep "h1"; the notes are the point.
+        expect(row(answer(wood, 'p1', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' }))).toBe(
+            'Rhys Shrouded Wood: sent Dana to h1; Rhys burned 2 favor; Slander: Dana burned all 2 of their favor'
+        )
     })
 
     it('Palanquin refused: neither moved', () => {
