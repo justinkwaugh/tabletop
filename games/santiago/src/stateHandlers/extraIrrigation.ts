@@ -94,6 +94,7 @@ export class ExtraIrrigationStateHandler
         context: MachineContext<HydratedSantiagoGameState>
     ): MachineState {
         const state = context.gameState
+        const { type } = action
 
         // EndRoundEvent was queued by endPhase() — now apply drought/escudos and truly transition.
         if (isEndRoundEvent(action)) {
@@ -127,7 +128,7 @@ export class ExtraIrrigationStateHandler
             return this.endPhase(state, context)
         }
 
-        throw new Error(`Unexpected action in ExtraIrrigation: ${(action as ExtraIrrigationAction).type}`)
+        throw new Error(`Unexpected action in ExtraIrrigation: ${type}`)
     }
 
     private computeDriedSquares(state: HydratedSantiagoGameState, isLastRound: boolean): Array<{col: number, row: number, crop: string}> {
