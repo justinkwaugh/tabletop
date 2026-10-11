@@ -8,19 +8,32 @@ const SCENARIO_ID = /^[a-z0-9][a-z0-9-]*$/
 // Lets the dev harness save the current game as a scenario file in the title's scenarios folder,
 // which a browser cannot write to itself. It exists only while the dev server runs.
 export function harnessScenarioFiles({ dir = 'scenarios' }: { dir?: string } = {}): Plugin {
+    let scenarios = ''
+    const isScenarioFile = (path: string) =>
+        path.startsWith(`${scenarios}${sep}`) && path.endsWith('.json')
     return {
         name: 'tabletop-harness-scenario-files',
         apply: 'serve',
+        configResolved(config) {
+            scenarios = resolve(config.root, dir)
+        },
+        // Vite answers a scenario file added, changed or removed by updating the dev page, which
+        // closes the open game, or, for a removed file, shows an error for it. The open page keeps
+        // its game and menu instead, and lists a save itself.
+        hotUpdate: {
+            // After Vite's own glob handling, which adds the dev page to the update
+            order: 'post',
+            handler({ file }) {
+                if (isScenarioFile(file)) return []
+            }
+        },
         configureServer(server) {
-            const scenarios = resolve(server.config.root, dir)
             // Vite keeps the dev page's list of scenario files from when it first compiled it, so
             // any scenario file added, changed or removed, by a save or by anyone else, marks
             // everything for recompiling, and the next page load lists the folder as it is.
             server.watcher.add(scenarios)
             server.watcher.on('all', (_event, path) => {
-                if (path.startsWith(`${scenarios}${sep}`) && path.endsWith('.json')) {
-                    server.moduleGraph.invalidateAll()
-                }
+                if (isScenarioFile(path)) server.moduleGraph.invalidateAll()
             })
             server.middlewares.use(HARNESS_SCENARIO_ENDPOINT, saveRoute(scenarios))
         }
@@ -43,15 +56,34 @@ export async function saveScenarioFile(dir: string, body: string): Promise<strin
     return file
 }
 
-function saveRoute(dir: string): Connect.NextHandleFunction {
+// Far above any scenario a full game produces, so only a runaway request reaches it.
+const MAX_SCENARIO_BYTES = 20 * 1024 * 1024
+
+// Only JSON requests: a web page can send a cross-site form post here without asking, but a JSON
+// one makes the browser ask the dev server first, which refuses other sites.
+export function saveRoute(dir: string): Connect.NextHandleFunction {
     return (request, response) => {
         if (request.method !== 'POST') {
             response.statusCode = 405
             response.end()
             return
         }
+        const contentType = request.headers['content-type']?.split(';')[0].trim()
+        if (contentType !== 'application/json') {
+            respond(response, 415, { error: 'A scenario file is saved as JSON' })
+            return
+        }
         const chunks: Buffer[] = []
-        request.on('data', (chunk: Buffer) => chunks.push(chunk))
+        let size = 0
+        request.on('data', (chunk: Buffer) => {
+            size += chunk.length
+            if (size > MAX_SCENARIO_BYTES) {
+                respond(response, 413, { error: 'That scenario is too large to save' })
+                request.destroy()
+                return
+            }
+            chunks.push(chunk)
+        })
         request.on('end', () => {
             saveScenarioFile(dir, Buffer.concat(chunks).toString('utf8'))
                 .then((file) => respond(response, 200, { file }))

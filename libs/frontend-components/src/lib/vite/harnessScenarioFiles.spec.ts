@@ -1,8 +1,9 @@
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { saveScenarioFile } from './harnessScenarioFiles.js'
+import { saveRoute, saveScenarioFile } from './harnessScenarioFiles.js'
 
 describe('saveScenarioFile', () => {
     let root: string
@@ -47,5 +48,62 @@ describe('saveScenarioFile', () => {
         await expect(saveScenarioFile(dir, JSON.stringify({ id: 'empty' }))).rejects.toThrow(
             'needs its scenario'
         )
+    })
+})
+
+describe('saveRoute', () => {
+    let root: string
+    let dir: string
+    let server: Server
+    let url: string
+
+    beforeEach(async () => {
+        root = await mkdtemp(join(tmpdir(), 'harness-scenarios-'))
+        dir = join(root, 'scenarios')
+        const route = saveRoute(dir)
+        server = createServer((request, response) => route(request, response, () => {}))
+        await new Promise<void>((listening) => server.listen(0, '127.0.0.1', listening))
+        const address = server.address()
+        if (typeof address !== 'object' || address === null) throw new Error('No test server port')
+        url = `http://127.0.0.1:${address.port}`
+    })
+
+    afterEach(async () => {
+        await new Promise((closed) => server.close(closed))
+        await rm(root, { recursive: true, force: true })
+    })
+
+    test('saves a JSON request', async () => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 'duel', scenario: { label: 'Duel' } })
+        })
+
+        expect(response.status).toBe(200)
+        expect(await readdir(dir)).toEqual(['duel.json'])
+    })
+
+    // A cross-site form post arrives as text/plain without the browser asking the server first
+    test('refuses a request that is not JSON', async () => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ id: 'duel', scenario: { label: 'Duel' } })
+        })
+
+        expect(response.status).toBe(415)
+        await expect(readdir(dir)).rejects.toThrow()
+    })
+
+    test('refuses a request too large to be a scenario', async () => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 'huge', scenario: 'x'.repeat(21 * 1024 * 1024) })
+        })
+
+        expect(response.status).toBe(413)
+        await expect(readdir(dir)).rejects.toThrow()
     })
 })
