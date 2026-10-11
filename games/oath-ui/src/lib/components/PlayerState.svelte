@@ -82,7 +82,7 @@
         <button
             type="button"
             class="pill"
-            aria-label="Open {player.name}'s seat"
+            aria-label="Open {player.name}'s seat{isMe ? ' (you)' : ''}"
             onclick={() => gameSession.seatDetail.toggle(player.id)}
             >{player.name}{isMe ? ' · you' : ''}</button
         >

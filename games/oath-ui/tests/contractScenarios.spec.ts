@@ -6890,6 +6890,14 @@ test.describe('no hover titles in Oath’s own areas', () => {
         await expectNoHoverTitles(page, 'the open seat')
     })
 
+    test('a name pill’s accessible name opens the seat and keeps its words, the player’s own pill “you” as it shows', async ({ page }) => {
+        await openTable(page, 'trade')
+        const own = page.locator('.seat .pill', { hasText: 'you' })
+        await expect(own).toHaveText('me · you')
+        await expect(own).toHaveAccessibleName("Open me's seat (you)")
+        await expect(page.locator('.seat .pill', { hasText: 'ann' })).toHaveAccessibleName("Open ann's seat")
+    })
+
     test('the Rest in a game created before the turn-flow revision lists only the powers the engine accepts', async ({ page }) => {
         await openTable(page, 'restRefused')
         await expect(grid(page)).toContainText('Vow of Obedience')
