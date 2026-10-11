@@ -68,6 +68,7 @@ import {
     type BattleSelections
 } from './battleSelection.js'
 import {
+    battleLocalesOf,
     battleStageOf,
     commandersGoing,
     cycleLoss,
@@ -158,6 +159,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private selection: CommandSelection = $state(noCommandSelection())
     private setup: SetupSelection = $state(noSetupSelection())
     private battle: BattleSelections = $state(emptyBattleSelections())
+    private readonly pickUpListeners = new Set<() => void>()
 
     zoom = $state(0.3)
 
@@ -206,17 +208,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return deployment && playerId ? previewDeployment(this.gameState, playerId, deployment) : {}
     })
 
-    battleLocales: number[] = $derived.by(() => {
-        const attack = this.attack
-        if (!attack) {
-            return []
-        }
-        const map = this.gameState.map
-        return [
-            map.approach(attack.attackApproach).locale,
-            map.approach(attack.defenseApproach).locale
-        ]
-    })
+    battleLocales: number[] = $derived(battleLocalesOf(this.gameState))
 
     sprites: GroupSprite[] = $derived(
         layoutPieces(this.setupPreview.state ?? this.gameState, {
@@ -466,13 +458,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (this.isDeploying) {
             assertExists(group.commander, 'Only a corps is picked up during set-up')
             this.stageSetup(toggleSetupCorps(this.setup, group.commander.id))
-            return
+        } else {
+            this.stageCommand(
+                pickedUpOf(this.selection)?.groupKey === group.key
+                    ? noCommandSelection()
+                    : setPickedUp({ groupKey: group.key })
+            )
         }
-        this.stageCommand(
-            pickedUpOf(this.selection)?.groupKey === group.key
-                ? noCommandSelection()
-                : setPickedUp({ groupKey: group.key })
-        )
+        this.announcePickUp()
     }
 
     tapBlock(group: PieceGroup, unitId: string) {
@@ -493,6 +486,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
                         : { groupKey: group.key, tappedUnitId: unitId }
                 )
             )
+            this.announcePickUp()
         }
     }
 
@@ -503,6 +497,15 @@ export class NapoleonsTriumphGameSession extends GameSession<
     selectReinforcement(reinforcement: Reinforcement) {
         if (this.reinforcements.some((candidate) => candidate.key === reinforcement.key)) {
             this.stageCommand(setPickedUp({ groupKey: reinforcement.key }))
+            this.announcePickUp()
+        }
+    }
+
+    /** The table moves the view for pieces just picked up; it is told when, rather than watching the selection. */
+    onPickUp(listener: () => void): () => void {
+        this.pickUpListeners.add(listener)
+        return () => {
+            this.pickUpListeners.delete(listener)
         }
     }
 
@@ -937,6 +940,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     // The shared session ignores actions while it settles one and then resets these selections, so nothing is staged meanwhile.
+    private announcePickUp() {
+        if (this.selectedGroup) {
+            for (const listener of this.pickUpListeners) {
+                listener()
+            }
+        }
+    }
+
     private stageCommand(selection: CommandSelection) {
         if (!this.busy) {
             this.selection = selection

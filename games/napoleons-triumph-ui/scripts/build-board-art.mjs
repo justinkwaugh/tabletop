@@ -12,7 +12,7 @@ const [
 if (!source) {
     console.error(
         'Usage: node scripts/build-board-art.mjs <source image> [sharp module dir]\n' +
-            'Writes the board art used by the UI: a full-detail image, a light one that loads first, and the cover.'
+            'Writes the board art used by the UI: a full-detail image and a light one that loads first.'
     )
     process.exit(1)
 }
@@ -30,9 +30,3 @@ for (const [name, width, quality] of [
         .toFile(join(out, `${name}.webp`))
     console.log(name, info.width, info.height, Math.round(info.size / 1024), 'KB')
 }
-const cover = await sharp(source, { limitInputPixels: false })
-    .extract({ left: 1500, top: 2600, width: 2400, height: 1800 })
-    .resize({ width: 800 })
-    .jpeg({ quality: 82 })
-    .toFile(join(out, 'cover.jpg'))
-console.log('cover', cover.width, cover.height, Math.round(cover.size / 1024), 'KB')

@@ -21,6 +21,7 @@ import {
 } from './battleSelection.js'
 import {
     BattleRole,
+    battleLocalesOf,
     battleStageOf,
     commandersGoing,
     cycleLoss,
@@ -814,6 +815,18 @@ describe('regrouping a corps thrown back', () => {
         )
         expect(keptByCommander(other)).toEqual({ lannes: 'F-inf-b' })
         expect(other.roles).toEqual({ 'F-inf-b': BattleRole.Stays })
+    })
+})
+
+describe('the locales of a battle', () => {
+    it('are none while no attack is on', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        expect(battleLocalesOf(game.hydrated)).toEqual([])
+    })
+
+    it('are the attack locale and the defence locale once a threat is made', () => {
+        expect(battleLocalesOf(threatened().hydrated)).toEqual([ATTACK_FROM, DEFEND_IN])
     })
 })
 

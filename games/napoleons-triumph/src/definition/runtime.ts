@@ -9,6 +9,7 @@ import { NapoleonsTriumphApiActions } from './apiActions.js'
 import { NapoleonsTriumphColors } from './colors.js'
 import { NapoleonsTriumphHydrator } from './hydrator.js'
 import { NapoleonsTriumphGameInitializer } from './initializer.js'
+import { NapoleonsTriumphScoring } from './scoring.js'
 import { NapoleonsTriumphStateHandlers } from './stateHandlers.js'
 
 export const NapoleonsTriumphRuntime = {
@@ -20,6 +21,7 @@ export const NapoleonsTriumphRuntime = {
     apiActions: NapoleonsTriumphApiActions,
     playerColors: NapoleonsTriumphColors,
     stateLogger: new DefaultStateLogger(),
+    scoring: new NapoleonsTriumphScoring(),
     visibility: {
         state: Visibility.createProjector(NapoleonsTriumphGameState),
         actions: Visibility.createActionProjector(NapoleonsTriumphApiActions)

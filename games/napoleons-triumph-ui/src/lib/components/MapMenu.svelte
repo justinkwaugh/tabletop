@@ -1,8 +1,9 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BoardView, nextView } from '$lib/utils/boardView.js'
+    import { BoardView } from '$lib/utils/boardView.js'
 
-    let { onshowcommandtrack }: { onshowcommandtrack: () => void } = $props()
+    let { onshowcommandtrack, onturn }: { onshowcommandtrack: () => void; onturn: () => void } =
+        $props()
 
     const gameSession = getGameSession()
 
@@ -36,11 +37,7 @@
             onclick={() => (gameSession.darkBorders = !gameSession.darkBorders)}
             >Darker borders</button
         >
-        <button
-            type="button"
-            class="nt-map-chip"
-            aria-label="Turn the map"
-            onclick={() => (gameSession.boardView = nextView(gameSession.boardView))}
+        <button type="button" class="nt-map-chip" aria-label="Turn the map" onclick={onturn}
             >{VIEW_NAMES[gameSession.boardView]}</button
         >
     </div>

@@ -52,11 +52,29 @@ function deal(game: TestGame) {
     }
 }
 
+const SETUPS: { name: string; config: GameConfig; opens: string }[] = [
+    { name: '2 December', config: {}, opens: '2 December · 7:00AM' },
+    { name: '1 December', config: { scenario: 'December1' }, opens: '1 December · 7:00AM' },
+    { name: 'the Santon', config: { santon: true }, opens: '2 December · 7:00AM' },
+    {
+        name: '1 December with the Santon',
+        config: { scenario: 'December1', santon: true },
+        opens: '1 December · 7:00AM'
+    }
+]
+
+const TABLES = SETUPS.flatMap((setup) => SEATINGS.map((seating) => ({ ...setup, seating })))
+
+function finalScores(game: TestGame): Record<string, number> {
+    return NapoleonsTriumphRuntime.scoring.finalScores(game.canonical)
+}
+
 describe('assigned starting positions', () => {
-    it.each(SEATINGS)(
-        'give the first position the Allies, who set up first and move first: %s, %s',
-        (first, second) => {
-            const game = seated([first, second])
+    it.each(TABLES)(
+        'give the first position the Allies, who set up first and move first, in $name seated $seating',
+        ({ config, opens, seating }) => {
+            const [first, second] = seating
+            const game = seated(seating, SEED, config)
             const state = game.hydrated
             expect(state.turnManager.turnOrder).toEqual([first, second])
             expect(state.playerOf(Side.Allied)).toMatchObject({ playerId: first, morale: 27 })
@@ -70,7 +88,7 @@ describe('assigned starting positions', () => {
             expect(game.state.activePlayerIds).toEqual([second])
             game.deploy(Side.French)
             expect(game.state.machineState).toBe(MachineState.Commanding)
-            expect(roundLabel(game.hydrated.currentRound, true)).toBe('2 December · 7:00AM')
+            expect(roundLabel(game.hydrated.currentRound, true)).toBe(opens)
             expect(game.state.activePlayerIds).toEqual([first])
             passTurns(game, 1)
             expect(game.state.activePlayerIds).toEqual([second])
@@ -86,6 +104,7 @@ describe('assigned starting positions', () => {
             expect(game.state.machineState).toBe(MachineState.Bidding)
             expect(game.state.activePlayerIds).toEqual([first])
             game.act(ActionType.PlaceBid, first, { amount: 2 })
+            expect(game.state.activePlayerIds).toEqual([second])
             game.act(ActionType.PassBid, second)
             game.act(ActionType.ChooseSide, first, { side: Side.French })
             expect(game.hydrated.playerOf(Side.French)).toMatchObject({
@@ -96,15 +115,39 @@ describe('assigned starting positions', () => {
                 playerId: second,
                 morale: 27
             })
+            expect(game.state.machineState).toBe(MachineState.AlliedSetup)
+            expect(game.state.activePlayerIds).toEqual([second])
+            game.deployBoth()
+            expect(game.state.activePlayerIds).toEqual([second])
+            playOut(game)
+            expect(() => validateGameResult(game.canonical)).not.toThrow()
         }
     )
 
-    it('leave the deal of the blocks, the colours of the armies and the random streams as the seed made them', () => {
-        const ordinary = deal(new TestGame({}, SEED))
-        for (const seating of SEATINGS) {
-            expect(deal(seated(seating))).toEqual(ordinary)
+    it.each(SETUPS)(
+        'leave the deal of the blocks, the colours of the armies and the random streams as the seed made them in $name',
+        ({ config }) => {
+            const ordinary = deal(new TestGame(config, SEED))
+            for (const seating of SEATINGS) {
+                expect(deal(seated(seating, SEED, config))).toEqual(ordinary)
+            }
         }
-    })
+    )
+
+    it.each(TABLES)(
+        'end in a result the tournament accepts, with one point for the victor, in $name seated $seating',
+        ({ config, seating }) => {
+            const game = seated(seating, SEED, config)
+            game.deployBoth()
+            playOut(game)
+            const state = game.hydrated
+            expect(state.result).toBe(GameResult.Win)
+            expect(() => validateGameResult(game.canonical)).not.toThrow()
+            const [winner] = state.winningPlayerIds
+            const loser = seating.find((playerId) => playerId !== winner)
+            expect(finalScores(game)).toEqual({ [winner]: 1, [String(loser)]: 0 })
+        }
+    )
 
     it('change nothing when they ask for the seating the seed would have given', () => {
         const ordinary = new TestGame({}, SEED)

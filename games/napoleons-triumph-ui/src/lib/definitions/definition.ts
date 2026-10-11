@@ -4,7 +4,7 @@ import type {
     HydratedNapoleonsTriumphGameState,
     NapoleonsTriumphProjectedState
 } from '@tabletop/napoleons-triumph'
-import coverImg from '$lib/images/cover.jpg'
+import coverImg from '$lib/images/cover.webp'
 
 export const UiDefinition: GameUiDefinition<
     NapoleonsTriumphProjectedState,

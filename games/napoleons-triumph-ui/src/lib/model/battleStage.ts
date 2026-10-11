@@ -786,3 +786,10 @@ export function rolesShown(
     }
     return { ...(attack ? committedRoles(attack) : {}), ...(stage?.roles ?? {}) }
 }
+
+export function battleLocalesOf(state: HydratedNapoleonsTriumphGameState): number[] {
+    const { attack, map } = state
+    return attack
+        ? [map.approach(attack.attackApproach).locale, map.approach(attack.defenseApproach).locale]
+        : []
+}

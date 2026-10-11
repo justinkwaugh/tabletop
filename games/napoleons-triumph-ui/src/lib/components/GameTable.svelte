@@ -4,12 +4,13 @@
         DefaultTableLayout,
         CustomFont,
         GameSession,
+        type GameStateChangeListener,
         GameChat,
         HistoryControls,
         DefaultTabs
     } from '@tabletop/frontend-components'
     import { assert } from '@tabletop/common'
-    import { onMount, untrack } from 'svelte'
+    import { onMount, tick, untrack } from 'svelte'
     import type {
         HydratedNapoleonsTriumphGameState,
         NapoleonsTriumphProjectedState
@@ -23,12 +24,14 @@
     import ArmiesPanel from '$lib/components/ArmiesPanel.svelte'
     import History from '$lib/components/History.svelte'
     import { NapoleonsTriumphGameSession } from '$lib/model/session.svelte'
+    import type { GroupSprite, PieceGroup } from '$lib/utils/pieceLayout.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import MapMenu from '$lib/components/MapMenu.svelte'
     import MoveReplay from '$lib/components/MoveReplay.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+    import { battleLocalesOf } from '$lib/model/battleStage.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
-    import { boundsOf, viewFor } from '$lib/utils/boardView.js'
+    import { boundsOf, nextView, viewFor } from '$lib/utils/boardView.js'
     import { commandTrackCorners } from '$lib/utils/commandTrack.js'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
@@ -50,17 +53,11 @@
     let wrapper: ScalingWrapper | undefined = $state()
     let restoreView: ReturnType<ScalingWrapper['captureView']> | undefined
     let boardHost: HTMLElement | undefined = $state()
+    let table: HTMLElement | undefined = $state()
     let ordersDrawerHeight = $state(0)
     const boardCovered = $derived(
         session.isCommanding && session.selectedGroup ? ordersDrawerHeight : 0
     )
-
-    // The armies sit along the long sides of the board (rule 4 map), so a wide screen opens turned to the viewer's side.
-    onMount(() => {
-        if (window.innerWidth > window.innerHeight) {
-            session.boardView = viewFor(session.mySide)
-        }
-    })
 
     const turnColour = $derived.by(() => {
         const [activePlayerId] = session.gameState.activePlayerIds
@@ -107,57 +104,98 @@
 
     const UNCOVERED_PADDING = 60
 
-    // The orders sheet hangs over the top of the board, so pieces picked up beneath it are brought out from under it at the zoom the board already has.
-    $effect(() => {
-        const sprite = session.selectedSprite
-        const covered = boardCovered
-        untrack(() => {
-            if (!wrapper || !boardHost || !sprite || covered === 0) return
-            const pieces = boardHost.querySelector(`[data-group="${CSS.escape(sprite.group.key)}"]`)
-            const sheetBottom = boardHost.getBoundingClientRect().top + covered
-            if (!pieces || pieces.getBoundingClientRect().top >= sheetBottom) return
-            wrapper.focusRect(
-                boundsOf(sprite.blocks.flatMap(blockCorners), session.boardRotation),
-                { animate: true, maxScale: session.zoom, padding: UNCOVERED_PADDING }
-            )
+    function showBattle(locales: number[], animate: boolean) {
+        if (!wrapper) return
+        if (locales.length === 0) {
+            restoreView?.({ animate })
+            restoreView = undefined
+            return
+        }
+        restoreView ??= wrapper.captureView()
+        wrapper.focusRect(boundsOf(outlines(locales), session.boardRotation), {
+            animate,
+            ...BATTLE_FOCUS
         })
-    })
+    }
 
-    const battleKey = $derived(`${session.battleLocales.join(':')}|${session.boardRotation}`)
-
-    $effect(() => {
-        void battleKey
-        untrack(() => {
-            if (!wrapper) return
-            const locales = session.battleLocales
-            if (locales.length === 0) {
-                restoreView?.({ animate: true })
-                restoreView = undefined
-                return
-            }
-            restoreView ??= wrapper.captureView()
-            wrapper.focusRect(boundsOf(outlines(locales), session.boardRotation), {
-                animate: true,
-                ...BATTLE_FOCUS
-            })
-        })
-    })
-
-    $effect(() => {
-        const group = session.selectedGroup
-        untrack(() => {
-            if (!wrapper || !group || session.zoom >= SELECTION_FOCUS_BELOW_ZOOM) return
-            const locales = [
-                ...(group.position ? [group.position.locale] : []),
-                ...session.targets.map((target) => target.position.locale)
-            ]
-            const points = outlines(locales)
-            if (points.length === 0) return
-            wrapper.focusRect(boundsOf(points, session.boardRotation), {
-                animate: true,
+    function showWholeFieldPick(group: PieceGroup, animate: boolean) {
+        const locales = [
+            ...(group.position ? [group.position.locale] : []),
+            ...session.targets.map((target) => target.position.locale)
+        ]
+        const points = outlines(locales)
+        if (points.length > 0) {
+            wrapper?.focusRect(boundsOf(points, session.boardRotation), {
+                animate,
                 ...SELECTION_FOCUS
             })
-        })
+        }
+    }
+
+    // The orders sheet hangs over the top of the board, so pieces picked up beneath it are brought out from under it at the zoom the board already has.
+    function uncover(sprite: GroupSprite, sheet: Element, animate: boolean) {
+        const pieces = boardHost?.querySelector(`[data-group="${CSS.escape(sprite.group.key)}"]`)
+        if (pieces && pieces.getBoundingClientRect().top < sheet.getBoundingClientRect().bottom) {
+            wrapper?.focusRect(
+                boundsOf(sprite.blocks.flatMap(blockCorners), session.boardRotation),
+                { animate, maxScale: session.zoom, padding: UNCOVERED_PADDING }
+            )
+        }
+    }
+
+    async function showPickedUp(animate: boolean) {
+        await tick()
+        const group = session.selectedGroup
+        if (!group) return
+        const sheet = table?.querySelector('.nt-orders-drawer')
+        if (sheet) {
+            ordersDrawerHeight = sheet.clientHeight
+            await tick()
+        }
+        if (session.zoom < SELECTION_FOCUS_BELOW_ZOOM) {
+            showWholeFieldPick(group, animate)
+        } else if (sheet && session.selectedSprite) {
+            uncover(session.selectedSprite, sheet, animate)
+        }
+    }
+
+    async function turnBoard() {
+        session.boardView = nextView(session.boardView)
+        await tick()
+        if (session.battleLocales.length > 0) {
+            showBattle(session.battleLocales, false)
+        }
+    }
+
+    // A committed action animates the view to and from a battle; Undo, history steps and restores cut to it.
+    const followGame: GameStateChangeListener<HydratedNapoleonsTriumphGameState> = async ({
+        from,
+        to,
+        action,
+        animationContext
+    }) => {
+        const before = from ? battleLocalesOf(from) : []
+        const after = battleLocalesOf(to)
+        if (before.join() !== after.join()) {
+            animationContext.afterAnimations(() => showBattle(after, action !== undefined))
+        }
+        if (to.roadMarch && !from?.roadMarch) {
+            animationContext.afterAnimations(() => void showPickedUp(action !== undefined))
+        }
+    }
+
+    // The armies sit along the long sides of the board (rule 4 map), so a wide screen opens turned to the viewer's side.
+    onMount(() => {
+        if (window.innerWidth > window.innerHeight) {
+            session.boardView = viewFor(session.mySide)
+        }
+        showBattle(session.battleLocales, false)
+        session.addGameStateChangeListener(followGame)
+        const stopListening = session.onPickUp(() => void showPickedUp(true))
+        return () => {
+            session.removeGameStateChangeListener(followGame)
+            stopListening()
+        }
     })
 </script>
 
@@ -175,7 +213,7 @@
     fontStyle="italic"
 />
 
-<div class="nt-table bg-[#e9e6dc]">
+<div class="nt-table bg-[#e9e6dc]" bind:this={table}>
     <DefaultTableLayout topPadding={0} horizontalPadding={0}>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -254,7 +292,7 @@
                 >
                     <Board />
                     {#snippet overlay()}
-                        <MapMenu onshowcommandtrack={showCommandTrack} />
+                        <MapMenu onshowcommandtrack={showCommandTrack} onturn={turnBoard} />
                     {/snippet}
                 </ScalingWrapper>
             </div>
