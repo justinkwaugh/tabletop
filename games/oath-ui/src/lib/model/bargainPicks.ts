@@ -4,6 +4,7 @@ import {
     witchsBargainBounds,
     type BargainEntry,
     type HydratedOathGameState,
+    type LegalChoice,
     type PowerChoice
 } from '@tabletop/oath'
 
@@ -64,8 +65,46 @@ export function bargainRows(
     }
 }
 
-/** A tap on a chip picks its player, and a tap on a picked chip drops them and what they were given. */
-export function withBargainPlayer(picks: readonly BargainPick[], playerId: string): BargainPick[] {
+/** The players the spec offers, in the engine's order. */
+export function bargainPlayers(legal: LegalChoice): string[] {
+    return legal.options.flatMap((option) =>
+        option.kind === PowerChoiceKind.Bargain ? [option.playerId] : []
+    )
+}
+
+/** The one player a required pick allows: shown picked from the start, as every one-option pick is. */
+function onlyPlayer(legal: LegalChoice): string | undefined {
+    const players = bargainPlayers(legal)
+    return legal.spec.min > 0 && players.length === 1 ? players[0] : undefined
+}
+
+/**
+ * The picks the picker shows: those of players the spec offers, or, with nothing picked and one
+ * player offered, that player with nothing given. Derived and never stored, so Undo has nothing
+ * to take back until a count is tapped.
+ */
+export function shownBargainPicks(
+    legal: LegalChoice,
+    picks: readonly BargainPick[]
+): BargainPick[] {
+    const players = bargainPlayers(legal)
+    const shown = picks.filter((pick) => players.includes(pick.playerId))
+    const only = onlyPlayer(legal)
+    return shown.length === 0 && only !== undefined
+        ? [{ playerId: only, secretsGiven: 0, pairsGiven: 0 }]
+        : shown
+}
+
+/**
+ * A tap on a chip picks its player, and a tap on a picked chip drops them and what they were
+ * given; the one player a required pick allows is never dropped.
+ */
+export function withBargainPlayer(
+    legal: LegalChoice,
+    picks: readonly BargainPick[],
+    playerId: string
+): BargainPick[] {
+    if (onlyPlayer(legal) === playerId) return [...picks]
     return picks.some((pick) => pick.playerId === playerId)
         ? picks.filter((pick) => pick.playerId !== playerId)
         : [...picks, { playerId, secretsGiven: 0, pairsGiven: 0 }]
@@ -73,12 +112,13 @@ export function withBargainPlayer(picks: readonly BargainPick[], playerId: strin
 
 /** A tap on the Nth piece (or pair) sets N, and a tap on the one at the count sets 0. */
 export function withBargainCount(
+    legal: LegalChoice,
     picks: readonly BargainPick[],
     playerId: string,
     term: 'secretsGiven' | 'pairsGiven',
     count: number
 ): BargainPick[] {
-    return picks.map((pick) =>
+    return shownBargainPicks(legal, picks).map((pick) =>
         pick.playerId === playerId ? { ...pick, [term]: pick[term] === count ? 0 : count } : pick
     )
 }

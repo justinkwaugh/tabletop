@@ -6156,6 +6156,34 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         expect(facts.favorOf).toEqual({ jacob: 5, cole: 2, ann: 3 })
     })
 
+    test('one other player at your site: their chip starts picked and their rows open; a tap keeps them; Use waits for a count', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainOneOther')
+        await usePower(page).click()
+        await expect(bargainChip(page, 'ann')).toHaveCount(0)
+        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(bargainChip(page, 'cole')).toHaveClass(/ring-oath-accent/)
+        await expect(bargainEntry(page).locator('[data-bargain-with="cole"]')).toHaveCount(1)
+        await expect(secretPieces(page, 'cole')).toHaveCount(3)
+        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        await expect(bargainUse(page)).toHaveCount(0)
+
+        // The pick is required: a tap on the one chip does not drop Cole.
+        await bargainChip(page, 'cole').click()
+        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        await expect(bargainUse(page)).toHaveCount(0)
+
+        await answer(page, 'give cole 2 favor for 1 secret').click()
+        await expect(bargainUse(page)).toBeVisible()
+        // Undo takes back the pair; Cole stays picked.
+        await undoButton(page).click()
+        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
+        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(bargainUse(page)).toHaveCount(0)
+    })
+
     test('with Vow of Silence there is no secrets row; the favor row stays', async ({ page }) => {
         await openTable(page, 'witchsBargainSilenced')
         await usePower(page).click()

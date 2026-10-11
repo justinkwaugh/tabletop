@@ -179,6 +179,7 @@ export type TableName =
     | 'freeCampaignAsked'
     | 'witchsBargain'
     | 'witchsBargainSilenced'
+    | 'witchsBargainOneOther'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1777,11 +1778,11 @@ function usePowerTable(): PlayedTable {
 
 /**
  * Witch's Bargain in Jacob's advisers, in a game created at revision 7: Jacob (5 favor, 3 secrets),
- * Cole (4, 2) and Ann (1, 1) all stand at the top Cradle site. With Vow of Silence too, Jacob
- * cannot give anyone secrets.
+ * Cole (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Cole
+ * the only player there. With Vow of Silence too, Jacob cannot give anyone secrets.
  */
-function witchsBargainTable(silenced: boolean): PlayedTable {
-    const [home] = mapSlotsFor(Region.Cradle)
+function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
             testPlayer({
@@ -1808,7 +1809,7 @@ function witchsBargainTable(silenced: boolean): PlayedTable {
                 playerId: 'ann',
                 color: Color.Blue,
                 status: PlayerStatus.Exile,
-                siteId: home,
+                siteId: annAway ? next : home,
                 favor: 1,
                 secrets: 1
             })
@@ -2931,8 +2932,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     showOne: () => showTable('rhys'),
     harpSearch: harpSearchTable,
     usePower: usePowerTable,
-    witchsBargain: () => witchsBargainTable(false),
-    witchsBargainSilenced: () => witchsBargainTable(true),
+    witchsBargain: () => witchsBargainTable(false, false),
+    witchsBargainSilenced: () => witchsBargainTable(true, false),
+    witchsBargainOneOther: () => witchsBargainTable(false, true),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,

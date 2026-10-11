@@ -22,7 +22,7 @@ import {
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
-import { bargainRows, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
+import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -419,8 +419,8 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 describe("Witch's Bargain's picks (revision 7)", () => {
     const BARGAIN = { cardId: WITCHS_BARGAIN, powerIndex: 0 }
     const SILENCE = 'denizen.arcane.vow-of-silence'
-    // The seat holds 5 favor and 3 secrets; Cole 4 and 2, Ann 1 and 1, all at c1.
-    const bargaining = (advisers: string[] = []) => {
+    // The seat holds 5 favor and 3 secrets; Cole 4 and 2, Ann 1 and 1, all at c1 unless Ann is elsewhere.
+    const bargaining = (advisers: string[] = [], annSite = 'c1') => {
         const session = opened(
             table(
                 MachineState.ActPhase,
@@ -428,7 +428,7 @@ describe("Witch's Bargain's picks (revision 7)", () => {
                 { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] }, oathRevision: OathRevision.EngineFixes3 },
                 [
                     testPlayer({ playerId: 'cole', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2 }),
-                    testPlayer({ playerId: 'ann', color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', favor: 1, secrets: 1 })
+                    testPlayer({ playerId: 'ann', color: Color.Yellow, status: PlayerStatus.Exile, siteId: annSite, favor: 1, secrets: 1 })
                 ]
             )
         )
@@ -437,15 +437,16 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         const power = required(draft.powers.find((p) => p.cardId === WITCHS_BARGAIN), "Witch's Bargain is offered")
         const pick = (bargain: BargainPick[]) => draft.setPicks(BARGAIN, { ...emptyPicks(), bargain: { 0: bargain } })
         const picked = () => draft.picksOf(BARGAIN).bargain[0] ?? []
-        return { session, draft, power, pick, picked }
+        const legal = power.choices[0]
+        return { session, draft, power, pick, picked, legal }
     }
 
     it('offers the players at your site; the rows wait for a pick, and Use for a count', () => {
-        const { session, draft, power, pick, picked } = bargaining()
+        const { session, draft, power, pick, picked, legal } = bargaining()
         expect(power.choices.map((c) => c.spec.kind)).toEqual([PowerChoiceKind.Bargain])
         expect(power.choices[0].options.map((o) => (o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind))).toEqual(['cole', 'ann'])
         expect(draft.picksComplete(power)).toBe(false)
-        pick(withBargainPlayer(picked(), 'cole'))
+        pick(withBargainPlayer(legal, picked(), 'cole'))
         expect(draft.picksComplete(power)).toBe(false)
         // The 3rd secret is the cost's; the 5th favor makes no pair.
         expect(bargainRows(session.gameState, ME, picked(), 'cole')).toEqual({
@@ -457,23 +458,23 @@ describe("Witch's Bargain's picks (revision 7)", () => {
             secrets: { held: 3, addable: 0, picked: 0 },
             pairs: { held: 5, addable: 1, picked: 0 }
         })
-        pick(withBargainCount(picked(), 'cole', 'secretsGiven', 1))
+        pick(withBargainCount(legal, picked(), 'cole', 'secretsGiven', 1))
         expect(draft.picksComplete(power)).toBe(true)
         expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Bargain, playerId: 'cole', secretsGiven: 1, pairsGiven: 0 }])
         expect(draft.reasonCannotUse(power)).toBeUndefined()
     })
 
     it('several players: each gets their own rows, held to what the others leave, and is sent in the order picked', () => {
-        const { session, draft, power, pick, picked } = bargaining()
-        pick(withBargainPlayer(picked(), 'cole'))
-        pick(withBargainCount(picked(), 'cole', 'secretsGiven', 2))
-        pick(withBargainCount(picked(), 'cole', 'pairsGiven', 1))
-        pick(withBargainPlayer(picked(), 'ann'))
+        const { session, draft, power, pick, picked, legal } = bargaining()
+        pick(withBargainPlayer(legal, picked(), 'cole'))
+        pick(withBargainCount(legal, picked(), 'cole', 'secretsGiven', 2))
+        pick(withBargainCount(legal, picked(), 'cole', 'pairsGiven', 1))
+        pick(withBargainPlayer(legal, picked(), 'ann'))
         expect(bargainRows(session.gameState, ME, picked(), 'ann')).toEqual({
             secrets: { held: 3, addable: 0, picked: 0 },
             pairs: { held: 5, addable: 1, picked: 0 }
         })
-        pick(withBargainCount(picked(), 'ann', 'pairsGiven', 1))
+        pick(withBargainCount(legal, picked(), 'ann', 'pairsGiven', 1))
         expect(draft.choicesFor(power)).toEqual([
             { kind: PowerChoiceKind.Bargain, playerId: 'cole', secretsGiven: 2, pairsGiven: 1 },
             { kind: PowerChoiceKind.Bargain, playerId: 'ann', secretsGiven: 0, pairsGiven: 1 }
@@ -493,16 +494,45 @@ describe("Witch's Bargain's picks (revision 7)", () => {
     })
 
     it('a tap on the piece at the count sets none; a tap on a picked chip drops the player and their counts', () => {
-        const { draft, power, pick, picked } = bargaining()
-        pick(withBargainPlayer(picked(), 'cole'))
-        pick(withBargainCount(picked(), 'cole', 'secretsGiven', 2))
-        pick(withBargainCount(picked(), 'cole', 'secretsGiven', 2))
+        const { draft, power, pick, picked, legal } = bargaining()
+        pick(withBargainPlayer(legal, picked(), 'cole'))
+        pick(withBargainCount(legal, picked(), 'cole', 'secretsGiven', 2))
+        pick(withBargainCount(legal, picked(), 'cole', 'secretsGiven', 2))
         expect(picked()).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 0 }])
         expect(draft.picksComplete(power)).toBe(false)
-        pick(withBargainCount(picked(), 'cole', 'pairsGiven', 1))
-        pick(withBargainPlayer(picked(), 'cole'))
+        pick(withBargainCount(legal, picked(), 'cole', 'pairsGiven', 1))
+        pick(withBargainPlayer(legal, picked(), 'cole'))
         expect(picked()).toEqual([])
         expect(draft.choicesFor(power)).toEqual([])
+    })
+
+    it('one other player at your site starts picked, their rows open; a tap on the chip keeps them; Use waits for a count', () => {
+        const { session, draft, power, pick, picked, legal } = bargaining([], 'c2')
+        expect(legal.options.map((o) => (o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind))).toEqual(['cole'])
+        // Shown picked, never stored: nothing for Undo to take back.
+        expect(picked()).toEqual([])
+        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 0 }])
+        expect(bargainRows(session.gameState, ME, shownBargainPicks(legal, picked()), 'cole')).toEqual({
+            secrets: { held: 3, addable: 2, picked: 0 },
+            pairs: { held: 5, addable: 2, picked: 0 }
+        })
+        expect(draft.picksComplete(power)).toBe(false)
+        // The pick is required: a tap on the one chip changes nothing.
+        pick(withBargainPlayer(legal, picked(), 'cole'))
+        expect(picked()).toEqual([])
+        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 0 }])
+        expect(draft.picksComplete(power)).toBe(false)
+        pick(withBargainCount(legal, picked(), 'cole', 'pairsGiven', 1))
+        expect(picked()).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 1 }])
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Bargain, playerId: 'cole', secretsGiven: 0, pairsGiven: 1 }])
+        pick(withBargainPlayer(legal, picked(), 'cole'))
+        expect(picked()).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 1 }])
+        // Undo takes back the pair; Cole stays shown picked.
+        expect(draft.back()).toBe(true)
+        expect(picked()).toEqual([])
+        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'cole', secretsGiven: 0, pairsGiven: 0 }])
+        expect(draft.picksComplete(power)).toBe(false)
     })
 
     it('Vow of Silence draws no secrets row; the favor row stays', () => {

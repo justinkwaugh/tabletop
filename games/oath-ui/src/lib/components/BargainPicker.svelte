@@ -1,11 +1,13 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { PowerChoiceKind, type LegalChoice } from '@tabletop/oath'
+    import type { LegalChoice } from '@tabletop/oath'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import {
+        bargainPlayers,
         bargainRows,
+        shownBargainPicks,
         withBargainCount,
         withBargainPlayer,
         type BargainPick
@@ -14,8 +16,9 @@
 
     // Witch's Bargain from revision 7 (its Q&A: one use may affect several players at your site).
     // "With:" offers each player there as their chip; a tap picks them and opens their two rows of
-    // your own pieces, a second tap drops them. Each row is held to what the engine's bounds leave:
-    // the secret the cost places is never given, and Vow of Silence draws no secrets row.
+    // your own pieces, a second tap drops them. One player there starts picked and stays so. Each
+    // row is held to what the engine's bounds leave: the secret the cost places is never given, and
+    // Vow of Silence draws no secrets row.
     let {
         legal,
         picks,
@@ -29,12 +32,8 @@
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
     let me = $derived(gameSession.myPlayer?.id)
-    let players = $derived(
-        legal.options.flatMap((option) =>
-            option.kind === PowerChoiceKind.Bargain ? [option.playerId] : []
-        )
-    )
-    let picked = $derived(picks.filter((pick) => players.includes(pick.playerId)))
+    let players = $derived(bargainPlayers(legal))
+    let picked = $derived(shownBargainPicks(legal, picks))
 
     function nameOf(playerId: string): string {
         return gameSession.getPlayerName(playerId)
@@ -56,7 +55,7 @@
                     aria-pressed={on}
                     aria-label={nameOf(playerId)}
                     disabled={busy}
-                    onclick={() => onchange(withBargainPlayer(picks, playerId))}
+                    onclick={() => onchange(withBargainPlayer(legal, picks, playerId))}
                 >
                     <PlayerName {playerId} />
                 </button>
@@ -82,7 +81,9 @@
                             label={(n) =>
                                 `give ${name} ${n} ${n === 1 ? 'secret' : 'secrets'} for ${2 * n} favor`}
                             ontap={(n) =>
-                                onchange(withBargainCount(picks, pick.playerId, 'secretsGiven', n))}
+                                onchange(
+                                    withBargainCount(legal, picks, pick.playerId, 'secretsGiven', n)
+                                )}
                             {busy}
                         />
                     </div>
@@ -98,7 +99,9 @@
                         label={(n) =>
                             `give ${name} ${2 * n} favor for ${n} ${n === 1 ? 'secret' : 'secrets'}`}
                         ontap={(n) =>
-                            onchange(withBargainCount(picks, pick.playerId, 'pairsGiven', n))}
+                            onchange(
+                                withBargainCount(legal, picks, pick.playerId, 'pairsGiven', n)
+                            )}
                         {busy}
                     />
                 </div>
