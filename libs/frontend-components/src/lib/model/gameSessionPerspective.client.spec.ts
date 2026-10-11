@@ -260,6 +260,20 @@ describe('GameSession perspectiveIn(state) for a state not yet published', () =>
         expect(preview.isMyTurn).toBe(true)
     })
 
+    test('acting admin previews the single active player of the incoming state', async () => {
+        const { session, authorization } = await openSession({
+            hotseat: false,
+            userId: 'watcher'
+        })
+        await enableAdmin(authorization, session)
+        expect(session.myPlayer?.id).toBe('p1')
+        const incoming = withActivePlayers(session, ['p2'])
+
+        const preview = session.perspectiveIn(incoming)
+        expect(preview.player?.id).toBe('p2')
+        expect(preview.isMyTurn).toBe(true)
+    })
+
     test('a waiting player sees the turn arrive in the incoming state', async () => {
         const { session } = await openSession({ hotseat: false, userId: 'p2' })
         const incoming = withActivePlayers(session, ['p2'])
