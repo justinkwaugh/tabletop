@@ -126,7 +126,8 @@ for (const { name, viewport, phone } of SIZES) {
             expect(facts.favorOf.Jacob).toBe(2)
         })
 
-        test('Toll Roads at the pick: the traveller pays or refuses before any Supply is paid', async ({ page }) => {
+        /** The traveller's Toll Roads question, in the question form, its Pay and Refuse at a standard size. */
+        async function tollQuestion(page: Page) {
             expect((await openTable(page, 'woodTollAsked')).seatId).toBe('Jacob')
             await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
             await expect(panel(page).locator('.question-line')).toHaveText(/^Pay\s*Cole\s*1\?$/)
@@ -140,7 +141,11 @@ for (const { name, viewport, phone } of SIZES) {
                 expect(payBox.height).toBeGreaterThanOrEqual(44)
                 expect(refuseBox.height).toBeGreaterThanOrEqual(44)
             }
+            return { pay, refuse }
+        }
 
+        test('Toll Roads at the pick: the traveller pays or refuses before any Supply is paid', async ({ page }) => {
+            const { pay } = await tollQuestion(page)
             await pay.click()
             await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
             const facts = await call(page, 'tableFacts')
@@ -152,12 +157,16 @@ for (const { name, viewport, phone } of SIZES) {
         })
 
         test('Toll Roads at the pick: refused, the traveller stays in the Wood and pays nothing', async ({ page }) => {
-            await openTable(page, 'woodTollAsked')
-            await panel(page).getByRole('button', { name: 'Refuse', exact: true }).click()
-            await expect(panel(page).getByRole('button', { name: 'Refuse', exact: true })).toHaveCount(0)
+            const { refuse } = await tollQuestion(page)
+            await refuse.click()
+            await expect(refuse).toHaveCount(0)
             const facts = await call(page, 'tableFacts')
             expect(facts.siteOf.Jacob).toBe('slot.provinces.0')
             expect(facts.favorOf).toMatchObject({ Jacob: 2 })
+            if (!phone) {
+                await page.getByRole('tab', { name: 'History' }).click()
+                await expect(page.locator('.history')).toContainText('refused Toll Roads and stayed at the Shrouded Wood')
+            }
         })
     })
 }

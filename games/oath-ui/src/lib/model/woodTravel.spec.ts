@@ -109,9 +109,16 @@ describe('R-11.7, Toll Roads — the ruler’s pick into a site whose ruler hold
         expect(session.question.woodDestinations.filter((siteId) => session.question.woodTollAt(siteId))).toEqual(['p2'])
     })
 
-    it('does not offer a toll site the traveller has no favor for', () => {
-        const session = rulerSession(tollState(0))
-        expect(session.question.woodDestinations).toEqual(['c1', 'c2', 'p3'])
+    it('the grid names the cheapest Supply among the sites whose toll the traveller can pay', () => {
+        // Decadent's 0 into the Cradle, whose two sites Cole rules: with no favor Jacob cannot be sent there.
+        const state = tollState(0)
+        state.getPlayerState('Jacob').supply = 1
+        state.denizensBySite = { ...state.denizensBySite, p2: [], c1: [TOLL_ROADS] }
+        state.warbandsBySite = { ...state.warbandsBySite, p2: {}, c1: { Cole: 1 }, c2: { Cole: 1 } }
+        const session = openSessionOn(tableOf(state))
+        const refusal = gridRefusal(session.gameState, 'Jacob', ActionType.Travel)
+        expect(refusal).toEqual({ cause: 'supply', needs: 2, has: 1 })
+        expect(refusal && refusal.cause !== 'engine' ? refusalWords(refusal) : undefined).toBe('Needs 2 Supply; you have 1.')
     })
 
     it('a game created before the revision asks no toll, so marks none', () => {
