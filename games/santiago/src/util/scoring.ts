@@ -1,4 +1,4 @@
-import { SantiagoBoard, CropType, FieldSquare, isFieldSquare, fieldStrength } from '../model/board.js'
+import { SantiagoBoard, CropType, FieldSquare, isFieldSquare, fieldStrength, orthogonalNeighbors } from '../model/board.js'
 import { connectedSpringIntersections, isIrrigated } from './irrigation.js'
 
 export type PlayerScores = Record<string, number>
@@ -53,7 +53,7 @@ function findConnectedGroupsAny(board: SantiagoBoard, crop: CropType): FieldGrou
                 const s = board.squares[c][r]
                 if (!isFieldSquare(s) || s.crop !== crop || s.dried) continue
                 fields.push(s)
-                for (const [nc, nr] of [[c-1,r],[c+1,r],[c,r-1],[c,r+1]] as [number,number][]) {
+                for (const [nc, nr] of orthogonalNeighbors(c, r)) {
                     if (nc >= 0 && nc < 8 && nr >= 0 && nr < 6 && !visited.has(`${nc},${nr}`)) queue.push([nc, nr])
                 }
             }
@@ -141,7 +141,7 @@ function floodFill(
 
         fields.push(sq)
 
-        for (const [nc, nr] of [[col - 1, row], [col + 1, row], [col, row - 1], [col, row + 1]] as [number, number][]) {
+        for (const [nc, nr] of orthogonalNeighbors(col, row)) {
             if (nc >= 0 && nc < 8 && nr >= 0 && nr < 6 && !visited.has(`${nc},${nr}`)) {
                 queue.push([nc, nr])
             }
