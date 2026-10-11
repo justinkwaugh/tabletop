@@ -481,12 +481,19 @@ registerEffect(
     }
 )
 
+/**
+ * R-9.1 — "any warbands": for each owner a player rules with (their own and, for a Citizen, the
+ * Empire's), any redistribution over their board and the map slots takes one direct move fewer
+ * than the places, a site to a site in one move.
+ */
+const MESSENGER_MOVES = 2 * TOTAL_MAP_SLOTS
+
 // "Action: Move any warbands to and from your board and any sites you rule (except the last warband from a site)."
 registerEffect(
     'denizen.order.messenger',
     powerIndexOf('denizen.order.messenger', PowerTiming.Action),
     {
-        choices: Array.from({ length: 4 }, (_, i) => [
+        choices: Array.from({ length: MESSENGER_MOVES }, (_, i) => [
             i === 0
                 ? one(PowerChoiceKind.Warbands, {
                       what: 'warbands to move',

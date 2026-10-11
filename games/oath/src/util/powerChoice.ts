@@ -250,26 +250,46 @@ export function reasonChoicesInvalid(
             : `${power.cardId} power ${power.powerIndex} takes no choices, but ${given.length} were given`
     }
 
+    // The state each sequential spec is read on depends only on the choices taken before it.
+    const statesAfter = new Map<number, HydratedOathGameState>()
+    const readingOf = (spec: ChoiceSpec, earlier: readonly PowerChoice[]) => {
+        if (!spec.sequential) return state
+        const known = statesAfter.get(earlier.length)
+        if (known) return known
+        const after = stateAfterChoices(state, playerId, power, earlier)
+        statesAfter.set(earlier.length, after)
+        return after
+    }
+
     for (const [i, spec] of specs.entries()) {
         const taken: PowerChoice[] = []
         // A later spec of the same kind takes what only its domain offers (Warning Signals).
         const later = specs.slice(i + 1).filter((l) => l.kind === spec.kind)
         const laterSameKind = later.length > 0
         const earlier = all.slice(0, all.length - given.length)
-        const readingFor = readingStates(state, playerId, power, [spec, ...later], earlier)
-        const offered = new Set(
-            domainOf(spec)(readingFor(spec), playerId, power).map((option) => keyOf(option))
-        )
-        const offeredLater = new Set(
-            later.flatMap((l) =>
-                domainOf(l)(readingFor(l), playerId, power).map((option) => keyOf(option))
-            )
-        )
+        // Read only when a choice is matched against them: a spec past the last choice costs nothing.
+        let options: Map<string, PowerChoice> | undefined
+        const optionsOf = () =>
+            (options ??= new Map(
+                domainOf(spec)(readingOf(spec, earlier), playerId, power).map((option) => [
+                    keyOf(option),
+                    option
+                ])
+            ))
+        let offeredLater: Set<string> | undefined
+        const offeredLaterOf = () =>
+            (offeredLater ??= new Set(
+                later.flatMap((l) =>
+                    domainOf(l)(readingOf(l, earlier), playerId, power).map((option) =>
+                        keyOf(option)
+                    )
+                )
+            ))
         while (taken.length < spec.max) {
             const next = given[0]
             if (next === undefined || next.kind !== spec.kind) break
             const key = keyOf(next)
-            if (!offered.has(key) && offeredLater.has(key)) break
+            if (!optionsOf().has(key) && offeredLaterOf().has(key)) break
             taken.push(next)
             given.shift()
         }
@@ -284,16 +304,10 @@ export function reasonChoicesInvalid(
             return `${taken.length + 1} given where at most ${spec.max} of ${describe(spec)} were wanted`
         }
 
-        const options = new Map(
-            domainOf(spec)(readingFor(spec), playerId, power).map((option) => [
-                keyOf(option),
-                option
-            ])
-        )
         const seen = new Set<string>()
         for (const choice of taken) {
             const key = keyOf(choice)
-            const option = options.get(key)
+            const option = optionsOf().get(key)
             if (!option) {
                 return `${describe(choice)} is not among the options for ${describe(spec)}`
             }
