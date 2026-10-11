@@ -15,6 +15,7 @@ import { defendersOpenTo, reasonCannotSneakAttack } from './campaign.js'
 import { ActionType } from '../definition/actions.js'
 import { forgoFreeActionNext, nextActionIndex } from './freeActions.js'
 import { canTravel } from './travelPlan.js'
+import { reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { reasonPersistentForbidsCampaign } from './persistent.js'
 import { pawnSiteId } from './pawn.js'
 
@@ -132,6 +133,13 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         if (!refused) return undefined
         forgoFreeActionNext(state, question.askedPlayerId, question.action)
         return `${question.askedPlayerId} cannot take the free ${question.action === ActionType.Travel ? 'Travel' : 'Campaign'}: ${refused}`
+    },
+    // Dragonskin Drum — with no warband in the bank there is nothing to gain, so nothing to ask.
+    [PowerQuestionKind.DragonskinDrum]: (state, question) => {
+        const empty = reasonDrumBankEmpty(state, question.askedPlayerId)
+        return empty
+            ? `${question.askedPlayerId} gains nothing from ${question.cardId}: ${empty}`
+            : undefined
     }
 }
 

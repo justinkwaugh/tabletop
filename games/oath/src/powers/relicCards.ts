@@ -212,7 +212,10 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
                 tollMove
             }
         }
-        const { notes } = travelByPower(ctx.state, them.playerId, here)
+        const { notes } = travelByPower(ctx.state, them.playerId, here, {
+            playerId: ctx.playerId,
+            next: false
+        })
         const given = giveWhistleSecret(ctx.state, ctx.playerId, them.playerId)
         return {
             summary: `Whistle: ${them.playerId} travelled to ${here}, gaining ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,

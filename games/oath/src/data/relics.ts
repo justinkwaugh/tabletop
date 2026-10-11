@@ -22,6 +22,8 @@ export const GRAND_SCEPTER_ID = 'relic.grand-scepter'
 
 export const WHISTLE_ID = 'relic.whistle'
 
+export const DRAGONSKIN_DRUM_ID = 'relic.dragonskin-drum'
+
 /** R-1.17, R-2.3 */
 export const RELIQUARY_SIZE = 4
 

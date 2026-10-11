@@ -117,7 +117,10 @@ export function settlePowerMoveToll(
         if (question.move === PowerMoveKind.Palanquin) {
             state.getPlayerState(question.moverPlayerId).siteId = question.siteId
         }
-        const { notes, revealed } = travelByPower(state, moved, question.siteId)
+        const { notes, revealed } = travelByPower(state, moved, question.siteId, {
+            playerId: question.moverPlayerId,
+            next: true
+        })
         assert(
             revealed === undefined,
             'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'

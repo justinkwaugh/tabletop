@@ -463,7 +463,10 @@ registerEffect(
                     targetPlayerId: target.playerId
                 }
             }
-            const { notes } = travelByPower(ctx.state, target.playerId, site.siteId)
+            const { notes } = travelByPower(ctx.state, target.playerId, site.siteId, {
+                playerId: ctx.playerId,
+                next: false
+            })
             return {
                 summary: `Palanquin: ${ctx.playerId} and ${target.playerId} went to ${site.siteId}, spending no Supply${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
                 targetPlayerId: target.playerId

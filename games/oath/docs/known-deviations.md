@@ -11,7 +11,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Deed Writer's warbands:** in a game created before revision 5 (R-X.4) each site's warbands are checked alone against the new ruler's board, so terms can promise more warbands than the board holds in all: accepting them throws.
 - **Small Friends:** the modifiers at the pawn's own site stay usable, and those at Beast sites are opened without being declared.
 - **Vow of Poverty with Careless:** in a game created before revision 5 (R-X.4) the Vow's holder gains Careless's favor on a Trade for secrets, and Secret Signal's one more with it; the Vow's Q&A withholds Careless's, so the Trade gains none for Secret Signal to add to.
-- **Dragonskin Drum:** fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
+- **Dragonskin Drum:** in a game created before revision 7 (R-X.4) it fires only on a Travel action, not on travel a power causes; its Q&A counts that travel.
 - **Ancient Binding:** in a game created before revision 5 (R-X.4) it burns faceup secrets only, so every facedown secret stays; Book Burning's Q&A gives the same words the meaning "face up or down".
 - **Obsidian Cage:** in a game created before revision 5 (R-X.4), warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Bandit Crown:** in a game created before revision 5 (R-X.4), the bandits serving a Chancellor or Citizen holder are that holder's alone: the other Imperial players do not rule the sites they hold, and those sites are not Imperial sites; the Q&A makes them Imperial warbands.

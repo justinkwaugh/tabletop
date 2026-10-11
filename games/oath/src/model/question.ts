@@ -159,7 +159,12 @@ export enum PowerQuestionKind {
      * Second Wind out of turn (revision 7) — the holder's free Travel, then free Campaign, before the
      * held turn resumes: answered by the action itself, or skipped.
      */
-    FreeActionOutOfTurn = 'freeActionOutOfTurn'
+    FreeActionOutOfTurn = 'freeActionOutOfTurn',
+    /**
+     * Dragonskin Drum (revision 7) — a power moved its holder, who "after traveling" may gain one
+     * warband, as its Q&A rules a forced travel does: gain it, or skip.
+     */
+    DragonskinDrum = 'dragonskinDrum'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -215,6 +220,13 @@ export const ShroudedWoodPick = Type.Object({
     notes: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
     /** R-10.13 — whose warband Tyrant killed. */
     warbandOwner: Type.Optional(WarbandOwner)
+})
+
+/** Dragonskin Drum — the warbands an answer put on its player's board, and whose they are (R-10.13). */
+export type WarbandGain = Type.Static<typeof WarbandGain>
+export const WarbandGain = Type.Object({
+    owner: WarbandOwner,
+    count: Type.Number()
 })
 
 export type PowerQuestion = Type.Static<typeof PowerQuestion>
@@ -392,6 +404,11 @@ export const PowerQuestion = Type.Union([
         askedPlayerId: Type.String(),
         /** "you may travel and then may campaign" — the one asked now. */
         action: Type.Union([Type.Literal(ActionType.Travel), Type.Literal(ActionType.Campaign)])
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DragonskinDrum),
+        cardId: Type.String(),
+        askedPlayerId: Type.String()
     })
 ])
 
@@ -472,7 +489,8 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
         take: Type.Literal(false)
-    })
+    }),
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>
