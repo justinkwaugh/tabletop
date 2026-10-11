@@ -15,6 +15,8 @@ const RELIC = 'relic.grand-scepter'
 const BREAKER = 'denizen.nomad.spell-breaker'
 const TONGUE = 'denizen.nomad.lost-tongue'
 const TOME = 'denizen.order.tome-guardians'
+const SILENCE = 'denizen.arcane.vow-of-silence'
+const RENEWAL = 'denizen.discord.vow-of-renewal'
 
 const faceup = (cardIds: string[]) => cardIds.map((cardId) => ({ cardId, faceUp: true }))
 
@@ -143,25 +145,63 @@ describe('R-5.1.4.IV — why no one at the site can be taken from, one line per 
         expect(lines(state)).toEqual([])
     })
 
-    it('a guard the words do not name keeps the engine’s sentence (Vow of Silence, before the card fixes)', () => {
+    it('Vow of Silence, in a game before the card fixes: "Vow of Silence: the Darkest Secret can’t be taken."', () => {
+        const silent = (oathRevision: OathRevision) =>
+            scene(
+                { advisers: faceup([ORDER_A, ORDER_B, SILENCE]) },
+                { relicIds: [] },
+                { [Banner.DarkestSecret]: 'rhys' },
+                oathRevision
+            )
+        const before = silent(OathRevision.PlanCostsAndSearchPlays)
+        expect(conspiracyTargets(before, 'dana')).toEqual([])
+        expect(lines(before)).toEqual([
+            words(text('Vow of Silence: the Darkest Secret can’t be taken.'))
+        ])
+        // Since the card fixes the vow forbids only a Recover, so the take is open.
+        const now = silent(OathRevision.CardFixes1)
+        expect(conspiracyTargets(now, 'dana')).toEqual(['rhys'])
+        expect(lines(now)).toEqual([])
+    })
+
+    it('Vow of Renewal, in a game before the card fixes: "Vow of Renewal: the People’s Favor can’t be taken."', () => {
         const state = scene(
-            { advisers: faceup([ORDER_A, ORDER_B, 'denizen.arcane.vow-of-silence']) },
+            { advisers: faceup([ORDER_A, ORDER_B, RENEWAL]) },
             { relicIds: [] },
-            { [Banner.DarkestSecret]: 'rhys' },
+            { [Banner.PeoplesFavor]: 'rhys' },
             OathRevision.PlanCostsAndSearchPlays
         )
         expect(conspiracyTargets(state, 'dana')).toEqual([])
         expect(lines(state)).toEqual([
-            { kind: 'engine', reason: expect.stringMatching(/^Vow of Silence: /) }
+            words(text('Vow of Renewal: the People’s Favor can’t be taken.'))
         ])
-        // Since the card fixes the vow forbids only a Recover, so the take is open.
-        const now = scene(
-            { advisers: faceup([ORDER_A, ORDER_B, 'denizen.arcane.vow-of-silence']) },
-            { relicIds: [] },
-            { [Banner.DarkestSecret]: 'rhys' },
-            OathRevision.CardFixes1
+    })
+
+    it('each prize guarded by a different card: one line per card, in the same form', () => {
+        const state = scene(
+            { advisers: faceup([ORDER_A, ORDER_B, RENEWAL]) },
+            { relicIds: [], advisers: faceup([ORDER_C, TOME]) },
+            { [Banner.PeoplesFavor]: 'rhys', [Banner.DarkestSecret]: 'rhys' },
+            OathRevision.PlanCostsAndSearchPlays
         )
-        expect(conspiracyTargets(now, 'dana')).toEqual(['rhys'])
+        expect(conspiracyTargets(state, 'dana')).toEqual([])
+        expect(lines(state)).toEqual([
+            words(text('Vow of Renewal: the People’s Favor can’t be taken.')),
+            words(text('Tome Guardians: the Darkest Secret can’t be taken.'))
+        ])
+    })
+
+    it('Lost Tongue guards all its holder holds, so its line is said even where another card refused first', () => {
+        // Tome Guardians is met first and refuses the Darkest Secret; Lost Tongue refuses the rest.
+        const state = scene(
+            {},
+            { relicIds: [], advisers: faceup([ORDER_C, TOME, TONGUE]) },
+            { [Banner.PeoplesFavor]: 'rhys', [Banner.DarkestSecret]: 'rhys' }
+        )
+        expect(conspiracyTargets(state, 'dana')).toEqual([])
+        expect(lines(state)).toEqual([
+            words(text('Lost Tongue: '), seat('rhys', true), text(' can’t be taken.'))
+        ])
     })
 
     it('a player who matches but holds nothing the take may reach is not a target', () => {
