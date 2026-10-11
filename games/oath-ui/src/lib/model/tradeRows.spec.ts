@@ -3,10 +3,12 @@ import { Color } from '@tabletop/common'
 import {
     OathRevision,
     PlayerStatus,
+    PowerChoiceKind,
     PowerTiming,
     Suit,
     TradeOption,
     powerIndexOf,
+    type PowerChoice,
     reliquarySlotId
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
@@ -27,7 +29,11 @@ const banks = (over: Partial<Record<Suit, number>> = {}): Record<Suit, number> =
     [Suit.Nomad]: over[Suit.Nomad] ?? 3
 })
 
-function site(player: Record<string, unknown> = {}, state: Record<string, unknown> = {}) {
+function site(
+    player: Record<string, unknown> = {},
+    state: Record<string, unknown> = {},
+    others: ReturnType<typeof testPlayer>[] = []
+) {
     return testState(
         [
             testPlayer({
@@ -38,7 +44,8 @@ function site(player: Record<string, unknown> = {}, state: Record<string, unknow
                 favor: 3,
                 advisers: HEARTH_ADVISERS.map((cardId) => ({ cardId, faceUp: true })),
                 ...player
-            })
+            }),
+            ...others
         ],
         {
             denizensBySite: { c1: [BINDERS, SEAT, ASSASSIN] },
@@ -153,7 +160,11 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
 
     const POVERTY = 'denizen.beast.vow-of-poverty'
     const declared = [{ cardId: SIGNAL, powerIndex: powerIndexOf(SIGNAL, PowerTiming.Modifier) }]
-    const withAdvisers = (advisers: string[], state: Record<string, unknown> = {}) =>
+    const withAdvisers = (
+        advisers: string[],
+        state: Record<string, unknown> = {},
+        others: ReturnType<typeof testPlayer>[] = []
+    ) =>
         site(
             {
                 status: PlayerStatus.Chancellor,
@@ -165,13 +176,43 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
                 reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) })),
                 oathRevision: OathRevision.EngineFixes2,
                 ...state
-            }
+            },
+            others
         )
     const secretsAtBinders = (rows: ReturnType<typeof tradeRows>) =>
         rows.find((row) => row.cardId === BINDERS)?.choices.find((c) => c.option === TradeOption.ForSecrets)
 
     it('counts none for a Vow of Poverty holder, whom Careless gives nothing', () => {
         expect(secretsAtBinders(tradeRows(withAdvisers([POVERTY]), 'p1', []))).toMatchObject({ sideFavor: 0 })
+    })
+
+    // Master of Disguise — the Trade acts with the other player's advisers, and so does the count.
+    const DISGUISE = 'denizen.arcane.master-of-disguise'
+    const borrowed: PowerChoice = { kind: PowerChoiceKind.Player, playerId: 'p2' }
+    const disguised = [
+        {
+            cardId: DISGUISE,
+            powerIndex: powerIndexOf(DISGUISE, PowerTiming.Modifier),
+            choices: [borrowed]
+        }
+    ]
+    const borrowing = (own: string[], theirs: string[]) =>
+        withAdvisers([...own, DISGUISE], {}, [
+            testPlayer({
+                playerId: 'p2',
+                color: Color.Blue,
+                siteId: 'p1',
+                advisers: theirs.map((cardId) => ({ cardId, faceUp: true }))
+            })
+        ])
+
+    it('counts none when Master of Disguise borrows a Vow of Poverty, and one when it borrows around one', () => {
+        expect(
+            secretsAtBinders(tradeRows(borrowing([], [POVERTY]), 'p1', disguised))
+        ).toMatchObject({ sideFavor: 0 })
+        expect(
+            secretsAtBinders(tradeRows(borrowing([POVERTY], [ASSASSIN]), 'p1', disguised))
+        ).toMatchObject({ sideFavor: 1 })
     })
 
     it('counts Secret Signal’s one more favor, as far as the bank holds (R-9.3)', () => {

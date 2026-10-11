@@ -123,11 +123,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             this.tolls
         )
         const { cost, active } = plan
-        const particulars = {
-            cardId: this.cardId,
-            tradeOption: this.option,
-            advisersOf: disguisedAs(ActionType.Trade, this.modifiers)
-        }
+        const particulars = HydratedTrade.particulars(this.cardId, this.option, this.modifiers)
 
         const suit = suitOf(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)
@@ -228,21 +224,33 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         )
     }
 
-    /** Favor the Trade gains beside its own gain (Careless on a Trade for secrets), as much as the card's bank holds (R-9.3). */
+    /**
+     * Favor the Trade gains beside its own gain (Careless on a Trade for secrets), as much as the
+     * card's bank holds (R-9.3). `modifiers` are the Trade's declared ones: Master of Disguise's
+     * borrowed advisers decide it, as they decide the Trade.
+     */
     static sideFavor(
         state: HydratedOathGameState,
         playerId: string,
         cardId: string,
         option: TradeOption,
-        active: readonly ActiveModifier[]
+        active: readonly ActiveModifier[],
+        modifiers: readonly ModifierUse[] | undefined
     ): number {
         const suit = suitOf(cardId)
         assertExists(suit, `${cardId} has no suit`)
-        const wanted = foldNumber('tradeSideFavor', 0, state, playerId, active, {
-            cardId,
-            tradeOption: option
-        })
+        const particulars = HydratedTrade.particulars(cardId, option, modifiers)
+        const wanted = foldNumber('tradeSideFavor', 0, state, playerId, active, particulars)
         return Math.min(wanted, state.favorBank[suit])
+    }
+
+    /** What the Trade's modifiers read: its card, its option and whose advisers it acts with (Master of Disguise). */
+    private static particulars(
+        cardId: string,
+        option: TradeOption,
+        modifiers: readonly ModifierUse[] | undefined
+    ) {
+        return { cardId, tradeOption: option, advisersOf: disguisedAs(ActionType.Trade, modifiers) }
     }
 
     static plan(
@@ -256,8 +264,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         const none: ActionPlan = { cost: TRADE_SUPPLY_COST, active: [] }
         const player = state.getPlayerState(playerId)
         // Master of Disguise trades as the other player's advisers; the modifiers' conditions read it too.
-        const disguise = disguisedAs(ActionType.Trade, modifiers)
-        const particulars = { cardId, tradeOption: option, advisersOf: disguise }
+        const particulars = HydratedTrade.particulars(cardId, option, modifiers)
         const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, particulars)
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
@@ -293,7 +300,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
         // R-7.1.4-H1, R-9.2 — Vow of Poverty's "cannot gain favor from Trade"; Master of Disguise trades as the other player's advisers.
-        const advisersOf = disguise ?? playerId
+        const advisersOf = particulars.advisersOf ?? playerId
         if (
             option === TradeOption.ForFavor &&
             cannotGainFavorFromTrade(state, playerId, advisersOf)

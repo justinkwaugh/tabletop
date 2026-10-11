@@ -57,7 +57,14 @@ export function tradeRows(
                         option === TradeOption.ForFavor
                             ? Math.min(wanted, state.favorBank[suit])
                             : wanted,
-                    sideFavor: HydratedTrade.sideFavor(state, playerId, cardId, option, plan.active)
+                    sideFavor: HydratedTrade.sideFavor(
+                        state,
+                        playerId,
+                        cardId,
+                        option,
+                        plan.active,
+                        modifiers
+                    )
                 }
             ]
         })

@@ -270,7 +270,7 @@ describe('Careless — Trade (R-6.6.2.a)', () => {
     describe('sideFavor: the favor a Trade gains beside its own gain, counted before it is made', () => {
         const hearthBank = (favor: number) => ({ favorBank: { ...board([]).favorBank, [Suit.Hearth]: favor } })
         const counted = (s: ReturnType<typeof board>, option: TradeOption) =>
-            HydratedTrade.sideFavor(s, 'ruler', INN, option, HydratedTrade.plan(s, 'ruler', INN, option).active)
+            HydratedTrade.sideFavor(s, 'ruler', INN, option, HydratedTrade.plan(s, 'ruler', INN, option).active, [])
         const gainedBeside = (s: ReturnType<typeof board>, option: TradeOption) => {
             const placed = option === TradeOption.ForSecrets ? 2 : 0
             const before = s.getPlayerState('ruler').favor
@@ -445,7 +445,8 @@ describe('sideFavor under Vow of Poverty and with Secret Signal', () => {
             'ruler',
             INN,
             TradeOption.ForSecrets,
-            HydratedTrade.plan(s, 'ruler', INN, TradeOption.ForSecrets, modifiers).active
+            HydratedTrade.plan(s, 'ruler', INN, TradeOption.ForSecrets, modifiers).active,
+            modifiers
         )
     // A Trade for secrets places 2 favor on the card and gains none of its own.
     const gainedBeside = (s: ReturnType<typeof board>, modifiers: ModifierUse[] = []) => {
@@ -476,6 +477,23 @@ describe('sideFavor under Vow of Poverty and with Secret Signal', () => {
     it('with one favor in the bank, Careless takes it and the count is 1 (R-9.3)', () => {
         const make = () => board([CARELESS], hearth(1), {}, [INN], [RETURN, SIGNAL])
         expect(both(make, [modifierUse(SIGNAL)])).toEqual([1, 1])
+    })
+
+    describe('Master of Disguise: the count reads the borrowed advisers, as the Trade does (its Q&A)', () => {
+        const disguise = [modifierUse(DISGUISE, [player('other')])]
+        const borrowing = (own: string[], theirs: string[]) => () => {
+            const s = board([CARELESS], { oathRevision: OathRevision.EngineFixes2 }, {}, [INN], [...own, DISGUISE])
+            s.getPlayerState('other').setAdvisers(theirs.map((cardId) => ({ cardId, faceUp: true })))
+            return s
+        }
+
+        it('no Vow of her own, borrowing one: the Trade gains nothing beside, and the count says so', () => {
+            expect(both(borrowing([RETURN], [POVERTY]), disguise)).toEqual([0, 0])
+        })
+
+        it("her own Vow, borrowing advisers with none: the Trade gains Careless's favor, and the count shows it", () => {
+            expect(both(borrowing([RETURN, POVERTY], [STEED]), disguise)).toEqual([1, 1])
+        })
     })
 
     it('Vow of Poverty with Secret Signal: Secret Signal is refused, and nothing is counted', () => {
