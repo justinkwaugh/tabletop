@@ -35,7 +35,9 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-11.7 */
     woodPick: Type.Optional(ShroudedWoodPick),
     // Toll Roads on a power's move
-    tollMove: Type.Optional(PowerMoveToll)
+    tollMove: Type.Optional(PowerMoveToll),
+    /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
+    triggered: Type.Optional(Type.Array(Type.String()))
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -91,7 +93,8 @@ export class HydratedAnswerQuestion
             cardId: question.cardId,
             kind: question.kind,
             summary: outcome.summary,
-            resumeMachineState: resume,
+            // A banish's answer ends the Campaign, which decides where the turn resumes.
+            resumeMachineState: outcome.resumeMachineState ?? resume,
             last: false,
             relicToDeckBottom: outcome.relicToDeckBottom,
             discardedCardIds: outcome.discardedCardIds,
@@ -99,7 +102,8 @@ export class HydratedAnswerQuestion
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
             woodPick: outcome.woodPick,
-            tollMove: outcome.tollMove
+            tollMove: outcome.tollMove,
+            triggered: outcome.triggered
         }
         commitHiddenOutputs(this, state, witnesses)
     }

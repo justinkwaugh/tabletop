@@ -10,9 +10,8 @@ import {
 } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PileDeposit } from '../model/hidden.js'
-import { concludeCampaign } from '../util/campaignEnd.js'
-import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
-import { isCampaignOutOfTurn } from '../util/sneakAttack.js'
+import { concludeVictory } from '../util/campaignVictory.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { MachineState } from '../definition/states.js'
 import { afterRelicsTakenPersistent } from '../util/persistent.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
@@ -142,27 +141,13 @@ export class HydratedCampaignResolveVictory
         const relicNotes = afterRelicsTakenPersistent(state, campaign.attackerPlayerId, relicsTaken)
         const { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove } =
             this.banishAndBurn(state, campaign)
-        // R-5.5.8 — the victorious attacker's "if you're victorious" plans, after R-5.5.7.
-        const victoryPlans = HydratedCampaignSacrifice.runOutcomeHooks(
-            state,
-            campaign,
-            true,
-            (victorious) => victorious
-        )
-
-        // Martial Culture's "end your Act Phase" ends nothing for an attacker who is not in theirs.
-        const endsActPhase = campaign.endsActPhaseAfter === true && !isCampaignOutOfTurn(state)
-        const conclusion = concludeCampaign(state)
-        const triggered = [
-            ...relicNotes,
-            ...banishNotes,
-            ...victoryPlans.notes,
-            ...conclusion.notes
-        ]
-        const pileDeposits = [...victoryPlans.pileDeposits, ...conclusion.pileDeposits]
+        // R-5.5.8, after R-5.5.7: a banish waiting on an answer runs it there (`settleBanishedVictory`).
+        const conclusion = campaign.banishPending ? undefined : concludeVictory(state)
+        const triggered = [...relicNotes, ...banishNotes, ...(conclusion?.notes ?? [])]
+        const pileDeposits = conclusion?.pileDeposits ?? []
 
         this.metadata = {
-            endsActPhase: endsActPhase || undefined,
+            endsActPhase: conclusion?.endsActPhase || undefined,
             triggered: triggered.length > 0 ? triggered : undefined,
             warbandsPlaced,
             relicsTaken,
@@ -173,7 +158,7 @@ export class HydratedCampaignResolveVictory
             relicsToDeckBottom: toBottom.length > 0 ? toBottom : undefined,
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
-            resumeMachineState: conclusion.resumeMachineState,
+            resumeMachineState: conclusion?.resumeMachineState,
             pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
             tollMove
         }
@@ -278,7 +263,8 @@ export class HydratedCampaignResolveVictory
             banishedToSiteId = this.banishToSiteId
         }
         const chooser = shroudedWoodChooser(state, defender.playerId)
-        if (this.banish && chooser !== undefined) {
+        const woodPicks = this.banish === true && chooser !== undefined
+        if (woodPicks) {
             const fromSiteId = pawnSiteId(state, defender.playerId)
             askQuestion(state, campaign.attackerPlayerId, {
                 kind: PowerQuestionKind.ShroudedWoodDestination,
@@ -289,10 +275,16 @@ export class HydratedCampaignResolveVictory
             })
         }
 
-        // R-5.5.7.III — the travel, then the burn: an asked toll's answer comes first.
-        const burnWaits = tollMove?.outcome === PowerMoveTollOutcome.Asked
+        // R-5.5.7.III — the travel, then the burn, then R-5.5.8: an asked toll's answer comes first,
+        // and from `UiBatch1` the Wood ruler's pick does too (R-X.4).
+        const tollWaits = tollMove?.outcome === PowerMoveTollOutcome.Asked
+        const woodWaits = woodPicks && isAtLeastOathRevision(state, OathRevision.UiBatch1)
+        if (tollWaits) campaign.banishPending = {}
+        if (woodWaits) campaign.banishPending = this.burnFavor ? { burnFavor: true } : {}
         const favorBurned =
-            this.burnFavor && !burnWaits ? burnHalfTheirFavor(state, defender.playerId) : 0
+            this.burnFavor && !tollWaits && !woodWaits
+                ? burnHalfTheirFavor(state, defender.playerId)
+                : 0
 
         return { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove }
     }
@@ -321,6 +313,7 @@ export class HydratedCampaignResolveVictory
         if (playerId !== campaign.attackerPlayerId) {
             return 'only the attacker resolves their own victory'
         }
+        if (campaign.banishPending) return 'the banish waits on an answer'
 
         const placementReason = HydratedCampaignResolveVictory.reasonCannotPlace(
             state,

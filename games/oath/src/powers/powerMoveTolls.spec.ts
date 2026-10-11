@@ -24,6 +24,9 @@ import {
     HydratedCampaignResolveVictory
 } from '../actions/campaignResolveVictory.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
+import { required } from '../testing/required.js'
 import '../powers/index.js'
 
 const TOLL_ROADS = 'denizen.order.toll-roads'
@@ -32,6 +35,7 @@ const ORACLE = 'denizen.nomad.oracle'
 const PALANQUIN = 'denizen.order.palanquin'
 const WHISTLE = 'relic.whistle'
 const HORSE = 'relic.brass-horse'
+const SLANDER = 'denizen.discord.slander'
 
 const atRevision = OathRevision.UiBatch1
 const before = OathRevision.EngineFixes2
@@ -295,6 +299,85 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
         resolve(s, true)
         expect(s.pendingQuestions).toBeUndefined()
         expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c1', favor: 4 })
+    })
+
+    describe("R-5.5.7.III, then R-5.5.8: the toll, the move and the burn, then the \"if you're victorious\" plans and the end", () => {
+        function slandered() {
+            const s = won()
+            const campaign = required(s.campaign, 'Rhys has won')
+            campaign.plansUsed = [SLANDER]
+            campaign.plansUsedBy = { rhys: [SLANDER] }
+            return s
+        }
+
+        it('Slander waits on Dana: the Campaign is open, and nothing of hers is burned yet', () => {
+            const s = slandered()
+            const victory = resolve(s, true)
+            expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c2', favor: 7 })
+            expect(s.campaign?.banishPending).toEqual({})
+            expect(victory.metadata?.triggered).toBeUndefined()
+            expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(s, 'rhys', { placements: [], burnFavor: false })).toBe('the banish waits on an answer')
+        })
+
+        it('paid: she goes, half of what is left burns, then Slander burns the rest, and the Campaign ends', () => {
+            const s = slandered()
+            resolve(s, true)
+            const answer = payToll(s, true)
+            expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c1', favor: 0 })
+            expect(s.getPlayerState('rhys').favor).toBe(4)
+            expect(answer.metadata?.tollMove).toMatchObject({ outcome: PowerMoveTollOutcome.Paid, favorBurned: 3 })
+            expect(answer.metadata?.triggered).toEqual(['Slander: dana burned all 3 of their favor'])
+            expect(s.campaign).toBeUndefined()
+        })
+
+        it('refused: she stays, half burns, then Slander', () => {
+            const s = slandered()
+            resolve(s, true)
+            const answer = payToll(s, false)
+            expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c2', favor: 0 })
+            expect(answer.metadata?.triggered).toEqual(['Slander: dana burned all 4 of their favor'])
+            expect(s.campaign).toBeUndefined()
+        })
+
+        it('with no favor nobody is asked, and the plans and the end follow at once', () => {
+            const s = won({ dana: { favor: 0 } })
+            required(s.campaign, 'Rhys has won').plansUsedBy = { rhys: [SLANDER] }
+            const victory = resolve(s, true)
+            expect(s.campaign).toBeUndefined()
+            expect(victory.metadata?.triggered).toEqual(['Slander: dana burned all 0 of their favor'])
+        })
+
+        it('through the machine: the answer ends the Campaign, and the turn goes on where it would have (Martial Culture ends the Act Phase); replayed alike', () => {
+            const start = slandered()
+            required(start.campaign, 'Rhys has won').endsActPhaseAfter = true
+            start.machineState = MachineState.CampaignVictory
+            start.activePlayerIds = ['rhys']
+            const raw = start.dehydrate()
+            const game = testGame(['rhys', 'dana', 'chancellor'])
+            const actions = []
+            let recorded = raw
+            for (const step of [
+                buildAction(CampaignResolveVictory, { playerId: 'rhys', placements: [], banishToSiteId: 'c1', burnFavor: true }),
+                buildAction(AnswerQuestion, { playerId: 'dana', answer: { kind: PowerQuestionKind.PayTravelToll, pay: true } })
+            ]) {
+                const ran = engine.runNext(step, structuredClone(recorded), game)
+                actions.push(...ran.processedActions)
+                recorded = ran.updatedState
+                if (actions.length === 1) {
+                    expect(recorded.machineState).toBe(MachineState.PowerQuestion)
+                    expect(recorded.campaign).toBeDefined()
+                }
+            }
+            expect(recorded.campaign).toBeUndefined()
+            expect(recorded.pendingQuestions).toBeUndefined()
+            // Martial Culture: Rhys's Act Phase ends, and his Rest, with no choice in it, follows.
+            expect(actions.map((action) => action.type).slice(0, 3)).toEqual([ActionType.CampaignResolveVictory, ActionType.AnswerQuestion, ActionType.CompleteRest])
+            expect(recorded.players.find((p) => p.playerId === 'dana')).toMatchObject({ siteId: 'c1', favor: 0 })
+
+            let replayed = structuredClone(raw)
+            for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded)
+        })
     })
 })
 
@@ -564,5 +647,81 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
             for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
             expect(replayed).toEqual(recorded)
         }
+    })
+})
+
+describe("A banish from a Shrouded Wood: the ruler's pick, any toll and the burn, then R-5.5.8 and the end (R-5.5.7.III, R-11.7, R-X.4)", () => {
+    /** Rhys won against Dana, who stands in his Shrouded Wood at c2, taking her pawn and favor; he used Slander. */
+    function wood(oathRevision: number = atRevision) {
+        return table({ rhys: { siteId: 'p1' }, dana: { favor: 7 } }, {
+            ...WOOD,
+            campaign: {
+                attackerPlayerId: 'rhys',
+                defenderPlayerId: 'dana',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackPool: 4,
+                defensePool: 1,
+                attackRoll: [],
+                defenseRoll: [],
+                defense: 2,
+                swords: 5,
+                defendingForce: [],
+                defendingBandits: 0,
+                ...campaignRecords(),
+                plansUsed: [SLANDER],
+                plansUsedBy: { rhys: [SLANDER] },
+                attackerVictorious: true
+            }
+        }, oathRevision)
+    }
+    function banish(s: ReturnType<typeof table>) {
+        const action = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'rhys', placements: [], banish: true, burnFavor: true }))
+        action.apply(s)
+        return action
+    }
+    const pick = (s: ReturnType<typeof table>, siteId: string) => answerQuestion(s, 'rhys', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+
+    it('nothing is burned, and the Campaign stays open, until Rhys picks', () => {
+        const s = wood()
+        const victory = banish(s)
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: 'rhys', travelerPlayerId: 'dana' })
+        expect(s.getPlayerState('dana').favor).toBe(7)
+        expect(victory.metadata).toMatchObject({ favorBurned: 0 })
+        expect(s.campaign?.banishPending).toEqual({ burnFavor: true })
+    })
+
+    it('a site with no toll: she goes, half burns, then Slander, and the Campaign ends', () => {
+        const s = wood()
+        banish(s)
+        const picked = pick(s, 'p1')
+        expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'p1', favor: 0 })
+        expect(picked.metadata?.triggered).toEqual(['rhys burned 3 favor', 'Slander: dana burned all 4 of their favor'])
+        expect(s.campaign).toBeUndefined()
+    })
+
+    it('a Toll Roads site: Dana is asked with all her favor; paid, she goes, then the burn and Slander', () => {
+        const s = wood()
+        banish(s)
+        pick(s, 'c1')
+        expect(tollQuestion(s)).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: 'dana', move: PowerMoveKind.ShroudedWood })
+        expect(s.campaign).toBeDefined()
+        const answer = payToll(s, true)
+        expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c1', favor: 0 })
+        expect(s.getPlayerState('rhys').favor).toBe(4)
+        expect(answer.metadata?.triggered).toEqual(['rhys burned 3 favor', 'Slander: dana burned all 3 of their favor'])
+        expect(s.campaign).toBeUndefined()
+    })
+
+    it('R-X.4 — before the revision the burn and the plans come first and the pick ends nothing', () => {
+        const s = wood(before)
+        const victory = banish(s)
+        expect(s.campaign).toBeUndefined()
+        expect(victory.metadata?.favorBurned).toBe(3)
+        expect(s.getPlayerState('dana').favor).toBe(0)
+        const picked = pick(s, 'c1')
+        expect(picked.metadata?.triggered).toBeUndefined()
+        expect(s.getPlayerState('dana').siteId).toBe('c1')
     })
 })

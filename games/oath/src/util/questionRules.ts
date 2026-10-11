@@ -40,6 +40,7 @@ import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
+import { settleBanishedVictory } from './campaignVictory.js'
 import {
     askPowerMoveToll,
     canPayPowerMoveToll,
@@ -352,11 +353,20 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                     toSiteId: siteId
                 }
                 const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
-                return { summary: `chose ${siteId} for ${travelerPlayerId}`, tollMove }
+                const summary = `chose ${siteId} for ${travelerPlayerId}`
+                // A banish waits on the toll's answer; with no favor to ask for, it settles here.
+                return tollMove.outcome === PowerMoveTollOutcome.Asked
+                    ? { summary, tollMove }
+                    : { summary, tollMove, ...settleBanishedVictory(state) }
             }
             const { notes, revealed } = travelByPower(state, travelerPlayerId, siteId)
             const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
-            return revealed ? { summary, disclosed: true } : summary
+            // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the move.
+            return {
+                summary,
+                disclosed: revealed ? true : undefined,
+                ...settleBanishedVictory(state)
+            }
         }
     },
     [PowerQuestionKind.TravelFreeTo]: {
@@ -549,13 +559,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const { question } = matched
             const tollMove = settlePowerMoveToll(state, question, matched.answer.pay)
             const paid = `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor and went to ${question.siteId}`
+            // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the answer, paid or refused.
             if (!matched.answer.pay) {
                 return {
                     summary: `refused ${question.cardId} and stayed at ${question.fromSiteId}`,
-                    tollMove
+                    tollMove,
+                    ...settleBanishedVictory(state)
                 }
             }
-            if (!question.travel) return { summary: paid, tollMove }
+            if (!question.travel)
+                return { summary: paid, tollMove, ...settleBanishedVictory(state) }
             // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site, then Tyrant and the site's powers.
             const { pick, revealed } = settleWoodPick(
                 state,
