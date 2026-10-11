@@ -3242,6 +3242,212 @@ test.describe('the exchange editor', () => {
     })
 })
 
+/**
+ * Messenger: one move at a time, From, How many and To as tiles and warband pieces, each read on
+ * the state the moves before leave; a whole move folds to its line and the next From opens; "Use"
+ * once a move is whole and none half-built; Undo takes back one pick, then the move.
+ */
+test.describe('Messenger’s moves', () => {
+    const row = (page: Page) => grid(page).locator('[data-action-power="denizen.order.messenger"]')
+    const tile = (page: Page, name: string) => row(page).getByRole('button', { name, exact: true })
+    const pieces = (page: Page) => row(page).getByRole('button', { name: /^How many: \d+$/ })
+    const piece = (page: Page, n: number) => row(page).getByRole('button', { name: `How many: ${n}`, exact: true })
+    const use = (page: Page) => row(page).getByRole('button', { name: 'Use, paying 1 favor', exact: true })
+    const moves = (page: Page) => row(page).locator('[data-move]')
+
+    async function openMessenger(page: Page, table: TableFixture.TableName = 'messenger') {
+        await openTable(page, table)
+        await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+    }
+
+    /** Each tile's width, and the widest its content needs (the content, its padding and its border). */
+    async function tileWidths(page: Page, names: string[]) {
+        return Promise.all(
+            names.map((name) =>
+                tile(page, name).evaluate((button) => {
+                    const content = button.firstElementChild
+                    if (!(button instanceof HTMLElement) || !(content instanceof HTMLElement)) {
+                        throw Error('a tile is a button holding its content')
+                    }
+                    const style = getComputedStyle(button)
+                    const around = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'] as const
+                    return {
+                        width: button.offsetWidth,
+                        needs: content.offsetWidth + around.reduce((sum, side) => sum + parseFloat(style[side]), 0)
+                    }
+                })
+            )
+        )
+    }
+
+    test('move 1 from a site, move 2 from the board it filled; the next From opens under the two lines', async ({ page }) => {
+        await openMessenger(page)
+        await expect(row(page).locator('select')).toHaveCount(0)
+        await expect(row(page).getByText('From:', { exact: true })).toBeVisible()
+        await expect(tile(page, 'Ancient City, 3 free')).toBeVisible()
+        await expect(tile(page, 'Steppe, 1 free')).toBeVisible()
+        await expect(row(page).getByRole('button', { name: /^Marshes/ })).toHaveCount(0)
+        await expect(row(page).getByRole('button', { name: /^Your board/ })).toHaveCount(0)
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(use(page)).toHaveCount(0)
+
+        await tile(page, 'Ancient City, 3 free').click()
+        await expect(tile(page, 'Ancient City, 3 free')).toHaveAttribute('aria-pressed', 'true')
+        await expect(pieces(page)).toHaveCount(3)
+        await expect(row(page).getByText('To:', { exact: true })).toHaveCount(0)
+        await piece(page, 2).click()
+        await expect(piece(page, 2)).toHaveAttribute('aria-pressed', 'true')
+        await expect(piece(page, 1)).toHaveAttribute('aria-pressed', 'true')
+        await expect(piece(page, 3)).toHaveAttribute('aria-pressed', 'false')
+        for (const name of ['Your board', 'Steppe', 'Marshes']) await expect(tile(page, name)).toBeVisible()
+        await expect(tile(page, 'Ancient City')).toHaveCount(0)
+        await expect(use(page)).toHaveCount(0)
+
+        await tile(page, 'Your board').click()
+        await expect(moves(page)).toHaveCount(1)
+        await expect(moves(page).first()).toHaveText(/^\s*2\s*Ancient City → your board$/)
+        await expect(moves(page).first().getByRole('img', { name: 'warbands' })).toBeVisible()
+        for (const name of ['Your board, 2 free', 'Ancient City, 1 free', 'Steppe, 1 free']) {
+            await expect(tile(page, name)).toHaveAttribute('aria-pressed', 'false')
+        }
+        await expect(use(page)).toBeVisible()
+        await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
+
+        await tile(page, 'Your board, 2 free').click()
+        await expect(use(page)).toHaveCount(0)
+        await piece(page, 2).click()
+        for (const name of ['Ancient City', 'Steppe', 'Marshes']) await expect(tile(page, name)).toBeVisible()
+        await expect(tile(page, 'Your board')).toHaveCount(0)
+        await tile(page, 'Marshes').click()
+        await expect(moves(page)).toHaveCount(2)
+        await expect(moves(page).nth(1)).toHaveText(/^\s*2\s*your board → Marshes$/)
+        for (const name of ['Ancient City, 1 free', 'Steppe, 1 free', 'Marshes, 2 free']) await expect(tile(page, name)).toBeVisible()
+        await expect(row(page).getByRole('button', { name: /^Your board/ })).toHaveCount(0)
+
+        await use(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).warbandsAt['slot.provinces.1']).toEqual({ imperial: 3 })
+        const facts = await call(page, 'tableFacts')
+        expect(facts.warbandsAt['slot.cradle.0']).toEqual({ imperial: 2 })
+        expect(facts.boardOf.jacob.imperial ?? 0).toBe(0)
+        await page.getByRole('tab', { name: 'History' }).click()
+        const history = page.getByRole('tabpanel', { name: 'History' }).getByRole('listitem').first()
+        await expect(history).toContainText(/used Messenger, placing 1\s*on it: 2\s*Ancient City → board; 2\s*board → Marshes/)
+        await expect(history.getByRole('img', { name: 'Imperial warbands' })).toHaveCount(2)
+    })
+
+    test('a tap on the count picked clears it; a tap on the From picked clears the move', async ({ page }) => {
+        await openMessenger(page)
+        await tile(page, 'Ancient City, 3 free').click()
+        await piece(page, 2).click()
+        await piece(page, 2).click()
+        await expect(row(page).locator('button[aria-pressed="true"]')).toHaveCount(1)
+        await expect(row(page).getByText('To:', { exact: true })).toHaveCount(0)
+        await tile(page, 'Ancient City, 3 free').click()
+        await expect(pieces(page)).toHaveCount(0)
+    })
+
+    test('Undo takes back To, then How many, then From, then the move before', async ({ page }) => {
+        await openMessenger(page)
+        await tile(page, 'Ancient City, 3 free').click()
+        await piece(page, 2).click()
+        await tile(page, 'Your board').click()
+        await tile(page, 'Your board, 2 free').click()
+        await piece(page, 1).click()
+
+        await undoButton(page).click()
+        await expect(piece(page, 1)).toHaveAttribute('aria-pressed', 'false')
+        await expect(tile(page, 'Your board, 2 free')).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(moves(page)).toHaveCount(1)
+        await undoButton(page).click()
+        await expect(moves(page)).toHaveCount(0)
+        await expect(tile(page, 'Your board')).toHaveAttribute('aria-pressed', 'false')
+        await expect(piece(page, 2)).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(pieces(page).first()).toHaveAttribute('aria-pressed', 'false')
+        await undoButton(page).click()
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(tile(page, 'Ancient City, 3 free')).toHaveAttribute('aria-pressed', 'false')
+        expect((await call(page, 'tableFacts')).staged).toBe('useActionPower')
+    })
+
+    test('two owners at one place (a game from before revision 5): one tile each, its pieces in that owner’s colour', async ({ page }) => {
+        await openMessenger(page, 'messengerTwoOwners')
+        await expect(tile(page, 'Your board, 2 free')).toBeVisible()
+        await expect(tile(page, 'Your board, 1 free')).toBeVisible()
+        await expect(tile(page, 'Steppe, 2 free')).toHaveCount(2)
+        const colours = await row(page)
+            .getByRole('button', { name: /^Steppe, 2 free$/ })
+            .evaluateAll((tiles) => tiles.map((tile) => tile.querySelector('img[alt="warbands"]')?.getAttribute('src')))
+        expect(new Set(colours).size).toBe(2)
+    })
+
+    test('on a desktop each row of tiles shares the width its widest needs, no wider', async ({ page }) => {
+        await openMessenger(page)
+        await panelImagesLoaded(page)
+        const from = await tileWidths(page, ['Ancient City, 3 free', 'Steppe, 1 free'])
+        expect(from[1].width).toBe(from[0].width)
+        expect(Math.abs(from[0].width - Math.max(...from.map((t) => t.needs)))).toBeLessThanOrEqual(1)
+        await tile(page, 'Ancient City, 3 free').click()
+        await piece(page, 2).click()
+        const to = await tileWidths(page, ['Your board', 'Steppe', 'Marshes'])
+        expect(new Set(to.map((t) => t.width)).size).toBe(1)
+        expect(Math.abs(to[0].width - Math.max(...to.map((t) => t.needs)))).toBeLessThanOrEqual(1)
+        expect(await clippedLabels(page)).toEqual([])
+        expect(await wrappedLabels(page)).toEqual([])
+    })
+
+    test('a power’s pick from a list is as wide as its longest option, not the panel', async ({ page }) => {
+        await openTable(page, 'usePower')
+        await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+        const select = grid(page).locator('[data-action-power="relic.whistle"] select')
+        const { drawn, longest } = await select.evaluate((element) => {
+            if (!(element instanceof HTMLElement)) throw Error('a select')
+            const drawn = element.offsetWidth
+            element.style.flexGrow = '0'
+            element.style.width = 'max-content'
+            const longest = element.offsetWidth
+            element.style.flexGrow = ''
+            element.style.width = ''
+            return { drawn, longest }
+        })
+        expect(Math.abs(drawn - longest)).toBeLessThanOrEqual(1)
+    })
+
+    test.describe('on a 375 px phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('every tile and warband piece is at least 44 px and inside the panel; the moves run the width under the card', async ({ page }) => {
+            await openMessenger(page)
+            await tile(page, 'Ancient City, 3 free').click()
+            await piece(page, 2).click()
+            await tile(page, 'Your board').click()
+            await tile(page, 'Your board, 2 free').click()
+            await piece(page, 2).click()
+            await panelImagesLoaded(page)
+            const panel = await boxOf(grid(page))
+            const card = await boxOf(row(page).locator('img').first())
+            const controls = [
+                ...['Your board, 2 free', 'Ancient City, 1 free', 'Steppe, 1 free', 'Ancient City', 'Steppe', 'Marshes'].map((name) => tile(page, name)),
+                piece(page, 1),
+                piece(page, 2)
+            ]
+            for (const control of controls) {
+                const size = await layoutSizeOf(control)
+                expect(size?.height, await control.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(44)
+                const box = await boxOf(control)
+                expect(box.x).toBeGreaterThanOrEqual(panel.x)
+                expect(box.x + box.width).toBeLessThanOrEqual(panel.x + panel.width)
+            }
+            expect(await layoutSizeOf(piece(page, 1))).toEqual({ width: 44, height: 44 })
+            expect((await boxOf(tile(page, 'Your board, 2 free'))).x).toBeLessThan(card.x + card.width)
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+        })
+    })
+})
+
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
     await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()

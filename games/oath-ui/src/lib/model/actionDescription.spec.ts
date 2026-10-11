@@ -220,6 +220,44 @@ describe('the history tab describes every action', () => {
             expect(sleight).toBe('used Sleight of Hand, placing a favor on it: took 1 secret from Bob')
         })
 
+        describe('Messenger’s row is worded from its own choices: each move’s warbands, from, to', () => {
+            const MESSENGER = 'denizen.order.messenger'
+            const sites = { ...nameOf, site: (slotId: string) => ({ 'slot.cradle.0': 'Ancient City', 'slot.hinterland.1': 'Marshes', c2: 'Steppe' })[slotId] ?? slotId }
+            const warbands = (at: { kind: 'board'; playerId: string } | { kind: 'site'; siteId: string }, count: number, owner = 'p1') => ({ kind: PowerChoiceKind.Warbands, group: { at, owner, count } })
+            const toSite = (siteId: string) => ({ kind: PowerChoiceKind.Site, siteId })
+            const board = { kind: 'board' as const, playerId: 'p1' }
+            const messenger = (choices: unknown[], summary: string) =>
+                describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: MESSENGER, powerIndex: 0, choices, metadata: { summary } }), sites)
+
+            it('names the sites as printed, "board" for the mover’s board, and the warbands as a count', () => {
+                const row = messenger(
+                    [warbands({ kind: 'site', siteId: 'slot.cradle.0' }, 2), warbands(board, 2), toSite('slot.hinterland.1')],
+                    'moved 2 slot.cradle.0 → board; 2 board → slot.hinterland.1'
+                )
+                expect(row).toBe('used Messenger, placing a favor on it: 2 warbands Ancient City → board; 2 warbands board → Marshes')
+                expect(tokenParts(row, { warbands: true }).filter((part) => part.kind === 'warband')).toHaveLength(2)
+            })
+
+            it('names Imperial warbands, and a single warband', () => {
+                expect(messenger([warbands({ kind: 'site', siteId: 'c2' }, 1, IMPERIAL_WARBANDS), toSite('slot.cradle.0')], 'moved 1 c2 → slot.cradle.0')).toBe(
+                    'used Messenger, placing a favor on it: 1 Imperial warband Steppe → Ancient City'
+                )
+            })
+
+            it('rewords an older game’s record, a site left over after the last pair too', () => {
+                expect(messenger([warbands(board, 1), toSite('c2'), toSite('slot.cradle.0')], 'moved 1 board → c2')).toBe(
+                    'used Messenger, placing a favor on it: 1 warband board → Steppe'
+                )
+            })
+
+            it('names all 16 moves of a use, one clause each', () => {
+                const sixteen = Array.from({ length: 16 }, (_, i) => [warbands({ kind: 'site', siteId: i % 2 === 0 ? 'c2' : 'slot.cradle.0' }, 1), toSite(i % 2 === 0 ? 'slot.cradle.0' : 'c2')]).flat()
+                const row = messenger(sixteen, 'moved …')
+                expect(row.split('; ')).toHaveLength(16)
+                expect(row.endsWith('1 warband Ancient City → Steppe')).toBe(true)
+            })
+        })
+
         it('names a Rest power’s card once and its bank by its printed name', () => {
             const rest = describeAction(action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'denizen.order.vow-of-obedience', powerIndex: 1, metadata: { summary: 'Vow of Obedience: took 1 favor from the order bank' } }), nameOf)
             expect(rest).toBe('rested with Vow of Obedience: took 1 favor from the Order bank')

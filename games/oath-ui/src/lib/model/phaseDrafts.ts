@@ -57,6 +57,15 @@ import {
     type PowerChoicePicks
 } from './powerChoices.js'
 import { samePowerUse } from './powerUse.js'
+import {
+    isPowerMoves,
+    moveChoices,
+    powerMoves,
+    powerMovesComplete,
+    withoutLastPick,
+    type MovePick,
+    type PowerMoves
+} from './powerMoves.js'
 import { addableCount, tappedCount } from './exchangeTerms.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
@@ -421,6 +430,9 @@ type PicksByPower = Record<string, PowerChoicePicks>
  * each tap, so Undo takes back one pick at a time.
  */
 export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
+    // The power whose moves were picked last: Undo takes its picks back one at a time.
+    private movesPicked: string | undefined
+
     private get playerId(): string | undefined {
         return this.session.selection.action === ActionType.UseActionPower
             ? this.session.liveTurnSeatId
@@ -446,26 +458,35 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         if (!this.powers.some((p) => samePowerUse(p, use))) {
             return
         }
+        this.movesPicked = undefined
         if (JSON.stringify(picks) === JSON.stringify(this.picksOf(use))) return
         const next = { ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks }
         this.store([...(this.stored ?? []), next])
     }
 
-    override back(): boolean {
-        const history = this.stored
-        if (history !== undefined && history.length > 1) {
-            this.store(history.slice(0, -1))
-            return true
-        }
-        return super.back()
+    /** Messenger's moves, one at a time, each read on the state the moves before it leave. */
+    movesOf(power: LegalPowerUse): PowerMoves | undefined {
+        const playerId = this.playerId
+        const printed = cardPower(power.cardId, power.powerIndex)
+        if (!playerId || !printed || !isPowerMoves(power.choices)) return undefined
+        return powerMoves(this.session.gameState, playerId, printed, this.picksOf(power).moves)
+    }
+
+    setMoves(use: PowerUseKey, moves: MovePick[]): void {
+        this.setPicks(use, { ...this.picksOf(use), moves })
+        this.movesPicked = powerKey(use.cardId, use.powerIndex)
     }
 
     /** "Use" waits until every choice the power opens has its picks. */
     picksComplete(power: LegalPowerUse): boolean {
+        const moves = this.movesOf(power)
+        if (moves) return powerMovesComplete(moves)
         return picksComplete(power.choices, this.picksOf(power))
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {
+        const moves = this.movesOf(power)
+        if (moves) return moveChoices(moves.whole)
         return powerChoicesFrom(power.choices, this.picksOf(power))
     }
 
@@ -504,6 +525,42 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         if (!this.playerId) return
         await this.session.useActionPower(power.cardId, power.powerIndex, this.choicesFor(power))
     }
+
+    /**
+     * Undo takes back the last move pick when moves were picked last; otherwise the last tap, and
+     * the picks are as they were before it.
+     */
+    override back(): boolean {
+        const history = this.stored
+        const key = this.movesPicked
+        const picks = key === undefined ? undefined : this.current?.[key]
+        if (key === undefined || picks === undefined || picks.moves.length === 0) {
+            if (history !== undefined && history.length > 1) {
+                this.store(history.slice(0, -1))
+                return true
+            }
+            return super.back()
+        }
+        const moves = withoutLastPick(picks.moves)
+        const rest = { ...this.current, [key]: { ...picks, moves } }
+        if (Object.values(rest).some(hasPicks)) this.store([...(history ?? []).slice(0, -1), rest])
+        else super.back()
+        return true
+    }
+}
+
+function hasPicks(picks: PowerChoicePicks): boolean {
+    return (
+        picks.moves.length > 0 ||
+        [
+            picks.option,
+            picks.count,
+            picks.terms,
+            picks.several,
+            picks.severalCount,
+            picks.bargain
+        ].some((record) => Object.keys(record).length > 0)
+    )
 }
 
 type OfferTerms = {

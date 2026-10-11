@@ -552,6 +552,125 @@ describe("Witch's Bargain's picks (revision 7)", () => {
     })
 })
 
+/** Messenger: one move at a time, each read on the state the moves before it leave. */
+describe('Messenger’s moves (docs/user-interactions.md)', () => {
+    const MESSENGER = 'denizen.order.messenger'
+    const USE = { cardId: MESSENGER, powerIndex: 0 }
+    const board = { at: { kind: 'board' as const, playerId: ME }, owner: ME }
+    const at = (siteId: string) => ({ at: { kind: 'site' as const, siteId }, owner: ME })
+    const toSite = (siteId: string) => ({ kind: 'site' as const, siteId })
+    const toBoard = { kind: 'board' as const }
+
+    // The sheet's scene: four at the first site, two at the second, one at the third; the board empty.
+    function using() {
+        const session = opened(
+            table(
+                MachineState.ActPhase,
+                { warbandsOnBoard: {}, advisers: [{ cardId: MESSENGER, faceUp: true }] },
+                {
+                    denizensBySite: { c1: [], c2: [], h1: [] },
+                    warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } }
+                }
+            )
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const power = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        const moves = () => required(draft.movesOf(power), 'Messenger’s choices are moves')
+        return { draft, power, moves }
+    }
+
+    it('the board is a From after a site → board move, and every count is the one the move leaves', () => {
+        const { draft, power, moves } = using()
+        expect(moves().whole).toEqual([])
+        expect(moves().open?.sources).toEqual([
+            { ...at('c1'), count: 3 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(draft.picksComplete(power)).toBe(false)
+
+        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }])
+        expect(moves().whole).toEqual([{ from: at('c1'), count: 2, to: toBoard }])
+        expect(moves().open?.from).toBeUndefined()
+        expect(moves().open?.sources).toEqual([
+            { ...board, count: 2 },
+            { ...at('c1'), count: 1 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }])
+    })
+
+    it('from the board To lists only ruled sites; from a site, the board and the other ruled sites', () => {
+        const { draft, moves } = using()
+        draft.setMoves(USE, [{ from: at('c1'), count: 1 }])
+        expect(moves().open?.destinations).toEqual([toBoard, toSite('c2'), toSite('h1')])
+        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 1 }])
+        expect(moves().open?.destinations).toEqual([toSite('c1'), toSite('c2'), toSite('h1')])
+    })
+
+    it('a half-built move hides "Use"; the send is the whole moves’ warbands, each with its site unless it goes to the board', () => {
+        const { draft, power, moves } = using()
+        draft.setMoves(USE, [
+            { from: at('c1'), count: 2, to: toBoard },
+            { from: board, count: 2, to: toSite('h1') },
+            { from: at('h1') }
+        ])
+        expect(moves().whole).toHaveLength(2)
+        expect(moves().open?.free).toBe(2)
+        expect(draft.picksComplete(power)).toBe(false)
+        draft.setMoves(USE, draft.picksOf(USE).moves.slice(0, 2))
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } },
+            { kind: PowerChoiceKind.Warbands, group: { ...board, count: 2 } },
+            { kind: PowerChoiceKind.Site, siteId: 'h1' }
+        ])
+        expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+
+    it('a pick with one option is made: one free warband, one place to go', () => {
+        const { draft, moves } = using()
+        draft.setMoves(USE, [{ from: at('c2') }])
+        expect(moves().open?.count).toBe(1)
+        draft.setMoves(USE, [{ from: at('c2'), count: 1, to: toSite('h1') }, { from: at('h1') }])
+        expect(moves().open?.count).toBe(1)
+    })
+
+    it('Undo takes back one pick (To, then How many, then From), then the move before', () => {
+        const { draft, moves } = using()
+        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 2 }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board }])
+        expect(moves().open?.count).toBeUndefined()
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(moves().whole).toEqual([])
+        expect(draft.back()).toBe(true)
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
+    })
+
+    it('after the 16th whole move no From opens; the engine takes all 16', () => {
+        const { draft, power, moves } = using()
+        const there = { from: at('c1'), count: 1, to: toSite('c2') }
+        const again = { from: at('c2'), count: 1, to: toSite('c1') }
+        const sixteen = Array.from({ length: 16 }, (_, i) => (i % 2 === 0 ? there : again))
+        draft.setMoves(USE, sixteen.slice(0, 15))
+        expect(moves().open?.sources.length).toBeGreaterThan(0)
+        draft.setMoves(USE, sixteen)
+        expect(moves().whole).toHaveLength(16)
+        expect(moves().open).toBeUndefined()
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toHaveLength(32)
+        expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+})
+
 /** R-6.6.1 — the Exile, then the relic space, then the terms. */
 describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
     const offeringIn = (prepare?: (state: HydratedOathGameState) => void) => {

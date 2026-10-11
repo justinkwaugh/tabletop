@@ -185,6 +185,8 @@ export type TableName =
     | 'drumAskedCitizen'
     | 'drumAfterToll'
     | 'drumAfterBrassHorse'
+    | 'messenger'
+    | 'messengerTwoOwners'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -2007,6 +2009,96 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * Messenger: Jacob, the Chancellor, stands at the Ancient City (4 Imperial warbands) and rules
+ * the Steppe (2) and the Marshes (1); his board is empty. Cole, an Exile, is at the Mountain.
+ */
+function messengerTable(): PlayedTable {
+    const [city, steppe] = mapSlotsFor(Region.Cradle)
+    const [mountain, marshes] = mapSlotsFor(Region.Provinces)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: city,
+                favor: 3,
+                secrets: 1,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                advisers: [faceup('denizen.order.messenger')]
+            }),
+            testPlayer({ playerId: 'cole', color: Color.Red, siteId: mountain, favor: 2, secrets: 1 })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: {
+                [city]: 'site.ancient-city',
+                [steppe]: 'site.steppe',
+                [mountain]: 'site.mountain',
+                [marshes]: 'site.marshes'
+            },
+            denizensBySite: { [city]: [], [steppe]: [], [mountain]: [], [marshes]: [] },
+            warbandsBySite: {
+                [city]: { [IMPERIAL_WARBANDS]: 4 },
+                [steppe]: { [IMPERIAL_WARBANDS]: 2 },
+                [mountain]: { cole: 1 },
+                [marshes]: { [IMPERIAL_WARBANDS]: 1 }
+            }
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
+/**
+ * A game from before revision 5, where a Citizen could hold their own warbands beside Imperial
+ * ones: Ann, a Citizen with Messenger, has 2 of hers and 1 Imperial on her board, and 3 of each
+ * at the Steppe. Jacob is the Chancellor.
+ */
+function messengerTwoOwnersTable(): PlayedTable {
+    const [city, steppe] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: steppe,
+                favor: 3,
+                warbandsOnBoard: { ann: 2, [IMPERIAL_WARBANDS]: 1 },
+                advisers: [faceup('denizen.order.messenger')]
+            }),
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: city,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: OathRevision.CardFixes1,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: { [city]: 'site.ancient-city', [steppe]: 'site.steppe' },
+            denizensBySite: { [city]: [], [steppe]: [] },
+            warbandsBySite: {
+                [city]: { [IMPERIAL_WARBANDS]: 2 },
+                [steppe]: { ann: 3, [IMPERIAL_WARBANDS]: 3 }
+            }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['ann']
+    return tableOf(state)
+}
+
 /** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
 function travelCardsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -3234,7 +3326,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodTollAsked: woodTollAskedTable,
     tollAsked: tollAskedTable,
     oracleToll: () => oracleTable(4),
-    oracleNoFavor: () => oracleTable(0)
+    oracleNoFavor: () => oracleTable(0),
+    messenger: messengerTable,
+    messengerTwoOwners: messengerTwoOwnersTable
 }
 
 /** Every table a scenario can open. */

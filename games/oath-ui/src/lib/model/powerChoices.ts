@@ -8,6 +8,7 @@ import {
 } from '@tabletop/oath'
 import { bargainChoices, type BargainPick } from './bargainPicks.js'
 import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
+import type { MovePick } from './powerMoves.js'
 
 export type PowerChoicePicks = {
     option: Record<number, number>
@@ -17,10 +18,12 @@ export type PowerChoicePicks = {
     severalCount: Record<string, number>
     /** Witch's Bargain from revision 7: the players picked, in order, and what each is given. */
     bargain: Record<number, BargainPick[]>
+    /** A power's moves (Messenger), each keyed by the place, owner and site picked. */
+    moves: MovePick[]
 }
 
 export function emptyPicks(): PowerChoicePicks {
-    return { option: {}, count: {}, terms: {}, several: {}, severalCount: {}, bargain: {} }
+    return { option: {}, count: {}, terms: {}, several: {}, severalCount: {}, bargain: {}, moves: [] }
 }
 
 export const NO_OPTION = -1

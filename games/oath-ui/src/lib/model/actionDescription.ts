@@ -41,6 +41,7 @@ import {
     isUseActionPower,
     isUseRestPower,
     cardPower,
+    PowerChoiceKind,
     soleOwner,
     PowerMoveTollOutcome,
     IMPERIAL_WARBANDS,
@@ -522,7 +523,8 @@ function describeActionCited(
         const tolls = action.metadata?.tollsGiven ?? []
         const paying =
             tolls.length > 0 ? `; ${tollsGivenText(tolls, names, viewerId, action.playerId)}` : ''
-        return `used ${cardName(action.cardId)}${cost}${powerEffect(action, names, viewerId)}${paying}`
+        const effect = messengerMoves(action, names) ?? powerEffect(action, names, viewerId)
+        return `used ${cardName(action.cardId)}${cost}${effect}${paying}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -686,6 +688,26 @@ function powerEffect(
     const summary = action.metadata?.summary
     if (!summary) return ''
     return `: ${namedSummary(summary, action.cardId, action.playerId, names, viewerId)}`
+}
+
+const MESSENGER = 'denizen.order.messenger'
+
+/**
+ * Messenger's moves from the action's own choices, as the engine pairs them (warbands, then the
+ * site they go to, else the board): the sites as printed, in older games too.
+ */
+function messengerMoves(action: UseActionPower, names: HistoryNames): string | undefined {
+    if (action.cardId !== MESSENGER) return undefined
+    const choices = action.choices ?? []
+    const moves = choices.flatMap((choice, i) => {
+        if (choice.kind !== PowerChoiceKind.Warbands) return []
+        const next = choices[i + 1]
+        const { at, owner, count } = choice.group
+        const from = at.kind === 'board' ? 'board' : names.site(at.siteId)
+        const to = next?.kind === PowerChoiceKind.Site ? names.site(next.siteId) : 'board'
+        return [`${warbandsOf(count, owner, names.player, action.playerId)} ${from} → ${to}`]
+    })
+    return moves.length > 0 ? `: ${moves.join('; ')}` : undefined
 }
 
 /** An engine summary as a History row reads it: every seat named, "you" for the viewer alone. */

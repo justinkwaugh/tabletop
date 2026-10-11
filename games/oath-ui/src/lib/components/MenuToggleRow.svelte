@@ -13,6 +13,7 @@
         disabled,
         points = undefined,
         width = undefined,
+        label = undefined,
         onclick
     }: {
         image: string
@@ -27,6 +28,8 @@
         points?: MenuPointerTarget
         /** One width for a group of rows, each as wide as the widest. */
         width?: ChoiceWidth
+        /** Its spoken name, where the printed one carries a count as a picture. */
+        label?: string
         onclick: () => void
     } = $props()
 
@@ -45,6 +48,7 @@
         ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
         : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
     aria-pressed={on}
+    aria-label={label}
     style:min-width={width ? `${width.widest}px` : undefined}
     {disabled}
     {onclick}

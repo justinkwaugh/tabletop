@@ -81,7 +81,7 @@
                                 <span class="text-oath-text-muted">Play to:</span>
                                 <select
                                     disabled={busy}
-                                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
+                                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs w-fit max-w-full"
                                     value={gameSession.adviserToSite ?? ''}
                                     onchange={(e) =>
                                         gameSession.setAdviserToSite(

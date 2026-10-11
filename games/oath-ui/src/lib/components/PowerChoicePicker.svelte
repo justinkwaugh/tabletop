@@ -285,7 +285,7 @@
                     <span class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</span>
                     <select
                         disabled={busy}
-                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow {tallOnPhone
+                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs w-fit max-w-full {tallOnPhone
                             ? 'max-sm:min-h-11'
                             : ''}"
                         value={pick}
