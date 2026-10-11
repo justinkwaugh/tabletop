@@ -192,9 +192,11 @@
         showBattle(session.battleLocales, false)
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
+        const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())
         return () => {
             session.removeGameStateChangeListener(followGame)
             stopListening()
+            stopReadingZoom()
         }
     })
 </script>

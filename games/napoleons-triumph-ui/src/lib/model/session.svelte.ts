@@ -152,6 +152,10 @@ import {
     type MoveTarget
 } from './targets.js'
 
+type ZoomSource = () => number | undefined
+
+const ZOOM_BEFORE_THE_TABLE_IS_DRAWN = 0.3
+
 export class NapoleonsTriumphGameSession extends GameSession<
     NapoleonsTriumphProjectedState,
     HydratedNapoleonsTriumphGameState
@@ -161,7 +165,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private battle: BattleSelections = $state(emptyBattleSelections())
     private readonly pickUpListeners = new Set<() => void>()
 
-    zoom = $state(0.3)
+    private zoomSource: ZoomSource | undefined = $state.raw()
+
+    zoom = $derived(this.zoomSource?.() ?? ZOOM_BEFORE_THE_TABLE_IS_DRAWN)
 
     boardView: BoardView = $state(BoardView.North)
 
@@ -506,6 +512,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.pickUpListeners.add(listener)
         return () => {
             this.pickUpListeners.delete(listener)
+        }
+    }
+
+    /** The zoom is the scaling wrapper's own state; the table says where to read it, so the session keeps no copy. */
+    readZoomFrom(source: ZoomSource): () => void {
+        this.zoomSource = source
+        return () => {
+            if (this.zoomSource === source) {
+                this.zoomSource = undefined
+            }
         }
     }
 

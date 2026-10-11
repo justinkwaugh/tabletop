@@ -51,7 +51,7 @@
 | State | Meaning | Producer | Consumers | Lifetime and validity |
 | --- | --- | --- | --- | --- |
 | Board view | How the board is turned | Table on mount (by screen shape and side), the view control | Board, piece layout, flags, battle and selection focus | Kept for the session; never reset by game state |
-| Zoom | On-screen scale of the board | Board, read back from the shared scaling wrapper | Flags and markers that keep a readable size, whole-field picking | Follows the wrapper |
+| Zoom | On-screen scale of the board | The shared scaling wrapper, whose scale the session reads through the table | Flags and markers that keep a readable size, whole-field picking | Derived from the wrapper's own state; a whole-field value stands in until the table is drawn |
 | Command selection | Group picked up, units left in, command kind and Guard Attack announcement | Pieces layer, action area | Pieces layer, target layers, action area, header Undo | Staged selection holding only the player's own choices; reset when a new position arrives; applies only in the owner's command phase in Live View; a group or unit no longer in the position is ignored |
 | Riding-on selection | The cavalry road move still open, shown as the picked-up group | Session, from the game state's road move | Pieces layer, target layers, action area | Derived; lasts while the game state holds the road move and the player has picked up nothing else |
 | Battle selections | The acting player's picks, one staged selection per attack step | Map blocks, battle panel | Battle step, header Undo | Reset when a new position arrives; each applies only while its own step is in front of the player |

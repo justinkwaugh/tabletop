@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { Attachment } from 'svelte/attachments'
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
     import { viewSize, viewTransform } from '$lib/utils/boardView.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -20,29 +19,9 @@
     let artLoaded = $state(false)
 
     const size = $derived(viewSize(gameSession.boardRotation))
-
-    // Workaround: ScalingWrapper exposes neither its scale nor a callback for every change of it, so the zoom is read back from the element it transforms.
-    const watchZoom: Attachment<HTMLElement> = (node) => {
-        const scaled = node.parentElement?.parentElement
-        if (!scaled) return
-        const read = () => {
-            const zoom = node.getBoundingClientRect().width / size.width
-            if (zoom > 0 && Math.abs(zoom - gameSession.zoom) > 0.01) {
-                gameSession.zoom = zoom
-            }
-        }
-        const observer = new MutationObserver(read)
-        observer.observe(scaled, { attributes: true, attributeFilter: ['style'] })
-        read()
-        return () => observer.disconnect()
-    }
 </script>
 
-<div
-    class="relative select-none"
-    style="width: {size.width}px; height: {size.height}px;"
-    {@attach watchZoom}
->
+<div class="relative select-none" style="width: {size.width}px; height: {size.height}px;">
     <div
         class="absolute left-0 top-0 origin-top-left"
         style="width: {BOARD_WIDTH}px; height: {BOARD_HEIGHT}px; transform: {viewTransform(
