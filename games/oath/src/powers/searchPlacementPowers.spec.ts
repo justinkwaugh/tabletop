@@ -281,7 +281,7 @@ describe('Land Warden and Warning Signals', () => {
         expect(warbandsAt(s, 'c1')['foe']).toBe(3)
         expect(s.getPlayerState('foe').warbandsOnBoard['foe']).toBe(3)
         expect(s.campaign?.discardAtEnd).toContain(WARNING)
-        expect(d.metadata?.planNotes?.[0]).toMatch(/Warning Signals/)
+        expect(d.metadata?.planNotes?.[0]).toBe('Warning Signals: foe moved 2 from p1 to the board; 1 from the board to c1')
     })
 
     it('Warning Signals: "any warbands" — a board-to-site move alone, and moves off several sites', () => {

@@ -205,7 +205,7 @@ registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.Ba
                     : `from the board to ${siteId}`
                 notes.push(`${moved} ${route}`)
             }
-            return `Warning Signals: moved ${notes.join('; ') || 'nothing'}`
+            return `Warning Signals: ${ctx.playerId} moved ${notes.join('; ') || 'nothing'}`
         }
     }
 })

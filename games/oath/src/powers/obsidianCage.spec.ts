@@ -131,7 +131,7 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         expect(s.getPlayerState(FOE).warbandsInPersonalBank[FOE]).toBe(8)
         expect(s.getPlayerState(FOE).warbandsOnBoard[FOE]).toBe(0)
         expect(s.warbandsBySite['c1'][FOE]).toBe(0)
-        expect(note).toEqual(["Obsidian Cage: moved the enemy's 3 unkilled warbands to the Cage"])
+        expect(note).toEqual([`Obsidian Cage: ${ME} moved the enemy's 3 unkilled warbands to the Cage`])
         expect(s.getPlayerState(ME)).toMatchObject({ favor: 4, secrets: 2 })
         expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(ownForceAtTheSacrifice)
         expect(s.tokensOn(CAGE)).toEqual({ favor: 0, secrets: 0 })
@@ -221,7 +221,7 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         const t = board({ [ME]: [CAGE] }, { [ME]: { siteId: 'h1' } })
         campaign(t, ME, { kind: 'bandits' }, [siteTarget('h1')], [PLAN])
         const notes = decide(t, true).metadata?.planNotes
-        expect(notes).toEqual(["Obsidian Cage: moved the enemy's 0 unkilled warbands to the Cage"])
+        expect(notes).toEqual([`Obsidian Cage: ${ME} moved the enemy's 0 unkilled warbands to the Cage`])
         expect(t.warbandsOnCard(CAGE)).toEqual({})
     })
 

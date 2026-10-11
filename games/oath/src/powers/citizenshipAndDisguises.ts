@@ -226,7 +226,7 @@ registerBattlePlan(
                 if (ctx.campaign.side === BattlePlanSide.Attacker && ctx.state.campaign)
                     ctx.state.campaign.endsActPhaseAfter = true
                 return {
-                    note: `Martial Culture: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
+                    note: `Martial Culture: ${ctx.playerId} became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
                     pileDeposits: visionDeposits(c)
                 }
             }

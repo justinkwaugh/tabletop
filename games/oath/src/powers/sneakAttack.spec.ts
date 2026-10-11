@@ -156,6 +156,17 @@ describe('Sneak Attack — "After another player\'s campaign, you may campaign"'
         expect(won.metadata?.triggered).toEqual([`Sneak Attack: ${Y} may campaign against ${X} for no Supply`])
     })
 
+    it('a holder who cannot campaign is named in the note, without the refusal’s own words (they say “you”)', () => {
+        const s = board({ [Y]: { advisers: [adviser(SNEAK_ATTACK), adviser('denizen.hearth.vow-of-peace')] } })
+        new HydratedCampaign(buildAction(Campaign, { playerId: X, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 3 })).apply(s)
+        Object.assign(s.campaign ?? {}, { swords: 9, defense: 0 })
+        new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: X, sacrifice: 0, defeatKills: [] })).apply(s)
+        const won = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: X, placements: [{ siteId: 'c1', owner: X, count: 1 }], burnFavor: false }))
+        won.apply(s)
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(won.metadata?.triggered).toEqual([`Sneak Attack: ${Y} cannot campaign against ${X}`])
+    })
+
     it('another player’s: the holder’s own Campaign asks nobody', () => {
         const t = new Table(board(), Y)
         t.state.players[1].supply = 6

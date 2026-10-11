@@ -77,6 +77,7 @@ describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
         action.apply(s)
         expect(s.getPlayerState(ATTACKER).supply).toBe(5 - 2 + 1)
         expect(action.metadata?.battle?.plansUsed).toEqual([SCOUTS])
+        expect(action.metadata?.battle?.planNotes).toEqual([`Scouts: ${ATTACKER} gained 1 Supply`])
         expect(action.metadata?.battle?.awaitingDefender).toBeUndefined()
         expect(s.campaign?.attackRoll.length).toBe(3)
     })

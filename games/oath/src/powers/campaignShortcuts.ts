@@ -94,7 +94,7 @@ registerBattlePlan(PEACE_ENVOY, powerIndexOf(PEACE_ENVOY, PowerTiming.BattlePlan
             if (!enemyId) return 'Peace Envoy: the enemy pawn is elsewhere, so nothing is given'
             const given = Math.min(usableFavor(ctx.state, playerId), campaign.pools.defensePool)
             giveFavor(ctx.state, playerId, enemyId, given)
-            return `Peace Envoy: gave ${enemyId} ${given} favor, one per defense die`
+            return `Peace Envoy: ${playerId} gave ${enemyId} ${given} favor, one per defense die`
         }
     }
 })
