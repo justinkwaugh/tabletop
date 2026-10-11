@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type Color } from '@tabletop/common'
 import {
     ActionType,
     HydratedAnswerQuestion,
@@ -14,6 +14,7 @@ import {
     powerMoveToll,
     shroudedWoodDestinations,
     usableFavor,
+    warbandOwnerGainedByPower,
     type ConspiracyPlay,
     type ExchangeTerms,
     PowerQuestionValidator,
@@ -394,6 +395,15 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
+    /** Dragonskin Drum — the warband it would gain, in its owner's colour: the Empire's for a Citizen (R-10.13). */
+    get drumWarbandColor(): Color {
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
+        return this.session.warbandColor(
+            warbandOwnerGainedByPower(this.session.gameState, question.askedPlayerId)
+        )
+    }
+
     async travelTo(siteId: string): Promise<void> {
         await this.send({ kind: PowerQuestionKind.TravelFreeTo, siteId })
     }
@@ -502,6 +512,8 @@ export class QuestionDraft implements PanelDraft {
             }
             case PowerQuestionKind.PayTravelToll:
                 return { kind: question.kind, pay: yes }
+            case PowerQuestionKind.DragonskinDrum:
+                return { kind: question.kind, gain: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }

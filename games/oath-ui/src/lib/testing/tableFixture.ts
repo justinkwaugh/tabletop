@@ -180,6 +180,10 @@ export type TableName =
     | 'witchsBargain'
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
+    | 'drumAsked'
+    | 'drumAskedCitizen'
+    | 'drumAfterToll'
+    | 'drumAfterBrassHorse'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -2910,7 +2914,109 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
     return tableOf(state)
 }
 
+const DRUM = 'relic.dragonskin-drum'
+const BRASS_HORSE = 'relic.brass-horse'
+type DrumScene = 'whistle' | 'citizen' | 'toll' | 'horse'
+
+/**
+ * Dragonskin Drum on a power's move (revision 7): Jacob holds the Drum at the River; Cole, with the
+ * Whistle, rules the Great Slum (with Toll Roads there in 'toll'); Ann is the Chancellor, and in
+ * 'citizen' Jacob is her Citizen. In 'horse' Jacob has used Brass Horse and picks where to go.
+ */
+function drumState(scene: DrumScene) {
+    const citizen = scene === 'citizen'
+    const horse = scene === 'horse'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'Jacob',
+                color: Color.Blue,
+                status: citizen ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: RIVER,
+                supply: 3,
+                favor: 4,
+                secrets: 2,
+                relicIds: horse ? [DRUM, BRASS_HORSE] : [DRUM],
+                warbandsOnBoard: citizen ? { [IMPERIAL_WARBANDS]: 2 } : { Jacob: 2 }
+            }),
+            testPlayer({
+                playerId: 'Cole',
+                color: Color.Red,
+                siteId: GREAT_SLUM,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                relicIds: [WHISTLE],
+                warbandsOnBoard: { Cole: 9 }
+            }),
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotsFor(Region.Hinterland)[0],
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }
+            })
+        ],
+        {
+            machineState: horse ? MachineState.PowerQuestion : MachineState.ActPhase,
+            chancellorPlayerId: 'Ann',
+            oathkeeperPlayerId: 'Cole',
+            oathRevision: OathRevision.EngineFixes3,
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [GREAT_SLUM]: 'site.great-slums',
+                [RIVER]: 'site.river'
+            },
+            denizensBySite: {
+                [GREAT_SLUM]: scene === 'toll' ? ['denizen.order.toll-roads'] : [],
+                [RIVER]: []
+            },
+            warbandsBySite: { [GREAT_SLUM]: { Cole: 2 } },
+            pendingQuestions: horse
+                ? {
+                      queue: [
+                          {
+                              kind: PowerQuestionKind.TravelFreeTo,
+                              cardId: BRASS_HORSE,
+                              askedPlayerId: 'Jacob',
+                              siteIds: [GREAT_SLUM]
+                          }
+                      ],
+                      askingPlayerId: 'Jacob',
+                      resumeMachineState: MachineState.ActPhase
+                  }
+                : undefined
+        }
+    )
+    const turn = horse ? 'Jacob' : 'Cole'
+    openTurn(state, turn)
+    state.activePlayerIds = horse ? ['Jacob'] : [turn]
+    state.vault = testVaultWithRelics({})
+    return state
+}
+
+/** Cole uses the Whistle on Jacob, who then holds the Drum at the Great Slum (or is first asked Toll Roads). */
+function drumTable(scene: DrumScene): PlayedTable {
+    const table = tableOf(drumState(scene))
+    if (scene === 'horse') return table
+    return played(table, [
+        createAction(UseActionPower, {
+            ...envelope(table),
+            playerId: 'Cole',
+            cardId: WHISTLE,
+            powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
+            choices: [{ kind: PowerChoiceKind.Player, playerId: 'Jacob' }]
+        })
+    ])
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
+    drumAsked: () => drumTable('whistle'),
+    drumAskedCitizen: () => drumTable('citizen'),
+    drumAfterToll: () => drumTable('toll'),
+    drumAfterBrassHorse: () => drumTable('horse'),
     banditCrown: () => banditCrownTable('citizen'),
     banditCrownChancellor: () => banditCrownTable('chancellor'),
     banditCrownExile: () => banditCrownTable('exile'),

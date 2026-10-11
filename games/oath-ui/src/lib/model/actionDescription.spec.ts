@@ -1079,6 +1079,33 @@ describe('the history tab describes every action', () => {
     })
 })
 
+describe('Dragonskin Drum on a power’s move — the answer’s own row, after the move’s', () => {
+    const DRUM = 'relic.dragonskin-drum'
+    const drum = (gain: boolean, warbandGain?: { owner: string; count: number }) =>
+        action({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.DragonskinDrum, gain }, metadata: { cardId: DRUM, kind: PowerQuestionKind.DragonskinDrum, summary: gain ? 'gained 1 warband' : 'skipped', resumeMachineState: MachineState.ActPhase, last: true, ...(warbandGain ? { warbandGain } : {}) } })
+
+    it('Gain reads "+1 warband (Dragonskin Drum)", the warband its token in the History', () => {
+        const line = describeAction(drum(true, { owner: 'p2', count: 1 }), nameOf, 'p1')
+        expect(line).toBe('+1 warband (Dragonskin Drum)')
+        expect(tokenParts(line, { warbands: true })).toEqual([
+            { kind: 'text', text: '+' },
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            { kind: 'text', text: ' (Dragonskin Drum)' }
+        ])
+    })
+
+    it('Skip adds nothing to the move: its row says only that it was skipped', () => {
+        expect(describeAction(drum(false), nameOf, 'p1')).toBe('skipped the Dragonskin Drum')
+    })
+
+    it('the warband is the owner the answer recorded: a Citizen’s, the Empire’s', () => {
+        const own = (playerId: string) => playerId
+        expect(rowWarbandOwner(drum(true, { owner: IMPERIAL_WARBANDS, count: 1 }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(drum(true, { owner: 'p2', count: 1 }), own)).toBe('p2')
+        expect(rowWarbandOwner(drum(false), own)).toBe('p2')
+    })
+})
+
 describe('R-10.13 — whose warbands a History row counts', () => {
     const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
     const group = (owner: string, count: number) => ({ at: { kind: 'site', siteId: 'c1' }, owner, count })

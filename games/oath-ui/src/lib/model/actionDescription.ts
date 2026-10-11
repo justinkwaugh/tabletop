@@ -2,6 +2,7 @@ import {
     ActionType,
     ConsentRequestKind,
     LetPeekSubjectKind,
+    PowerQuestionKind,
     RecoverTargetKind,
     SearchPlay,
     SearchSource,
@@ -52,6 +53,7 @@ import {
     type LetPeek,
     type PaidToll,
     type ShroudedWoodPick,
+    type WarbandGain,
     type Search,
     type UseActionPower,
     type ResolveWake,
@@ -192,8 +194,17 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
     }
     if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
-    if (isAnswerQuestion(action)) return action.metadata?.woodPick?.warbandOwner
+    if (isAnswerQuestion(action)) {
+        return action.metadata?.woodPick?.warbandOwner ?? action.metadata?.warbandGain?.owner
+    }
     return undefined
+}
+
+/** Dragonskin Drum on a power's move — what it added, then its name; a skip adds nothing to the move. */
+function drumText(cardId: string, gain: WarbandGain | undefined): string {
+    return gain && gain.count > 0
+        ? `+${plural(gain.count, 'warband')} (${cardName(cardId)})`
+        : `skipped the ${cardName(cardId)}`
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
@@ -550,6 +561,8 @@ function describeActionCited(
             return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
         }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
+        if (meta?.kind === PowerQuestionKind.DragonskinDrum)
+            return drumText(meta.cardId, meta.warbandGain)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
             : 'answered a question'

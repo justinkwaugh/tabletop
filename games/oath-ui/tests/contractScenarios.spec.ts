@@ -6231,3 +6231,106 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         })
     }
 })
+
+/** Dragonskin Drum when a power moves its holder (revision 7): one question after the move, in the Toll Roads form. */
+test.describe('Dragonskin Drum when a power moves its holder', () => {
+    const answers = (page: Page) => ({
+        gain: grid(page).getByRole('button', { name: 'Gain', exact: true }),
+        skip: grid(page).getByRole('button', { name: 'Skip', exact: true })
+    })
+    const lineToken = (page: Page) => grid(page).locator('.question-line img[alt="warband"]')
+
+    test('after the Whistle the holder is asked "Gain 1 [warband]?" beside the Drum; Gain adds it, and the History says so after the move', async ({ page }) => {
+        expect((await openTable(page, 'drumAsked')).seatId).toBe('Jacob')
+        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+        await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
+        await expect(grid(page).locator('.question-line')).toHaveText('Gain 1?')
+        await expect(lineToken(page)).toHaveAttribute('src', /warband\.blue/)
+        await expect(grid(page).locator('.question-form img[alt="Dragonskin Drum"]')).toBeVisible()
+        const { gain, skip } = answers(page)
+        const [gainBox, skipBox] = [await gain.boundingBox(), await skip.boundingBox()]
+        // Desktop: one width, the wider label's, side by side, never stretched; Gain is the primary.
+        expect(gainBox?.width).toBeCloseTo(skipBox?.width ?? 0, 0)
+        expect(gainBox?.y).toBeCloseTo(skipBox?.y ?? 0, 0)
+        expect(gainBox?.width ?? 999).toBeLessThan(120)
+        await expect(gain).toHaveClass(/border-oath-primary-border/)
+        await expect(skip).not.toHaveClass(/border-oath-primary-border/)
+
+        await gain.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ Jacob: 3 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        const rows = page.locator('.history .timeline-item')
+        await expect(rows.nth(0)).toContainText('+1 (Dragonskin Drum)')
+        await expect(rows.nth(0).locator('img[alt="warband"]')).toHaveAttribute('src', /warband\.blue/)
+        await expect(rows.nth(0)).toContainText('Jacob')
+        await expect(rows.nth(1)).toContainText('used Whistle, placing 1 on it: Jacob travelled to Great Slum')
+    })
+
+    test('Skip gains nothing', async ({ page }) => {
+        await openTable(page, 'drumAsked')
+        await answers(page).skip.click()
+        await expect(answers(page).skip).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ Jacob: 2 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history .timeline-item').nth(0)).toContainText('skipped the Dragonskin Drum')
+    })
+
+    test('the mover reads only who they are waiting on', async ({ page }) => {
+        await openTable(page, 'drumAsked')
+        expect(await call(page, 'viewOffTheClock')).toBe('Cole')
+        await expect(grid(page)).toContainText('Waiting on Jacob.')
+        await expect(answers(page).gain).toHaveCount(0)
+        await expect(answers(page).skip).toHaveCount(0)
+    })
+
+    test('a Citizen is asked for the Empire’s purple warband, and gains it from the Chancellor’s bank', async ({ page }) => {
+        await openTable(page, 'drumAskedCitizen')
+        await expect(lineToken(page)).toHaveAttribute('src', /warband\.purple/)
+        await answers(page).gain.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.Jacob).toEqual({ imperial: 3 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history .timeline-item').nth(0).locator('img[alt="warband"]')).toHaveAttribute('src', /warband\.purple/)
+    })
+
+    test('with Toll Roads the toll comes first: paid, the Drum is asked next; refused, it is not', async ({ page }) => {
+        await openTable(page, 'drumAfterToll')
+        await expect(grid(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+        await expect(answers(page).gain).toHaveCount(0)
+        await grid(page).getByRole('button', { name: 'Pay', exact: true }).click()
+        await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
+        await expect(answers(page).gain).toBeVisible()
+
+        await openTable(page, 'drumAfterToll')
+        await grid(page).getByRole('button', { name: 'Refuse', exact: true }).click()
+        await expect.poll(async () => await call(page, 'openQuestionKind')).toBeUndefined()
+        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.2')
+    })
+
+    test('after Brass Horse its user is asked the same question once they arrive', async ({ page }) => {
+        await openTable(page, 'drumAfterBrassHorse')
+        await grid(page).getByRole('button', { name: /Travel to/ }).click()
+        await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
+        expect((await call(page, 'tableFacts')).siteOf.Jacob).toBe('slot.provinces.1')
+        await expect(answers(page).gain).toBeVisible()
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test.describe(`on a phone ${viewport.width} wide`, () => {
+            test.use({ viewport })
+
+            test('Gain and Skip: one width, side by side, 44 px tall, inside the panel, never stretched', async ({ page }) => {
+                await openTable(page, 'drumAsked')
+                const { gain, skip } = answers(page)
+                await expect(gain).toBeVisible()
+                const [gainBox, skipBox, panelBox] = [await gain.boundingBox(), await skip.boundingBox(), await grid(page).boundingBox()]
+                expect(gainBox?.width).toBeCloseTo(skipBox?.width ?? 0, 0)
+                expect(gainBox?.y).toBeCloseTo(skipBox?.y ?? 0, 0)
+                expect(gainBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+                expect(skipBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+                expect((gainBox?.width ?? 999) + (skipBox?.width ?? 999)).toBeLessThan((panelBox?.width ?? 0) * 0.6)
+                expect((skipBox?.x ?? 0) + (skipBox?.width ?? 0)).toBeLessThanOrEqual((panelBox?.x ?? 0) + (panelBox?.width ?? 0))
+                expect(await clippedLabels(page)).toEqual([])
+            })
+        })
+    }
+})

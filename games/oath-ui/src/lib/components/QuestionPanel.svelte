@@ -271,5 +271,13 @@
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PayTravelToll}
         <QuestionToll question={mine} />
+    {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Gain <TokenText
+                    text="1 warband"
+                    warbandColor={() => draft.drumWarbandColor}
+                />?{/snippet}
+            <QuestionYesNo yes="Gain" no="Skip" />
+        </QuestionForm>
     {/if}
 </div>
