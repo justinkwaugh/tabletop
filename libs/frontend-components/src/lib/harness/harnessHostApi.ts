@@ -3,7 +3,6 @@ import {
     assert,
     assertExists,
     GameEngine,
-    GameStatus,
     GameSyncStatus,
     omitGameState,
     Visibility,
@@ -15,6 +14,7 @@ import {
 import type { GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { GameService } from '$lib/services/gameService.js'
 import { DummyRemoteApiService } from './dummyRemoteApiService.js'
+import { updatedGameRecord } from './harnessGameRecord.js'
 
 export class HarnessHostApi extends DummyRemoteApiService {
     private readonly engine: GameEngine
@@ -52,7 +52,7 @@ export class HarnessHostApi extends DummyRemoteApiService {
         const result = this.engine.executeCanonicalAction({ game, state, action })
         const now = new Date()
         for (const processed of result.processedActions) processed.createdAt = now
-        const updatedGame = this.updatedGame(game, result.updatedState, action)
+        const updatedGame = updatedGameRecord(game, result.updatedState, action)
         const projected = this.hostView
             ? result
             : Visibility.projectActionResult({
@@ -124,7 +124,7 @@ export class HarnessHostApi extends DummyRemoteApiService {
             restored = result.updatedState
             retained.push(...result.processedActions)
         }
-        const updatedGame = this.updatedGame(game, restored, retained.at(-1))
+        const updatedGame = updatedGameRecord(game, restored, retained.at(-1))
         const history = this.hostView
             ? { actions: retained }
             : this.projectHistory(updatedGame, restored, retained)
@@ -192,19 +192,5 @@ export class HarnessHostApi extends DummyRemoteApiService {
             perspective: this.perspective,
             replay: { game, runtime: this.runtime }
         })
-    }
-
-    private updatedGame(game: Game, state: GameState, lastAction?: GameAction): Game {
-        return {
-            ...game,
-            activePlayerIds: [...state.activePlayerIds],
-            status: state.result ? GameStatus.Finished : GameStatus.Started,
-            result: state.result,
-            winningPlayerIds: [...state.winningPlayerIds],
-            finishedAt: state.result ? (game.finishedAt ?? new Date()) : undefined,
-            updatedAt: new Date(),
-            lastActionAt: lastAction?.createdAt,
-            lastActionPlayerId: lastAction?.playerId
-        }
     }
 }
