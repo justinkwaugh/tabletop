@@ -23,7 +23,9 @@ import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
 import { turnOrderFrom } from '../util/questions.js'
 import {
     applyDiceDelta,
+    collectAttackingForce,
     collectDefensePool,
+    declaredParties,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
     reasonNoCampaignAgainst,
@@ -32,10 +34,10 @@ import {
     type CampaignParties
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
-import { isImperialPlayer, rulingWarbandOwners, warbandsAt } from '../util/rule.js'
+import { isImperialPlayer } from '../util/rule.js'
 import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
-import { reasonPersistentForbidsCampaign, persistentForceSites } from '../util/persistent.js'
-import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
+import { reasonPersistentForbidsCampaign } from '../util/persistent.js'
+import { forceTotal } from '../util/force.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import {
     applyBattlePlans,
@@ -47,19 +49,17 @@ import {
     plansTargetSiteRelics
 } from '../util/battlePlans.js'
 import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.js'
-import { attackingSiteOf, sitesWithTargets, targetedSiteIds } from '../util/campaignSite.js'
+import {
+    attackingSiteOf,
+    forceSitesOf,
+    sitesWithTargets,
+    targetedSiteIds
+} from '../util/campaignSite.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { flipSecretFacedown, reasonSitesForbidTargets } from '../util/siteTravel.js'
 import { secretPayment } from '../util/actionPayment.js'
-import { countOf } from '../util/warbands.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { campaignAsIfSiteNow } from '../util/freeActions.js'
-
-export function forceSitesOf(state: HydratedOathGameState, playerId: string): string[] {
-    const asIfSiteId = campaignAsIfSiteNow(state, playerId)
-    const sites = new Set<string>(asIfSiteId ? [asIfSiteId] : [])
-    for (const siteId of persistentForceSites(state, playerId)) sites.add(siteId)
-    return [...sites]
-}
 
 /** R-5.5.3, R-7.5.1 — the attacker's plans against the sides as they stand; Relic Hunter must be among them to target a facedown relic. */
 export function reasonAttackerPlansInvalid(
@@ -207,6 +207,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             skullLossOrder: this.skullLossOrder,
             attackerSiteId: asIfSiteId ?? attacker.siteId,
             forceSiteIds,
+            asIfSiteId,
             allyPlayerIds: [...parties.allyPlayerIds]
         }
 
@@ -240,8 +241,23 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
                 declaration.attackerPlayerId,
                 declaration.defenderPlayerId
             ),
-            targets: declaration.targets
+            targets: declaration.targets,
+            attackerSiteId: HydratedCampaign.declaredSiteOf(state, declaration),
+            forceSiteIds: declaration.forceSiteIds,
+            asIfSiteId: declaration.asIfSiteId
         }
+    }
+
+    /** R-X.4 — before revision 5 the attacker's plans were judged from the pawn's site, not the one Wild Allies or Captains named. */
+    private static declaredSiteOf(
+        state: HydratedOathGameState,
+        declaration: CampaignDeclaration
+    ): string {
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) {
+            return pawnSiteId(state, declaration.attackerPlayerId)
+        }
+        assertExists(declaration.attackerSiteId, 'a Campaign records the site it acts from')
+        return declaration.attackerSiteId
     }
 
     /** R-5.5.3 to R-5.5.5 */
@@ -322,6 +338,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             // defending side, per its entry: R-10.28-H1).
             defenderPlansLocked: attackerPlans.locksEnemyPlans || undefined,
             forceSiteIds: declaration.forceSiteIds,
+            asIfSiteId: declaration.asIfSiteId,
             attackerSiteId: declaration.attackerSiteId,
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
@@ -333,7 +350,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const answering = campaign.defenderPlansLocked
             ? []
             : defendingPlayerIds(parties).filter(
-                  (id) => usableBattlePlans(state, id, BattlePlanSide.Defender).length > 0
+                  (id) => usableBattlePlans(state, id, BattlePlanSide.Defender, parties).length > 0
               )
         const awaitingDefender = answering.length > 0
 
@@ -368,15 +385,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
     ): CampaignParties {
         const defenderPlayerId =
             choice.defender.kind === 'player' ? choice.defender.playerId : undefined
-        const nonImperialPlayerIds = suspendedImperialsFor(state, playerId, defenderPlayerId)
-        const base: CampaignParties = {
-            attackerPlayerId: playerId,
-            defenderPlayerId,
-            allyPlayerIds: [],
-            nonImperialPlayerIds,
-            targets: choice.targets
-        }
-        return { ...base, allyPlayerIds: HydratedCampaign.compulsoryAllies(state, base) }
+        return declaredParties(state, playerId, defenderPlayerId, choice.targets)
     }
 
     static reasonCannotCampaign(
@@ -412,22 +421,22 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         )
         if (defenderReason) return defenderReason
 
+        const parties = HydratedCampaign.partiesFor(state, playerId, choice)
+
         if (choice.attackDice < 0) {
             return 'must declare at least 0 attack dice'
         }
-        const most = HydratedCampaign.maxAttackDice(state, playerId)
+        const most = HydratedCampaign.maxAttackDice(state, parties)
         if (choice.attackDice > most) {
             return `can add at most ${most} attack dice, one per warband in your force`
         }
         const lossOrderReason = reasonLossOrderOutsideForce(
             state,
-            playerId,
+            parties,
             forceSitesOf(state, playerId),
             choice.skullLossOrder
         )
         if (lossOrderReason) return lossOrderReason
-
-        const parties = HydratedCampaign.partiesFor(state, playerId, choice)
 
         const targetReason = reasonCannotDeclareTargets(state, parties)
         if (targetReason) return targetReason
@@ -442,7 +451,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             }
             // Relic Hunter — its target is declared now and the plan once they have answered.
             const hunter = plansTargetSiteRelics(
-                usableBattlePlans(state, playerId, BattlePlanSide.Attacker)
+                usableBattlePlans(state, playerId, BattlePlanSide.Attacker, parties)
             )
             return choice.targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) && !hunter
                 ? 'a facedown relic at a site can be targeted only with Relic Hunter to declare'
@@ -493,29 +502,8 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
     }
 
     /** R-5.5.2 — one attack die per warband in the force: the board and the sites it reaches. */
-    static maxAttackDice(state: HydratedOathGameState, playerId: string): number {
-        return warbandsOnBoardOf(state, playerId) + HydratedCampaign.siteForceOf(state, playerId)
-    }
-
-    private static siteForceOf(state: HydratedOathGameState, playerId: string): number {
-        const owners = rulingWarbandOwners(state, playerId)
-        return forceSitesOf(state, playerId).reduce((total, siteId) => {
-            const onSite = warbandsAt(state, siteId)
-            return total + owners.reduce((n, owner) => n + countOf(onSite, owner), 0)
-        }, 0)
-    }
-
-    /** R-5.5.2.a — "the Chancellor joins as an Ally" when an Imperial player defends. */
-    private static compulsoryAllies(
-        state: HydratedOathGameState,
-        parties: CampaignParties
-    ): string[] {
-        const defenderId = parties.defenderPlayerId
-        if (!defenderId || !isImperialPlayer(state, defenderId, scopeOf(parties))) return []
-        const chancellorId = state.chancellorId()
-        return chancellorId !== defenderId && chancellorId !== parties.attackerPlayerId
-            ? [chancellorId]
-            : []
+    static maxAttackDice(state: HydratedOathGameState, parties: CampaignParties): number {
+        return forceTotal(collectAttackingForce(state, parties))
     }
 
     /** R-5.5.2.a, R-10.2-H1 — clockwise from the attacker. */

@@ -3,6 +3,7 @@ import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { CONSPIRACY_ID, suitOf } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 import {
     facedownAdviserChoices,
     one,
@@ -11,7 +12,15 @@ import {
     type ChoiceDomain
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
-import { rulesSite, rulingWarbandOwners, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
+import {
+    type ImperialScope,
+    rulesSite,
+    rulingWarbandOwners,
+    sitesRuledBy,
+    warbandsFreeToLeave
+} from '../util/rule.js'
+import { battleScopeOf } from '../util/campaign.js'
+import { partiesOf } from '../util/campaignRoll.js'
 import { receiveFavor } from '../util/favor.js'
 import { areEnemies } from '../util/persistent.js'
 import {
@@ -27,7 +36,6 @@ import {
     otherPlayersAtYourSite,
     regionOfPawn
 } from './vocabulary.js'
-import { siteChoicesYouRule } from './choiceDomains.js'
 import { warbandEntries } from '../util/warbands.js'
 
 // "Action: Peek at an adviser of a player whose pawn is at your site. If it is the Conspiracy, you play it
@@ -123,9 +131,16 @@ registerModifier(LAND_WARDEN, powerIndexOf(LAND_WARDEN, PowerTiming.Modifier), {
 // "Move any warbands to and from your board and any sites you rule (except the last warband from a
 //  site). At end, discard Warning Signals." Defender. Warbands to a site all go to the one site named.
 const WARNING_SIGNALS = 'denizen.nomad.warning-signals'
-const ruledSiteGroups: ChoiceDomain = (state, playerId) =>
-    sitesRuledBy(state, playerId).flatMap((siteId) =>
-        rulingWarbandOwners(state, playerId)
+/** R-5.5.1.a — a defender's plan, so the Campaign it is used in is under way. */
+function defendedCampaignScope(state: HydratedOathGameState): ImperialScope | undefined {
+    const campaign = state.campaign
+    assertExists(campaign, 'Warning Signals is used by a defender, once the Campaign is mustered')
+    return battleScopeOf(state, partiesOf(state, campaign))
+}
+const ruledSiteGroups: ChoiceDomain = (state, playerId) => {
+    const scope = defendedCampaignScope(state)
+    return sitesRuledBy(state, playerId, scope).flatMap((siteId) =>
+        rulingWarbandOwners(state, playerId, scope)
             .map((owner) => ({ owner, free: warbandsFreeToLeave(state, playerId, siteId, owner) }))
             .filter(({ free }) => free > 0)
             .map(({ owner, free }) => ({
@@ -133,6 +148,12 @@ const ruledSiteGroups: ChoiceDomain = (state, playerId) =>
                 group: { at: { kind: 'site' as const, siteId }, owner, count: free }
             }))
     )
+}
+const ruledSites: ChoiceDomain = (state, playerId) =>
+    sitesRuledBy(state, playerId, defendedCampaignScope(state)).map((siteId) => ({
+        kind: PowerChoiceKind.Site,
+        siteId
+    }))
 const boardGroups: ChoiceDomain = (state, playerId) =>
     warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
         .filter(([, count]) => count > 0)
@@ -154,7 +175,7 @@ registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.Ba
         }),
         optional(PowerChoiceKind.Site, {
             what: 'the site you rule they go to',
-            domain: siteChoicesYouRule
+            domain: ruledSites
         })
     ],
     hooks: {

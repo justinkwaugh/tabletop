@@ -133,7 +133,7 @@ describe('Discord', () => {
         expect(s.warbandsBySite['c2']['ruler']).toBe(1)
         expect(s.warbandsBySite['p1']['other']).toBe(2)
         expect(banditsPerSite(s)).toBe(3)
-        const parties: CampaignParties = { attackerPlayerId: 'ruler', defenderPlayerId: undefined, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], allyPlayerIds: [], nonImperialPlayerIds: [] }
+        const parties: CampaignParties = { attackerPlayerId: 'ruler', defenderPlayerId: undefined, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], allyPlayerIds: [], nonImperialPlayerIds: [], attackerSiteId: 'c1', forceSiteIds: [] }
         expect(collectDefendingBandits(s, parties)).toBe(3)
         s.denizensBySite['c1'] = []
         expect(banditsPerSite(s)).toBe(1)

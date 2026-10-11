@@ -1,6 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
+import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from './campaign.js'
 import { areEnemies, rulersOfSite, rulesSite } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
@@ -175,9 +176,9 @@ export function reasonPersistentForbidsBattlePlan(
 export function reasonPersistentForbidsTargets(
     state: HydratedOathGameState,
     parties: CampaignParties,
-    defensePool: number
+    targetDice: number
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, defensePool))
+    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, targetDice))
 }
 
 /** Gleaming Armor, Insect Swarm */
@@ -214,6 +215,20 @@ export function persistentMatchingAdvisers(
     suit: Suit
 ): number {
     return sumPersistent(state, (h, ctx) => h.extraMatchingAdvisers?.(ctx, holderId, suit))
+}
+
+/** R-5.1.4.IV, R-5.3.2 — a player's faceup advisers of a suit, Marriage counting as two hearth advisers. */
+export function advisersOfSuit(
+    state: HydratedOathGameState,
+    holderId: string,
+    suit: Suit,
+    suitIn: (cardId: string) => Suit | undefined = suitOf
+): number {
+    const faceup = state
+        .getPlayerState(holderId)
+        .faceupAdviserIds()
+        .filter((cardId) => suitIn(cardId) === suit).length
+    return faceup + persistentMatchingAdvisers(state, holderId, suit)
 }
 
 export function afterTravelPersistent(

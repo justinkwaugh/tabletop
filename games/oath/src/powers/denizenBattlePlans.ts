@@ -7,25 +7,32 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
-import { collectDefendingForce, type DiceDelta } from '../util/campaign.js'
+import {
+    battleScopeOf,
+    collectAttackingForce,
+    collectDefendingForce,
+    type DiceDelta
+} from '../util/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
-import { isImperialPlayer } from '../util/rule.js'
-import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
+import { type ImperialScope, isImperialPlayer } from '../util/rule.js'
+import { banditRuledCardIds, ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { registerBattlePlan, type BattlePlanContext } from './registry.js'
 import { PowerChoiceKind, optional } from '../util/powerChoice.js'
 import {
+    burnSecretsDownTo,
     burnSecretsFromPlayer,
     denizensOnMap,
     gainFavorFromBank,
     gainWarbandsToBoard,
     killWarbandGroup,
     killWarbandsOnBoard,
-    ruledCardsOfSuit,
     siteHasCardOfSuit,
     hasFaceupAdviserOfSuit
 } from './vocabulary.js'
 import { defendingPlayerIds } from '../util/battlePlans.js'
+import { persistentMatchingAdvisers } from '../util/persistent.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const side = (ctx: BattlePlanContext): BattlePlanSide => ctx.campaign.side
 
@@ -65,16 +72,35 @@ function planUser(ctx: BattlePlanContext): string {
     return ctx.playerId
 }
 
+/** R-10.9, R-X.4 — the whole force, the sites it reaches included; before revision 5 the board alone. */
+function attackingForce(ctx: BattlePlanContext): number {
+    const parties = ctx.campaign.parties
+    return isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
+        ? forceTotal(collectAttackingForce(ctx.state, parties))
+        : warbandsOnBoardOf(ctx.state, parties.attackerPlayerId)
+}
+function defendingForce(ctx: BattlePlanContext): number {
+    return forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
+}
+
+/** R-5.5.1.a — what its user rules and holds is judged within the Campaign. */
+function scope(ctx: BattlePlanContext): ImperialScope | undefined {
+    return battleScopeOf(ctx.state, ctx.campaign.parties)
+}
+
 /** R-10.9 — "your force". */
 function myForce(ctx: BattlePlanContext): number {
-    return side(ctx) === BattlePlanSide.Attacker
-        ? warbandsOnBoardOf(ctx.state, planUser(ctx))
-        : forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
+    return side(ctx) === BattlePlanSide.Attacker ? attackingForce(ctx) : defendingForce(ctx)
 }
 function enemyForce(ctx: BattlePlanContext): number {
-    return side(ctx) === BattlePlanSide.Attacker
-        ? forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties))
-        : warbandsOnBoardOf(ctx.state, ctx.campaign.parties.attackerPlayerId)
+    return side(ctx) === BattlePlanSide.Attacker ? defendingForce(ctx) : attackingForce(ctx)
+}
+
+/** R-5.5.3-H1 — the bandits' compelled plans count the cards at the sites they rule. */
+function cardsRuledByUser(ctx: BattlePlanContext): string[] {
+    return ctx.playerId === undefined
+        ? banditRuledCardIds(ctx.state)
+        : ruledFaceupCardIds(ctx.state, ctx.playerId, scope(ctx))
 }
 
 /** Fire Talkers' entry widens "you hold" to any Imperial player when you are one (R-10.28-H1). */
@@ -83,7 +109,10 @@ function holdsDarkestSecretWide(ctx: BattlePlanContext): boolean {
     const holder = bannerHolder(ctx.state, Banner.DarkestSecret)
     if (!holder) return false
     if (holder === user) return true
-    return isImperialPlayer(ctx.state, user) && isImperialPlayer(ctx.state, holder)
+    return (
+        isImperialPlayer(ctx.state, user, scope(ctx)) &&
+        isImperialPlayer(ctx.state, holder, scope(ctx))
+    )
 }
 
 /**
@@ -162,7 +191,7 @@ registerBattlePlan(
             ignoreSkulls: true,
             dice: (ctx) => {
                 const suits = new Set(
-                    ruledFaceupCardIds(ctx.state, planUser(ctx))
+                    ruledFaceupCardIds(ctx.state, planUser(ctx), scope(ctx))
                         .map((id) => suitOf(id))
                         .filter((s) => s !== undefined && s !== Suit.Arcane)
                 )
@@ -236,11 +265,7 @@ registerBattlePlan(
     {
         // Its Q&A — judged when used, before any skull kills.
         hooks: {
-            rollRules: (ctx) => ({
-                zealots:
-                    forceTotal(collectDefendingForce(ctx.state, ctx.campaign.parties)) >
-                    warbandsOnBoardOf(ctx.state, planUser(ctx))
-            })
+            rollRules: (ctx) => ({ zealots: defendingForce(ctx) > attackingForce(ctx) })
         }
     }
 )
@@ -255,11 +280,13 @@ registerBattlePlan(
                 const defenderId = ctx.campaign.parties.defenderPlayerId
                 if (!victorious || !pawnTargeted(ctx) || !defenderId) return undefined
                 const them = ctx.state.getPlayerState(defenderId)
-                const burned = burnSecretsFromPlayer(
-                    ctx.state,
-                    defenderId,
-                    Math.max(0, them.secrets - Math.max(0, 1 - them.secretsFacedown))
-                )
+                const burned = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
+                    ? burnSecretsDownTo(ctx.state, defenderId, 1)
+                    : burnSecretsFromPlayer(
+                          ctx.state,
+                          defenderId,
+                          Math.max(0, them.secrets - Math.max(0, 1 - them.secretsFacedown))
+                      )
                 return `Book Burning: ${defenderId} burned ${burned} secrets`
             }
         }
@@ -392,7 +419,8 @@ registerBattlePlan(
     powerIndexOf('denizen.nomad.great-crusade', PowerTiming.BattlePlan),
     {
         hooks: {
-            dice: (ctx) => pm(ctx, ruledCardsOfSuit(ctx.state, planUser(ctx), Suit.Nomad).length),
+            dice: (ctx) =>
+                pm(ctx, cardsRuledByUser(ctx).filter((id) => suitOf(id) === Suit.Nomad).length),
             discardAtEnd: true
         }
     }
@@ -489,6 +517,12 @@ function militaryParade(ctx: BattlePlanContext, victorious: boolean): string | u
         for (const cardId of ctx.state.getPlayerState(id).faceupAdviserIds()) {
             const suit = suitOf(cardId)
             if (suit) gained += gainFavorFromBankFor(ctx, suit, 1)
+        }
+        // Its Q&A pays one favor per adviser of a suit, and Marriage counts as two (R-X.4: from revision 5).
+        if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)) continue
+        for (const suit of Object.values(Suit)) {
+            const counted = persistentMatchingAdvisers(ctx.state, id, suit)
+            if (counted > 0) gained += gainFavorFromBankFor(ctx, suit, counted)
         }
     }
     return ctx.playerId === undefined

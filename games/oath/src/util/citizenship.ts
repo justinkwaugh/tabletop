@@ -19,13 +19,16 @@ import { discardRevealedVision } from './revealedVision.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
 import { MAX_SUPPLY } from './rest.js'
 import { holdsTheTurn } from './turn.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 export interface ConversionResult {
     replaced: WarbandGroup[]
     /** R-9.3 may cap this below the number asked for. */
     replacedCount: number
-    /** R-6.6.2 — for want of Imperial warbands, removed (a Citizen) or left as they were (an Exile, R-6.6.3). */
+    /** R-6.6.2, R-6.7-H1 — for want of the new owner's warbands, removed; an older game's Exile keeps them (R-6.6.3). */
     unreplacedCount: number
+    /** R-6.7-H1 */
+    unreplacedReturned?: boolean
     discardedVisionId?: string
     /** R-10.5 */
     discardPileRegion?: Region
@@ -108,6 +111,9 @@ export function becomeExile(state: HydratedOathGameState, playerId: string): Con
 
     const replaced = replaceWarbands(state, chosen, playerId)
     const replacedCount = forceTotal(replaced)
+    // R-6.7-H1 — from revision 5 the purple left over goes back to the Chancellor's bank.
+    const unreplacedReturned = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+    if (unreplacedReturned) removeUnreplaced(state, groups, replaced)
 
     // R-1.10 — only the marker moves; the Supply already spent this turn stays spent.
     player.supply = MAX_SUPPLY
@@ -116,6 +122,7 @@ export function becomeExile(state: HydratedOathGameState, playerId: string): Con
         replaced,
         replacedCount,
         unreplacedCount: wanted - replacedCount,
+        unreplacedReturned: unreplacedReturned && wanted > replacedCount ? true : undefined,
         flippedUsurperToOathkeeper: false
     }
 }

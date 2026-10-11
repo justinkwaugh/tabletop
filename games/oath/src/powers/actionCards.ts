@@ -7,6 +7,7 @@ import { citizenshipEndsActPhase } from '../util/citizenship.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, type EffectContext, chosen } from './registry.js'
 import {
+    burnSecretsDownTo,
     burnSecretsFromDarkestSecret,
     burnSecretsFromPlayer,
     discardAdviser,
@@ -39,6 +40,7 @@ import { offerReroll, settleRoll } from '../util/reroll.js'
 import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -386,16 +388,18 @@ registerEffect(
     {
         choices: [],
         resolve: (ctx) => {
+            const burnsFacedown = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
             let burned = 0
             for (const p of ctx.state.players) {
                 // "(The only secret you keep is the one here)": the actor keeps none on their board.
-                const keepFaceup =
-                    p.playerId === ctx.playerId ? 0 : Math.max(0, 1 - p.secretsFacedown)
-                burned += burnSecretsFromPlayer(
-                    ctx.state,
-                    p.playerId,
-                    Math.max(0, p.secrets - keepFaceup)
-                )
+                const kept = p.playerId === ctx.playerId ? 0 : 1
+                burned += burnsFacedown
+                    ? burnSecretsDownTo(ctx.state, p.playerId, kept)
+                    : burnSecretsFromPlayer(
+                          ctx.state,
+                          p.playerId,
+                          Math.max(0, p.secrets - Math.max(0, kept - p.secretsFacedown))
+                      )
             }
             return { summary: `every player burned down to one secret (${burned} burned)` }
         }

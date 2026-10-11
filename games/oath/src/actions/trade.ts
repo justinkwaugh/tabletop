@@ -14,7 +14,7 @@ import { Suit } from '../model/oathEnums.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { reasonCannotPlaceOn } from '../util/powerCost.js'
 import { cannotGainFavorFromTrade } from '../util/continuous.js'
-import { persistentMatchingAdvisers, reasonPersistentForbidsTrade } from '../util/persistent.js'
+import { advisersOfSuit, reasonPersistentForbidsTrade } from '../util/persistent.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import { pawnSiteId } from '../util/pawn.js'
@@ -36,6 +36,7 @@ import {
     payModifierCosts,
     resolveModifiers,
     disguisedAs,
+    runAfter,
     runBefore,
     type ActiveModifier,
     type ActionPlan
@@ -122,7 +123,11 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             this.tolls
         )
         const { cost, active } = plan
-        const particulars = { cardId: this.cardId, tradeOption: this.option }
+        const particulars = {
+            cardId: this.cardId,
+            tradeOption: this.option,
+            advisersOf: disguisedAs(ActionType.Trade, this.modifiers)
+        }
 
         const suit = suitOf(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)
@@ -159,6 +164,10 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         const secretsGained = forFavor ? 0 : wanted
         player.secrets += secretsGained
 
+        // R-7.4
+        const after = runAfter(state, this.playerId, active, particulars)
+        notes.push(...after.notes)
+
         this.metadata = {
             supplySpent: cost,
             matchingAdvisers: matching,
@@ -189,7 +198,6 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             active
                 .map((m) => m.hooks.matchingAdvisersOf?.(ctx(m)))
                 .find((id) => id !== undefined) ?? playerId
-        const player = state.getPlayerState(sourceId)
         // Acting Troupe — an adviser read as another suit.
         const overrides = new Map(
             active
@@ -197,12 +205,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
                 .filter((o): o is { cardId: string; suit: Suit } => !!o)
                 .map((o) => [o.cardId, o.suit])
         )
-        const suitIn = (id: string) => overrides.get(id) ?? suitOf(id)
-        // Marriage counts as two hearth advisers (R-7.1.4).
-        return (
-            player.faceupAdviserIds().filter((cardId) => suitIn(cardId) === suit).length +
-            persistentMatchingAdvisers(state, sourceId, suit)
-        )
+        return advisersOfSuit(state, sourceId, suit, (id) => overrides.get(id) ?? suitOf(id))
     }
 
     /** R-5.3.2 — favor or secrets the trade asks for, before the favor bank's limit (R-9.3). */
@@ -235,7 +238,9 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
     ): ActionPlan {
         const none: ActionPlan = { cost: TRADE_SUPPLY_COST, active: [] }
         const player = state.getPlayerState(playerId)
-        const particulars = { cardId, tradeOption: option }
+        // Master of Disguise trades as the other player's advisers; the modifiers' conditions read it too.
+        const disguise = disguisedAs(ActionType.Trade, modifiers)
+        const particulars = { cardId, tradeOption: option, advisersOf: disguise }
         const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, particulars)
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
@@ -271,7 +276,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
         // R-7.1.4-H1, R-9.2 — Vow of Poverty's "cannot gain favor from Trade"; Master of Disguise trades as the other player's advisers.
-        const advisersOf = disguisedAs(ActionType.Trade, modifiers) ?? playerId
+        const advisersOf = disguise ?? playerId
         if (
             option === TradeOption.ForFavor &&
             cannotGainFavorFromTrade(state, playerId, advisersOf)

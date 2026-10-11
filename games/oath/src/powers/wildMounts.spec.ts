@@ -16,7 +16,7 @@ import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { BattlePlanSide, isFree, powersWithTiming, PowerTiming } from '../data/cardPowers.js'
 import { usableBattlePlans } from '../util/battlePlans.js'
 import { expectFavorConserved } from '../testing/census.js'
-import { testPlayer, testState, withChancellor, openTurn } from '../testing/fixture.js'
+import { partiesSuspendingNobody, testPlayer, testState, withChancellor, openTurn } from '../testing/fixture.js'
 import { hasEffect } from './registry.js'
 import '../powers/index.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
@@ -99,8 +99,8 @@ describe('Wild Mounts — registered', () => {
         expect(POWER.battlePlanSide).toBe(BattlePlanSide.Either)
         expect(isFree(POWER.cost)).toBe(true)
         const s = board({ [FOE]: { advisers: [adviser(WILD_MOUNTS)] } })
-        expect(usableBattlePlans(s, ME, BattlePlanSide.Attacker).map((p) => p.cardId)).toContain(WILD_MOUNTS)
-        expect(usableBattlePlans(s, FOE, BattlePlanSide.Defender).map((p) => p.cardId)).toContain(WILD_MOUNTS)
+        expect(usableBattlePlans(s, ME, BattlePlanSide.Attacker, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).toContain(WILD_MOUNTS)
+        expect(usableBattlePlans(s, FOE, BattlePlanSide.Defender, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).toContain(WILD_MOUNTS)
     })
 
     it('using it costs nothing, and it prints no "At end, discard" of its own: R-5.5.8 never reaches it', () => {

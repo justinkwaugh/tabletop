@@ -12,7 +12,7 @@ import {
 import type { PileDeposit } from '../model/hidden.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { settleSkullKills } from './campaignRoll.js'
-import { askQuestion, currentQuestion, turnOrderFrom } from './questions.js'
+import { askQuestion, currentQuestion, gatheringTurnOrder } from './questions.js'
 import { QUESTION_RULES } from './questionRules.js'
 
 export interface QuestionRules<K extends PowerQuestionKind> {
@@ -95,7 +95,7 @@ export function settleQueue(state: HydratedOathGameState): boolean {
         const { cardId, siteId } = pending.followUp
         pending.followUp = undefined
         // R-7.6.3-H2 — each present player, in turn order, may propose one exchange.
-        for (const playerId of turnOrderFrom(state, pending.askingPlayerId)) {
+        for (const playerId of gatheringTurnOrder(state, pending.askingPlayerId)) {
             if (state.getPlayerState(playerId).siteId !== siteId) continue
             askQuestion(state, pending.askingPlayerId, {
                 kind: PowerQuestionKind.GatheringFloor,

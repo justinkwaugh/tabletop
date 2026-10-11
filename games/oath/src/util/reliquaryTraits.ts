@@ -1,6 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import { regionOfPawn } from './pawn.js'
 import { gainFavorFromBank } from './favor.js'
+import { cannotGainFavorFromTrade } from './continuous.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PlayerStatus, Region } from '../model/oathEnums.js'
@@ -87,10 +89,32 @@ function travelRegion(ctx: EffectContext): Region {
     return ctx.state.regionOf(destination)
 }
 
+/**
+ * R-7.1.4-H1, R-9.2 — Vow of Poverty's "You cannot gain favor from Trade" reaches a Trade for secrets:
+ * its Q&A withholds Careless's favor, so that Trade gains none and Secret Signal's "only one" is not met.
+ * `advisersOf` is whose advisers the Trade acts with (Master of Disguise). From revision 5 (R-X.4).
+ */
+export function reasonTradeForSecretsGainsNoFavor(
+    state: HydratedOathGameState,
+    playerId: string,
+    advisersOf: string | undefined
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) return undefined
+    return cannotGainFavorFromTrade(state, playerId, advisersOf)
+        ? 'you cannot gain favor from Trade (Vow of Poverty)'
+        : undefined
+}
+
 function gainOneFavor(ctx: EffectContext): string | undefined {
     const cardId = ctx.particulars?.cardId
     const suit = cardId ? suitOf(cardId) : undefined
     if (!suit) return undefined
+    const withheld = reasonTradeForSecretsGainsNoFavor(
+        ctx.state,
+        ctx.playerId,
+        ctx.particulars?.advisersOf
+    )
+    if (withheld) return `Careless: ${withheld}`
     const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
     return gained > 0 ? 'Careless: gained 1 favor' : 'Careless: the bank had no favor to give'
 }

@@ -28,7 +28,7 @@ registerPersistent(GRAND_MASK, powerIndexOf(GRAND_MASK, PowerTiming.Persistent),
     cardRuleAt: (ctx, playerId, cardId, siteId, scope) => {
         const wearerId = grandMaskWearerId(ctx)
         if (wearerId === undefined) return undefined
-        if (!isImperialSite(ctx.state, siteId) || isBattlePlanCard(ctx.state, cardId))
+        if (!isImperialSite(ctx.state, siteId, scope) || isBattlePlanCard(ctx.state, cardId))
             return undefined
         if (playerId === wearerId) return true
         return isImperialPlayer(ctx.state, playerId, scope) ? false : undefined

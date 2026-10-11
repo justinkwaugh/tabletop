@@ -38,3 +38,11 @@ export function burnFavorFromBank(
     state.favorSupply += burned
     return burned
 }
+
+/**
+ * R-10.4-H1 — a burn no player performs goes to the shared bank: Vow of Renewal's "whenever any
+ * player burns" does not take it.
+ */
+export function burnFavorByNoPlayer(state: HydratedOathGameState, count: number): void {
+    state.favorSupply += count
+}

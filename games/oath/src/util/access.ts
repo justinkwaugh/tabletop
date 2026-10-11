@@ -3,7 +3,7 @@ import { cardPowers } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus, type Suit } from '../model/oathEnums.js'
-import { type ImperialScope, rulesSite } from './rule.js'
+import { type ImperialScope, banditsRuleSite, rulesSite } from './rule.js'
 import { uncoveredReliquarySpaces } from './imperial.js'
 import { relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentInPlay } from './persistent.js'
@@ -81,6 +81,14 @@ export function ruledFaceupCardIds(
 ): string[] {
     const player = state.getPlayerState(playerId)
     return [...new Set([...player.faceupAdviserIds(), ...siteCardsRuledBy(state, playerId, scope)])]
+}
+
+/** R-10.21, R-5.5.3-H1 — the bandits rule the cards at every site they rule. */
+export function banditRuledCardIds(state: HydratedOathGameState): string[] {
+    return state
+        .allSiteIds()
+        .filter((siteId) => banditsRuleSite(state, siteId))
+        .flatMap((siteId) => state.denizensAt(siteId))
 }
 
 /** R-7.1.1 */

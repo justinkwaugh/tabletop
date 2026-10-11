@@ -8,6 +8,7 @@ import { seizeBanner } from '../util/seize.js'
 import { expectFavorConserved } from '../testing/census.js'
 import { Color } from '@tabletop/common'
 import { buildAction } from '../testing/actions.js'
+import '../powers/index.js'
 
 const ORDER_A = 'denizen.order.wrestlers'
 const ORDER_B = 'denizen.order.longbows'

@@ -22,6 +22,8 @@ export interface ModifierParticulars {
     cardId?: string
     /** `TradeOption`'s value. */
     tradeOption?: string
+    /** Master of Disguise — the player whose advisers a Trade acts with. */
+    advisersOf?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string
@@ -249,11 +251,11 @@ export interface PersistentHooks {
         parties: CampaignParties,
         side: BattlePlanSide
     ) => string | undefined
-    /** Giant Python */
+    /** Giant Python — the dice the targets add; before revision 5, the whole pool (R-X.4). */
     forbidsTargets?: (
         ctx: PersistentContext,
         parties: CampaignParties,
-        defensePool: number
+        targetDice: number
     ) => string | undefined
     /** Gleaming Armor, Insect Swarm */
     battlePlanExtraCost?: (

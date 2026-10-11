@@ -6,7 +6,7 @@ import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, chosen } from './registry.js'
-import { ownWarbandOwner, sitesRuledBy } from '../util/rule.js'
+import { sitesRuledBy } from '../util/rule.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
@@ -19,7 +19,8 @@ import {
     pawnSiteId,
     ruledCardsOfSuit,
     swapPlayedCardWithSiteCard,
-    takeFavorFromPlayer
+    takeFavorFromPlayer,
+    warbandOwnerGainedByPower
 } from './vocabulary.js'
 
 // "When played, gain [favor][favor][favor]—one each from three different favor banks."
@@ -205,7 +206,7 @@ registerEffect(
         resolve: (ctx) => {
             const ruled = sitesRuledBy(ctx.state, ctx.playerId)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, ruled.length)
-            const own = ownWarbandOwner(ctx.state, ctx.playerId)
+            const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
             // Ring of Devotion: "You cannot place warbands at sites" (R-9.2).
             if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
                 return {
@@ -214,7 +215,7 @@ registerEffect(
             }
             let placed = 0
             for (const siteId of ruled) {
-                placed += moveWarbandsBoardToSite(ctx.state, ctx.playerId, own, siteId, 1)
+                placed += moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, siteId, 1)
             }
             return {
                 summary: `gained ${gained} warbands and placed ${placed} across ${ruled.length} ruled sites`

@@ -5,7 +5,7 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
-import { ownWarbandOwner, rulersOfSite, sitesRuledBy } from '../util/rule.js'
+import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, registerModifier, chosen } from './registry.js'
@@ -27,7 +27,8 @@ import {
     warbandGroupsInRegion,
     siteHasCardOfSuit,
     hasFaceupAdviserOfSuit,
-    denizensAtYourSite
+    denizensAtYourSite,
+    warbandOwnerGainedByPower
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
@@ -278,8 +279,8 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
                 summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — ${ctx.playerId} cannot place warbands at sites`
             }
         }
-        const own = ownWarbandOwner(ctx.state, ctx.playerId)
-        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, own, site, gained)
+        const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
+        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, site, gained)
         return {
             summary: `Key to the City: killed ${killed} at ${site}, gained ${gained} and placed ${placed} there`
         }

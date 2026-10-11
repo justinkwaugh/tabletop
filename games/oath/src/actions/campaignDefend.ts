@@ -71,14 +71,14 @@ export class HydratedCampaignDefend
             this.playerId,
             BattlePlanSide.Defender,
             this.plans,
-            partiesOf(campaign)
+            partiesOf(state, campaign)
         ).active
         const outcome = applyBattlePlans(
             state,
             this.playerId,
             active,
             { attackPool: campaign.attackPool, defensePool: campaign.defensePool },
-            { parties: partiesOf(campaign), side: BattlePlanSide.Defender }
+            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender }
         )
         campaign.attackPool = outcome.pools.attackPool
         campaign.defensePool = outcome.pools.defensePool
@@ -156,17 +156,21 @@ export class HydratedCampaignDefend
             playerId,
             BattlePlanSide.Defender,
             plans,
-            partiesOf(campaign)
+            partiesOf(state, campaign)
         ).reason
     }
 
     static usablePlans(state: HydratedOathGameState, playerId: string): CardPower[] {
         if (HydratedCampaignDefend.reasonCannotDefend(state, playerId, [])) return []
         const campaign = state.campaign
-        if (campaign?.defenderPlansLocked) return []
-        return usableBattlePlans(state, playerId, BattlePlanSide.Defender).filter(
-            (plan) => !campaign?.plansUsed.includes(plan.cardId)
-        )
+        assertExists(campaign, 'a defender answers only while a Campaign is under way')
+        if (campaign.defenderPlansLocked) return []
+        return usableBattlePlans(
+            state,
+            playerId,
+            BattlePlanSide.Defender,
+            partiesOf(state, campaign)
+        ).filter((plan) => !campaign.plansUsed.includes(plan.cardId))
     }
 
     static canDoCampaignDefend(state: HydratedOathGameState, playerId: string): boolean {

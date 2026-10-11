@@ -251,6 +251,21 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
     })
 })
 
+describe("Great Crusade for the bandits (R-5.5.3-H1)", () => {
+    it('counts the nomad cards at the sites the bandits rule, in their favour', () => {
+        const GREAT_CRUSADE = 'denizen.nomad.great-crusade'
+        const s = table({
+            warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
+            denizensBySite: { c1: [GREAT_CRUSADE], p1: ['denizen.nomad.elders'], h1: ['denizen.nomad.tents'] }
+        })
+        const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
+        action.apply(s)
+        expect(action.metadata?.battle?.plansUsed).toEqual([GREAT_CRUSADE])
+        // Great Crusade and Tents; Elders is at a site the defender rules.
+        expect(s.campaign?.attackPool).toBe(3 - 2)
+    })
+})
+
 describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
     const CHANCELLOR = 'chancellor'
     const CITIZEN = 'citizen'

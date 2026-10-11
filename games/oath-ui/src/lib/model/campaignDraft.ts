@@ -35,9 +35,18 @@ export function sameDefender(a: CampaignDefender, b: CampaignDefender): boolean 
     return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** R-5.5.3, R-7.5.1 */
-export function attackerPlans(state: HydratedOathGameState, playerId: string): CardPower[] {
-    return usableBattlePlans(state, playerId, BattlePlanSide.Attacker)
+/** R-5.5.3, R-7.5.1 — R-5.5.1.a's scope depends on the defender. */
+export function attackerPlans(
+    state: HydratedOathGameState,
+    playerId: string,
+    defender: CampaignDefender
+): CardPower[] {
+    return usableBattlePlans(
+        state,
+        playerId,
+        BattlePlanSide.Attacker,
+        partiesOf(state, playerId, defender, [])
+    )
 }
 
 function partiesOf(
@@ -188,8 +197,9 @@ export class CampaignDraft implements PanelDraft {
 
     get planOptions(): CardPower[] {
         const playerId = this.playerId
-        return playerId && this.defender && !this.plansWaitForAllies
-            ? attackerPlans(this.session.gameState, playerId)
+        const defender = this.defender
+        return playerId && defender && !this.plansWaitForAllies
+            ? attackerPlans(this.session.gameState, playerId, defender)
             : []
     }
 
@@ -269,7 +279,7 @@ export class CampaignDraft implements PanelDraft {
         const playerId = this.playerId
         const plans =
             playerId && this.plansWaitForAllies
-                ? attackerPlans(this.session.gameState, playerId)
+                ? attackerPlans(this.session.gameState, playerId, defender)
                 : this.plans
         return campaignTargetOptions(
             this.session.gameState,
@@ -316,7 +326,10 @@ export class CampaignDraft implements PanelDraft {
     // R-5.5.2 — one attack die per warband in the force.
     get maxDice(): number {
         const playerId = this.playerId
-        return playerId ? HydratedCampaign.maxAttackDice(this.session.gameState, playerId) : 0
+        const defender = this.defender
+        if (!playerId || !defender) return 0
+        const state = this.session.gameState
+        return HydratedCampaign.maxAttackDice(state, partiesOf(state, playerId, defender, []))
     }
 
     get attackDice(): number | undefined {
@@ -332,9 +345,14 @@ export class CampaignDraft implements PanelDraft {
     /** R-5.5.5, R-10.22 — where the skulls' kills come from, asked when the force holds more than one kind. */
     get lossSources(): LossSource[] {
         const playerId = this.playerId
-        if (!playerId || !this.defender) return []
+        const defender = this.defender
+        if (!playerId || !defender) return []
         const state = this.session.gameState
-        return attackingForceSources(state, playerId, forceSitesOf(state, playerId))
+        return attackingForceSources(
+            state,
+            partiesOf(state, playerId, defender, []),
+            forceSitesOf(state, playerId)
+        )
     }
 
     // The engine's order is shown until the player moves a source.

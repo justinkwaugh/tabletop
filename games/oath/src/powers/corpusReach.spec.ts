@@ -12,6 +12,7 @@ import { hasEffect } from './registry.js'
 import { HydratedUseRestPower } from '../actions/useRestPower.js'
 import '../powers/index.js'
 import { reachTable, routesFor, listed } from '../testing/reach.js'
+import { partiesSuspendingNobody } from '../testing/fixture.js'
 
 const CARDS = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Relic)].filter((id) => cardPowers(id).some((p) => hasEffect(p)))
 
@@ -39,7 +40,7 @@ describe('every built card is in reach by every route', () => {
                             break
                         case PowerTiming.BattlePlan: {
                             const side = power.battlePlanSide === BattlePlanSide.Defender ? BattlePlanSide.Defender : BattlePlanSide.Attacker
-                            expect(listed(cardId, usableBattlePlans(s, 'me', side)), `${route}: offered as a battle plan`).toBe(true)
+                            expect(listed(cardId, usableBattlePlans(s, 'me', side, partiesSuspendingNobody(s, 'me'))), `${route}: offered as a battle plan`).toBe(true)
                             break
                         }
                         case PowerTiming.Persistent:

@@ -3,6 +3,7 @@ import { CampaignTargetKind } from '../model/campaign.js'
 import type { CampaignParties } from './campaign.js'
 import { campaignAsIfSiteNow } from './freeActions.js'
 import { pawnSiteId } from './pawn.js'
+import { persistentForceSites } from './persistent.js'
 
 /** R-5.5.1's "your site" — the pawn's, unless a card said to act as if elsewhere. */
 export function attackingSiteOf(state: HydratedOathGameState, playerId: string): string {
@@ -11,6 +12,14 @@ export function attackingSiteOf(state: HydratedOathGameState, playerId: string):
     if (campaign?.attackerPlayerId === playerId && campaign.attackerSiteId)
         return campaign.attackerSiteId
     return campaignAsIfSiteNow(state, playerId) ?? pawnSiteId(state, playerId)
+}
+
+/** Wild Allies, Captains — acting from elsewhere, with the warbands there in the force; Vow of Union — the warbands at every site you rule. */
+export function forceSitesOf(state: HydratedOathGameState, playerId: string): string[] {
+    const asIfSiteId = campaignAsIfSiteNow(state, playerId)
+    const sites = new Set<string>(asIfSiteId ? [asIfSiteId] : [])
+    for (const siteId of persistentForceSites(state, playerId)) sites.add(siteId)
+    return [...sites]
 }
 
 export function targetedSiteIds(parties: CampaignParties): string[] {

@@ -19,7 +19,9 @@ export const ExileCitizenMetadata = Type.Object({
     costModifier: Type.Number(),
     replacedCount: Type.Number(),
     // R-9.3 — Imperial warbands left for want of their own.
-    unreplacedCount: Type.Number()
+    unreplacedCount: Type.Number(),
+    /** R-6.7-H1 — the shortfall went back to the Chancellor's bank instead of staying Imperial. */
+    unreplacedReturned: Type.Optional(Type.Boolean())
 })
 
 export type ExileCitizen = Type.Static<typeof ExileCitizen>
@@ -77,7 +79,8 @@ export class HydratedExileCitizen
             favorGiven: cost,
             costModifier: cost - EXILE_CITIZEN_BASE_COST,
             replacedCount: conversion.replacedCount,
-            unreplacedCount: conversion.unreplacedCount
+            unreplacedCount: conversion.unreplacedCount,
+            unreplacedReturned: conversion.unreplacedReturned
         }
     }
 

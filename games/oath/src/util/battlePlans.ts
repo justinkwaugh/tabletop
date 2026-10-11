@@ -14,9 +14,9 @@ import {
     type PowerCost,
     powerKey
 } from '../data/cardPowers.js'
-import { denizensOnMap } from './access.js'
+import { banditRuledCardIds, denizensOnMap } from './access.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
-import { banditsRuleSite } from './rule.js'
+import { type ImperialScope } from './rule.js'
 import {
     addCosts,
     favorNeeded,
@@ -26,7 +26,7 @@ import {
     secretsNeeded
 } from './powerCost.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
-import { applyDiceDelta, type CampaignParties, type DicePools } from './campaign.js'
+import { applyDiceDelta, battleScopeOf, type CampaignParties, type DicePools } from './campaign.js'
 import type { CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import {
@@ -71,20 +71,23 @@ export function isBattlePlanCard(state: HydratedOathGameState, cardId: string): 
 export function mayUseBattlePlansOf(
     state: HydratedOathGameState,
     playerId: string,
-    cardId: string
+    cardId: string,
+    scope?: ImperialScope
 ): boolean {
     // R-5.1.4.II — a facedown adviser is ruled but has no power.
     if (isFacedownAdviserOf(state, playerId, cardId)) return false
-    if (rulesCard(state, playerId, cardId)) return true
+    if (rulesCard(state, playerId, cardId, scope)) return true
     return state.getPlayerState(playerId).relicIds.includes(cardId)
 }
 
 export function usableBattlePlans(
     state: HydratedOathGameState,
     playerId: string,
-    side: BattlePlanSide
+    side: BattlePlanSide,
+    parties: CampaignParties
 ): CardPower[] {
     const player = state.getPlayerState(playerId)
+    const scope = battleScopeOf(state, parties)
     const candidates = new Set<string>([
         ...player.faceupAdviserIds(),
         ...player.relicIds,
@@ -92,7 +95,7 @@ export function usableBattlePlans(
     ])
     const found: CardPower[] = []
     for (const cardId of candidates) {
-        if (!mayUseBattlePlansOf(state, playerId, cardId)) continue
+        if (!mayUseBattlePlansOf(state, playerId, cardId, scope)) continue
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, side)) continue
             if (!effectFor(power)?.battlePlan) continue
@@ -114,6 +117,7 @@ export function resolveBattlePlans(
 ): { reason?: string; active: ActiveBattlePlan[] } {
     const active: ActiveBattlePlan[] = []
     const seen = new Set<string>()
+    const scope = battleScopeOf(state, parties)
     for (const use of uses ?? []) {
         const key = powerKey(use.cardId, use.powerIndex)
         if (seen.has(key)) {
@@ -123,7 +127,7 @@ export function resolveBattlePlans(
             }
         }
         seen.add(key)
-        if (!mayUseBattlePlansOf(state, playerId, use.cardId)) {
+        if (!mayUseBattlePlansOf(state, playerId, use.cardId, scope)) {
             return { reason: `you do not rule ${use.cardId} (R-7.5.1)`, active }
         }
         const power = cardPowers(use.cardId)[use.powerIndex]
@@ -243,15 +247,12 @@ function reasonCannotPayPlansInOrder(
 /** R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones. */
 export function banditBattlePlans(state: HydratedOathGameState): ActiveBattlePlan[] {
     const found: ActiveBattlePlan[] = []
-    for (const siteId of state.allSiteIds()) {
-        if (!banditsRuleSite(state, siteId)) continue
-        for (const cardId of state.denizensAt(siteId)) {
-            for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
-                if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
-                const hooks = effectFor(power)?.battlePlan
-                if (!hooks) continue
-                found.push({ power, hooks, choices: [], compelled: true })
-            }
+    for (const cardId of banditRuledCardIds(state)) {
+        for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
+            if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
+            const hooks = effectFor(power)?.battlePlan
+            if (!hooks) continue
+            found.push({ power, hooks, choices: [], compelled: true })
         }
     }
     // Code of Honor — "you cannot use other battle plans" binds the bandits' own too.
@@ -400,4 +401,25 @@ export function plansUsedBy(
         }
     }
     return found
+}
+
+/** R-5.5.2.a — the attacker alone, or the defender and their allies. */
+export function playerIdsOnSide(campaign: CampaignState, side: BattlePlanSide): string[] {
+    return side === BattlePlanSide.Attacker
+        ? [campaign.attackerPlayerId]
+        : defendingPlayerIds(campaign)
+}
+
+/** Billowing Fog, Traveling Doctor — "ignore powers that kill all of your force" (R-9.2). */
+export function ignoresKillAll(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    side: BattlePlanSide
+): boolean {
+    return (
+        isAtLeastOathRevision(state, OathRevision.EngineFixes2) &&
+        playerIdsOnSide(campaign, side)
+            .flatMap((id) => plansUsedBy(state, campaign, id))
+            .some((plan) => plan.hooks.defeatKills === 'none')
+    )
 }
