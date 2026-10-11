@@ -26,18 +26,24 @@ describe('a power’s moves', () => {
     })
 
     it('How many is the warband pieces: a tap on the Nth sets N, a tap on the current count clears it', () => {
-        expect(withCount([{ from: site }], 0, site, undefined, 2)).toEqual([{ from: site, count: 2 }])
-        expect(withCount([{ from: site, count: 2 }], 0, site, 2, 3)).toEqual([{ from: site, count: 3 }])
-        expect(withCount([{ from: site, count: 2 }], 0, site, 2, 2)).toEqual([{ from: site, count: undefined }])
+        expect(withCount([{ from: site }], 0, undefined, 2)).toEqual([{ from: site, count: 2 }])
+        expect(withCount([{ from: site, count: 2 }], 0, 2, 3)).toEqual([{ from: site, count: 3 }])
+        expect(withCount([{ from: site, count: 2 }], 0, 2, 2)).toEqual([{ from: site, count: undefined }])
     })
 
-    it('a From picked alone (its one option) is kept with the first tap after it', () => {
-        expect(withCount([], 0, site, undefined, 1)).toEqual([{ from: site, count: 1 }])
-        expect(withTo([], 0, site, { kind: 'board' })).toEqual([{ from: site, to: { kind: 'board' } }])
+    it('a From made because it has one option is not kept: Undo from the count or the To takes the move', () => {
+        const counted = withCount([], 0, undefined, 2)
+        expect(counted).toEqual([{ count: 2 }])
+        expect(withoutLastPick(counted)).toEqual([])
+        const sent = withTo([], 0, { kind: 'board' })
+        expect(sent).toEqual([{ to: { kind: 'board' } }])
+        expect(withoutLastPick(sent)).toEqual([])
+        expect(withTo(counted, 0, { kind: 'board' })).toEqual([{ count: 2, to: { kind: 'board' } }])
+        expect(withoutLastPick(withoutLastPick([{ count: 2, to: { kind: 'board' } }]))).toEqual([])
     })
 
     it('a count made because it has one option is not kept: Undo takes To, then From', () => {
-        const picks = withTo([{ from: site }], 0, site, { kind: 'board' })
+        const picks = withTo([{ from: site }], 0, { kind: 'board' })
         expect(picks).toEqual([{ from: site, to: { kind: 'board' } }])
         expect(picks[0]).not.toHaveProperty('count')
         expect(withoutLastPick(picks)).toEqual([{ from: site }])
@@ -47,9 +53,9 @@ describe('a power’s moves', () => {
     it('a move made from no pick keeps its place: a tap on a later move lands on that move', () => {
         const to = { kind: 'site' as const, siteId: 'c2' }
         expect(withFrom([], 1, board)).toEqual([{}, { from: board }])
-        expect(withCount([], 1, board, undefined, 2)).toEqual([{}, { from: board, count: 2 }])
-        expect(withTo([], 1, board, to)).toEqual([{}, { from: board, to }])
-        expect(withTo([{}, { from: board, count: 2 }], 1, board, to)).toEqual([{}, { from: board, count: 2, to }])
+        expect(withCount([{}, { from: board }], 1, undefined, 2)).toEqual([{}, { from: board, count: 2 }])
+        expect(withTo([{}, { from: board }], 1, to)).toEqual([{}, { from: board, to }])
+        expect(withTo([{}, { from: board, count: 2 }], 1, to)).toEqual([{}, { from: board, count: 2, to }])
         // Nothing is left behind that Undo would take back to no effect.
         expect(withFrom([{}, { from: board }], 1, board)).toEqual([])
         expect(withoutLastPick([{}, { from: board }])).toEqual([])

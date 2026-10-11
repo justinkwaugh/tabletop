@@ -167,33 +167,27 @@ export function withFrom(picks: readonly MovePick[], index: number, from: MoveFr
     ])
 }
 
-/** A tap on the Nth warband sets N; a tap on the current count clears it. */
+/**
+ * A tap on the Nth warband sets N; a tap on the current count clears it. A From the panel made is
+ * not kept (it is made again while it has one option), so Undo after the count takes the move.
+ */
 export function withCount(
     picks: readonly MovePick[],
     index: number,
-    from: MoveFrom,
     shown: number | undefined,
     tapped: number
 ): MovePick[] {
-    const pick = picks[index] ?? { from }
-    return [
-        ...picksBefore(picks, index),
-        picked(pick.from ?? from, tapped === shown ? undefined : tapped)
-    ]
+    const pick = picks[index] ?? {}
+    return [...picksBefore(picks, index), picked(pick.from, tapped === shown ? undefined : tapped)]
 }
 
 /**
- * A tap on a To. The From is kept though the panel may have made it (it anchors the To); a count
- * the panel made is not, so Undo takes the To and then the From.
+ * A tap on a To. A From or a count the panel made is not kept, so Undo takes the To and then the
+ * picks that were tapped.
  */
-export function withTo(
-    picks: readonly MovePick[],
-    index: number,
-    from: MoveFrom,
-    to: MoveTo
-): MovePick[] {
-    const pick = picks[index] ?? { from }
-    return [...picksBefore(picks, index), { ...picked(pick.from ?? from, pick.count), to }]
+export function withTo(picks: readonly MovePick[], index: number, to: MoveTo): MovePick[] {
+    const pick = picks[index] ?? {}
+    return [...picksBefore(picks, index), { ...picked(pick.from, pick.count), to }]
 }
 
 /** The picks of the moves before `index`, one per move: a move the panel made from no pick keeps its place. */

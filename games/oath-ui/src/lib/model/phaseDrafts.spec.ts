@@ -23,7 +23,7 @@ import {
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
-import { withFrom } from './powerMoves.js'
+import { withCount, withFrom } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -564,12 +564,13 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
 
     // The sheet's scene: four at the first site, two at the second, one at the third; the board empty.
     function using(
-        warbandsBySite: Record<string, Record<string, number>> = { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } }
+        warbandsBySite: Record<string, Record<string, number>> = { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } },
+        warbandsOnBoard: Record<string, number> = {}
     ) {
         const session = opened(
             table(
                 MachineState.ActPhase,
-                { warbandsOnBoard: {}, advisers: [{ cardId: MESSENGER, faceUp: true }] },
+                { warbandsOnBoard, advisers: [{ cardId: MESSENGER, faceUp: true }] },
                 { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite }
             )
         )
@@ -653,6 +654,22 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
         expect(draft.picksOf(USE).moves).toEqual([])
         expect(draft.hasManualSelection()).toBe(false)
         expect(draft.back()).toBe(false)
+    })
+
+    it('a From made because it has one option is not kept: a count tap, then one Undo, picks nothing', () => {
+        // The board holds two and the one ruled site has none free: the board is the only From.
+        const { draft, moves } = using({ c1: { [ME]: 1 } }, { [ME]: 2 })
+        expect(moves().open?.sources).toEqual([{ ...board, count: 2 }])
+        expect(moves().open?.from).toEqual(board)
+
+        draft.setMoves(USE, withCount(draft.picksOf(USE).moves, 0, moves().open?.count, 2))
+        expect(draft.picksOf(USE).moves).toEqual([{ count: 2 }])
+        expect(moves().whole).toEqual([{ from: board, count: 2, to: toSite('c1') }])
+        expect(draft.hasManualSelection()).toBe(true)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
     })
 
     it('a move made from no pick keeps its place: a From tapped for the next move is that move’s From', () => {

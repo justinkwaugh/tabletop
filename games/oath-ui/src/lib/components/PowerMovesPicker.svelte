@@ -117,7 +117,7 @@
                     addable={open.free}
                     picked={open.count ?? 0}
                     label={(n) => `How many: ${n}`}
-                    ontap={(n) => onchange(withCount(picks, index, from, open?.count, n))}
+                    ontap={(n) => onchange(withCount(picks, index, open?.count, n))}
                     {busy}
                 />
             </div>
@@ -133,7 +133,7 @@
                                 on={open.to !== undefined && sameTo(open.to, to)}
                                 disabled={busy}
                                 width={toWidth}
-                                onclick={() => onchange(withTo(picks, index, from, to))}
+                                onclick={() => onchange(withTo(picks, index, to))}
                             />
                         {/each}
                     </div>
