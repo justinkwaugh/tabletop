@@ -3222,6 +3222,68 @@ test.describe('a lit site picked on the map, by keyboard', () => {
     })
 })
 
+/**
+ * A pick on the map wears the phone's chip on a desktop too: its words about 13 px on screen at
+ * 1280, where the board shows whole at about 0.37 (the desktop's own chip read about 5 px).
+ */
+const DESKTOP_CHIP_TEXT_PX = 12.5
+
+/** The chip's words as tall as they show: its font size times the board's zoom at its site. */
+const chipTextOnScreen = (chip: Locator): Promise<number> =>
+    chip.evaluate((element) => {
+        const site = element.closest('.site')
+        if (!site) throw Error('The chip is not on a site')
+        const zoom = site.getBoundingClientRect().width / site.clientWidth
+        return parseFloat(getComputedStyle(element).fontSize) * zoom
+    })
+
+const overlaps = (one: Box, other: Box) =>
+    one.x < other.x + other.width &&
+    other.x < one.x + one.width &&
+    one.y < other.y + other.height &&
+    other.y < one.y + one.height
+
+/** The site's chip reads at the phone's size, wholly on its card, and clear of its magnifier. */
+async function expectPhoneChip(page: Page, slotId: string) {
+    const chip = siteAt(page, slotId).locator('.travel-cost')
+    await expect(chip).toBeVisible()
+    expect(await chipTextOnScreen(chip)).toBeGreaterThanOrEqual(DESKTOP_CHIP_TEXT_PX)
+    const box = await boxOf(chip)
+    expect(inside(box, await boxOf(siteCard(page, slotId)))).toBe(true)
+    const magnifier = siteMagnifier(page, slotId).locator('.site-magnifier__face')
+    if ((await magnifier.count()) > 0) expect(overlaps(box, await boxOf(magnifier))).toBe(false)
+}
+
+test.describe('a lit site’s chip on a desktop at 1280', () => {
+    for (const table of ['actPhase', 'travelToll', 'leavingBuriedGiant'] as const) {
+        test(`Travel (${table}): every destination’s chip reads at the phone’s size, wholly on its card`, async ({ page }) => {
+            expect(page.viewportSize()?.width).toBe(1280)
+            await openTable(page, table)
+            await tile(page, 'Travel').click()
+            await expect(travelPrompt(page)).toBeVisible()
+            const legal = await call(page, 'legalTravelDestinations')
+            expect(legal.length).toBeGreaterThan(1)
+            for (const slotId of legal) await expectPhoneChip(page, slotId)
+        })
+    }
+
+    test('Setup: the "start here" chip reads at the phone’s size, wholly on its card', async ({ page }) => {
+        await exileAtSetup(page)
+        await siteCard(page, 'slot.provinces.0').click()
+        await expect(startHere(page, 'slot.provinces.0')).toBeVisible()
+        await expectPhoneChip(page, 'slot.provinces.0')
+    })
+
+    test('the spoils: every "banish" chip reads at the phone’s size, wholly on its card', async ({ page }) => {
+        await openTable(page, 'spoils')
+        await placeButton(page, 2).click()
+        await expect(banishPrompt(page)).toBeVisible()
+        const lit = await litSlots(page)
+        expect(lit.length).toBeGreaterThan(1)
+        for (const slotId of lit) await expectPhoneChip(page, slotId)
+    })
+})
+
 test('scenario 2: an Exile picks a start site on the map: a click on a lit site rings it with "start here", and a click on another moves the pick', async ({ page }) => {
     await exileAtSetup(page)
     await expect(startSitesList(page)).toHaveCount(0)

@@ -137,15 +137,17 @@
     {@const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }}
     {@const text = offerText(slotId, offer)}
     {@const onpick = pickOnMap(offer)}
-    {@const onPhoneMap =
-        layout.phone &&
-        (offer?.intent === 'travel' || offer?.intent === 'start' || offer?.intent === 'banish')}
+    {@const onMap =
+        offer?.intent === 'travel' ||
+        offer?.intent === 'start' ||
+        offer?.intent === 'banish' ||
+        offer?.intent === 'wood'}
 
     <div
         class="site"
         class:dimmed={dimmed && !offer}
         class:targeted
-        class:on-map={onPhoneMap}
+        class:on-map={onMap}
         data-slot={slotId}
         style="left:{rect.x}px; top:{rect.y}px; width:{rect.width}px; height:{rect.height}px;"
     >
@@ -264,13 +266,14 @@
         margin-left: 0.1em;
     }
 
-    /* On the phone map a token is no taller than the numeral beside it. */
+    /* On the lit map a token is no taller than the numeral beside it. */
     .site.on-map .travel-cost__token {
         height: 0.78em;
     }
 
-    /* On a phone the chip is read at the map's zoom: larger, wholly on its own card, and over
-       the pieces standing there. */
+    /* A pick on the map, at every width: the chip is read at the board's zoom, so it is larger
+       (about 13 px on screen with the whole board at 1280), wholly on its own card, and over the
+       pieces standing there. */
     .site.on-map .travel-cost {
         z-index: 6;
         left: 0;

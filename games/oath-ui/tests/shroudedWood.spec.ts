@@ -216,6 +216,28 @@ test.describe('the Shrouded Wood ruler’s pick on a desktop at 1280', () => {
         await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.2')
     })
 
+    test('each lit site’s chip is the phone’s: its words about 13 px on screen, wholly on its card', async ({ page }) => {
+        await openTable(page, 'woodRulerToll')
+        await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
+        const lit = await litSlots(page)
+        expect(lit.length).toBeGreaterThan(1)
+        for (const slotId of lit) {
+            const chip = siteAt(page, slotId).locator('.travel-cost')
+            const onScreen = await chip.evaluate((element) => {
+                const site = element.closest('.site')
+                if (!site) throw Error('The chip is not on a site')
+                const zoom = site.getBoundingClientRect().width / site.clientWidth
+                return parseFloat(getComputedStyle(element).fontSize) * zoom
+            })
+            expect(onScreen).toBeGreaterThanOrEqual(12.5)
+            const [box, card] = [await boxOf(page, chip), await boxOf(page, siteAt(page, slotId).locator('.board-card'))]
+            expect(box.x).toBeGreaterThanOrEqual(card.x - 0.5)
+            expect(box.y).toBeGreaterThanOrEqual(card.y - 0.5)
+            expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 0.5)
+            expect(box.y + box.height).toBeLessThanOrEqual(card.y + card.height + 0.5)
+        }
+    })
+
     test('Toll Roads: the toll site’s chip carries the favor, and a click passes the pick to the traveller', async ({ page }) => {
         await openTable(page, 'woodRulerToll')
         await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
