@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { MoveOrder } from '../model/attack.js'
 import { occupyAfterRetreat } from '../model/occupation.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -25,7 +26,7 @@ export function isOccupy(action?: GameAction): action is Occupy {
     return action?.type === ActionType.Occupy
 }
 
-export class HydratedOccupy extends HydratableAction<typeof Occupy> implements Occupy {
+export class HydratedOccupy extends NapoleonsTriumphAction<typeof Occupy> implements Occupy {
     declare type: ActionType.Occupy
     declare playerId: string
     declare orders: MoveOrder[]
@@ -35,7 +36,7 @@ export class HydratedOccupy extends HydratableAction<typeof Occupy> implements O
         super(data, OccupyValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         occupyAfterRetreat(state, this.orders, this.artilleryStays === true)
     }
 }

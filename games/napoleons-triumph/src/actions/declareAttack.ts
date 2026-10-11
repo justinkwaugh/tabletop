@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { MoveOrder } from '../model/attack.js'
 import { declareAttack } from '../model/attackDeclaration.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
@@ -30,7 +31,7 @@ export function isDeclareAttack(action?: GameAction): action is DeclareAttack {
 }
 
 export class HydratedDeclareAttack
-    extends HydratableAction<typeof DeclareAttack>
+    extends NapoleonsTriumphAction<typeof DeclareAttack>
     implements DeclareAttack
 {
     declare type: ActionType.DeclareAttack
@@ -45,13 +46,13 @@ export class HydratedDeclareAttack
         super(data, DeclareAttackValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
-        const outcome = declareAttack(state, {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        const { outcome, initialResult } = declareAttack(state, {
             orders: this.orders,
             wide: this.wide,
             leaderIds: this.leaderIds,
             targetLeaderId: this.targetLeaderId
         })
-        this.metadata = combatMetadata(outcome, outcome?.finalResult ?? state.attack?.initialResult)
+        this.metadata = combatMetadata(outcome, initialResult)
     }
 }

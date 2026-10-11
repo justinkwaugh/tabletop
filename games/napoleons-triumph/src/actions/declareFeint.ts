@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { MoveOrder } from '../model/attack.js'
 import { FeintEnd, declareFeint } from '../model/attackDeclaration.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -26,7 +27,7 @@ export function isDeclareFeint(action?: GameAction): action is DeclareFeint {
 }
 
 export class HydratedDeclareFeint
-    extends HydratableAction<typeof DeclareFeint>
+    extends NapoleonsTriumphAction<typeof DeclareFeint>
     implements DeclareFeint
 {
     declare type: ActionType.DeclareFeint
@@ -38,7 +39,7 @@ export class HydratedDeclareFeint
         super(data, DeclareFeintValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         declareFeint(state, this.orders, this.end)
     }
 }

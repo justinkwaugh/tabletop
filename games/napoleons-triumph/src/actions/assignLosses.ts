@@ -1,10 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, assert } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { DecisionKind } from '../model/attack.js'
 import { assignExcessLosses, assignOddLoss, nextDecision } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { legal } from '../model/legality.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
 
 export type AssignLosses = Type.Static<typeof AssignLosses>
@@ -27,7 +29,7 @@ export function isAssignLosses(action?: GameAction): action is AssignLosses {
 }
 
 export class HydratedAssignLosses
-    extends HydratableAction<typeof AssignLosses>
+    extends NapoleonsTriumphAction<typeof AssignLosses>
     implements AssignLosses
 {
     declare type: ActionType.AssignLosses
@@ -39,11 +41,11 @@ export class HydratedAssignLosses
         super(data, AssignLossesValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         const decision = nextDecision(state)
         if (decision?.kind === DecisionKind.OddLoss) {
             const [unitId, ...rest] = Object.keys(this.allocation)
-            assert(
+            legal(
                 rest.length === 0 && this.allocation[unitId] === 1,
                 'An odd loss is one step on one unit'
             )

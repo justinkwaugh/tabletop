@@ -1,19 +1,18 @@
 import { type HydratedAction, type MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { canAttachAUnit } from '../model/attach.js'
 import { VictoryKind, type HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { canCommandAMove } from '../model/orders.js'
 import { beginRound, finishTurn } from '../model/turns.js'
 import { declareVictory, marginalVictor } from '../model/victory.js'
-import { StepStateHandler, playMachineState } from './stepStateHandler.js'
+import { StepStateHandler, playMachineState, type AllowedAction } from './stepStateHandler.js'
 
 export class CommandingStateHandler extends StepStateHandler {
-    protected readonly actions = [
-        { type: ActionType.Move },
-        { type: ActionType.Attach },
-        {
-            type: ActionType.ThreatenAttack,
-            allowed: (state: HydratedNapoleonsTriumphGameState) => !state.currentRound.night
-        },
+    protected readonly actions: AllowedAction[] = [
+        { type: ActionType.Move, allowed: canCommandAMove },
+        { type: ActionType.Attach, allowed: canAttachAUnit },
+        { type: ActionType.ThreatenAttack, allowed: (state) => !state.currentRound.night },
         { type: ActionType.EndTurn }
     ]
 
@@ -41,6 +40,7 @@ export class CommandingStateHandler extends StepStateHandler {
             return MachineState.Commanding
         }
         declareVictory(state, marginalVictor(state), VictoryKind.Marginal)
+        action.revealsInfo = true
         return MachineState.EndOfGame
     }
 }

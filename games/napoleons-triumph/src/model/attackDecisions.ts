@@ -1,9 +1,9 @@
-import { assert, assertExists } from '@tabletop/common'
 import { DecisionKind, type PendingDecision } from './attack.js'
 import { concludeAttack, living, lose, type CombatOutcome } from './attackResolution.js'
 import { currentAttack, defensePosition } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, samePosition } from './pieces.js'
+import { legal } from './legality.js'
 
 export function nextDecision(
     state: HydratedNapoleonsTriumphGameState
@@ -21,7 +21,7 @@ function takeDecision<Kind extends DecisionKind>(
         (candidate): candidate is Extract<PendingDecision, { kind: Kind }> =>
             candidate.kind === kind && candidate.playerId === playerId
     )
-    assertExists(decision, `No ${kind} decision is waiting on that player`)
+    legal(decision !== undefined, `No ${kind} decision is waiting on that player`)
     attack.pending = attack.pending.filter((candidate) => candidate !== decision)
     return decision
 }
@@ -32,7 +32,7 @@ export function assignOddLoss(
     unitId: string
 ): CombatOutcome {
     const decision = takeDecision(state, DecisionKind.OddLoss, playerId)
-    assert(decision.unitIds.includes(unitId), 'The odd loss falls on one of the two leading units')
+    legal(decision.unitIds.includes(unitId), 'The odd loss falls on one of the two leading units')
     const loss = lose(state, currentAttack(state), state.unit(unitId), 1)
     return { losses: [loss], morale: concludeAttack(state) }
 }
@@ -44,18 +44,18 @@ export function assignExcessLosses(
 ): CombatOutcome {
     const decision = takeDecision(state, DecisionKind.ExcessLosses, playerId)
     const entries = Object.entries(allocation).filter(([, steps]) => steps > 0)
-    assert(
+    legal(
         entries.every(([id]) => decision.unitIds.includes(id)),
         'Excess losses fall on the other units in the attack'
     )
-    assert(
+    legal(
         entries.every(
             ([id, steps]) => Number.isInteger(steps) && steps <= faceOf(state.unit(id)).strength
         ),
         'A unit cannot lose more steps than it has'
     )
     const total = entries.reduce((sum, [, steps]) => sum + steps, 0)
-    assert(total === decision.amount, `Exactly ${decision.amount} steps must be assigned`)
+    legal(total === decision.amount, `Exactly ${decision.amount} steps must be assigned`)
     const losses = entries.map(([id, steps]) =>
         lose(state, currentAttack(state), state.unit(id), steps)
     )
@@ -74,18 +74,35 @@ export function regroup(
         const corps = living(state, attack.attackingUnitIds).filter(
             (unit) => unit.commanderId === commanderId
         )
-        const kept = keep[commanderId]
-        assert(
-            corps.some((unit) => unit.id === kept),
-            `Name the unit that stays with ${commanderId}`
-        )
-        for (const unit of corps) {
-            if (unit.id !== kept) {
-                state.detach(unit)
-            }
-        }
+        const kept = corps.find((unit) => unit.id === keep[commanderId])
+        legal(kept !== undefined, `Name the unit that stays with ${commanderId}`)
+        state.detachAllBut(kept, corps)
     }
     concludeAttack(state)
+}
+
+export interface ForcedAdvance {
+    playerId: string
+    unitIds: string[]
+    commanderIds: string[]
+}
+
+export function forcedAdvance(state: HydratedNapoleonsTriumphGameState): ForcedAdvance | undefined {
+    const decision = nextDecision(state)
+    if (decision?.kind !== DecisionKind.Advance || decision.unitIds.length !== 1) {
+        return undefined
+    }
+    const [unitId] = decision.unitIds
+    const unit = state.unit(unitId)
+    const forced = { playerId: decision.playerId, unitIds: [unitId] }
+    if (unit.commanderId === undefined) {
+        return { ...forced, commanderIds: [] }
+    }
+    const commander = state.commander(unit.commanderId)
+    const commanderMayStay = state
+        .corpsUnits(commander.id)
+        .some((other) => other.id !== unitId && samePosition(other.position, commander.position))
+    return commanderMayStay ? undefined : { ...forced, commanderIds: [commander.id] }
 }
 
 export function advance(
@@ -96,8 +113,8 @@ export function advance(
 ) {
     const attack = currentAttack(state)
     const decision = takeDecision(state, DecisionKind.Advance, playerId)
-    assert(unitIds.length > 0, 'At least one unit must advance to the approach')
-    assert(
+    legal(unitIds.length > 0, 'At least one unit must advance to the approach')
+    legal(
         unitIds.every((id) => decision.unitIds.includes(id)),
         'Only defending pieces advance'
     )
@@ -105,13 +122,13 @@ export function advance(
     const units = unitIds.map((id) => state.unit(id))
     const commanders = commanderIds.map((id) => state.commander(id))
     for (const commander of commanders) {
-        assert(
+        legal(
             commander.playerId === playerId &&
                 commander.position !== undefined &&
                 samePosition(commander.position, { locale: position.locale }),
             'Only a commander in the defense reserve advances'
         )
-        assert(
+        legal(
             units.some((unit) => unit.commanderId === commander.id),
             'A commander advances with a unit of its corps'
         )
@@ -123,7 +140,7 @@ export function advance(
             .filter(
                 (unit) => samePosition(unit.position, commander.position) && !units.includes(unit)
             )
-        assert(
+        legal(
             commanders.includes(commander) || remaining.length > 0,
             'A commander goes forward with the last unit standing with it'
         )

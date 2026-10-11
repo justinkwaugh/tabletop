@@ -1,8 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, assertExists } from '@tabletop/common'
+import { GameAction, assertExists } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { passMoraleBid } from '../model/moraleAuction.js'
 
 export type PassBid = Type.Static<typeof PassBid>
 export const PassBid = Type.Evaluate(
@@ -21,7 +23,7 @@ export function isPassBid(action?: GameAction): action is PassBid {
     return action?.type === ActionType.PassBid
 }
 
-export class HydratedPassBid extends HydratableAction<typeof PassBid> implements PassBid {
+export class HydratedPassBid extends NapoleonsTriumphAction<typeof PassBid> implements PassBid {
     declare type: ActionType.PassBid
     declare playerId: string
 
@@ -29,12 +31,8 @@ export class HydratedPassBid extends HydratableAction<typeof PassBid> implements
         super(data, PassBidValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
-        const auction = state.auction
-        assertExists(auction, 'There is no morale auction')
-        auction.highBid = auction.highBid ?? 0
-        auction.highBidderId = state.players.find(
-            (player) => player.playerId !== this.playerId
-        )?.playerId
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        assertExists(state.auction, 'There is no morale auction')
+        passMoraleBid(state.auction, this.playerId)
     }
 }

@@ -1,6 +1,4 @@
-import { assert } from '@tabletop/common'
 import { SANTON_LOCALE } from '../components/austerlitz.js'
-import { MachineState } from '../definition/states.js'
 import type { MoveOrder } from './attack.js'
 import { artilleryMayFire, resolveAttackOrders, type AttackOrders } from './attackOrders.js'
 import {
@@ -15,9 +13,10 @@ import { attackLocale, currentAttack, defenseLocale, type AttackState } from './
 import { initialResult, isArtilleryLed } from './combat.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { santonBatteryPresent, validateAttackLeaders } from './leaders.js'
-import { endRoadMarch, relocate } from './movement.js'
+import { endRoadMarch, relocate, requireRoom } from './movement.js'
 import { expendOrder, movingCommander } from './orders.js'
 import { faceOf, samePosition, type Position, type ProjectedUnit } from './pieces.js'
+import { legal } from './legality.js'
 
 function recordAttackers(
     attack: AttackState,
@@ -26,10 +25,9 @@ function recordAttackers(
 ) {
     attack.orders = orders.map((order) => ({ ...order }))
     attack.attackingUnitIds = resolved.units.map((unit) => unit.id)
-    attack.attackingCommanderIds = resolved.resolved.flatMap((entry) => {
-        const commander = movingCommander(entry)
-        return commander ? [commander.id] : []
-    })
+    attack.attackingCommanderIds = resolved.commands.flatMap(
+        (command) => movingCommander(command)?.id ?? []
+    )
 }
 
 export enum FeintEnd {
@@ -44,43 +42,36 @@ export function declareFeint(
     end: FeintEnd
 ) {
     const attack = currentAttack(state)
-    assert(!attack.guardAttack, 'A Guard Attack cannot be a feint')
+    legal(!attack.guardAttack, 'A Guard Attack cannot be a feint')
     const resolved = resolveAttackOrders(state, attack, orders)
-    assert(!resolved.artilleryPair, 'Two batteries combine only to lead an attack together')
-    const ridingOn = resolved.resolved.some((entry) => entry.march !== undefined)
+    legal(!resolved.artilleryPair, 'Two batteries combine only to lead an attack together')
+    const ridingOn = resolved.commands.some((command) => command.march !== undefined)
     if (!ridingOn) {
         endRoadMarch(state)
     }
     const locale = attackLocale(state, attack)
     const blocking: Position = { locale, approach: attack.attackApproach }
     const alreadyThere = resolved.units.every((unit) => unit.position?.locale === locale)
-    assert(
+    legal(
         !resolved.byRoad || ridingOn || !alreadyThere,
         'Cavalry already in the attack locale feints without taking the road'
     )
     const startsBlocking = samePosition(resolved.stance, blocking) && !resolved.byRoad
-    assert(
+    legal(
         !startsBlocking || end === FeintEnd.Approach,
         'Pieces feinting from the attack approach stay on it'
     )
     const to = end === FeintEnd.Approach ? blocking : { locale }
-    assert(
+    legal(
         resolved.units.every((unit) => !unit.fixed) || samePosition(to, resolved.stance),
         'The fixed battery cannot move'
     )
-    assert(
-        state.freeCapacity(
-            locale,
-            attack.attackerId,
-            alreadyThere ? resolved.units.map((unit) => unit.id) : []
-        ) >= resolved.units.length,
-        'The attack locale cannot hold those units'
-    )
+    requireRoom(state, attack.attackerId, resolved.units, locale)
     recordAttackers(attack, orders, resolved)
     attack.feint = true
-    for (const entry of resolved.resolved) {
-        relocate(state, entry, to, entry.order.road)
-        expendOrder(state, entry)
+    for (const command of resolved.commands) {
+        relocate(state, command, to, command.order.road)
+        expendOrder(state, command)
     }
     if (resolved.byRoad) {
         state.revealAll(resolved.units)
@@ -105,28 +96,25 @@ export interface CheckedDeclaration {
     struckLeaderIds: string[]
 }
 
-/** Rule 11, step 5: everything an attack declaration must satisfy. Changes nothing. */
+/** Rule 11, step 5. */
 export function checkAttackDeclaration(
     state: HydratedNapoleonsTriumphGameState,
     declaration: AttackDeclaration
 ): CheckedDeclaration {
     const attack = currentAttack(state)
     const orders = resolveAttackOrders(state, attack, declaration.orders)
-    assert(!orders.byRoad, 'An attack by road must be a feint')
+    legal(!orders.byRoad, 'An attack by road must be a feint')
     const attackApproach = state.map.approach(attack.attackApproach)
-    assert(
-        !declaration.wide || attackApproach.wide,
-        'A narrow approach allows only a narrow attack'
-    )
-    assert(
+    legal(!declaration.wide || attackApproach.wide, 'A narrow approach allows only a narrow attack')
+    legal(
         orders.units.length <= state.map.locale(defenseLocale(state, attack)).capacity,
         'The defense locale could not hold the attacking units'
     )
-    assert(
+    legal(
         declaration.leaderIds.every((id) => orders.units.some((unit) => unit.id === id)),
         'Leading units are attacking pieces'
     )
-    assert(
+    legal(
         new Set(declaration.leaderIds).size === declaration.leaderIds.length,
         'A leading unit is named once'
     )
@@ -136,23 +124,23 @@ export function checkAttackDeclaration(
         wide: declaration.wide,
         guardAttack: attack.guardAttack === true,
         attackersBlocking: orders.stance.approach !== undefined,
-        orders: orders.resolved
+        orders: orders.commands
     })
     const artilleryLed = isArtilleryLed(leaders.map(faceOf))
-    assert(
+    legal(
         !artilleryLed || artilleryMayFire(state, attack.attackApproach),
         'Artillery may not lead an attack here now'
     )
-    assert(
+    legal(
         artilleryLed || orders.units.every((unit) => !unit.fixed),
         'The fixed battery attacks only by leading with its fire'
     )
-    assert(
+    legal(
         !orders.artilleryPair || (artilleryLed && leaders.length === 2),
         'Two batteries combine only to lead an attack together'
     )
     const picksTarget = !declaration.wide && attack.defenseLeaderIds.length === 2
-    assert(
+    legal(
         !picksTarget ||
             (declaration.targetLeaderId !== undefined &&
                 attack.defenseLeaderIds.includes(declaration.targetLeaderId)),
@@ -165,7 +153,7 @@ export function checkAttackDeclaration(
     return { orders, leaders, artilleryLed, struckLeaderIds }
 }
 
-/** Rule 11, step 6, for a declaration that has passed its checks. */
+/** Rule 11, step 6. */
 export function initialResultOf(
     state: HydratedNapoleonsTriumphGameState,
     checked: CheckedDeclaration
@@ -183,11 +171,16 @@ export function initialResultOf(
     })
 }
 
-/** Rule 11, steps 5 and 6. Resolves the attack outright when no counter-attack is possible. */
+export interface DeclaredAttack {
+    initialResult: number
+    outcome?: CombatOutcome
+}
+
+/** Rule 11, steps 5 and 6; with no counter-attack possible the attack is resolved at once. */
 export function declareAttack(
     state: HydratedNapoleonsTriumphGameState,
     declaration: AttackDeclaration
-): CombatOutcome | undefined {
+): DeclaredAttack {
     const attack = currentAttack(state)
     const checked = checkAttackDeclaration(state, declaration)
     endRoadMarch(state)
@@ -197,8 +190,8 @@ export function declareAttack(
     attack.wide = declaration.wide
     attack.attackLeaderIds = [...declaration.leaderIds]
     attack.artilleryLed = checked.artilleryLed
-    for (const entry of checked.orders.resolved) {
-        expendOrder(state, entry)
+    for (const command of checked.orders.commands) {
+        expendOrder(state, command)
     }
     state.revealAll(checked.leaders)
     for (const unit of [
@@ -207,10 +200,9 @@ export function declareAttack(
     ]) {
         state.commit(unit)
     }
-    attack.initialResult = initialResultOf(state, checked)
-    if (counterAttackCandidates(state).length > 0) {
-        attack.step = MachineState.CounterAttackDecision
-        return undefined
-    }
-    return resolveCombat(state, [])
+    const initialResult = initialResultOf(state, checked)
+    attack.initialResult = initialResult
+    return counterAttackCandidates(state).length > 0
+        ? { initialResult }
+        : { initialResult, outcome: resolveCombat(state, []) }
 }

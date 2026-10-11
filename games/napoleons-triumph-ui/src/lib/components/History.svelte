@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { historyChapters } from '$lib/model/historyChapters.js'
+    import { historyChapters, type HistoryLine } from '$lib/model/historyChapters.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeAction } from '$lib/utils/describeAction.js'
 
@@ -8,31 +8,36 @@
 
     const chapters = $derived(
         historyChapters(gameSession.actions, game.rounds.series, game.scenario, (action) =>
-            describeAction(action, {
-                map: game.map,
-                sideOf: (playerId) => game.findPlayerState(playerId ?? '')?.side
-            })
+            describeAction(action, game)
         )
     )
 </script>
+
+{#snippet line(entry: HistoryLine, time: string, step: boolean)}
+    <button
+        type="button"
+        class="nt-history-entry"
+        class:nt-history-step={step}
+        onclick={() => gameSession.openHistoryLine(entry, time)}
+    >
+        <span
+            class="nt-history-mark"
+            style="background: {entry.playerId
+                ? gameSession.colors.getPlayerUiColor(entry.playerId)
+                : '#8a857a'};"
+        ></span>
+        <span>{entry.text}</span>
+    </button>
+{/snippet}
 
 <div class="nt-history">
     {#each chapters.toReversed() as chapter (chapter.title)}
         <h3>{chapter.title}</h3>
         {#each chapter.entries.toReversed() as entry (entry.index)}
-            <button
-                type="button"
-                class="nt-history-entry"
-                onclick={() => gameSession.history.goToActionIndex(entry.index)}
-            >
-                <span
-                    class="nt-history-mark"
-                    style="background: {entry.playerId
-                        ? gameSession.colors.getPlayerUiColor(entry.playerId)
-                        : '#8a857a'};"
-                ></span>
-                <span>{entry.text}</span>
-            </button>
+            {@render line(entry, chapter.title, false)}
+            {#each entry.steps as step (step.index)}
+                {@render line(step, chapter.title, true)}
+            {/each}
         {/each}
     {:else}
         <p>Nothing has happened yet.</p>
@@ -63,6 +68,11 @@
         gap: 6px;
         text-align: left;
         padding: 2px 0;
+    }
+
+    .nt-history-step {
+        margin-left: 12px;
+        font-size: 12px;
     }
 
     .nt-history-entry:hover {

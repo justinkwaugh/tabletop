@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import { Side, UnitType } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { TestGame, arrangeBattlefield, infantry, type PiecePlacement } from '../testing/harness.js'
@@ -159,6 +160,33 @@ describe('road movement', () => {
         expect(state.commander('bernadotte').position).toEqual({ locale: entry.locale })
         expect(state.frenchReinforcementsEntered).toBe(true)
         expect(state.playerOf(Side.French).morale).toBe(27)
+    })
+
+    it('lets a unit left off the map when its corps came on follow by a Unit Move (rule 10)', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        const entry = game.hydrated.map.entries(Side.French).find((candidate) => candidate.main)
+        assertExists(entry, 'Expected a main-road entry for the French')
+        const [leader, straggler] = game.hydrated.corpsUnits('bernadotte').map((unit) => unit.id)
+        const route = { entryId: entry.id, road: [entry.locale] }
+        game.act(ActionType.Move, french, {
+            order: { ...corpsOrder(game, 'bernadotte', [leader]), ...route },
+            to: { locale: entry.locale }
+        })
+        const waiting = game.hydrated.unit(straggler)
+        expect(waiting.position).toBeUndefined()
+        expect(waiting.commanderId).toBeUndefined()
+        expect(game.engine.getValidActionTypesForPlayer(game.game, game.state, french)).toContain(
+            ActionType.Move
+        )
+        game.act(ActionType.Move, french, {
+            order: { kind: CommandKind.Unit, unitIds: [straggler], ...route },
+            to: { locale: entry.locale }
+        })
+        expect(game.hydrated.unit(straggler).position).toEqual({ locale: entry.locale })
+        expect(game.hydrated.playerOf(Side.French).independentCommandsUsed).toBe(1)
     })
 
     it('only lets cavalry end a road move on an approach, and shows it', () => {

@@ -2,12 +2,12 @@ import { Color } from '@tabletop/common'
 import type { PlayerColorPalette } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { Side } from '@tabletop/napoleons-triumph'
 
-const ARMY_COLORS: Record<Side, { block: string; shade: string; ink: string }> = {
-    [Side.French]: { block: '#1f62a6', shade: '#174a80', ink: '#f4f1e6' },
-    [Side.Allied]: { block: '#a9282c', shade: '#801d21', ink: '#f4f1e6' }
+const ARMY_BLOCK_COLORS: Record<Side, string> = {
+    [Side.French]: '#1f62a6',
+    [Side.Allied]: '#a9282c'
 }
 
 export const NapoleonsTriumphPalette: PlayerColorPalette = {
-    [Color.Blue]: { fill: ARMY_COLORS[Side.French].block, text: '#ffffff', contrast: '#ffffff' },
-    [Color.Red]: { fill: ARMY_COLORS[Side.Allied].block, text: '#ffffff', contrast: '#ffffff' }
+    [Color.Blue]: { fill: ARMY_BLOCK_COLORS[Side.French], text: '#ffffff', contrast: '#ffffff' },
+    [Color.Red]: { fill: ARMY_BLOCK_COLORS[Side.Allied], text: '#ffffff', contrast: '#ffffff' }
 }

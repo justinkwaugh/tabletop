@@ -2,7 +2,6 @@ import { assertExists } from '@tabletop/common'
 import {
     DecisionKind,
     FeintEnd,
-    HydratedNapoleonsTriumphGameState,
     MachineState,
     attackerLeadsInitially,
     canPressAttack,
@@ -23,7 +22,9 @@ import {
     whyIllegal,
     type Attack,
     type CommandKind,
+    type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
+    type ThreatOrder,
     type ProjectedUnit
 } from '@tabletop/napoleons-triumph'
 import {
@@ -34,19 +35,29 @@ import {
 } from './attackCommands.js'
 import {
     AttackWidth,
+    StageKind,
     advanceSelection,
     attackerSelection,
     counterSelection,
     defenceSelection,
     excessLossSelection,
+    nameAttackers,
+    nameLeaders,
     regroupSelection,
     retreatSelection,
+    setCommandersStaying,
+    setKeptInCorps,
+    sendRetreating,
+    setStruckLeader,
+    setRetreatLosses,
     type BattleSelections
 } from './battleSelection.js'
-import { retreatPlan, type RetreatPlan } from './retreatPlan.js'
+import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
+import { copyOf } from './stateCopy.js'
 
-/** An attack as either player sees it: everything but the defender's hidden plan. */
-export type VisibleAttack = Omit<Attack, 'defensePlan'>
+export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
+    attackPlan?: { order?: ThreatOrder }
+}
 
 export enum BattleRole {
     Defends = 'defends',
@@ -55,20 +66,8 @@ export enum BattleRole {
     CounterAttacks = 'counter-attacks',
     Advances = 'advances',
     Stays = 'stays',
-    RetreatsAlone = 'goes alone'
-}
-
-export enum StageKind {
-    Defence = 'Defence',
-    Retreat = 'Retreat',
-    Feint = 'Feint',
-    Declaration = 'Declaration',
-    Occupation = 'Occupation',
-    Counter = 'Counter',
-    OddLoss = 'OddLoss',
-    ExcessLosses = 'ExcessLosses',
-    Regroup = 'Regroup',
-    Advance = 'Advance'
+    RetreatsAlone = 'goes alone',
+    PassedBy = 'passed by'
 }
 
 interface Picking {
@@ -104,11 +103,13 @@ interface AttackerPicking extends Picking {
 export interface FeintStage extends AttackerPicking {
     kind: StageKind.Feint
     canPress: boolean
+    feinting: boolean
     ends: FeintEnd[]
 }
 
 export interface DeclarationStage extends AttackerPicking {
     kind: StageKind.Declaration
+    startsFromThreat: boolean
     leaders: string[]
     approachWide: boolean
     wide: boolean
@@ -172,10 +173,6 @@ export type BattleStage =
     | RegroupStage
     | AdvanceStage
 
-function copyOf(state: HydratedNapoleonsTriumphGameState): HydratedNapoleonsTriumphGameState {
-    return new HydratedNapoleonsTriumphGameState(structuredClone(state.dehydrate()))
-}
-
 function idsOf(units: readonly ProjectedUnit[]): string[] {
     return units.map((unit) => unit.id)
 }
@@ -231,12 +228,15 @@ function retreatStage(
     selections: BattleSelections
 ): RetreatStage {
     const plan = retreatPlan(state, selections.retreat)
-    const alone = retreatSelection.value(selections.retreat, 'sentAlone')
+    const placed = Object.keys(plan.destinations)
+    const mayPartWays = plan.room.size > 1 && placed.length > 1
+    const maySendOne = mayPartWays || plan.stranded > 0
+    const alone = maySendOne ? retreatSelection.value(selections.retreat, 'sentAlone') : undefined
     return {
         kind: StageKind.Retreat,
         plan,
         alone,
-        pickableIds: plan.room.size > 1 ? Object.keys(plan.destinations) : [],
+        pickableIds: maySendOne ? idsOf(plan.survivors) : [],
         roles: alone === undefined ? {} : { [alone]: BattleRole.RetreatsAlone }
     }
 }
@@ -244,13 +244,13 @@ function retreatStage(
 function attackerPicking(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections,
-    plannedOrder: MoveOrder | undefined
+    selections: BattleSelections
 ): AttackerPicking & { leaders: string[] } {
+    const planned = attack.attackPlan?.order
     const groups = attackerGroups(state, attack)
     const pickableIds = groups.flatMap((group) => idsOf(group.units))
     const named =
-        attackerSelection.value(selections.attackers, 'attackers') ?? plannedOrder?.unitIds ?? []
+        attackerSelection.value(selections.attackers, 'attackers') ?? planned?.unitIds ?? []
     const attackers = named.filter((id) => pickableIds.includes(id))
     const leaders = (attackerSelection.value(selections.attackers, 'leaders') ?? []).filter((id) =>
         attackers.includes(id)
@@ -259,7 +259,7 @@ function attackerPicking(
         state,
         attack,
         attackers,
-        attackerSelection.value(selections.attackers, 'command') ?? plannedOrder?.kind
+        attackerSelection.value(selections.attackers, 'command') ?? planned?.kind
     )
     return {
         groups,
@@ -276,31 +276,35 @@ function attackerPicking(
 function feintStage(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections,
-    plannedOrder: MoveOrder | undefined
+    selections: BattleSelections
 ): FeintStage {
-    const picking = attackerPicking(state, attack, selections, plannedOrder)
+    const picking = attackerPicking(state, attack, selections)
     const { orders } = picking
+    const canPress = canPressAttack(state)
+    // Rule 11, steps 3-5: a pressed attack names its pieces only after the defence's leading units are shown.
+    const feinting = !canPress || attackerSelection.value(selections.attackers, 'feinting') === true
     return {
         ...picking,
         kind: StageKind.Feint,
-        roles: rolesOf(picking.attackers, [], BattleRole.Attacks),
-        canPress: canPressAttack(state),
-        ends: orders
-            ? [FeintEnd.Approach, FeintEnd.Reserve].filter((end) =>
-                  isLegal(() => declareFeint(copyOf(state), orders, end))
-              )
-            : []
+        canPress,
+        feinting,
+        pickableIds: feinting ? picking.pickableIds : [],
+        roles: feinting ? rolesOf(picking.attackers, [], BattleRole.Attacks) : {},
+        ends:
+            feinting && orders
+                ? [FeintEnd.Approach, FeintEnd.Reserve].filter((end) =>
+                      isLegal(() => declareFeint(copyOf(state), orders, end))
+                  )
+                : []
     }
 }
 
 function declarationStage(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections,
-    plannedOrder: MoveOrder | undefined
+    selections: BattleSelections
 ): DeclarationStage {
-    const picking = attackerPicking(state, attack, selections, plannedOrder)
+    const picking = attackerPicking(state, attack, selections)
     const approachWide = state.map.approach(attack.attackApproach).wide
     const wide =
         approachWide &&
@@ -317,11 +321,19 @@ function declarationStage(
     const problem = declaration
         ? whyIllegal(() => checkAttackDeclaration(state, declaration))
         : undefined
+    // Rule 11, step 5: the defence leading unit a narrow attack does not strike "is no longer considered a leading unit".
+    const passedBy = Object.fromEntries(
+        targetOptions.filter((id) => id !== target).map((id) => [id, BattleRole.PassedBy])
+    )
     return {
         ...picking,
         kind: StageKind.Declaration,
+        pickableIds: [...picking.pickableIds, ...targetOptions],
+        startsFromThreat:
+            attack.attackPlan?.order?.unitIds.some((id) => picking.pickableIds.includes(id)) ===
+            true,
         leaders,
-        roles: rolesOf(picking.attackers, leaders, BattleRole.Attacks),
+        roles: { ...rolesOf(picking.attackers, leaders, BattleRole.Attacks), ...passedBy },
         approachWide,
         wide,
         targetOptions,
@@ -337,16 +349,17 @@ function declarationStage(
 function occupationStage(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections,
-    plannedOrder: MoveOrder | undefined
+    selections: BattleSelections
 ): OccupationStage {
-    const picking = attackerPicking(state, attack, selections, plannedOrder)
+    const picking = attackerPicking(state, attack, selections)
     const { orders } = picking
     const byRoad = orders?.some((order) => order.road !== undefined) === true
     const legalWith = (candidate: MoveOrder[] | undefined, gunsStay: boolean) =>
         candidate !== undefined &&
         isLegal(() => occupyAfterRetreat(copyOf(state), candidate, gunsStay))
-    const roadOrders = byRoad ? undefined : rideInOrders(state, attack, picking.attackers)
+    const roadOrders = byRoad
+        ? undefined
+        : rideInOrders(state, attack, picking.attackers, picking.command)
     return {
         ...picking,
         kind: StageKind.Occupation,
@@ -364,11 +377,16 @@ function counterStage(
     selections: BattleSelections
 ): CounterStage {
     const candidates = counterAttackCandidates(state)
+    const attackWinning = attackerLeadsInitially(state)
+    const able = candidates.filter((unit) =>
+        isLegal(() =>
+            validateCounterAttackers(state, [unit], attack.defenseApproach, attackWinning)
+        )
+    )
     const counterAttackers = (
         counterSelection.value(selections.counter, 'counterAttackers') ?? []
-    ).filter((id) => candidates.some((unit) => unit.id === id))
+    ).filter((id) => able.some((unit) => unit.id === id))
     const units = counterAttackers.map((id) => state.unit(id))
-    const attackWinning = attackerLeadsInitially(state)
     return {
         kind: StageKind.Counter,
         candidates,
@@ -378,7 +396,7 @@ function counterStage(
         problem: whyIllegal(() =>
             validateCounterAttackers(state, units, attack.defenseApproach, attackWinning)
         ),
-        pickableIds: idsOf(candidates),
+        pickableIds: idsOf(able),
         roles: Object.fromEntries(counterAttackers.map((id) => [id, BattleRole.CounterAttacks]))
     }
 }
@@ -389,9 +407,12 @@ function advanceStage(
     selections: BattleSelections
 ): AdvanceStage {
     const units = unitIds.map((id) => state.unit(id))
-    const advancing = (advanceSelection.value(selections.advance, 'advancing') ?? []).filter((id) =>
-        unitIds.includes(id)
-    )
+    const onlyOne = unitIds.length === 1
+    const advancing = onlyOne
+        ? [...unitIds]
+        : (advanceSelection.value(selections.advance, 'advancing') ?? []).filter((id) =>
+              unitIds.includes(id)
+          )
     const staying = advanceSelection.value(selections.advance, 'commandersStaying') ?? []
     const commanderIds = [...new Set(advancing.flatMap((id) => state.unit(id).commanderId ?? []))]
     const commanders = commanderIds
@@ -413,7 +434,7 @@ function advanceStage(
         units,
         advancing,
         commanders,
-        pickableIds: [...unitIds],
+        pickableIds: onlyOne ? [] : [...unitIds],
         roles: Object.fromEntries(advancing.map((id) => [id, BattleRole.Advances]))
     }
 }
@@ -473,10 +494,9 @@ function decisionStage(
 export function battleStageOf(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections,
-    plannedOrder: MoveOrder | undefined
+    selections: BattleSelections
 ): BattleStage | undefined {
-    switch (attack.step) {
+    switch (state.machineState) {
         case MachineState.DefenseResponse:
             return defenceSelection.value(selections.defence, 'retreating')
                 ? retreatStage(state, selections)
@@ -484,15 +504,17 @@ export function battleStageOf(
         case MachineState.Retreating:
             return retreatStage(state, selections)
         case MachineState.FeintDecision:
-            return feintStage(state, attack, selections, plannedOrder)
+            return feintStage(state, attack, selections)
         case MachineState.AttackDeclaration:
-            return declarationStage(state, attack, selections, plannedOrder)
+            return declarationStage(state, attack, selections)
         case MachineState.Occupying:
-            return occupationStage(state, attack, selections, plannedOrder)
+            return occupationStage(state, attack, selections)
         case MachineState.CounterAttackDecision:
             return counterStage(state, attack, selections)
         case MachineState.ResolvingAttack:
             return decisionStage(state, attack, selections)
+        default:
+            return undefined
     }
 }
 
@@ -508,14 +530,8 @@ function withAttackers(
 ): BattleSelections {
     const named = sameIds(stage.attackers, attackers)
         ? selections.attackers
-        : attackerSelection.set(selections.attackers, 'attackers', attackers, 'manual')
-    return {
-        ...selections,
-        attackers:
-            leaders.length > 0
-                ? attackerSelection.set(named, 'leaders', leaders, 'manual')
-                : attackerSelection.clearFrom(named, 'leaders')
-    }
+        : nameAttackers(selections.attackers, attackers)
+    return { ...selections, attackers: nameLeaders(named, leaders) }
 }
 
 function standingWith(
@@ -561,6 +577,11 @@ function pickLeadingAttacker(
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
+    if (stage.targetOptions.includes(unitId)) {
+        return stage.target === unitId
+            ? selections
+            : { ...selections, attackers: setStruckLeader(selections.attackers, unitId) }
+    }
     const together = standingWith(state, stage.attackers, unitId)
     const leading = stage.leaders.filter((id) => together.includes(id))
     if (!together.includes(unitId)) {
@@ -589,7 +610,7 @@ function addExcessLoss(
     unitId: string
 ): BattleSelections {
     const current = stage.losses[unitId] ?? 0
-    const strength = state.unit(unitId).face?.strength ?? 0
+    const strength = strengthOf(state.unit(unitId))
     const { [unitId]: _removed, ...others } = stage.losses
     const full = current >= strength || stage.assigned >= stage.amount
     const losses = full ? others : { ...others, [unitId]: current + 1 }
@@ -609,13 +630,7 @@ export function pickUnit(
         case StageKind.Defence:
             return pickDefender(stage, selections, unitId)
         case StageKind.Retreat:
-            return {
-                ...selections,
-                retreat:
-                    stage.alone === unitId
-                        ? retreatSelection.clearFrom(selections.retreat, 'sentAlone')
-                        : retreatSelection.set(selections.retreat, 'sentAlone', unitId, 'manual')
-            }
+            return pickRetreatingUnit(stage, selections, unitId)
         case StageKind.Feint:
         case StageKind.Occupation:
             return withAttackers(
@@ -641,15 +656,12 @@ export function pickUnit(
         case StageKind.Regroup: {
             const commanderId = state.unit(unitId).commanderId
             assertExists(commanderId, 'Only a unit of a repulsed corps stays with its commander')
-            const kept = Object.fromEntries(
-                stage.corps.map((entry) => [entry.commanderId, entry.keptId])
-            )
             return {
                 ...selections,
                 regroup: regroupSelection.set(
                     selections.regroup,
                     'kept',
-                    { ...kept, [commanderId]: unitId },
+                    { ...keptByCommander(stage), [commanderId]: unitId },
                     'manual'
                 )
             }
@@ -657,7 +669,7 @@ export function pickUnit(
         case StageKind.Advance:
             return {
                 ...selections,
-                advance: advanceSelection.set(
+                advance: advanceSelection.revise(
                     selections.advance,
                     'advancing',
                     toggled(stage.advancing, unitId),
@@ -669,14 +681,108 @@ export function pickUnit(
     }
 }
 
-export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
+export function keptByCommander(stage: RegroupStage): Record<string, string> {
+    return Object.fromEntries(stage.corps.map((entry) => [entry.commanderId, entry.keptId]))
+}
+
+export function commandersGoing(stage: AdvanceStage): string[] {
+    return stage.commanders.filter((entry) => entry.goes).map((entry) => entry.commanderId)
+}
+
+export function cycleLoss(
+    state: HydratedNapoleonsTriumphGameState,
+    stage: RetreatStage,
+    selections: BattleSelections,
+    unitId: string
+): BattleSelections {
+    const strength = strengthOf(state.unit(unitId))
+    const next = ((stage.plan.losses[unitId] ?? 0) + 1) % (strength + 1)
+    const { [unitId]: _previous, ...others } = stage.plan.losses
+    const losses = next === 0 ? others : { ...others, [unitId]: next }
+    return { ...selections, retreat: setRetreatLosses(selections.retreat, losses) }
+}
+
+export function keepWithCommander(
+    stage: RetreatStage,
+    selections: BattleSelections,
+    commanderId: string,
+    unitId: string
+): BattleSelections {
+    const kept = { ...stage.plan.kept, [commanderId]: unitId }
+    return { ...selections, retreat: setKeptInCorps(selections.retreat, kept) }
+}
+
+export function sendRetreatTo(
+    stage: RetreatStage,
+    selections: BattleSelections,
+    locale: number
+): BattleSelections {
+    const { plan } = stage
+    const sent = stage.alone ? [stage.alone] : idsOf(plan.survivors)
+    const settled = Object.entries(plan.destinations).map(([unitId, to]) => ({
+        unitId,
+        locale: to
+    }))
+    const earlier = [...plan.asked, ...settled].filter(
+        (destination, index, all) =>
+            !sent.includes(destination.unitId) &&
+            all.findIndex((other) => other.unitId === destination.unitId) === index
+    )
+    const destinations = [...sent.map((unitId) => ({ unitId, locale })), ...earlier]
+    return { ...selections, retreat: sendRetreating(selections.retreat, destinations) }
+}
+
+function pickRetreatingUnit(
+    stage: RetreatStage,
+    selections: BattleSelections,
+    unitId: string
+): BattleSelections {
+    if (stage.alone === unitId) {
+        return {
+            ...selections,
+            retreat: retreatSelection.clearFrom(selections.retreat, 'sentAlone')
+        }
+    }
+    const withRoom = [...stage.plan.room].filter(([, free]) => free > 0)
+    const stranded = stage.plan.destinations[unitId] === undefined
+    if (stranded && withRoom.length === 1) {
+        return sendRetreatTo({ ...stage, alone: unitId }, selections, withRoom[0][0])
+    }
+    return {
+        ...selections,
+        retreat: retreatSelection.set(selections.retreat, 'sentAlone', unitId, 'manual')
+    }
+}
+
+export function toggleStaying(
+    stage: AdvanceStage,
+    selections: BattleSelections,
+    commanderId: string
+): BattleSelections {
+    const staying = stage.commanders
+        .filter((entry) => !entry.goes !== (entry.commanderId === commanderId))
+        .map((entry) => entry.commanderId)
+    return { ...selections, advance: setCommandersStaying(selections.advance, staying) }
+}
+
+function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
         ...Object.fromEntries(attack.defendingUnitIds.map((id) => [id, BattleRole.Defends])),
         ...Object.fromEntries(attack.attackLeaderIds.map((id) => [id, BattleRole.Leads])),
         ...Object.fromEntries(attack.defenseLeaderIds.map((id) => [id, BattleRole.Leads])),
         ...Object.fromEntries(
-            attack.counterAttackerIds.map((id) => [id, BattleRole.CounterAttacks])
+            attack.counterAttackingUnitIds.map((id) => [id, BattleRole.CounterAttacks])
         )
     }
+}
+
+export function rolesShown(
+    attack: VisibleAttack | undefined,
+    stage: BattleStage | undefined
+): Record<string, BattleRole> {
+    if (stage?.kind === StageKind.Retreat) {
+        return stage.roles
+    }
+    return { ...(attack ? committedRoles(attack) : {}), ...(stage?.roles ?? {}) }
 }

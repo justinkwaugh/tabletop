@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { regroup } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -23,7 +24,7 @@ export function isRegroup(action?: GameAction): action is Regroup {
     return action?.type === ActionType.Regroup
 }
 
-export class HydratedRegroup extends HydratableAction<typeof Regroup> implements Regroup {
+export class HydratedRegroup extends NapoleonsTriumphAction<typeof Regroup> implements Regroup {
     declare type: ActionType.Regroup
     declare playerId: string
     declare keep: Record<string, string>
@@ -32,7 +33,7 @@ export class HydratedRegroup extends HydratableAction<typeof Regroup> implements
         super(data, RegroupValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         regroup(state, this.playerId, this.keep)
     }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Visibility } from '@tabletop/common'
 import { Side } from '../components/pieces.js'
+import { CommandKind } from '../model/attack.js'
 import { NapoleonsTriumphProjectedStateValidator } from '../model/gameState.js'
 import { TestGame, arrangeBattlefield, cavalry, infantry } from '../testing/harness.js'
 import { ActionType } from './actions.js'
@@ -58,6 +59,40 @@ describe("Napoleon's Triumph hidden blocks", () => {
         expect(toEnemy).not.toHaveProperty('deployment')
         const toOwner = projector.project(deployed, { kind: 'player', playerId: allied })
         expect(toOwner).toHaveProperty('deployment')
+    })
+
+    it('keeps what the attacker means to attack with to the attacker alone', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        arrangeBattlefield(game, [
+            { id: 'F-inf', side: Side.French, face: infantry(3), locale: 95 },
+            { id: 'A-inf', side: Side.Allied, face: infantry(2), locale: 108 }
+        ])
+        const french = game.playerOf(Side.French)
+        const allied = game.playerOf(Side.Allied)
+        const approach = game.hydrated.map.approachBetween(95, 108).id
+        const plan = { kind: CommandKind.Unit, unitIds: ['F-inf'] }
+        expect(() =>
+            game.act(ActionType.ThreatenAttack, french, {
+                approach,
+                plan: { kind: CommandKind.Unit, unitIds: ['A-inf'] }
+            })
+        ).toThrow(/own units/)
+
+        const [threat] = game.act(ActionType.ThreatenAttack, french, { approach, plan })
+        const toDefender = NapoleonsTriumphRuntime.visibility.actions.project(threat, {
+            kind: 'player',
+            playerId: allied
+        })
+        expect(toDefender).toHaveProperty('approach', approach)
+        expect(toDefender).not.toHaveProperty('plan')
+        expect(project(game, { kind: 'player', playerId: allied }).attack?.attackPlan).toEqual({
+            playerId: french
+        })
+        expect(
+            project(game, { kind: 'player', playerId: french }).attack?.attackPlan?.order
+        ).toEqual(plan)
     })
 
     it('keeps the defense leading units from the attacker until the attack is pressed', () => {

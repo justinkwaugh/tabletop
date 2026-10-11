@@ -1,9 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, assert, assertExists } from '@tabletop/common'
-import { STARTING_MORALE } from '../components/pieces.js'
+import { GameAction, assertExists } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { placeMoraleBid } from '../model/moraleAuction.js'
 
 export type PlaceBid = Type.Static<typeof PlaceBid>
 export const PlaceBid = Type.Evaluate(
@@ -23,10 +24,7 @@ export function isPlaceBid(action?: GameAction): action is PlaceBid {
     return action?.type === ActionType.PlaceBid
 }
 
-/** A bid comes off the starting morale of the army chosen, which must be left with at least one point (rule 17). */
-export const MAX_BID = Math.max(...Object.values(STARTING_MORALE)) - 1
-
-export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implements PlaceBid {
+export class HydratedPlaceBid extends NapoleonsTriumphAction<typeof PlaceBid> implements PlaceBid {
     declare type: ActionType.PlaceBid
     declare playerId: string
     declare amount: number
@@ -35,15 +33,8 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         super(data, PlaceBidValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
-        const auction = state.auction
-        assertExists(auction, 'There is no morale auction')
-        assert(
-            this.amount <= MAX_BID &&
-                (auction.highBid === undefined || this.amount > auction.highBid),
-            'A bid must beat the previous bid'
-        )
-        auction.highBid = this.amount
-        auction.highBidderId = this.playerId
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        assertExists(state.auction, 'There is no morale auction')
+        placeMoraleBid(state.auction, this.playerId, this.amount)
     }
 }

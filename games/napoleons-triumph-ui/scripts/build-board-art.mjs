@@ -1,5 +1,3 @@
-// Usage: node scripts/build-board-art.mjs <source image> [sharp module dir]
-// Writes the board art used by the UI: a full-detail image and a light one that loads first.
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -11,6 +9,13 @@ const [
         '../../../node_modules/.pnpm/sharp@0.34.5/node_modules'
     )
 ] = process.argv.slice(2)
+if (!source) {
+    console.error(
+        'Usage: node scripts/build-board-art.mjs <source image> [sharp module dir]\n' +
+            'Writes the board art used by the UI: a full-detail image, a light one that loads first, and the cover.'
+    )
+    process.exit(1)
+}
 const require = createRequire(sharpDir + '/')
 const sharp = require('sharp')
 const out = join(dirname(fileURLToPath(import.meta.url)), '../src/lib/images')

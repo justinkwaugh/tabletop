@@ -16,6 +16,7 @@ import {
     type NapoleonsTriumphProjectedState
 } from '../model/gameState.js'
 import { HydratedNapoleonsTriumphPlayerState } from '../model/playerState.js'
+import { openMoraleAuction } from '../model/moraleAuction.js'
 import { assignSides } from '../model/sides.js'
 import { NapoleonsTriumphColors } from './colors.js'
 import { SideSelection, santonOf, scenarioOf, sideSelectionOf } from './config.js'
@@ -27,7 +28,7 @@ export class NapoleonsTriumphGameInitializer
 {
     readonly supportsStartingPositions = true
 
-    /** With assigned starting positions the first seat commands the Allies, who move first. */
+    /** Position zero commands the Allies, who move first; when the armies are bid for it opens the auction instead. */
     initializeGameState(
         game: Game,
         state: UninitializedGameState,
@@ -49,7 +50,7 @@ export class NapoleonsTriumphGameInitializer
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
-        const auction = sideSelectionOf(game.config) === SideSelection.Auction && !assignment
+        const auction = sideSelectionOf(game.config) === SideSelection.Auction
         const napoleonsTriumphState: NapoleonsTriumphGameState = Object.assign(state, {
             players,
             machineState: auction ? MachineState.Bidding : MachineState.AlliedSetup,
@@ -62,7 +63,7 @@ export class NapoleonsTriumphGameInitializer
             frenchReinforcementsEntered: false,
             artilleryFire: {},
             limits: emptyTurnLimits(),
-            auction: auction ? {} : undefined
+            auction: auction ? openMoraleAuction(turnManager.turnOrder) : undefined
         })
         const hydrated = new HydratedNapoleonsTriumphGameState(napoleonsTriumphState)
         if (!auction) {

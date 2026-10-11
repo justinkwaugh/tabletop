@@ -33,7 +33,8 @@ export const Unit = Type.Object({
     retreatedAfterCombat: Type.Optional(Type.Literal(true))
 })
 
-export type ProjectedUnit = Omit<Unit, 'face'> & { face?: Face }
+export const ProjectedUnit = Visibility.createProjectionSchema(Unit)
+export type ProjectedUnit = Type.Static<typeof ProjectedUnit>
 
 export type Commander = Type.Static<typeof Commander>
 export const Commander = Type.Object({

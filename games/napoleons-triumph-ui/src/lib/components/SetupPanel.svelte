@@ -8,6 +8,7 @@
         commanderDefinition,
         type CorpsDeployment
     } from '@tabletop/napoleons-triumph'
+    import { setupLocaleOf } from '$lib/model/deploymentEdits.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import UnitTile from './UnitTile.svelte'
 
@@ -33,11 +34,7 @@
         if (corps.offMap) {
             return 'off the map'
         }
-        const locale = game.map.setupLocale(corps.commanderId)
-        if (!locale) {
-            return ''
-        }
-        const place = game.map.label(locale.id)
+        const place = game.map.label(setupLocaleOf(game.map, corps.commanderId).id)
         if (corps.approach === undefined) {
             return `in reserve at ${place}`
         }
@@ -57,7 +54,8 @@
         <div class="nt-setup-prompt">
             Organise your army. Tap a unit, then tap the corps it should join{side === Side.French
                 ? `, or a place on the map to detach it there (${deployment.detachments.length} of ${MAX_FRENCH_DETACHMENTS} detached)`
-                : ''}. Tap a corps’s position to change where it stands.
+                : ''}. To change where a corps stands, tap it on the map and then an approach of its
+            locale, or the locale to hold it in reserve.
         </div>
         <div class="nt-setup-corps">
             {#each deployment.corps as corps (corps.commanderId)}
@@ -78,12 +76,10 @@
                             >{corps.unitIds.length}/{MAX_CORPS_UNITS} · min {definition.minimumUnits}</span
                         >
                     </button>
-                    <button
-                        type="button"
+                    <span
                         class="nt-setup-stance"
-                        disabled={corps.offMap}
-                        onclick={() => gameSession.cycleCorpsStance(corps.commanderId)}
-                        >{standing(corps)}</button
+                        class:nt-setup-picked={gameSession.setupCorpsId === corps.commanderId}
+                        >{standing(corps)}</span
                     >
                     {#if chooseAdvanceGuard}
                         <button
@@ -146,20 +142,18 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        padding: 0 12px 8px;
-        color: #2b2620;
         font-size: 13px;
     }
 
     .nt-setup-prompt {
-        font-size: 14px;
+        font-size: 15px;
         max-width: 90ch;
         line-height: 1.3;
     }
 
     .nt-setup-corps {
         display: flex;
-        gap: 5px;
+        gap: 6px;
         overflow-x: auto;
     }
 
@@ -167,15 +161,15 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
-        padding: 4px 5px;
-        border: 1px solid rgba(43, 38, 32, 0.45);
-        border-radius: 4px;
         flex: none;
-        width: 104px;
+        width: 108px;
+        padding: 5px 6px 4px;
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--nt-ink) 7%, transparent);
     }
 
-    .nt-setup-short {
-        border-color: #7a1418;
+    .nt-setup-short .nt-setup-name {
+        color: var(--nt-warn);
     }
 
     .nt-setup-name {
@@ -203,17 +197,20 @@
         font-size: 11px;
         line-height: 1.15;
         text-align: left;
+    }
+
+    button.nt-setup-stance {
         text-decoration: underline dotted;
     }
 
-    .nt-setup-stance[disabled] {
-        text-decoration: none;
-        opacity: 0.7;
+    .nt-setup-picked {
+        font-weight: 700;
     }
 
     .nt-setup-units {
         display: flex;
         flex-direction: column;
+        margin-top: 2px;
     }
 
     .nt-setup-footer {
@@ -224,12 +221,6 @@
     }
 
     .nt-setup-problem {
-        color: #7a1418;
-    }
-
-    @media (max-width: 639px) {
-        .nt-setup {
-            padding: 0 4px 6px;
-        }
+        color: var(--nt-warn);
     }
 </style>

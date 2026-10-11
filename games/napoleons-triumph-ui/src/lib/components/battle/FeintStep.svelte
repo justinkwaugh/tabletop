@@ -14,22 +14,37 @@
     }
 </script>
 
-<div class="nt-battle-prompt">
-    The defence stands. Press the attack to see its leading units, or call it a feint with the units
-    you pick.
-</div>
-<AttackerPicker {stage} />
-<div class="flex flex-wrap gap-2 pt-1">
-    {#if stage.canPress}
+{#if stage.feinting}
+    <div class="nt-battle-prompt">
+        {#if stage.canPress}
+            A feint: name the pieces that make it, then say where they end. Undo goes back to
+            pressing the attack.
+        {:else}
+            The defence stands, and an attack by road must then be a feint. Name the pieces that
+            make it, then say where they end.
+        {/if}
+    </div>
+    <AttackerPicker {stage} />
+    <div class="flex flex-wrap gap-2 pt-1">
+        {#each stage.ends as end (end)}
+            <button type="button" class="nt-plain-button" onclick={() => gameSession.feint(end)}
+                >{stage.ends.length === 1 ? 'Feint in place' : END_NAMES[end]}</button
+            >
+        {:else}
+            <button type="button" class="nt-plain-button" disabled>Feint</button>
+        {/each}
+    </div>
+{:else}
+    <div class="nt-battle-prompt">
+        The defence stands. Press the attack to see its leading units and then declare your attack,
+        or call it a feint.
+    </div>
+    <div class="flex flex-wrap gap-2 pt-1">
         <button type="button" class="nt-plain-button" onclick={() => gameSession.pressAttack()}
             >Press the attack</button
         >
-    {/if}
-    {#each stage.ends as end (end)}
-        <button type="button" class="nt-plain-button" onclick={() => gameSession.feint(end)}
-            >{stage.ends.length === 1 ? 'Feint in place' : END_NAMES[end]}</button
+        <button type="button" class="nt-plain-button" onclick={() => gameSession.callFeint()}
+            >Call it a feint</button
         >
-    {:else}
-        <button type="button" class="nt-plain-button" disabled>Feint</button>
-    {/each}
-</div>
+    </div>
+{/if}

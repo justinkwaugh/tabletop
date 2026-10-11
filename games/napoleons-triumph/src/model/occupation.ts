@@ -1,33 +1,30 @@
-import { assert } from '@tabletop/common'
+import { unitsAbreast } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
 import { CommandKind, type MoveOrder } from './attack.js'
-import { finishOccupation } from './attackResolution.js'
+import { endAttack } from './attackResolution.js'
 import { currentAttack, defenseLocale } from './attackState.js'
 import { artilleryMayFire, resolveAttackOrders } from './attackOrders.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { isSantonBattery } from './leaders.js'
-import { endRoadMarch, relocate, settleRoadMarch } from './movement.js'
+import { endRoadMarch, relocate, requireRoom, settleRoadMarch } from './movement.js'
 import { expendOrder } from './orders.js'
 import { faceOf } from './pieces.js'
+import { legal } from './legality.js'
 
-/**
- * After a retreat before combat the attacker names the attack it threatened and moves in
- * (rule 11, step 2). Artillery that could have led the attack may instead stay in place. Cavalry
- * that moves in by road may ride on afterwards while it has road movement left.
- */
+/** Rule 11, step 2: after a retreat before combat the attacker names the attack it threatened and moves in, unless artillery that could have led it stays in place. */
 export function occupyAfterRetreat(
     state: HydratedNapoleonsTriumphGameState,
     orders: readonly MoveOrder[],
     artilleryStays: boolean
 ) {
     const attack = currentAttack(state)
-    assert(attack.retreatBeforeCombat === true, 'The defender has not retreated before combat')
+    legal(attack.retreatBeforeCombat === true, 'The defender has not retreated before combat')
     const resolved = resolveAttackOrders(state, attack, orders)
-    assert(
+    legal(
         !resolved.artilleryPair || artilleryStays,
         'Two batteries combine only to lead an attack together'
     )
-    if (resolved.resolved.every((entry) => entry.march === undefined)) {
+    if (resolved.commands.every((command) => command.march === undefined)) {
         endRoadMarch(state)
     }
     const locale = defenseLocale(state, attack)
@@ -37,37 +34,34 @@ export function occupyAfterRetreat(
         const inPosition =
             resolved.stance.approach !== undefined ||
             resolved.units.every((unit) => isSantonBattery(state, unit))
-        assert(
+        legal(
             inPosition &&
                 !resolved.byRoad &&
-                resolved.resolved.every((entry) => entry.order.kind !== CommandKind.Corps) &&
+                resolved.commands.every((command) => command.order.kind !== CommandKind.Corps) &&
                 resolved.units.every((unit) => faceOf(unit).type === UnitType.Artillery) &&
-                resolved.units.length <= (approach.wide ? 2 : 1) &&
+                resolved.units.length <= unitsAbreast(approach.wide) &&
                 artilleryMayFire(state, attack.attackApproach),
             'Only artillery that could have led the attack may stay in place'
         )
         state.revealAll(resolved.units)
-        for (const entry of resolved.resolved) {
-            expendOrder(state, entry)
+        for (const command of resolved.commands) {
+            expendOrder(state, command)
         }
-        finishOccupation(state)
+        endAttack(state)
         return
     }
-    assert(
+    legal(
         resolved.units.every((unit) => !unit.fixed),
         'The fixed battery cannot move'
     )
-    assert(
-        resolved.units.length <= state.freeCapacity(locale, attack.attackerId),
-        'The locale cannot hold the attacking units'
-    )
-    for (const entry of resolved.resolved) {
-        const road = entry.order.road ? [...entry.order.road, locale] : undefined
-        relocate(state, entry, { locale }, road)
-        expendOrder(state, entry)
+    requireRoom(state, attack.attackerId, resolved.units, locale)
+    for (const command of resolved.commands) {
+        const road = command.order.road ? [...command.order.road, locale] : undefined
+        relocate(state, command, { locale }, road)
+        expendOrder(state, command)
         if (road) {
-            settleRoadMarch(state, entry, road, { locale })
+            settleRoadMarch(state, command, road, { locale })
         }
     }
-    finishOccupation(state)
+    endAttack(state)
 }

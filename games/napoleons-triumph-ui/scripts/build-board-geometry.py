@@ -1,4 +1,4 @@
-"""Generate src/lib/map/boardGeometry.ts from the transcribed board.
+"""Generate src/lib/map/boardGeometry.ts from the transcribed board and the public map file's bars.
 
 Usage: python3 -I scripts/build-board-geometry.py /workspace/artassets/napoleons-triumph
 
@@ -149,13 +149,18 @@ def fmt(value):
     return ('%.1f' % value).rstrip('0').rstrip('.')
 
 
+def fmt_unit(value):
+    return ('%.4f' % (round(value, 4) + 0.0)).rstrip('0').rstrip('.')
+
+
 def main(source):
     notes = os.path.join(source, 'notes')
     skeleton = json.load(open(os.path.join(notes, 'vassal-skeleton.json')))
     bars = {bar['id']: bar for bar in json.load(open(os.path.join(notes, 'bars.json')))}
     features = json.load(open(os.path.join(notes, 'locale-features.json')))
-    capacities = json.load(open(os.path.join(notes, 'capacities.json')))
     roads = json.load(open(os.path.join(notes, 'roads.json')))
+    printed = json.load(open(os.path.join(source, 'public-map-derived', 'pdf-approaches.json')))
+    marks = json.load(open(os.path.join(source, 'public-map-derived', 'pdf-approach-marks.json')))
 
     wedges = {}
     for approach in skeleton['approaches']:
@@ -170,12 +175,10 @@ def main(source):
         outline = simplify_ring(ring, SIMPLIFY)
         depth, r, c = interior_point(mask)
         anchor = (x0 + (c + 0.5) * STEP, y0 + (r + 0.5) * STEP)
-        box = capacities[str(number)]['box']
         locales[number] = {
             'outline': [(x * SCALE, y * SCALE) for x, y in outline],
             'anchor': (anchor[0] * SCALE, anchor[1] * SCALE),
             'clearance': depth * STEP * SCALE,
-            'capacityBox': ((box[0] + box[2] / 2) * SCALE, (box[1] + box[2] / 2) * SCALE),
         }
 
     lines = [
@@ -191,7 +194,6 @@ def main(source):
         '    anchor: Point',
         '    /** Distance from the anchor to the nearest edge. */',
         '    clearance: number',
-        '    capacityBox: Point',
         '}',
         '',
         'export interface ApproachGeometry {',
@@ -204,6 +206,25 @@ def main(source):
         '    inward: Point',
         '}',
         '',
+        'export interface PrintedBar {',
+        '    centre: Point',
+        '    /** Direction of the bar in degrees, clockwise from the x axis. */',
+        '    angle: number',
+        '    length: number',
+        '}',
+        '',
+        '/** I infantry, C cavalry and A artillery penalised; O obstructed; X impassable. */',
+        "export type PrintedMark = 'I' | 'C' | 'A' | 'O' | 'X'",
+        '',
+        'export interface PrintedMarks {',
+        '    /** Centre of the bar the marks belong to. */',
+        '    bar: Point',
+        '    centre: Point',
+        '    /** Direction in degrees, clockwise from the x axis, along which the marks are listed. */',
+        '    angle: number',
+        '    marks: PrintedMark[]',
+        '}',
+        '',
         'export interface EntryGeometry {',
         '    at: Point',
         '}',
@@ -214,7 +235,7 @@ def main(source):
     ]
     for number, locale in locales.items():
         outline = ', '.join(f'p({fmt(x)}, {fmt(y)})' for x, y in locale['outline'])
-        lines.append(f"    {number}: {{ outline: [{outline}], anchor: p({fmt(locale['anchor'][0])}, {fmt(locale['anchor'][1])}), clearance: {fmt(locale['clearance'])}, capacityBox: p({fmt(locale['capacityBox'][0])}, {fmt(locale['capacityBox'][1])}) }},")
+        lines.append(f"    {number}: {{ outline: [{outline}], anchor: p({fmt(locale['anchor'][0])}, {fmt(locale['anchor'][1])}), clearance: {fmt(locale['clearance'])} }},")
     lines += ['}', '', 'export const APPROACH_GEOMETRY: Record<number, ApproachGeometry> = {']
     for approach in skeleton['approaches']:
         bar = bars[approach['id']]
@@ -225,11 +246,29 @@ def main(source):
         for side, number in enumerate(approach['locales']):
             ax, ay = locales[number]['anchor']
             sign = 1 if (ax - cx) * normal[0] + (ay - cy) * normal[1] >= 0 else -1
-            lines.append(f"    {approach['id'] * 2 + side}: {{ centre: p({fmt(cx)}, {fmt(cy)}), angle: {fmt(bar['angle'] % 180)}, length: {fmt(length)}, inward: p({fmt(sign * normal[0] * 1000 / 1000)}, {fmt(sign * normal[1])}) }},")
+            lines.append(f"    {approach['id'] * 2 + side}: {{ centre: p({fmt(cx)}, {fmt(cy)}), angle: {fmt(bar['angle'] % 180)}, length: {fmt(length)}, inward: p({fmt_unit(sign * normal[0])}, {fmt_unit(sign * normal[1])}) }},")
     lines += ['}', '', 'export const ENTRY_GEOMETRY: Record<string, EntryGeometry> = {']
     for entry in roads['entries']:
         lines.append(f"    {entry['id']}: {{ at: p({fmt(entry['at'][0] * SCALE)}, {fmt(entry['at'][1] * SCALE)}) }},")
-    lines += ['}', '']
+    lines += [
+        '}',
+        '',
+        '/** Every approach bar printed on the map, the impassable ones included, from the public map file. */',
+        'export const PRINTED_BARS: PrintedBar[] = [',
+    ]
+    for bar in printed['approaches']:
+        length = (522 if bar['wide'] else 262) * SCALE
+        lines.append(f"    {{ centre: p({fmt(bar['centre'][0])}, {fmt(bar['centre'][1])}), angle: {fmt(bar['angle'] % 180)}, length: {fmt(length)} }},")
+    lines += [
+        ']',
+        '',
+        '/** The marks printed on each side of each approach, in their printed order along the bar, from the public map file. */',
+        'export const PRINTED_MARKS: PrintedMarks[] = [',
+    ]
+    for side in marks:
+        letters = ', '.join(f"'{mark}'" for mark in side['marks'])
+        lines.append(f"    {{ bar: p({fmt(side['bar'][0])}, {fmt(side['bar'][1])}), centre: p({fmt(side['centre'][0])}, {fmt(side['centre'][1])}), angle: {fmt(side['angle'])}, marks: [{letters}] }},")
+    lines += [']', '']
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'lib', 'map', 'boardGeometry.ts')
     open(out, 'w', encoding='utf-8').write('\n'.join(lines))
     sizes = [len(locale['outline']) for locale in locales.values()]

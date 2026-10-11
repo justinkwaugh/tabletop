@@ -7,7 +7,13 @@
     import boardPreview from '$lib/images/board-preview.webp'
     import PiecesLayer from './board/PiecesLayer.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
+    import ApproachBars from './board/ApproachBars.svelte'
+    import ApproachSymbols from './board/ApproachSymbols.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
+    import CommandDiscs from './board/CommandDiscs.svelte'
+    import FlagLayer from './board/FlagLayer.svelte'
+    import ContactShadow from './board/ContactShadow.svelte'
+    import HeldApproaches from './board/HeldApproaches.svelte'
 
     const gameSession = getGameSession()
 
@@ -15,8 +21,7 @@
 
     const size = $derived(viewSize(gameSession.boardRotation))
 
-    // The shared wrapper scales this board with a CSS transform on an ancestor and offers no
-    // callback for it, so the on-screen zoom is read back from that element.
+    // Workaround: ScalingWrapper exposes neither its scale nor a callback for every change of it, so the zoom is read back from the element it transforms.
     const watchZoom: Attachment<HTMLElement> = (node) => {
         const scaled = node.parentElement?.parentElement
         if (!scaled) return
@@ -68,18 +73,15 @@
             onclick={() => gameSession.clearSelection()}
         >
             <defs>
-                <filter id="nt-contact-shadow" x="-5%" y="-5%" width="110%" height="110%">
-                    <feDropShadow
-                        dx="0"
-                        dy="2.5"
-                        stdDeviation="2.2"
-                        flood-color="#1c2a25"
-                        flood-opacity="0.38"
-                    ></feDropShadow>
-                </filter>
+                <ContactShadow id="nt-contact-shadow" />
             </defs>
+            <ApproachBars />
+            <CommandDiscs />
+            <HeldApproaches approaches={gameSession.heldApproaches} />
             <TargetLayer />
             <PiecesLayer />
+            <ApproachSymbols />
+            <FlagLayer />
             <TargetLayer attacks />
             <BattleMarker />
         </svg>

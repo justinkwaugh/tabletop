@@ -1,8 +1,20 @@
 <script lang="ts">
-    import { assertExists } from '@tabletop/common'
     import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { TargetKind, type MoveTarget } from '$lib/model/targets.js'
+    import {
+        TargetKind,
+        TargetMark,
+        markOf,
+        type AttackTarget,
+        type MoveTarget,
+        type ReserveTarget,
+        type RetreatTarget
+    } from '$lib/model/targets.js'
+    import {
+        ATTACK_ARROW_PATH,
+        attackMarkerAngle,
+        attackMarkerScale
+    } from '$lib/utils/attackMarker.js'
 
     let { attacks: attacksOnly = false }: { attacks?: boolean } = $props()
 
@@ -17,7 +29,7 @@
     const approaches = $derived(targets.filter((target) => target.kind === TargetKind.Approach))
     const attacks = $derived(targets.filter((target) => target.kind === TargetKind.Attack))
 
-    const markerScale = $derived(Math.min(3, Math.max(1, 0.55 / gameSession.zoom)))
+    const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
 
     function outline(locale: number): string {
         return LOCALE_GEOMETRY[locale].outline.map((point) => `${point.x},${point.y}`).join(' ')
@@ -28,12 +40,18 @@
         gameSession.chooseTarget(target)
     }
 
-    function barOf(target: MoveTarget) {
-        assertExists(target.position.approach, 'An approach target names its approach')
-        return APPROACH_GEOMETRY[target.position.approach]
+    // Threat arrows are drawn over the pieces they belong to, so the session decides from where the tap fell whether it was meant for a block under the arrow.
+    function threaten(event: MouseEvent & { currentTarget: SVGGElement }, target: AttackTarget) {
+        event.stopPropagation()
+        const board = event.currentTarget.ownerSVGElement
+        const toBoard = board?.getScreenCTM()?.inverse()
+        if (toBoard) {
+            const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(toBoard)
+            gameSession.tapThreatArrow(target, { x: at.x, y: at.y })
+        }
     }
 
-    function label(target: MoveTarget): string {
+    function label(target: ReserveTarget | RetreatTarget): string {
         const place = gameSession.gameState.map.label(target.position.locale)
         if (target.kind === TargetKind.Retreat) {
             return `Retreat to ${place}`
@@ -47,7 +65,7 @@
         <polygon
             points={outline(target.position.locale)}
             class="nt-target-locale"
-            class:nt-target-road={target.road !== undefined}
+            class:nt-target-road={markOf(target) === TargetMark.RoadMarch}
             role="button"
             tabindex="0"
             aria-label={label(target)}
@@ -56,7 +74,7 @@
         ></polygon>
     {/each}
     {#each approaches as target (target.key)}
-        {@const bar = barOf(target)}
+        {@const bar = APPROACH_GEOMETRY[target.position.approach]}
         <g
             transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
                 bar.inward.y * 14}) rotate({bar.angle})"
@@ -78,18 +96,19 @@
     {/each}
 {:else}
     {#each attacks as target (target.key)}
-        {@const bar = barOf(target)}
+        {@const bar = APPROACH_GEOMETRY[target.position.approach]}
         <g
-            transform="translate({bar.centre.x} {bar.centre.y}) scale({markerScale})"
+            transform="translate({bar.centre.x} {bar.centre.y}) scale({arrowScale})"
             role="button"
             tabindex="0"
             aria-label="Threaten an attack across this approach"
             class="nt-target-attack"
-            onclick={(event) => choose(event, target)}
+            onclick={(event) => threaten(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
-            <g transform="rotate({(Math.atan2(-bar.inward.y, -bar.inward.x) * 180) / Math.PI})">
-                <path d="M-20 -11 H4 V-21 L26 0 L4 21 V11 H-20 Z"></path>
+            <title>Threaten an attack across this approach</title>
+            <g transform="rotate({attackMarkerAngle(bar)})">
+                <path d={ATTACK_ARROW_PATH}></path>
             </g>
         </g>
     {/each}
@@ -97,16 +116,16 @@
 
 <style>
     .nt-target-locale {
-        fill: rgba(246, 222, 120, 0.3);
-        stroke: #8a6a12;
+        fill: var(--nt-move-fill);
+        stroke: var(--nt-move-line);
         stroke-width: 3;
         stroke-dasharray: 10 7;
         cursor: pointer;
     }
 
     .nt-target-locale.nt-target-road {
-        fill: rgba(190, 150, 110, 0.24);
-        stroke: #6d4a2a;
+        fill: var(--nt-road-fill);
+        stroke: var(--nt-road-line);
     }
 
     .nt-target-locale:hover {
@@ -114,8 +133,8 @@
     }
 
     .nt-target-approach {
-        fill: rgba(246, 222, 120, 0.55);
-        stroke: #8a6a12;
+        fill: var(--nt-approach-fill);
+        stroke: var(--nt-move-line);
         stroke-width: 2;
         cursor: pointer;
     }

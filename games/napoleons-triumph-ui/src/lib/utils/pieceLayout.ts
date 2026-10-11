@@ -7,22 +7,38 @@ import {
     type Position,
     type ProjectedUnit
 } from '@tabletop/napoleons-triumph'
-import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+import {
+    APPROACH_GEOMETRY,
+    LOCALE_GEOMETRY,
+    type ApproachGeometry,
+    type LocaleGeometry
+} from '$lib/map/boardGeometry.js'
+import {
+    BLOCK_LENGTH,
+    BLOCK_THICKNESS,
+    blockCorners,
+    coveredBy,
+    blockSamples,
+    type BlockFootprint
+} from './blockShape.js'
 import { screenAxes, uprightAngle } from './boardView.js'
+import { insidePolygon } from './polygon.js'
 
-export const BLOCK_LENGTH = 104
-export const BLOCK_THICKNESS = 20
-const BAR_HALF_THICKNESS = 6
+export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
 const COLUMN_GAP = 6
 const GROUP_GAP = 5
 const MIN_RANK_SPACING = 7
 const FULL_RANK_SPACING = BLOCK_THICKNESS + 2
+const LEVEL_TOLERANCE = 0.5
+const SETTLE_STEP = 12
+const SETTLE_CLEARANCE = 3
+const OVERLAP_COST = 12
+const STRAY_COST = 3
+const DRIFT_COST = 0.02
 
-export interface BlockSprite {
+export interface BlockSprite extends BlockFootprint {
     unit: ProjectedUnit
-    centre: Point
-    angle: number
 }
 
 export interface PieceGroup {
@@ -40,12 +56,29 @@ interface PlacedGroup extends PieceGroup {
 export interface GroupSprite {
     group: PlacedGroup
     blocks: BlockSprite[]
-    flag?: Point
+    flagFeetByPreference?: Point[]
     centre: Point
     radius: number
 }
 
-function placedGroups(state: HydratedNapoleonsTriumphGameState): PlacedGroup[] {
+export interface HeldApproach {
+    approach: number
+    playerId: string
+}
+
+export function heldApproaches(sprites: readonly GroupSprite[]): HeldApproach[] {
+    const holders = new Map<number, string>()
+    for (const { group } of sprites) {
+        if (group.position.approach !== undefined) {
+            holders.set(group.position.approach, group.playerId)
+        }
+    }
+    return [...holders].map(([approach, playerId]) => ({ approach, playerId }))
+}
+
+export type BoardPieces = Pick<HydratedNapoleonsTriumphGameState, 'units' | 'commander'>
+
+function placedGroups(state: BoardPieces): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -77,7 +110,27 @@ function rankSpacing(count: number, room: number, loose: boolean): number {
     return Math.max(MIN_RANK_SPACING, Math.min(FULL_RANK_SPACING, fitted))
 }
 
-function sprite(group: PlacedGroup, blocks: BlockSprite[], flagAt?: Point): GroupSprite {
+export function midpoint(points: readonly Point[]): Point {
+    return {
+        x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+        y: points.reduce((sum, point) => sum + point.y, 0) / points.length
+    }
+}
+
+function flagFeetOnTopOfStack(blocks: BlockSprite[], rotation: number): Point[] {
+    const { down } = screenAxes(rotation)
+    const height = (point: Point) => -(point.x * down.x + point.y * down.y)
+    const level = (a: Point, b: Point) => Math.abs(height(a) - height(b)) < LEVEL_TOLERANCE
+    const topBlockCorners = blocks
+        .map(blockCorners)
+        .reduce((highest, corners) =>
+            Math.max(...corners.map(height)) > Math.max(...highest.map(height)) ? corners : highest
+        )
+    const [top, shoulder] = topBlockCorners.toSorted((a, b) => height(b) - height(a))
+    return level(top, shoulder) ? [midpoint([top, shoulder]), top, shoulder] : [top, shoulder]
+}
+
+function sprite(group: PlacedGroup, blocks: BlockSprite[], rotation: number): GroupSprite {
     const xs = blocks.map((block) => block.centre.x)
     const ys = blocks.map((block) => block.centre.y)
     const centre = {
@@ -87,13 +140,45 @@ function sprite(group: PlacedGroup, blocks: BlockSprite[], flagAt?: Point): Grou
     const radius =
         Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 +
         BLOCK_LENGTH / 2
-    return { group, blocks, flag: group.commander ? flagAt : undefined, centre, radius }
+    const flagFeetByPreference = group.commander
+        ? flagFeetOnTopOfStack(blocks, rotation)
+        : undefined
+    return { group, blocks, flagFeetByPreference, centre, radius }
+}
+
+function angleFacingAcross(bar: ApproachGeometry): number {
+    return (Math.atan2(-bar.inward.x, bar.inward.y) * 180) / Math.PI
+}
+
+interface FiledGroup {
+    group: PlacedGroup
+    file: number
+    ranksAhead: number
+    groupsAhead: number
+}
+
+function fileGroups(groups: PlacedGroup[], files: number): FiledGroup[] {
+    const ranks = Array.from({ length: files }, () => 0)
+    const filled = Array.from({ length: files }, () => 0)
+    return groups.map((group) => {
+        const file = ranks.indexOf(Math.min(...ranks))
+        const filed = { group, file, ranksAhead: ranks[file], groupsAhead: filled[file] }
+        ranks[file] += group.units.length
+        filled[file] += 1
+        return filed
+    })
+}
+
+// Rule 4: a wide approach is as wide as two pieces, so two groups can front it side by side.
+function filesAcross(bar: ApproachGeometry): number {
+    return bar.length > BLOCK_LENGTH * 2 ? 2 : 1
 }
 
 function layoutBlockers(
     groups: PlacedGroup[],
     approachId: number,
-    options: LayoutOptions
+    options: LayoutOptions,
+    firstFile: number
 ): GroupSprite[] {
     const bar = APPROACH_GEOMETRY[approachId]
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
@@ -101,27 +186,25 @@ function layoutBlockers(
         x: Math.cos((bar.angle * Math.PI) / 180),
         y: Math.sin((bar.angle * Math.PI) / 180)
     }
-    const columns = bar.length > BLOCK_LENGTH * 2 ? 2 : 1
-    const total = groups.reduce((sum, group) => sum + group.units.length, 0)
-    const ranks = Math.ceil(total / columns)
+    const files = filesAcross(bar)
+    const filed = fileGroups(groups, files)
+    const deepest = Math.max(
+        ...filed.map(({ group, ranksAhead }) => ranksAhead + group.units.length)
+    )
     const depth = Math.hypot(locale.anchor.x - bar.centre.x, locale.anchor.y - bar.centre.y)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
-    const spacing = rankSpacing(ranks, Math.max(BLOCK_THICKNESS, depth - BAR_HALF_THICKNESS), loose)
-    const angle = uprightAngle(bar.angle, options.rotation)
+    const spacing = rankSpacing(
+        deepest,
+        Math.max(BLOCK_THICKNESS, depth - BAR_HALF_THICKNESS),
+        loose
+    )
+    const angle = angleFacingAcross(bar)
     const first = BAR_HALF_THICKNESS + BAR_GAP + BLOCK_THICKNESS / 2
-    let slot = 0
-    let gap = 0
-    return groups.map((group, index) => {
-        if (index > 0) {
-            slot = Math.ceil(slot / columns) * columns
-            gap += GROUP_GAP
-        }
-        const blocks = group.units.map((unit) => {
-            const column = slot % columns
-            const rank = Math.floor(slot / columns)
-            slot += 1
-            const sideways = columns === 1 ? 0 : (column - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
-            const inward = first + rank * spacing + gap
+    const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
+        const sideways =
+            files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
+        const fromTheBar = group.units.map((unit, place) => {
+            const inward = first + (ranksAhead + place) * spacing + groupsAhead * GROUP_GAP
             return {
                 unit,
                 angle,
@@ -131,11 +214,44 @@ function layoutBlockers(
                 }
             }
         })
-        return sprite(group, blocks, blocks[0]?.centre)
+        return sprite(group, fromTheBar.toReversed(), options.rotation)
     })
+    return frontToRear.toReversed()
 }
 
-function layoutReserve(groups: PlacedGroup[], options: LayoutOptions): GroupSprite[] {
+function choicesOfFile(approachId: number): number {
+    return filesAcross(APPROACH_GEOMETRY[approachId])
+}
+
+function covering(blocks: readonly BlockFootprint[], placed: readonly BlockFootprint[]): number {
+    return blocks.flatMap(blockSamples).filter(coveredBy(placed, SETTLE_CLEARANCE)).length
+}
+
+function clearestFiles(
+    groups: PlacedGroup[],
+    approachId: number,
+    options: LayoutOptions,
+    placed: readonly BlockFootprint[]
+): GroupSprite[] {
+    const arrangements = Array.from({ length: choicesOfFile(approachId) }, (_, firstFile) =>
+        layoutBlockers(groups, approachId, options, firstFile)
+    )
+    const overlap = (sprites: GroupSprite[]) =>
+        covering(
+            sprites.flatMap((sprite) => sprite.blocks),
+            placed
+        )
+    return arrangements.reduce((clearest, arrangement) =>
+        overlap(arrangement) < overlap(clearest) ? arrangement : clearest
+    )
+}
+
+interface PlacedBlocks {
+    group: PlacedGroup
+    blocks: BlockSprite[]
+}
+
+function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
     const angle = uprightAngle((Math.atan2(right.y, right.x) * 180) / Math.PI, options.rotation)
@@ -171,8 +287,60 @@ function layoutReserve(groups: PlacedGroup[], options: LayoutOptions): GroupSpri
                 }
             }
         })
-        return sprite(group, blocks, blocks[0]?.centre)
+        return { group, blocks }
     })
+}
+
+function moved(point: Point, shift: Point): Point {
+    return { x: point.x + shift.x, y: point.y + shift.y }
+}
+
+function shiftClearOf(
+    reserve: readonly PlacedBlocks[],
+    locale: LocaleGeometry,
+    placed: readonly BlockFootprint[]
+): Point {
+    const samples = reserve.flatMap(({ blocks }) => blocks.flatMap(blockSamples))
+    const reach = Math.max(
+        ...[...locale.outline, ...samples].map((point) =>
+            Math.hypot(point.x - locale.anchor.x, point.y - locale.anchor.y)
+        )
+    )
+    const near = placed.filter(
+        (block) =>
+            Math.hypot(block.centre.x - locale.anchor.x, block.centre.y - locale.anchor.y) <
+            reach * 2 + BLOCK_LENGTH
+    )
+    const onPlaced = coveredBy(near, SETTLE_CLEARANCE)
+    const covered = (shift: Point) =>
+        samples.filter((sample) => onPlaced(moved(sample, shift))).length
+    const stay = { x: 0, y: 0 }
+    if (covered(stay) === 0) {
+        return stay
+    }
+    const cost = (shift: Point) =>
+        covered(shift) * OVERLAP_COST +
+        samples.filter((sample) => !insidePolygon(moved(sample, shift), locale.outline)).length *
+            STRAY_COST +
+        Math.hypot(shift.x, shift.y) * DRIFT_COST
+    const xs = locale.outline.map((corner) => corner.x)
+    const ys = locale.outline.map((corner) => corner.y)
+    let best = stay
+    let lowest = cost(stay)
+    for (let x = Math.min(...xs); x <= Math.max(...xs); x += SETTLE_STEP) {
+        for (let y = Math.min(...ys); y <= Math.max(...ys); y += SETTLE_STEP) {
+            if (!insidePolygon({ x, y }, locale.outline)) {
+                continue
+            }
+            const shift = { x: x - locale.anchor.x, y: y - locale.anchor.y }
+            const candidate = cost(shift)
+            if (candidate < lowest) {
+                best = shift
+                lowest = candidate
+            }
+        }
+    }
+    return best
 }
 
 function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
@@ -185,7 +353,7 @@ function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
 }
 
 export function layoutPieces(
-    state: HydratedNapoleonsTriumphGameState,
+    state: BoardPieces,
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
@@ -197,11 +365,33 @@ export function layoutPieces(
             byPosition.push([group])
         }
     }
-    return byPosition.flatMap((groups) => {
-        const { approach } = groups[0].position
-        const ordered = sortGroups(groups)
-        return approach === undefined
-            ? layoutReserve(ordered, options)
-            : layoutBlockers(ordered, approach, options)
-    })
+    const placed: BlockFootprint[] = []
+    const blocking = byPosition
+        .flatMap((groups) => {
+            const { approach } = groups[0].position
+            return approach === undefined ? [] : [{ groups: sortGroups(groups), approach }]
+        })
+        .toSorted((a, b) => choicesOfFile(a.approach) - choicesOfFile(b.approach))
+        .flatMap(({ groups, approach }) => {
+            const sprites = clearestFiles(groups, approach, options, placed)
+            placed.push(...sprites.flatMap((sprite) => sprite.blocks))
+            return sprites
+        })
+    const inReserve = byPosition
+        .filter((groups) => groups[0].position.approach === undefined)
+        .flatMap((groups) => {
+            const reserve = arrangeReserve(sortGroups(groups), options)
+            const locale = LOCALE_GEOMETRY[groups[0].position.locale]
+            const shift = shiftClearOf(reserve, locale, placed)
+            const settled = reserve.map(({ group, blocks }) =>
+                sprite(
+                    group,
+                    blocks.map((block) => ({ ...block, centre: moved(block.centre, shift) })),
+                    options.rotation
+                )
+            )
+            placed.push(...settled.flatMap((sprite) => sprite.blocks))
+            return settled
+        })
+    return [...blocking, ...inReserve]
 }

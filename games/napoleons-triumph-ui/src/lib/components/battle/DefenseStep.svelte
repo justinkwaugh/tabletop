@@ -19,7 +19,7 @@
 <Force
     units={stage.candidates}
     selected={stage.defenders}
-    markers={stage.roles}
+    roles={stage.roles}
     onpick={(id) => gameSession.pickBattleUnit(id)}
 />
 {#if stage.bystanders.length > 0}

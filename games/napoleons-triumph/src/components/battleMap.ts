@@ -4,6 +4,11 @@ import { Side, UnitType } from './pieces.js'
 export type LocaleId = number
 export type ApproachId = number
 
+/** Rule 4: a wide approach takes two units abreast, a narrow one a single unit. */
+export function unitsAbreast(wide: boolean): number {
+    return wide ? 2 : 1
+}
+
 export enum Star {
     Blue = 'Blue',
     Red = 'Red',
@@ -224,17 +229,16 @@ export class BattleMap {
     }
 
     distance(from: LocaleId, to: LocaleId): number | undefined {
-        const distances = new Map<LocaleId, number>([[from, 0]])
-        const queue = [from]
-        for (const current of queue) {
-            const steps = distances.get(current) ?? 0
-            if (current === to) {
+        const reached = new Set<LocaleId>([from])
+        const queue = [{ locale: from, steps: 0 }]
+        for (const { locale, steps } of queue) {
+            if (locale === to) {
                 return steps
             }
-            for (const next of this.reachableNeighbours(current)) {
-                if (!distances.has(next)) {
-                    distances.set(next, steps + 1)
-                    queue.push(next)
+            for (const next of this.reachableNeighbours(locale)) {
+                if (!reached.has(next)) {
+                    reached.add(next)
+                    queue.push({ locale: next, steps: steps + 1 })
                 }
             }
         }

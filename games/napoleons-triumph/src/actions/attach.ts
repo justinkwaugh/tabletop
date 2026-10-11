@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { attach } from '../model/attach.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -24,7 +25,7 @@ export function isAttach(action?: GameAction): action is Attach {
     return action?.type === ActionType.Attach
 }
 
-export class HydratedAttach extends HydratableAction<typeof Attach> implements Attach {
+export class HydratedAttach extends NapoleonsTriumphAction<typeof Attach> implements Attach {
     declare type: ActionType.Attach
     declare playerId: string
     declare commanderId: string
@@ -34,7 +35,7 @@ export class HydratedAttach extends HydratableAction<typeof Attach> implements A
         super(data, AttachValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         attach(state, this.playerId, this.commanderId, this.unitId)
     }
 }

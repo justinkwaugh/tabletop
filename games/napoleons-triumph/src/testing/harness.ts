@@ -6,11 +6,13 @@ import {
     type Game,
     type GameConfig
 } from '@tabletop/common'
-import { Side, UnitType, type Face } from '../components/pieces.js'
+import { AUSTERLITZ } from '../components/austerlitz.js'
+import { Side, UnitType, opposingSide, type Face } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { NapoleonsTriumphRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
+import type { MoveOrder } from '../model/attack.js'
 import {
     HydratedNapoleonsTriumphGameState,
     NapoleonsTriumphGameStateValidator,
@@ -143,6 +145,79 @@ export function arrangeBattlefield(game: TestGame, placements: readonly PiecePla
             commander.eliminated = lead ? undefined : true
         }
     })
+}
+
+function battleIn(turn: Side, placements: readonly PiecePlacement[], config: GameConfig): TestGame {
+    const game = new TestGame(config)
+    game.deployBoth()
+    if (turn === Side.French) {
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+    }
+    arrangeBattlefield(game, placements)
+    return game
+}
+
+export function alliedTurn(
+    placements: readonly PiecePlacement[],
+    config: GameConfig = {}
+): TestGame {
+    return battleIn(Side.Allied, placements, config)
+}
+
+export function frenchTurn(
+    placements: readonly PiecePlacement[],
+    config: GameConfig = {}
+): TestGame {
+    return battleIn(Side.French, placements, config)
+}
+
+export function passTurns(game: TestGame, turns: number) {
+    for (let turn = 0; turn < turns; turn++) {
+        game.act(ActionType.EndTurn, game.activePlayerId)
+    }
+}
+
+export function playOut(game: TestGame) {
+    while (game.state.machineState !== MachineState.EndOfGame) {
+        passTurns(game, 1)
+    }
+}
+
+export interface Assault {
+    attacker: Side
+    from: number
+    into: number
+    guardUnitId?: string
+    defenders: string[]
+    defenseLeaders: string[]
+    orders: MoveOrder[]
+    wide?: boolean
+    leaders: string[]
+    target?: string
+}
+
+/** Rule 11, steps 1 to 6: a threat the defender stands against and the attacker presses home. */
+export function assault(game: TestGame, plan: Assault): unknown {
+    const attacker = game.playerOf(plan.attacker)
+    const approach = AUSTERLITZ.approachBetween(plan.from, plan.into).id
+    game.act(
+        ActionType.ThreatenAttack,
+        attacker,
+        plan.guardUnitId === undefined ? { approach } : { approach, guardUnitId: plan.guardUnitId }
+    )
+    game.act(ActionType.DeclareDefense, game.playerOf(opposingSide(plan.attacker)), {
+        unitIds: plan.defenders,
+        leaderIds: plan.defenseLeaders
+    })
+    if (game.state.machineState === MachineState.FeintDecision) {
+        game.act(ActionType.PressAttack, attacker)
+    }
+    const declaration = { orders: plan.orders, wide: plan.wide ?? false, leaderIds: plan.leaders }
+    return game.outcome(
+        ActionType.DeclareAttack,
+        attacker,
+        plan.target === undefined ? declaration : { ...declaration, targetLeaderId: plan.target }
+    )
 }
 
 export const infantry = (strength: number): Face => ({ type: UnitType.Infantry, strength })

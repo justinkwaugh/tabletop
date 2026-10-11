@@ -1,13 +1,23 @@
-export function isLegal(check: () => void): boolean {
-    return whyIllegal(check) === undefined
+export class IllegalPlay extends Error {}
+
+export function legal(condition: unknown, reason: string): asserts condition {
+    if (!condition) {
+        throw new IllegalPlay(reason)
+    }
 }
 
-/** The rules checks throw to say what is wrong; this hands that reason back instead. */
 export function whyIllegal(check: () => void): string | undefined {
     try {
         check()
         return undefined
     } catch (error) {
-        return error instanceof Error ? error.message : String(error)
+        if (error instanceof IllegalPlay) {
+            return error.message
+        }
+        throw error
     }
+}
+
+export function isLegal(check: () => void): boolean {
+    return whyIllegal(check) === undefined
 }

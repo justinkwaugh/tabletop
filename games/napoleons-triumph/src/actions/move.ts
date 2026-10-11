@@ -1,8 +1,9 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { Face } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { MoveOrder } from '../model/attack.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { executeMove } from '../model/movement.js'
@@ -35,7 +36,7 @@ export function isMove(action?: GameAction): action is Move {
     return action?.type === ActionType.Move
 }
 
-export class HydratedMove extends HydratableAction<typeof Move> implements Move {
+export class HydratedMove extends NapoleonsTriumphAction<typeof Move> implements Move {
     declare type: ActionType.Move
     declare playerId: string
     declare metadata?: MoveMetadata
@@ -46,7 +47,7 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
         super(data, MoveValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         const outcome = executeMove(state, this.playerId, this.order, this.to)
         this.metadata = {
             from: outcome.from,

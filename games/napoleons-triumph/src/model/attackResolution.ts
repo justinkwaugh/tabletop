@@ -1,6 +1,5 @@
 import { assert, assertExists } from '@tabletop/common'
 import { UnitType, sameFace } from '../components/pieces.js'
-import { MachineState } from '../definition/states.js'
 import { DecisionKind, type LossEntry, type PendingDecision } from './attack.js'
 import { attackLocale, currentAttack, defenseLocale, type AttackState } from './attackState.js'
 import {
@@ -12,6 +11,7 @@ import {
 } from './combat.js'
 import { VictoryKind, type HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateCounterAttackers } from './leaders.js'
+import { legal } from './legality.js'
 import { faceOf, type Commander, type ProjectedUnit } from './pieces.js'
 import { declareVictory } from './victory.js'
 
@@ -89,7 +89,7 @@ export function finalResultWith(
     return attack.initialResult - counterAttackStrength(counterAttackers.map(faceOf))
 }
 
-/** Rule 11, steps 7 and 8, then the resolution that follows. */
+/** Rule 11, steps 7 and 8. */
 export function counterAttack(
     state: HydratedNapoleonsTriumphGameState,
     unitIds: readonly string[]
@@ -97,14 +97,14 @@ export function counterAttack(
     const attack = currentAttack(state)
     assertExists(attack.initialResult, 'The attack has not been declared')
     const candidates = counterAttackCandidates(state)
-    assert(new Set(unitIds).size === unitIds.length, 'A counter-attacking unit is named once')
+    legal(new Set(unitIds).size === unitIds.length, 'A counter-attacking unit is named once')
     const units = unitIds.map((id) => state.unit(id))
-    assert(
+    legal(
         units.every((unit) => candidates.includes(unit)),
         'Only defending units that are not leading counter-attack'
     )
     validateCounterAttackers(state, units, attack.defenseApproach, attackerLeadsInitially(state))
-    attack.counterAttackerIds = [...unitIds]
+    attack.counterAttackingUnitIds = [...unitIds]
     attack.finalResult = finalResultWith(state, units)
     for (const unit of units) {
         state.commit(unit)
@@ -138,7 +138,10 @@ function loseEvenly(
         losses
     )
     const odd = split.oddBetween?.map((index) => units[index])
-    const interchangeable = odd !== undefined && sameFace(faceOf(odd[0]), faceOf(odd[1]))
+    const interchangeable =
+        odd !== undefined &&
+        sameFace(faceOf(odd[0]), faceOf(odd[1])) &&
+        odd[0].commanderId === odd[1].commanderId
     units.forEach((unit, index) => {
         const steps = split.taken[index] + (interchangeable && odd && unit === odd[0] ? 1 : 0)
         if (steps > 0) {
@@ -198,7 +201,6 @@ export function resolveCombat(
     const final = attack.finalResult ?? attack.initialResult
     attack.finalResult = final
     attack.attackerWon = attackerWins(final, tiebreak(state, attack))
-    attack.step = MachineState.ResolvingAttack
 
     const attackLeaders = living(state, attack.attackLeaderIds)
     const attackLeaderFaces = attackLeaders.map(faceOf)
@@ -238,7 +240,7 @@ export function resolveCombat(
         attack.attackerId,
         records
     )
-    const counterAttackers = living(state, attack.counterAttackerIds)
+    const counterAttackers = living(state, attack.counterAttackingUnitIds)
     const afterCounterAttackers = loseEvenly(
         state,
         attack,
@@ -248,7 +250,8 @@ export function resolveCombat(
         records
     )
     const others = living(state, attack.defendingUnitIds).filter(
-        (unit) => !fightingLeaders.includes(unit) && !attack.counterAttackerIds.includes(unit.id)
+        (unit) =>
+            !fightingLeaders.includes(unit) && !attack.counterAttackingUnitIds.includes(unit.id)
     )
     queueExcess(state, attack, attack.defenderId, others, afterCounterAttackers, records)
     const attackerWon = attack.attackerWon
@@ -279,16 +282,14 @@ export function concludeAttack(
             state.attack = undefined
             return morale
         }
-        if (completeAttack(state)) {
-            attack.step = MachineState.Retreating
+        const defenderMustRetreat = completeAttack(state)
+        if (defenderMustRetreat) {
             return morale
         }
     }
-    if (attack.pending.length > 0) {
-        attack.step = MachineState.ResolvingAttack
-        return morale
+    if (attack.pending.length === 0) {
+        endAttack(state)
     }
-    endAttack(state)
     return morale
 }
 
@@ -306,11 +307,15 @@ function settleLosses(state: HydratedNapoleonsTriumphGameState): MoraleOutcome {
     attack.lossesSettled = true
     const loserId = attack.attackerWon ? attack.defenderId : attack.attackerId
     const moraleLost = attack.attackerWon ? attack.defenderStepsLost : attack.attackerStepsLost
-    let demoralized = state.loseMorale(loserId, moraleLost, attack.artilleryLed === true)
-    if (!attack.attackerWon && attack.guardAttack && !demoralized) {
-        demoralized = state.failGuardAttack(attack.attackerId)
+    state.loseMorale(loserId, moraleLost, attack.artilleryLed === true)
+    if (!attack.attackerWon && attack.guardAttack && !state.isDemoralized(loserId)) {
+        state.failGuardAttack(attack.attackerId)
     }
-    return { loserId, moraleLost, demoralizedId: demoralized ? loserId : undefined }
+    return {
+        loserId,
+        moraleLost,
+        demoralizedId: state.isDemoralized(loserId) ? loserId : undefined
+    }
 }
 
 function attackingPieces(
@@ -356,7 +361,7 @@ function repulse(state: HydratedNapoleonsTriumphGameState, attack: AttackState) 
     queueAdvance(state, attack)
 }
 
-/** Rule 11, step 11, once losses are settled. Returns whether the beaten defender still has pieces that must retreat. */
+/** Rule 11, step 11. */
 function completeAttack(state: HydratedNapoleonsTriumphGameState): boolean {
     const attack = currentAttack(state)
     if (attack.artilleryLed) {
@@ -379,22 +384,8 @@ function completeAttack(state: HydratedNapoleonsTriumphGameState): boolean {
     return false
 }
 
-function endAttack(state: HydratedNapoleonsTriumphGameState) {
-    const attack = currentAttack(state)
-    assert(attack.pending.length === 0, 'Decisions are still waiting')
-    if (
-        !attack.attackerWon &&
-        !attack.artilleryLed &&
-        !attack.feint &&
-        !attack.retreatBeforeCombat
-    ) {
-        for (const commanderId of attack.attackingCommanderIds) {
-            const corps = living(state, attack.attackingUnitIds).filter(
-                (unit) => unit.commanderId === commanderId
-            )
-            corps.slice(1).forEach((unit) => state.detach(unit))
-        }
-    }
+export function endAttack(state: HydratedNapoleonsTriumphGameState) {
+    assert(currentAttack(state).pending.length === 0, 'Decisions are still waiting')
     state.attack = undefined
 }
 
@@ -406,13 +397,8 @@ export function afterRetreat(state: HydratedNapoleonsTriumphGameState, demoraliz
         return
     }
     if (attack.retreatBeforeCombat) {
-        attack.step = MachineState.Occupying
         return
     }
     occupyDefenseLocale(state)
-    endAttack(state)
-}
-
-export function finishOccupation(state: HydratedNapoleonsTriumphGameState) {
     endAttack(state)
 }

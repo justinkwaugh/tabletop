@@ -1,11 +1,18 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { ActionType, MAX_BID, STARTING_MORALE, Side } from '@tabletop/napoleons-triumph'
+    import {
+        ActionType,
+        MAX_BID,
+        STARTING_MORALE,
+        Side,
+        highBidderId
+    } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
     const auction = $derived(gameSession.gameState.auction)
     const highBid = $derived(auction?.highBid)
+    const leaderId = $derived(auction ? highBidderId(auction) : undefined)
     const lowest = $derived((highBid ?? -1) + 1)
     let wanted = $state(0)
     const amount = $derived(Math.min(MAX_BID, Math.max(lowest, wanted)))
@@ -24,9 +31,7 @@
     ]
 </script>
 
-<div
-    class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]"
->
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[16px] max-sm:text-[13px]">
     {#if canChoose}
         <span
             >Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span
@@ -45,8 +50,8 @@
     {:else if gameSession.canAct && auction}
         <span>
             Bid morale for the choice of army.
-            {#if highBid !== undefined && auction.highBidderId}
-                <PlayerName playerId={auction.highBidderId} /> has bid {highBid}.
+            {#if highBid !== undefined && leaderId}
+                <PlayerName playerId={leaderId} /> has bid {highBid}.
             {/if}
         </span>
         {#if canBid}

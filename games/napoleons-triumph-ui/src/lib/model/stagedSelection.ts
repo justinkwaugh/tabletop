@@ -22,7 +22,19 @@ export interface StagedSelection<Values extends Record<string, unknown>> {
         value: Values[Current],
         source: StagedSelectionSource
     ): StagedSelectionState<Values>
+    /** Deliberately keeps the later stages, unlike `set`: independent choices within one step never reset each other. */
+    revise<Current extends Stage<Values>>(
+        state: StagedSelectionState<Values>,
+        stage: Current,
+        value: Values[Current],
+        source: StagedSelectionSource
+    ): StagedSelectionState<Values>
     clearFrom(
+        state: StagedSelectionState<Values>,
+        stage: Stage<Values>
+    ): StagedSelectionState<Values>
+    /** Deliberately keeps the later stages, unlike `clearFrom`, for the same reason as `revise`. */
+    withdraw(
         state: StagedSelectionState<Values>,
         stage: Stage<Values>
     ): StagedSelectionState<Values>
@@ -42,8 +54,17 @@ export function stagedSelection<Values extends Record<string, unknown>>() {
         empty: () => ({}),
         set: (state, stage, value, source) =>
             setStagedSelectionValue<Values, typeof stage>(state, order, stage, value, source),
+        revise: (state, stage, value, source) => ({
+            ...state,
+            ...setStagedSelectionValue<Values, typeof stage>(state, order, stage, value, source)
+        }),
         clearFrom: (state, stage) =>
             clearStagedSelectionAtOrAfter<Values, typeof stage>(state, order, stage),
+        withdraw: (state, stage) => {
+            const remaining = { ...state }
+            delete remaining[stage]
+            return remaining
+        },
         value: (state, stage) => getStagedSelectionValue<Values, typeof stage>(state, stage),
         hasManual: (state) => hasManualStagedSelection<Values>(state, order),
         undo: (state) => popHighestManualStagedSelection<Values>(state, order).nextState

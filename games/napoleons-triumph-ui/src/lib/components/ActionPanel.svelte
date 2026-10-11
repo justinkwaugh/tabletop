@@ -1,21 +1,18 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { ActionType, Side, VictoryKind, commanderDefinition } from '@tabletop/napoleons-triumph'
+    import { Side, VictoryKind } from '@tabletop/napoleons-triumph'
     import { describeAction } from '$lib/utils/describeAction.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { reinforcementKey } from '$lib/model/session.svelte.js'
+    import Orders from './Orders.svelte'
+
+    let { ordersDrawerHeight = $bindable(0) }: { ordersDrawerHeight?: number } = $props()
 
     const gameSession = getGameSession()
 
-    const reinforcements = $derived(gameSession.reinforcements)
     const game = $derived(gameSession.gameState)
     const waitingOn = $derived(game.activePlayerIds[0])
-    const context = $derived({
-        map: game.map,
-        sideOf: (playerId: string | undefined) => game.findPlayerState(playerId ?? '')?.side
-    })
     const lastAction = $derived(
-        gameSession.currentAction ? describeAction(gameSession.currentAction, context) : ''
+        gameSession.currentAction ? describeAction(gameSession.currentAction, game) : ''
     )
     const outcome = $derived.by(() => {
         const winner = game.findPlayerState(game.winningPlayerIds[0] ?? '')?.side
@@ -29,44 +26,37 @@
     })
 </script>
 
-<div
-    class="flex flex-wrap items-center gap-2 px-3 max-sm:px-1 pb-2 text-[15px] max-sm:text-[13px] text-[#2b2620]"
->
-    {#if gameSession.isViewingHistory}
-        <span>{lastAction || 'The armies are about to take the field.'}</span>
-    {:else if gameSession.gameState.result}
-        <span class="nt-outcome">{outcome}</span>
-    {:else if !gameSession.canAct}
+{#if gameSession.isViewingHistory}
+    <p class="nt-action">{lastAction || 'The armies are about to take the field.'}</p>
+{:else if gameSession.gameState.result}
+    <p class="nt-action">{outcome}</p>
+{:else if gameSession.isCommanding}
+    <Orders bind:drawerHeight={ordersDrawerHeight} />
+{:else}
+    <p class="nt-action">
         <span>{lastAction || 'Waiting for the other army.'}</span>
         {#if waitingOn}
-            <span class="opacity-70">Waiting for <PlayerName playerId={waitingOn} />.</span>
+            <span class="nt-action-faint">Waiting for <PlayerName playerId={waitingOn} />.</span>
         {/if}
-    {:else if gameSession.isCommanding}
-        {#if gameSession.ridingOn}
-            <span>The cavalry may ride on along its road, or threaten again.</span>
-        {:else if gameSession.selectedGroup}
-            <span>Choose where they go on the map.</span>
-        {:else}
-            <span>Pick up a corps or a unit on the map.</span>
-        {/if}
-        {#if reinforcements.length > 0}
-            <span class="opacity-70">Off the map:</span>
-        {/if}
-        {#each reinforcements as reinforcement (reinforcement.commander.id)}
-            <button
-                type="button"
-                class="nt-plain-button"
-                aria-label="Bring on {commanderDefinition(reinforcement.commander.id).name}"
-                aria-pressed={gameSession.selectedGroupKey ===
-                    reinforcementKey(reinforcement.commander.id)}
-                onclick={() => gameSession.selectReinforcement(reinforcement.commander.id)}
-                >{commanderDefinition(reinforcement.commander.id).name}</button
-            >
-        {/each}
-        {#if gameSession.validActionTypes.includes(ActionType.EndTurn)}
-            <button type="button" class="nt-plain-button" onclick={() => gameSession.endTurn()}
-                >End turn</button
-            >
-        {/if}
-    {/if}
-</div>
+    </p>
+{/if}
+
+<style>
+    .nt-action {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 12px;
+        font-size: 16px;
+        line-height: 1.35;
+    }
+
+    .nt-action-faint {
+        opacity: 0.66;
+    }
+
+    @media (max-width: 639px) {
+        .nt-action {
+            font-size: 13px;
+        }
+    }
+</style>

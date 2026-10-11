@@ -1,11 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { afterRetreat } from '../model/attackResolution.js'
 import { currentAttack } from '../model/attackState.js'
 import { mustDefend } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { legal } from '../model/legality.js'
 import { executeRetreat } from '../model/retreat.js'
 import { LossEntry } from '../model/attack.js'
 
@@ -38,7 +40,7 @@ export function isRetreat(action?: GameAction): action is Retreat {
     return action?.type === ActionType.Retreat
 }
 
-export class HydratedRetreat extends HydratableAction<typeof Retreat> implements Retreat {
+export class HydratedRetreat extends NapoleonsTriumphAction<typeof Retreat> implements Retreat {
     declare type: ActionType.Retreat
     declare playerId: string
     declare metadata?: RetreatMetadata
@@ -50,13 +52,11 @@ export class HydratedRetreat extends HydratableAction<typeof Retreat> implements
         super(data, RetreatValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         const attack = currentAttack(state)
         const beforeCombat = attack.attackerWon === undefined
         if (beforeCombat) {
-            if (mustDefend(state)) {
-                throw Error('Pieces blocking the approach must defend it')
-            }
+            legal(!mustDefend(state), 'Pieces blocking the approach must defend it')
             attack.retreatBeforeCombat = true
         }
         const fromLocale = state.map.approach(attack.defenseApproach).locale

@@ -1,7 +1,8 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type MachineContext } from '@tabletop/common'
+import { Advance } from '../actions/advance.js'
 import { ActionType } from '../definition/actions.js'
 import { DecisionKind } from '../model/attack.js'
-import { nextDecision } from '../model/attackDecisions.js'
+import { forcedAdvance, nextDecision } from '../model/attackDecisions.js'
 import { currentAttack } from '../model/attackState.js'
 import { canPressAttack, eligibleReserveDefenders, mustDefend } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -65,6 +66,14 @@ export class ResolvingAttackStateHandler extends StepStateHandler {
         const decision = nextDecision(state)
         assertExists(decision, 'No decision is waiting')
         return decision.playerId
+    }
+
+    override enter(context: MachineContext<HydratedNapoleonsTriumphGameState>) {
+        super.enter(context)
+        const forced = forcedAdvance(context.gameState)
+        if (forced) {
+            context.addSystemAction(Advance, forced)
+        }
     }
 }
 

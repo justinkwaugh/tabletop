@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { advance } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -24,7 +25,7 @@ export function isAdvance(action?: GameAction): action is Advance {
     return action?.type === ActionType.Advance
 }
 
-export class HydratedAdvance extends HydratableAction<typeof Advance> implements Advance {
+export class HydratedAdvance extends NapoleonsTriumphAction<typeof Advance> implements Advance {
     declare type: ActionType.Advance
     declare playerId: string
     declare unitIds: string[]
@@ -34,7 +35,7 @@ export class HydratedAdvance extends HydratableAction<typeof Advance> implements
         super(data, AdvanceValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         advance(state, this.playerId, this.unitIds, this.commanderIds)
     }
 }

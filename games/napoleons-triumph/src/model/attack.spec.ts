@@ -11,7 +11,6 @@ import {
     type PiecePlacement
 } from '../testing/harness.js'
 import { CommandKind } from './attack.js'
-import { nextDecision } from './attackDecisions.js'
 import { FeintEnd } from './attackDeclaration.js'
 
 const ATTACK_FROM = 95
@@ -348,10 +347,13 @@ describe('errata and designer rulings', () => {
             leaderIds: []
         })
         game.act(ActionType.DeclareFeint, allied, feint)
-        expect(nextDecision(game.hydrated)).toMatchObject({ playerId: french, unitIds: ['F-inf'] })
-        expect(() =>
-            game.act(ActionType.Advance, french, { unitIds: ['F-fixed'], commanderIds: [] })
-        ).toThrow()
+        const state = game.hydrated
+        expect(state.attack).toBeUndefined()
+        expect(state.unit('F-inf').position).toEqual({
+            locale: WIDE_FROM,
+            approach: state.map.approachBetween(WIDE_FROM, WIDE_INTO).id
+        })
+        expect(state.unit('F-fixed').position).toEqual({ locale: WIDE_FROM })
     })
 
     it('asks for no advance when only the fixed battery was named', () => {

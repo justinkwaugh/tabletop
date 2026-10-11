@@ -1,49 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createGame, deployBothArmies, failOnPageErrors, pickUp, tap } from './table.js'
 
-const pageErrors = new WeakMap<Page, string[]>()
-
-test.beforeEach(({ page }) => {
-    const errors: string[] = []
-    pageErrors.set(page, errors)
-    page.on('pageerror', (error) => errors.push(error.message))
-})
-
-test.afterEach(({ page }) => {
-    expect(pageErrors.get(page)).toEqual([])
-})
-
-async function createGame(page: Page) {
-    await page.goto('/')
-    await page.getByRole('button', { name: 'New game', exact: true }).click()
-    await page.getByPlaceholder('choose a name for your game').fill('Austerlitz')
-    await page
-        .getByPlaceholder('optional reproduction seed')
-        .fill('0123456789abcdef0123456789abcdef')
-    const names = page.getByPlaceholder('player name')
-    for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
-    await page.getByRole('button', { name: 'Create Game', exact: true }).click()
-}
-
-async function deployBothArmies(page: Page) {
-    const deploy = page.getByRole('button', { name: 'Deploy the army' })
-    await deploy.click()
-    await expect(page.locator('[data-commander="langeron"]')).toBeVisible()
-    await deploy.click()
-    await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
-}
+failOnPageErrors()
 
 function morale(page: Page, side: 'Allied' | 'French') {
     return page.getByLabel(new RegExp(`^${side} morale \\d+$`))
-}
-
-// Workaround: blocks and targets are small SVG shapes under one another's hit areas, so they are clicked directly.
-async function tap(page: Page, selector: string) {
-    await page.locator(selector).first().dispatchEvent('click')
-}
-
-// Pieces are offered as buttons only while the session takes choices, so this waits out an action or Undo still settling.
-async function pickUp(page: Page, commander: string) {
-    await tap(page, `[data-commander="${commander}"][role="button"]`)
 }
 
 test('a threat, a retreat before combat and the move into the vacated locale', async ({ page }) => {
@@ -55,15 +16,40 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     const strip = page.getByRole('group', { name: 'Langeron’s corps' })
     await pickUp(page, 'langeron')
     await expect(strip).toBeVisible()
-    const included = strip.getByRole('button', {
+    const units = strip.getByRole('button', { name: 'Include this unit in the command' })
+    const chosen = strip.getByRole('button', {
         name: 'Include this unit in the command',
         pressed: true
     })
-    await expect(included).toHaveCount(5)
-    await included.first().click()
-    await expect(included).toHaveCount(4)
+    const together = strip.getByRole('group', { name: 'The whole corps goes together' })
+    await expect(units).toHaveCount(5)
+    await expect(chosen).toHaveCount(0)
+    await expect(together).toBeVisible()
+    const command = (name: string) => strip.getByRole('button', { name, exact: true })
+    await expect(command('Corps Move')).toHaveAttribute('aria-pressed', 'true')
+    await expect(command('Detach Move')).toBeDisabled()
+    await expect(command('Unit Move')).toBeDisabled()
+    await units.first().click()
+    await expect(chosen).toHaveCount(1)
+    await expect(together).toBeHidden()
+    await expect(command('Unit Move')).toHaveAttribute('aria-pressed', 'true')
+    await expect(command('Detach Move')).toBeEnabled()
+    await expect(command('Corps Move')).toBeEnabled()
     await undo.click()
-    await expect(included).toHaveCount(5)
+    await expect(chosen).toHaveCount(0)
+    await expect(together).toBeVisible()
+    const blocks = page.locator('[data-commander="langeron"] > g')
+    await blocks.first().dispatchEvent('click')
+    await expect(chosen).toHaveCount(1)
+    await blocks.nth(1).dispatchEvent('click')
+    await expect(chosen).toHaveCount(2)
+    await blocks.first().dispatchEvent('click')
+    await blocks.nth(1).dispatchEvent('click')
+    await expect(chosen).toHaveCount(0)
+    await expect(together).toBeVisible()
+    for (let i = 0; i < 5; i++) await units.nth(i).click()
+    await expect(chosen).toHaveCount(0)
+    await expect(together).toBeVisible()
     await undo.click()
     await expect(strip).toBeHidden()
 
@@ -146,4 +132,83 @@ test('cavalry that rides in by road stays picked up, riding on', async ({ page }
     await undo.click()
     await expect(riding).toBeHidden()
     await expect(moveIn).toBeEnabled()
+})
+
+test('when the defence stands the attacker is asked only to press or feint', async ({ page }) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+
+    const press = page.getByRole('button', { name: 'Press the attack' })
+    const callFeint = page.getByRole('button', { name: 'Call it a feint' })
+    const pieces = page.locator('button[aria-label="Choose this unit"]:not([disabled])')
+    const commands = page.getByRole('group', { name: 'Command' })
+    await expect(press).toBeVisible()
+    await expect(pieces).toHaveCount(0)
+    await expect(commands).toBeHidden()
+
+    await callFeint.click()
+    await expect(press).toBeHidden()
+    await expect(pieces).toHaveCount(4)
+    await expect(commands).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Feint, staying in reserve' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(pieces).toHaveCount(0)
+    await press.click()
+    await expect(page.getByRole('button', { name: /^Attack/ })).toBeVisible()
+    await expect(pieces).toHaveCount(4)
+    await expect(commands).toBeVisible()
+
+    const leading = pieces.filter({ hasText: 'leads' })
+    const narrow = page.getByRole('button', { name: 'Narrow', exact: true })
+    const detachMove = page.getByRole('button', { name: 'Detach Move' })
+    await pieces.nth(3).click()
+    await pieces.nth(3).click()
+    await pieces.first().click()
+    await expect(leading).toHaveCount(1)
+    await narrow.click()
+    await expect(narrow).toHaveAttribute('aria-pressed', 'true')
+    await expect(leading).toHaveCount(1)
+    await detachMove.click()
+    await expect(detachMove).toHaveAttribute('aria-pressed', 'true')
+    await expect(narrow).toHaveAttribute('aria-pressed', 'true')
+    await expect(leading).toHaveCount(1)
+})
+
+test('the pieces that made the threat are still named after the page is reloaded', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    const press = page.getByRole('button', { name: 'Press the attack' })
+    await expect(press).toBeVisible()
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Austerlitz' }).click()
+    await press.click()
+    await expect(
+        page.getByText('the pieces that made the threat are named to start with')
+    ).toBeVisible()
+    await expect(
+        page.locator('button[aria-label="Choose this unit"][aria-pressed="true"]:not([disabled])')
+    ).toHaveCount(4)
+    await expect(page.getByRole('button', { name: 'Corps Move' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
 })

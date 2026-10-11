@@ -5,6 +5,7 @@ import {
 } from '@tabletop/common'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { attackStep } from '../model/attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export interface AllowedAction {
@@ -16,7 +17,7 @@ export function playMachineState(state: HydratedNapoleonsTriumphGameState): Mach
     if (state.victory !== undefined) {
         return MachineState.EndOfGame
     }
-    return state.attack?.step ?? MachineState.Commanding
+    return state.attack ? attackStep(state.attack) : MachineState.Commanding
 }
 
 export abstract class StepStateHandler implements MachineStateHandler<
@@ -29,9 +30,13 @@ export abstract class StepStateHandler implements MachineStateHandler<
 
     isValidAction(
         action: HydratedAction,
-        _context: MachineContext<HydratedNapoleonsTriumphGameState>
+        context: MachineContext<HydratedNapoleonsTriumphGameState>
     ): boolean {
-        return this.actions.some((candidate) => candidate.type === action.type)
+        const { playerId } = action
+        return (
+            playerId !== undefined &&
+            this.validActionsForPlayer(playerId, context).some((type) => type === action.type)
+        )
     }
 
     validActionsForPlayer(

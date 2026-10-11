@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Visibility } from '@tabletop/common'
 import { Face } from '../components/pieces.js'
-import { MachineState } from '../definition/states.js'
+import type { MachineState } from '../definition/states.js'
 
 export enum CommandKind {
     Corps = 'Corps',
@@ -19,10 +19,7 @@ export const MoveOrder = Type.Object({
     continues: Type.Optional(Type.Literal(true))
 })
 
-/**
- * A cavalry road move that took a locale the defender gave up without a fight and may still go on:
- * ride further, or threaten again across an approach its road crosses (rule 11).
- */
+/** Rule 11: cavalry that took a locale by road without a fight may still go on with its move. */
 export type RoadMarch = Type.Static<typeof RoadMarch>
 export const RoadMarch = Type.Object({
     kind: Type.Enum(CommandKind),
@@ -30,7 +27,9 @@ export const RoadMarch = Type.Object({
     unitIds: Type.Array(Type.String(), { minItems: 1 }),
     start: Type.Optional(Type.Integer()),
     entryId: Type.Optional(Type.String()),
-    path: Type.Array(Type.Integer(), { minItems: 1 })
+    path: Type.Array(Type.Integer(), { minItems: 1 }),
+    /** Rule 10 and its rulings: a stopped move enters no further locale and threatens nothing, but may still end blocking an approach its road crosses. */
+    stopped: Type.Optional(Type.Literal(true))
 })
 
 export enum DecisionKind {
@@ -77,6 +76,20 @@ export const PendingDecision = Type.Union([
     AdvanceDecision
 ])
 
+/** Rule 11, step 1: the command behind a threat is not announced. */
+export type ThreatOrder = Type.Static<typeof ThreatOrder>
+export const ThreatOrder = Type.Object({
+    kind: Type.Enum(CommandKind),
+    unitIds: Type.Array(Type.String(), { minItems: 1 })
+})
+
+/** Rule 11, step 5: the declaration is free to differ from what the attacker had in mind. */
+export type AttackPlan = Type.Static<typeof AttackPlan>
+export const AttackPlan = Type.Object({
+    playerId: Type.String(),
+    order: Visibility.protect(ThreatOrder, { policy: Visibility.Policy.Owner })
+})
+
 export type DefensePlan = Type.Static<typeof DefensePlan>
 export const DefensePlan = Type.Object({
     playerId: Type.String(),
@@ -85,17 +98,14 @@ export const DefensePlan = Type.Object({
     })
 })
 
-/** The machine states an attack passes through (rule 11); the attack records which it is in. */
-export type AttackStep = Type.Static<typeof AttackStep>
-export const AttackStep = Type.Union([
-    Type.Literal(MachineState.DefenseResponse),
-    Type.Literal(MachineState.FeintDecision),
-    Type.Literal(MachineState.AttackDeclaration),
-    Type.Literal(MachineState.CounterAttackDecision),
-    Type.Literal(MachineState.ResolvingAttack),
-    Type.Literal(MachineState.Retreating),
-    Type.Literal(MachineState.Occupying)
-])
+export type AttackStep =
+    | MachineState.DefenseResponse
+    | MachineState.FeintDecision
+    | MachineState.AttackDeclaration
+    | MachineState.CounterAttackDecision
+    | MachineState.ResolvingAttack
+    | MachineState.Retreating
+    | MachineState.Occupying
 
 export type LossEntry = Type.Static<typeof LossEntry>
 export const LossEntry = Type.Object({
@@ -107,12 +117,12 @@ export const LossEntry = Type.Object({
 
 export type Attack = Type.Static<typeof Attack>
 export const Attack = Type.Object({
-    step: AttackStep,
     attackerId: Type.String(),
     defenderId: Type.String(),
     attackApproach: Type.Integer(),
     defenseApproach: Type.Integer(),
     guardAttack: Type.Optional(Type.Literal(true)),
+    attackPlan: Type.Optional(AttackPlan),
     defendingUnitIds: Type.Array(Type.String()),
     defendingCommanderIds: Type.Array(Type.String()),
     defendersBlocking: Type.Optional(Type.Boolean()),
@@ -123,7 +133,7 @@ export const Attack = Type.Object({
     attackingCommanderIds: Type.Array(Type.String()),
     wide: Type.Optional(Type.Boolean()),
     attackLeaderIds: Type.Array(Type.String()),
-    counterAttackerIds: Type.Array(Type.String()),
+    counterAttackingUnitIds: Type.Array(Type.String()),
     initialResult: Type.Optional(Type.Integer()),
     finalResult: Type.Optional(Type.Integer()),
     attackerWon: Type.Optional(Type.Boolean()),

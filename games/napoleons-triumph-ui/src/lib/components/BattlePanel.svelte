@@ -1,9 +1,15 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { UnitType, type AttackStep, type ProjectedUnit } from '@tabletop/napoleons-triumph'
-    import { MachineState } from '@tabletop/napoleons-triumph'
-    import { StageKind, committedRoles } from '$lib/model/battleStage.js'
+    import {
+        MachineState,
+        UnitType,
+        attackStep,
+        type AttackStep,
+        type ProjectedUnit
+    } from '@tabletop/napoleons-triumph'
+    import { StageKind } from '$lib/model/battleSelection.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { signed } from '$lib/utils/signed.js'
     import CounterStep from './battle/CounterStep.svelte'
     import DecisionStep from './battle/DecisionStep.svelte'
     import DeclareStep from './battle/DeclareStep.svelte'
@@ -50,16 +56,12 @@
     function living(ids: string[]): ProjectedUnit[] {
         return ids.flatMap((id) => game.findUnit(id) ?? [])
     }
-
-    function signed(value: number): string {
-        return value > 0 ? `+${value}` : String(value)
-    }
 </script>
 
 {#if attack}
     {@const attackers = living(attack.attackingUnitIds)}
     {@const defenders = living(attack.defendingUnitIds)}
-    {@const roles = committedRoles(attack)}
+    {@const roles = gameSession.battleRoles}
     <div class="nt-battle">
         <div class="nt-battle-title">
             {attack.guardAttack ? 'Guard Attack' : 'Attack'} from
@@ -72,7 +74,7 @@
                 {#if attackers.length > 0}
                     <div>
                         <div class="nt-battle-faint">Attacking</div>
-                        <Force units={attackers} markers={roles} />
+                        <Force units={attackers} {roles} />
                     </div>
                 {/if}
                 {#if defenders.length > 0}
@@ -82,7 +84,7 @@
                                 ? ' from reserve'
                                 : ' on the approach'}
                         </div>
-                        <Force units={defenders} markers={roles} />
+                        <Force units={defenders} {roles} />
                     </div>
                 {/if}
                 {#if attack.initialResult !== undefined}
@@ -97,7 +99,7 @@
         {#if !stage}
             <div class="nt-battle-prompt">
                 Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
-                {WAITING[attack.step]}.
+                {WAITING[attackStep(attack)]}.
             </div>
         {:else if stage.kind === StageKind.Defence}
             <DefenseStep {stage} />
@@ -122,24 +124,17 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
-        margin: 0 12px 8px;
-        padding: 6px 10px 8px;
-        border: 1px solid #2b2620;
-        border-radius: 4px;
-        color: #2b2620;
         font-size: 14px;
     }
 
     @media (max-width: 639px) {
         .nt-battle {
-            margin: 0 4px 6px;
-            padding: 4px 6px 6px;
             font-size: 12px;
         }
     }
 
     .nt-battle-title {
-        font-size: 15px;
+        font-size: 17px;
         font-style: italic;
     }
 
@@ -166,7 +161,7 @@
     }
 
     .nt-battle :global(.nt-battle-warning) {
-        color: #7a1418;
+        color: var(--nt-warn);
     }
 
     .nt-battle :global(.nt-battle-small) {
@@ -175,11 +170,11 @@
     }
 
     .nt-battle :global(.nt-chosen) {
-        background: #2b2620;
-        color: #f1ecdc;
+        background: var(--nt-ink);
+        color: var(--nt-ground);
     }
 
-    .nt-battle :global(button[disabled]) {
+    .nt-battle :global(.nt-plain-button[disabled]) {
         opacity: 0.4;
     }
 </style>

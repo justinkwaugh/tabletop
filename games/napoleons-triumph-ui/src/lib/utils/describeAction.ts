@@ -24,13 +24,16 @@ import {
     isThreatenAttack,
     type BattleMap,
     type CombatMetadata,
+    type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type Position
 } from '@tabletop/napoleons-triumph'
+import { signed } from './signed.js'
 
-export interface ActionDescriptionContext {
-    map: BattleMap
-    sideOf: (playerId: string | undefined) => Side | undefined
+type DescribedGame = Pick<HydratedNapoleonsTriumphGameState, 'map' | 'findPlayerState'>
+
+function sideOf(game: DescribedGame, playerId: string | undefined): Side | undefined {
+    return playerId === undefined ? undefined : game.findPlayerState(playerId)?.side
 }
 
 const ARMY: Record<Side, string> = {
@@ -50,21 +53,26 @@ function count(units: number): string {
     return units === 1 ? 'a unit' : `${units} units`
 }
 
-function force(order: MoveOrder): string {
+const UNIT_OF: Record<Side, string> = {
+    [Side.French]: 'a French unit',
+    [Side.Allied]: 'an Allied unit'
+}
+
+function force(order: MoveOrder, armyToName?: Side): string {
     if (order.kind === CommandKind.Corps && order.commanderId) {
         return `${commanderDefinition(order.commanderId).name}’s corps`
     }
     if (order.kind === CommandKind.Detach && order.commanderId) {
         return `${count(order.unitIds.length)} detached by ${commanderDefinition(order.commanderId).name}`
     }
-    return 'a unit'
+    return armyToName ? UNIT_OF[armyToName] : 'a unit'
 }
 
-function signed(value: number): string {
-    return value > 0 ? `+${value}` : String(value)
+function sentence(text: string): string {
+    return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function combat(metadata: CombatMetadata | undefined, context: ActionDescriptionContext): string {
+function combat(metadata: CombatMetadata | undefined, game: DescribedGame): string {
     if (!metadata) {
         return ''
     }
@@ -81,21 +89,21 @@ function combat(metadata: CombatMetadata | undefined, context: ActionDescription
             `${steps} step${steps === 1 ? '' : 's'} lost${destroyed > 0 ? `, ${count(destroyed)} destroyed` : ''}.`
         )
     }
-    const loser = context.sideOf(metadata.loserId)
+    const loser = sideOf(game, metadata.loserId)
     if (loser && metadata.moraleLost) {
         parts.push(`${ARMY[loser]} lose ${metadata.moraleLost} morale.`)
     }
-    const broken = context.sideOf(metadata.demoralizedId)
+    const broken = sideOf(game, metadata.demoralizedId)
     if (broken) {
         parts.push(`${ARMY[broken]} are demoralized.`)
     }
     return parts.join(' ')
 }
 
-export function describeAction(action: GameAction, context: ActionDescriptionContext): string {
-    const side = context.sideOf(action.playerId)
+export function describeAction(action: GameAction, game: DescribedGame): string {
+    const side = sideOf(game, action.playerId)
     const army = side ? ARMY[side] : 'A player'
-    const { map } = context
+    const { map } = game
     if (Visibility.isRedactedAction(action) || isDeployArmy(action)) {
         return `${army} deploy their army.`
     }
@@ -110,16 +118,19 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
     }
     if (isMove(action)) {
         const from = action.metadata?.from
-        const arrives = from ? '' : ' onto the field'
-        const way = action.order.road ? 'marches by road' : 'moves'
-        const origin = from ? ` from ${standing(map, from)}` : ''
+        const { order } = action
+        const journey = `${from ? ` from ${standing(map, from)}` : ' onto the field'} to ${standing(map, action.to)}`
         const gain = action.metadata?.frenchMoraleGain
         const morale = gain ? ` French morale rises by ${gain}.` : ''
         const shown = action.metadata?.revealed ? ' It is shown to be cavalry.' : ''
-        return `${army}: ${force(action.order)} ${way}${arrives}${origin} to ${standing(map, action.to)}.${shown}${morale}`
+        const movement =
+            order.kind === CommandKind.Detach && order.commanderId
+                ? `${commanderDefinition(order.commanderId).name} detaches ${count(order.unitIds.length)}${journey}`
+                : `${force(order, side)} ${order.road ? 'marches by road' : 'moves'}${journey}`
+        return `${sentence(movement)}.${shown}${morale}`
     }
     if (isAttach(action)) {
-        return `${army}: ${commanderDefinition(action.commanderId).name} takes a unit into the corps.`
+        return `${commanderDefinition(action.commanderId).name} takes a unit into the corps.`
     }
     if (isThreatenAttack(action)) {
         const approach = map.approach(action.approach)
@@ -143,7 +154,8 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
     }
     if (isDeclareFeint(action)) {
         const stance = action.end === FeintEnd.Approach ? 'on the approach' : 'in reserve'
-        return `${army}: the attack by ${action.orders.map(force).join(' and ')} is a feint, ending ${stance}.`
+        const feinting = action.orders.map((order) => force(order, side)).join(' and ')
+        return `The attack by ${feinting} is a feint, ending ${stance}.`
     }
     if (isDeclareAttack(action)) {
         const led =
@@ -153,17 +165,18 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
         const width = action.wide ? 'a wide' : 'a narrow'
         const initial = action.metadata?.initialResult
         const result = initial === undefined ? '' : ` Initial result ${signed(initial)}.`
-        return `${army} make ${width} attack with ${action.orders.map(force).join(' and ')}, ${led}.${result} ${combat(action.metadata, context)}`.trim()
+        const attacking = action.orders.map((order) => force(order)).join(' and ')
+        return `${army} make ${width} attack with ${attacking}, ${led}.${result} ${combat(action.metadata, game)}`.trim()
     }
     if (isCounterAttack(action)) {
         const opening =
             action.unitIds.length === 0
                 ? `${army} do not counter-attack.`
                 : `${army} counter-attack with ${count(action.unitIds.length)}.`
-        return `${opening} ${combat(action.metadata, context)}`.trim()
+        return `${opening} ${combat(action.metadata, game)}`.trim()
     }
     if (isAssignLosses(action)) {
-        return `${army} assign losses. ${combat(action.metadata, context)}`.trim()
+        return `${army} assign losses. ${combat(action.metadata, game)}`.trim()
     }
     if (isRegroup(action)) {
         return `${army} regroup after the repulse.`
@@ -174,7 +187,7 @@ export function describeAction(action: GameAction, context: ActionDescriptionCon
     if (isOccupy(action)) {
         return action.artilleryStays
             ? `${army} show their guns and hold them in place.`
-            : `${army} move into the abandoned locale with ${action.orders.map(force).join(' and ')}.`
+            : `${army} move into the abandoned locale with ${action.orders.map((order) => force(order)).join(' and ')}.`
     }
     if (isEndTurn(action)) {
         return `${army} end their turn.`

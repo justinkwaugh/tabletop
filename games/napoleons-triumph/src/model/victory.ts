@@ -6,6 +6,7 @@ import { faceOf } from './pieces.js'
 
 export const ALLIED_OBJECTIVES = [Star.Green, Star.Red, Star.Black]
 
+/** Rule 16: "Units are turned face-up after the game for verification purposes." */
 export function declareVictory(
     state: HydratedNapoleonsTriumphGameState,
     winnerId: string,
@@ -14,6 +15,7 @@ export function declareVictory(
     state.victory = kind
     state.winningPlayerIds = [winnerId]
     state.result = GameResult.Win
+    state.revealAll(state.units)
 }
 
 /** An army holds an objective with a corps that has infantry or artillery and a road back to a main-road entry (rule 16). */

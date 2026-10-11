@@ -1,8 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, assert } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { legal } from '../model/legality.js'
 
 export type EndTurn = Type.Static<typeof EndTurn>
 export const EndTurn = Type.Evaluate(
@@ -21,7 +23,7 @@ export function isEndTurn(action?: GameAction): action is EndTurn {
     return action?.type === ActionType.EndTurn
 }
 
-export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements EndTurn {
+export class HydratedEndTurn extends NapoleonsTriumphAction<typeof EndTurn> implements EndTurn {
     declare type: ActionType.EndTurn
     declare playerId: string
 
@@ -29,8 +31,8 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         super(data, EndTurnValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
-        assert(state.attack === undefined, 'An attack is still being resolved')
-        assert(state.turnPlayerId === this.playerId, 'It is not that player’s turn')
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        legal(state.attack === undefined, 'An attack is still being resolved')
+        legal(state.turnPlayerId === this.playerId, 'It is not that player’s turn')
     }
 }

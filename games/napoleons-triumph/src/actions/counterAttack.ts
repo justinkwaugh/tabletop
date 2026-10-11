@@ -1,8 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { counterAttack } from '../model/attackResolution.js'
+import { currentAttack } from '../model/attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
 
@@ -26,7 +28,7 @@ export function isCounterAttack(action?: GameAction): action is CounterAttack {
 }
 
 export class HydratedCounterAttack
-    extends HydratableAction<typeof CounterAttack>
+    extends NapoleonsTriumphAction<typeof CounterAttack>
     implements CounterAttack
 {
     declare type: ActionType.CounterAttack
@@ -38,8 +40,8 @@ export class HydratedCounterAttack
         super(data, CounterAttackValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
-        const initialResult = state.attack?.initialResult
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
+        const { initialResult } = currentAttack(state)
         this.metadata = combatMetadata(counterAttack(state, this.unitIds), initialResult)
     }
 }

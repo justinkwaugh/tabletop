@@ -45,7 +45,8 @@ export function frenchArrivalRound(scenario: Scenario, commanderId: string): num
     const index = ROUNDS[scenario].findIndex(
         (round) => !round.night && round.day === arrival.day && round.hour === arrival.hour
     )
-    return Math.max(index, 0)
+    // A corps due before the scenario begins is there from its first round.
+    return index < 0 ? 0 : index
 }
 
 export function roundLabel(definition: RoundDefinition, withDay = false): string {

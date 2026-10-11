@@ -1,10 +1,10 @@
-import { assert } from '@tabletop/common'
-import type { LocaleId } from '../components/battleMap.js'
+import { unitsAbreast, type LocaleId } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
 import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
 import type { LossEntry } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, type ProjectedUnit } from './pieces.js'
+import { legal } from './legality.js'
 
 /** A group of retreating units that must give up steps between them (rule 12). */
 export interface RetreatLossGroup {
@@ -50,7 +50,7 @@ export function retreatLossGroups(state: HydratedNapoleonsTriumphGameState): Ret
         if (blockers.length > 0) {
             groups.push({
                 unitIds: blockers.map((unit) => unit.id),
-                steps: Math.min(approach.wide ? 2 : 1, strength(blockers))
+                steps: Math.min(unitsAbreast(approach.wide), strength(blockers))
             })
         }
     }
@@ -65,7 +65,7 @@ export function retreatLossGroups(state: HydratedNapoleonsTriumphGameState): Ret
         const wide = state.map.approach(attack.defenseApproach).wide
         groups.push({
             unitIds: idleInfantry.map((unit) => unit.id),
-            steps: Math.min(wide ? 2 : 1, strength(idleInfantry))
+            steps: Math.min(unitsAbreast(wide), strength(idleInfantry))
         })
     }
     return groups
@@ -93,23 +93,23 @@ function validateLosses(
 ) {
     const assigned = Object.entries(losses).filter(([, steps]) => steps > 0)
     for (const [unitId, steps] of assigned) {
-        assert(Number.isInteger(steps), 'Losses are whole steps')
-        assert(
+        legal(Number.isInteger(steps), 'Losses are whole steps')
+        legal(
             groups.some((group) => group.unitIds.includes(unitId)),
             `Unit ${unitId} owes no retreat loss`
         )
-        assert(
+        legal(
             steps <= faceOf(state.unit(unitId)).strength,
             'A unit cannot lose more steps than it has'
         )
     }
     for (const group of groups) {
         const total = group.unitIds.reduce((sum, id) => sum + (losses[id] ?? 0), 0)
-        assert(total === group.steps, `Those units must lose ${group.steps} steps between them`)
+        legal(total === group.steps, `Those units must lose ${group.steps} steps between them`)
     }
 }
 
-/** Rule 12. The plan is the retreating player's choices; everything else follows from the rules. */
+/** Rule 12. */
 export function executeRetreat(
     state: HydratedNapoleonsTriumphGameState,
     plan: RetreatPlan
@@ -141,18 +141,18 @@ export function executeRetreat(
         if (destination === undefined) {
             continue
         }
-        assert(room.has(destination), `Unit ${unit.id} cannot retreat to locale ${destination}`)
+        legal(room.has(destination), `Unit ${unit.id} cannot retreat to locale ${destination}`)
         arrivals.set(destination, (arrivals.get(destination) ?? 0) + 1)
     }
     for (const [locale, count] of arrivals) {
-        assert(count <= (room.get(locale) ?? 0), `Locale ${locale} cannot hold that many units`)
+        legal(count <= (room.get(locale) ?? 0), `Locale ${locale} cannot hold that many units`)
     }
     const stranded = survivors.filter((unit) => plan.destinations[unit.id] === undefined)
     const spare = [...room].reduce(
         (sum, [locale, free]) => sum + free - (arrivals.get(locale) ?? 0),
         0
     )
-    assert(
+    legal(
         stranded.length === 0 || spare === 0,
         'Units are lost only when no locale has room for them'
     )
@@ -167,12 +167,8 @@ export function executeRetreat(
         }
         const keptId = corps.length === 1 ? corps[0].id : plan.kept[commanderId]
         const kept = corps.find((unit) => unit.id === keptId)
-        assert(kept !== undefined, `Name the unit that stays with ${commanderId}`)
-        for (const unit of corps) {
-            if (unit !== kept) {
-                state.detach(unit)
-            }
-        }
+        legal(kept !== undefined, `Name the unit that stays with ${commanderId}`)
+        state.detachAllBut(kept, corps)
         state.place([state.commander(commanderId)], { locale: plan.destinations[kept.id] })
     }
     for (const unit of stranded) {
@@ -189,11 +185,11 @@ export function executeRetreat(
         }
     }
     const stepsLost = records.reduce((sum, record) => sum + record.steps, 0)
-    const demoralized = state.loseMorale(attack.defenderId, stepsLost)
+    state.loseMorale(attack.defenderId, stepsLost)
     return {
         losses: records,
         stepsLost,
         eliminatedForRoom: stranded.map((unit) => unit.id),
-        demoralized
+        demoralized: state.isDemoralized(attack.defenderId)
     }
 }

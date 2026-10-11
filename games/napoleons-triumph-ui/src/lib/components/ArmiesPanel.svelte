@@ -1,15 +1,18 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import {
-        ALLIED_CORPS_COMMAND_LIMIT,
-        INDEPENDENT_COMMANDS,
         Side,
         commanderDefinition,
         commandersOf,
         type ProjectedUnit
     } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import UnitTile from './UnitTile.svelte'
+    import type { ArmyColors } from '$lib/utils/armyColors.js'
+    import { commandsUsed } from '$lib/utils/commandsLeft.js'
+    import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
+    import Block from './board/Block.svelte'
+
+    let { onlocate }: { onlocate: (locale: number) => void } = $props()
 
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
@@ -27,18 +30,34 @@
         return units.length === 1 ? '1 unit' : `${units.length} units`
     }
 
-    function whereabouts(commanderId: string): string {
+    function whereabouts(commanderId: string): { place: string; locale?: number } {
         const commander = game.commander(commanderId)
         if (commander.eliminated) {
-            return 'destroyed'
+            return { place: 'destroyed' }
         }
         if (!commander.position) {
-            return 'off the map'
+            return { place: 'off the map' }
         }
-        const place = game.map.label(commander.position.locale)
-        return commander.position.approach === undefined ? place : `${place}, on an approach`
+        const { locale, approach } = commander.position
+        const name = game.map.label(locale)
+        return { place: approach === undefined ? name : `${name}, on an approach`, locale }
     }
 </script>
+
+{#snippet unitBlocks(units: ProjectedUnit[], colors: ArmyColors)}
+    <div class="nt-corps-units">
+        {#each units as unit (unit.id)}
+            <svg
+                viewBox="{-BLOCK_LENGTH / 2} {-BLOCK_THICKNESS /
+                    2} {BLOCK_LENGTH} {BLOCK_THICKNESS}"
+                role="img"
+                aria-label="Unit"
+            >
+                <Block x={0} y={0} angle={0} {colors} face={gameSession.visibleFace(unit)} />
+            </svg>
+        {/each}
+    </div>
+{/snippet}
 
 <div class="nt-armies">
     {#each armies as { player, side } (player.playerId)}
@@ -50,24 +69,22 @@
             <header style="background: {colors.block}; color: {colors.ink};">
                 <div class="nt-army-name">{ARMY_NAMES[side]}</div>
                 <div class="nt-army-player"><PlayerName playerId={player.playerId} /></div>
-                <div class="nt-army-morale" aria-label="Morale">
-                    <span class="nt-army-morale-value">{player.morale}</span>
+                <div class="nt-army-morale">
+                    <span class="nt-army-morale-value" aria-label="{side} morale {player.morale}"
+                        >{player.morale}</span
+                    >
                     <span>morale</span>
                 </div>
             </header>
             <div class="nt-army-body">
                 {#if game.turnManager.currentTurn()?.playerId === player.playerId}
                     <div class="nt-army-note">
-                        Commands used this turn: {player.independentCommandsUsed} of {INDEPENDENT_COMMANDS[
-                            side
-                        ]}
-                        independent{side === Side.Allied
-                            ? `, ${player.corpsCommandsUsed} of ${ALLIED_CORPS_COMMAND_LIMIT} corps`
-                            : ''}
+                        {commandsUsed(game, player.playerId)}
                     </div>
                 {/if}
                 {#each commandersOf(side) as definition (definition.id)}
                     {@const units = game.corpsUnits(definition.id)}
+                    {@const where = whereabouts(definition.id)}
                     <div
                         class="nt-corps"
                         class:nt-corps-gone={game.commander(definition.id).eliminated}
@@ -76,19 +93,28 @@
                             <span class="nt-corps-name"
                                 >{commanderDefinition(definition.id).name}</span
                             >
-                            <span class="nt-corps-where">{whereabouts(definition.id)}</span>
+                            {#if where.locale !== undefined}
+                                {@const locale = where.locale}
+                                <button
+                                    type="button"
+                                    class="nt-corps-where nt-corps-locate"
+                                    aria-label="Show {definition.name} on the map"
+                                    onclick={() => onlocate(locale)}
+                                >
+                                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                                        <circle cx="8" cy="8" r="4.2"></circle>
+                                        <path
+                                            d="M8 0.8 V4.6 M8 11.4 V15.2 M0.8 8 H4.6 M11.4 8 H15.2"
+                                        ></path>
+                                    </svg>
+                                    {where.place}
+                                </button>
+                            {:else}
+                                <span class="nt-corps-where">{where.place}</span>
+                            {/if}
                         </div>
                         {#if units.some((unit) => gameSession.visibleFace(unit))}
-                            <div class="nt-corps-units">
-                                {#each units as unit (unit.id)}
-                                    <UnitTile
-                                        playerId={unit.playerId}
-                                        face={gameSession.visibleFace(unit)}
-                                        label="Unit"
-                                        compact
-                                    />
-                                {/each}
-                            </div>
+                            {@render unitBlocks(units, colors)}
                         {:else if units.length > 0}
                             <div class="nt-corps-where">{strength(units)}</div>
                         {/if}
@@ -101,16 +127,7 @@
                             <span class="nt-corps-where">{strength(detached)}</span>
                         </div>
                         {#if detached.some((unit) => gameSession.visibleFace(unit))}
-                            <div class="nt-corps-units">
-                                {#each detached as unit (unit.id)}
-                                    <UnitTile
-                                        playerId={unit.playerId}
-                                        face={gameSession.visibleFace(unit)}
-                                        label="Unit"
-                                        compact
-                                    />
-                                {/each}
-                            </div>
+                            {@render unitBlocks(detached, colors)}
                         {/if}
                     </div>
                 {/if}
@@ -200,10 +217,40 @@
         text-align: right;
     }
 
+    .nt-corps-locate {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .nt-corps-locate:hover {
+        opacity: 1;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .nt-corps-locate svg {
+        flex: none;
+        width: 11px;
+        height: 11px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+    }
+
     .nt-corps-units {
-        display: flex;
-        flex-wrap: wrap;
-        padding-top: 1px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3px 4px;
+        padding-top: 4px;
+    }
+
+    .nt-corps-units svg {
+        display: block;
+        width: 100%;
+        height: auto;
     }
 
     .nt-corps-gone {

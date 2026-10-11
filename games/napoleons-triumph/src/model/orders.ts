@@ -1,4 +1,3 @@
-import { assert } from '@tabletop/common'
 import {
     ALLIED_CORPS_COMMAND_LIMIT,
     INDEPENDENT_COMMANDS,
@@ -9,9 +8,11 @@ import { frenchArrivalRound } from '../components/timeTrack.js'
 import { CommandKind, type MoveOrder, type RoadMarch } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import type { Commander, Position, ProjectedUnit } from './pieces.js'
+import { legal } from './legality.js'
 
 export interface ResolvedOrder {
     order: MoveOrder
+    playerId: string
     commander?: Commander
     units: ProjectedUnit[]
     leftBehind: ProjectedUnit[]
@@ -77,6 +78,45 @@ export function independentCommandsLeft(
     return INDEPENDENT_COMMANDS[state.sideOf(playerId)] - player.independentCommandsUsed
 }
 
+export function hasUsableCommand(
+    state: HydratedNapoleonsTriumphGameState,
+    unit: ProjectedUnit
+): boolean {
+    if (!canBeCommanded(state, unit)) {
+        return false
+    }
+    const commander = unit.commanderId === undefined ? undefined : state.commander(unit.commanderId)
+    const leavesOthers = commander === undefined || state.corpsUnits(commander.id).length > 1
+    const byCommander =
+        commander !== undefined &&
+        commanderCanCommand(state, commander) &&
+        (!unit.fixed || leavesOthers)
+    const independently = independentCommandsLeft(state, unit.playerId) > 0 && leavesOthers
+    return byCommander || independently
+}
+
+/** Rule 10: a reinforcement left behind when its corps came on may follow by a Unit Move. */
+function mayComeOn(state: HydratedNapoleonsTriumphGameState, unit: ProjectedUnit): boolean {
+    return unit.commanderId === undefined || mayEnter(state, unit.commanderId)
+}
+
+export function canCommandAMove(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string
+): boolean {
+    return (
+        state.roadMarch !== undefined ||
+        state
+            .unitsOf(playerId)
+            .some(
+                (unit) =>
+                    canStillMove(state, unit) &&
+                    hasUsableCommand(state, unit) &&
+                    (unit.position !== undefined || mayComeOn(state, unit))
+            )
+    )
+}
+
 export function mayEnter(state: HydratedNapoleonsTriumphGameState, commanderId: string): boolean {
     const definition = commanderDefinition(commanderId)
     return (
@@ -87,11 +127,11 @@ export function mayEnter(state: HydratedNapoleonsTriumphGameState, commanderId: 
 
 /** Reinforcements come on only from the round the Time Track gives them (rule 10). */
 export function assertArrived(state: HydratedNapoleonsTriumphGameState, resolved: ResolvedOrder) {
-    assert(
+    legal(
         resolved.commander === undefined || mayEnter(state, resolved.commander.id),
         'That corps has not arrived yet'
     )
-    assert(
+    legal(
         resolved.units.every(
             (unit) => unit.commanderId === undefined || mayEnter(state, unit.commanderId)
         ),
@@ -104,59 +144,60 @@ export function resolveOrder(
     playerId: string,
     order: MoveOrder
 ): ResolvedOrder {
-    assert(new Set(order.unitIds).size === order.unitIds.length, 'An order names each unit once')
+    legal(new Set(order.unitIds).size === order.unitIds.length, 'An order names each unit once')
     const units = order.unitIds.map((id) => state.unit(id))
     for (const unit of units) {
-        assert(unit.playerId === playerId, `Unit ${unit.id} belongs to the other army`)
+        legal(unit.playerId === playerId, `Unit ${unit.id} belongs to the other army`)
     }
     if (order.continues) {
-        return resolveContinuation(state, order, units)
+        return resolveContinuation(state, playerId, order, units)
     }
     for (const unit of units) {
-        assert(canBeCommanded(state, unit), `Unit ${unit.id} cannot be moved again this turn`)
+        legal(canBeCommanded(state, unit), `Unit ${unit.id} cannot be moved again this turn`)
     }
     if (order.kind === CommandKind.Unit) {
-        assert(order.commanderId === undefined, 'A Unit Move is not given by a commander')
-        assert(units.length === 1, 'A Unit Move commands a single unit')
+        legal(order.commanderId === undefined, 'A Unit Move is not given by a commander')
+        legal(units.length === 1, 'A Unit Move commands a single unit')
         const [unit] = units
-        assert(independentCommandsLeft(state, playerId) > 0, 'No independent commands are left')
+        legal(independentCommandsLeft(state, playerId) > 0, 'No independent commands are left')
         if (unit.commanderId !== undefined) {
-            assert(
+            legal(
                 state.corpsUnits(unit.commanderId).length > 1,
                 'A commander cannot detach its last unit'
             )
         }
-        return { order, units, leftBehind: [], start: unit.position }
+        return { order, playerId, units, leftBehind: [], start: unit.position }
     }
-    assert(order.commanderId !== undefined, `A ${order.kind} command needs a commander`)
+    legal(order.commanderId !== undefined, `A ${order.kind} command needs a commander`)
     const commander = state.commander(order.commanderId)
-    assert(commander.playerId === playerId, 'That commander belongs to the other army')
-    assert(commanderCanCommand(state, commander), `${commander.id} cannot give another command`)
+    legal(commander.playerId === playerId, 'That commander belongs to the other army')
+    legal(commanderCanCommand(state, commander), `${commander.id} cannot give another command`)
     const corps = state.corpsUnits(commander.id)
-    assert(
+    legal(
         units.every((unit) => unit.commanderId === commander.id),
         `Every commanded unit must belong to the corps of ${commander.id}`
     )
     const leftBehind = corps.filter((unit) => !order.unitIds.includes(unit.id))
     if (order.kind === CommandKind.Detach) {
-        assert(leftBehind.length > 0, 'A commander cannot detach its last unit')
-        assert(order.road === undefined, 'Detached units cannot move by road')
-        return { order, commander, units, leftBehind: [], start: commander.position }
+        legal(leftBehind.length > 0, 'A commander cannot detach its last unit')
+        legal(order.road === undefined, 'Detached units cannot move by road')
+        return { order, playerId, commander, units, leftBehind: [], start: commander.position }
     }
-    assert(
+    legal(
         units.every((unit) => !unit.fixed),
         'The fixed battery cannot march with its corps'
     )
-    return { order, commander, units, leftBehind, start: commander.position }
+    return { order, playerId, commander, units, leftBehind, start: commander.position }
 }
 
 function resolveContinuation(
     state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
     order: MoveOrder,
     units: ProjectedUnit[]
 ): ResolvedOrder {
     const march = state.roadMarch
-    assert(
+    legal(
         march !== undefined &&
             march.kind === order.kind &&
             march.commanderId === order.commanderId &&
@@ -166,7 +207,7 @@ function resolveContinuation(
     )
     const commander =
         march.commanderId === undefined ? undefined : state.commander(march.commanderId)
-    return { order, commander, units, leftBehind: [], start: units[0].position, march }
+    return { order, playerId, commander, units, leftBehind: [], start: units[0].position, march }
 }
 
 export function movingCommander(resolved: ResolvedOrder): Commander | undefined {
@@ -178,7 +219,7 @@ export function expendOrder(state: HydratedNapoleonsTriumphGameState, resolved: 
     if (resolved.march) {
         return
     }
-    const player = state.getPlayerState(units[0].playerId)
+    const player = state.getPlayerState(resolved.playerId)
     if (order.kind === CommandKind.Unit) {
         player.independentCommandsUsed += 1
     } else if (commander) {

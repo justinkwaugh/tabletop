@@ -2,46 +2,54 @@
     import { AttackWidth } from '$lib/model/battleSelection.js'
     import type { DeclarationStage } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { signed } from '$lib/utils/signed.js'
+    import SlidingSwitch from '$lib/components/SlidingSwitch.svelte'
     import AttackerPicker from './AttackerPicker.svelte'
+    import Force from './Force.svelte'
 
     let { stage }: { stage: DeclarationStage } = $props()
 
     const gameSession = getGameSession()
 
     const WIDTHS = [
-        { width: AttackWidth.Wide, name: 'Wide attack' },
-        { width: AttackWidth.Narrow, name: 'Narrow attack' }
+        { value: AttackWidth.Wide, name: 'Wide' },
+        { value: AttackWidth.Narrow, name: 'Narrow' }
     ]
 </script>
 
 <div class="nt-battle-prompt">
-    Tap units, here or on the map, to attack with them; tap again to lead.
+    Declare the attack{stage.startsFromThreat
+        ? ': the pieces that made the threat are named to start with'
+        : ''}. Tap a piece, here or on the map, to attack with it, again to lead, and once more to
+    leave it out.
 </div>
 <AttackerPicker {stage} />
-<div class="flex flex-wrap items-center gap-2 pt-1">
+{#if stage.approachWide}
+    <div class="nt-battle-faint pt-1">Attack width</div>
+{/if}
+<div class="flex flex-wrap items-center gap-2">
     {#if stage.approachWide}
-        {#each WIDTHS as option (option.width)}
-            {@const chosen = stage.wide === (option.width === AttackWidth.Wide)}
-            <button
-                type="button"
-                class="nt-plain-button nt-battle-small"
-                class:nt-chosen={chosen}
-                aria-pressed={chosen}
-                onclick={() => gameSession.chooseAttackWidth(option.width)}>{option.name}</button
-            >
-        {/each}
+        <SlidingSwitch
+            label="Attack width"
+            choices={WIDTHS}
+            chosen={stage.wide ? AttackWidth.Wide : AttackWidth.Narrow}
+            onchoose={(width) => gameSession.chooseAttackWidth(width)}
+        />
     {/if}
-    {#each stage.targetOptions as id, index (id)}
-        <button
-            type="button"
-            class="nt-plain-button nt-battle-small"
-            class:nt-chosen={stage.target === id}
-            aria-pressed={stage.target === id}
-            onclick={() => gameSession.chooseStruckLeader(id)}
-            >Strike the {index === 0 ? 'first' : 'second'} leading unit</button
-        >
-    {/each}
 </div>
+{#if stage.targetOptions.length > 0}
+    <div class="nt-battle-faint pt-1">
+        A narrow attack strikes one leading unit: tap it, here or on the map
+    </div>
+    <Force
+        units={stage.targetOptions.map((id) => gameSession.gameState.unit(id))}
+        selected={stage.target ? [stage.target] : []}
+        markers={Object.fromEntries(
+            stage.targetOptions.map((id) => [id, id === stage.target ? 'struck' : 'passed by'])
+        )}
+        onpick={(id) => gameSession.pickBattleUnit(id)}
+    />
+{/if}
 <div class="flex flex-wrap items-center gap-3 pt-1">
     <button
         type="button"
@@ -54,8 +62,6 @@
     {#if stage.problem}
         <span class="nt-battle-warning">{stage.problem}.</span>
     {:else if stage.initialResult !== undefined}
-        <span class="nt-battle-result"
-            >Initial result {stage.initialResult > 0 ? '+' : ''}{stage.initialResult}</span
-        >
+        <span class="nt-battle-result">Initial result {signed(stage.initialResult)}</span>
     {/if}
 </div>

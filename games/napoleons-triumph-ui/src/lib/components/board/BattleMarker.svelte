@@ -1,7 +1,13 @@
 <script lang="ts">
-    import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
-    import { StageKind } from '$lib/model/battleStage.js'
+    import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
+    import { StageKind } from '$lib/model/battleSelection.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import {
+        ATTACK_ARROW_PATH,
+        attackMarkerAngle,
+        attackMarkerScale
+    } from '$lib/utils/attackMarker.js'
+    import { retreatArrows } from '$lib/utils/retreatArrows.js'
 
     const gameSession = getGameSession()
 
@@ -11,27 +17,11 @@
     const retreats = $derived.by(() => {
         const stage = gameSession.battleStage
         const [, from] = gameSession.battleLocales
-        if (stage?.kind !== StageKind.Retreat || from === undefined) {
-            return []
-        }
-        const counts = new Map<number, number>()
-        for (const locale of Object.values(stage.plan.destinations)) {
-            counts.set(locale, (counts.get(locale) ?? 0) + 1)
-        }
-        const start = LOCALE_GEOMETRY[from].anchor
-        return [...counts].map(([locale, count]) => {
-            const end = LOCALE_GEOMETRY[locale].anchor
-            return {
-                locale,
-                count,
-                start,
-                end,
-                angle: (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI,
-                length: Math.hypot(end.x - start.x, end.y - start.y)
-            }
-        })
+        return stage?.kind === StageKind.Retreat && from !== undefined
+            ? retreatArrows(from, stage.plan.destinations)
+            : []
     })
-    const scale = $derived(Math.min(3.4, Math.max(1.2, 0.7 / gameSession.zoom)))
+    const scale = $derived(attackMarkerScale(gameSession.zoom))
 </script>
 
 {#if bar}
@@ -39,9 +29,9 @@
         transform="translate({bar.centre.x} {bar.centre.y}) scale({scale})"
         class="pointer-events-none"
     >
-        <g transform="rotate({(Math.atan2(-bar.inward.y, -bar.inward.x) * 180) / Math.PI})">
+        <g transform="rotate({attackMarkerAngle(bar)})">
             <path
-                d="M-24 -12 H2 V-24 L28 0 L2 24 V12 H-24 Z"
+                d={ATTACK_ARROW_PATH}
                 fill="#7a1418"
                 stroke="#f1ecdc"
                 stroke-width="2.5"
@@ -55,12 +45,7 @@
         transform="translate({retreat.start.x} {retreat.start.y}) rotate({retreat.angle})"
         class="pointer-events-none"
     >
-        <path
-            d="M{retreat.length * 0.3} -5 H{retreat.length * 0.8 - 18} V-13 L{retreat.length *
-                0.8} 0 L{retreat.length * 0.8 - 18} 13 V5 H{retreat.length * 0.3} Z"
-            fill="#2b2620"
-            opacity="0.8"
-        ></path>
+        <path d={retreat.path} fill="#2b2620" opacity="0.8"></path>
     </g>
     <g
         transform="translate({retreat.end.x} {retreat.end.y}) rotate({-gameSession.boardRotation})"
@@ -68,7 +53,7 @@
     >
         <circle r="17" fill="#f1ecdc" stroke="#2b2620" stroke-width="2"></circle>
         <text y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#2b2620"
-            >{retreat.count}</text
+            >{retreat.unitCount}</text
         >
     </g>
 {/each}

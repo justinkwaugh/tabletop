@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, Visibility } from '@tabletop/common'
+import { GameAction, Visibility } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { Deployment, deployArmy } from '../model/setup.js'
 
@@ -26,7 +27,10 @@ export function isDeployArmy(action?: GameAction): action is DeployArmy {
     return action?.type === ActionType.DeployArmy
 }
 
-export class HydratedDeployArmy extends HydratableAction<typeof DeployArmy> implements DeployArmy {
+export class HydratedDeployArmy
+    extends NapoleonsTriumphAction<typeof DeployArmy>
+    implements DeployArmy
+{
     declare type: ActionType.DeployArmy
     declare playerId: string
     declare deployment: Deployment
@@ -35,7 +39,7 @@ export class HydratedDeployArmy extends HydratableAction<typeof DeployArmy> impl
         super(data, DeployArmyValidator)
     }
 
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         deployArmy(state, this.playerId, this.deployment)
     }
 }

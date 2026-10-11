@@ -3,16 +3,17 @@ import { Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
+import { nextBidderId } from '../model/moraleAuction.js'
 import { StepStateHandler } from './stepStateHandler.js'
 
 export class BiddingStateHandler extends StepStateHandler {
     protected readonly actions = [{ type: ActionType.PlaceBid }, { type: ActionType.PassBid }]
 
     protected actor(state: HydratedNapoleonsTriumphGameState): string {
-        const highBidderId = state.auction?.highBidderId
-        const bidder = state.turnManager.turnOrder.find((playerId) => playerId !== highBidderId)
-        assertExists(bidder, 'The auction has no bidder')
-        return highBidderId === undefined ? state.turnManager.turnOrder[0] : bidder
+        assertExists(state.auction, 'There is no morale auction')
+        const bidderId = nextBidderId(state.auction)
+        assertExists(bidderId, 'The auction has no bidder')
+        return bidderId
     }
 
     override onAction(action: HydratedAction): MachineState {
@@ -24,9 +25,9 @@ export class ChoosingSideStateHandler extends StepStateHandler {
     protected readonly actions = [{ type: ActionType.ChooseSide }]
 
     protected actor(state: HydratedNapoleonsTriumphGameState): string {
-        const winner = state.auction?.highBidderId
-        assertExists(winner, 'The auction has no winner')
-        return winner
+        const winnerId = state.auction?.winnerId
+        assertExists(winnerId, 'The auction has no winner')
+        return winnerId
     }
 
     override onAction(): MachineState {

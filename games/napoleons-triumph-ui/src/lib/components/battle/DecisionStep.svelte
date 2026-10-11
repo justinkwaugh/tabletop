@@ -1,11 +1,11 @@
 <script lang="ts">
     import { commanderDefinition } from '@tabletop/napoleons-triumph'
-    import {
-        StageKind,
-        type AdvanceStage,
-        type ExcessLossStage,
-        type OddLossStage,
-        type RegroupStage
+    import { StageKind } from '$lib/model/battleSelection.js'
+    import type {
+        AdvanceStage,
+        ExcessLossStage,
+        OddLossStage,
+        RegroupStage
     } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Force from './Force.svelte'
@@ -51,7 +51,7 @@
     </div>
     {#each stage.corps as corps (corps.commanderId)}
         <div class="nt-battle-faint">{commanderDefinition(corps.commanderId).name}</div>
-        <Force units={corps.units} selected={[corps.keptId]} markers={stage.roles} onpick={pick} />
+        <Force units={corps.units} selected={[corps.keptId]} roles={stage.roles} onpick={pick} />
     {/each}
     <div class="pt-1">
         <button type="button" class="nt-plain-button" onclick={() => gameSession.regroup()}
@@ -60,10 +60,20 @@
     </div>
 {:else}
     <div class="nt-battle-prompt">
-        At least one defending unit steps up to block the approach. Units leaving their commander
-        behind are detached.
+        {#if stage.pickableIds.length === 0}
+            The defending unit steps up to block the approach. Its commander may go with it or stay
+            behind, in which case the unit is detached.
+        {:else}
+            At least one defending unit steps up to block the approach. Units leaving their
+            commander behind are detached.
+        {/if}
     </div>
-    <Force units={stage.units} selected={stage.advancing} markers={stage.roles} onpick={pick} />
+    <Force
+        units={stage.units}
+        selected={stage.advancing}
+        roles={stage.roles}
+        onpick={stage.pickableIds.length > 0 ? pick : undefined}
+    />
     <div class="flex flex-wrap items-center gap-2 pt-1">
         {#each stage.commanders as commander (commander.commanderId)}
             <button

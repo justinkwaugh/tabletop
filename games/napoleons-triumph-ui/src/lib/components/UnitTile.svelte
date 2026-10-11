@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { Face } from '@tabletop/napoleons-triumph'
+    import type { RoleMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/pieceLayout.js'
+    import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
     import Block from './board/Block.svelte'
 
     let {
@@ -10,6 +11,7 @@
         selected = false,
         dimmed = false,
         marker,
+        roleMark,
         label,
         compact = false,
         onclick
@@ -19,6 +21,7 @@
         selected?: boolean
         dimmed?: boolean
         marker?: string
+        roleMark?: RoleMark
         label: string
         compact?: boolean
         onclick?: () => void
@@ -44,7 +47,15 @@
         viewBox="{-BLOCK_LENGTH / 2 - PAD} {-BLOCK_THICKNESS / 2 - PAD} {BLOCK_LENGTH +
             PAD * 2} {BLOCK_THICKNESS + PAD * 2}"
     >
-        <Block x={0} y={0} angle={0} colors={gameSession.armyColors(playerId)} {face} {dimmed} />
+        <Block
+            x={0}
+            y={0}
+            angle={0}
+            colors={gameSession.armyColors(playerId)}
+            {face}
+            {dimmed}
+            {roleMark}
+        />
     </svg>
     {#if marker}
         <span class="nt-unit-tile-marker">{marker}</span>
@@ -68,17 +79,17 @@
     }
 
     .nt-unit-tile:not(:disabled):hover {
-        border-color: rgba(43, 38, 32, 0.35);
+        border-color: color-mix(in srgb, var(--nt-ink) 35%, transparent);
     }
 
     .nt-unit-tile-selected,
     .nt-unit-tile-selected:not(:disabled):hover {
-        border-color: #2b2620;
+        border-color: var(--nt-ink);
     }
 
     .nt-unit-tile-marker {
         font-size: 10px;
-        color: #2b2620;
+        color: var(--nt-ink);
         padding-top: 1px;
     }
 </style>

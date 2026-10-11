@@ -5,9 +5,11 @@ import {
     GameState,
     HydratableGameState,
     HydratedRoundManager,
+    HydratedSimpleAuction,
     HydratedTurnManager,
     PrngState,
     RoundManager,
+    SimpleAuction,
     Visibility,
     assert,
     assertExists,
@@ -58,12 +60,6 @@ export enum VictoryKind {
     Marginal = 'Marginal'
 }
 
-export type Auction = Type.Static<typeof Auction>
-export const Auction = Type.Object({
-    highBid: Type.Optional(Type.Integer({ minimum: 0 })),
-    highBidderId: Type.Optional(Type.String())
-})
-
 export type NapoleonsTriumphGameState = Type.Static<typeof NapoleonsTriumphGameState>
 export const NapoleonsTriumphGameState = Type.Object({
     ...Type.Omit(GameState, ['players', 'machineState']).properties,
@@ -79,7 +75,7 @@ export const NapoleonsTriumphGameState = Type.Object({
     limits: TurnLimits,
     attack: Type.Optional(Attack),
     roadMarch: Type.Optional(RoadMarch),
-    auction: Type.Optional(Auction),
+    auction: Type.Optional(SimpleAuction),
     victory: Type.Optional(Type.Enum(VictoryKind))
 })
 
@@ -122,13 +118,14 @@ export class HydratedNapoleonsTriumphGameState
     declare limits: TurnLimits
     declare attack?: NapoleonsTriumphProjectedState['attack']
     declare roadMarch?: RoadMarch
-    declare auction?: Auction
+    declare auction?: HydratedSimpleAuction
     declare victory?: VictoryKind
 
     constructor(data: NapoleonsTriumphProjectedState) {
         super(data, NapoleonsTriumphProjectedStateValidator)
         this.players = data.players.map((player) => new HydratedNapoleonsTriumphPlayerState(player))
         this.rounds = new HydratedRoundManager(data.rounds)
+        this.auction = data.auction ? new HydratedSimpleAuction(data.auction) : undefined
     }
 
     get map(): BattleMap {
@@ -251,6 +248,10 @@ export class HydratedNapoleonsTriumphGameState
         )
     }
 
+    unitsHiddenFrom(playerId: string): ProjectedUnit[] {
+        return this.units.filter((unit) => unit.playerId !== playerId && unit.shown === undefined)
+    }
+
     reveal(unit: ProjectedUnit) {
         unit.shown = { ...faceOf(unit) }
     }
@@ -268,26 +269,25 @@ export class HydratedNapoleonsTriumphGameState
         }
     }
 
-    /**
-     * The first use of heavy cavalry or of the Guard costs its army morale (rule 15). Returns the
-     * morale lost.
-     */
-    commit(unit: ProjectedUnit): number {
+    /** Rule 13: morale lost this way never falls below one, so it cannot break the army. */
+    private wearDown(player: HydratedNapoleonsTriumphPlayerState, points: number) {
+        const lost = Math.min(points, player.morale - 1)
+        player.morale -= lost
+        player.moraleLost += lost
+    }
+
+    /** Rule 15: the first use of heavy cavalry or of the Guard costs its army morale. */
+    commit(unit: ProjectedUnit) {
         const player = this.getPlayerState(unit.playerId)
         const face = faceOf(unit)
-        let penalty = 0
         if (isHeavyCavalry(face) && !player.heavyCavalryCommitted) {
             player.heavyCavalryCommitted = true
-            penalty += HEAVY_CAVALRY_COMMITMENT_PENALTY
+            this.wearDown(player, HEAVY_CAVALRY_COMMITMENT_PENALTY)
         }
         if (isGuard(face) && !player.guardCommitted) {
             player.guardCommitted = true
-            penalty += GUARD_COMMITMENT_PENALTY
+            this.wearDown(player, GUARD_COMMITMENT_PENALTY)
         }
-        const lost = Math.min(penalty, player.morale - 1)
-        player.morale -= lost
-        player.moraleLost += lost
-        return lost
     }
 
     takeLoss(unit: ProjectedUnit, steps: number): LossEntry {
@@ -314,29 +314,20 @@ export class HydratedNapoleonsTriumphGameState
         }
     }
 
-    /**
-     * Lowers an army's morale. A loss from an artillery-led attack cannot be the one that breaks
-     * it (rule 13). Returns whether the army is now demoralized.
-     */
-    loseMorale(playerId: string, points: number, fromArtillery = false): boolean {
+    /** Rule 13: a loss from an artillery-led attack cannot be the one that breaks an army. */
+    loseMorale(playerId: string, points: number, fromArtillery = false) {
         const player = this.getPlayerState(playerId)
-        if (points <= 0) {
-            return false
-        }
         if (player.morale - points >= 1 || fromArtillery) {
-            const lost = Math.min(points, player.morale - 1)
-            player.morale -= lost
-            player.moraleLost += lost
-            return false
+            this.wearDown(player, points)
+            return
         }
         player.moraleLost += player.morale
         player.morale = 0
-        return true
     }
 
-    failGuardAttack(playerId: string): boolean {
+    failGuardAttack(playerId: string) {
         this.getPlayerState(playerId).guardAttackForfeited = true
-        return this.loseMorale(playerId, FAILED_GUARD_ATTACK_PENALTY)
+        this.loseMorale(playerId, FAILED_GUARD_ATTACK_PENALTY)
     }
 
     isDemoralized(playerId: string): boolean {
@@ -345,6 +336,15 @@ export class HydratedNapoleonsTriumphGameState
 
     detach(unit: ProjectedUnit) {
         unit.commanderId = undefined
+    }
+
+    /** Rules 11 and 12: a corps beaten back or retreating keeps only one of the units that were in it. */
+    detachAllBut(kept: ProjectedUnit, corps: readonly ProjectedUnit[]) {
+        for (const unit of corps) {
+            if (unit !== kept) {
+                this.detach(unit)
+            }
+        }
     }
 
     place(pieces: readonly { position?: Position }[], position: Position) {

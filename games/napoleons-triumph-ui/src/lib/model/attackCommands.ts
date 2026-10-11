@@ -1,13 +1,12 @@
 import {
     CommandKind,
     UnitType,
-    commanderCanCommand,
     hasUsableCommand,
-    independentCommandsLeft,
     inReserve,
     isLegal,
     resolveAttackOrders,
     roadAttackOrder,
+    roadAttackOrders,
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type ProjectedUnit
@@ -46,29 +45,15 @@ export function attackerGroups(
     ].filter((group) => group.units.length > 0)
 }
 
-function inPlaceCommands(
-    state: HydratedNapoleonsTriumphGameState,
-    playerId: string,
-    picked: readonly ProjectedUnit[]
-): CommandKind[] {
-    const corpsIds = new Set(picked.map((unit) => unit.commanderId))
-    if (corpsIds.size !== 1) {
-        return picked.every((unit) => unit.commanderId !== undefined)
-            ? [CommandKind.Corps]
-            : [CommandKind.Unit]
-    }
-    const [commanderId] = corpsIds
-    const single = picked.length === 1 && independentCommandsLeft(state, playerId) > 0
-    if (commanderId === undefined) {
-        return single ? [CommandKind.Unit] : []
-    }
-    const corps = state.corpsUnits(commanderId)
-    const commanded = commanderCanCommand(state, state.commander(commanderId))
+function inPlaceCommands(picked: readonly ProjectedUnit[]): CommandKind[] {
+    const commanderIds = new Set(picked.map((unit) => unit.commanderId))
+    const allInCorps = !commanderIds.has(undefined)
     const gunsAlone = picked.every((unit) => unit.face?.type === UnitType.Artillery)
     const kinds = [
-        ...(commanded ? [CommandKind.Corps] : []),
-        ...(commanded && picked.length < corps.length ? [CommandKind.Detach] : []),
-        ...(single && corps.length > 1 ? [CommandKind.Unit] : [])
+        ...(allInCorps ? [CommandKind.Corps] : []),
+        ...(allInCorps && commanderIds.size === 1 ? [CommandKind.Detach] : []),
+        // Erratum to rule 11: two batteries may combine their Unit Moves.
+        ...(picked.length === 1 || (picked.length === 2 && gunsAlone) ? [CommandKind.Unit] : [])
     ]
     // Rule 11, step 5: a Corps Move attack cannot be led by artillery, so guns picked by themselves leave their corps first.
     return gunsAlone
@@ -109,10 +94,13 @@ export function attackCommand(
         return { options: [] }
     }
     if (riding || picked.some((unit) => unit.position?.locale !== attackLocale)) {
-        const order = roadAttackOrder(state, attack, picked)
-        return order
-            ? { options: [order.kind], chosen: order.kind, orders: [order] }
-            : { options: [] }
+        const byRoad = roadAttackOrders(state, attack, picked)
+        const order = byRoad.find((candidate) => candidate.kind === wanted) ?? byRoad.at(0)
+        return {
+            options: byRoad.map((candidate) => candidate.kind),
+            chosen: order?.kind,
+            orders: order ? [order] : undefined
+        }
     }
     const standsTogether = picked.every(
         (unit) =>
@@ -121,7 +109,7 @@ export function attackCommand(
             inReserve(unit.position) === inReserve(picked[0].position)
     )
     const options = standsTogether
-        ? inPlaceCommands(state, attack.attackerId, picked).filter((kind) =>
+        ? inPlaceCommands(picked).filter((kind) =>
               isLegal(() => resolveAttackOrders(state, attack, inPlaceOrders(picked, kind)))
           )
         : []
@@ -136,12 +124,14 @@ export function attackCommand(
 export function rideInOrders(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    pickedIds: readonly string[]
+    pickedIds: readonly string[],
+    wanted?: CommandKind
 ): MoveOrder[] | undefined {
     const order = roadAttackOrder(
         state,
         attack,
-        pickedIds.map((id) => state.unit(id))
+        pickedIds.map((id) => state.unit(id)),
+        wanted
     )
     return order ? [order] : undefined
 }

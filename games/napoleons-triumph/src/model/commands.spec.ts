@@ -1,3 +1,4 @@
+import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { Side, STARTING_MORALE } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
@@ -79,6 +80,51 @@ describe('the Allied limit of five corps commands', () => {
     })
 })
 
+describe('French corps commands', () => {
+    function toFirstApproach(
+        game: TestGame,
+        commanderId: string,
+        kind: CommandKind,
+        take?: number
+    ) {
+        const state = game.hydrated
+        const locale = state.commander(commanderId).position?.locale
+        if (locale === undefined) {
+            throw new Error(`${commanderId} is not on the map`)
+        }
+        const unmoved = state
+            .corpsUnits(commanderId)
+            .filter((unit) => unit.movesThisTurn === undefined)
+            .map((unit) => unit.id)
+        return {
+            order: { kind, commanderId, unitIds: unmoved.slice(0, take) },
+            to: { locale, approach: state.map.passableApproachesOf(locale)[0].id }
+        }
+    }
+
+    it('have no limit but one for each corps (rule 9)', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        const french = game.playerOf(Side.French)
+        const [first, ...others] = game.hydrated
+            .commandersOf(french)
+            .filter((commander) => commander.position !== undefined)
+            .map((commander) => commander.id)
+        expect(others).toHaveLength(5)
+
+        game.act(ActionType.Move, french, toFirstApproach(game, first, CommandKind.Detach, 1))
+        expect(() =>
+            game.act(ActionType.Move, french, toFirstApproach(game, first, CommandKind.Corps))
+        ).toThrow(/cannot give another command/)
+
+        for (const commanderId of others) {
+            game.act(ActionType.Move, french, toFirstApproach(game, commanderId, CommandKind.Corps))
+        }
+        expect(game.hydrated.getPlayerState(french).corpsCommandsUsed).toBe(6)
+    })
+})
+
 describe('a corps is never just a commander', () => {
     function feinted(): TestGame {
         const game = alliedTurn([
@@ -130,6 +176,93 @@ describe('a corps is never just a commander', () => {
         expect(state.commander('lannes').position).toEqual({ locale: WEST })
         expect(state.unit('F-1').commanderId).toBeUndefined()
         expect(state.unit('F-2').commanderId).toBe('lannes')
+    })
+})
+
+describe('an advance that leaves nothing to choose', () => {
+    function feintAgainst(defenders: readonly PiecePlacement[], named: string[]) {
+        const game = alliedTurn([
+            { id: 'A-inf', side: Side.Allied, face: infantry(2), locale: EAST },
+            ...defenders
+        ])
+        const allied = game.playerOf(Side.Allied)
+        game.act(ActionType.ThreatenAttack, allied, {
+            approach: game.hydrated.map.approachBetween(EAST, WEST).id
+        })
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
+            unitIds: named,
+            leaderIds: []
+        })
+        const processed = game.act(ActionType.DeclareFeint, allied, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
+            end: FeintEnd.Reserve
+        })
+        return { game, processed }
+    }
+
+    const blocking = (game: TestGame) => ({
+        locale: WEST,
+        approach: game.hydrated.map.approachBetween(WEST, EAST).id
+    })
+
+    it('is made at once by a single detached defender', () => {
+        const { game, processed } = feintAgainst(
+            [{ id: 'F-1', side: Side.French, face: infantry(2), locale: WEST }],
+            ['F-1']
+        )
+        expect(processed.map((action) => [action.type, action.source])).toEqual([
+            [ActionType.DeclareFeint, ActionSource.User],
+            [ActionType.Advance, ActionSource.System]
+        ])
+        const state = game.hydrated
+        expect(state.unit('F-1').position).toEqual(blocking(game))
+        expect(state.attack).toBeUndefined()
+        expect(state.machineState).toBe(MachineState.Commanding)
+    })
+
+    it('takes the commander along when the unit is the last standing with it', () => {
+        const { game } = feintAgainst(
+            [
+                {
+                    id: 'F-1',
+                    side: Side.French,
+                    face: infantry(2),
+                    locale: WEST,
+                    commanderId: 'lannes'
+                }
+            ],
+            ['F-1']
+        )
+        const state = game.hydrated
+        expect(state.attack).toBeUndefined()
+        expect(state.unit('F-1').position).toEqual(blocking(game))
+        expect(state.commander('lannes').position).toEqual(blocking(game))
+        expect(state.unit('F-1').commanderId).toBe('lannes')
+    })
+
+    it('is still asked when the commander could stay behind with another unit', () => {
+        const { game, processed } = feintAgainst(
+            [
+                {
+                    id: 'F-1',
+                    side: Side.French,
+                    face: infantry(2),
+                    locale: WEST,
+                    commanderId: 'lannes'
+                },
+                {
+                    id: 'F-2',
+                    side: Side.French,
+                    face: infantry(2),
+                    locale: WEST,
+                    commanderId: 'lannes'
+                }
+            ],
+            ['F-1']
+        )
+        expect(processed).toHaveLength(1)
+        expect(nextDecision(game.hydrated)).toMatchObject({ unitIds: ['F-1'] })
+        expect(game.state.machineState).toBe(MachineState.ResolvingAttack)
     })
 })
 

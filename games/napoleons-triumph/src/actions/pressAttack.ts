@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphAction } from './gameAction.js'
 import { revealDefenseLeaders } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -23,7 +24,7 @@ export function isPressAttack(action?: GameAction): action is PressAttack {
 }
 
 export class HydratedPressAttack
-    extends HydratableAction<typeof PressAttack>
+    extends NapoleonsTriumphAction<typeof PressAttack>
     implements PressAttack
 {
     declare type: ActionType.PressAttack
@@ -33,9 +34,7 @@ export class HydratedPressAttack
         super(data, PressAttackValidator)
     }
 
-    /** The attacker now knows the defense leading units, so this cannot be taken back. */
-    apply(state: HydratedNapoleonsTriumphGameState) {
+    protected perform(state: HydratedNapoleonsTriumphGameState) {
         revealDefenseLeaders(state)
-        this.revealsInfo = true
     }
 }

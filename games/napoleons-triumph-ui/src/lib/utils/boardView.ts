@@ -39,6 +39,15 @@ export function viewTransform(rotation: number): string {
         : `translate(0, ${BOARD_WIDTH}px) rotate(-90deg)`
 }
 
+export function viewTransformInSvg(rotation: number): string | undefined {
+    if (rotation === 0) {
+        return undefined
+    }
+    return rotation > 0
+        ? `translate(${BOARD_HEIGHT} 0) rotate(90)`
+        : `translate(0 ${BOARD_WIDTH}) rotate(-90)`
+}
+
 export function toView(point: Point, rotation: number): Point {
     if (rotation === 0) {
         return point
