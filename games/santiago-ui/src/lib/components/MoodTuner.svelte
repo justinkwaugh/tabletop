@@ -31,7 +31,8 @@
     }
 </script>
 
-<!-- Developer-harness only: previews the land's light on any board without changing the game. -->
+<!-- Developer-harness only: previews the land's light and its birds on any board without changing
+     the game. -->
 <div class="mood-tuner">
     <button type="button" class="toggle" onclick={() => (open = !open)}>
         {open ? 'Hide mood tuner' : 'Mood tuner'}
@@ -61,6 +62,9 @@
                 </label>
             {/each}
             <button type="button" class="toggle" onclick={kickUpDust}>Kick up dust</button>
+            <button type="button" class="toggle" onclick={() => session.birds.summon()}>
+                Summon birds
+            </button>
             <div class="note">
                 Board says: lush {percent(boardMood.lush)}, drought {percent(boardMood.drought)}
             </div>
