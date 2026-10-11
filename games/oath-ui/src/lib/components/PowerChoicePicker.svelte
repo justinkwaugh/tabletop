@@ -12,6 +12,7 @@
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
+    import BargainPicker from '$lib/components/BargainPicker.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -132,6 +133,8 @@
                 return gameSession.getPlayerName(option.withPlayerId)
             case PowerChoiceKind.Count:
                 return `${option.n}`
+            case PowerChoiceKind.Bargain:
+                return gameSession.getPlayerName(option.playerId)
         }
     }
 
@@ -165,7 +168,14 @@
     {@const pick = optionIndexOf(legal, i, picks)}
     {@const option = legal.options[pick]}
     <div class="mb-1 text-xs">
-        {#if legal.spec.kind === PowerChoiceKind.Count}
+        {#if legal.spec.kind === PowerChoiceKind.Bargain}
+            <BargainPicker
+                {legal}
+                picks={picks.bargain[i] ?? []}
+                onchange={(value) =>
+                    (picks = { ...picks, bargain: { ...picks.bargain, [i]: value } })}
+            />
+        {:else if legal.spec.kind === PowerChoiceKind.Count}
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
                 <CountPicker

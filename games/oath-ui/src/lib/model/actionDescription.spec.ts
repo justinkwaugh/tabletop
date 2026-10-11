@@ -324,6 +324,14 @@ describe('the history tab describes every action', () => {
                 third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets'
             },
             {
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: with p2, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with p3, gave 0 secrets for 0 favor and 2 favor for 1 secrets",
+                actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with you, gave 0 secrets for 0 favor and 2 favor for 1 secrets'
+            },
+            {
                 card: 'denizen.discord.relic-thief',
                 summary: 'Relic Thief: rolled 1 shields; relic.brass-horse stayed with p2',
                 actor: 'rolled 1 shields; Brass Horse stayed with Bob',

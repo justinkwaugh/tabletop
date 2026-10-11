@@ -6062,3 +6062,144 @@ test.describe('Second Wind out of turn: the free Travel, then the free Campaign'
         })
     }
 })
+
+const WITCHS_BARGAIN = 'denizen.arcane.witchs-bargain'
+const bargainEntry = (page: Page) => grid(page).locator(`[data-action-power="${WITCHS_BARGAIN}"]`)
+const bargainChip = (page: Page, name: string) => bargainEntry(page).getByRole('button', { name, exact: true })
+const secretPieces = (page: Page, name: string) =>
+    bargainEntry(page).getByRole('button', { name: new RegExp(`^give ${name} \\d+ secrets? for \\d+ favor$`) })
+const favorPairs = (page: Page, name: string) =>
+    bargainEntry(page).getByRole('button', { name: new RegExp(`^give ${name} \\d+ favor for \\d+ secrets?$`) })
+const leftoverPieces = (page: Page) => bargainEntry(page).locator('[data-leftover-piece]')
+const bargainUse = (page: Page) => bargainEntry(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true })
+
+/**
+ * Witch's Bargain, revision 7 (its Q&A: several players in one use). Jacob (5 favor, 3 secrets),
+ * Cole (4, 2) and Ann (1, 1) share his site: "With:" and their chips, then two rows of his pieces
+ * for each picked player.
+ */
+test.describe('Witch’s Bargain: the players at your site, then your pieces for each', () => {
+    test('the chips first; a pick opens that player’s rows, held to them; the cost secret and the lone favor never tap; Use waits for a count', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargain')
+        await usePower(page).click()
+        await expect(bargainEntry(page)).toContainText('With:')
+        for (const name of ['cole', 'ann']) {
+            await expect(bargainChip(page, name)).toHaveAttribute('aria-pressed', 'false')
+        }
+        await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(0)
+        await expect(bargainUse(page)).toHaveCount(0)
+
+        await bargainChip(page, 'cole').click()
+        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'true')
+        await expect(secretPieces(page, 'cole')).toHaveCount(3)
+        const secrets = await secretPieces(page, 'cole').all()
+        await expect(secrets[0]).toBeEnabled()
+        await expect(secrets[1]).toBeEnabled()
+        // The 3rd secret is the one the cost places.
+        await expect(secrets[2]).toBeDisabled()
+        for (const piece of secrets) expect(await layoutSizeOf(piece)).toEqual({ width: 34, height: 32 })
+        // 5 favor: two pairs, each one button holding both pieces, and the 5th alone, never a button.
+        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+        for (const pair of await favorPairs(page, 'cole').all()) {
+            await expect(pair).toBeEnabled()
+            await expect(pair.locator('img')).toHaveCount(2)
+            expect(await layoutSizeOf(pair)).toEqual({ width: 54, height: 32 })
+        }
+        await expect(leftoverPieces(page)).toHaveCount(1)
+        await expect(leftoverPieces(page).locator('xpath=ancestor-or-self::button')).toHaveCount(0)
+        await expect(bargainUse(page)).toHaveCount(0)
+
+        await answer(page, 'give cole 1 secret for 2 favor').click()
+        await expect(bargainUse(page)).toBeVisible()
+        await expect(bargainUse(page).locator('.text-oath-accent')).toBeVisible()
+        await answer(page, 'give cole 2 favor for 1 secret').click()
+        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'true')
+        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveClass(/ring-oath-accent/)
+
+        // Undo takes back the last pick, one at a time.
+        await undoButton(page).click()
+        await expect(answer(page, 'give cole 2 favor for 1 secret')).toHaveAttribute('aria-pressed', 'false')
+        await expect(answer(page, 'give cole 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(answer(page, 'give cole 1 secret for 2 favor')).toHaveAttribute('aria-pressed', 'false')
+        await expect(bargainUse(page)).toHaveCount(0)
+        await undoButton(page).click()
+        await expect(bargainChip(page, 'cole')).toHaveAttribute('aria-pressed', 'false')
+        await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(0)
+    })
+
+    test('two players in one use: each their own rows, Ann’s held to her one favor and one secret; Use sends both', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargain')
+        await usePower(page).click()
+        await bargainChip(page, 'cole').click()
+        await bargainChip(page, 'ann').click()
+        await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(2)
+        // One favor buys none of Jacob's secrets; her last secret can be taken for a pair.
+        for (const piece of await secretPieces(page, 'ann').all()) await expect(piece).toBeDisabled()
+        const annPairs = await favorPairs(page, 'ann').all()
+        await expect(annPairs[0]).toBeEnabled()
+        await expect(annPairs[1]).toBeDisabled()
+
+        await answer(page, 'give cole 2 secrets for 4 favor').click()
+        await answer(page, 'give cole 2 favor for 1 secret').click()
+        await answer(page, 'give ann 2 favor for 1 secret').click()
+        // Ann's pair leaves Cole no second one.
+        await expect(answer(page, 'give cole 4 favor for 2 secrets')).toBeDisabled()
+        await bargainUse(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).secretsOn[WITCHS_BARGAIN]).toBe(1)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.secretsOf).toEqual({ jacob: 2, cole: 3, ann: 0 })
+        expect(facts.favorOf).toEqual({ jacob: 5, cole: 2, ann: 3 })
+    })
+
+    test('with Vow of Silence there is no secrets row; the favor row stays', async ({ page }) => {
+        await openTable(page, 'witchsBargainSilenced')
+        await usePower(page).click()
+        await bargainChip(page, 'cole').click()
+        await expect(bargainEntry(page).locator('[data-bargain-row="secrets"]')).toHaveCount(0)
+        await expect(secretPieces(page, 'cole')).toHaveCount(0)
+        await expect(bargainEntry(page).locator('[data-bargain-row="pairs"]')).toHaveCount(1)
+        await expect(favorPairs(page, 'cole')).toHaveCount(2)
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test(`at ${viewport.width}: every chip, piece and pair a 44 px target inside the panel; Use 44 px`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'witchsBargain')
+            await usePower(page).click()
+            await bargainChip(page, 'cole').click()
+            await bargainChip(page, 'ann').click()
+            const panel = await boxOf(grid(page))
+            for (const name of ['cole', 'ann']) {
+                const chip = bargainChip(page, name)
+                expect((await layoutSizeOf(chip))?.height, `${name}'s chip`).toBeGreaterThanOrEqual(44)
+                for (const piece of await secretPieces(page, name).all()) {
+                    expect(await layoutSizeOf(piece)).toEqual({ width: 44, height: 44 })
+                    expect(inside(await boxOf(piece), panel), (await piece.getAttribute('aria-label')) ?? '').toBe(true)
+                }
+                for (const pair of await favorPairs(page, name).all()) {
+                    expect(await layoutSizeOf(pair)).toEqual({ width: 66, height: 44 })
+                    expect(inside(await boxOf(pair), panel), (await pair.getAttribute('aria-label')) ?? '').toBe(true)
+                }
+            }
+            for (const lone of await leftoverPieces(page).all()) {
+                expect(await layoutSizeOf(lone)).toEqual({ width: 44, height: 44 })
+            }
+            // The chips share one width.
+            const widths = await Promise.all(
+                ['cole', 'ann'].map(async (name) => (await layoutSizeOf(bargainChip(page, name)))?.width)
+            )
+            expect(widths[0]).toBe(widths[1])
+            await answer(page, 'give cole 1 secret for 2 favor').click()
+            const use = bargainUse(page)
+            await use.scrollIntoViewIfNeeded()
+            expect((await layoutSizeOf(use))?.height).toBeGreaterThanOrEqual(44)
+            expect(inside(await boxOf(use), await boxOf(grid(page)))).toBe(true)
+            expect(await clippedLabels(page)).toEqual([])
+        })
+    }
+})

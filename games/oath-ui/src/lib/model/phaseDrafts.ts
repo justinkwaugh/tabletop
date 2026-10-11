@@ -413,8 +413,13 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
 
 const PALANQUIN = 'denizen.order.palanquin'
 
-/** R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. */
-export class ActionPowersDraft extends OneStepDraft<Record<string, PowerChoicePicks>> {
+type PicksByPower = Record<string, PowerChoicePicks>
+
+/**
+ * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
+ * each tap, so Undo takes back one pick at a time.
+ */
+export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
     private get playerId(): string | undefined {
         return this.session.selection.action === ActionType.UseActionPower
             ? this.session.liveTurnSeatId
@@ -427,15 +432,31 @@ export class ActionPowersDraft extends OneStepDraft<Record<string, PowerChoicePi
             : []
     }
 
-    picksOf(use: PowerUseKey): PowerChoicePicks {
-        return this.stored?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+    private get current(): PicksByPower | undefined {
+        return this.stored?.at(-1)
     }
 
+    picksOf(use: PowerUseKey): PowerChoicePicks {
+        return this.current?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+    }
+
+    // A tap that changes nothing is no pick for Undo to take back.
     setPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
         if (!this.powers.some((p) => samePowerUse(p, use))) {
             return
         }
-        this.store({ ...this.stored, [powerKey(use.cardId, use.powerIndex)]: picks })
+        if (JSON.stringify(picks) === JSON.stringify(this.picksOf(use))) return
+        const next = { ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks }
+        this.store([...(this.stored ?? []), next])
+    }
+
+    override back(): boolean {
+        const history = this.stored
+        if (history !== undefined && history.length > 1) {
+            this.store(history.slice(0, -1))
+            return true
+        }
+        return super.back()
     }
 
     /** "Use" waits until every choice the power opens has its picks. */

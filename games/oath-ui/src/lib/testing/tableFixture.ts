@@ -177,6 +177,8 @@ export type TableName =
     | 'sacrificeInTwoPlaces'
     | 'freeTravelAsked'
     | 'freeCampaignAsked'
+    | 'witchsBargain'
+    | 'witchsBargainSilenced'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1773,6 +1775,58 @@ function usePowerTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * Witch's Bargain in Jacob's advisers, in a game created at revision 7: Jacob (5 favor, 3 secrets),
+ * Cole (4, 2) and Ann (1, 1) all stand at the top Cradle site. With Vow of Silence too, Jacob
+ * cannot give anyone secrets.
+ */
+function witchsBargainTable(silenced: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 5,
+                secrets: 3,
+                advisers: [
+                    { cardId: 'denizen.arcane.witchs-bargain', faceUp: true },
+                    ...(silenced ? [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }] : [])
+                ]
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 4,
+                secrets: 2
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 1,
+                secrets: 1
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            oathRevision: OathRevision.EngineFixes3
+        }
+    )
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
 /** R-9.4: Tavern Songs at the seat's site peeks at the Cradle discard pile, which nobody else sees. */
 function tavernSongsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -2877,6 +2931,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     showOne: () => showTable('rhys'),
     harpSearch: harpSearchTable,
     usePower: usePowerTable,
+    witchsBargain: () => witchsBargainTable(false),
+    witchsBargainSilenced: () => witchsBargainTable(true),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
@@ -3143,6 +3199,7 @@ export function tableFacts(): {
     campaignUnderway: boolean
     staged: string | undefined
     favorOf: Record<string, number>
+    secretsOf: Record<string, number>
     favorBank: Record<Suit, number>
     secretsOn: Record<string, number>
 } {
@@ -3159,6 +3216,9 @@ export function tableFacts(): {
         campaignUnderway: state.campaign !== undefined,
         staged: table.selection.action,
         favorOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.favor])),
+        secretsOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.secrets])
+        ),
         favorBank: state.favorBank,
         secretsOn: Object.fromEntries(
             Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
