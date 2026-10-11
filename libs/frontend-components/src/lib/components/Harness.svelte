@@ -52,14 +52,29 @@
     let preferredColorsEnabled = $state(false)
     let colorBlindPalette = $state(false)
     let optionsOpen = $state(false)
+    let gamesOpen = $state(false)
     let scenariosOpen = $state(false)
     let scenarioFileInput: HTMLInputElement | undefined = $state()
     let scenarioError: string | undefined = $state()
 
     const scenarios = gameScenarios()
 
+    // The game last opened is reopened after a reload, so a code change lands back in it.
+    const lastGameKey = untrack(() => `tabletop:harness:last-game:${definition.info.id}`)
+
     onMount(() => {
-        gameService.loadGames().catch(console.error)
+        gameService
+            .loadGames()
+            .then(async () => {
+                const lastGameId = localStorage.getItem(lastGameKey)
+                if (!lastGameId) return
+                if (availableGames.some((game) => game.id === lastGameId)) {
+                    await loadGame(lastGameId)
+                } else {
+                    localStorage.removeItem(lastGameKey)
+                }
+            })
+            .catch(console.error)
     })
 
     function closeCreateModal() {
@@ -82,6 +97,9 @@
 
         console.log('Deleting game ' + gameToDelete)
         await gameService.deleteGame(gameToDelete)
+        if (localStorage.getItem(lastGameKey) === gameToDelete) {
+            localStorage.removeItem(lastGameKey)
+        }
         gameToDelete = undefined
     }
 
@@ -198,7 +216,9 @@
     }
 
     async function loadGame(gameId: string) {
+        gamesOpen = false
         scenarioError = undefined
+        localStorage.setItem(lastGameKey, gameId)
         await sessions.load(gameId)
         updateColorPreferencePreview()
     }
@@ -285,7 +305,7 @@
                             class="
                             ms-2 text-white dark:text-white"
                         /></Button
-                    ><Dropdown simple={true} class="min-w-[100px]">
+                    ><Dropdown simple={true} class="min-w-[100px]" bind:isOpen={gamesOpen}>
                         {#each availableGames as game (game.id)}
                             {@render gameDropdownItem(game)}
                         {/each}
