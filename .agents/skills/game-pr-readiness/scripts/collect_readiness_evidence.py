@@ -144,10 +144,64 @@ def jpeg_dimensions(data: bytes) -> tuple[int, int]:
     raise ValueError("JPEG dimensions not found")
 
 
-def image_info(path: Path, repo: Path) -> dict[str, Any]:
+def webp_info(data: bytes) -> dict[str, Any]:
+    if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        raise ValueError("invalid WebP signature")
+    kind = data[12:16]
+    payload = data[20:]
+    if kind == b"VP8 " and len(payload) >= 10 and payload[3:6] == b"\x9d\x01\x2a":
+        return {
+            "width": int.from_bytes(payload[6:8], "little") & 0x3FFF,
+            "height": int.from_bytes(payload[8:10], "little") & 0x3FFF,
+            "encoding": "webp-lossy",
+            "has_actual_transparency": False,
+        }
+    # An alpha flag only says the file can hold transparency. Proving that pixels
+    # use it needs a WebP decoder, so it is reported as unknown.
+    if kind == b"VP8L" and len(payload) >= 5:
+        bits = int.from_bytes(payload[1:5], "little")
+        return {
+            "width": (bits & 0x3FFF) + 1,
+            "height": ((bits >> 14) & 0x3FFF) + 1,
+            "encoding": "webp-lossless",
+            "has_actual_transparency": None if bits >> 28 & 1 else False,
+        }
+    if kind == b"VP8X" and len(payload) >= 10:
+        flags = payload[0]
+        chunks: set[bytes] = set()
+        offset = 12
+        while offset + 8 <= len(data):
+            chunks.add(data[offset : offset + 4])
+            size = int.from_bytes(data[offset + 4 : offset + 8], "little")
+            offset += 8 + size + size % 2
+        if flags & 0x02:
+            encoding = "webp-animated"
+        elif b"VP8L" in chunks:
+            encoding = "webp-lossless"
+        elif b"VP8 " in chunks:
+            encoding = "webp-lossy"
+        else:
+            raise ValueError("WebP image data not found")
+        return {
+            "width": 1 + int.from_bytes(payload[4:7], "little"),
+            "height": 1 + int.from_bytes(payload[7:10], "little"),
+            "encoding": encoding,
+            "has_actual_transparency": None if flags & 0x10 else False,
+        }
+    raise ValueError(f"unsupported WebP chunk {kind!r}")
+
+
+def blobs_at(commit: str, root: Path, repo: Path) -> set[str]:
+    listing = git("ls-tree", "-r", commit, "--", root.relative_to(repo).as_posix(), cwd=repo)
+    return {line.split()[2] for line in listing.splitlines() if line}
+
+
+def image_info(path: Path, repo: Path, base_blobs: set[str]) -> dict[str, Any]:
+    relative = path.relative_to(repo).as_posix()
     result: dict[str, Any] = {
-        "path": path.relative_to(repo).as_posix(),
+        "path": relative,
         "bytes": path.stat().st_size,
+        "existed_at_base": git("hash-object", "--", relative, cwd=repo) in base_blobs,
     }
     try:
         if path.suffix.lower() == ".svg":
@@ -158,28 +212,16 @@ def image_info(path: Path, repo: Path) -> dict[str, Any]:
             suffix = path.suffix.lower()
             if suffix == ".png":
                 result.update(png_info(data))
+                result["encoding"] = "png"
             elif suffix in (".jpg", ".jpeg"):
                 result["width"], result["height"] = jpeg_dimensions(data)
+                result["encoding"] = "jpeg"
                 result["has_actual_transparency"] = False
             elif suffix == ".gif" and data[:6] in (b"GIF87a", b"GIF89a"):
                 result["width"], result["height"] = struct.unpack("<HH", data[6:10])
+                result["encoding"] = "gif"
             elif suffix == ".webp":
-                if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
-                    raise ValueError("invalid WebP signature")
-                kind = data[12:16]
-                payload = data[20:]
-                if kind == b"VP8X" and len(payload) >= 10:
-                    result["width"] = 1 + int.from_bytes(payload[4:7], "little")
-                    result["height"] = 1 + int.from_bytes(payload[7:10], "little")
-                elif kind == b"VP8L" and len(payload) >= 5:
-                    bits = int.from_bytes(payload[1:5], "little")
-                    result["width"] = (bits & 0x3FFF) + 1
-                    result["height"] = ((bits >> 14) & 0x3FFF) + 1
-                elif kind == b"VP8 " and len(payload) >= 10 and payload[3:6] == b"\x9d\x01\x2a":
-                    result["width"] = int.from_bytes(payload[6:8], "little") & 0x3FFF
-                    result["height"] = int.from_bytes(payload[8:10], "little") & 0x3FFF
-                else:
-                    raise ValueError(f"unsupported WebP chunk {kind!r}")
+                result.update(webp_info(data))
     except Exception as error:
         result["error"] = str(error)
     return result
@@ -470,6 +512,7 @@ def main() -> int:
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
     )
+    base_blobs = blobs_at(merge_base, ui_root, repo)
     patterns = {
         "svelte_effect": re.compile(r"\$effect(?:\s*\(|\.(?:pre|root)\s*\()"),
         "thumbnail_url": re.compile(r"\bthumbnailUrl\b"),
@@ -532,7 +575,7 @@ def main() -> int:
         ],
         "exempt_catalogue_addition": added_entry,
         "lockfile_change": lockfile,
-        "images": [image_info(path, repo) for path in images],
+        "images": [image_info(path, repo, base_blobs) for path in images],
         "asset_references": asset_references(images, sources),
         "search_hits": find_hits(sources, patterns),
         "source_file_count": len(sources),

@@ -12,13 +12,13 @@
         } = $props()
     let clicks = $state(0)
     let dialog: HTMLDialogElement
-    let wrapper: ScalingWrapper
+    let wrapper: ScalingWrapper | undefined = $state()
     onMount(() => {
         if (modal) {
             dialog.showModal()
-            wrapper.focusRect({ x: 200, y: 200, width: 300, height: 200 })
+            wrapper?.focusRect({ x: 200, y: 200, width: 300, height: 200 })
         }
-        if (focus) wrapper.focusRect(focus)
+        if (focus) wrapper?.focusRect(focus)
     })
 </script>
 <dialog bind:this={dialog} open={!modal} style="margin:0;padding:0;border:0"><div data-testid="table-scroll" style="width:400px;overflow:auto">
@@ -30,4 +30,4 @@
 </div>
 </div>
 </div>
-<output>{clicks}</output></dialog>
+<output>{clicks}</output><span data-testid="scale">{wrapper?.viewScale()}</span></dialog>
