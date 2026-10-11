@@ -66,6 +66,17 @@ export interface GameStore {
     findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findActiveGamesForTitle(titleId: string): Promise<Game[]>
+    findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
+    readStateFromStorage(gameId: string): Promise<GameState | undefined>
+    recordFinalScores({
+        gameId,
+        finishedAt,
+        finalScores
+    }: {
+        gameId: string
+        finishedAt: Date
+        finalScores: Record<string, number>
+    }): Promise<boolean>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findUndoActionWindow({
         game,
