@@ -1,20 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import {
-        GameCategory,
-        GameStatus,
-        GameUpdateNotification,
-        GameDeleteNotification,
-        GameCreateNotification,
-        type Game
-    } from '@tabletop/common'
-    import * as Value from 'typebox/value'
-    import {
-        isDataEvent,
-        isDiscontinuityEvent,
-        NotificationChannel,
-        type NotificationListener
-    } from '@tabletop/frontend-components'
+    import { GameCategory, GameStatus, type Game } from '@tabletop/common'
+    import { listenForGameListChanges } from '$lib/services/gameListUpdates'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from './DashboardGameList.svelte'
 
@@ -72,30 +59,18 @@
         await loadGames()
     }
     onMount(() => {
-        const listener: NotificationListener = async (event) => {
-            if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+        const stopListening = listenForGameListChanges(notificationService, async (change) => {
+            if (
+                'discontinuity' in change ||
+                change.game.status === GameStatus.Finished ||
+                games.some((item) => item.id === change.game.id)
+            )
                 await refresh()
-            } else if (isDataEvent(event)) {
-                const notification = event.notification
-                if (
-                    Value.Check(GameUpdateNotification, notification) ||
-                    Value.Check(GameDeleteNotification, notification) ||
-                    Value.Check(GameCreateNotification, notification)
-                ) {
-                    const game = notification.data.game
-                    if (
-                        game.status === GameStatus.Finished ||
-                        games.some((item) => item.id === game.id)
-                    )
-                        await refresh()
-                }
-            }
-        }
-        notificationService.addListener(listener)
+        })
         void loadGames()
         return () => {
             disposed = true
-            notificationService.removeListener(listener)
+            stopListening()
         }
     })
 </script>

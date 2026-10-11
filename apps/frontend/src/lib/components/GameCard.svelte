@@ -1,7 +1,14 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
     import { LinkOutline } from 'flowbite-svelte-icons'
-    import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import {
+        assertExists,
+        Game,
+        GameStatus,
+        PlayerStatus,
+        GameResult,
+        ownerMayDeleteGame
+    } from '@tabletop/common'
     import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
@@ -102,7 +109,10 @@
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
-    let canDelete = $derived(!game.tournament && (isOwnedByMe || authorizationService.isAdmin))
+    let canDelete = $derived(
+        !game.tournament &&
+            (authorizationService.isAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
+    )
 
     let confirmDelete = $state(false)
 

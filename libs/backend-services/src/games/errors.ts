@@ -8,6 +8,7 @@ enum GameServiceError {
     GameNotWaitingToStart = 'GameNotWaitingToStartError',
     GameNotInProgress = 'GameNotInProgressError',
     GameAlreadyStarted = 'GameAlreadyStartedError',
+    FinishedGameDeletion = 'FinishedGameDeletionError',
     GameUpdateCollisionError = 'GameUpdateCollisionError',
     PlayersNotFound = 'PlayersNotFoundError',
     PrivateGameNotFull = 'PrivateGameNotFullError',
@@ -69,6 +70,16 @@ export class GameNotWaitingToStartError extends BaseError {
         super({
             name: GameServiceError.GameNotWaitingToStart,
             message: `The game with id ${id} was not ready to start`,
+            metadata: { id }
+        })
+    }
+}
+
+export class FinishedGameDeletionError extends BaseError {
+    constructor({ id }: { id: string }) {
+        super({
+            name: GameServiceError.FinishedGameDeletion,
+            message: `The game with id ${id} has been finished and can only be deleted by an administrator`,
             metadata: { id }
         })
     }
