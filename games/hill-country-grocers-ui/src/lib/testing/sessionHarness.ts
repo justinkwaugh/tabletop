@@ -132,20 +132,32 @@ function initialBid(table: PlayedTable): GameAction {
     return createAction(PassBid, envelope(table, playerId))
 }
 
-// After the initial auctions p1, the richest, takes the first turn.
-export function firstTurnTable(): PlayedTable {
+function playInitialAuctionsWhile(keepBidding: (table: PlayedTable) => boolean): PlayedTable {
     const { initialState } = engine.startGame(GAME, {
         masterSeed: '0123456789abcdef0123456789abcdef',
         startingPositions: { playerIds: SEATS }
     })
     let table: PlayedTable = { state: initialState, actions: [] }
-    for (let step = 0; table.state.machineState === MachineState.Bidding; step++) {
+    for (let step = 0; keepBidding(table); step++) {
         if (step >= 50) {
             throw Error('The initial auctions did not finish')
         }
         table = played(table, [initialBid(table)])
     }
     return table
+}
+
+// After the initial auctions p1, the richest, takes the first turn.
+export function firstTurnTable(): PlayedTable {
+    return playInitialAuctionsWhile((table) => table.state.machineState === MachineState.Bidding)
+}
+
+export function initialAuctionTable(companiesSold: number): PlayedTable {
+    return playInitialAuctionsWhile(
+        (table) =>
+            table.state.companies.filter((company) => company.owners.length > 0).length <
+            companiesSold
+    )
 }
 
 export function choose(table: PlayedTable, space: ActionSpace): PlayedTable {

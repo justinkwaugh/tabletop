@@ -6,6 +6,7 @@ import {
     choose,
     disposeSessions,
     firstTurnTable,
+    initialAuctionTable,
     oneGrocerBuildTable,
     openSessionOn,
     twoGrocerBuildTable
@@ -209,6 +210,24 @@ describe('choosing a share to auction', () => {
         expect(view?.seats[0]).toEqual({ playerId: openerId, passed: false })
         expect(view?.seats).toHaveLength(session.gameState.players.length)
         expect(view?.minimumBid).toBe(0)
+    })
+})
+
+describe('the initial auctions', () => {
+    it('lists the companies still to be auctioned after the current one, in the shuffled order', () => {
+        const session = openSessionOn(initialAuctionTable(2))
+        const order = session.gameState.initialAuctionOrder
+        expect(session.auctionView?.companyId).toBe(order[2])
+        expect(session.auctionView?.upcomingInitialAuctions).toEqual(order.slice(3))
+    })
+
+    it('lists nothing for the last initial auction or for a share auction', () => {
+        const lastAuction = openSessionOn(initialAuctionTable(4))
+        expect(lastAuction.auctionView?.upcomingInitialAuctions).toEqual([])
+
+        const shareAuction = openSessionOn(choose(firstTurnTable(), ActionSpace.AuctionShare))
+        shareAuction.selectAuctionCompany(CompanyId.Verbena)
+        expect(shareAuction.auctionView?.upcomingInitialAuctions).toEqual([])
     })
 })
 

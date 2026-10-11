@@ -48,6 +48,7 @@ export type AuctionView = {
     hasBid: boolean
     minimumBid: number
     opening: boolean
+    upcomingInitialAuctions: CompanyId[]
 }
 
 export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameState> {
@@ -257,7 +258,15 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
                 currentBidderId: bidding.currentBidderId,
                 hasBid: bidding.hasBid,
                 minimumBid: this.gameState.smallestBid(),
-                opening: false
+                opening: false,
+                upcomingInitialAuctions:
+                    auction.kind === AuctionKind.Initial
+                        ? this.gameState.initialAuctionOrder.filter(
+                              (companyId) =>
+                                  companyId !== auction.companyId &&
+                                  this.gameState.company(companyId).owners.length === 0
+                          )
+                        : []
             }
         }
         const companyId = this.auctionCompany
@@ -275,7 +284,8 @@ export class HcgGameSession extends GameSession<HcgGameState, HydratedHcgGameSta
             currentBidderId: openerId,
             hasBid: false,
             minimumBid: 0,
-            opening: true
+            opening: true,
+            upcomingInitialAuctions: []
         }
     })
 

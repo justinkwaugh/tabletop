@@ -3,6 +3,8 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BidStepper from './BidStepper.svelte'
     import BigShareCertificate from './BigShareCertificate.svelte'
+    import ShareCertificate from './ShareCertificate.svelte'
+    import Stamp from './Stamp.svelte'
 
     const gameSession = getGameSession()
 
@@ -36,12 +38,20 @@
                             >{seat.bid !== undefined ? `$${seat.bid}` : current ? '?' : '—'}</span
                         >
                         {#if seat.passed}
-                            <span class="stamp">Passed</span>
+                            <Stamp label="Passed" />
                         {/if}
                     </div>
                 {/each}
             </div>
         </div>
+        {#if view.upcomingInitialAuctions.length > 0}
+            <div class="upcoming" role="group" aria-label="Initial auctions still to come">
+                <span class="upcoming-label">Up next</span>
+                {#each view.upcomingInitialAuctions as companyId (companyId)}
+                    <ShareCertificate {companyId} />
+                {/each}
+            </div>
+        {/if}
         {#if view.opening}
             <div class="controls">
                 <BidStepper
@@ -138,25 +148,25 @@
         color: #7a1d22;
     }
 
-    .seat.passed > :not(.stamp) {
+    .seat.passed .name,
+    .seat.passed .amount {
         opacity: 0.4;
     }
 
-    .stamp {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-14deg);
-        border: 2px solid #b0262e;
-        border-radius: 2px;
-        padding: 0 5px;
-        color: #b0262e;
+    .upcoming {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .upcoming-label {
+        margin-right: 2px;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
-        opacity: 0.85;
+        color: #7a5a40;
     }
 
     .controls {
@@ -184,6 +194,7 @@
 
         .seat,
         .seat.current {
+            --stamp-size: 11px;
             min-width: 0;
             border-left-width: 8px;
             padding: 2px 5px 3px;
@@ -196,10 +207,6 @@
 
         .amount {
             font-size: 16px;
-        }
-
-        .stamp {
-            font-size: 11px;
         }
 
         .controls {
