@@ -239,7 +239,6 @@
         stroke: #7a1d22;
         stroke-width: 5;
         stroke-dasharray: 10 6;
-        animation: hcg-ring 1.7s linear infinite;
     }
 
     .price-tag {
@@ -262,11 +261,5 @@
     .target:focus-visible .ring,
     .target.chosen .ring {
         fill: rgba(255, 226, 120, 0.75);
-    }
-
-    @keyframes hcg-ring {
-        to {
-            stroke-dashoffset: -32;
-        }
     }
 </style>

@@ -120,7 +120,7 @@
                 {@render turnControls()}
             </div>
             <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
-                <ScalingWrapper justify="center" controls="bottom-left" expandable>
+                <ScalingWrapper justify="center" controls="bottom-left" renderAtViewScale expandable>
                     <Board />
                     {#snippet toolbar()}
                         <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
