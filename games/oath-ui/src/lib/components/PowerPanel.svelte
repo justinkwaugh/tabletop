@@ -131,7 +131,7 @@
         {@const cost = useCost(p)}
         {@const moves = draft.movesOf(p)}
         {@const complete = draft.picksComplete(p)}
-        <!-- Messenger's moves sit under its name; on a phone they run the panel's width under its card. -->
+        <!-- Messenger's moves sit beside its card, under its name; on a phone they run the panel's width under its card. -->
         <div
             class="border-t border-oath-divider pt-1.5 gap-2 items-start {moves
                 ? 'grid grid-cols-[auto_minmax(0,1fr)] gap-y-1'
