@@ -35,12 +35,16 @@
                 {/if}
             </span>
             {#if inPlay && !gameSession.gameState.result}
-                <span class="nt-masthead-time"
-                    >{roundLabel(
-                        gameSession.gameState.currentRound,
-                        gameSession.gameState.scenario === Scenario.December1
-                    )}</span
-                >
+                {@const round = gameSession.gameState.currentRound}
+                <span class="nt-masthead-time">
+                    {#if gameSession.gameState.scenario === Scenario.December1}
+                        {round.day}
+                        <span class="max-sm:hidden">December</span><span class="sm:hidden">Dec</span
+                        >
+                        ·
+                    {/if}
+                    {roundLabel(round)}
+                </span>
             {/if}
         </div>
         <div class="nt-masthead-side">
@@ -59,12 +63,9 @@
 </div>
 
 <style>
-    /* The negative margin lets the tint fade out under the panel below without moving that panel. */
     .nt-masthead-block {
-        --fade-below: 10px;
         --tint: color-mix(in srgb, var(--nt-turn-colour, var(--nt-ground)) 28%, var(--nt-ground));
-        margin-bottom: calc(-1 * var(--fade-below));
-        padding-bottom: var(--fade-below);
+        padding-bottom: 6px;
         background: linear-gradient(to bottom, var(--tint), var(--nt-ground));
     }
 
@@ -137,6 +138,10 @@
     }
 
     @media (max-width: 639px) {
+        .nt-masthead-block {
+            padding-bottom: 4px;
+        }
+
         .nt-masthead {
             padding: 6px 6px 3px;
         }

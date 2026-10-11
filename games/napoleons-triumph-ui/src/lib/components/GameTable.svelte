@@ -11,6 +11,7 @@
     } from '@tabletop/frontend-components'
     import { assert } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
+    import type { Attachment } from 'svelte/attachments'
     import type {
         HydratedNapoleonsTriumphGameState,
         NapoleonsTriumphProjectedState
@@ -58,6 +59,13 @@
     const boardCovered = $derived(
         session.isCommanding && session.selectedGroup ? ordersDrawerHeight : 0
     )
+
+    // A new step opens at its prompt, wherever the step before it was scrolled to.
+    const openAtTheTop: Attachment<HTMLElement> = (scroller) => {
+        void session.gameState.machineState
+        void session.gameState.activePlayerIds[0]
+        scroller.scrollTop = 0
+    }
 
     const turnColour = $derived.by(() => {
         const [activePlayerId] = session.gameState.activePlayerIds
@@ -257,47 +265,49 @@
             </div>
         {/snippet}
         {#snippet gameContent()}
-            <fieldset
-                class="nt-turn min-w-0 shrink-0"
-                style:--nt-turn-colour={turnColour}
-                disabled={session.busy}
-            >
-                <Header />
-                <div class="nt-turn-body">
-                    {#if session.isViewingHistory}
-                        <ActionPanel bind:ordersDrawerHeight />
-                    {:else if session.attack}
-                        <BattlePanel />
-                    {:else if session.isAuction}
-                        <AuctionPanel />
-                    {:else if session.isDeploying}
-                        <SetupPanel />
-                    {:else}
-                        <ActionPanel bind:ordersDrawerHeight />
-                    {/if}
+            <div class="nt-column" style:--nt-turn-colour={turnColour}>
+                <fieldset class="nt-turn min-w-0 shrink-0" disabled={session.busy}>
+                    <Header />
+                </fieldset>
+                <div class="nt-below-masthead" {@attach openAtTheTop}>
+                    <fieldset class="nt-turn min-w-0 shrink-0" disabled={session.busy}>
+                        <div class="nt-turn-body">
+                            {#if session.isViewingHistory}
+                                <ActionPanel bind:ordersDrawerHeight />
+                            {:else if session.attack}
+                                <BattlePanel />
+                            {:else if session.isAuction}
+                                <AuctionPanel />
+                            {:else if session.isDeploying}
+                                <SetupPanel />
+                            {:else}
+                                <ActionPanel bind:ordersDrawerHeight />
+                            {/if}
+                        </div>
+                    </fieldset>
+                    <div
+                        class="nt-board-host"
+                        style:--nt-board-covered="{boardCovered}px"
+                        bind:this={boardHost}
+                    >
+                        <ScalingWrapper
+                            bind:this={wrapper}
+                            justify="center"
+                            controls="bottom-left"
+                            expandable
+                            maxScale={1.4}
+                            renderAtViewScale
+                            insetTop={boardCovered}
+                            coverBelowScale={0.4}
+                            onManualViewChange={() => (restoreView = undefined)}
+                        >
+                            <Board />
+                            {#snippet overlay()}
+                                <MapMenu onshowcommandtrack={showCommandTrack} onturn={turnBoard} />
+                            {/snippet}
+                        </ScalingWrapper>
+                    </div>
                 </div>
-            </fieldset>
-            <div
-                class="grow-0 overflow-hidden"
-                style="flex:1; min-height: 40dvh;"
-                bind:this={boardHost}
-            >
-                <ScalingWrapper
-                    bind:this={wrapper}
-                    justify="center"
-                    controls="bottom-left"
-                    expandable
-                    maxScale={1.4}
-                    renderAtViewScale
-                    insetTop={boardCovered}
-                    coverBelowScale={0.4}
-                    onManualViewChange={() => (restoreView = undefined)}
-                >
-                    <Board />
-                    {#snippet overlay()}
-                        <MapMenu onshowcommandtrack={showCommandTrack} onturn={turnBoard} />
-                    {/snippet}
-                </ScalingWrapper>
             </div>
         {/snippet}
     </DefaultTableLayout>
@@ -329,6 +339,36 @@
         padding: 8px 0 0 8px;
     }
 
+    /* The masthead stays put; the panel and the map below it scroll together once the map, which keeps --nt-map-least clear of the orders sheet, no longer fits under the panel. */
+    .nt-column {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .nt-below-masthead {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: none;
+    }
+
+    .nt-board-host {
+        --nt-map-least: 40dvh;
+        flex: 1 1 0;
+        min-height: calc(var(--nt-board-covered, 0px) + min(var(--nt-map-least), 100%));
+        overflow: hidden;
+    }
+
+    @media (max-width: 639px) {
+        .nt-board-host {
+            --nt-map-least: 50dvh;
+        }
+    }
+
     .nt-turn {
         --nt-ground: #f9f6ee;
         background: var(--nt-ground);
@@ -337,13 +377,13 @@
 
     .nt-turn-body {
         --nt-body-inline: 16px;
-        padding: 6px var(--nt-body-inline) 11px;
+        padding: 0 var(--nt-body-inline) 11px;
     }
 
     @media (max-width: 639px) {
         .nt-turn-body {
             --nt-body-inline: 6px;
-            padding: 4px var(--nt-body-inline) 6px;
+            padding: 0 var(--nt-body-inline) 6px;
         }
     }
 
