@@ -169,7 +169,7 @@
         <div class="flex flex-wrap gap-1">
             {#each mine.siteIds as siteId (siteId)}
                 <button
-                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.travelTo(siteId)}
                 >
@@ -186,7 +186,7 @@
         <div class="flex flex-wrap gap-1">
             {#each draft.woodDestinations as siteId (siteId)}
                 <button
-                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.sendThrough(siteId)}
                 >

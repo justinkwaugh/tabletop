@@ -107,7 +107,7 @@
         </div>
         <button
             class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                   px-2 py-1.5 text-sm font-semibold"
+                   border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
             disabled={busy || !!blockedBecause}
             onclick={() => gameSession.completeRest()}
         >
@@ -131,7 +131,7 @@
                             <span class="font-semibold">{cardName(p.cardId)}</span>
                         </span>
                         <button
-                            class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
+                            class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
                             disabled={busy || !!reason}
                             title={gameSession.humanizeReason(reason) ?? ''}
                             onclick={() => draft.use(p)}
@@ -177,7 +177,7 @@
 
         <button
             class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-               px-2 py-1.5 text-sm font-semibold"
+               border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
             disabled={busy || !!blockedBecause}
             onclick={() => gameSession.completeRest()}
         >

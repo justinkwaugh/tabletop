@@ -124,7 +124,7 @@
 <div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         Campaign
-        <span class="ml-2 normal-case tracking-normal text-oath-text-muted">
+        <span class="ml-2 normal-case tracking-normal text-oath-accent">
             {draft.supplyCost === 0 ? 'no Supply' : `${draft.supplyCost} Supply`}
         </span>
     </h3>
@@ -265,7 +265,7 @@
         <div class="flex gap-2">
             <button
                 class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       px-2 py-1.5 text-sm font-semibold"
+                       border-[1.5px] border-oath-primary-border px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !draft.declarable}
                 onclick={() => draft.declare()}
             >

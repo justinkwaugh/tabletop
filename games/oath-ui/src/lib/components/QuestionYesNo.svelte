@@ -17,7 +17,7 @@
 {/if}
 <div class="flex gap-2">
     <button
-        class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="grow rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!blockedBecause}
         onclick={() => draft.accept()}
     >

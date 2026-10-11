@@ -228,7 +228,7 @@
                         <button
                             type="button"
                             class="rounded-md bg-oath-primary px-3.5 py-1.5 text-[15px] font-bold
-                                   text-oath-primary-text hover:bg-oath-primary-hover"
+                                   border-[1.5px] border-oath-primary-border text-oath-primary-text hover:bg-oath-primary-hover"
                             onclick={(event) => {
                                 event.stopPropagation()
                                 onZoomSite(slotId)

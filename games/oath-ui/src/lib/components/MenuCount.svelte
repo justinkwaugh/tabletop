@@ -1,10 +1,14 @@
 <script lang="ts">
     import type { SizedImage } from '$lib/images/manifestIndex.js'
 
-    let { count, image }: { count: number; image: SizedImage } = $props()
+    let {
+        count,
+        image,
+        cost = false
+    }: { count: number; image: SizedImage; cost?: boolean } = $props()
 </script>
 
-<span class="inline-flex items-center gap-1 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 whitespace-nowrap {cost ? 'text-oath-accent' : ''}">
     <span class={count === 0 ? 'text-oath-text-muted' : ''}>{count}</span>
     <img class="h-[18px] w-auto" src={image.src} width={image.width} height={image.height} alt="" />
 </span>
