@@ -922,6 +922,11 @@
         setExpanded(!isExpanded)
     }
 
+    /** The scale the content is drawn at, as reactive state: a derivation or template that reads it follows every fit, focus, zoom and resize. */
+    export function viewScale() {
+        return currentScale
+    }
+
     export function captureView() {
         const scale = currentScale
         const rect = {
