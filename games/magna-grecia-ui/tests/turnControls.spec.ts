@@ -256,6 +256,21 @@ test('on a phone the turn steps from tile actions to the market and back with Un
     await expect(buy).toBeHidden()
 })
 
+test('on a phone a skipped tile phase shows a red note above the market step', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createGame(page)
+    const note = page.getByText('Tile actions skipped', { exact: true })
+    await page.getByRole('button', { name: /^Skip/ }).click()
+    await expect(note).toBeHidden()
+
+    await page.getByRole('button', { name: 'Build market', exact: true }).click()
+    await expect(note).toBeVisible()
+    await expect(note).toHaveCSS('color', 'rgb(192, 38, 26)')
+    await page.getByRole('button', { name: 'Build a market here', exact: true }).first().click()
+    await expect(page.getByRole('button', { name: 'End turn', exact: true })).toHaveClass(/ready/)
+    await expect(note).toBeVisible()
+})
+
 test('another road space moves the widget and another tool closes it', async ({ page }) => {
     await openRoadPicker(page)
     const targets = await roadTargets(page).count()
@@ -432,6 +447,8 @@ test('a market action keeps the turn open and highlights End turn', async ({ pag
     expect(await turnOf()).toBe(first)
     await expect(endTurn).toHaveClass(/ready/)
     await expect(page.getByText('Skipped', { exact: true })).toBeVisible()
+    await expect(page.getByText('Skipped', { exact: true })).toHaveClass(/skipped/)
+    await expect(page.getByText('Tile actions skipped', { exact: true })).toBeHidden()
     await expect(
         page.getByRole('button', { name: /^(Roads|Cities|Resupply|Build market|Sell market)/ })
     ).toHaveCount(0)
