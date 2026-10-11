@@ -22,6 +22,7 @@
     import {
         campaignTargetText,
         cardName,
+        ownForcePlaceName,
         regionName,
         relicSiteName,
         siteName
@@ -201,26 +202,30 @@
             <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1 text-oath-text-muted">Skull losses, in order:</div>
-                {#each draft.lossOrder as source, index (JSON.stringify(source))}
-                    <div class="flex items-center gap-2 mb-0.5">
-                        <span class="grow"
-                            >{gameSession.warbandOwnerName(source.owner)}
-                            {source.at.kind === 'board'
-                                ? 'on your board'
-                                : `at ${siteName(gameState, source.at.siteId)}`}</span
+                <!-- One width for the rows; the first keeps the ↑'s place so the rows line up. -->
+                <div
+                    class="grid w-max max-w-full grid-cols-[minmax(0,auto)_auto] items-center gap-x-2 gap-y-0.5"
+                >
+                    {#each draft.lossOrder as source, index (JSON.stringify(source))}
+                        {@const where = ownForcePlaceName(
+                            gameState,
+                            source,
+                            draft.lossOrder,
+                            (owner) => gameSession.warbandOwnerName(owner)
+                        )}
+                        <span>{where}</span>
+                        <button
+                            type="button"
+                            class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-0.5 max-sm:h-11 max-sm:w-11"
+                            class:invisible={index === 0}
+                            aria-label="Lose {where} sooner"
+                            disabled={busy || index === 0}
+                            onclick={() => draft.moveLossSourceUp(index)}
                         >
-                        {#if index > 0}
-                            <button
-                                type="button"
-                                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-0.5"
-                                disabled={busy}
-                                onclick={() => draft.moveLossSourceUp(index)}
-                            >
-                                ↑
-                            </button>
-                        {/if}
-                    </div>
-                {/each}
+                            ↑
+                        </button>
+                    {/each}
+                </div>
             </div>
         {/if}
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     AnswerQuestion,
+    CampaignTargetKind,
     ExileCitizen,
     HydratedAnswerQuestion,
     HydratedExileCitizen,
@@ -653,6 +654,32 @@ describe('the history tab describes every action', () => {
         ).toBe(
             'travelled to Cradle 2, spending 1 Supply — revealing Mine and 1 facedown relic'
         )
+    })
+
+    it('Second Wind out of turn — the free Travel and Campaign end "(free, Second Wind)"', () => {
+        const SECOND_WIND = 'denizen.discord.second-wind'
+        const travelled = describeAction(
+            action({
+                type: ActionType.Travel,
+                playerId: 'p1',
+                siteId: 'slot.cradle.1',
+                metadata: { supplySpent: 0, supplyRemaining: 0, freeActionOf: SECOND_WIND }
+            }),
+            nameOf
+        )
+        expect(travelled).toBe('travelled to Cradle 2 (free, Second Wind)')
+        const campaigned = describeAction(
+            action({
+                type: ActionType.Campaign,
+                playerId: 'p1',
+                defender: { kind: 'player', playerId: 'p2' },
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackDice: 0,
+                metadata: { supplySpent: 0, freeActionOf: SECOND_WIND, awaitingAllies: true }
+            }),
+            nameOf
+        )
+        expect(campaigned).toMatch(/^campaigned against Bob for .+ \(free, Second Wind\) — /)
     })
 
     describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {

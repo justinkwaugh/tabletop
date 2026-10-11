@@ -12,6 +12,7 @@ import {
     Suit,
     IMPERIAL_WARBANDS,
     OathType,
+    type LossSource,
     type WarbandOwner
 } from '@tabletop/oath'
 
@@ -29,6 +30,23 @@ export function siteName(gameState: HydratedOathGameState, slotId: string): stri
     const cardId = gameState.siteCardAt(slotId)
     if (cardId && gameState.isSiteFaceup(slotId)) return cardName(cardId)
     return `a facedown site in the ${regionName(gameState.regionOf(slotId))}`
+}
+
+/**
+ * A place in the seat's own attacking force: "on your board", "at Plains". A force has one owner
+ * (R-6.6.2), so the owner word is added only for a force that mixes them, from before revision 5.
+ */
+export function ownForcePlaceName(
+    gameState: HydratedOathGameState,
+    source: LossSource,
+    sources: readonly LossSource[],
+    ownerName: (owner: WarbandOwner) => string
+): string {
+    const where =
+        source.at.kind === 'board' ? 'on your board' : `at ${siteName(gameState, source.at.siteId)}`
+    return new Set(sources.map((s) => s.owner)).size > 1
+        ? `${ownerName(source.owner)} ${where}`
+        : where
 }
 
 /** A site inside a History sentence: "the Great Slum", but a name that prints its own article as printed. */

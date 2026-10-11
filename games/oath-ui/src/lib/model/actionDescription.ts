@@ -325,6 +325,11 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
+/** Second Wind out of turn — the card whose free action this was, in brackets. */
+function freeActionClause(cardId: string | undefined): string {
+    return cardId ? ` (free, ${cardName(cardId)})` : ''
+}
+
 const TOLL_GIVEN = /^(.+): gave a favor to (.+)$/
 const TOLL_BURNED = /^(.+): burned a favor for the bandits$/
 
@@ -370,10 +375,12 @@ function describeActionCited(
         if (action.siteId === undefined) {
             const chooser = meta?.destinationChooser
             const ruler = chooser ? nameOf(chooser) : 'its ruler'
-            if (meta?.paysAtPick) return `set out from the Shrouded Wood; ${ruler} picks where`
+            if (meta?.paysAtPick) {
+                return `set out from the Shrouded Wood${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
+            }
             return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${ruler} chooses where`
         }
-        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}`
+        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}${freeActionClause(meta?.freeActionOf)}`
     }
     if (isMuster(action)) {
         const meta = action.metadata
@@ -422,7 +429,7 @@ function describeActionCited(
         const targets = action.targets
             .map((target) => describeTarget(target, names.site))
             .join(', ')
-        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}`
+        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}${freeActionClause(action.metadata?.freeActionOf)}`
         // R-5.5.2.a — nothing is rolled until the Citizens asked have answered.
         if (action.metadata?.awaitingAllies)
             return `${declared} — Citizens are asked to join the defence`

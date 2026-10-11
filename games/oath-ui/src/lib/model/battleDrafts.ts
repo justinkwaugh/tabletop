@@ -6,8 +6,10 @@ import {
     HydratedCampaignDefend,
     HydratedCampaignResolveVictory,
     HydratedCampaignSacrifice,
+    HydratedCampaignSkullLosses,
     MachineState,
     countOf,
+    defeatPickMatters,
     forceTotal,
     powerKey,
     shroudedWoodChooser,
@@ -697,6 +699,95 @@ export class DefeatDraft implements PanelDraft {
     }
 }
 
+type SkullLossesValueByStage = { kills: number[] }
+
+const SKULL_LOSSES_STAGE_ORDER = ['kills'] as const
+const _skullLossesStagesAreCovered: StagesCover<
+    SkullLossesValueByStage,
+    typeof SKULL_LOSSES_STAGE_ORDER
+> = true
+void _skullLossesStagesAreCovered
+
+/** R-5.5.5 — from revision 7, where the attacker's skulls kill, picked after the roll. */
+export class SkullLossesDraft implements PanelDraft {
+    private flow = new StagedFlow<SkullLossesValueByStage>(SKULL_LOSSES_STAGE_ORDER)
+
+    constructor(private readonly session: OathGameSession) {}
+
+    private get playerId(): string | undefined {
+        const playerId = this.session.liveSeatId
+        return playerId !== undefined &&
+            HydratedCampaignSkullLosses.canDoCampaignSkullLosses(this.session.gameState, playerId)
+            ? playerId
+            : undefined
+    }
+
+    get groups(): WarbandGroup[] {
+        return this.playerId ? HydratedCampaignSkullLosses.sources(this.session.gameState) : []
+    }
+
+    get required(): number {
+        return this.playerId ? HydratedCampaignSkullLosses.skulls(this.session.gameState) : 0
+    }
+
+    get picked(): number[] {
+        const stored = this.flow.value('kills') ?? []
+        return this.groups.map((group, index) => Math.min(stored[index] ?? 0, group.count))
+    }
+
+    get pickedTotal(): number {
+        return total(this.picked)
+    }
+
+    get kills(): WarbandGroup[] {
+        return this.groups
+            .map((group, index) => ({ ...group, count: this.picked[index] ?? 0 }))
+            .filter((group) => group.count > 0)
+    }
+
+    /** "Kill" waits for exactly the skulls. */
+    get complete(): boolean {
+        return this.required > 0 && this.pickedTotal === this.required
+    }
+
+    /** Why the engine refuses the kills as picked, read only once the count is right. */
+    get refusedBecause(): string | undefined {
+        const playerId = this.playerId
+        if (!playerId || !this.complete) return undefined
+        return HydratedCampaignSkullLosses.reasonCannotPick(
+            this.session.gameState,
+            playerId,
+            this.kills
+        )
+    }
+
+    /** A tap on the Nth warband kills N there; a tap on the warband at the count kills none there. */
+    tap(index: number, count: number): void {
+        const group = this.groups[index]
+        if (!group) return
+        const picked = this.picked
+        const next = picked[index] === count ? 0 : Math.max(0, Math.min(count, group.count))
+        this.flow.set('kills', picked.with(index, next))
+    }
+
+    async kill(): Promise<void> {
+        if (!this.playerId || !this.complete || this.refusedBecause !== undefined) return
+        await this.session.chooseSkullLosses(this.kills)
+    }
+
+    hasManualSelection(): boolean {
+        return this.flow.hasManualSelection()
+    }
+
+    back(): boolean {
+        return this.flow.back() !== undefined
+    }
+
+    reset(): void {
+        this.flow.reset()
+    }
+}
+
 function total(counts: readonly number[]): number {
     return counts.reduce((sum, count) => sum + count, 0)
 }
@@ -753,11 +844,13 @@ export class AttackerLossesDraft implements PanelDraft {
         return this.force.length > 1 && this.needed > 0
     }
 
+    /** R-5.5.6 — the half that dies is picked only when the pick can change where the warbands end. */
     get choosesDefeat(): boolean {
         return (
             this.force.length > 1 &&
             this.defeatRequired > 0 &&
-            this.defeatRequired < forceTotal(this.force)
+            this.defeatRequired < forceTotal(this.force) &&
+            defeatPickMatters(this.session.gameState, this.force, this.campaign?.attackerPlayerId)
         )
     }
 

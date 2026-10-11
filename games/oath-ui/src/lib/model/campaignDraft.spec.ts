@@ -95,8 +95,9 @@ describe('choosing targets', () => {
 
 afterEach(disposeSessions)
 
-function campaigning(warbands = 4) {
+function campaigning(warbands = 4, oathRevision?: OathRevision) {
     const state = board()
+    if (oathRevision !== undefined) state.oathRevision = oathRevision
     state.players[0].warbandsOnBoard = { [ME]: warbands }
     state.players[0].advisers = [{ cardId: HUNTER, faceUp: true }]
     state.players[0].adviserIds = [HUNTER]
@@ -309,14 +310,14 @@ describe('the Campaign draft in a Sneak Attack', () => {
     })
 })
 
-/** R-5.5.5, R-10.22 — the attacker orders where the skulls' kills come from. */
+/** R-5.5.5, R-10.22 — before revision 7 the attacker orders where the skulls' kills come from. */
 describe('the skull-loss order', () => {
     it('is asked only for a force of more than one kind, survives the dice, and is declared', async () => {
-        const single = campaigning(3).campaign
+        const single = campaigning(3, OathRevision.UiBatch1).campaign
         single.chooseDefender(FOE_DEFENDS)
         expect(single.lossSources).toHaveLength(1)
 
-        const session = campaigning(3)
+        const session = campaigning(3, OathRevision.UiBatch1)
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -340,6 +341,19 @@ describe('the skull-loss order', () => {
                 ]
             })
         )
+    })
+
+    it('from revision 7 is not asked: the skulls’ losses are picked after the roll, and none is declared', async () => {
+        const session = campaigning(3, OathRevision.EngineFixes3)
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.lossSources).toEqual([])
+        draft.setAttackDice(2)
+        draft.toggleTarget(FOES_RELIC)
+        const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
+        await draft.declare()
+        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ skullLossOrder: undefined }))
     })
 })
 

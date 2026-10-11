@@ -2,6 +2,7 @@ import { mount, tick, unmount } from 'svelte'
 import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
     AnswerQuestion,
+    ActionType,
     Banner,
     CampaignDefend,
     CampaignSacrifice,
@@ -170,6 +171,12 @@ export type TableName =
     | 'tollAsked'
     | 'oracleToll'
     | 'oracleNoFavor'
+    | 'campaignLossOrder'
+    | 'skullLosses'
+    | 'skullLossesTwoSites'
+    | 'sacrificeInTwoPlaces'
+    | 'freeTravelAsked'
+    | 'freeCampaignAsked'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -1280,9 +1287,10 @@ function oathkeeperChoiceTable(): PlayedTable {
 
 /**
  * R-5.5: the seat stands at the Chancellor's site, which the Empire rules, so the Chancellor is
- * the one defender; with the site unheld, the bandits may be attacked too.
+ * the one defender; with the site unheld, the bandits may be attacked too. A board of two owners
+ * is a game from before revision 5, which still declares the skulls' loss order.
  */
-function campaignTable(imperialHeld = true): PlayedTable {
+function campaignTable(imperialHeld = true, twoOwners = false): PlayedTable {
     const site = mapSlotId(Region.Provinces, 0)
     const state = testState(
         [
@@ -1290,7 +1298,7 @@ function campaignTable(imperialHeld = true): PlayedTable {
                 playerId: 'me',
                 color: Color.Red,
                 siteId: site,
-                warbandsOnBoard: { me: 4 }
+                warbandsOnBoard: twoOwners ? { me: 3, [IMPERIAL_WARBANDS]: 1 } : { me: 4 }
             }),
             testPlayer({
                 playerId: 'ann',
@@ -2708,12 +2716,157 @@ function oracleTable(favor: number): PlayedTable {
     return tableOf(state)
 }
 
+const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
+const SECOND_WIND = 'denizen.discord.second-wind'
+
+/** A rolled attack die: a skull face is a skull and two swords (`data/dice.ts`). */
+const SKULL_FACE = { swords: 2, hollowSwords: 0, skulls: 1 }
+const SWORD_FACE = { swords: 1, hollowSwords: 0, skulls: 0 }
+
+/**
+ * R-5.5.5, revision 7 — jacob (the Chancellor) campaigns against cole, his force on his board and at
+ * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for his pick, or,
+ * at `sacrifice`, a battle that needs 3 sacrificed, so the defeat would be the default half.
+ */
+function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedTable {
+    const [here, plains, river] = mapSlotsFor(Region.Provinces)
+    const forceSiteIds = sites === 1 ? [plains] : [plains, river]
+    const skulls = sites === 1 ? 2 : 3
+    const attackRoll = [
+        ...range(0, skulls).map(() => SKULL_FACE),
+        SWORD_FACE,
+        { swords: 0, hollowSwords: 1, skulls: 0 }
+    ]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: here,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: sites === 1 ? 3 : 1 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 }
+            }),
+            testPlayer({
+                playerId: 'cole',
+                color: Color.Red,
+                siteId: here,
+                warbandsOnBoard: { cole: 4 },
+                warbandsInPersonalBank: { cole: 10 }
+            })
+        ],
+        {
+            machineState:
+                step === 'skulls' ? MachineState.CampaignSkullLosses : MachineState.CampaignSacrifice,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            warbandsBySite: Object.fromEntries(
+                forceSiteIds.map((siteId) => [siteId, { [IMPERIAL_WARBANDS]: 2 }])
+            ),
+            campaign: {
+                attackerPlayerId: 'jacob',
+                defenderPlayerId: 'cole',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackPool: attackRoll.length,
+                defensePool: 2,
+                attackRoll,
+                defenseRoll: [
+                    { shields: 1, doubling: false },
+                    { shields: 2, doubling: false }
+                ],
+                defense: 7,
+                swords: step === 'skulls' ? skulls * 2 + 1 : 5,
+                defendingForce: [{ at: { kind: 'board', playerId: 'cole' }, owner: 'cole', count: 4 }],
+                defendingBandits: 0,
+                pendingSkullLosses: step === 'skulls' ? { skulls } : undefined,
+                ...campaignRecords(),
+                forceSiteIds
+            }
+        }
+    )
+    state.oathRevision = OathRevision.EngineFixes3
+    openTurn(state, 'jacob')
+    state.activePlayerIds = ['jacob']
+    return tableOf(state)
+}
+
+/**
+ * Second Wind out of turn, revision 7 — ann won a Sneak Attack during cole's turn with Second Wind,
+ * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at jacob's site, which he rules).
+ */
+function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): PlayedTable {
+    const [tribunal] = mapSlotsFor(Region.Provinces)
+    const [slum] = mapSlotsFor(Region.Hinterland)
+    const travel = action === ActionType.Travel
+    const state = testState(
+        [
+            testPlayer({ playerId: 'cole', color: Color.Red, siteId: tribunal, supply: 1 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                siteId: travel ? tribunal : slum,
+                supply: 2,
+                favor: 3,
+                warbandsOnBoard: { ann: 4 },
+                advisers: [
+                    { cardId: SNEAK_ATTACK, faceUp: true },
+                    { cardId: SECOND_WIND, faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'jacob',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: slum,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'jacob',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            warbandsBySite: { [tribunal]: { ann: 2 }, [slum]: { [IMPERIAL_WARBANDS]: 3 } },
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.FreeActionOutOfTurn,
+                        cardId: SECOND_WIND,
+                        askedPlayerId: 'ann',
+                        action
+                    }
+                ],
+                askingPlayerId: 'cole',
+                resumeMachineState: MachineState.ActPhase
+            },
+            heldTurn: { queue: [], askingPlayerId: 'cole', resumeMachineState: MachineState.ActPhase }
+        }
+    )
+    state.oathRevision = OathRevision.EngineFixes3
+    openTurn(state, 'cole')
+    state.activePlayerIds = ['ann']
+    const ann = state.getPlayerState('ann')
+    if (travel) ann.freeTravelAtAction = state.actionCount
+    ann.freeCampaignAtAction = state.actionCount
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     banditCrown: () => banditCrownTable('citizen'),
     banditCrownChancellor: () => banditCrownTable('chancellor'),
     banditCrownExile: () => banditCrownTable('exile'),
     banditCrownCampaign: () => banditCrownTable('campaign'),
     banditCrownFive: () => banditCrownTable('five'),
+    campaignLossOrder: () => campaignTable(true, true),
+    skullLosses: () => forceInPlacesTable('skulls', 1),
+    skullLossesTwoSites: () => forceInPlacesTable('skulls', 2),
+    sacrificeInTwoPlaces: () => forceInPlacesTable('sacrifice', 1),
+    freeTravelAsked: () => freeActionAskedTable(ActionType.Travel),
+    freeCampaignAsked: () => freeActionAskedTable(ActionType.Campaign),
     warbandGiveAsked: warbandGiveAskedTable,
     offerCitizenship: () => offerCitizenshipTable('two'),
     offerCitizenshipToOne: () => offerCitizenshipTable('one'),

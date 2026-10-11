@@ -5822,3 +5822,243 @@ test.describe('Toll Roads when a power moves another player', () => {
         })
     })
 })
+
+const PLAINS = 'slot.provinces.1'
+const skullPieces = (page: Page, where: string) =>
+    grid(page).getByRole('button', { name: new RegExp(`^kill \\d+ ${where}$`) })
+
+/**
+ * R-5.5.5, revision 7 — after the roll the attacker picks where the skulls kill: one row of warband
+ * pieces per place in the force, ringed rose once picked; "Kill" only at exactly the skulls.
+ */
+test.describe('the skulls’ losses, picked after the roll', () => {
+    test('one row of warbands per place; a tap on the Nth kills N, a tap on the count kills none; Kill only at the total', async ({
+        page
+    }) => {
+        await openTable(page, 'skullLosses')
+        expect((await call(page, 'tableFacts')).seatId).toBe('jacob')
+        await expect(grid(page).locator('h3')).toHaveText('Battle')
+        await expect(grid(page)).toContainText('Skulls: pick 2 to kill.')
+        await expect(grid(page).getByText('on your board', { exact: true })).toBeVisible()
+        await expect(grid(page).getByText('at p2', { exact: true })).toBeVisible()
+        await expect(grid(page)).not.toContainText('Imperial')
+        await expect(skullPieces(page, 'on your board')).toHaveCount(3)
+        await expect(skullPieces(page, 'at p2')).toHaveCount(2)
+        await expect(grid(page).getByRole('button', { name: /^kill 0 / })).toHaveCount(0)
+        for (const piece of await skullPieces(page, '.+').all()) {
+            await expect(piece).toHaveAttribute('aria-pressed', 'false')
+            await expect(piece).not.toHaveAttribute('title')
+            expect(await layoutSizeOf(piece)).toEqual({ width: 34, height: 32 })
+        }
+        const kill = answer(page, 'Kill')
+        await expect(grid(page)).toContainText('Chosen 0 of 2')
+        await expect(kill).toHaveCount(0)
+
+        const board = skullPieces(page, 'on your board')
+        const pressed = async () =>
+            Promise.all((await board.all()).map((piece) => piece.getAttribute('aria-pressed')))
+        await answer(page, 'kill 2 on your board').click()
+        expect(await pressed()).toEqual(['true', 'true', 'false'])
+        await expect(grid(page)).toContainText('Chosen 2 of 2')
+        await expect(kill).toBeVisible()
+        await answer(page, 'kill 2 on your board').click()
+        expect(await pressed()).toEqual(['false', 'false', 'false'])
+        await expect(kill).toHaveCount(0)
+
+        await answer(page, 'kill 1 on your board').click()
+        await answer(page, 'kill 2 at p2').click()
+        await expect(grid(page)).toContainText('Chosen 3 of 2')
+        await expect(kill).toHaveCount(0)
+        await answer(page, 'kill 1 at p2').click()
+        await expect(grid(page)).toContainText('Chosen 2 of 2')
+        await expect(kill).toBeVisible()
+        await kill.click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).machineState)
+            .not.toBe('CampaignSkullLosses')
+        const after = await call(page, 'tableFacts')
+        expect(after.boardOf.jacob).toEqual({ imperial: 2 })
+        expect(after.warbandsAt[PLAINS]).toEqual({ imperial: 1 })
+    })
+
+    test('a picked warband that dies is ringed rose; a given token stays gold', async ({ page }) => {
+        await openTable(page, 'skullLosses')
+        const piece = answer(page, 'kill 1 at p2')
+        await piece.click()
+        await expect(piece).toHaveClass(/ring-oath-danger/)
+        await expect(piece).not.toHaveClass(/ring-oath-accent/)
+        await expect(piece.locator('img')).toHaveCSS('opacity', '1')
+
+        await offerToCole(page)
+        await answer(page, 'you give 1 favor').click()
+        await expect(answer(page, 'you give 1 favor')).toHaveClass(/ring-oath-accent/)
+        await expect(answer(page, 'you give 1 favor')).not.toHaveClass(/ring-oath-danger/)
+    })
+
+    test('Vow of Union: the board and each site it reaches, a row each', async ({ page }) => {
+        await openTable(page, 'skullLossesTwoSites')
+        await expect(grid(page)).toContainText('Skulls: pick 3 to kill.')
+        await expect(skullPieces(page, 'on your board')).toHaveCount(1)
+        await expect(skullPieces(page, 'at p2')).toHaveCount(2)
+        await expect(skullPieces(page, 'at p3')).toHaveCount(2)
+        for (const name of ['kill 1 on your board', 'kill 1 at p2', 'kill 1 at p3']) {
+            await answer(page, name).click()
+        }
+        await expect(grid(page)).toContainText('Chosen 3 of 3')
+        await expect(answer(page, 'Kill')).toBeVisible()
+    })
+
+    test('the defender waits on the attacker', async ({ page }) => {
+        await openTable(page, 'skullLosses')
+        expect(await call(page, 'viewOffTheClock')).toBe('cole')
+        await expectWaitingOn(page, ['jacob'])
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test(`at ${viewport.width}: every warband a 44 px tap target inside the panel, beside its row’s label`, async ({
+            page
+        }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'skullLossesTwoSites')
+            const panel = await boxOf(grid(page))
+            for (const piece of await skullPieces(page, '.+').all()) {
+                expect(await layoutSizeOf(piece)).toEqual({ width: 44, height: 44 })
+                expect(inside(await boxOf(piece), panel), (await piece.getAttribute('aria-label')) ?? '').toBe(true)
+            }
+            const label = await boxOf(grid(page).getByText('at p3', { exact: true }))
+            const first = await boxOf(answer(page, 'kill 1 at p3'))
+            expect(first.x).toBeGreaterThan(label.x + label.width)
+            for (const name of ['kill 1 on your board', 'kill 1 at p2', 'kill 1 at p3']) {
+                await answer(page, name).click()
+            }
+            const kill = answer(page, 'Kill')
+            await kill.scrollIntoViewIfNeeded()
+            expect((await layoutSizeOf(kill))?.height).toBeGreaterThanOrEqual(44)
+            expect(inside(await boxOf(kill), await boxOf(grid(page)))).toBe(true)
+            expect(await clippedLabels(page)).toEqual([])
+        })
+    }
+})
+
+/** The declare's attack dice and, in a game from before revision 7, the skulls' loss order. */
+test.describe('the declare’s dice and loss order', () => {
+    test('before revision 7 the loss order’s ↑ sits beside its row, not at the panel’s edge', async ({ page }) => {
+        await openTable(page, 'campaignLossOrder')
+        await tile(page, 'Campaign').click()
+        await expect(grid(page)).toContainText('Skull losses, in order:')
+        const up = grid(page).getByRole('button', { name: /^Lose .+ sooner$/ })
+        await expect(up).toHaveCount(1)
+        const panel = await boxOf(grid(page))
+        expect((await boxOf(up)).x).toBeLessThan(panel.x + panel.width / 2)
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test(`at ${viewport.width}: each attack die and the loss order’s ↑ are 44 px`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'campaignLossOrder')
+            await tile(page, 'Campaign').last().click()
+            const dice = grid(page).getByRole('button', { name: /attack die \d/ })
+            await expect(dice).toHaveCount(4)
+            for (const die of await dice.all()) {
+                expect(await layoutSizeOf(die)).toEqual({ width: 44, height: 44 })
+            }
+            const up = grid(page).getByRole('button', { name: /^Lose .+ sooner$/ })
+            await up.scrollIntoViewIfNeeded()
+            expect(await layoutSizeOf(up)).toEqual({ width: 44, height: 44 })
+            expect(inside(await boxOf(up), await boxOf(grid(page)))).toBe(true)
+        })
+    }
+})
+
+/** R-5.5.6 — a force of one owner ends on one board whatever dies, so the defeat is not a pick. */
+test('a sacrifice from a force in two places shows no “If you lose” rows; “Sacrifice nothing” at once', async ({
+    page
+}) => {
+    await openTable(page, 'sacrificeInTwoPlaces')
+    await expect(grid(page)).toContainText('To win, sacrifice 3:')
+    await expect(grid(page)).not.toContainText('If you lose')
+    await expect(answer(page, 'Sacrifice nothing')).toBeVisible()
+})
+
+const SLUM = 'slot.hinterland.0'
+
+/**
+ * Second Wind out of turn, revision 7: "After you're victorious, you may travel and then may
+ * campaign, spending no Supply for either." Each is asked first, in the question form with the
+ * card, then opens the action's own panel; Skip gives it up.
+ */
+test.describe('Second Wind out of turn: the free Travel, then the free Campaign', () => {
+    test('"Travel now? Free." opens the lit map; Undo returns to the question; then "Campaign now? Free." opens the declare', async ({
+        page
+    }) => {
+        await openTable(page, 'freeTravelAsked')
+        expect((await call(page, 'tableFacts')).seatId).toBe('ann')
+        await expect.poll(() => turnBar(page)).toEqual(["cole's turn is paused", 'Act Phase'])
+        await expect(question(page)).toHaveText('Travel now? Free.')
+        await expect(grid(page).locator('.question-form').getByRole('img', { name: 'Second Wind' })).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /^(Travel|Skip)$/ })).toHaveCount(2)
+
+        await answer(page, 'Travel').click()
+        // On a desktop too the lit map is Travel's menu.
+        await expect(travelPrompt(page)).toBeVisible()
+        expect(await litSlots(page)).toContain(SLUM)
+        await undoButton(page).click()
+        await expect(question(page)).toHaveText('Travel now? Free.')
+
+        await answer(page, 'Travel').click()
+        await siteCard(page, SLUM).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.ann).toBe(SLUM)
+        await expect(question(page)).toHaveText('Campaign now? Free.')
+        await expect.poll(() => turnBar(page)).toEqual(["cole's turn is paused", 'Act Phase'])
+
+        await answer(page, 'Campaign').click()
+        await expect(grid(page)).toContainText('Against jacob.')
+        await undoButton(page).click()
+        await expect(question(page)).toHaveText('Campaign now? Free.')
+    })
+
+    test('Skip gives up the Travel and asks the Campaign; Skip again resumes the paused turn', async ({ page }) => {
+        await openTable(page, 'freeTravelAsked')
+        await answer(page, 'Skip').click()
+        await expect(question(page)).toHaveText('Campaign now? Free.')
+        expect((await call(page, 'tableFacts')).siteOf.ann).not.toBe(SLUM)
+        await answer(page, 'Skip').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+        expect((await call(page, 'tableFacts')).seatId).toBe('cole')
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn', 'Act Phase'])
+    })
+
+    test('"Campaign now? Free." with its card; Campaign opens the declare on the one legal defender', async ({ page }) => {
+        await openTable(page, 'freeCampaignAsked')
+        await expect(question(page)).toHaveText('Campaign now? Free.')
+        await expect(grid(page).getByRole('button', { name: /^(Campaign|Skip)$/ })).toHaveCount(2)
+        await answer(page, 'Campaign').click()
+        await expect(grid(page)).toContainText('Against jacob.')
+    })
+
+    test('the other seats wait on the holder, and the turn player’s bar reads paused', async ({ page }) => {
+        await openTable(page, 'freeTravelAsked')
+        expect(await call(page, 'viewOffTheClock')).toBe('cole')
+        await expectWaitingOn(page, ['ann'])
+        await expect.poll(() => turnBar(page)).toEqual(['Your turn is paused', 'Act Phase'])
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test(`at ${viewport.width}: the answers 44 px and inside the panel; Travel picks on the lit map`, async ({
+            page
+        }) => {
+            await page.setViewportSize(viewport)
+            await openTable(page, 'freeTravelAsked')
+            const panel = await boxOf(grid(page))
+            for (const name of ['Travel', 'Skip']) {
+                const button = answer(page, name)
+                expect((await layoutSizeOf(button))?.height).toBeGreaterThanOrEqual(44)
+                expect(inside(await boxOf(button), panel)).toBe(true)
+            }
+            expect(await clippedLabels(page)).toEqual([])
+            await answer(page, 'Travel').click()
+            await expect(travelPrompt(page)).toBeVisible()
+            expect((await litSlots(page)).length).toBeGreaterThan(0)
+        })
+    }
+})
