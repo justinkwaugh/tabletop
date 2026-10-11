@@ -4,7 +4,6 @@ import {
     type StellarHorizonsProjectedState
 } from '../model/gameState.js'
 import { HydratedBuildShip, isBuildShip } from '../actions/buildShip.js'
-import { HydratedBuySettlements, isBuySettlements } from '../actions/buySettlements.js'
 import { HydratedChooseFaction, isChooseFaction } from '../actions/chooseFaction.js'
 import { HydratedChooseSurveyWorld, isChooseSurveyWorld } from '../actions/chooseSurveyWorld.js'
 import {
@@ -16,7 +15,6 @@ import { HydratedDevelopTech, isDevelopTech } from '../actions/developTech.js'
 import { HydratedEndStep, isEndStep } from '../actions/endStep.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
-import { HydratedLoadSettlement, isLoadSettlement } from '../actions/loadSettlement.js'
 import { HydratedMoveShip, isMoveShip } from '../actions/moveShip.js'
 import { HydratedPassTerraform, isPassTerraform } from '../actions/passTerraform.js'
 import { HydratedRepairShip, isRepairShip } from '../actions/repairShip.js'
@@ -24,11 +22,7 @@ import { HydratedResolveSurvey, isResolveSurvey } from '../actions/resolveSurvey
 import { HydratedScrapShip, isScrapShip } from '../actions/scrapShip.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
-import {
-    HydratedTransferSettlements,
-    isTransferSettlements
-} from '../actions/transferSettlements.js'
-import { HydratedUnloadSettlements, isUnloadSettlements } from '../actions/unloadSettlements.js'
+import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
 
 export class StellarHorizonsHydrator implements GameHydrator<
     StellarHorizonsProjectedState,
@@ -48,14 +42,8 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedScrapShip(data)
             case isCloneSettlement(data):
                 return new HydratedCloneSettlement(data)
-            case isBuySettlements(data):
-                return new HydratedBuySettlements(data)
-            case isLoadSettlement(data):
-                return new HydratedLoadSettlement(data)
-            case isTransferSettlements(data):
-                return new HydratedTransferSettlements(data)
-            case isUnloadSettlements(data):
-                return new HydratedUnloadSettlements(data)
+            case isTransferCargo(data):
+                return new HydratedTransferCargo(data)
             case isMoveShip(data):
                 return new HydratedMoveShip(data)
             case isExplore(data):

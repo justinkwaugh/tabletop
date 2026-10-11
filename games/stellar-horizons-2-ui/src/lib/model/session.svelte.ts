@@ -3,7 +3,6 @@ import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     BuildShip,
-    BuySettlements,
     ChooseFaction,
     ChooseSurveyWorld,
     ChooseTerraformWorld,
@@ -11,7 +10,6 @@ import {
     DevelopTech,
     EndStep,
     Explore,
-    LoadSettlement,
     MachineState,
     MoveShip,
     PassTerraform,
@@ -19,13 +17,17 @@ import {
     RepairShip,
     ScrapShip,
     Terraform,
-    TransferSettlements,
+    TransferCargo,
     TurnStep,
-    UnloadSettlements,
     canExplore,
+    cargoPartners,
+    cargoTransferLimits,
+    carriesCargo,
     hasArrived,
     isTechAvailable,
     moveOptions,
+    sameCargoPartner,
+    type CargoPartner,
     type Faction,
     type HydratedStellarHorizonsGameState,
     type MoveOption,
@@ -48,6 +50,11 @@ const SHIP_SELECTION_STEPS: readonly TurnStep[] = [
     TurnStep.Exploration
 ]
 
+interface CargoDraft {
+    partner: CargoPartner
+    settlements: number
+}
+
 export interface ShipClump {
     systemId: string
     playerId: string
@@ -59,6 +66,7 @@ export class StellarHorizonsGameSession extends GameSession<
     HydratedStellarHorizonsGameState
 > {
     private selection: Selection | undefined = $state()
+    private cargoDraft: CargoDraft | undefined = $state()
     private inspected: { systemId: string; playerId: string } | undefined = $state()
     private focus: { systemId: string; closing: boolean } | undefined = $state()
 
@@ -93,6 +101,35 @@ export class StellarHorizonsGameSession extends GameSession<
             return undefined
         }
         return isTechAvailable(this.gameState, playerId, techId) ? techId : undefined
+    })
+
+    cargoShip: ShipState | undefined = $derived.by(() => {
+        const ship = this.selectedShip
+        return ship && this.actingStep === TurnStep.Cargo && carriesCargo(this.gameState, ship)
+            ? ship
+            : undefined
+    })
+
+    cargoPartners: CargoPartner[] = $derived(
+        this.cargoShip ? cargoPartners(this.gameState, this.cargoShip) : []
+    )
+
+    cargoPartner: CargoPartner | undefined = $derived.by(() => {
+        const chosen = this.cargoDraft?.partner
+        const kept = chosen
+            ? this.cargoPartners.find((partner) => sameCargoPartner(partner, chosen))
+            : undefined
+        return kept ?? this.cargoPartners.at(0)
+    })
+
+    draftedSettlements: number = $derived.by(() => {
+        const ship = this.cargoShip
+        const partner = this.cargoPartner
+        const draft = this.cargoDraft
+        if (!ship || !partner || !draft || !sameCargoPartner(draft.partner, partner)) {
+            return 0
+        }
+        return this.isWithinCargoLimits(ship, partner, draft.settlements) ? draft.settlements : 0
     })
 
     moveTargets: MoveOption[] = $derived.by(() => {
@@ -182,17 +219,68 @@ export class StellarHorizonsGameSession extends GameSession<
     }
 
     selectShip(shipId: string) {
-        this.selection =
-            selectedShipId(this.selection) === shipId ? undefined : shipSelection(shipId)
+        this.select(selectedShipId(this.selection) === shipId ? undefined : shipSelection(shipId))
+    }
+
+    // Choosing a ship from the action panel also shows where it is: the map zooms into its
+    // system. Choosing it again clears the choice and returns to the map.
+    locateShip(shipId: string) {
+        const playerId = this.myPlayerId
+        const ship = playerId ? this.gameState.playerShip(playerId, shipId) : undefined
+        if (!ship) {
+            return
+        }
+        if (selectedShipId(this.selection) === shipId) {
+            this.select(undefined)
+            this.leaveFocus()
+            return
+        }
+        this.select(shipSelection(shipId))
+        this.focusSystem(ship.systemId)
     }
 
     selectTech(techId: TechId) {
-        this.selection =
-            selectedTechId(this.selection) === techId ? undefined : techSelection(techId)
+        this.select(selectedTechId(this.selection) === techId ? undefined : techSelection(techId))
     }
 
     clearSelection() {
-        this.selection = undefined
+        this.select(undefined)
+    }
+
+    chooseCargoPartner(partner: CargoPartner) {
+        this.cargoDraft = { partner, settlements: 0 }
+    }
+
+    draftCargo(direction: 1 | -1) {
+        const ship = this.cargoShip
+        const partner = this.cargoPartner
+        if (!ship || !partner) {
+            return
+        }
+        const settlements = this.draftedSettlements + direction
+        if (this.isWithinCargoLimits(ship, partner, settlements)) {
+            this.cargoDraft = { partner, settlements }
+        }
+    }
+
+    async commitCargoDraft() {
+        const ship = this.cargoShip
+        const partner = this.cargoPartner
+        const settlements = this.draftedSettlements
+        if (!ship || !partner || settlements === 0) {
+            return
+        }
+        this.cargoDraft = { partner, settlements: 0 }
+        await this.commit(
+            ActionType.TransferCargo,
+            this.inTurn(
+                this.createPlayerAction(TransferCargo, {
+                    shipId: ship.shipId,
+                    partner,
+                    settlements
+                })
+            )
+        )
     }
 
     override async undo() {
@@ -204,7 +292,21 @@ export class StellarHorizonsGameSession extends GameSession<
     }
 
     resetAction() {
-        this.selection = undefined
+        this.select(undefined)
+    }
+
+    private select(selection: Selection | undefined) {
+        this.selection = selection
+        this.cargoDraft = undefined
+    }
+
+    private isWithinCargoLimits(
+        ship: ShipState,
+        partner: CargoPartner,
+        settlements: number
+    ): boolean {
+        const limits = cargoTransferLimits(this.gameState, ship, partner)
+        return settlements <= limits.load && -settlements <= limits.unload
     }
 
     private inTurn(action: GameAction): GameAction {
@@ -255,36 +357,6 @@ export class StellarHorizonsGameSession extends GameSession<
         )
     }
 
-    async buySettlements(shipId: string, count: number) {
-        await this.commit(
-            ActionType.BuySettlements,
-            this.inTurn(this.createPlayerAction(BuySettlements, { shipId, count }))
-        )
-    }
-
-    async loadSettlement(shipId: string) {
-        await this.commit(
-            ActionType.LoadSettlement,
-            this.inTurn(this.createPlayerAction(LoadSettlement, { shipId }))
-        )
-    }
-
-    async transferSettlements(fromShipId: string, toShipId: string, count: number) {
-        await this.commit(
-            ActionType.TransferSettlements,
-            this.inTurn(
-                this.createPlayerAction(TransferSettlements, { fromShipId, toShipId, count })
-            )
-        )
-    }
-
-    async unloadSettlements(shipId: string, count: number) {
-        await this.commit(
-            ActionType.UnloadSettlements,
-            this.inTurn(this.createPlayerAction(UnloadSettlements, { shipId, count }))
-        )
-    }
-
     async moveSelectedShip(systemId: string) {
         const ship = this.selectedShip
         if (!ship || !this.moveTargets.some((target) => target.systemId === systemId)) {
@@ -323,6 +395,10 @@ export class StellarHorizonsGameSession extends GameSession<
             ActionType.EndStep,
             this.inTurn(this.createPlayerAction(EndStep, { step }))
         )
+        // Movement starts from the whole map, so every destination is in view.
+        if (this.myStep === TurnStep.Movement) {
+            this.leaveFocus()
+        }
     }
 
     async chooseSurveyWorld(slot: number | undefined) {

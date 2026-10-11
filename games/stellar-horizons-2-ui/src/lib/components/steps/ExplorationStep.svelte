@@ -46,7 +46,12 @@
     <div class="cards">
         {#each explorers as ship (ship.shipId)}
             {@const value = explorationValue(gameState, ship)}
-            <ShipTile ship={shipDefinition(ship.shipId)}>
+            <ShipTile
+                ship={shipDefinition(ship.shipId)}
+                selected={gameSession.selectedShip?.shipId === ship.shipId}
+                label="Show {shipDefinition(ship.shipId).name} at {systemName(ship.systemId)}"
+                onclick={() => gameSession.locateShip(ship.shipId)}
+            >
                 <div class="stats" title={odds(value)}>
                     {systemName(ship.systemId)} · {value}
                 </div>

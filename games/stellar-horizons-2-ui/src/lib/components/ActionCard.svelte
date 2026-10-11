@@ -21,7 +21,5 @@
         background: #0f1626;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
         padding: 6px 12px 8px;
-        max-height: 34dvh;
-        overflow-y: auto;
     }
 </style>

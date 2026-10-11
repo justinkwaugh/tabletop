@@ -12,7 +12,7 @@ import {
 } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
-import { drawTechMarkers } from './pools.js'
+import { awardTechMarkers } from './pools.js'
 
 export const SEVERE_MALFUNCTION_ROLL = 10
 export const EXPLORATION_STEP = 10
@@ -20,7 +20,8 @@ export const EXPLORATION_STEP = 10
 export type CompensationMarkers = Type.Static<typeof CompensationMarkers>
 export const CompensationMarkers = Type.Object({
     [TechField.Biology]: Type.Optional(Type.Array(Type.Number())),
-    [TechField.Engineering]: Type.Optional(Type.Array(Type.Number()))
+    [TechField.Engineering]: Type.Optional(Type.Array(Type.Number())),
+    cash: Type.Optional(Type.Number())
 })
 
 export type ExplorationResult = Type.Static<typeof ExplorationResult>
@@ -30,6 +31,7 @@ export const ExplorationResult = Type.Object({
     explorationValue: Type.Number(),
     rewardRoll: Type.Optional(Type.Number()),
     markers: Type.Array(Type.Number()),
+    cash: Type.Optional(Type.Number()),
     malfunctionRate: Type.Number(),
     malfunctionRoll: Type.Number(),
     damage: Type.Number(),
@@ -99,8 +101,7 @@ export function explore(
     const markerCount =
         Math.floor(value / EXPLORATION_STEP) +
         (rewardRoll !== undefined && rewardRoll <= remainder ? 1 : 0)
-    const markers = drawTechMarkers(state, field, markerCount)
-    state.getPlayerState(ship.playerId).techMarkers[field].push(...markers)
+    const { markers, cash } = awardTechMarkers(state, ship.playerId, field, markerCount)
     ship.explored = true
 
     const surveyTotal = markers.reduce((total, marker) => total + marker, 0)
@@ -110,6 +111,7 @@ export function explore(
         explorationValue: value,
         rewardRoll,
         markers,
+        ...(cash > 0 ? { cash } : {}),
         malfunctionRate: rate,
         malfunctionRoll,
         damage: 0,

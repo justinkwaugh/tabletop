@@ -1,108 +1,96 @@
 <script lang="ts">
     import {
-        canLoadFromBase,
-        canUnload,
-        capabilitiesOf,
-        cargoCapacity,
-        freeCargo,
+        CargoPartnerKind,
+        carriesCargo,
         hasArrived,
-        settlementPurchaseLimit,
-        shipDefinition,
-        transferPartners
+        shipDefinition
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { cargoTransferView } from '$lib/utils/cargoTransferView.js'
     import { systemName } from '$lib/utils/presentation.js'
+    import CargoHold from '../CargoHold.svelte'
     import ShipTile from '../ShipTile.svelte'
+    import CargoTransfer from './CargoTransfer.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
     const playerId = $derived(gameSession.myPlayerId ?? '')
-    const capabilities = $derived(capabilitiesOf(gameState, playerId))
     const carriers = $derived(
         gameState
             .shipsOf(playerId)
-            .filter(
-                (ship) =>
-                    hasArrived(ship) && (cargoCapacity(gameState, ship) > 0 || ship.settlements > 0)
-            )
+            .filter((ship) => hasArrived(ship) && carriesCargo(gameState, ship))
     )
-    const settleRule = $derived(
-        capabilities.settleHabitability === undefined
-            ? 'You cannot settle other systems yet.'
-            : capabilities.settleHabitability === 0
-              ? 'You can settle any system with a revealed world.'
-              : `You can settle systems with ${capabilities.settleHabitability}%+ habitability and a revealed world.`
+    const cargoShip = $derived(gameSession.cargoShip)
+    const partner = $derived(gameSession.cargoPartner)
+    const view = $derived(
+        cargoShip && partner
+            ? cargoTransferView(gameState, cargoShip, partner, gameSession.draftedSettlements)
+            : undefined
     )
+
+    // A hold shows the draft: the chosen ship's, and its partner's when that is a ship.
+    function carried(shipId: string, settlements: number): number {
+        if (!view) {
+            return settlements
+        }
+        if (shipId === cargoShip?.shipId) {
+            return view.shipSettlements
+        }
+        return partner?.kind === CargoPartnerKind.Ship && partner.shipId === shipId
+            ? (view.partnerSettlements ?? settlements)
+            : settlements
+    }
 </script>
 
 <div class="sh-step">
-    <p class="hint">
-        Settlements cost ${capabilities.settlementCost}B at Sol. {settleRule}
-    </p>
-    <div class="cards">
-        {#each carriers as ship (ship.shipId)}
-            {@const purchase = settlementPurchaseLimit(gameState, ship)}
-            {@const partners = transferPartners(gameState, ship)}
-            <ShipTile ship={shipDefinition(ship.shipId)}>
-                <div class="stats">
-                    At {systemName(ship.systemId)} · cargo {ship.settlements}/{cargoCapacity(
-                        gameState,
-                        ship
-                    )}
-                </div>
-                <div class="buttons">
-                    {#if purchase > 0}
-                        <button
-                            type="button"
-                            onclick={() => gameSession.buySettlements(ship.shipId, 1)}
-                            >Buy 1 (${capabilities.settlementCost}B)</button
-                        >
-                        {#if purchase > 1}
-                            <button
-                                type="button"
-                                onclick={() => gameSession.buySettlements(ship.shipId, purchase)}
-                                >Buy {purchase} (${purchase * capabilities.settlementCost}B)</button
-                            >
-                        {/if}
-                    {/if}
-                    {#if canUnload(gameState, ship)}
-                        <button
-                            type="button"
-                            class="primary"
-                            onclick={() =>
-                                gameSession.unloadSettlements(ship.shipId, ship.settlements)}
-                            >Unload {ship.settlements}</button
-                        >
-                        {#if ship.settlements > 1}
-                            <button
-                                type="button"
-                                onclick={() => gameSession.unloadSettlements(ship.shipId, 1)}
-                                >Unload 1</button
-                            >
-                        {/if}
-                    {/if}
-                    {#if canLoadFromBase(gameState, ship)}
-                        <button
-                            type="button"
-                            onclick={() => gameSession.loadSettlement(ship.shipId)}
-                            >Load 1 from base</button
-                        >
-                    {/if}
-                    {#if ship.settlements > 0}
-                        {#each partners as partner (partner.shipId)}
-                            <button
-                                type="button"
-                                disabled={freeCargo(gameState, partner) === 0}
-                                onclick={() =>
-                                    gameSession.transferSettlements(ship.shipId, partner.shipId, 1)}
-                                >Move 1 to {shipDefinition(partner.shipId).name}</button
-                            >
-                        {/each}
-                    {/if}
-                </div>
-            </ShipTile>
-        {:else}
-            <p class="empty">No cargo ships are ready.</p>
-        {/each}
+    <div class="prompt">
+        Choose a ship to load or unload
+        <span class="cash">${gameState.getPlayerState(playerId).cash}B available</span>
+    </div>
+    <div class="columns">
+        <div class="cards">
+            {#each carriers as ship (ship.shipId)}
+                <ShipTile
+                    ship={shipDefinition(ship.shipId)}
+                    named={false}
+                    selected={gameSession.selectedShip?.shipId === ship.shipId}
+                    label="Transfer cargo on {shipDefinition(ship.shipId).name} at {systemName(
+                        ship.systemId
+                    )}"
+                    onclick={() => gameSession.locateShip(ship.shipId)}
+                >
+                    <CargoHold
+                        {gameState}
+                        {ship}
+                        carried={carried(ship.shipId, ship.settlements)}
+                        showEmpty
+                    />
+                </ShipTile>
+            {:else}
+                <p class="empty">No cargo ships are ready.</p>
+            {/each}
+        </div>
+
+        {#if cargoShip && partner && view}
+            <CargoTransfer ship={cargoShip} {partner} {view} />
+        {:else if cargoShip}
+            <p class="empty">Nothing to load or unload at {systemName(cargoShip.systemId)}.</p>
+        {/if}
     </div>
 </div>
+
+<style>
+    .columns {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px 18px;
+    }
+
+    @media (max-width: 639px) {
+        .columns {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>

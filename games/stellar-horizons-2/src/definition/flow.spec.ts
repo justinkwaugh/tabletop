@@ -1,31 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { GameResult, assertExists, type Game } from '@tabletop/common'
+import { GameResult, type Game } from '@tabletop/common'
 import { TechId } from '../components/techs.js'
 import { WorldClass, WorldSide, maxPopulation, worldTile } from '../components/worlds.js'
 import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
+import { CargoPartnerKind } from '../model/cargoTransfer.js'
 import { TurnStep } from '../model/turn.js'
-import { execute, hydrate, startedGame, userAction } from '../testing/fixtures.js'
+import { edit, execute, hydrate, startedGame, takeTile, userAction } from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
-
-function edit(
-    state: StellarHorizonsProjectedState,
-    change: (state: HydratedStellarHorizonsGameState) => void
-): StellarHorizonsProjectedState {
-    const hydrated = hydrate(state)
-    change(hydrated)
-    return hydrated.dehydrate()
-}
-
-function takeTile(state: HydratedStellarHorizonsGameState, predicate: (id: string) => boolean) {
-    const tileId = state.worldPool.find(predicate)
-    assertExists(tileId, 'No matching tile in the pool')
-    state.worldPool.splice(state.worldPool.indexOf(tileId), 1)
-    return tileId
-}
 
 function finishDecade(game: Game, state: StellarHorizonsProjectedState) {
     let current = state
@@ -77,9 +62,10 @@ describe('Footfall turn flow', () => {
         state = execute(
             game,
             state,
-            userAction(game, first, ActionType.UnloadSettlements, {
+            userAction(game, first, ActionType.TransferCargo, {
                 shipId: 'starfarers-andromeda',
-                count: 1
+                partner: { kind: CargoPartnerKind.Base },
+                settlements: -1
             })
         )
         state = finishDecade(game, state)
@@ -185,5 +171,48 @@ describe('Footfall turn flow', () => {
         expect(after.systemState('alpha-centauri').worlds[0].side).toBe(WorldSide.II)
         expect(after.year).toBe(2170)
         expect(after.getPlayerState(second).step).toBe(TurnStep.Build)
+    })
+
+    it("ends the movement step once none of the player's ships can move", () => {
+        const { game, state: started } = startedGame(2)
+        const [first] = started.turnManager.turnOrder
+        const probe = (shipId: string) => ({
+            shipId,
+            playerId: first,
+            systemId: 'sol',
+            transit: 0,
+            damage: 0,
+            settlements: 0,
+            loadedFromBase: false,
+            explored: false
+        })
+        let state = edit(started, (hydrated) => {
+            hydrated.ships.push(probe('starfarers-kepler'), probe('starfarers-copernicus'))
+            hydrated.getPlayerState(first).step = TurnStep.Movement
+        })
+        const move = (shipId: string) =>
+            execute(
+                game,
+                state,
+                userAction(game, first, ActionType.MoveShip, { shipId, systemId: 'alpha-centauri' })
+            )
+        state = move('starfarers-kepler')
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
+        state = move('starfarers-copernicus')
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+    })
+
+    it('skips the movement step for a player with nothing to move', () => {
+        const { game, state: started } = startedGame(2)
+        const [first] = started.turnManager.turnOrder
+        let state = edit(started, (hydrated) => {
+            hydrated.getPlayerState(first).step = TurnStep.Cargo
+        })
+        state = execute(
+            game,
+            state,
+            userAction(game, first, ActionType.EndStep, { step: TurnStep.Cargo })
+        )
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
     })
 })

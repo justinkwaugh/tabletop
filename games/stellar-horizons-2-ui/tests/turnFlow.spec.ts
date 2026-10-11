@@ -56,7 +56,7 @@ async function createGame(page: Page) {
 }
 
 function shipTile(page: Page, name: string) {
-    return page.locator('.ship-tile', { hasText: name })
+    return page.locator(`.ship-tile[title^="${name}:"]`)
 }
 
 const selectedShipId = (page: Page) =>
@@ -64,7 +64,7 @@ const selectedShipId = (page: Page) =>
 const actionCount = (page: Page) => page.evaluate(() => window.stellarSession.actions.length)
 
 async function buildProbeAndReachMovement(page: Page) {
-    await shipTile(page, 'Kepler').getByRole('button', { name: '$5B' }).click()
+    await page.getByRole('button', { name: 'Build Kepler at Sol for $5B' }).click()
     await expect(clump(page, /^The Starfarers at Sol: 1 ship$/)).toBeVisible()
     await page.getByRole('button', { name: 'Done building' }).click()
     await page.getByRole('button', { name: 'Done with cargo' }).click()
@@ -77,7 +77,7 @@ test('a chosen ship shows its destinations and moves from the map', async ({ pag
     await shipTile(page, 'Kepler').getByRole('button').first().click()
     await expect.poll(() => selectedShipId(page)).toBe('starfarers-kepler')
     await expect(page.getByRole('button', { name: 'Move to Alpha Centauri' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Alpha Centauri \(2 turns\)$/ })).toBeVisible()
+    await expect(page.getByText('Choose a highlighted destination on the map')).toBeVisible()
 
     await page.getByRole('button', { name: 'Move to Alpha Centauri' }).click()
     await expect
@@ -87,6 +87,7 @@ test('a chosen ship shows its destinations and moves from the map', async ({ pag
         .toBe(2)
     await expect.poll(() => selectedShipId(page)).toBeUndefined()
     await expect(page.getByRole('button', { name: 'Move to Alpha Centauri' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Done exploring' })).toBeVisible()
 })
 
 test('Undo clears a chosen ship before undoing any action', async ({ page }) => {
@@ -116,7 +117,6 @@ test('a tech chosen on the chart is paid for with suggested markers', async ({ p
     await createGame(page)
     await page.getByRole('button', { name: 'Done building' }).click()
     await page.getByRole('button', { name: 'Done with cargo' }).click()
-    await page.getByRole('button', { name: 'Done moving' }).click()
     await page.getByRole('button', { name: 'Done exploring' }).click()
     await page
         .getByRole('button', { name: 'Improved Interstellar Settlement', exact: true })
@@ -170,8 +170,8 @@ const strip = (page: Page) => page.locator('[aria-label="Ships here"]')
 
 test('clicking a clump shows all its ships in a strip, and closes again', async ({ page }) => {
     await createGame(page)
-    await shipTile(page, 'Kepler').getByRole('button', { name: '$5B' }).click()
-    await shipTile(page, 'Andromeda').getByRole('button', { name: '$7B' }).click()
+    await page.getByRole('button', { name: 'Build Kepler at Sol for $5B' }).click()
+    await page.getByRole('button', { name: 'Build Andromeda at Sol for $7B' }).click()
     const starfarers = clump(page, /^The Starfarers at Sol: 2 ships$/)
     await starfarers.hover()
     await expect(strip(page)).toHaveCount(0)
@@ -277,4 +277,81 @@ test('a ship can be chosen from the zoomed system panel', async ({ page }) => {
     await panel.getByRole('button', { name: /Kepler/ }).click()
     await expect.poll(() => selectedShipId(page)).toBe('starfarers-kepler')
     await expect(panel).toBeVisible()
+})
+
+async function buildAndReachCargo(page: Page, ...ships: string[]) {
+    for (const ship of ships) {
+        const build = page.getByRole('button', { name: new RegExp(`^Build ${ship} at Sol`) })
+        await build.click()
+        await expect(build).toHaveCount(0)
+    }
+    await page.getByRole('button', { name: 'Done building' }).click()
+    await expect(page.getByRole('button', { name: 'Done with cargo' })).toBeVisible()
+}
+
+const settlementsAboard = (page: Page, shipId: string) =>
+    page.evaluate((id) => window.stellarSession.gameState.ship(id).settlements, shipId)
+const loadOne = (page: Page) => page.getByRole('button', { name: 'One settlement onto the ship' })
+
+test('cargo is drafted with the arrows and committed as one transfer', async ({ page }) => {
+    await createGame(page)
+    await buildAndReachCargo(page, 'Andromeda')
+    const before = await actionCount(page)
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await loadOne(page).click()
+    await loadOne(page).click()
+    await expect(page.getByTestId('cargo-on-ship')).toHaveText('2')
+    await expect(page.getByText('Pay $10B')).toBeVisible()
+    await expect(loadOne(page)).toBeDisabled()
+    expect(await actionCount(page)).toBe(before)
+    expect(await settlementsAboard(page, 'starfarers-andromeda')).toBe(0)
+
+    await page.getByRole('button', { name: 'Commit', exact: true }).click()
+    await expect.poll(() => settlementsAboard(page, 'starfarers-andromeda')).toBe(2)
+    expect(await actionCount(page)).toBe(before + 1)
+    await expect(page.getByText('No changes')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Commit', exact: true })).toBeDisabled()
+})
+
+test('Undo discards a cargo draft before undoing any action', async ({ page }) => {
+    await createGame(page)
+    await buildAndReachCargo(page, 'Andromeda')
+    const before = await actionCount(page)
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await loadOne(page).click()
+    await page.getByRole('button', { name: 'UNDO' }).click()
+    await expect.poll(() => selectedShipId(page)).toBeUndefined()
+    await expect(loadOne(page)).toHaveCount(0)
+    expect(await actionCount(page)).toBe(before)
+
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await expect(page.getByTestId('cargo-on-ship')).toHaveText('0')
+})
+
+test('choosing another destination discards the cargo draft', async ({ page }) => {
+    await createGame(page)
+    await buildAndReachCargo(page, 'Andromeda', 'Discovery')
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await loadOne(page).click()
+    await expect(page.getByText('Pay $5B')).toBeVisible()
+    await page
+        .getByRole('group', { name: 'Destination' })
+        .getByRole('button', { name: 'Discovery' })
+        .click()
+    await expect(page.getByText('No changes')).toBeVisible()
+    await expect(page.getByTestId('cargo-on-ship')).toHaveText('0')
+    await expect(page.getByTestId('cargo-at-partner')).toHaveText('0')
+})
+
+test('entering the movement step zooms back out to the whole map', async ({ page }) => {
+    await createGame(page)
+    await buildAndReachCargo(page, 'Andromeda')
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toBeVisible()
+    await page.getByRole('button', { name: 'Done with cargo' }).click()
+    await expect(page.getByText('Choose a ship to move')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toHaveCount(0)
+    await expect
+        .poll(() => page.evaluate(() => window.stellarSession.focusedSystemId))
+        .toBeUndefined()
 })

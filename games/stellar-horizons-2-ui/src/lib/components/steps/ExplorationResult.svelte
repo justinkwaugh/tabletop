@@ -17,8 +17,9 @@
         {#each result.markers as value, index (index)}
             <TechMarker field={result.field} {value} size={26} />
         {:else}
-            <span>no markers</span>
+            {#if !result.cash}<span>no markers</span>{/if}
         {/each}
+        {#if result.cash}<span>${result.cash}B (pool empty)</span>{/if}
         {#if result.survey}<span class="good">enough for a survey</span>{/if}
         {#if result.destroyed}
             <span class="bad">malfunction ({result.malfunctionRoll}%): ship lost</span>

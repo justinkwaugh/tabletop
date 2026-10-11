@@ -11,7 +11,9 @@
 
     const APPROACHING_FILL = 'rgba(0,0,0,0.55)'
     const PROBE_SCALE = 0.8
+    const PROBE_DIAMOND = 1.2
     const DAMAGE_GAP = 1
+    const SELECTION_GAP = 5
 
     let {
         ship,
@@ -52,19 +54,33 @@
             .join(' ')
     }
     const selected = $derived(gameSession.selectedShip?.shipId === ship.shipId)
+    const probeTip = $derived(r * PROBE_DIAMOND)
 </script>
 
 <g class="pip" transform="translate({x} {y})">
     {#if selected}
-        <circle r={r + 6} class="selection"></circle>
+        {#if definition.kind === ShipKind.RE}
+            {@const tip = probeTip + SELECTION_GAP * Math.SQRT2}
+            <polygon points="0,{-tip} {tip},0 0,{tip} {-tip},0" class="selection"></polygon>
+        {:else}
+            <rect
+                x={-halfSide - SELECTION_GAP}
+                y={-halfSide - SELECTION_GAP}
+                width={(halfSide + SELECTION_GAP) * 2}
+                height={(halfSide + SELECTION_GAP) * 2}
+                rx={r * 0.32 + SELECTION_GAP}
+                class="selection"
+            ></rect>
+        {/if}
     {/if}
     {#if definition.kind === ShipKind.RE}
-        <circle
-            {r}
+        <polygon
+            points="0,{-probeTip} {probeTip},0 0,{probeTip} {-probeTip},0"
             fill={approaching ? APPROACHING_FILL : fill}
             stroke={approaching ? fill : outline}
             stroke-width={approaching ? 3 : 2.5}
-        ></circle>
+            stroke-linejoin="round"
+        ></polygon>
         <circle r={r * 0.5} stroke-width={Math.max(1.2, r * 0.08)} class="exploration"></circle>
         <text y={r * 0.22} text-anchor="middle" font-size={r * 0.62} class="exploration-value"
             >{definition.exploration}</text
@@ -133,7 +149,8 @@
     .selection {
         fill: none;
         stroke: #ffd65a;
-        stroke-width: 4px;
+        stroke-width: 3px;
+        stroke-linejoin: round;
     }
 
     .size {

@@ -35,6 +35,28 @@ export function drawTechMarkers(
     return drawn
 }
 
+export const EMPTY_POOL_CASH = 1
+
+export interface TechMarkerAward {
+    markers: number[]
+    cash: number
+}
+
+// A marker that cannot be drawn because its pool is empty is paid as cash instead.
+export function awardTechMarkers(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    field: TechField,
+    count: number
+): TechMarkerAward {
+    const player = state.getPlayerState(playerId)
+    const markers = drawTechMarkers(state, field, count)
+    const cash = (count - markers.length) * EMPTY_POOL_CASH
+    player.techMarkers[field].push(...markers)
+    player.cash += cash
+    return { markers, cash }
+}
+
 export function returnTechMarkers(
     state: HydratedStellarHorizonsGameState,
     field: TechField,

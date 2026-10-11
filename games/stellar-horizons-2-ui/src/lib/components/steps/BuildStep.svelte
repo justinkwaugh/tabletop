@@ -28,20 +28,31 @@
 </script>
 
 <div class="sh-step">
-    <div class="section-title">Shipyard <span class="cash">${cash}B available</span></div>
+    {#if available.length > 0}
+        <div class="prompt">
+            Choose a ship to build <span class="cash">${cash}B available</span>
+        </div>
+    {:else}
+        <div class="section-title">Shipyard</div>
+    {/if}
     <div class="cards">
         {#each available as ship (ship.id)}
-            <ShipTile {ship}>
-                {#each buildLocations(gameState, playerId, ship.id) as systemId (systemId)}
+            {@const [home, ...elsewhere] = buildLocations(gameState, playerId, ship.id)}
+            <ShipTile
+                {ship}
+                named={false}
+                label="Build {ship.name} at {systemName(home)} for ${ship.cost}B"
+                disabled={ship.cost > cash}
+                onclick={() => gameSession.buildShip(ship.id, home)}
+            >
+                <div class="cost" class:short={ship.cost > cash}>${ship.cost}B</div>
+                {#each elsewhere as systemId (systemId)}
                     <button
                         type="button"
                         disabled={ship.cost > cash}
-                        title={systemId === 'sol'
-                            ? 'Build at Sol'
-                            : `Build at ${systemName(systemId)}`}
                         onclick={() => gameSession.buildShip(ship.id, systemId)}
                     >
-                        ${ship.cost}B{systemId === 'sol' ? '' : ` · ${systemName(systemId)}`}
+                        at {systemName(systemId)}
                     </button>
                 {/each}
             </ShipTile>

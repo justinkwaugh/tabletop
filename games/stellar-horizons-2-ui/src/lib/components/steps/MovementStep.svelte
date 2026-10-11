@@ -1,7 +1,7 @@
 <script lang="ts">
     import { hasArrived, moveOptions, shipDefinition } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { plural, systemName } from '$lib/utils/presentation.js'
+    import CargoHold from '../CargoHold.svelte'
     import ShipTile from '../ShipTile.svelte'
 
     const gameSession = getGameSession()
@@ -16,33 +16,23 @@
 </script>
 
 <div class="sh-step">
+    {#if ready.length > 0}
+        <div class="prompt">
+            {selected ? 'Choose a highlighted destination on the map' : 'Choose a ship to move'}
+        </div>
+    {/if}
     <div class="cards">
         {#each ready as ship (ship.shipId)}
             <ShipTile
                 ship={shipDefinition(ship.shipId)}
+                named={false}
                 selected={selected?.shipId === ship.shipId}
                 onclick={() => gameSession.selectShip(ship.shipId)}
             >
-                <div class="stats">
-                    {systemName(ship.systemId)}{ship.settlements > 0
-                        ? ` · ${ship.settlements} aboard`
-                        : ''}
-                </div>
+                <CargoHold {gameState} {ship} />
             </ShipTile>
         {:else}
             <p class="empty">No ships can move this turn.</p>
         {/each}
     </div>
-    {#if selected}
-        <div class="buttons">
-            <span class="hint">Send {shipDefinition(selected.shipId).name} to:</span>
-            {#each gameSession.moveTargets as target (target.systemId)}
-                <button type="button" onclick={() => gameSession.moveSelectedShip(target.systemId)}>
-                    {systemName(target.systemId)} ({plural(target.turns, 'turn')})
-                </button>
-            {/each}
-        </div>
-    {:else if ready.length > 0}
-        <p class="hint">Pick a ship, then a highlighted destination on the map.</p>
-    {/if}
 </div>

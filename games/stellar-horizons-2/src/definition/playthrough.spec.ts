@@ -3,6 +3,7 @@ import { GameResult, validateGameResult, type Game, type GameAction } from '@tab
 import { ShipKind, shipDefinition } from '../components/ships.js'
 import { TECHS, TechId } from '../components/techs.js'
 import { RepairMethod, canRepair, shipsAvailableToBuild } from '../model/building.js'
+import { CargoPartnerKind } from '../model/cargoTransfer.js'
 import { canAffordTech, isTechAvailable, techCost } from '../model/development.js'
 import { canExplore } from '../model/exploration.js'
 import { cargoCapacity, hasArrived } from '../model/fleet.js'
@@ -85,9 +86,10 @@ function turnAction(
         case TurnStep.Cargo: {
             const unloading = ships.find((ship) => canUnload(state, ship))
             if (unloading) {
-                return act(ActionType.UnloadSettlements, {
+                return act(ActionType.TransferCargo, {
                     shipId: unloading.shipId,
-                    count: unloading.settlements
+                    partner: { kind: CargoPartnerKind.Base },
+                    settlements: -unloading.settlements
                 })
             }
             const hasTarget = state.systems.some((system) =>
@@ -97,9 +99,10 @@ function turnAction(
                 (ship) => hasTarget && settlementPurchaseLimit(state, ship) > 0
             )
             return buyer
-                ? act(ActionType.BuySettlements, {
+                ? act(ActionType.TransferCargo, {
                       shipId: buyer.shipId,
-                      count: settlementPurchaseLimit(state, buyer)
+                      partner: { kind: CargoPartnerKind.Earth },
+                      settlements: settlementPurchaseLimit(state, buyer)
                   })
                 : undefined
         }

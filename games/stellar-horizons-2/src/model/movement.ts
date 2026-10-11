@@ -4,6 +4,7 @@ import { fastMovementModifier } from './capabilities.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
+import { TurnStep, nextTurnStep } from './turn.js'
 
 export interface MoveOption {
     systemId: string
@@ -66,4 +67,16 @@ export function moveOptions(
         .map((system) => system.systemId)
         .filter((systemId) => systemId !== ship.systemId && isWithinRange(state, ship, systemId))
         .map((systemId) => ({ systemId, turns: travelTime(state, ship, systemId) }))
+}
+
+export function canMoveAnyShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
+    return state.shipsOf(playerId).some((ship) => moveOptions(state, ship).length > 0)
+}
+
+// A movement step with nothing left to move ends by itself.
+export function endIdleMovement(state: HydratedStellarHorizonsGameState, playerId: string) {
+    const player = state.getPlayerState(playerId)
+    if (player.step === TurnStep.Movement && !canMoveAnyShip(state, playerId)) {
+        player.step = nextTurnStep(player.step)
+    }
 }

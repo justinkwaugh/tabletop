@@ -4,7 +4,7 @@
 
 ### Ships on the star map
 
-- **Display:** each ship is a pip in its faction's colour: a rounded square with the CV's size above three fixed slots that mark whether it has exploration (blue circle), cargo (orange hexagon) and combat (red triangle) values, with an empty slot where it has none, or a smaller circle for an RE (80% of a CV's size), showing its exploration value in a blue circle. A ship still on its way is drawn as a faction-coloured outline on a dark fill, with a gold badge giving the turns until it arrives. A red border just outside the pip marks damage (thicker when crippled) and a white dot marks cargo.
+- **Display:** each ship is a pip in its faction's colour: a rounded square with the CV's size above three fixed slots that mark whether it has exploration (blue circle), cargo (orange hexagon) and combat (red triangle) values, with an empty slot where it has none, or a smaller diamond for an RE, showing its exploration value in a blue circle. A ship still on its way is drawn as a faction-coloured outline on a dark fill, with a gold badge giving the turns until it arrives. A red border just outside the pip marks damage (thicker when crippled) and a white dot marks cargo.
 - **Placement:** each faction's ships at a system form one honeycomb clump. Clumps are threaded clockwise along the orbit among the worlds, in faction order, and never cover a world, a base tab, the exploration marker or the tile's printed text. Pips are as large as the system allows and shrink only when needed to fit; in extreme crowds a faction's clump splits into adjacent smaller clumps rather than hiding a ship.
 
 ### Bases on the star map
@@ -30,15 +30,38 @@
 
 - **Trigger:** the acting player clicks one of their own ships during build, cargo, movement or exploration, either its counter in a clump's strip on the star map or its tile in the action panel. Clicking the selected ship again clears the choice.
 - **Emphasis:**
-    - The pip on the map gains a gold ring.
+    - The pip on the map gains a gold outline in its own shape, set slightly out from it: a rounded square around a CV, a diamond around an RE.
     - The ship's tile in the action panel gains a gold border.
 - **Unaffected:** other ships, system tiles, worlds and bases keep their normal look. Ships that cannot act in the current step are not clickable; the movement step only offers ships that have arrived and have a destination, and the exploration step only offers ships that can explore.
+
+### Locating a ship from the action panel
+
+- **Trigger:** during the cargo or exploration step, the acting player clicks a ship's counter in the action panel.
+- **Emphasis:** the ship becomes the chosen ship (gold outline around its pip and its counter) and the star map zooms into its system, as when clicking that system's name.
+- **Clearing:** clicking the same counter again clears the choice and zooms back out. Back to map and Escape leave the zoom but keep the choice.
+- **Movement step:** a counter there only chooses the ship, without zooming, so its destinations on neighbouring systems stay in view. Entering the movement step zooms back out to the whole map.
+
+### Cargo holds
+
+- **Display:** a ship's hold is a row of slots, one per point of cargo capacity. A carried settlement fills a slot with its faction's settlement token; empty slots are dashed outlines.
+- **Layout:** slots sit four to a row, exactly as wide as the counter above them, and wrap in that grid.
+- **Where:** under the ship's counter in the cargo step (always, so free space shows), and in the movement step and the zoomed system panel only when the ship is carrying something.
+- **Draft:** while a transfer is being drafted, the holds of the chosen ship and of a partner ship show the drafted result, both in the ship list and in the transfer panel.
+
+### Transferring cargo
+
+- **Trigger:** a ship with a hold is chosen during the cargo step. A transfer panel opens beside the ship list (below it on a phone).
+- **Destination:** a sliding toggle centred at the top of the panel lists what the ship can exchange cargo with where it is: Earth (buying, at Sol), the player's base in that system or the base unloading would found, and each of the player's other arrived cargo ships there. The first is chosen to begin with. If there is nothing to exchange with, the panel is replaced by a line saying so.
+- **Parties:** the ship's counter and hold sit at the left, the destination at the right (Earth's photograph, a settlement token with the base's count, or the partner ship's counter and hold) and a two-headed arrow joins them.
+- **Rows:** one row per kind of cargo, under the two parties' names: the kind, the count aboard, a left and a right arrow button, and the count at the destination (or the price each at Earth). The left arrow moves one onto the ship and the right arrow one off it. A count that the draft raises turns green and one it lowers turns orange. An arrow that cannot be used is disabled and its tooltip gives the reason.
+- **Commit:** the footer shows `No changes`, `No cost` or `Pay $NB`, and a Commit button that is disabled until something is drafted. Commit records the whole draft as one action; the ship stays chosen with an empty draft.
+- **Discarding:** there is no cancel button. The draft is dropped by choosing another destination, another ship or the same ship again, by Undo, and by ending the step.
 
 ### Choosing a destination
 
 - **Trigger:** a ship is chosen during the movement step.
-- **Emphasis:** every system the ship can reach gains a cyan hex outline and a label with the travel time. The action panel lists the same destinations as buttons.
-- **Commit:** clicking a highlighted system or a destination button moves the ship and clears the choice.
+- **Emphasis:** every system the ship can reach gains a cyan hex outline and a label with the travel time. The action panel only lists the ships that can move, as bare counters, and prompts for a destination on the map.
+- **Commit:** clicking a highlighted system moves the ship and clears the choice. Once none of the player's ships can move, the turn goes on to exploration by itself; a player who reaches the movement step with nothing to move skips it.
 - **Unaffected:** unreachable systems keep their normal look and are not clickable.
 
 ### Choosing a tech
@@ -60,9 +83,10 @@
 ## Coexistence and precedence
 
 - **One choice at a time.** Ship and tech choices share one selection. Ships are only selectable in the first four steps and techs only in the develop-techs step, so they never coexist.
+- **Cargo draft depends on the ship.** A draft exists only for the chosen ship and its chosen destination, so it never outlives either.
 - **Destinations depend on the ship.** Destination highlights exist only while a ship is chosen in the movement step, and the board draws them above that system's ships.
 - **Other players' actions.** Another player's action arriving during simultaneous play does not clear the current player's choice. It stays as long as it remains valid.
-- **Strip and selection.** Choosing a ship from a strip closes the strip; the chosen ship then shows its gold ring on the map and in the strip when reopened. The strip is drawn above every tile, including destination outlines.
+- **Strip and selection.** Choosing a ship from a strip closes the strip; the chosen ship then shows its gold outline on the map and in the strip when reopened. The strip is drawn above every tile, including destination outlines.
 - **Zoom and strip.** No strip is shown while zoomed; the panel lists the ships instead, and the inspected clump only highlights its faction there.
 - **Zoom and tech chart.** Switching to the tech chart keeps the zoom; returning to the star map moves the camera to the zoomed system again. The tech chart has its own camera and is never zoomed by it.
 - **Strip and destinations.** While a ship is chosen in the movement step, a reachable system's outline covers its clumps, so a click there moves the ship rather than opening a strip.
@@ -72,10 +96,18 @@
 ### Selection
 
 - **Meaning:** the acting player's manual choice of a ship or a tech.
-- **Owner and readers:** owned by the game session. It is read by the star map (selection ring, destination outlines), the tech chart (gold frame) and the action panel (tile border, destination buttons, payment).
+- **Owner and readers:** owned by the game session. It is read by the star map (selection outline, destination outlines), the tech chart (gold frame) and the action panel (tile border, payment).
 - **Lifetime:** cleared by clicking the chosen item again, by Cancel, by Undo (which clears a manual choice before undoing any action), by ending the step, and by committing any action that consumes the choice.
 - **Validity:** derived from the current state. A ship choice applies only while the player can act, is in a ship step, and still owns the ship. A tech choice applies only during the develop-techs step while the tech is still available.
 - **History and replay:** the player cannot act in History View, so no choice is shown there, and returning to Live View shows a still-valid choice again. Replay and silent restoration do not change the choice.
+
+### Cargo draft
+
+- **Meaning:** the destination chosen for the chosen ship in the cargo step, and how many settlements are drafted onto the ship (negative: off it). Nothing in the game state changes until Commit.
+- **Owner and readers:** owned by the game session. It is read by the cargo step (ship list holds) and the transfer panel (toggle, counts, holds, footer).
+- **Lifetime:** cleared whenever the selection changes or clears, replaced by choosing a destination, and reset to nothing drafted by Commit.
+- **Validity:** derived from the current state. A destination that is no longer available falls back to the first available one, and a drafted amount outside the current limits counts as nothing drafted.
+- **History and replay:** the player cannot act in History View, so no draft is shown there.
 
 ### Inspected clump
 
@@ -98,13 +130,14 @@
 
 - **Meaning:** the reachable systems and travel times for the chosen ship.
 - **Source:** derived from the selection and the movement rules; it is never stored.
-- **Effects:** drives the destination outlines on the star map and the destination buttons in the panel.
+- **Effects:** drives the destination outlines on the star map.
 - **Validity:** it disappears as soon as the selection is no longer valid or the ship has moved.
 
 ## Render ownership
 
 - **Base tabs and pip layout:** computed once per system by the board, the base tabs first so the pip layout can keep ships clear of them. Both are drawn by the system tile; the ship strip anchors to the clumps.
-- **Selection ring:** drawn by the ship pip.
+- **Selection outline:** drawn by the ship pip.
+- **Transfer panel:** drawn by the cargo step from a view computed once from the state, the chosen ship, the destination and the draft; the same view feeds the holds in the ship list.
 - **Ship strip:** drawn by the board above every system tile.
 - **Zoom:** the star map's scaling wrapper owns the camera; the table asks it to focus the system's hex with the panel's size kept clear, and to restore the captured earlier view on the way out. The panel slide, the camera move and the dimming share one duration and easing. The table reports the zoom-out's completion to the session after that duration.
 - **Destination outline and travel-time label:** drawn by the system tile, above its ships, so a click anywhere on a reachable system commits the move.
@@ -112,18 +145,21 @@
 
 ## Verification scenarios
 
-| Scenario               | Start                                               | Input                                                                | Expected                                                                                     | Verification                         |
-| ---------------------- | --------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Choose and move a ship | Movement step, an arrived probe at Sol              | Click the probe's panel tile                                         | Gold ring on the pip; reachable systems outlined with travel times; matching buttons listed  | Automated (`tests/turnFlow.spec.ts`) |
-| Commit by map          | As above                                            | Click Alpha Centauri on the map                                      | The probe becomes an outlined pip with a turns badge; outlines and ring clear                | Automated                            |
-| Undo a choice          | A ship is chosen, with no committed action after it | Click Undo                                                           | The choice clears and no action is undone                                                    | Automated                            |
-| Choose a tech          | Develop-techs step                                  | Click an available tech                                              | Gold frame; payment shown with suggested markers; developing it records the tech             | Automated                            |
-| History view           | A ship is chosen                                    | Step back in history                                                 | No ring or outlines; returning to Live View restores them                                    | Automated                            |
-| Simultaneous play      | A ship is chosen; another player acts               | The other player's action arrives                                    | The choice stays                                                                             | Automated                            |
-| Inspect a clump        | Two ships of one faction at Sol                     | Hover, then click the clump; click again, Escape, or click the board | Hover shows nothing; click opens a strip of both counters; each close action closes it       | Automated                            |
-| Choose from a strip    | Movement step, an arrived probe at Sol              | Open its clump, click its counter                                    | The probe is chosen and the strip closes; destinations appear                                | Automated                            |
-| Crowded systems        | Six factions with many ships at one system          | Lay out the system                                                   | Every ship is placed, clear of worlds and printed text, one clump per faction where possible | Automated (`shipPipLayout.spec.ts`)  |
-| Many bases             | Six bases at one system, with ships                 | Lay out the system                                                   | One column of tabs on one edge, clear of worlds and printed text; no ship over a tab         | Automated (`baseTabLayout.spec.ts`)  |
-| Zoom into a system     | A probe at Sol                                      | Click Sol's name; then Back; then click it and press Escape          | The view zooms to Sol with a panel listing the probe; each exit returns to the map           | Automated                            |
-| Choose from the panel  | Movement step, zoomed into Sol                      | Click the probe in the panel                                         | The probe is chosen; the zoom stays                                                          | Automated                            |
-| Summary data           | Systems with and without ships and bases            | Summarise the system                                                 | Each faction present with its settlements and ships, the viewer's first                      | Automated (`systemSummary.spec.ts`)  |
+| Scenario               | Start                                               | Input                                                                | Expected                                                                                                | Verification                         |
+| ---------------------- | --------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Choose and move a ship | Movement step, an arrived probe at Sol              | Click the probe's panel tile                                         | Gold outline on the pip; reachable systems outlined with travel times; the panel asks for a destination | Automated (`tests/turnFlow.spec.ts`) |
+| Commit by map          | As above                                            | Click Alpha Centauri on the map                                      | The probe becomes an outlined pip with a turns badge; outlines and gold clear                           | Automated                            |
+| Undo a choice          | A ship is chosen, with no committed action after it | Click Undo                                                           | The choice clears and no action is undone                                                               | Automated                            |
+| Choose a tech          | Develop-techs step                                  | Click an available tech                                              | Gold frame; payment shown with suggested markers; developing it records the tech                        | Automated                            |
+| History view           | A ship is chosen                                    | Step back in history                                                 | No gold or outlines; returning to Live View restores them                                               | Automated                            |
+| Simultaneous play      | A ship is chosen; another player acts               | The other player's action arrives                                    | The choice stays                                                                                        | Automated                            |
+| Inspect a clump        | Two ships of one faction at Sol                     | Hover, then click the clump; click again, Escape, or click the board | Hover shows nothing; click opens a strip of both counters; each close action closes it                  | Automated                            |
+| Choose from a strip    | Movement step, an arrived probe at Sol              | Open its clump, click its counter                                    | The probe is chosen and the strip closes; destinations appear                                           | Automated                            |
+| Crowded systems        | Six factions with many ships at one system          | Lay out the system                                                   | Every ship is placed, clear of worlds and printed text, one clump per faction where possible            | Automated (`shipPipLayout.spec.ts`)  |
+| Many bases             | Six bases at one system, with ships                 | Lay out the system                                                   | One column of tabs on one edge, clear of worlds and printed text; no ship over a tab                    | Automated (`baseTabLayout.spec.ts`)  |
+| Zoom into a system     | A probe at Sol                                      | Click Sol's name; then Back; then click it and press Escape          | The view zooms to Sol with a panel listing the probe; each exit returns to the map                      | Automated                            |
+| Choose from the panel  | Movement step, zoomed into Sol                      | Click the probe in the panel                                         | The probe is chosen; the zoom stays                                                                     | Automated                            |
+| Summary data           | Systems with and without ships and bases            | Summarise the system                                                 | Each faction present with its settlements and ships, the viewer's first                                 | Automated (`systemSummary.spec.ts`)  |
+| Draft and commit cargo | Cargo step, a cargo ship at Sol                     | Choose the ship, press the left arrow twice, then Commit             | Counts and hold show 2 and `Pay $10B` with no action recorded; Commit records one transfer              | Automated                            |
+| Undo a cargo draft     | A settlement is drafted                             | Click Undo                                                           | The draft and the choice clear and no action is undone                                                  | Automated                            |
+| Change destination     | A settlement is drafted at Earth; another ship here | Choose the other ship in the toggle                                  | The draft is dropped and both ships' counts are unchanged                                               | Automated                            |

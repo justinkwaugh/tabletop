@@ -41,24 +41,6 @@ export function canLoadFromBase(state: HydratedStellarHorizonsGameState, ship: S
     )
 }
 
-export function transferPartners(
-    state: HydratedStellarHorizonsGameState,
-    ship: ShipState
-): ShipState[] {
-    if (!hasArrived(ship)) {
-        return []
-    }
-    return state
-        .shipsOf(ship.playerId)
-        .filter(
-            (other) =>
-                other.shipId !== ship.shipId &&
-                other.systemId === ship.systemId &&
-                hasArrived(other) &&
-                freeCargo(state, other) > 0
-        )
-}
-
 export function canUnload(state: HydratedStellarHorizonsGameState, ship: ShipState): boolean {
     return (
         hasArrived(ship) &&
