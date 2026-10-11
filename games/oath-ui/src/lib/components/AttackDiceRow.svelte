@@ -16,7 +16,7 @@
 </script>
 
 {#if maxDice > 0}
-    <div class="dice" title="Up to the warbands in your force. Tap a die to set the pool.">
+    <div class="dice">
         {#each range(0, maxDice) as index (index)}
             <button
                 type="button"

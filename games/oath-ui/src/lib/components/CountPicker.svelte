@@ -29,7 +29,6 @@
             class:text-oath-accent={gives && value === picked}
             aria-pressed={value === picked}
             aria-label={label(value)}
-            title={label(value)}
             {disabled}
             onclick={() => onpick(value)}
         >

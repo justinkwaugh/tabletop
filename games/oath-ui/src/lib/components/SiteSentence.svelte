@@ -15,7 +15,6 @@
                 class="site-sentence__mark"
                 src={suitImage(part.suit)}
                 alt={suitName(part.suit)}
-                title={suitName(part.suit)}
             />{:else if part.kind === 'favor'}<img
                 class="site-sentence__token"
                 src={favorTokenImage()}

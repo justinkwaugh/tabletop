@@ -340,6 +340,13 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
             : []
     }
 
+    /** R-4.3.5 — the powers the engine accepts with a bank that holds favor, as the turn-flow rows list them. */
+    get usablePowers() {
+        return this.playerId
+            ? HydratedUseRestPower.usableRestPowers(this.session.gameState, this.playerId)
+            : []
+    }
+
     bankOptions(power: LegalPowerUse): Suit[] {
         const bank = power.choices.find((c) => c.spec.kind === PowerChoiceKind.FavorBank)
         return favorBankSuits(bank?.options ?? [])

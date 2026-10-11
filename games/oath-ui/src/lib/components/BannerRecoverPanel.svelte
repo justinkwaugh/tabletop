@@ -65,7 +65,6 @@
             <button
                 class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 self-start max-sm:min-h-11 max-sm:px-4"
                 disabled={busy}
-                title="Recover the {bannerName(banner)}"
                 aria-label="Recover the {bannerName(banner)}"
                 onclick={() => gameSession.recoverBanner()}
             >

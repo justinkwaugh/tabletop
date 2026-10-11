@@ -80,7 +80,6 @@
                         class="major-event__picture major-event__picture--{picture.kind}"
                         {src}
                         alt={alt(picture)}
-                        title={alt(picture)}
                     />
                 {/if}
             {/each}

@@ -32,7 +32,6 @@
             class="token-text__mark"
             src={suitImage(part.suit)}
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
-            title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
         />{:else if part.kind === 'warband'}<span class="token-text__count"
             >{part.count}{#if warbandColor}{@const figure = warbandFigure(
                     warbandColor(part.whose)
@@ -42,7 +41,6 @@
                     width={figure.width}
                     height={figure.height}
                     alt={part.words}
-                    title={part.words}
                 />{/if}</span
         >{:else}{@const token = part.kind === 'favor' ? favorToken() : secretToken()}<span
             class="token-text__count"

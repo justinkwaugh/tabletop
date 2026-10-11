@@ -18,7 +18,6 @@
     type="button"
     class="site-magnifier"
     aria-label="Enlarge {label}"
-    title="Enlarge {label}"
     {@attach boardZoom}
     {@attach releaseOnUnmount}
     onclick={(event) => {

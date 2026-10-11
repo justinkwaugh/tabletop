@@ -138,7 +138,7 @@ test('scenario 44: a hover opens nothing; a click on a card on the table enlarge
     page
 }) => {
     await openTable(page, 'trade')
-    const denizen = page.locator('.board-card[title="Book Binders"]')
+    const denizen = page.locator('.board-card').filter({ has: page.getByRole('img', { name: 'Book Binders', exact: true }) })
     const hovered = [
         denizen,
         await uncovered(page, '.site .board-card'),
@@ -232,7 +232,7 @@ test('scenario 53: an enlarged site shows its sentence under it, with the suit a
     await expect(sentence.getByRole('img', { name: 'Hearth' })).toHaveCount(2)
     await expect(sentence.getByRole('img', { name: 'favor' })).toHaveCount(1)
     await page.keyboard.press('Escape')
-    await (await uncovered(page, '.site .board-card[title^="Facedown site"]')).click()
+    await (await uncovered(page, '.site .board-card:has(img[alt^="Facedown site"])')).click()
     await expect(preview(page)).toBeVisible()
     await expect(preview(page).locator('.site-sentence')).toHaveCount(0)
 })
@@ -4220,7 +4220,7 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision'])
     expect(await backsOf('A denizen in hand')).toEqual(['denizen'])
 
-    await page.getByTitle("Open ann's seat").click()
+    await page.getByRole('button', { name: "Open ann's seat", exact: true }).click()
     expect((await backsOf('A facedown adviser')).sort()).toEqual(['denizen', 'denizen', 'vision', 'vision'])
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
@@ -4266,7 +4266,7 @@ test('the unrolled dice: while the defender uses battle plans, the dice row prin
     await openTable(page, 'defenderPlans')
     expect(await call(page, 'viewOffTheClock')).toBe('att')
     const dice = grid(page).getByRole('region', { name: 'the Campaign\'s dice' })
-    await expect(dice.locator('[title$="not yet rolled"]').first()).toBeVisible()
+    await expect(dice.locator('.die--unrolled').first()).toBeVisible()
     await expect(dice).not.toContainText(/waiting/i)
     await expect(dice.locator('.dice__total')).toHaveText(['', ''])
     await expectWaitingOn(page, ['def'])
@@ -4304,7 +4304,7 @@ test('scenario 37: the goals on the rail, tap-only, with the next win; the seat 
     await rail.click()
     await expect(goals).toBeVisible()
     await expect(goals).toContainText(/wins as the Oathkeeper if the end die ends the game after round 5 \(on a 6\)/)
-    await expect(goals.locator('[title="ann: 2 sites ruled"]')).toHaveCount(2)
+    await expect(goals.locator('[aria-label="ann: 2 sites ruled"]')).toHaveCount(2)
     await expect(goals).not.toContainText('sites ruled')
     await expect(goals.getByText('not met')).toHaveCount(2)
     await page.keyboard.press('Escape')
@@ -4321,7 +4321,7 @@ test('scenario 37: under a banner Oath the Oath is held, one ringed disc and no 
     const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
     await expect(rail).toContainText('The Oath of Devotion')
     await expect(rail.getByRole('img', { name: 'the Darkest Secret' })).toHaveCount(1)
-    await expect(rail.locator('[title="ann holds the Darkest Secret"]')).toHaveCount(1)
+    await expect(rail.locator('[aria-label="ann holds the Darkest Secret"]')).toHaveCount(1)
 })
 
 function framesInsidePanel(page: Page) {
@@ -4701,7 +4701,7 @@ test('scenario 57: with the Search open, the card is found with the powers and i
     await tile(page, 'Search').click()
     await expect(paid).toBeVisible()
     await expect(deck).toBeVisible()
-    await grid(page).locator('button[title^="Mushrooms"]').click()
+    await grid(page).getByRole('button', { name: /^Mushrooms/ }).click()
     await expect(free).toBeVisible()
     await expect(free).not.toContainText('Mushrooms')
     await expect(deck).toHaveCount(0)
@@ -4994,7 +4994,7 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
 
     await openTable(page, 'endOfRound')
     await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
-    await expect(page.getByTitle('the end die, rolled at the close of each round from round 5')).toContainText(/last [1-6]/)
+    await expect(page.getByRole('region', { name: 'End die', exact: true })).toContainText(/last [1-6]/)
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('rolled the end die:')
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('end of round 6')
@@ -5878,12 +5878,13 @@ test.describe('the Show menu', () => {
 /**
  * Rule 4 and "Choose a card": no panel prints a card's power text, under or beside it; the card is
  * a magnifier press away. Every card in a panel carries its corner magnifier, a small one
- * straddling the top-left corner of a small card, and its hover title and the magnifier's spoken
- * name are the card's name alone.
+ * straddling the top-left corner of a small card, and its picture's name and the magnifier's
+ * spoken name are the card's name alone, with no hover title.
  */
 test.describe('card power text: none in a panel; every panel card has its magnifier', () => {
-    /** A picture-row card (CardChoiceRow) by its title, and the cell around it. */
-    const rowCard = (page: Page, name: string) => grid(page).locator(`button[aria-pressed][title="${name}"]`)
+    /** A picture-row card (CardChoiceRow) by its picture's name, and the cell around it. */
+    const rowCard = (page: Page, name: string) =>
+        grid(page).locator('button[aria-pressed]').filter({ has: page.getByRole('img', { name, exact: true }) })
     const rowCell = (page: Page, name: string) => rowCard(page, name).locator('xpath=..')
     const enlarge = (scope: Locator, name: string) =>
         scope.getByRole('button', { name: `Enlarge ${name}`, exact: true })
@@ -5900,15 +5901,15 @@ test.describe('card power text: none in a panel; every panel card has its magnif
         for (const mark of RAW_MARKS) expect(text, `the panel prints "${mark}"`).not.toContain(mark)
     }
 
-    /** Each offered card in the panel's picture rows: its title, its picture's name, its cell's text and magnifiers. */
+    /** Each offered card in the panel's picture rows: its picture's name (the button's), its title, its cell's text and magnifiers. */
     async function offeredCards(page: Page) {
         return grid(page)
-            .locator('button[aria-pressed][title]')
+            .locator('button[aria-pressed]:has(> img[alt]:not([alt=""]))')
             .evaluateAll((buttons) =>
                 buttons.map((button) => {
                     const cell = button.parentElement
                     return {
-                        title: button.getAttribute('title') ?? '',
+                        title: button.getAttribute('title'),
                         alt: button.querySelector('img')?.getAttribute('alt') ?? '',
                         text: cell?.innerText.trim() ?? '',
                         magnifiers: [...(cell?.querySelectorAll('button.magnifier') ?? [])].map(
@@ -5923,10 +5924,10 @@ test.describe('card power text: none in a panel; every panel card has its magnif
         const cards = await offeredCards(page)
         expect(cards.length, 'cards offered').toBeGreaterThan(0)
         for (const card of cards) {
-            expect(card.title, `${card.title}: named by its card alone`).not.toContain('—')
-            expect(card.alt, `${card.title}: its picture named by the card`).toBe(card.title)
-            expect(card.text, `${card.title}: no text under the card`).toBe('')
-            expect(card.magnifiers, `${card.title}: one magnifier, named for the card`).toEqual([`Enlarge ${card.title}`])
+            expect(card.alt, `${card.alt}: named by its card alone`).not.toContain('—')
+            expect(card.title, `${card.alt}: no hover title`).toBeNull()
+            expect(card.text, `${card.alt}: no text under the card`).toBe('')
+            expect(card.magnifiers, `${card.alt}: one magnifier, named for the card`).toEqual([`Enlarge ${card.alt}`])
         }
     }
 
@@ -6745,4 +6746,155 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
             })
         })
     }
+})
+
+/**
+ * "Look on the table, choose in the menus": no element in Oath's own areas has a hover title. What a
+ * picture or a symbol means is its accessible name; anything a player needs is on screen, in the
+ * enlarged card or in the open seat. The platform's own controls around them (the history controls,
+ * the tabs, the chat, the board's zoom buttons) are not Oath's and are not read here.
+ */
+test.describe('no hover titles in Oath’s own areas', () => {
+    /** The panel column, the seat cards, the History, the board and its rail, and the open layers. */
+    const OATH_AREAS = [
+        '.info',
+        '.panel',
+        '.seat',
+        '.history',
+        '.board-surface',
+        '.seat-detail',
+        '.goals-layer',
+        '.card-preview',
+        '.vision-seen',
+        '.chooser',
+        '.map-pick-framing'
+    ]
+
+    /** Every element in those areas whose `title` is not empty, as "tag.class: title". */
+    async function hoverTitles(page: Page) {
+        return page.evaluate((areas) => {
+            const inAreas = new Set(areas.flatMap((area) => [...document.querySelectorAll(`${area}, ${area} *`)]))
+            return [...inAreas]
+                .filter((element) => (element.getAttribute('title') ?? '') !== '')
+                .map((element) => `${element.tagName.toLowerCase()}.${[...element.classList].join('.')}: ${element.getAttribute('title')}`)
+        }, OATH_AREAS)
+    }
+
+    async function expectNoHoverTitles(page: Page, where: string) {
+        await expect(grid(page).first()).toBeVisible()
+        expect.soft(await hoverTitles(page), where).toEqual([])
+    }
+
+    test('the Act Phase: the grid, the seat cards, the map and the rail; a muster menu; the open seat; an enlarged site', async ({ page }) => {
+        await openTable(page, 'trade')
+        await expectNoHoverTitles(page, 'the Act Phase grid')
+        await tile(page, 'Muster').click()
+        await expect(page.getByRole('list', { name: 'Musters at your site' })).toBeVisible()
+        await expectNoHoverTitles(page, 'the Muster menu')
+
+        await page.locator('.seat .pill').nth(1).click()
+        await expect(page.locator('.seat-detail')).toBeVisible()
+        await expectNoHoverTitles(page, 'the open seat')
+        await page.keyboard.press('Escape')
+        await expect(page.locator('.seat-detail')).toHaveCount(0)
+
+        await (await uncovered(page, '.site .board-card')).click()
+        await expect(preview(page)).toBeVisible()
+        await expectNoHoverTitles(page, 'the enlarged site')
+    })
+
+    test('Travel: the lit sites and their chips, and the ways to pay', async ({ page }) => {
+        await openTable(page, 'leavingBuriedGiant')
+        await tile(page, 'Travel').click()
+        await expect(travelPrompt(page)).toBeVisible()
+        await expectNoHoverTitles(page, 'the lit sites')
+        await siteCard(page, 'slot.provinces.0').click()
+        await expect(grid(page).getByRole('button', { name: /^Travel to .+: spend 2 Supply$/ })).toBeVisible()
+        await expectNoHoverTitles(page, 'the ways to pay')
+    })
+
+    test('the goals rail and the open goals', async ({ page }) => {
+        await openTable(page, 'goalsRail')
+        await expectNoHoverTitles(page, 'the goals rail')
+        await page.getByRole('button', { name: 'Goals: open the enlarged view' }).click()
+        await expect(page.getByRole('dialog', { name: 'Goals' })).toBeVisible()
+        await expectNoHoverTitles(page, 'the open goals')
+
+        await openTable(page, 'goalsRailDevotion')
+        await expectNoHoverTitles(page, 'a banner Oath’s holder')
+    })
+
+    test('a Campaign: the attack dice, the plans, the unrolled and the rolled dice, the spoils', async ({ page }) => {
+        await openTable(page, 'campaign')
+        await tile(page, 'Campaign').click()
+        await expect(grid(page).getByRole('button', { name: /^Add attack die 2/ })).toBeVisible()
+        await expectNoHoverTitles(page, 'the attack dice')
+
+        await openTable(page, 'defenderPlans')
+        await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toBeVisible()
+        await expectNoHoverTitles(page, 'the unrolled dice and the plans')
+
+        await openTable(page, 'exileDefeated')
+        await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' }).locator('img').first()).toBeVisible()
+        await expectNoHoverTitles(page, 'the rolled dice')
+
+        await openTable(page, 'spoils')
+        await expect(grid(page).locator('h3')).toHaveText('Spoils')
+        await expectNoHoverTitles(page, 'the spoils')
+    })
+
+    test('Use a power, a modifier row, Recover, the older Rest, the Wake, the end die and the History', async ({ page }) => {
+        await openTable(page, 'usePower')
+        await usePower(page).click()
+        await expectNoHoverTitles(page, 'Use a power')
+
+        await openTable(page, 'harpSearch')
+        await tile(page, 'Search').click()
+        await expect(grid(page).locator('button[aria-pressed]').first()).toBeVisible()
+        await expectNoHoverTitles(page, 'a modifier’s card row')
+
+        await openTable(page, 'recover')
+        await tile(page, 'Recover').click()
+        await expect(page.getByRole('list', { name: 'Banners to recover' })).toBeVisible()
+        await expectNoHoverTitles(page, 'Recover')
+
+        await openTable(page, 'restBanks')
+        await expect(grid(page).getByRole('button', { name: /bank, \d+ favor$/ }).first()).toBeVisible()
+        await expectNoHoverTitles(page, 'the older Rest panel')
+
+        await openTable(page, 'wakeMob')
+        await expect(grid(page)).toContainText('People’s Favor (1 of 2)')
+        await expectNoHoverTitles(page, 'the Wake')
+
+        await openTable(page, 'endOfRound')
+        await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
+        await expect(page.locator('.rail')).toContainText(/last [1-6]/)
+        await expectNoHoverTitles(page, 'the end die')
+
+        await openTable(page, 'majorEvents')
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('[data-major-event="visionDrawn"]')).toBeVisible()
+        await expectNoHoverTitles(page, 'the History')
+    })
+
+    test('the open seat: "favor, in the [Nomad] bank" with the bank’s symbol, and "Exile · at" its site', async ({ page }) => {
+        await openTable(page, 'kinshipSeat')
+        await page.locator('.seat .pill', { hasText: 'me' }).click()
+        const seat = page.getByRole('dialog', { name: "me's seat" })
+        await expect(seat).toBeVisible()
+        await expect(seat.locator('.status')).toHaveText(/^Exile · at \S/)
+        await expect(seat.locator('.status')).toHaveCSS('text-transform', 'none')
+        const favor = seat.locator('.counters dt').first()
+        await expect(favor).toHaveText(/^favor, in the\s+bank$/)
+        await expect(favor.getByRole('img', { name: 'Nomad', exact: true })).toBeVisible()
+        await expectNoHoverTitles(page, 'the open seat')
+    })
+
+    test('the Rest in a game created before the turn-flow revision lists only the powers the engine accepts', async ({ page }) => {
+        await openTable(page, 'restRefused')
+        await expect(grid(page)).toContainText('Vow of Obedience')
+        await expect(grid(page)).not.toContainText('Vow of Poverty')
+        await expect(grid(page).getByRole('button', { name: /bank, \d+ favor$/ }).first()).toBeVisible()
+        await expectNoHoverTitles(page, 'the older Rest panel with a refused power')
+    })
 })

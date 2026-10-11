@@ -38,7 +38,6 @@
                 : 'ring-1 ring-transparent hover:ring-oath-accent'}"
             aria-pressed={on}
             aria-label={bankName(suit)}
-            title={bankName(suit)}
             disabled={busy}
             onclick={() => onpick(suit)}
         >

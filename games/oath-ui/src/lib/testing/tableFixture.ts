@@ -103,6 +103,8 @@ export type TableName =
     | 'imperialDefeated'
     | 'visionBacks'
     | 'restBanks'
+    | 'restRefused'
+    | 'kinshipSeat'
     | 'restTurnFlow'
     | 'wakeMob'
     | 'wakeSite'
@@ -583,6 +585,63 @@ function restBanksTable(): PlayedTable {
             })
         ],
         { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/**
+ * R-4.3.5, R-7.3.4: a Rest in a game created before the turn-flow revision with Vow of Obedience
+ * and Vow of Poverty, while the seat has favor, so Vow of Poverty has nothing to take.
+ */
+function restRefusedTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 2,
+                advisers: [
+                    { cardId: 'denizen.order.vow-of-obedience', faceUp: true },
+                    { cardId: 'denizen.beast.vow-of-poverty', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** An Exile whose favor Vow of Kinship keeps in the Nomad bank, for the open seat's words. */
+function kinshipSeatTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                advisers: [{ cardId: 'denizen.nomad.vow-of-kinship', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        { machineState: MachineState.ActPhase, chancellorPlayerId: 'ann' }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
@@ -3557,6 +3616,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
+    restRefused: restRefusedTable,
+    kinshipSeat: kinshipSeatTable,
     restTurnFlow: restTurnFlowTable,
     wakeMob: () => wakeTable('mob'),
     wakeSite: () => wakeTable('site'),

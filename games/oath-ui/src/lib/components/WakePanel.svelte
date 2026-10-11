@@ -82,7 +82,6 @@
                     class="h-10 w-20 shrink-0 rounded-[4px] object-cover shadow-md"
                     src={peoplesFavorImage}
                     alt={PEOPLES_FAVOR}
-                    title={PEOPLES_FAVOR}
                     use:inspectImage={{
                         preview: { imageSrc: peoplesFavorImage, aspect: 2, label: PEOPLES_FAVOR }
                     }}

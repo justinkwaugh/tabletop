@@ -213,7 +213,6 @@
         {#each MAJOR_ACTIONS as entry (entry.type)}
             {@const ok = available(entry)}
             {@const cost = tileCost(gameState, seat.playerId, entry)}
-            {@const describe = `${entry.label} — ${cost}. ${entry.summary}`}
             <button
                 class="group flex w-[92px] flex-col items-center gap-1 rounded border px-1
                        py-1.5 text-center transition-colors
@@ -222,7 +221,6 @@
                     : 'border-oath-divider bg-oath-surface opacity-55 cursor-not-allowed'}"
                 {...pointing(entry)}
                 aria-disabled={!ok}
-                title={ok ? describe : (refusalOf(entry)?.text ?? describe)}
                 onclick={() => pressMajor(entry, ok)}
             >
                 <img src={actionImage(entry.type)} alt="" class="h-9 w-9 {ok ? '' : 'grayscale'}" />
@@ -249,7 +247,6 @@
                     {...pointing(entry)}
                     aria-describedby={ring ? reasonId : undefined}
                     style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
-                    title={`${entry.label}. ${entry.summary}`}
                     onclick={() => take(entry)}
                 >
                     {entry.label}

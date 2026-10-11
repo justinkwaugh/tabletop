@@ -13,16 +13,16 @@
 </script>
 
 {#if endDieLive || lastEndDie !== undefined}
-    <section class="group" title="the end die, rolled at the close of each round from round 5">
+    <section class="group" aria-label="End die">
         <h3>End die</h3>
         <div class="dice">
             {#if lastEndDie !== undefined}
-                <span class="die" title="Last rolled {lastEndDie}">
+                <span class="die">
                     <img src={endDieImage(lastEndDie)} alt="" />
                 </span>
                 <span class="dice__total">last {lastEndDie}</span>
             {:else}
-                <span class="die die--unrolled die--end" title="Live — not yet rolled"></span>
+                <span class="die die--unrolled die--end"></span>
                 <span class="dice__total">live</span>
             {/if}
         </div>

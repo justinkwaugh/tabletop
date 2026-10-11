@@ -23,7 +23,7 @@
     } from '$lib/images/tileImages.js'
     import { warbandImage } from '$lib/images/pieceImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { bannerName, bannerTokenKind, cardName, siteName } from '$lib/model/names.js'
+    import { bannerName, bannerTokenKind, cardName } from '$lib/model/names.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { goalCardPreview } from '$lib/model/seatPreviews.js'
     import { seatAdvisers } from '$lib/model/seatAdvisers.js'
@@ -82,7 +82,7 @@
         <button
             type="button"
             class="pill"
-            title="Open {player.name}'s seat"
+            aria-label="Open {player.name}'s seat"
             onclick={() => gameSession.seatDetail.toggle(player.id)}
             >{player.name}{isMe ? ' · you' : ''}</button
         >
@@ -90,22 +90,12 @@
     </header>
 
     <dl class="stats">
-        <div
-            class="stat"
-            title={facts.favorBank
-                ? `Favor ${facts.favor}, kept in the ${facts.favorBank} bank`
-                : `Favor ${playerState.favor}`}
-        >
+        <div class="stat">
             <img src={favorTokenImage()} alt="" />
             <dd>{facts.favor}</dd>
             <dt>{facts.favorBank ? `in ${facts.favorBank}` : 'Favor'}</dt>
         </div>
-        <div
-            class="stat"
-            title="Secrets {playerState.secrets}{playerState.secretsFacedown
-                ? `, plus ${playerState.secretsFacedown} facedown`
-                : ''}"
-        >
+        <div class="stat">
             <img src={secretTokenImage()} alt="" />
             <dd>
                 {playerState.secrets}{#if playerState.secretsFacedown}<small
@@ -114,18 +104,12 @@
             </dd>
             <dt>Secrets</dt>
         </div>
-        <div
-            class="stat stat--board"
-            class:stat--pickable={toBoard}
-            title={toBoard
-                ? `Warbands may move from ${playerState.siteId ? siteName(gameState, playerState.siteId) : 'your site'} to your board`
-                : `${facts.warbands.onBoard} warbands on the board`}
-        >
+        <div class="stat stat--board" class:stat--pickable={toBoard}>
             <img src={warbandFigure} alt="" />
             <dd>{facts.warbands.onBoard}</dd>
             <dt>Board</dt>
         </div>
-        <div class="stat" title="{facts.warbands.inBank} warbands in the bank">
+        <div class="stat">
             <img src={warbandFigure} alt="" />
             <dd>{facts.warbands.inBank}</dd>
             <dt>Bank</dt>
@@ -136,7 +120,6 @@
          R-4.3.3's refresh bands are printed under it. -->
     <div
         class="track"
-        title="Supply {playerState.supply} of 7. Refreshes at Rest by the warbands in the bank."
         style="--marker-x:{SUPPLY_TRACK.centers[SUPPLY_TRACK.indexOf(playerState.supply)] *
             100}%; --marker-size:{SUPPLY_TRACK.diameter * 100}%;"
     >
@@ -184,9 +167,6 @@
                     class="tile"
                     src={oathkeeperTileImage(facts.isUsurper)}
                     alt={facts.isUsurper ? 'Usurper' : 'Oathkeeper'}
-                    title={facts.isUsurper
-                        ? 'Holds the title on its Usurper side — wins at their next Wake'
-                        : 'Holds the Oathkeeper title'}
                 />
             {/if}
         </div>
@@ -286,9 +266,6 @@
                             }
                         }
                     }}
-                    title={bid !== undefined
-                        ? `Recover the ${bannerName(banner)} — pay ${bid} or more`
-                        : `Holds the ${bannerName(banner)} — ${value} on it`}
                 >
                     <img
                         src={bannerImage(banner, gameState.isOnMobSide(banner))}

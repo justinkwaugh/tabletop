@@ -25,7 +25,6 @@
            border-oath-frame bg-oath-surface px-2.5 py-1.5 text-[15px] font-semibold
            hover:border-oath-accent hover:bg-oath-accent-soft disabled:opacity-40 max-sm:min-h-11"
     {disabled}
-    title={label}
     aria-label={label}
     {onclick}
 >

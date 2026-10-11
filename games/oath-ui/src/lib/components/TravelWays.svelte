@@ -68,7 +68,6 @@
                            font-bold text-oath-accent hover:border-oath-accent hover:bg-oath-accent-soft
                            disabled:opacity-40"
                     disabled={busy}
-                    title={travelSpoken(row, way, nameOf)}
                     aria-label={travelSpoken(row, way, nameOf)}
                     onclick={() => gameSession.travelTo(row.slotId, way)}
                 >

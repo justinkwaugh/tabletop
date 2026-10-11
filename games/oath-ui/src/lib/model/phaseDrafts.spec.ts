@@ -289,6 +289,22 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         rest.pickBank(power(rest, SILVER_TONGUE), Suit.Hearth)
         expect(rest.pickedSuit(power(rest, SILVER_TONGUE))).toBe(Suit.Hearth)
     })
+
+    it('lists only the powers the engine accepts: Vow of Poverty is left out while its holder has favor', () => {
+        const withPoverty = (favor: number) =>
+            opened(
+                table(MachineState.RestPhase, {
+                    favor,
+                    advisers: [
+                        { cardId: OBEDIENCE, faceUp: true },
+                        { cardId: POVERTY, faceUp: true }
+                    ]
+                })
+            ).rest
+        expect(withPoverty(3).powers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+        expect(withPoverty(3).usablePowers.map((p) => p.cardId)).toEqual([OBEDIENCE])
+        expect(withPoverty(0).usablePowers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+    })
 })
 
 /** Visual contract scenario 33 — what the Rest panel does not offer. */
