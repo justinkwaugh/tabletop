@@ -8,6 +8,7 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [svelte()],
+        test: { exclude: ['**/*.client.spec.ts'] },
         resolve: {
             alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }
         }
