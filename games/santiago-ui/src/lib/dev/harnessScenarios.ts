@@ -67,7 +67,8 @@ function droughtWillDryAField(state: HydratedSantiagoGameState): boolean {
 function nearestWater(square: Square, connected: Set<string>): number {
     let nearest = Infinity
     for (const key of connected) {
-        const [col, row] = key.split(',').map(Number)
+        // Intersections sit at the corners of every second square.
+        const [col, row] = key.split(',').map((n) => Number(n) * 2)
         const dx = Math.max(0, col - (square.col + 1), square.col - col)
         const dy = Math.max(0, row - (square.row + 1), square.row - row)
         nearest = Math.min(nearest, dx + dy)
@@ -93,16 +94,20 @@ function chooseFieldSquare(
     return policy === 'irrigate' ? ranked[0] : ranked.at(-1)
 }
 
+// A canal runs between intersections two squares apart, so it borders two squares on each side.
 function bordersOf(segment: CanalSegment): Square[] {
-    return segment.orientation === 'H'
-        ? [
-              { col: segment.col, row: segment.row - 1 },
-              { col: segment.col, row: segment.row }
-          ]
-        : [
-              { col: segment.col - 1, row: segment.row },
-              { col: segment.col, row: segment.row }
-          ]
+    const { col, row } = segment
+    const squares =
+        segment.orientation === 'H'
+            ? [2 * col, 2 * col + 1].flatMap((c) =>
+                  [2 * row - 1, 2 * row].map((r) => ({ col: c, row: r }))
+              )
+            : [2 * row, 2 * row + 1].flatMap((r) =>
+                  [2 * col - 1, 2 * col].map((c) => ({ col: c, row: r }))
+              )
+    return squares.filter(
+        (square) => square.col >= 0 && square.col < COLS && square.row >= 0 && square.row < ROWS
+    )
 }
 
 function chooseCanal(state: HydratedSantiagoGameState, policy: WaterPolicy): CanalSegment {
@@ -205,12 +210,13 @@ export const santiagoHarnessScenarios: HarnessScenario[] = [
     scenario({
         id: 'late-drought',
         label: 'Late game, drought',
-        description: 'A full board where about half the fields have dried to desert.',
+        description:
+            'Round 8 or later, with most of the board planted and at least half the fields dried to desert.',
         policy: 'neglect',
         isComplete: (state) => {
-            if (state.machineState !== MachineState.TileReveal) return false
+            if (state.machineState !== MachineState.TileReveal || state.round < 8) return false
             const { fields, dried } = fieldCounts(state)
-            return (fields >= 16 && dried * 2 >= fields) || isLastRound(state)
+            return fields >= 24 && dried * 2 >= fields
         }
     }),
     scenario({
