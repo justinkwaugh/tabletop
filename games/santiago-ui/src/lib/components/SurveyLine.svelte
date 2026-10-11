@@ -165,7 +165,6 @@
         fill: none;
         stroke-linecap: round;
         vector-effect: non-scaling-stroke;
-        transition: stroke 0.15s ease-out;
     }
     .twine {
         stroke: var(--twine, #fff3d6);
@@ -175,8 +174,10 @@
         stroke: rgba(50, 25, 8, 0.4);
         stroke-width: 2.4;
     }
+    /* Only hover and selection ease the stroke; a bribe's colours arrive with the state. */
     .survey:hover .twine:not(.tinted) {
         stroke: #ffffff;
+        transition: stroke 0.15s ease-out;
     }
     .survey.selected .twine {
         stroke: var(--twine, #fbbf24);

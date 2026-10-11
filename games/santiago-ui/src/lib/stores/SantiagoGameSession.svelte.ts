@@ -78,9 +78,9 @@ export class SantiagoGameSession extends GameSession<
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
-    // Ambient changes that follow a transition the animators ran, such as the land's mood or newly
-    // offered canal spots, ease in; a silent restoration runs no animators, so they snap. Each
-    // change of visible state starts with it off, and running the animators turns it on.
+    // The land's mood eases into a change a played move made; undo, a step through history and a
+    // silent restoration change it at once. Each change of visible state starts with it off, and
+    // an animated move turns it on.
     easesAmbientChanges = $state(false)
     // Set from the developer harness's mood tuner to preview the light on any board.
     moodOverride: LandMood | undefined = $state(undefined)
@@ -92,7 +92,7 @@ export class SantiagoGameSession extends GameSession<
     override async onGameStateChange({
         to: _to,
         from: _from,
-        action: _action,
+        action,
         animationContext: _animationContext
     }: {
         to: HydratedSantiagoGameState
@@ -100,7 +100,7 @@ export class SantiagoGameSession extends GameSession<
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        this.easesAmbientChanges = true
+        if (action) this.easesAmbientChanges = true
         this.chosenAction = undefined
         this.bidValue = 0
         this.proposalAmount = 1

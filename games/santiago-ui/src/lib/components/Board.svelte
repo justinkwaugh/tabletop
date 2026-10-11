@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { Color } from '@tabletop/common'
-    import { fade } from 'svelte/transition'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { bribePillKey } from '$lib/animators/bribePopAnimator.svelte.js'
     import { DUST_PARTICLES, dustParticleKey } from '$lib/animators/droughtDustAnimator.svelte.js'
@@ -745,7 +744,7 @@
             {/if}
         {/each}
 
-        {#each session.visibleSegments as seg (segmentKey(seg))}
+        {#each canalBuild.offered ?? session.visibleSegments as seg (segmentKey(seg))}
             {@const c = segmentEnds(seg)}
             {@const key = segmentKey(seg)}
             {@const bribeColors = bribeColorsByKey.get(key)}
@@ -753,7 +752,6 @@
                    canalBuild.setSurveyNode(key, el)
                    return () => canalBuild.setSurveyNode(key, undefined)
                }}>
-            <g in:fade={{ duration: session.easesAmbientChanges ? 250 : 0 }}>
             <SurveyLine
                 {...c}
                 selected={session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
@@ -798,7 +796,6 @@
                     </g>
                 {/if}
             </SurveyLine>
-            </g>
             </g>
         {/each}
 
