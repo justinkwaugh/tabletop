@@ -1,9 +1,9 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
     import {
+        CargoPartnerKind,
         RepairMethod,
         isBuildShip,
-        isBuySettlements,
         isChooseFaction,
         isChooseSurveyWorld,
         isChooseTerraformWorld,
@@ -12,7 +12,6 @@
         isEndStep,
         isEndTurn,
         isExplore,
-        isLoadSettlement,
         isMoveShip,
         isPassTerraform,
         isRepairShip,
@@ -20,8 +19,7 @@
         isScrapShip,
         isStartTurn,
         isTerraform,
-        isTransferSettlements,
-        isUnloadSettlements,
+        isTransferCargo,
         shipDefinition,
         techDefinition,
         TurnStep
@@ -68,28 +66,40 @@
         >
     {:else if isCloneSettlement(action)}
         <span>cloned a settlement at {systemName(action.systemId)}</span>
-    {:else if isBuySettlements(action)}
-        <span
-            >bought {plural(action.count, 'settlement')} for {shipName(action.shipId)} (${action
-                .metadata?.cost}B)</span
-        >
-    {:else if isLoadSettlement(action)}
-        <span>loaded a settlement onto {shipName(action.shipId)}</span>
-    {:else if isTransferSettlements(action)}
-        <span
-            >moved {plural(action.count, 'settlement')} from {shipName(action.fromShipId)} to {shipName(
-                action.toShipId
-            )}</span
-        >
-    {:else if isUnloadSettlements(action)}
-        <span
-            >{action.metadata?.foundedBase ? 'founded a base' : 'expanded their base'} at {action.metadata
-                ? systemName(action.metadata.systemId)
-                : ''} ({plural(
-                action.metadata?.baseSettlements ?? action.count,
-                'settlement'
-            )})</span
-        >
+    {:else if isTransferCargo(action)}
+        {@const count = plural(Math.abs(action.settlements), 'settlement')}
+        {#if action.partner.kind === CargoPartnerKind.Earth}
+            <span
+                >bought {count} for {shipName(action.shipId)}{action.metadata
+                    ? ` ($${action.metadata.cost}B)`
+                    : ''}</span
+            >
+        {:else if action.partner.kind === CargoPartnerKind.Ship}
+            <span
+                >moved {count} from {shipName(
+                    action.settlements > 0 ? action.partner.shipId : action.shipId
+                )} to {shipName(
+                    action.settlements > 0 ? action.shipId : action.partner.shipId
+                )}</span
+            >
+        {:else if action.settlements > 0}
+            <span
+                >loaded a settlement onto {shipName(action.shipId)}{action.metadata
+                    ? ` at ${systemName(action.metadata.systemId)}`
+                    : ''}</span
+            >
+        {:else}
+            <span
+                >{action.metadata?.foundedBase
+                    ? 'founded a base'
+                    : 'expanded their base'}{action.metadata
+                    ? ` at ${systemName(action.metadata.systemId)}`
+                    : ''} ({plural(
+                    action.metadata?.baseSettlements ?? -action.settlements,
+                    'settlement'
+                )})</span
+            >
+        {/if}
     {:else if isMoveShip(action)}
         <span
             >sent {shipName(action.shipId)} to {systemName(action.systemId)}{action.metadata
@@ -101,7 +111,7 @@
             explored {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
                 action.shipId
             )}{action.metadata
-                ? `: ${plural(action.metadata.markers.length, `${action.metadata.field.toLowerCase()} marker`)}${action.metadata.markers.length > 0 ? ` (${action.metadata.markers.join(', ')})` : ''}`
+                ? `: ${plural(action.metadata.markers.length, `${action.metadata.field.toLowerCase()} marker`)}${action.metadata.markers.length > 0 ? ` (${action.metadata.markers.join(', ')})` : ''}${action.metadata.cash ? ` and $${action.metadata.cash}B from the empty pool` : ''}`
                 : ''}{action.metadata?.destroyed
                 ? '; the ship was lost to a malfunction'
                 : action.metadata?.damage

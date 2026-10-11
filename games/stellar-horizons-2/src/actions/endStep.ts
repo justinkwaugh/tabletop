@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { endIdleMovement } from '../model/movement.js'
 import { TurnStep, nextTurnStep } from '../model/turn.js'
 
 export type EndStep = Type.Static<typeof EndStep>
@@ -38,6 +39,7 @@ export class HydratedEndStep extends HydratableAction<typeof EndStep> implements
             throw Error('Invalid EndStep action')
         }
         player.step = nextTurnStep(player.step)
+        endIdleMovement(state, this.playerId)
     }
 
     static canEndStep(state: HydratedStellarHorizonsGameState, playerId: string): boolean {

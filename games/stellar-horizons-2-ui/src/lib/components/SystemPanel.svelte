@@ -6,6 +6,7 @@
     import { FACTION_FILL, factionName, plural } from '$lib/utils/presentation.js'
     import { systemSummary } from '$lib/utils/systemSummary.js'
     import ShipCounter from './board/ShipCounter.svelte'
+    import CargoHold from './CargoHold.svelte'
 
     const COUNTER_SIZE = 140
 
@@ -95,6 +96,11 @@
                             >
                                 <ShipCounter {ship} size={COUNTER_SIZE} />
                             </svg>
+                            <CargoHold
+                                gameState={gameSession.gameState}
+                                {ship}
+                                width={COUNTER_SIZE}
+                            />
                             {#if ship.transit > 0}
                                 <span class="arrival"
                                     >Arrives in {plural(ship.transit, 'turn')}</span

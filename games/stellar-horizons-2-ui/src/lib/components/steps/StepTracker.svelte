@@ -10,10 +10,16 @@
 </script>
 
 <div class="tracker">
-    <ol>
+    <ol aria-label="Steps of your turn">
         {#each steps as step, index (step)}
-            <li class:current={step === current} class:past={index < currentIndex}>
-                {STEP_LABELS[step]}
+            <li
+                class:current={step === current}
+                class:past={index < currentIndex}
+                aria-current={step === current ? 'step' : undefined}
+                title={STEP_LABELS[step]}
+            >
+                <span class="number">{index + 1}</span>
+                <span class="label">{STEP_LABELS[step]}</span>
             </li>
         {/each}
     </ol>
@@ -26,40 +32,79 @@
 
 <style>
     .tracker {
+        container-type: inline-size;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 8px 12px;
         flex-wrap: wrap;
     }
 
+    /* One track of arrow segments, each pointing into the next. */
     ol {
+        --point: 9px;
         display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
+        min-width: 0;
     }
 
     li {
+        margin-left: calc(3px - var(--point));
+        padding: 4px 14px 4px calc(var(--point) + 10px);
         font-size: 13px;
-        padding: 2px 10px;
-        border-radius: 999px;
-        border: 1px solid #22314d;
-        color: #6f84a3;
+        white-space: nowrap;
+        color: #7f93b3;
+        background: #131d31;
+        clip-path: polygon(
+            0 0,
+            calc(100% - var(--point)) 0,
+            100% 50%,
+            calc(100% - var(--point)) 100%,
+            0 100%,
+            var(--point) 50%
+        );
+    }
+
+    li:first-child {
+        margin-left: 0;
+        padding-left: 12px;
+        clip-path: polygon(
+            0 0,
+            calc(100% - var(--point)) 0,
+            100% 50%,
+            calc(100% - var(--point)) 100%,
+            0 100%
+        );
     }
 
     li.past {
-        color: #3f5274;
-        border-color: #18233a;
+        color: #86a6c9;
+        background: #1c3553;
     }
 
     li.current {
         color: #05070d;
         background: #7fd3ff;
-        border-color: #7fd3ff;
         font-weight: 700;
     }
 
+    .number {
+        display: none;
+    }
+
+    /* Collapse to numbers by the panel's own width, since the sidebar narrows it. */
+    @container (max-width: 620px) {
+        li:not(.current) .label {
+            display: none;
+        }
+
+        li:not(.current) .number {
+            display: inline;
+        }
+    }
+
     .done {
+        margin-left: auto;
+        white-space: nowrap;
         padding: 4px 14px;
         border-radius: 8px;
         background: #f2c94c;

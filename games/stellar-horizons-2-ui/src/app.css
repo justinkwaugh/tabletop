@@ -56,10 +56,30 @@
     align-items: baseline;
 }
 
+.sh-step .prompt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 10px;
+    align-items: baseline;
+    font-size: 15px;
+    color: #e8f1ff;
+}
+
 .sh-step .cash {
     color: #f2c94c;
     text-transform: none;
     letter-spacing: 0;
+}
+
+.sh-step .cost {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #f2c94c;
+}
+
+.sh-step .cost.short {
+    color: #6f84a3;
 }
 
 .sh-step .cards {

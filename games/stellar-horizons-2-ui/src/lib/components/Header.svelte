@@ -26,7 +26,7 @@
 
 <div class="header">
     <div class="year">
-        <span class="year-number">{gameState.year}</span>
+        <span class="year-number">DECADE {gameState.year}</span>
         {#if isEvenDecade(gameState.year)}
             <span class="even" title="Even decade: income and terraforming">EVEN DECADE</span>
         {/if}
@@ -64,6 +64,7 @@
         display: grid;
         grid-template-columns: 1fr auto 1fr;
         align-items: center;
+        gap: 12px;
         height: 44px;
         padding: 0 16px;
         border-bottom: 1px solid #1e2b44;
@@ -82,6 +83,7 @@
         font-size: 22px;
         font-weight: 700;
         color: #f2c94c;
+        white-space: nowrap;
     }
 
     .even {
@@ -108,8 +110,15 @@
 
     @media (max-width: 639px) {
         .header {
+            gap: 8px;
             height: 32px;
+            padding: 0 8px;
             font-size: 14px;
+            letter-spacing: 0.04em;
+        }
+
+        .year-number {
+            font-size: 16px;
         }
     }
 </style>

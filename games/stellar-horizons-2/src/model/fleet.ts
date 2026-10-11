@@ -4,7 +4,7 @@ import { playerCapabilities, type Capabilities } from './capabilities.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { CompensationMarkers } from './exploration.js'
 import type { ShipState } from './pieces.js'
-import { drawTechMarkers } from './pools.js'
+import { awardTechMarkers } from './pools.js'
 import { roundHalfUp } from './turn.js'
 
 export interface ShipLoss {
@@ -55,12 +55,13 @@ export function removeShip(state: HydratedStellarHorizonsGameState, shipId: stri
 
 export function loseShip(state: HydratedStellarHorizonsGameState, ship: ShipState): ShipLoss {
     const definition = shipDefinition(ship.shipId)
-    const player = state.getPlayerState(ship.playerId)
     const compensation: CompensationMarkers = {}
     const award = (field: TechField.Biology | TechField.Engineering, count: number) => {
-        const markers = drawTechMarkers(state, field, count)
-        player.techMarkers[field].push(...markers)
+        const { markers, cash } = awardTechMarkers(state, ship.playerId, field, count)
         compensation[field] = markers
+        if (cash > 0) {
+            compensation.cash = (compensation.cash ?? 0) + cash
+        }
     }
     if (definition.kind === ShipKind.RE) {
         award(TechField.Engineering, 1)

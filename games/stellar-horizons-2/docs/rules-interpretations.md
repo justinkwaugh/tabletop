@@ -14,6 +14,7 @@ The implementation follows the Compass Games rulebook (December 2023 print) for 
 ### Turn structure
 
 - **Simultaneous decades.** Within a decade every player works through their own steps in rulebook order: build and repair, cargo, movement, exploration, develop techs. Players act at the same time. In Footfall nothing one player does in a decade changes another player's options in that decade. The two exceptions are handled explicitly: surveys are resolved in initiative order after everyone has finished, and tech discounts and prerequisites count only ownership from before the decade.
+- **Movement ends by itself.** A player's movement step ends as soon as none of their ships can move, whether after their last move or on reaching the step with nothing to move. With ships still able to move, the player ends the step themselves.
 - **Initiative.** Initiative is drawn once as the turn order (or taken from tournament seats) and does not change, as the scenario rules say.
 - **Factions.** Players choose factions in initiative order. Faction abilities and faction-sheet values are ignored, as all scenarios require, so a faction only supplies its ship roster and colour. The Consortium is offered with the rulebook's balance warning.
 - **End of a decade.** Surveys resolve, then in even decades terraforming happens, then victory is checked. Income is paid at the start of each even decade.
@@ -59,7 +60,7 @@ The rulebook's examples round halves up. The game applies that everywhere a frac
 
 - **Payment.** Techs are paid with markers of the tech's type plus $1B per point. There is no change, and cash may only cover a shortfall left by the chosen markers.
 - **Limits and cost.** A player develops at most one tech per type per turn. Prerequisites must have been owned before the decade. The cost drops by 3 for each other player who owned the tech before the decade, to a minimum of 5. Spent markers return to their pool (publisher ruling).
-- **Empty pools.** When a pool runs out, no further markers are drawn from it. This is unresolved on BGG; the 65-marker pools are not expected to empty in Footfall.
+- **Empty pools.** A marker that cannot be drawn because its pool is empty is paid as $1B instead (Player Guide 1.9). Cash paid this way does not count towards a survey, which needs tech value.
 
 ### Bases, ships and settlements
 

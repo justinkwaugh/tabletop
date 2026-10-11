@@ -25,6 +25,8 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TechTree from '$lib/components/TechTree.svelte'
     import SystemPanel from '$lib/components/SystemPanel.svelte'
+    import FactionSheet from '$lib/components/prototype/playerArea/FactionSheet.svelte'
+    import { playerArea } from '$lib/components/prototype/playerArea/campaignMock.svelte.js'
     import { fly } from 'svelte/transition'
     import { cubicInOut } from 'svelte/easing'
     import { untrack } from 'svelte'
@@ -180,8 +182,7 @@
     </div>
 {/snippet}
 
-{#snippet turnControls()}
-    <Header />
+{#snippet actionCard()}
     <ActionCard>
         {#if session.gameState.result}
             <GameEndPanel />
@@ -189,6 +190,11 @@
             <ActionPanel />
         {/if}
     </ActionCard>
+{/snippet}
+
+{#snippet turnControls()}
+    <Header />
+    {@render actionCard()}
 {/snippet}
 
 <svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
@@ -231,85 +237,93 @@
             </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
-            <div class="shrink-0">
-                {@render turnControls()}
-                <div class="view-toggle">
-                    <button
-                        type="button"
-                        class:active={view === 'map'}
-                        onclick={() => choose('map')}>Star map</button
-                    >
-                    <button
-                        type="button"
-                        class:active={view === 'techs'}
-                        onclick={() => choose('techs')}>Tech chart</button
-                    >
-                    {#if view === 'techs'}
-                        <span class="divider"></span>
+            <div class="masthead"><Header /></div>
+            <div class="game-scroll">
+                <div class="shrink-0">
+                    {@render actionCard()}
+                    <div class="view-toggle">
                         <button
                             type="button"
-                            class:active={techFocus === undefined}
-                            onclick={() => (techFocus = undefined)}>All</button
+                            class:active={view === 'map'}
+                            onclick={() => choose('map')}>Star map</button
                         >
-                        {#each TECH_FIELDS as field (field)}
+                        <button
+                            type="button"
+                            class:active={view === 'techs'}
+                            onclick={() => choose('techs')}>Tech chart</button
+                        >
+                        {#if view === 'techs'}
+                            <span class="divider"></span>
                             <button
                                 type="button"
-                                class:active={techFocus === field}
-                                onclick={() => (techFocus = field)}>{field}</button
+                                class:active={techFocus === undefined}
+                                onclick={() => (techFocus = undefined)}>All</button
                             >
-                        {/each}
-                    {/if}
+                            {#each TECH_FIELDS as field (field)}
+                                <button
+                                    type="button"
+                                    class:active={techFocus === field}
+                                    onclick={() => (techFocus = field)}>{field}</button
+                                >
+                            {/each}
+                        {/if}
+                    </div>
                 </div>
-            </div>
-            <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
-                {#if view === 'map'}
-                    <div
-                        class="map-area"
-                        bind:clientWidth={mapAreaWidth}
-                        bind:clientHeight={mapAreaHeight}
-                    >
-                        <ScalingWrapper
-                            bind:this={mapWrapper}
-                            justify="center"
-                            controls="bottom-left"
-                            expandable
-                            maxScale={2}
-                            overpan={mapOverpan}
-                        >
-                            <Board />
+                <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
+                    {#if view === 'map'}
+                        <div class="map-stack">
+                            <div
+                                class="map-area"
+                                bind:clientWidth={mapAreaWidth}
+                                bind:clientHeight={mapAreaHeight}
+                            >
+                                <ScalingWrapper
+                                    bind:this={mapWrapper}
+                                    justify="center"
+                                    controls="bottom-left"
+                                    expandable
+                                    maxScale={2}
+                                    overpan={mapOverpan}
+                                >
+                                    <Board />
+                                    {#snippet toolbar()}
+                                        {@render fullscreenControls()}
+                                        {#if session.focusedSystemId && !session.focusClosing}
+                                            <div
+                                                class="focus-panel"
+                                                class:sheet
+                                                style:top={sheet
+                                                    ? 'auto'
+                                                    : `${expanded ? controlsHeight : 0}px`}
+                                                style:width={sheet ? '100%' : `${panelSize}px`}
+                                                style:height={sheet ? `${panelSize}px` : 'auto'}
+                                                transition:fly={{
+                                                    x: sheet ? 0 : panelSize,
+                                                    y: sheet ? panelSize : 0,
+                                                    opacity: 1,
+                                                    duration: focusDuration,
+                                                    easing: cubicInOut
+                                                }}
+                                            >
+                                                <SystemPanel systemId={session.focusedSystemId} />
+                                            </div>
+                                        {/if}
+                                    {/snippet}
+                                </ScalingWrapper>
+                            </div>
+                            {#if playerArea.sheetUnderMap}
+                                <div class="faction-sheet"><FactionSheet /></div>
+                            {/if}
+                        </div>
+                    {:else}
+                        <ScalingWrapper justify="center" controls="bottom-left" expandable>
+                            <TechTree focus={techFocus} />
                             {#snippet toolbar()}
                                 {@render fullscreenControls()}
-                                {#if session.focusedSystemId && !session.focusClosing}
-                                    <div
-                                        class="focus-panel"
-                                        class:sheet
-                                        style:top={sheet
-                                            ? 'auto'
-                                            : `${expanded ? controlsHeight : 0}px`}
-                                        style:width={sheet ? '100%' : `${panelSize}px`}
-                                        style:height={sheet ? `${panelSize}px` : 'auto'}
-                                        transition:fly={{
-                                            x: sheet ? 0 : panelSize,
-                                            y: sheet ? panelSize : 0,
-                                            opacity: 1,
-                                            duration: focusDuration,
-                                            easing: cubicInOut
-                                        }}
-                                    >
-                                        <SystemPanel systemId={session.focusedSystemId} />
-                                    </div>
-                                {/if}
                             {/snippet}
                         </ScalingWrapper>
-                    </div>
-                {:else}
-                    <ScalingWrapper justify="center" controls="bottom-left" expandable>
-                        <TechTree focus={techFocus} />
-                        {#snippet toolbar()}
-                            {@render fullscreenControls()}
-                        {/snippet}
-                    </ScalingWrapper>
-                {/if}
+                    {/if}
+                </div>
             </div>
         {/snippet}
     </DefaultTableLayout>
@@ -319,6 +333,19 @@
     .table-surface {
         background: #070b14;
         color: #dbe7f5;
+    }
+
+    /* The turn header sits outside the scrolling area, so it never moves with it. */
+    .masthead {
+        flex-shrink: 0;
+    }
+
+    .game-scroll {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: auto;
     }
 
     .view-toggle {
@@ -349,9 +376,22 @@
         margin: 0 6px;
     }
 
+    .map-stack {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
     .map-area {
         position: relative;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .faction-sheet {
+        position: relative;
+        flex-shrink: 0;
+        z-index: 3;
     }
 
     .focus-panel {
@@ -370,5 +410,12 @@
     .fullscreen-controls {
         padding-bottom: 8px;
         background: #070b14;
+    }
+
+    /* In the table the action card grows with its content and the game area scrolls, with the
+       map keeping its minimum height. Full screen has no scrolling, so the card is capped. */
+    .fullscreen-controls :global(.card) {
+        max-height: 34dvh;
+        overflow-y: auto;
     }
 </style>

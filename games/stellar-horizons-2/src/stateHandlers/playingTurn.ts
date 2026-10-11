@@ -1,19 +1,13 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedBuildShip, isBuildShip } from '../actions/buildShip.js'
-import { HydratedBuySettlements, isBuySettlements } from '../actions/buySettlements.js'
 import { HydratedCloneSettlement, isCloneSettlement } from '../actions/cloneSettlement.js'
 import { HydratedDevelopTech, isDevelopTech } from '../actions/developTech.js'
 import { HydratedEndStep, isEndStep } from '../actions/endStep.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
-import { HydratedLoadSettlement, isLoadSettlement } from '../actions/loadSettlement.js'
 import { HydratedMoveShip, isMoveShip } from '../actions/moveShip.js'
 import { HydratedRepairShip, isRepairShip } from '../actions/repairShip.js'
 import { HydratedScrapShip, isScrapShip } from '../actions/scrapShip.js'
-import {
-    HydratedTransferSettlements,
-    isTransferSettlements
-} from '../actions/transferSettlements.js'
-import { HydratedUnloadSettlements, isUnloadSettlements } from '../actions/unloadSettlements.js'
+import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
@@ -25,10 +19,7 @@ type PlayingTurnAction =
     | HydratedRepairShip
     | HydratedScrapShip
     | HydratedCloneSettlement
-    | HydratedBuySettlements
-    | HydratedLoadSettlement
-    | HydratedTransferSettlements
-    | HydratedUnloadSettlements
+    | HydratedTransferCargo
     | HydratedMoveShip
     | HydratedExplore
     | HydratedDevelopTech
@@ -47,10 +38,7 @@ export class PlayingTurnStateHandler implements MachineStateHandler<
             isRepairShip(action) ||
             isScrapShip(action) ||
             isCloneSettlement(action) ||
-            isBuySettlements(action) ||
-            isLoadSettlement(action) ||
-            isTransferSettlements(action) ||
-            isUnloadSettlements(action) ||
+            isTransferCargo(action) ||
             isMoveShip(action) ||
             isExplore(action) ||
             isDevelopTech(action) ||
@@ -73,16 +61,7 @@ export class PlayingTurnStateHandler implements MachineStateHandler<
                 ActionType.CloneSettlement,
                 HydratedCloneSettlement.canCloneSettlement(state, playerId)
             ],
-            [ActionType.BuySettlements, HydratedBuySettlements.canBuySettlements(state, playerId)],
-            [ActionType.LoadSettlement, HydratedLoadSettlement.canLoadSettlement(state, playerId)],
-            [
-                ActionType.TransferSettlements,
-                HydratedTransferSettlements.canTransferSettlements(state, playerId)
-            ],
-            [
-                ActionType.UnloadSettlements,
-                HydratedUnloadSettlements.canUnloadSettlements(state, playerId)
-            ],
+            [ActionType.TransferCargo, HydratedTransferCargo.canTransferCargo(state, playerId)],
             [ActionType.MoveShip, HydratedMoveShip.canMoveShip(state, playerId)],
             [ActionType.Explore, HydratedExplore.canExplore(state, playerId)],
             [ActionType.DevelopTech, HydratedDevelopTech.canDevelopTech(state, playerId)],

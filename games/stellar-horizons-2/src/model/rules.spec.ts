@@ -8,11 +8,12 @@ import { WorldSide, maxPopulation, worldTile } from '../components/worlds.js'
 import { MachineState } from '../definition/states.js'
 import { hydrate, startedGame } from '../testing/fixtures.js'
 import { RepairMethod, buildLocations, canRepair, shipsAvailableToBuild } from './building.js'
-import { capabilitiesOf } from './fleet.js'
+import { capabilitiesOf, loseShip } from './fleet.js'
 import { isTechAvailable, isValidTechPayment, techCost } from './development.js'
 import { explorationValue, surveyThreshold } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { moveOptions } from './movement.js'
+import { awardTechMarkers } from './pools.js'
 import { canSettleSystem } from './settling.js'
 import { applySurveyChoice, resolveNextSurvey } from './surveys.js'
 import {
@@ -172,6 +173,34 @@ describe('movement', () => {
 })
 
 describe('exploration and surveys', () => {
+    it('pays $1B for each marker an empty pool cannot supply', () => {
+        const state = freshState()
+        const player = state.players[0]
+        state.techPools[TechField.Physics] = [0, 0, 1, 0, 0]
+        const before = { cash: player.cash, markers: player.techMarkers.Physics.length }
+
+        const award = awardTechMarkers(state, player.playerId, TechField.Physics, 3)
+
+        expect(award).toEqual({ markers: [3], cash: 2 })
+        expect(player.techMarkers.Physics).toHaveLength(before.markers + 1)
+        expect(player.cash).toBe(before.cash + 2)
+    })
+
+    it('compensates a lost ship in cash when the pools are empty', () => {
+        const state = freshState()
+        const playerId = factionPlayerId(state, Faction.Starfarers)
+        const ship = placeShip(state, playerId, 'starfarers-andromeda', 'alpha-centauri')
+        assertExists(ship, 'The ship was placed')
+        state.techPools[TechField.Biology] = [0, 0, 0, 0, 0]
+        state.techPools[TechField.Engineering] = [0, 0, 0, 0, 0]
+        const cash = state.getPlayerState(playerId).cash
+
+        const loss = loseShip(state, ship)
+
+        expect(loss.compensation).toEqual({ Biology: [], Engineering: [], cash: 2 })
+        expect(state.getPlayerState(playerId).cash).toBe(cash + 2)
+    })
+
     it('sums marker, ship and system bonus', () => {
         const state = freshState()
         const playerId = factionPlayerId(state, Faction.Starfarers)

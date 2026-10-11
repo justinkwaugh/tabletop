@@ -2,6 +2,7 @@ import {
     ActionSource,
     GameEngine,
     PlayerStatus,
+    assertExists,
     type Game,
     type GameAction
 } from '@tabletop/common'
@@ -63,6 +64,25 @@ export function execute(
     action: GameAction
 ): StellarHorizonsProjectedState {
     return engine.executeCanonicalAction({ game, state, action }).updatedState
+}
+
+export function edit(
+    state: StellarHorizonsProjectedState,
+    change: (state: HydratedStellarHorizonsGameState) => void
+): StellarHorizonsProjectedState {
+    const hydrated = hydrate(state)
+    change(hydrated)
+    return hydrated.dehydrate()
+}
+
+export function takeTile(
+    state: HydratedStellarHorizonsGameState,
+    predicate: (id: string) => boolean
+): string {
+    const tileId = state.worldPool.find(predicate)
+    assertExists(tileId, 'No matching tile in the pool')
+    state.worldPool.splice(state.worldPool.indexOf(tileId), 1)
+    return tileId
 }
 
 export const FACTION_PICKS: readonly Faction[] = [
