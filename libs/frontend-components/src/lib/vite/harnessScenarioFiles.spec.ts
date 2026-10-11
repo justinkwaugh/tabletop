@@ -1,5 +1,5 @@
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
-import { createServer, type Server } from 'node:http'
+import { createServer, request, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
@@ -104,6 +104,23 @@ describe('saveRoute', () => {
         })
 
         expect(response.status).toBe(413)
+        await expect(readdir(dir)).rejects.toThrow()
+    })
+
+    test('refuses a request that grows too large without declaring its length', async () => {
+        const status = await new Promise<number | undefined>((answered, failed) => {
+            const sending = request(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            sending.on('response', (response) => answered(response.statusCode))
+            sending.on('error', failed)
+            const chunk = 'x'.repeat(1024 * 1024)
+            for (let n = 0; n < 21; n++) sending.write(chunk)
+            sending.end()
+        })
+
+        expect(status).toBe(413)
         await expect(readdir(dir)).rejects.toThrow()
     })
 })

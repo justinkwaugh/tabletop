@@ -215,7 +215,6 @@
         savingScenario = true
     }
 
-    // A label names its file, so saving under a scenario's label replaces that scenario.
     function scenarioId(label: string) {
         return (
             label
@@ -225,7 +224,7 @@
         )
     }
     let saveId = $derived(scenarioId(saveLabel.trim()))
-    let replacedScenario = $derived(listed.find((entry) => entry.id === saveId))
+    let scenarioToReplace = $derived(listed.find((entry) => entry.id === saveId))
 
     async function saveScenario() {
         saveError = undefined
@@ -543,9 +542,9 @@
                     placeholder="What this scenario sets up"
                 /></Label
             >
-            {#if replacedScenario}
+            {#if scenarioToReplace}
                 <div class="text-sm text-amber-600 dark:text-amber-400">
-                    Saving replaces the scenario “{replacedScenario.scenario.label}”.
+                    Saving replaces the scenario “{scenarioToReplace.scenario.label}”.
                 </div>
             {/if}
             {#if saveError}

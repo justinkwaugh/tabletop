@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
-import { join, resolve, sep } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import { HARNESS_SCENARIO_ENDPOINT } from '../harness/harnessScenarioEndpoint.js'
 
@@ -9,19 +9,19 @@ const SCENARIO_ID = /^[a-z0-9][a-z0-9-]*$/
 // which a browser cannot write to itself. It exists only while the dev server runs.
 export function harnessScenarioFiles({ dir = 'scenarios' }: { dir?: string } = {}): Plugin {
     let scenarios = ''
+    // Vite's hooks and its file watcher spell paths differently on Windows
+    const slashed = (path: string) => path.replaceAll('\\', '/')
     const isScenarioFile = (path: string) =>
-        path.startsWith(`${scenarios}${sep}`) && path.endsWith('.json')
+        slashed(path).startsWith(`${slashed(scenarios)}/`) && path.endsWith('.json')
     return {
         name: 'tabletop-harness-scenario-files',
         apply: 'serve',
         configResolved(config) {
             scenarios = resolve(config.root, dir)
         },
-        // Vite answers a scenario file added, changed or removed by updating the dev page, which
-        // closes the open game, or, for a removed file, shows an error for it. The open page keeps
-        // its game and menu instead, and lists a save itself.
+        // Runs after Vite's glob handling, whose update of the dev page would close the open game,
+        // or show an error for a removed file; the page lists a save itself.
         hotUpdate: {
-            // After Vite's own glob handling, which adds the dev page to the update
             order: 'post',
             handler({ file }) {
                 if (isScenarioFile(file)) return []
@@ -56,11 +56,10 @@ export async function saveScenarioFile(dir: string, body: string): Promise<strin
     return file
 }
 
-// Far above any scenario a full game produces, so only a runaway request reaches it.
 const MAX_SCENARIO_BYTES = 20 * 1024 * 1024
 
 // Only JSON requests: a web page can send a cross-site form post here without asking, but a JSON
-// one makes the browser ask the dev server first, which refuses other sites.
+// one makes the browser ask the dev server first, which by default answers only localhost pages.
 export function saveRoute(dir: string): Connect.NextHandleFunction {
     return (request, response) => {
         if (request.method !== 'POST') {
@@ -73,18 +72,21 @@ export function saveRoute(dir: string): Connect.NextHandleFunction {
             respond(response, 415, { error: 'A scenario file is saved as JSON' })
             return
         }
+        // Refuses a body too large as soon as it is known to be, then reads the rest unkept, so the
+        // refusal reaches the client rather than a dropped connection.
+        let tooLarge = Number(request.headers['content-length']) > MAX_SCENARIO_BYTES
+        if (tooLarge) refuseTooLarge(response)
         const chunks: Buffer[] = []
         let size = 0
         request.on('data', (chunk: Buffer) => {
+            if (tooLarge) return
             size += chunk.length
-            if (size > MAX_SCENARIO_BYTES) {
-                respond(response, 413, { error: 'That scenario is too large to save' })
-                request.destroy()
-                return
-            }
-            chunks.push(chunk)
+            tooLarge = size > MAX_SCENARIO_BYTES
+            if (tooLarge) refuseTooLarge(response)
+            else chunks.push(chunk)
         })
         request.on('end', () => {
+            if (tooLarge) return
             saveScenarioFile(dir, Buffer.concat(chunks).toString('utf8'))
                 .then((file) => respond(response, 200, { file }))
                 .catch((error: unknown) =>
@@ -94,6 +96,10 @@ export function saveRoute(dir: string): Connect.NextHandleFunction {
                 )
         })
     }
+}
+
+function refuseTooLarge(response: Parameters<typeof respond>[0]) {
+    respond(response, 413, { error: 'That scenario is too large to save' })
 }
 
 function respond(
