@@ -376,7 +376,9 @@ export const PowerQuestion = Type.Union([
         fromSiteId: Type.String(),
         siteId: Type.String(),
         /** R-5.5.7.III — the attacker's burn, which waits on the answer. */
-        burnFavor: Type.Optional(Type.Boolean())
+        burnFavor: Type.Optional(Type.Boolean()),
+        /** R-11.7 — the traveller's own Travel out of the Shrouded Wood, which pays its Supply once the toll is paid. */
+        travel: Type.Optional(ShroudedWoodTravel)
     })
 ])
 

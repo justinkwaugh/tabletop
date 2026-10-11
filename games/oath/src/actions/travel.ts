@@ -33,11 +33,12 @@ import { flipSiteFromVault } from '../util/hiddenInputs.js'
 import {
     isFreeTravelNow,
     payableWoodPicks,
-    shroudedWoodDestinations,
+    tollPayableWoodSites,
     woodPick,
     woodTravelPaysAtPick
 } from '../util/shroudedWood.js'
 import { nextActionIndex } from '../util/freeActions.js'
+import { usableFavor } from '../util/favor.js'
 import { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -268,11 +269,13 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         }
         const free = isFreeTravelNow(state, playerId)
         if (payableWoodPicks(state, playerId, free).length > 0) return undefined
-        const here = pawnSiteId(state, playerId)
+        const sites = tollPayableWoodSites(state, playerId)
+        if (sites.length === 0) {
+            const favor = usableFavor(state, playerId)
+            return `${chooser} would pick where you go, and every site takes a favor for its toll: you have ${favor}`
+        }
         const cheapest = Math.min(
-            ...shroudedWoodDestinations(state, playerId, here).map(
-                (siteId) => woodPick(state, playerId, siteId, free).cost
-            )
+            ...sites.map((siteId) => woodPick(state, playerId, siteId, free).cost)
         )
         return `${chooser} would pick where you go, and you can pay for no site: the cheapest is ${cheapest} Supply, you have ${supply}`
     }

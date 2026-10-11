@@ -8,6 +8,7 @@ import { afterTravelPersistent, reasonPersistentForbidsTravel } from './persiste
 import { siteTravelTerms } from './siteTravel.js'
 import { foldSupplyCost, resolveModifiers, runAfter, type ActiveModifier } from './modifiers.js'
 import { flipSiteFromVault, type SiteFlip } from './hiddenInputs.js'
+import { canPayPowerMoveToll } from './powerMoveTolls.js'
 
 /** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
 export function shroudedWoodDestinations(
@@ -72,6 +73,16 @@ export function woodPick(
     return planWoodPick(state, travelerId, siteId, free).pick
 }
 
+/**
+ * R-11.7, Toll Roads — the sites whose toll the traveller can pay: the toll is asked at the pick,
+ * before any Supply, so a site they have no favor for is never picked.
+ */
+export function tollPayableWoodSites(state: HydratedOathGameState, travelerId: string): string[] {
+    return shroudedWoodDestinations(state, travelerId, pawnSiteId(state, travelerId)).filter(
+        (siteId) => canPayPowerMoveToll(state, travelerId, siteId)
+    )
+}
+
 /** R-11.7 — the sites the ruler may pick: those the traveller may be sent to and can pay for. */
 export function payableWoodPicks(
     state: HydratedOathGameState,
@@ -79,7 +90,7 @@ export function payableWoodPicks(
     free: boolean
 ): WoodPick[] {
     const supply = state.getPlayerState(travelerId).supply
-    return shroudedWoodDestinations(state, travelerId, pawnSiteId(state, travelerId))
+    return tollPayableWoodSites(state, travelerId)
         .map((siteId) => woodPick(state, travelerId, siteId, free))
         .filter((pick) => pick.cost <= supply)
 }
@@ -93,6 +104,9 @@ export function reasonWoodPickRefused(
     const here = pawnSiteId(state, travelerId)
     if (!shroudedWoodDestinations(state, travelerId, here).includes(siteId)) {
         return `${siteId} is not a site ${travelerId} can be sent to`
+    }
+    if (!canPayPowerMoveToll(state, travelerId, siteId)) {
+        return `${travelerId} has no favor for the toll to travel to ${siteId}`
     }
     const { cost } = woodPick(state, travelerId, siteId, free)
     const supply = state.getPlayerState(travelerId).supply

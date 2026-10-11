@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { burnFavor } from './burn.js'
 import { gainFavorFromBank, giveFavor, spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
@@ -47,7 +47,7 @@ import {
     settlePowerMoveToll
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
-import { PowerMoveKind } from '../model/powerMoveToll.js'
+import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
@@ -314,6 +314,23 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { travelerPlayerId, travel } = matched.question
             const siteId = matched.answer.siteId
+            const toll = powerMoveToll(state, travelerPlayerId, siteId)
+            if (travel && toll) {
+                // R-11.7, Toll Roads — the toll is asked before any Supply: paid, the Travel settles.
+                const move = {
+                    move: PowerMoveKind.ShroudedWood,
+                    moverPlayerId: playerId,
+                    movedPlayerId: travelerPlayerId,
+                    toSiteId: siteId,
+                    travel
+                }
+                const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
+                assert(
+                    tollMove.outcome === PowerMoveTollOutcome.Asked,
+                    'The ruler picks only a site whose toll the traveller can pay'
+                )
+                return { summary: `chose ${siteId} for ${travelerPlayerId}`, tollMove }
+            }
             if (travel) {
                 const { pick, revealed } = settleWoodPick(
                     state,
@@ -327,7 +344,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                     ? { summary, woodPick: pick, disclosed: true }
                     : { summary, woodPick: pick }
             }
-            const toll = powerMoveToll(state, travelerPlayerId, siteId)
             if (toll) {
                 const move = {
                     move: PowerMoveKind.ShroudedWood,
@@ -531,10 +547,30 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         apply: (state, _playerId, matched) => {
             const { question } = matched
             const tollMove = settlePowerMoveToll(state, question, matched.answer.pay)
-            const summary = matched.answer.pay
-                ? `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor and went to ${question.siteId}`
-                : `refused ${question.cardId} and stayed at ${question.fromSiteId}`
-            return { summary, tollMove }
+            const paid = `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor and went to ${question.siteId}`
+            if (!matched.answer.pay) {
+                return {
+                    summary: `refused ${question.cardId} and stayed at ${question.fromSiteId}`,
+                    tollMove
+                }
+            }
+            if (!question.travel) return { summary: paid, tollMove }
+            // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site, then Tyrant and the site's powers.
+            const { pick, revealed } = settleWoodPick(
+                state,
+                question.askedPlayerId,
+                question.siteId,
+                question.travel.free
+            )
+            assert(
+                revealed === undefined,
+                'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'
+            )
+            return {
+                summary: `${paid}, paying ${pick.supplySpent} Supply`,
+                tollMove,
+                woodPick: pick
+            }
         }
     },
     [PowerQuestionKind.OrderDrawnCards]: {

@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PowerMoveKind, PowerMoveTollOutcome, type PowerMoveToll } from '../model/powerMoveToll.js'
-import { PowerQuestionKind, type QuestionOf } from '../model/question.js'
+import { PowerQuestionKind, type QuestionOf, type ShroudedWoodTravel } from '../model/question.js'
 import { WHISTLE_ID } from '../data/relics.js'
 import { burnHalfTheirFavor } from './burn.js'
 import { usableFavor } from './favor.js'
@@ -22,6 +22,8 @@ export interface PowerMove {
     movedPlayerId: string
     toSiteId: string
     burnFavor?: boolean
+    /** R-11.7 — the Shrouded Wood's ruler picked for the traveller's own Travel. */
+    travel?: ShroudedWoodTravel
 }
 
 /** Toll Roads' Q&A — a move a power makes is travel, so the toll is owed (R-X.4: from this revision). */
@@ -71,7 +73,8 @@ export function askPowerMoveToll(
             moverPlayerId: move.moverPlayerId,
             fromSiteId,
             siteId: move.toSiteId,
-            burnFavor: move.burnFavor
+            burnFavor: move.burnFavor,
+            travel: move.travel
         },
         front
     )
@@ -87,7 +90,10 @@ export function askPowerMoveToll(
     }
 }
 
-/** The answer: paid, the move happens and the power finishes; refused, the pawn stays. */
+/**
+ * The answer: paid, the move happens and the power finishes; refused, the pawn stays. A Travel out
+ * of a Shrouded Wood pays the toll here, and its caller settles the Travel (`settleWoodPick`).
+ */
 export function settlePowerMoveToll(
     state: HydratedOathGameState,
     question: TollQuestion,
@@ -106,6 +112,7 @@ export function settlePowerMoveToll(
     }
     if (pay) {
         payToll(state, moved, record.toll)
+        if (question.travel) return record
         // Palanquin — "Put your pawn on a site", then "make them travel".
         if (question.move === PowerMoveKind.Palanquin) {
             state.getPlayerState(question.moverPlayerId).siteId = question.siteId

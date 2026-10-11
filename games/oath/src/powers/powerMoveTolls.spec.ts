@@ -14,7 +14,9 @@ import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { createOathVault } from '../model/vault.js'
 import { OathRevision } from '../util/revision.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
-import { AnswerQuestion } from '../actions/answerQuestion.js'
+import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
+import { HydratedTravel, Travel } from '../actions/travel.js'
+import { payableWoodPicks } from '../util/shroudedWood.js'
 import {
     CampaignResolveVictory,
     HydratedCampaignResolveVictory
@@ -420,6 +422,125 @@ describe('R-X.4 — the Whistle into Toll Roads replays as it was recorded, at e
             expect(recorded.players.find((p) => p.playerId === 'jacob')).toMatchObject({ siteId: 'c1', favor })
 
             let replayed = structuredClone(start)
+            for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded)
+        }
+    })
+})
+
+/** Cole rules the Shrouded Wood at c2, where Jacob stands, and c1, which holds Toll Roads. */
+const WOOD = {
+    siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' },
+    warbandsBySite: { c1: { cole: 2 }, c2: { cole: 1 }, h1: { [IMPERIAL_WARBANDS]: 1 } }
+}
+const TYRANT = 'denizen.order.tyrant'
+
+describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, before any Supply (R-11.7, R-X.4)', () => {
+    /** Jacob's own Travel out of Cole's Wood; Cole is asked where he goes. */
+    function leave(over: Over = {}, state: Record<string, unknown> = WOOD, oathRevision: number = atRevision) {
+        const s = table({ jacob: { ...over['jacob'] } }, state, oathRevision)
+        openTurn(s, 'jacob')
+        if (over['jacob']?.['free']) s.getPlayerState('jacob').freeTravelAtAction = s.actionCount
+        const travel = new HydratedTravel(buildAction(Travel, { playerId: 'jacob' }))
+        travel.apply(s)
+        return { s, travel }
+    }
+    const pick = (s: ReturnType<typeof table>, siteId: string) => answerQuestion(s, 'cole', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+
+    it('the pick to a toll site asks Jacob first, and nothing is paid or moved yet', () => {
+        const { s } = leave()
+        const picked = pick(s, 'c1')
+        expect(picked.metadata?.tollMove).toMatchObject({ move: PowerMoveKind.ShroudedWood, moverPlayerId: 'cole', movedPlayerId: 'jacob', fromSiteId: 'c2', toSiteId: 'c1', outcome: PowerMoveTollOutcome.Asked })
+        expect(picked.metadata?.woodPick).toBeUndefined()
+        expect(tollQuestion(s)).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: 'jacob', payeeId: 'cole', fromSiteId: 'c2', siteId: 'c1', travel: { free: false } })
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'c2', supply: 6, favor: 4 })
+    })
+
+    it('paid: the favor to Cole, then the Wood’s Supply folded for the site, the move, and Tyrant at the site', () => {
+        const { s } = leave({ jacob: { advisers: [{ cardId: TYRANT, faceUp: true }] } })
+        pick(s, 'c1')
+        const paid = payToll(s, true)
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'c1', supply: 4, favor: 3 })
+        expect(s.getPlayerState('cole').favor).toBe(4)
+        expect(s.warbandsBySite['c1']).toEqual({ cole: 1 })
+        expect(paid.metadata?.tollMove).toMatchObject({ outcome: PowerMoveTollOutcome.Paid, toll: { cardId: TOLL_ROADS, payeeId: 'cole' } })
+        expect(paid.metadata?.woodPick).toEqual({ travelerPlayerId: 'jacob', siteId: 'c1', supplySpent: 2, supplyRemaining: 4, notes: ['Tyrant killed a warband at c1'], warbandOwner: 'cole' })
+        expect(s.pendingQuestions?.queue ?? []).toEqual([])
+    })
+
+    it('refused: Jacob stays in the Wood, pays nothing, and the Travel is spent', () => {
+        const { s } = leave({ jacob: { free: true } })
+        pick(s, 'c1')
+        const refused = payToll(s, false)
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'c2', supply: 6, favor: 4 })
+        expect(s.getPlayerState('jacob').freeTravelAtAction).toBeUndefined()
+        expect(s.getPlayerState('cole').favor).toBe(3)
+        expect(refused.metadata?.tollMove?.outcome).toBe(PowerMoveTollOutcome.Refused)
+        expect(refused.metadata?.woodPick).toBeUndefined()
+        expect(s.pendingQuestions?.queue ?? []).toEqual([])
+    })
+
+    it('with no favor the toll site is not offered to Cole; the other sites are', () => {
+        const { s } = leave({ jacob: { favor: 0 } })
+        expect(payableWoodPicks(s, 'jacob', false).map((p) => p.siteId)).not.toContain('c1')
+        expect(payableWoodPicks(s, 'jacob', false).map((p) => p.siteId)).toContain('p1')
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'cole', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' })).toBe('jacob has no favor for the toll to travel to c1')
+        expect(() => pick(s, 'c1')).toThrow(/no favor for the toll/)
+        pick(s, 'p1')
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'p1', supply: 4, favor: 0 })
+    })
+
+    it('when every site takes the toll and Jacob has no favor, the Travel is refused', () => {
+        const everywhere = {
+            siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', p2: 'site.river', p3: 'site.great-slums', h1: 'site.mountain', h2: 'site.steppe', h3: 'site.wastes' },
+            warbandsBySite: { c1: { cole: 2 }, c2: { cole: 1 }, p1: { cole: 1 }, p2: { cole: 1 }, p3: { cole: 1 }, h1: { cole: 1 }, h2: { cole: 1 }, h3: { cole: 1 } }
+        }
+        const s = table({ jacob: { favor: 0 } }, everywhere)
+        openTurn(s, 'jacob')
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, 'jacob', {})).toBe('cole would pick where you go, and every site takes a favor for its toll: you have 0')
+        expect(HydratedTravel.canDoTravel(s, 'jacob')).toBe(false)
+        s.getPlayerState('jacob').favor = 1
+        expect(HydratedTravel.canDoTravel(s, 'jacob')).toBe(true)
+    })
+
+    it('the cheapest Supply named is over the sites whose toll Jacob can pay', () => {
+        const { s } = leave()
+        s.getPlayerState('jacob').favor = 0
+        s.getPlayerState('jacob').supply = 1
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, 'jacob', {})).toBe('cole would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
+    })
+
+    it('R-X.4 — before the revision the Travel pays 2 up front and the pick moves Jacob with no toll', () => {
+        const { s, travel } = leave({}, WOOD, before)
+        expect(travel.metadata).toMatchObject({ supplySpent: 2, supplyRemaining: 4 })
+        const picked = pick(s, 'c1')
+        expect(picked.metadata?.tollMove).toBeUndefined()
+        expect(s.pendingQuestions?.queue ?? []).toEqual([])
+        expect(s.getPlayerState('jacob')).toMatchObject({ siteId: 'c1', supply: 4, favor: 4 })
+    })
+
+    it('R-X.4 — recorded and replayed at each revision', () => {
+        for (const [revision, favor, answers] of [[before, 4, false], [atRevision, 3, true]] as const) {
+            const start = table({}, WOOD, revision)
+            openTurn(start, 'jacob')
+            start.activePlayerIds = ['jacob']
+            const raw = start.dehydrate()
+            const game = testGame(['cole', 'jacob', 'chancellor'])
+            const actions = []
+            let recorded = raw
+            const steps = [
+                buildAction(Travel, { playerId: 'jacob' }),
+                buildAction(AnswerQuestion, { playerId: 'cole', answer: { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' } }),
+                ...(answers ? [buildAction(AnswerQuestion, { playerId: 'jacob', answer: { kind: PowerQuestionKind.PayTravelToll, pay: true } })] : [])
+            ]
+            for (const step of steps) {
+                const ran = engine.runNext(step, structuredClone(recorded), game)
+                actions.push(...ran.processedActions)
+                recorded = ran.updatedState
+            }
+            expect(recorded.players.find((p) => p.playerId === 'jacob')).toMatchObject({ siteId: 'c1', favor, supply: 4 })
+
+            let replayed = structuredClone(raw)
             for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
             expect(replayed).toEqual(recorded)
         }
