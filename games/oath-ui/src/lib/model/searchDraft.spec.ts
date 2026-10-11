@@ -176,7 +176,7 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
     const HEARTH = ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return']
     const CUP = 'relic.cup-of-plenty'
 
-    function withRival() {
+    function withRival(ann: Partial<Parameters<typeof testPlayer>[0]> = {}) {
         const state = testState(
             [
                 testPlayer({
@@ -192,7 +192,8 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
                     color: Color.Blue,
                     siteId: 'c1',
                     relicIds: [CUP],
-                    advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+                    advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }],
+                    ...ann
                 })
             ],
             { machineState: MachineState.Searching }
@@ -202,6 +203,48 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
         const sent = vi.spyOn(session, 'resolveSearch').mockResolvedValue()
         return { draft: session.search, sent }
     }
+
+    it('with no one to take from, the take step says why, and "Play" plays it with no take', async () => {
+        const { draft, sent } = withRival({ relicIds: [] })
+        draft.keep(CONSPIRACY)
+        await draft.choosePlacement({ play: SearchPlay.Conspiracy })
+        expect(draft.needsConspiracy).toBe(true)
+        expect(draft.conspiracyTargets).toEqual([])
+        expect(draft.conspiracyNoTake).toEqual([
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'seat', playerId: 'ann', possessive: false },
+                    { kind: 'text', text: ' holds no relic or banner.' }
+                ]
+            }
+        ])
+        expect(draft.conspiracyComplete).toBe(true)
+        expect(sent).not.toHaveBeenCalled()
+
+        await draft.confirmConspiracy()
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: CONSPIRACY, play: SearchPlay.Conspiracy })
+        )
+        expect(sent).toHaveBeenCalledWith(
+            expect.not.objectContaining({ conspiracy: expect.anything() })
+        )
+    })
+
+    it('does not list a player who matches but holds nothing to take', async () => {
+        const { draft } = withRival({ relicIds: [] })
+        draft.keep(CONSPIRACY)
+        await draft.choosePlacement({ play: SearchPlay.Conspiracy })
+        expect(draft.conspiracyTargets).toEqual([])
+    })
+
+    it('a player the take can reach is listed, and no line is said', async () => {
+        const { draft } = withRival()
+        draft.keep(CONSPIRACY)
+        await draft.choosePlacement({ play: SearchPlay.Conspiracy })
+        expect(draft.conspiracyTargets).toEqual(['ann'])
+        expect(draft.conspiracyNoTake).toEqual([])
+    })
 
     it('Play is ready with nobody picked, not with a player alone, and again with a prize', async () => {
         const { draft, sent } = withRival()

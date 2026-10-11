@@ -8,6 +8,7 @@
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
+    import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
     import { ActionType } from '@tabletop/oath'
     import { actionName } from '$lib/model/actionCatalogue.js'
     import { siteName, cardName } from '$lib/model/names.js'
@@ -191,12 +192,17 @@
         </div>
     {:else if search.needsConspiracy}
         {@const reason = search.whenPlayedReason}
-        <ConspiracyTakePicker
-            targets={search.conspiracyTargets}
-            prizesOf={(target) => search.conspiracyPrizesOf(target)}
-            pick={search.conspiracyPick}
-            onchange={(pick) => search.setConspiracyPick(pick)}
-        />
+        {#if search.conspiracyTargets.length > 0}
+            <ConspiracyTakePicker
+                targets={search.conspiracyTargets}
+                prizesOf={(target) => search.conspiracyPrizesOf(target)}
+                pick={search.conspiracyPick}
+                onchange={(pick) => search.setConspiracyPick(pick)}
+            />
+        {:else}
+            <!-- No one here can be taken from: why, in the take's place; "Play" takes nothing. -->
+            <ConspiracyNoTake lines={search.conspiracyNoTake} />
+        {/if}
         <!-- "Play" once the take is picked whole; a red line only for a complete pick refused. -->
         {#if search.conspiracyComplete}
             {#if reason}
@@ -205,7 +211,7 @@
                 </p>
             {/if}
             <button
-                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
+                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
                 disabled={busy || !!reason}
                 onclick={() => search.confirmConspiracy()}
             >

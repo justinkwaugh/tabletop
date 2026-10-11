@@ -32,7 +32,13 @@ import {
     stackOrderAnswer
 } from './questionChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
-import { conspiracyPrizes, conspiracyTargets, type TakePrizeOption } from './conspiracyTake.js'
+import {
+    conspiracyNoTake,
+    conspiracyPrizes,
+    conspiracyTargets,
+    type ConspiracyNoTakeLine,
+    type TakePrizeOption
+} from './conspiracyTake.js'
 import { woodRegions, type WoodRegion } from './woodTravel.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -146,15 +152,20 @@ export class QuestionDraft implements PanelDraft {
         return this.floorWith !== undefined && exchangeComplete(this.floorTerms)
     }
 
-    /** The players here the take could match who hold a relic or banner it may take. */
+    /** The players here the take can reach: a secret to burn, the match, and a prize. */
     get takeTargets(): string[] {
         const playerId = this.playerId
         if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
             return []
-        const state = this.session.gameState
-        return conspiracyTargets(state, playerId).filter(
-            (target) => conspiracyPrizes(state, playerId, target).length > 0
-        )
+        return conspiracyTargets(this.session.gameState, playerId)
+    }
+
+    /** When no one here can be taken from, why: one line per player here. */
+    get takeNoTake(): ConspiracyNoTakeLine[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
+            return []
+        return conspiracyNoTake(this.session.gameState, playerId)
     }
 
     get takeTarget(): string | undefined {
@@ -440,11 +451,13 @@ export class QuestionDraft implements PanelDraft {
         await this.send(this.visionAnswer(play))
     }
 
-    /** Inquisitor — a play with nothing to pick is sent at once; the take and the room come after. */
+    /**
+     * Inquisitor — a play with nothing to pick is sent at once; the take and the room come after.
+     * The take is asked even with no one to take from: its step then says why (R-5.1.4.IV).
+     */
     async chooseConspiracyPlay(play: SearchPlay): Promise<void> {
         if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return
-        if (play === SearchPlay.Conspiracy && this.takeTargets.length > 0)
-            this.flow.set('conspiracyPlay', play)
+        if (play === SearchPlay.Conspiracy) this.flow.set('conspiracyPlay', play)
         else if (play === SearchPlay.Adviser && this.conspiracyDiscards.length > 0)
             this.flow.set('conspiracyPlay', play)
         else await this.send(this.conspiracyAnswer(play))

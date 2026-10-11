@@ -4525,6 +4525,7 @@ test('scenario 23: the Conspiracy takes from a player’s chip; "Play" shows wit
     await expect(grid(page).getByText('From:', { exact: true })).toBeVisible()
     await expect(rhys).toHaveAttribute('aria-pressed', 'false')
     await expect(play).toBeVisible()
+    await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
 
     await rhys.click()
     await expect(rhys).toHaveAttribute('aria-pressed', 'true')
@@ -4536,6 +4537,59 @@ test('scenario 23: the Conspiracy takes from a player’s chip; "Play" shows wit
     await rhys.click()
     await expect(rhys).toHaveAttribute('aria-pressed', 'false')
     await expect(play).toBeVisible()
+})
+
+test('scenario 23: with no one to take from, the take step says why, the name a chip, and "Play" plays it with no take', async ({ page }) => {
+    await openTable(page, 'searchConspiracyNoTake')
+    await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Play it', exact: true }).click()
+    await expect(grid(page).getByText('The Conspiracy: take a relic or banner?', { exact: true })).toBeVisible()
+    await expect(grid(page)).not.toContainText('From:')
+    const why = grid(page).locator('.text-oath-danger')
+    await expect(why).toHaveCount(1)
+    await expect(why).toHaveText(/^\s*Needs 2 advisers matching\s*rhys's; you have 1\.\s*$/i)
+    await expect(why.locator('span.rounded')).toHaveText(/^rhys's$/i)
+    await grid(page).getByRole('button', { name: 'Play', exact: true }).click()
+    await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+})
+
+test('the facedown Conspiracy with no one to take from: why, where the take would be, above "Play Conspiracy"', async ({ page }) => {
+    await openTable(page, 'flipConspiracyNoTake')
+    await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Play it: Conspiracy', exact: true }).click()
+    const why = grid(page).locator('.text-oath-danger')
+    await expect(why).toHaveCount(1)
+    await expect(why).toHaveText(/^\s*Needs 2 advisers matching\s*rhys's; you have 1\.\s*$/i)
+    const play = grid(page).getByRole('button', { name: 'Play Conspiracy', exact: true })
+    await expect(play).toBeVisible()
+    const [line, button] = [await why.boundingBox(), await play.boundingBox()]
+    expect((line?.y ?? 0) < (button?.y ?? 0)).toBe(true)
+    await play.click()
+    await expect(play).toHaveCount(0)
+})
+
+test.describe('the Conspiracy with no one to take from, on a phone', () => {
+    test.use({ viewport: { width: 402, height: 874 } })
+
+    test('"Play" and "Play Conspiracy" under the red line are 44 px tall and sized to their words', async ({ page }) => {
+        await openTable(page, 'searchConspiracyNoTake')
+        await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Play it', exact: true }).click()
+        const play = grid(page).getByRole('button', { name: 'Play', exact: true })
+        const playBox = await play.boundingBox()
+        expect(Math.round(playBox?.height ?? 0)).toBeGreaterThanOrEqual(44)
+        expect(playBox?.width ?? 0).toBeLessThan(120)
+
+        await openTable(page, 'flipConspiracyNoTake')
+        await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Play it: Conspiracy', exact: true }).click()
+        const flip = grid(page).getByRole('button', { name: 'Play Conspiracy', exact: true })
+        const flipBox = await flip.boundingBox()
+        expect(Math.round(flipBox?.height ?? 0)).toBeGreaterThanOrEqual(44)
+        expect(flipBox?.width ?? 0).toBeLessThan(200)
+    })
 })
 
 const usePower = (page: Page) => grid(page).getByRole('button', { name: 'Use a power', exact: true })
@@ -5508,6 +5562,18 @@ test.describe('power questions', () => {
         await expect(line(page)).toHaveText('The Conspiracy: how do you play it?')
         await expect(answer(page, 'Adviser, facedown')).toBeVisible()
         expect(await asked(page)).toBe(true)
+    })
+
+    test('Inquisitor: "Play it" with no one to take from shows why in place of "From:", the name a chip; "Play" plays it', async ({ page }) => {
+        await openTable(page, 'askInquisitorNoTake')
+        await answer(page, 'Play it').click()
+        await expect(line(page)).toHaveText('The Conspiracy: take a relic or banner?')
+        await expect(grid(page)).not.toContainText('From:')
+        await expect(red(page)).toHaveCount(1)
+        await expect(red(page)).toHaveText(/^\s*Needs 2 advisers matching\s*ann's; you have 1\.\s*$/i)
+        await expect(red(page).locator('span.rounded')).toHaveText(/^ann's$/i)
+        await answer(page, 'Play').click()
+        await expect.poll(() => asked(page)).toBe(false)
     })
 
     test('Inquisitor: under the limit "Adviser, facedown" sends at once', async ({ page }) => {

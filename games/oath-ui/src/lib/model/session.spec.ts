@@ -292,6 +292,61 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
     })
 })
 
+describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup with no one to take from', () => {
+    it('says why where the take would be, then plays it with no take', async () => {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    secrets: 2,
+                    advisers: [
+                        { cardId: 'vision.conspiracy', faceUp: false },
+                        { cardId: 'denizen.hearth.wayside-inn', faceUp: true },
+                        { cardId: 'denizen.beast.rangers', faceUp: true }
+                    ]
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    relicIds: ['relic.cup-of-plenty'],
+                    advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+                })
+            ],
+            { machineState: MachineState.ActPhase }
+        )
+        openTurn(state, 'me')
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        session.chooseAdviser('vision.conspiracy')
+
+        await session.chooseAdviserPlay('vision.conspiracy', SearchPlay.Conspiracy)
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.adviserPlay).toBe(SearchPlay.Conspiracy)
+        expect(session.adviserConspiracyTargets).toEqual([])
+        expect(session.adviserConspiracyNoTake).toEqual([
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'text', text: 'Needs 2 advisers matching ' },
+                    { kind: 'seat', playerId: 'ann', possessive: true },
+                    { kind: 'text', text: '; you have 1.' }
+                ]
+            }
+        ])
+        expect(session.adviserPlayComplete).toBe(true)
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the flip is sent')
+        expect(action.play).toBe(SearchPlay.Conspiracy)
+        expect(action.conspiracy).toBeUndefined()
+    })
+})
+
 describe('R-6.1, R-7.6.4 — turning a limiter faceup at the limit discards first', () => {
     it('asks which adviser goes, then sends it', async () => {
         const SILVER = 'denizen.discord.silver-tongue'

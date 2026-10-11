@@ -286,14 +286,49 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
         expect(sent).toHaveBeenLastCalledWith(answer({ play: false }))
     })
 
-    it('"Play it" sends at once when nobody here holds a relic or banner, and "Adviser, facedown" under the limit', async () => {
-        const { draft, sent } = found(ARCANE)
+    it('"Play it" with no one to take from opens the take step, which says why per player; "Play" takes nothing', async () => {
+        const { session, draft, sent } = found(ARCANE)
         expect(draft.takeTargets).toEqual([])
         await draft.chooseConspiracyPlay(SearchPlay.Conspiracy)
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.conspiracyStep).toBe(SearchPlay.Conspiracy)
+        expect(draft.takeNoTake).toEqual([
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'seat', playerId: 'ann', possessive: false },
+                    { kind: 'text', text: ' holds no relic or banner.' }
+                ]
+            },
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'text', text: 'Needs 2 advisers matching ' },
+                    { kind: 'seat', playerId: 'bo', possessive: true },
+                    { kind: 'text', text: '; you have 0.' }
+                ]
+            }
+        ])
+        expect(draft.conspiracyStepComplete).toBe(true)
+        expect(draft.conspiracyRefusedBecause).toBeUndefined()
+        await draft.playConspiracy()
         expect(sent).toHaveBeenLastCalledWith(answer({ play: true }))
+
+        await session.undo()
+        expect(draft.conspiracyStep).toBeUndefined()
+    })
+
+    it('"Adviser, facedown" under the limit sends at once', async () => {
+        const { draft, sent } = found(ARCANE)
         await draft.chooseConspiracyPlay(SearchPlay.Adviser)
         expect(sent).toHaveBeenLastCalledWith(answer({ play: true, facedown: true }))
         expect(draft.hasManualSelection()).toBe(false)
+    })
+
+    it('a player the take can reach is a chip, and no line is said', () => {
+        const { draft } = found(ARCANE, { relicIds: [RING] })
+        expect(draft.takeTargets).toEqual(['ann'])
+        expect(draft.takeNoTake).toEqual([])
     })
 
     it('"Play it" opens the take: nobody picked plays, a player with no prize waits, Undo returns to the answers', async () => {

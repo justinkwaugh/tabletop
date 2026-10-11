@@ -144,6 +144,8 @@ export type TableName =
     | 'sneakAttackHeld'
     | 'searchTollByRhys'
     | 'searchConspiracy'
+    | 'searchConspiracyNoTake'
+    | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'battleDefenderPlans'
     | 'attackerPlans'
@@ -480,6 +482,26 @@ const QUESTION_TABLES = {
             defenderPlayerId: 'ann'
         }),
     askInquisitor: () => inquisitorTable(['denizen.arcane.jinx', 'denizen.arcane.tutor']),
+    // R-5.1.4.IV — one adviser matches ann's suits, not two: no one here can be taken from.
+    askInquisitorNoTake: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                cardId: INQUISITOR,
+                ...asked,
+                holderPlayerId: 'ann',
+                index: 0
+            },
+            {
+                me: { secrets: 1, advisers: [...ONE_MATCH, INQUISITOR].map(faceup) },
+                ann: {
+                    advisers: [
+                        { cardId: 'vision.conspiracy', faceUp: false },
+                        ...ONE_MATCH_THEIRS.map(faceup)
+                    ]
+                }
+            }
+        ),
     // R-5.1.4.II — the finder already holds three advisers.
     askInquisitorAtLimit: () =>
         inquisitorTable(['denizen.hearth.herald', 'denizen.arcane.tutor', 'denizen.arcane.jinx']),
@@ -2506,6 +2528,60 @@ function searchTollByRhysTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-5.1.4.IV — Acting Troupe and Vow of Poverty: only the Beast matches Order and Beast. */
+const ONE_MATCH = ['denizen.arcane.acting-troupe', 'denizen.beast.vow-of-poverty']
+const ONE_MATCH_THEIRS = ['denizen.order.code-of-honor', 'denizen.beast.insect-swarm']
+const INQUISITOR = 'denizen.arcane.inquisitor'
+
+/** The Conspiracy with no one to take from: Rhys holds the People's Favor; one adviser matches. */
+function conspiracyNoTakeTable(machineState: MachineState, me: Partial<Seat>): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                secrets: 1,
+                ...me
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: home,
+                advisers: ONE_MATCH_THEIRS.map(faceup)
+            })
+        ],
+        {
+            machineState,
+            chancellorPlayerId: 'me',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-5.1.4.IV: a Search drew Wolves, Toll Roads and the Conspiracy; no one here to take from. */
+function searchConspiracyNoTakeTable(): PlayedTable {
+    return conspiracyNoTakeTable(MachineState.Searching, {
+        handIds: ['denizen.beast.wolves', 'denizen.order.toll-roads', 'vision.conspiracy'],
+        advisers: ONE_MATCH.map(faceup)
+    })
+}
+
+/** R-6.1, R-5.1.4.IV: the facedown Conspiracy turned faceup, with no one here to take from. */
+function flipConspiracyNoTakeTable(): PlayedTable {
+    return conspiracyNoTakeTable(MachineState.ActPhase, {
+        advisers: [...ONE_MATCH.map(faceup), { cardId: 'vision.conspiracy', faceUp: false }]
+    })
+}
+
 /** R-5.1.4.IV: the Conspiracy drawn by a Search, with Rhys at this seat's site holding a relic. */
 function searchConspiracyTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -3657,6 +3733,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     sneakAttackHeld: sneakAttackHeldTable,
     searchTollByRhys: searchTollByRhysTable,
     searchConspiracy: searchConspiracyTable,
+    searchConspiracyNoTake: searchConspiracyNoTakeTable,
+    flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     battleDefenderPlans: () => battleTable('defenderPlans'),
     attackerPlans: () => battleTable('attackerPlans'),

@@ -161,9 +161,11 @@ import { whenPlayedChoices } from './whenPlayed.js'
 import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
+    conspiracyNoTake,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
+    type ConspiracyNoTakeLine,
     type ConspiracyPick,
     type TakePrizeOption
 } from './conspiracyTake.js'
@@ -632,8 +634,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                     adviserDiscardFirstOptions(this.gameState, playerId, cardId, undefined).length >
                         0)) ||
             whenPlayedChoices(this.gameState, playerId, cardId, play, true).length > 0 ||
-            (play === SearchPlay.Conspiracy &&
-                conspiracyTargets(this.gameState, playerId).length > 0)
+            // R-5.1.4.IV — the take, or why there is none to make.
+            play === SearchPlay.Conspiracy
         if (!asks) {
             await this.playFacedownAdviser(cardId, play)
             return
@@ -646,6 +648,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         return playerId && this.adviserPlay === SearchPlay.Conspiracy
             ? conspiracyTargets(this.gameState, playerId)
+            : []
+    }
+
+    /** When no one here can be taken from, why: one line per player here. */
+    get adviserConspiracyNoTake(): ConspiracyNoTakeLine[] {
+        const playerId = this.liveTurnSeatId
+        return playerId && this.adviserPlay === SearchPlay.Conspiracy
+            ? conspiracyNoTake(this.gameState, playerId)
             : []
     }
 

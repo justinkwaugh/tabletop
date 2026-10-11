@@ -24,9 +24,11 @@ import { whenPlayedChoices } from './whenPlayed.js'
 import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
+    conspiracyNoTake,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
+    type ConspiracyNoTakeLine,
     type ConspiracyPick,
     type TakePrizeOption
 } from './conspiracyTake.js'
@@ -234,11 +236,21 @@ export class SearchDraft implements PanelDraft {
             : undefined
     }
 
+    /** When no one here can be taken from, why: one line per player here. */
+    get conspiracyNoTake(): ConspiracyNoTakeLine[] {
+        const playerId = this.playerId
+        return playerId && this.placement?.play === SearchPlay.Conspiracy
+            ? conspiracyNoTake(this.session.gameState, playerId)
+            : []
+    }
+
+    // R-5.1.4.IV — the take is asked whenever the Conspiracy is played, even with no one to take
+    // from: the step then says why, and "Play" plays it with no take.
     get needsConspiracy(): boolean {
         return (
             !this.needsDisplaced &&
             !this.needsWhenPlayed &&
-            this.conspiracyTargets.length > 0 &&
+            this.placement?.play === SearchPlay.Conspiracy &&
             !this.conspiracyPick.confirmed
         )
     }

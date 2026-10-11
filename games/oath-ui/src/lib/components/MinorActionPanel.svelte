@@ -9,6 +9,7 @@
     } from '@tabletop/oath'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
+    import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -137,6 +138,9 @@
                                 pick={gameSession.adviserConspiracyPick}
                                 onchange={(pick) => gameSession.setAdviserConspiracyPick(pick)}
                             />
+                        {:else}
+                            <!-- No one here can be taken from: why, where the take would be. -->
+                            <ConspiracyNoTake lines={gameSession.adviserConspiracyNoTake} />
                         {/if}
                         {#if gameSession.adviserPlayChoices.length > 0}
                             <p class="text-xs text-oath-text-muted mb-1">
@@ -157,7 +161,7 @@
                                 </p>
                             {/if}
                             <button
-                                class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs"
+                                class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
                                 disabled={busy || !!reason}
                                 onclick={() => gameSession.confirmAdviserPlay()}
                             >

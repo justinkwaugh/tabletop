@@ -1,11 +1,12 @@
 import {
-    conspiracyMatchIsValid,
+    conspiracyTakeRefusal,
     reasonCannotTakeByConspiracy,
     type ConspiracyPlay,
     type ConspiracyTake,
+    type ConspiracyTakeRefusal,
     type HydratedOathGameState
 } from '@tabletop/oath'
-import { bannerName, cardName } from './names.js'
+import { bannerName, cardName, type ReasonPart } from './names.js'
 import { bannersHeldBy } from './seatFacts.js'
 
 export type TakePrizeOption = { prize: ConspiracyTake; label: string }
@@ -15,17 +16,96 @@ export type ConspiracyPick = { targetPlayerId?: string; prizeIndex?: number; con
 
 export const NO_CONSPIRACY_PICK: ConspiracyPick = { confirmed: false }
 
-// R-5.1.4.IV — players at my site whose advisers the Conspiracy's take can match.
-export function conspiracyTargets(state: HydratedOathGameState, playerId: string): string[] {
+const LOST_TONGUE = 'denizen.nomad.lost-tongue'
+const TOME_GUARDIANS = 'denizen.order.tome-guardians'
+
+/**
+ * Why no one at the site can be taken from: a cause's short words, a seat in them as its chip;
+ * for a guard the words do not name, the engine's own sentence.
+ */
+export type ConspiracyNoTakeLine =
+    { kind: 'words'; parts: ReasonPart[] } | { kind: 'engine'; reason: string }
+
+function othersHere(state: HydratedOathGameState, playerId: string): string[] {
     const siteId = state.getPlayerState(playerId).siteId
+    if (siteId === undefined) return []
     return state.players
-        .filter(
-            (p) =>
-                p.playerId !== playerId &&
-                p.siteId === siteId &&
-                conspiracyMatchIsValid(state, playerId, p.playerId)
-        )
+        .filter((p) => p.playerId !== playerId && p.siteId === siteId)
         .map((p) => p.playerId)
+}
+
+// R-5.1.4.IV — players at my site the take can reach: a secret to burn, the match, and a prize.
+export function conspiracyTargets(state: HydratedOathGameState, playerId: string): string[] {
+    return othersHere(state, playerId).filter(
+        (target) => conspiracyTakeRefusal(state, playerId, target) === undefined
+    )
+}
+
+/** When no one at the site can be taken from, one line per other player there; else none. */
+export function conspiracyNoTake(
+    state: HydratedOathGameState,
+    playerId: string
+): ConspiracyNoTakeLine[] {
+    const others = othersHere(state, playerId)
+    if (others.length === 0) return [words('No one else is here.')]
+    const lines: ConspiracyNoTakeLine[] = []
+    for (const target of others) {
+        const refusal = conspiracyTakeRefusal(state, playerId, target)
+        if (!refusal) return []
+        const line = noTakeLine(target, refusal)
+        // A cause that is yours, not theirs (the secret, Spell Breaker), is said once.
+        if (!lines.some((shown) => JSON.stringify(shown) === JSON.stringify(line))) lines.push(line)
+    }
+    return lines
+}
+
+/** Short facts by cause, as the action grid's: "Needs N …; you have M.", a card's name first. */
+function noTakeLine(target: string, refusal: ConspiracyTakeRefusal): ConspiracyNoTakeLine {
+    const seat = (possessive: boolean): ReasonPart => ({
+        kind: 'seat',
+        playerId: target,
+        possessive
+    })
+    const text = (value: string): ReasonPart => ({ kind: 'text', text: value })
+    switch (refusal.cause) {
+        case 'secret':
+            return words(`Needs 1 secret; you have ${refusal.has}.`)
+        case 'secretCost':
+            return words(`${cardName(refusal.cardId)}: no secret costs.`)
+        case 'match':
+            return {
+                kind: 'words',
+                parts: [
+                    text(`Needs ${refusal.needs} advisers matching `),
+                    seat(true),
+                    text(`; you have ${refusal.has}.`)
+                ]
+            }
+        case 'nothingHeld':
+            return { kind: 'words', parts: [seat(false), text(' holds no relic or banner.')] }
+        case 'guarded': {
+            const [first] = refusal.guards
+            const oneGuard = refusal.guards.every((guard) => guard.cardId === first.cardId)
+            if (oneGuard && first.cardId === LOST_TONGUE) {
+                return {
+                    kind: 'words',
+                    parts: [
+                        text(`${cardName(LOST_TONGUE)}: `),
+                        seat(true),
+                        text(' can’t be taken.')
+                    ]
+                }
+            }
+            if (oneGuard && first.cardId === TOME_GUARDIANS) {
+                return words(`${cardName(TOME_GUARDIANS)}: the Darkest Secret can’t be taken.`)
+            }
+            return { kind: 'engine', reason: first.reason }
+        }
+    }
+}
+
+function words(text: string): ConspiracyNoTakeLine {
+    return { kind: 'words', parts: [{ kind: 'text', text }] }
 }
 
 // Circlet of Command, Lost Tongue, Tome Guardians — a prize they guard is not offered.
