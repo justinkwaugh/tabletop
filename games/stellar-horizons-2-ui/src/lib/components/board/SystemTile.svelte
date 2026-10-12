@@ -1,10 +1,21 @@
 <script lang="ts">
-    import { SOL_SYSTEM_ID, WorldSide, starSystemDefinition } from '@tabletop/stellar-horizons-2'
+    import {
+        SOL_SYSTEM_ID,
+        WorldSide,
+        anomalyDifficulty,
+        starSystemDefinition
+    } from '@tabletop/stellar-horizons-2'
     import { EXPLORATION_MARKER_ART, SYSTEM_ART, WORLD_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
+    import {
+        ANOMALY_SIZE,
+        MARKER_SCALE_ON_ANOMALY,
+        anomalyOutline
+    } from '$lib/utils/tileFeatures.js'
+    import AnomalyTile from '../AnomalyTile.svelte'
     import ShipClump from './ShipClump.svelte'
     import ShipPipBadges from './ShipPipBadges.svelte'
     import BaseTab from './BaseTab.svelte'
@@ -86,8 +97,30 @@
         ></image>
     {/each}
 
+    {#if frame.anomaly && system.anomaly}
+        <g
+            transform="translate({frame.anomaly.x} {frame.anomaly.y})"
+            pointer-events="none"
+            filter="url(#sh-piece-shadow)"
+        >
+            <polygon class="anomaly-edge" points={anomalyOutline()}></polygon>
+            <AnomalyTile
+                anomalyId={system.anomaly}
+                difficulty={anomalyDifficulty(gameSession.gameState, system.anomaly)}
+                width={ANOMALY_SIZE.width}
+                x={-ANOMALY_SIZE.width / 2}
+                y={-ANOMALY_SIZE.height / 2}
+            />
+        </g>
+    {/if}
+
     {#if explorationField && system.explorationMarker > 0}
-        <g transform="translate({frame.marker.x} {frame.marker.y})" pointer-events="none">
+        <g
+            transform="translate({frame.marker.x} {frame.marker.y}) scale({frame.anomaly
+                ? MARKER_SCALE_ON_ANOMALY
+                : 1})"
+            pointer-events="none"
+        >
             <image
                 href={EXPLORATION_MARKER_ART[explorationField]}
                 x={-MARKER_SIZE / 2}
@@ -168,6 +201,13 @@
     .title:hover {
         fill: rgba(127, 211, 255, 0.1);
         stroke: rgba(127, 211, 255, 0.6);
+    }
+
+    .anomaly-edge {
+        fill: #05070c;
+        stroke: #55637c;
+        stroke-width: 2px;
+        stroke-linejoin: round;
     }
 
     .marker-value {

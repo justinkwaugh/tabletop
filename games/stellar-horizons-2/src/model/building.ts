@@ -1,5 +1,6 @@
 import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { ShipKind, factionShips, shipDefinition, type ShipDefinition } from '../components/ships.js'
+import { blocksBases } from './anomalies.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
@@ -131,6 +132,6 @@ export function cloningBases(state: HydratedStellarHorizonsGameState, playerId: 
     }
     return state
         .basesOf(playerId)
-        .filter((base) => !base.cloned)
+        .filter((base) => !base.cloned && !blocksBases(state, base.systemId))
         .map((base) => base.systemId)
 }

@@ -49,6 +49,11 @@ export function currentExploration(ship: ShipState): number {
     return Math.max(1, shipDefinition(ship.shipId).exploration - ship.damage)
 }
 
+export function currentCombat(ship: ShipState): number {
+    const combat = shipDefinition(ship.shipId).combat
+    return combat === 0 ? 0 : Math.max(1, combat - ship.damage)
+}
+
 export function removeShip(state: HydratedStellarHorizonsGameState, shipId: string) {
     state.ships = state.ships.filter((ship) => ship.shipId !== shipId)
 }

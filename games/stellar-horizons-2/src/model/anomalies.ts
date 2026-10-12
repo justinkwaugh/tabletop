@@ -1,0 +1,201 @@
+import * as Type from 'typebox'
+import { assertExists } from '@tabletop/common'
+import {
+    AnomalyChallenge,
+    anomalyDefinition,
+    type AnomalyDefinition
+} from '../components/anomalies.js'
+import { shipDefinition } from '../components/ships.js'
+import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
+import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import type { PendingAnomalyAttempt, ShipState } from './pieces.js'
+
+export const RESEARCH_SHIP_BONUS = 1
+
+export type AnomalySearch = Type.Static<typeof AnomalySearch>
+export const AnomalySearch = Type.Object({
+    roll: Type.Number(),
+    anomalyId: Type.Optional(Type.String())
+})
+
+export function systemAnomaly(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): AnomalyDefinition | undefined {
+    const anomalyId = state.systemState(systemId).anomaly
+    return anomalyId === undefined ? undefined : anomalyDefinition(anomalyId)
+}
+
+export function blocksExploration(state: HydratedStellarHorizonsGameState, systemId: string) {
+    return systemAnomaly(state, systemId)?.noExploration ?? false
+}
+
+export function blocksBases(state: HydratedStellarHorizonsGameState, systemId: string) {
+    return systemAnomaly(state, systemId)?.noBases ?? false
+}
+
+export function usesAnomalyRewards(state: HydratedStellarHorizonsGameState): boolean {
+    return state.scenarioDefinition().anomalies?.rewards ?? false
+}
+
+export function anomalyDifficulty(
+    state: HydratedStellarHorizonsGameState,
+    anomalyId: string
+): number {
+    return anomalyDefinition(anomalyId).difficulty + state.numPlayers
+}
+
+// Every completed survey rolls; a system holds one anomaly at a time (rulebook 1.16).
+export function searchForAnomaly(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): AnomalySearch | undefined {
+    const anomalies = state.scenarioDefinition().anomalies
+    if (!anomalies) {
+        return undefined
+    }
+    const random = state.getProtectedPrng()
+    const roll = random.dieRoll(100)
+    const system = state.systemState(systemId)
+    if (roll > anomalies.chance || system.anomaly !== undefined || state.anomalyPool.length === 0) {
+        return { roll }
+    }
+    const [anomalyId] = state.anomalyPool.splice(random.randInt(state.anomalyPool.length), 1)
+    system.anomaly = anomalyId
+    return { roll, anomalyId }
+}
+
+export type AnomalyResolution = Type.Static<typeof AnomalyResolution>
+export const AnomalyResolution = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    anomalyId: Type.String(),
+    shipIds: Type.Array(Type.String()),
+    resolved: Type.Boolean()
+})
+
+// Only the ship's own value counts, with +1 for a research ship on a science challenge; tech
+// and system bonuses do not apply (rulebook 1.16).
+export function anomalyStrength(ship: ShipState, challenge: AnomalyChallenge): number {
+    if (challenge === AnomalyChallenge.Combat) {
+        return currentCombat(ship)
+    }
+    const research = shipDefinition(ship.shipId).research ? RESEARCH_SHIP_BONUS : 0
+    return currentExploration(ship) + research
+}
+
+export function canJoinAnomalyAttempt(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState
+): boolean {
+    const anomaly = systemAnomaly(state, ship.systemId)
+    return (
+        anomaly !== undefined &&
+        hasArrived(ship) &&
+        !ship.explored &&
+        !isCrippled(ship) &&
+        anomalyStrength(ship, anomaly.challenge) > 0
+    )
+}
+
+export function anomalyAttemptShips(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): ShipState[] {
+    return state
+        .shipsOf(playerId)
+        .filter((ship) => ship.systemId === systemId && canJoinAnomalyAttempt(state, ship))
+}
+
+export function attemptStrength(ships: readonly ShipState[], challenge: AnomalyChallenge): number {
+    return ships.reduce((total, ship) => total + anomalyStrength(ship, challenge), 0)
+}
+
+export function hasPendingAttempt(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): boolean {
+    return state.pendingAnomalyAttempts.some(
+        (attempt) => attempt.playerId === playerId && attempt.systemId === systemId
+    )
+}
+
+export function isValidAnomalyAttempt(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    shipIds: readonly string[]
+): boolean {
+    const anomaly = state.isSystemInPlay(systemId) ? systemAnomaly(state, systemId) : undefined
+    if (!anomaly || hasPendingAttempt(state, playerId, systemId)) {
+        return false
+    }
+    const available = anomalyAttemptShips(state, playerId, systemId)
+    const chosen = available.filter((ship) => shipIds.includes(ship.shipId))
+    return (
+        shipIds.length > 0 &&
+        new Set(shipIds).size === shipIds.length &&
+        chosen.length === shipIds.length &&
+        attemptStrength(chosen, anomaly.challenge) >= anomalyDifficulty(state, anomaly.id)
+    )
+}
+
+export function attemptableSystemIds(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): string[] {
+    return state.systems
+        .filter((system) => {
+            const available = anomalyAttemptShips(state, playerId, system.systemId)
+            return isValidAnomalyAttempt(
+                state,
+                playerId,
+                system.systemId,
+                available.map((ship) => ship.shipId)
+            )
+        })
+        .map((system) => system.systemId)
+}
+
+export function commitAnomalyAttempt(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    shipIds: readonly string[]
+): PendingAnomalyAttempt {
+    const anomaly = systemAnomaly(state, systemId)
+    assertExists(anomaly, `No anomaly at ${systemId}`)
+    for (const shipId of shipIds) {
+        state.ship(shipId).explored = true
+    }
+    const attempt = { playerId, systemId, anomalyId: anomaly.id, shipIds: [...shipIds] }
+    state.pendingAnomalyAttempts.push(attempt)
+    return attempt
+}
+
+// Attempts resolve in initiative order; whoever comes after the anomaly has been taken has
+// spent their ships' actions for nothing.
+export function resolveNextAnomalyAttempt(
+    state: HydratedStellarHorizonsGameState
+): AnomalyResolution {
+    const order = state.initiativeOrder()
+    const [first, ...others] = state.pendingAnomalyAttempts
+    assertExists(first, 'No anomaly attempt to resolve')
+    const attempt = others.reduce(
+        (best, candidate) =>
+            order.indexOf(candidate.playerId) < order.indexOf(best.playerId) ? candidate : best,
+        first
+    )
+    state.pendingAnomalyAttempts = state.pendingAnomalyAttempts.filter(
+        (pending) => pending !== attempt
+    )
+    const system = state.systemState(attempt.systemId)
+    const resolved = system.anomaly === attempt.anomalyId
+    if (resolved) {
+        system.anomaly = undefined
+        state.getPlayerState(attempt.playerId).anomalies.push(attempt.anomalyId)
+    }
+    return { ...attempt, resolved }
+}

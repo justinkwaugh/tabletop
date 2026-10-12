@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { Faction, HydratedChooseFaction } from '@tabletop/stellar-horizons-2'
+    import { Faction, HydratedChooseFaction, ScenarioId } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_BLURB, FACTION_FILL, factionName } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
     const available = $derived(HydratedChooseFaction.availableFactions(gameSession.gameState))
+    const consortiumUnbalances = $derived(gameSession.gameState.scenario === ScenarioId.Footfall)
 </script>
 
 <div class="picker">
@@ -24,7 +25,7 @@
                 <img src={FACTION_ART[faction]} alt="" width="48" height="48" />
                 <span class="name">{factionName(faction)}</span>
                 <span class="blurb">{FACTION_BLURB[faction]}</span>
-                {#if faction === Faction.Consortium}
+                {#if faction === Faction.Consortium && consortiumUnbalances}
                     <span class="note"
                         >Not recommended: its early cargo ships unbalance this scenario.</span
                     >

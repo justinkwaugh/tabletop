@@ -2,6 +2,7 @@ import { GameSession } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
+    AttemptAnomaly,
     BuildShip,
     ChooseFaction,
     ChooseSurveyWorld,
@@ -13,18 +14,21 @@ import {
     MachineState,
     MoveShip,
     PassTerraform,
+    PlaceStartingBase,
     RepairMethod,
     RepairShip,
     ScrapShip,
     Terraform,
     TransferCargo,
     TurnStep,
+    anomalyAttemptShips,
     canExplore,
     cargoPartners,
     cargoTransferLimits,
     carriesCargo,
     hasArrived,
     isTechAvailable,
+    isValidAnomalyAttempt,
     moveOptions,
     sameCargoPartner,
     type CargoPartner,
@@ -36,10 +40,14 @@ import {
     type TechId
 } from '@tabletop/stellar-horizons-2'
 import {
+    anomalySelection,
+    selectedAnomalyDraft,
     selectedShipId,
     selectedTechId,
     shipSelection,
     techSelection,
+    toggleAnomalyShip,
+    type AnomalyDraft,
     type Selection
 } from './selection.js'
 
@@ -102,6 +110,23 @@ export class StellarHorizonsGameSession extends GameSession<
             return undefined
         }
         return isTechAvailable(this.gameState, playerId, techId) ? techId : undefined
+    })
+
+    // The ships chosen so far for an anomaly, less any that can no longer take part.
+    anomalyDraft: AnomalyDraft | undefined = $derived.by(() => {
+        const draft = selectedAnomalyDraft(this.selection)
+        const playerId = this.myPlayerId
+        if (!draft || !playerId || this.actingStep !== TurnStep.Exploration) {
+            return undefined
+        }
+        if (!this.gameState.isSystemInPlay(draft.systemId)) {
+            return undefined
+        }
+        const available = anomalyAttemptShips(this.gameState, playerId, draft.systemId).map(
+            (ship) => ship.shipId
+        )
+        const shipIds = draft.shipIds.filter((shipId) => available.includes(shipId))
+        return shipIds.length > 0 ? { systemId: draft.systemId, shipIds } : undefined
     })
 
     cargoShip: ShipState | undefined = $derived.by(() => {
@@ -253,6 +278,28 @@ export class StellarHorizonsGameSession extends GameSession<
         this.focusSystem(ship.systemId)
     }
 
+    toggleAnomalyShip(systemId: string, shipId: string) {
+        const draft = toggleAnomalyShip(this.anomalyDraft, systemId, shipId)
+        this.select(draft ? anomalySelection(draft) : undefined)
+    }
+
+    async commitAnomalyDraft() {
+        const draft = this.anomalyDraft
+        const playerId = this.myPlayerId
+        if (
+            !draft ||
+            !playerId ||
+            !isValidAnomalyAttempt(this.gameState, playerId, draft.systemId, draft.shipIds)
+        ) {
+            return
+        }
+        this.clearSelection()
+        await this.commit(
+            ActionType.AttemptAnomaly,
+            this.inTurn(this.createPlayerAction(AttemptAnomaly, draft))
+        )
+    }
+
     selectTech(techId: TechId) {
         this.select(selectedTechId(this.selection) === techId ? undefined : techSelection(techId))
     }
@@ -350,6 +397,13 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(
             ActionType.ChooseFaction,
             this.createPlayerAction(ChooseFaction, { faction })
+        )
+    }
+
+    async placeStartingBase(systemId: string) {
+        await this.commit(
+            ActionType.PlaceStartingBase,
+            this.createPlayerAction(PlaceStartingBase, { systemId })
         )
     }
 

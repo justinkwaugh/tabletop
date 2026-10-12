@@ -14,6 +14,7 @@ import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../comp
 import { MachineState } from '../definition/states.js'
 import {
     Base,
+    PendingAnomalyAttempt,
     PendingSurvey,
     ShipState,
     SurveyWorldChoice,
@@ -36,6 +37,8 @@ export const StellarHorizonsGameState = Type.Object({
     worldPool: Type.Array(Type.String()),
     removedWorlds: Type.Array(Type.String()),
     techPools: TechPools,
+    anomalyPool: Type.Array(Type.String()),
+    pendingAnomalyAttempts: Type.Array(PendingAnomalyAttempt),
     pendingSurveys: Type.Array(PendingSurvey),
     surveyChoice: Type.Optional(SurveyWorldChoice),
     terraformQueue: Type.Array(Type.String()),
@@ -75,6 +78,8 @@ export class HydratedStellarHorizonsGameState
     declare worldPool: string[]
     declare removedWorlds: string[]
     declare techPools: TechPools
+    declare anomalyPool: string[]
+    declare pendingAnomalyAttempts: PendingAnomalyAttempt[]
     declare pendingSurveys: PendingSurvey[]
     declare surveyChoice?: SurveyWorldChoice
     declare terraformQueue: string[]

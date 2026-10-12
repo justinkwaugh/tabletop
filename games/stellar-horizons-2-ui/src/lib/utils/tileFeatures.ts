@@ -31,3 +31,46 @@ export function boxesOverlap(a: Box, b: Box, gap = 0): boolean {
         b.bottom + gap <= a.top
     )
 }
+
+export const ANOMALY_SIZE = { width: 126, height: 110 }
+const ANOMALY_FROM_CORNER: Point = { x: -4, y: -3 }
+const MARKER_FROM_ANOMALY: Point = { x: 56, y: -44 }
+export const MARKER_SCALE_ON_ANOMALY = 0.76
+
+// An anomaly takes the tile's lower right corner, where the exploration marker otherwise
+// sits, and the marker, drawn smaller, moves to rest on the anomaly's top right corner. That
+// spot is clear of every tile's world slots, printed text and edge.
+export function frameWithAnomaly(frame: SystemFrame): SystemFrame {
+    const anomaly = {
+        x: frame.marker.x + ANOMALY_FROM_CORNER.x,
+        y: frame.marker.y + ANOMALY_FROM_CORNER.y
+    }
+    return {
+        ...frame,
+        anomaly,
+        marker: { x: anomaly.x + MARKER_FROM_ANOMALY.x, y: anomaly.y + MARKER_FROM_ANOMALY.y }
+    }
+}
+
+export function anomalyBox(anomaly: Point): Box {
+    return {
+        left: anomaly.x - ANOMALY_SIZE.width / 2,
+        top: anomaly.y - ANOMALY_SIZE.height / 2,
+        right: anomaly.x + ANOMALY_SIZE.width / 2,
+        bottom: anomaly.y + ANOMALY_SIZE.height / 2
+    }
+}
+
+export function anomalyOutline(): string {
+    const { width, height } = ANOMALY_SIZE
+    return [
+        [-width / 2, 0],
+        [-width / 4, -height / 2],
+        [width / 4, -height / 2],
+        [width / 2, 0],
+        [width / 4, height / 2],
+        [-width / 4, height / 2]
+    ]
+        .map(([x, y]) => `${x},${y}`)
+        .join(' ')
+}

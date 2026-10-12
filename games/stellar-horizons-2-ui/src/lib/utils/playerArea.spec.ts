@@ -118,8 +118,7 @@ describe('player area', () => {
             ['luhman-16', 4],
             ['alpha-centauri', 3]
         ])
-        expect(view?.settlementGoal).toBe(10)
-        expect(view?.populationGoal).toBe(25)
+        expect(view?.settlementGoal).toMatchObject({ settlements: 10, systemPopulation: 25 })
         const centauri = view?.fleet.find((group) => group.systemId === 'alpha-centauri')
         expect(centauri?.ships.map((entry) => entry.shipId)).toEqual([
             'starfarers-kepler',

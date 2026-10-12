@@ -1,12 +1,15 @@
 # Stellar Horizons II rule interpretations
 
-The implementation follows the Compass Games rulebook (December 2023 print) for scenario 2.1, _Footfall among the Stars_, together with the designer's and publisher's answers on BoardGameGeek. This file records where the component data came from and the rulings the rulebook leaves open. Rulings are covered by `src/model/rules.spec.ts`, `src/definition/flow.spec.ts` and `src/definition/playthrough.spec.ts`.
+The implementation follows the Compass Games rulebook (December 2023 print) for scenario 2.1, _Footfall among the Stars_, and the competitive mode of scenario 2.3, _These are the Voyages_, together with the designer's and publisher's answers on BoardGameGeek. This file records where the component data came from and the rulings the rulebook leaves open. Rulings are covered by `src/model/rules.spec.ts`, `src/definition/flow.spec.ts` and `src/definition/playthrough.spec.ts`; those for These are the Voyages by `src/definition/voyages.spec.ts`, `src/model/anomalies.spec.ts` and `src/definition/anomalyRace.spec.ts`.
+
+Everything from Turn structure to Bases, ships and settlements applies to both scenarios unless it names Footfall. The section on These are the Voyages lists what differs there.
 
 ## Component data
 
 - **Map.** `src/components/systemCatalog.ts` lists all 36 system tiles with their printed habitability, exploration type and bonus, world slots and earthlike restriction. The map is an odd-q grid of flat-topped hexes; the hex distance from Sol computed from the coordinates matches the ring printed on every tile. Sector membership comes from the Vassal module's sector covers. Footfall uses the Sol and Alpha Centauri sectors (nine systems).
 - **Ships.** `src/components/shipCatalog.ts` holds the 118 faction counters with their printed exploration, cargo, combat, build cost, fast, mining and research markings. Where the Vassal module's traits disagree with the printed counter, the printed value is used (Viper's combat; Empress, Surveyor, Tempest, Stargazer, Scavenger and Firebrand's costs). Eternal Flame and Revenant show the fast engine plume and are treated as fast.
 - **Worlds.** `src/components/worldCatalog.ts` holds the 160 world tiles (149 worlds and 11 No World tiles) with both faces as printed.
+- **Anomalies.** `src/components/anomalyCatalog.ts` holds the 34 anomaly tiles (19 science, 15 combat) with their printed difficulty and their no-exploration and no-bases icons. Their rewards and reverse sides are not recorded, because the only scenario that uses anomalies so far ignores them.
 - **Techs.** `src/components/techs.ts` transcribes the 44-tech chart: costs, prerequisite arrows (all are required) and effects. A scenario's tech level _n_ means every tech in columns 1 to _n_.
 
 ## Rulings
@@ -70,9 +73,27 @@ The rulebook's examples round halves up. The game applies that everywhere a frac
 - **Scrapping.** A ship can be scrapped at any time during the player's turn, refunding half its cost if it is undamaged and at Sol.
 - **Cloning.** _Cloning_ lets a player buy one settlement at each base for $5B during the build step.
 
-### Not used in Footfall
+### These are the Voyages
 
-Combat, escalation and influence, anomalies and events, trade goods and demand, the economic phase, cards, directives, titles, mining and research, and terraforming with mining ships are all campaign rules (blue boxes). The techs that unlock them can still be developed but do nothing here.
+The scenario is chosen when the game is created. Only its competitive mode is implemented, for two to four players.
+
+- **Setup.** The map is every sector except Tau Ceti and Epsilon Eridani. The four systems in play next to Sol (Barnard's Star, Luhman 16, Alpha Centauri and WISE 0855-0714) start with no exploration marker and their world slots filled from the pool; WISE 0855-0714 cannot start with an M or O world. Lalande 21185 and Wolf 359 are also next to Sol but belong to the sectors left out.
+- **Starting bases.** After factions are chosen, each player places a base of 25 settlements at Barnard's Star, Luhman 16 or Alpha Centauri, in reverse initiative order. Several players may choose the same system, and the base does not need a revealed world there. The rulebook says a player "may" place one; declining is not offered.
+- **Money and ships.** Players start with $25B and one random tech marker of each type, draw $5B at the start of each even decade, and build their first ships in the first decade's build step.
+- **Terraforming.** There is none, although every player owns _Terraforming_ at tech level 3: only the first two scenarios allow it.
+- **Finding anomalies.** Each completed survey rolls percentiles, and on 20 or less a random anomaly from the pool is placed in the system, unless it already holds one or the pool is empty. A survey that finds the exploration marker already at zero is not completed and does not roll. An anomaly found in a decade can first be resolved in the next one.
+- **A second anomaly.** Rule 1.16 allows one anomaly per system, "resolved or unresolved". Here the resolver keeps the tile, so once it is gone the system can receive a new one.
+- **Restrictions.** A "no exploration" anomaly stops exploration actions in its system; since anomalies only arrive at the end of a decade, this starts in the decade after it is found. A "no bases" anomaly stops settlements being unloaded or cloned there. Ships can still be built at a base in such a system.
+- **Resolving.** During the exploration step a player commits ships at an anomaly, each using its action for the decade. A ship's strength is its printed exploration value (science) or combat value (combat) less its damage, to a minimum of 1, plus 1 for a research ship on a science anomaly. Tech, system and exploration-marker bonuses do not count. Crippled crew vehicles, ships in transit and, for combat, ships with no combat value cannot take part. The committed ships' total must reach the printed difficulty plus the number of players; faction modifiers are ignored. There is no die roll and no malfunction roll.
+- **Contested anomalies.** Commitments are recorded when made and resolve after everyone has finished the decade, in initiative order and before the surveys. The first player in initiative order to have committed enough takes the tile; anyone after them has spent those ships' actions for nothing. Commitments are visible to the other players as soon as they are made. BoardGameGeek has no ruling on two players resolving the same anomaly in one decade; rule 1.0 says to use initiative order whenever order matters.
+- **No joint resolution.** Rule 1.16 lets several players pool ships if they agree how to split the reward. With rewards ignored and one tile to keep, this is not offered in the competitive mode.
+- **Rewards.** Anomaly rewards and the effects on the tiles' reverse sides are ignored, as the scenario says.
+- **Victory.** A player wins by holding four resolved anomalies, at least one science and one combat. This is checked at the end of every decade, so players who reach it in the same decade share the win.
+- **No deadline.** The rulebook gives the competitive mode none. The game ends with `GameResult.Loss` and no winners once no new anomaly can be found (no system has an exploration marker left, or the pool is empty) and no player could reach the goal with the anomalies they hold plus those still unresolved on the map.
+
+### Not used in these scenarios
+
+Combat, escalation and influence, events, trade goods and demand, the economic phase, cards, directives, titles, mining and research, and terraforming with mining ships are all campaign rules (blue boxes). Anomalies are used only in These are the Voyages. The techs that unlock unused rules can still be developed but do nothing here.
 
 ## Deployment
 

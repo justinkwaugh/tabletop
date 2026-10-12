@@ -1,17 +1,30 @@
 import {
+    AnomalyChallenge,
     MachineState,
     ShipKind,
     TECHS,
     TECH_FIELDS,
+    VictoryKind,
+    settlementVictory,
     shipDefinition,
     systemPopulation,
     techDefinition,
+    type AnomalyVictory,
     type Faction,
     type HydratedStellarHorizonsGameState,
+    type HydratedStellarHorizonsPlayerState,
+    type SettlementVictory,
     type ShipState,
     type TechField,
     type TurnStep
 } from '@tabletop/stellar-horizons-2'
+
+// Progress in a scenario won by resolving anomalies.
+export interface AnomalyTally {
+    science: number
+    combat: number
+    goal: AnomalyVictory
+}
 
 // One row of the standings: who a player is and the counts worth comparing at a glance.
 export interface Standing {
@@ -23,6 +36,7 @@ export interface Standing {
     crewVehicles: number
     settlements: number
     cash: number
+    anomalies?: AnomalyTally
 }
 
 export interface ConsoleBase {
@@ -49,8 +63,8 @@ export interface FactionConsoleView {
     standing: Standing
     markers: Record<TechField, number[]>
     bases: ConsoleBase[]
-    settlementGoal: number
-    populationGoal: number
+    anomalyIds: string[]
+    settlementGoal?: SettlementVictory
     fleet: ConsoleShipGroup[]
     techs: FieldProgress[]
 }
@@ -72,9 +86,24 @@ export function standings(state: HydratedStellarHorizonsGameState): Standing[] {
             settlements: state
                 .basesOf(playerId)
                 .reduce((total, base) => total + base.settlements, 0),
-            cash: player.cash
+            cash: player.cash,
+            anomalies: anomalyTally(state, player)
         }
     })
+}
+
+function anomalyTally(
+    state: HydratedStellarHorizonsGameState,
+    player: HydratedStellarHorizonsPlayerState
+): AnomalyTally | undefined {
+    const goal = state.scenarioDefinition().victory
+    return goal.kind === VictoryKind.Anomalies
+        ? {
+              science: player.anomaliesResolved(AnomalyChallenge.Science),
+              combat: player.anomaliesResolved(AnomalyChallenge.Combat),
+              goal
+          }
+        : undefined
 }
 
 export function factionConsole(
@@ -99,8 +128,8 @@ export function factionConsole(
                 population: systemPopulation(state, base.systemId)
             }))
             .toSorted((a, b) => b.settlements - a.settlements),
-        settlementGoal: scenario.victorySettlements,
-        populationGoal: scenario.victorySystemPopulation,
+        anomalyIds: player.anomalies,
+        settlementGoal: settlementVictory(scenario),
         fleet: fleet(state, playerId),
         techs: TECH_FIELDS.map((field) => ({
             field,

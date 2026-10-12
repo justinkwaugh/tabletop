@@ -1,5 +1,6 @@
 export enum ActionType {
     ChooseFaction = 'ChooseFaction',
+    PlaceStartingBase = 'PlaceStartingBase',
     StartTurn = 'StartTurn',
     BuildShip = 'BuildShip',
     RepairShip = 'RepairShip',
@@ -8,8 +9,10 @@ export enum ActionType {
     TransferCargo = 'TransferCargo',
     MoveShip = 'MoveShip',
     Explore = 'Explore',
+    AttemptAnomaly = 'AttemptAnomaly',
     DevelopTech = 'DevelopTech',
     EndStep = 'EndStep',
+    ResolveAnomaly = 'ResolveAnomaly',
     ResolveSurvey = 'ResolveSurvey',
     ChooseSurveyWorld = 'ChooseSurveyWorld',
     Terraform = 'Terraform',

@@ -36,7 +36,8 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
 }
 
 export function isFinalTurn(state: HydratedStellarHorizonsGameState): boolean {
-    return state.year >= state.scenarioDefinition().endYear
+    const endYear = state.scenarioDefinition().endYear
+    return endYear !== undefined && state.year >= endYear
 }
 
 export function activeTurnPlayers(state: HydratedStellarHorizonsGameState): string[] {

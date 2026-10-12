@@ -3,6 +3,8 @@
     import {
         CargoPartnerKind,
         RepairMethod,
+        anomalyDefinition,
+        isAttemptAnomaly,
         isBuildShip,
         isChooseFaction,
         isChooseSurveyWorld,
@@ -14,7 +16,9 @@
         isExplore,
         isMoveShip,
         isPassTerraform,
+        isPlaceStartingBase,
         isRepairShip,
+        isResolveAnomaly,
         isResolveSurvey,
         isScrapShip,
         isStartTurn,
@@ -42,6 +46,12 @@
 >
     {#if isChooseFaction(action)}
         <span>leads {factionName(action.faction)}</span>
+    {:else if isPlaceStartingBase(action)}
+        <span>
+            founded a base of {plural(action.metadata?.settlements ?? 0, 'settlement')} at {systemName(
+                action.systemId
+            )}
+        </span>
     {:else if isStartTurn(action)}
         <span>
             The year {action.metadata?.year} begins{action.metadata?.income
@@ -126,13 +136,34 @@
                 ? 'ended their turn'
                 : `finished ${STEP_LABELS[action.step].toLowerCase()}`}</span
         >
+    {:else if isAttemptAnomaly(action)}
+        <span>
+            sent {action.shipIds.map(shipName).join(', ')} to resolve {action.metadata
+                ? anomalyDefinition(action.metadata.anomalyId).name
+                : 'an anomaly'} at {systemName(action.systemId)}{action.metadata
+                ? ` (${action.metadata.strength} against ${action.metadata.difficulty})`
+                : ''}
+        </span>
+    {:else if isResolveAnomaly(action)}
+        {#if action.metadata}
+            <PlayerName playerId={action.metadata.playerId} />
+            <span>
+                {action.metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
+                {anomalyDefinition(action.metadata.anomalyId).name} at {systemName(
+                    action.metadata.systemId
+                )}
+            </span>
+        {/if}
     {:else if isResolveSurvey(action)}
         {#if action.metadata}
             <PlayerName playerId={action.metadata.playerId} />
             <span>
                 {action.metadata.completed
                     ? `completed a survey of ${systemName(action.metadata.systemId)}${action.metadata.placedSlot !== undefined ? ' and found a new world' : ''}`
-                    : `arrived too late to survey ${systemName(action.metadata.systemId)}`}
+                    : `arrived too late to survey ${systemName(action.metadata.systemId)}`}{action
+                    .metadata.anomaly?.anomalyId
+                    ? ` and discovered an anomaly: ${anomalyDefinition(action.metadata.anomaly.anomalyId).name}`
+                    : ''}
             </span>
         {/if}
     {:else if isChooseSurveyWorld(action)}

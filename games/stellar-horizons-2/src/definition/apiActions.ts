@@ -1,4 +1,5 @@
 import { ActionType } from './actions.js'
+import { AttemptAnomaly } from '../actions/attemptAnomaly.js'
 import { BuildShip } from '../actions/buildShip.js'
 import { ChooseFaction } from '../actions/chooseFaction.js'
 import { ChooseSurveyWorld } from '../actions/chooseSurveyWorld.js'
@@ -9,8 +10,10 @@ import { EndStep } from '../actions/endStep.js'
 import { EndTurn } from '../actions/endTurn.js'
 import { Explore } from '../actions/explore.js'
 import { MoveShip } from '../actions/moveShip.js'
+import { PlaceStartingBase } from '../actions/placeStartingBase.js'
 import { PassTerraform } from '../actions/passTerraform.js'
 import { RepairShip } from '../actions/repairShip.js'
+import { ResolveAnomaly } from '../actions/resolveAnomaly.js'
 import { ResolveSurvey } from '../actions/resolveSurvey.js'
 import { ScrapShip } from '../actions/scrapShip.js'
 import { StartTurn } from '../actions/startTurn.js'
@@ -19,6 +22,7 @@ import { TransferCargo } from '../actions/transferCargo.js'
 
 export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
+    [ActionType.PlaceStartingBase]: PlaceStartingBase,
     [ActionType.StartTurn]: StartTurn,
     [ActionType.BuildShip]: BuildShip,
     [ActionType.RepairShip]: RepairShip,
@@ -27,8 +31,10 @@ export const StellarHorizonsApiActions = {
     [ActionType.TransferCargo]: TransferCargo,
     [ActionType.MoveShip]: MoveShip,
     [ActionType.Explore]: Explore,
+    [ActionType.AttemptAnomaly]: AttemptAnomaly,
     [ActionType.DevelopTech]: DevelopTech,
     [ActionType.EndStep]: EndStep,
+    [ActionType.ResolveAnomaly]: ResolveAnomaly,
     [ActionType.ResolveSurvey]: ResolveSurvey,
     [ActionType.ChooseSurveyWorld]: ChooseSurveyWorld,
     [ActionType.Terraform]: Terraform,

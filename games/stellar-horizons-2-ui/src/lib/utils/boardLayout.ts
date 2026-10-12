@@ -27,6 +27,7 @@ export interface SystemFrame {
     height: number
     slots: Point[]
     marker: Point
+    anomaly?: Point
 }
 
 export interface BoardLayout {

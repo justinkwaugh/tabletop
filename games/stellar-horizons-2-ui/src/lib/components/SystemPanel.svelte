@@ -5,6 +5,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_FILL, factionName, plural } from '$lib/utils/presentation.js'
     import { systemSummary } from '$lib/utils/systemSummary.js'
+    import AnomalyCard from './AnomalyCard.svelte'
     import ShipCounter from './board/ShipCounter.svelte'
     import CargoHold from './CargoHold.svelte'
 
@@ -44,6 +45,9 @@
     </header>
 
     <div class="fleets">
+        {#if summary.anomaly}
+            <AnomalyCard summary={summary.anomaly} />
+        {/if}
         {#each summary.fleets as fleet (fleet.playerId)}
             <section
                 class="fleet"
@@ -64,10 +68,9 @@
                     {#if fleet.settlements > 0 && fleet.faction}
                         <div
                             class="settlements"
-                            title="{plural(
-                                fleet.settlements,
-                                'settlement'
-                            )} of {summary.settlementGoal} to win"
+                            title={summary.settlementGoal
+                                ? `${plural(fleet.settlements, 'settlement')} of ${summary.settlementGoal} to win`
+                                : plural(fleet.settlements, 'settlement')}
                         >
                             <img
                                 src={SETTLEMENT_ART[fleet.faction]}
@@ -76,9 +79,9 @@
                                 height="40"
                             />
                             <span class="count"
-                                >{fleet.settlements}<span class="goal"
-                                    >/{summary.settlementGoal}</span
-                                ></span
+                                >{fleet.settlements}{#if summary.settlementGoal}<span class="goal"
+                                        >/{summary.settlementGoal}</span
+                                    >{/if}</span
                             >
                         </div>
                     {/if}

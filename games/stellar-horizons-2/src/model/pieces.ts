@@ -12,7 +12,8 @@ export type SystemState = Type.Static<typeof SystemState>
 export const SystemState = Type.Object({
     systemId: Type.String(),
     explorationMarker: Type.Number(),
-    worlds: Type.Array(WorldPlacement)
+    worlds: Type.Array(WorldPlacement),
+    anomaly: Type.Optional(Type.String())
 })
 
 export type ShipState = Type.Static<typeof ShipState>
@@ -48,6 +49,14 @@ export const PendingSurvey = Type.Object({
     playerId: Type.String(),
     shipId: Type.String(),
     systemId: Type.String()
+})
+
+export type PendingAnomalyAttempt = Type.Static<typeof PendingAnomalyAttempt>
+export const PendingAnomalyAttempt = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    anomalyId: Type.String(),
+    shipIds: Type.Array(Type.String())
 })
 
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>

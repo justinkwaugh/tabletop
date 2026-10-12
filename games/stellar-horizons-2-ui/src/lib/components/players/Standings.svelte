@@ -9,13 +9,14 @@
 
     const gameSession = getGameSession()
     const rows = $derived(standings(gameSession.gameState))
+    const anomalyRace = $derived(rows.some((row) => row.anomalies !== undefined))
 
     function name(playerId: string): string {
         return playerId === gameSession.myPlayerId ? 'You' : gameSession.getPlayerName(playerId)
     }
 </script>
 
-<div class="standings">
+<div class="standings" class:anomaly-race={anomalyRace}>
     <div class="row head" aria-hidden="true">
         <span></span>
         <span></span>
@@ -23,6 +24,9 @@
         <span class="num" title="Robotic explorers in play">RE</span>
         <span class="num" title="Crew vehicles in play">CV</span>
         <span class="num" title="Settlements at bases">SET</span>
+        {#if anomalyRace}
+            <span class="num" title="Anomalies resolved">ANOM</span>
+        {/if}
         <span class="num">$B</span>
     </div>
     {#each rows as row (row.playerId)}
@@ -54,6 +58,16 @@
             <span class="num">{row.explorers}</span>
             <span class="num">{row.crewVehicles}</span>
             <span class="num">{row.settlements}</span>
+            {#if row.anomalies}
+                <span
+                    class="num"
+                    title="{row.anomalies.science} science and {row.anomalies
+                        .combat} combat anomalies resolved, of {row.anomalies.goal.resolved} needed"
+                    >{row.anomalies.science + row.anomalies.combat}<span class="goal"
+                        >/{row.anomalies.goal.resolved}</span
+                    ></span
+                >
+            {/if}
             <span class="num cash">{row.cash}</span>
         </button>
     {/each}
@@ -79,6 +93,16 @@
         text-align: left;
         color: #dbe7f5;
         border-top: 1px solid #1a2438;
+    }
+
+    .anomaly-race .row {
+        grid-template-columns: 12px 26px minmax(0, 1fr) 22px 22px 30px 48px 32px;
+        gap: 7px;
+    }
+
+    .goal {
+        color: #8fa4c2;
+        font-weight: 400;
     }
 
     .row.head {

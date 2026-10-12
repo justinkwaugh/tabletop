@@ -6,7 +6,9 @@ import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurvey
 import { ChoosingTerraformWorldStateHandler } from '../stateHandlers/choosingTerraformWorld.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { EndOfTurnStateHandler } from '../stateHandlers/endOfTurn.js'
+import { PlacingStartingBasesStateHandler } from '../stateHandlers/placingStartingBases.js'
 import { PlayingTurnStateHandler } from '../stateHandlers/playingTurn.js'
+import { ResolvingAnomaliesStateHandler } from '../stateHandlers/resolvingAnomalies.js'
 import { ResolvingSurveysStateHandler } from '../stateHandlers/resolvingSurveys.js'
 import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'
 import { TerraformingStateHandler } from '../stateHandlers/terraforming.js'
@@ -16,8 +18,10 @@ export const StellarHorizonsStateHandlers: Record<
     MachineStateHandler<HydratedAction, HydratedStellarHorizonsGameState>
 > = {
     [MachineState.ChoosingFactions]: new ChoosingFactionsStateHandler(),
+    [MachineState.PlacingStartingBases]: new PlacingStartingBasesStateHandler(),
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
     [MachineState.PlayingTurn]: new PlayingTurnStateHandler(),
+    [MachineState.ResolvingAnomalies]: new ResolvingAnomaliesStateHandler(),
     [MachineState.ResolvingSurveys]: new ResolvingSurveysStateHandler(),
     [MachineState.ChoosingSurveyWorld]: new ChoosingSurveyWorldStateHandler(),
     [MachineState.Terraforming]: new TerraformingStateHandler(),

@@ -53,7 +53,7 @@ export function playerCapabilities(
     return {
         canBuySettlements: has('buySettlements'),
         settleHabitability: habitability.length > 0 ? Math.min(...habitability) : undefined,
-        terraforms: highest('terraforms', 0),
+        terraforms: scenario.terraforming ? highest('terraforms', 0) : 0,
         terraformDraws: highest('terraformDraws', 1),
         cvMalfunction: lowest('cvMalfunction', BASELINE.cvMalfunction),
         reMalfunction: lowest('reMalfunction', BASELINE.reMalfunction),

@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { ShipKind, shipDefinition } from '../components/ships.js'
+import { blocksExploration } from './anomalies.js'
 import { starSystemDefinition } from '../components/systems.js'
 import { TechField } from '../components/techFields.js'
 import {
@@ -60,7 +61,8 @@ export function canExplore(state: HydratedStellarHorizonsGameState, ship: ShipSt
         hasArrived(ship) &&
         !ship.explored &&
         !isCrippled(ship) &&
-        state.systemState(ship.systemId).explorationMarker > 0
+        state.systemState(ship.systemId).explorationMarker > 0 &&
+        !blocksExploration(state, ship.systemId)
     )
 }
 

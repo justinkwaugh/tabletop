@@ -1,14 +1,23 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { GameResult } from '@tabletop/common'
+    import { VictoryKind } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
+    const anomalyRace = $derived(
+        gameState.scenarioDefinition().victory.kind === VictoryKind.Anomalies
+    )
 </script>
 
 <div class="end">
-    {#if gameState.result === GameResult.Loss}
+    {#if gameState.result === GameResult.Loss && anomalyRace}
+        <p>
+            No more anomalies can be found and nobody can reach four with those that remain, so the
+            voyages end in {gameState.year} without a winner.
+        </p>
+    {:else if gameState.result === GameResult.Loss}
         <p>
             {gameState.numPlayers === 1 ? 'You did not' : 'Nobody managed to'} settle ten colonists on
             a world of population 25 by the end of {gameState.year}. Everyone loses.
@@ -20,8 +29,9 @@
                     ? ' and'
                     : ''}
             {/each}
-            {gameState.result === GameResult.Draw ? 'share the victory' : 'wins'}, establishing
-            humanity's first great colony among the stars in {gameState.year}.
+            {gameState.result === GameResult.Draw ? 'share the victory' : 'wins'}{anomalyRace
+                ? `, having resolved four anomalies by ${gameState.year}.`
+                : `, establishing humanity's first great colony among the stars in ${gameState.year}.`}
         </p>
     {/if}
 </div>

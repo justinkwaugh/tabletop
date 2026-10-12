@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
+import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
@@ -30,7 +31,8 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             techs: Type.Array(OwnedTech),
             step: Type.Enum(TurnStep),
             remoteRepairUsed: Type.Boolean(),
-            fieldsDeveloped: Type.Array(Type.Enum(TechField))
+            fieldsDeveloped: Type.Array(Type.Enum(TechField)),
+            anomalies: Type.Array(Type.String())
         })
     ])
 )
@@ -50,6 +52,7 @@ export class HydratedStellarHorizonsPlayerState
     declare step: TurnStep
     declare remoteRepairUsed: boolean
     declare fieldsDeveloped: TechField[]
+    declare anomalies: string[]
 
     constructor(data: StellarHorizonsPlayerState) {
         super(data, StellarHorizonsPlayerStateValidator)
@@ -69,5 +72,11 @@ export class HydratedStellarHorizonsPlayerState
 
     markerTotal(field: TechField): number {
         return this.techMarkers[field].reduce((total, value) => total + value, 0)
+    }
+
+    anomaliesResolved(challenge: AnomalyChallenge): number {
+        return this.anomalies.filter(
+            (anomalyId) => anomalyDefinition(anomalyId).challenge === challenge
+        ).length
     }
 }
