@@ -4,6 +4,7 @@ import {
     ActionType,
     IMPERIAL_WARBANDS,
     MachineState,
+    OathRevision,
     PlayerStatus,
     PowerChoiceKind,
     type LegalPowerUse,
@@ -326,5 +327,64 @@ describe('Resettle: its site lights once its card is picked', () => {
         expect(row.sites).toContain('p1')
         expect(row.sites).toContain('c2')
         expect(lit(session).find(([slot]) => slot === 'p1')?.[1]).toBe('Place it')
+    })
+})
+
+const WILD_ALLIES = 'denizen.beast.wild-allies'
+
+/** Revision 8: Captains and Wild Allies offer only a site a Campaign can be declared from. */
+describe('revision 8: Captains and Wild Allies light only the sites the engine offers', () => {
+    const at8 = (
+        dana: Partial<OathPlayerState> = {},
+        over: Partial<OathProjectedState> = {},
+        pawns: { ann?: string } = {}
+    ) => table(dana, { oathRevision: OathRevision.EngineFixes4, ...over }, pawns)
+
+    it('Captains: a site Dana rules with no one there to defend it is not lit; before revision 8 it was', () => {
+        // Ann's pawn leaves the Great Slum, which Dana rules with the Empire's 3: no one defends it.
+        const fixed = usingPowers(at8({ advisers: [] }, {}, { ann: 'h1' }))
+        expect(fixed.actionPowers.siteRow(powerOf(fixed, CAPTAINS), 0)).toMatchObject({
+            sites: ['c2'],
+            picked: 'c2',
+            made: true
+        })
+        expect(lit(fixed)).toEqual([])
+        const older = usingPowers(table({ advisers: [] }, {}, { ann: 'h1' }))
+        expect(older.actionPowers.siteRow(powerOf(older, CAPTAINS), 0)?.sites).toEqual(['c2', 'p1'])
+        expect(lit(older)).toEqual([
+            ['c2', 'Campaign'],
+            ['p1', 'Campaign']
+        ])
+    })
+
+    it('Wild Allies: The Hidden Place is lit only while a secret is left to flip once its cost has placed one', () => {
+        // Beast cards at the Drowned City, which Rhys rules, and at the Great Slum, here The Hidden Place,
+        // where Ann stands; no Captains.
+        const scene = (secrets: number) =>
+            at8(
+                { advisers: [{ cardId: WILD_ALLIES, faceUp: true }], secrets },
+                {
+                    siteCards: { ...table().siteCards, p1: 'site.the-hidden-place' },
+                    denizensBySite: {
+                        c1: ['denizen.beast.wolves'],
+                        c2: [],
+                        p1: ['denizen.beast.rangers'],
+                        p2: [],
+                        p3: [],
+                        h1: [],
+                        h2: []
+                    }
+                }
+            )
+        const one = usingPowers(scene(1))
+        expect(one.actionPowers.siteRow(powerOf(one, WILD_ALLIES), 0)?.sites).toEqual(['c1'])
+        // One site left: it starts picked, and nothing is lit.
+        expect(lit(one)).toEqual([])
+        const two = usingPowers(scene(2))
+        expect(two.actionPowers.siteRow(powerOf(two, WILD_ALLIES), 0)?.sites).toEqual(['c1', 'p1'])
+        expect(lit(two)).toEqual([
+            ['c1', 'Campaign'],
+            ['p1', 'Campaign']
+        ])
     })
 })

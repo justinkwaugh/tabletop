@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     Banner,
+    HydratedUseActionPower,
+    OathRevision,
     PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
@@ -244,5 +246,53 @@ describe('a card’s "may": a toggle, off; what only its yes asks for waits whil
         expect(
             whenPlayedChoices(citizen, 'rhys', 'denizen.beast.long-lost-heir', SearchPlay.Adviser, true)
         ).toEqual([])
+    })
+})
+
+/** Revision 8's rules, read through these pickers: what a pick offers, the engine accepts. */
+describe('revision 8: what the pickers offer, the engine accepts', () => {
+    const at8 = (rhys: Partial<Parameters<typeof testPlayer>[0]>, over: Partial<OathProjectedState> = {}) =>
+        table({ favor: 4, ...rhys }, { oathRevision: OathRevision.EngineFixes4, ...over })
+    const judged = (state: ReturnType<typeof table>, power: CardPower, choices: Parameters<typeof HydratedUseActionPower.reasonCannotUse>[4]) =>
+        HydratedUseActionPower.reasonCannotUse(state, 'rhys', power.cardId, power.powerIndex, choices)
+
+    it('Forgotten Vault at the last secret: no Burn, Place picked and accepted; the engine refuses the Burn', () => {
+        const state = at8(
+            { advisers: [{ cardId: VAULT.cardId, faceUp: true }] },
+            { banners: testBanners({ [Banner.DarkestSecret]: 'dana' }, 1) }
+        )
+        const choices = offered(VAULT, state)
+        expect(choices[0]?.options).toEqual([])
+        expect(optionIndexOf(required(choices[0], 'the or'), 0, emptyPicks())).toBe(FIRST_BRANCH)
+        expect(judged(state, VAULT, powerChoicesFrom(choices, emptyPicks()))).toBeUndefined()
+        expect(judged(state, VAULT, [{ kind: PowerChoiceKind.Yes }])).toMatch(/last secret/)
+    })
+
+    it('Alchemist with 3 favor in the banks: Use waits for all 3, and the engine takes them', () => {
+        const three = { ...BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Order]: 1, [Suit.Hearth]: 1, [Suit.Beast]: 1 }
+        const state = at8({ advisers: [{ cardId: ALCHEMIST.cardId, faceUp: true }] }, { favorBank: three })
+        const choices = offered(ALCHEMIST, state)
+        const run = onlyRun(bankRuns(choices))
+        expect(run.total).toBe(3)
+        let picks = withRunCount(run, choices, emptyPicks(), Suit.Order, 1, three[Suit.Order])
+        picks = withRunCount(run, choices, picks, Suit.Hearth, 1, three[Suit.Hearth])
+        expect(picksComplete(choices, picks)).toBe(false)
+        expect(judged(state, ALCHEMIST, powerChoicesFrom(choices, picks))).toMatch(/yield 2, and 3 can be had/)
+        picks = withRunCount(run, choices, picks, Suit.Beast, 1, three[Suit.Beast])
+        expect(picksComplete(choices, picks)).toBe(true)
+        expect(judged(state, ALCHEMIST, powerChoicesFrom(choices, picks))).toBeUndefined()
+    })
+
+    it('Memory of Nature: one pick per favor the map could hold, still X picks in its row', () => {
+        const state = at8({ advisers: [{ cardId: MEMORY.cardId, faceUp: true }] })
+        const choices = offered(MEMORY, state)
+        expect(choices).toHaveLength(24)
+        const run = onlyRun(bankRuns(choices))
+        expect(run.total).toBe(3)
+        let picks = withRunCount(run, choices, emptyPicks(), Suit.Order, 3, BANKS[Suit.Order])
+        expect(picksComplete(choices, picks)).toBe(true)
+        expect(judged(state, MEMORY, powerChoicesFrom(choices, picks))).toBeUndefined()
+        picks = withRunCount(run, choices, picks, Suit.Order, 2, BANKS[Suit.Order])
+        expect(picksComplete(choices, picks)).toBe(false)
     })
 })
