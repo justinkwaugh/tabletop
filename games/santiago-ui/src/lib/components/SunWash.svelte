@@ -10,14 +10,8 @@
     const layerStyle = `left: 10px; top: 10px; width: ${W}px; height: ${H}px`
 </script>
 
-<!-- The land mood animator sets the mood layers' opacity, and settles them whenever the shown mood
-     changes. -->
-<div
-    class="light sun-wash"
-    aria-hidden="true"
-    style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"
-    {@attach () => moodLight.settle(session.landMood)}
-></div>
+<!-- The land mood animator sets the mood layers' opacity. -->
+<div class="light sun-wash" aria-hidden="true" style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"></div>
 <div
     class="light lush"
     aria-hidden="true"

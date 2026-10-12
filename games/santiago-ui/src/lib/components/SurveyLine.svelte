@@ -184,17 +184,17 @@
         stroke-width: 3.4;
         transition: stroke 0.45s ease-in-out;
     }
-    /* Pulling the twine taut flattens its sag and lifts each pennant by the same share of its
-       drop, on wrappers of their own so the transition never competes with the sway. */
-    .tension,
-    .pennant-lift {
-        transition: transform 0.45s ease-in-out;
-    }
+    /* Choosing a spot pulls its twine taut, flattening the sag and lifting each pennant by the
+       same share of its drop, on wrappers of their own so the transition never competes with the
+       sway. Only the pull eases; the twine goes slack at once when the selection clears, which
+       happens as a bribe or its undo publishes. */
     .survey.selected .tension {
         transform: scaleY(0.24);
+        transition: transform 0.45s ease-in-out;
     }
     .survey.selected .pennant-lift {
         transform: translateY(calc(var(--rest-y) * -0.76));
+        transition: transform 0.45s ease-in-out;
     }
     .twine-sway {
         animation: twine-sway 3.6s ease-in-out infinite;

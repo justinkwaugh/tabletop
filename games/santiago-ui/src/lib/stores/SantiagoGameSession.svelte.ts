@@ -115,6 +115,7 @@ export class SantiagoGameSession extends GameSession<
         super.beforeNewState()
         this.selectedBribeSegment = undefined
         this.clearAnimationPreviews()
+        this.landMoodAnimator.settle(landMood(this.incomingGameState))
     }
 
     // A failed transition never reaches beforeNewState, which would leave the previews, and the
