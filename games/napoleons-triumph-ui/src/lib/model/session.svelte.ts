@@ -57,6 +57,7 @@ import {
     type HeldApproach,
     type PieceGroup
 } from '$lib/utils/pieceLayout.js'
+import { showsArmyOf } from './armyInView.js'
 import {
     AttackWidth,
     StageKind,
@@ -190,7 +191,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.myPlayerId ? this.gameState.findPlayerState(this.myPlayerId)?.side : undefined
     )
 
-    canAct = $derived(this.isMyTurn && !this.isViewingHistory)
+    // Workaround: Admin mode names the acting player at once and fetches the full state afterwards, so for a moment the state on hand is one that hides that player's army, and the rules cannot be asked anything on their behalf.
+    private readonly armyInView = $derived(
+        this.myPlayerId === undefined || showsArmyOf(this.gameState, this.myPlayerId)
+    )
+
+    canAct = $derived(this.isMyTurn && !this.isViewingHistory && this.armyInView)
 
     isCommanding = $derived(this.canAct && this.gameState.machineState === MachineState.Commanding)
 
