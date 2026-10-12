@@ -4638,6 +4638,8 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
 test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Trade').click()
+    // The click leaves the cursor where the first Trade row then opens: rest it off the panel.
+    await restMouse(page)
     const row = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem').first()
     const pointed = page.locator('.board-card.offered.pointed')
     await expect(pointed).toHaveCount(0)
