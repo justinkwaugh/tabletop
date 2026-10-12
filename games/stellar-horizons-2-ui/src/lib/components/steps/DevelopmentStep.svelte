@@ -9,6 +9,7 @@
     import { cashNeeded, suggestPayment } from '$lib/model/payment.js'
     import { TECH_EFFECT_TEXT } from '$lib/utils/presentation.js'
     import TechMarker from '../TechMarker.svelte'
+    import TechMarkerTotal from '../TechMarkerTotal.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -33,16 +34,20 @@
             return entry.index
         })
     })
-    const markers = $derived(selectedIndexes.map((index) => held[index]))
+    // Markers are shown, and named on the button, from the highest value down.
+    const ordered = $derived(
+        held.map((value, index) => ({ value, index })).sort((a, b) => b.value - a.value)
+    )
+    const paying = $derived(ordered.filter((entry) => selectedIndexes.includes(entry.index)))
+    const keeping = $derived(ordered.filter((entry) => !selectedIndexes.includes(entry.index)))
+    const markers = $derived(paying.map((entry) => entry.value))
     const cash = $derived(cashNeeded(markers, cost))
     const affordable = $derived(cash <= player.cash)
-    const developed = $derived(player.fieldsDeveloped)
 
-    const paymentLabel = $derived(
-        [markers.length > 0 ? `markers ${markers.join('+')}` : '', cash > 0 ? `$${cash}B` : '']
-            .filter(Boolean)
-            .join(' and ') || 'free'
-    )
+    const developLabel = $derived.by(() => {
+        const parts = [markers.join('+'), cash > 0 ? `$${cash}B` : ''].filter(Boolean)
+        return parts.length > 0 ? `Develop with ${parts.join(' and ')}` : 'Develop for free'
+    })
 
     function toggle(index: number) {
         if (!techId) return
@@ -66,54 +71,195 @@
             {TECH_EFFECT_TEXT[tech.id]}. Cost {cost}
             {tech.field.toLowerCase()} points.
         </p>
-        <div class="markers">
-            {#each held as value, index (index)}
-                <TechMarker
-                    field={tech.field}
-                    {value}
-                    dimmed={!selectedIndexes.includes(index)}
-                    onclick={() => toggle(index)}
-                />
-            {:else}
-                <span class="hint">No {tech.field.toLowerCase()} markers.</span>
-            {/each}
+        <div class="payment">
+            <div class="group">
+                <span class="label">Pay with</span>
+                <span class="chits">
+                    {#each paying as marker (marker.index)}
+                        <TechMarker
+                            field={tech.field}
+                            value={marker.value}
+                            size={40}
+                            label="Keep {tech.field.toLowerCase()} {marker.value}"
+                            onclick={() => toggle(marker.index)}
+                        />
+                    {/each}
+                    {#if cash > 0}
+                        <span class="cash" class:short={!affordable}>${cash}B</span>
+                    {:else if paying.length === 0}
+                        <span class="nothing">Nothing</span>
+                    {/if}
+                </span>
+            </div>
+            {#if keeping.length > 0}
+                <div class="group keep">
+                    <span class="label">Keep</span>
+                    <span class="chits">
+                        {#each keeping as marker (marker.index)}
+                            <TechMarker
+                                field={tech.field}
+                                value={marker.value}
+                                size={40}
+                                label="Pay with {tech.field.toLowerCase()} {marker.value}"
+                                onclick={() => toggle(marker.index)}
+                            />
+                        {/each}
+                    </span>
+                </div>
+            {/if}
         </div>
         <div class="buttons">
             <button type="button" class="primary" disabled={!affordable} onclick={develop}>
-                Develop for {paymentLabel}
+                {developLabel}
             </button>
             <button type="button" onclick={() => gameSession.clearSelection()}>Cancel</button>
         </div>
     {:else}
-        <p class="hint">
-            Choose a highlighted tech on the chart. You may develop one tech of each type per turn;
-            prerequisites must have been owned since the start of the turn. Cash pays $1B per point.
-        </p>
-        <div class="fields">
+        <dl class="funds" aria-label="Available to spend">
             {#each TECH_FIELDS as field (field)}
-                <span class:spent={developed.includes(field)}>
-                    {field}: {developed.includes(field) ? 'developed this turn' : 'available'}
-                </span>
+                <div class="fund">
+                    <dt>{field}</dt>
+                    <dd>
+                        <TechMarkerTotal {field} values={player.techMarkers[field]} size={36} />
+                    </dd>
+                </div>
             {/each}
-        </div>
+            <div class="fund cash">
+                <dt>Cash</dt>
+                <dd>${player.cash}B</dd>
+            </div>
+        </dl>
+        <div class="prompt">Choose a tech on the chart below</div>
     {/if}
 </div>
 
 <style>
-    .markers {
+    /* The chits being spent and the chits being kept sit in two labelled groups; clicking a
+       chit moves it to the other group. */
+    .payment {
+        display: flex;
+        align-self: flex-start;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 8px 14px;
+        border: 1px solid #22314d;
+        border-radius: 8px;
+        background: #070a12;
+    }
+
+    .group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .group.keep {
+        margin-left: 18px;
+        padding-left: 18px;
+        border-left: 1px solid #22314d;
+    }
+
+    .group .label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8fa4c2;
+    }
+
+    .chits {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
     }
 
-    .fields {
-        display: flex;
-        gap: 12px;
+    .group.keep .chits {
+        opacity: 0.6;
+    }
+
+    .payment .cash {
+        padding: 0 4px;
+        font-size: 22px;
+        font-weight: 700;
+        color: #f2c94c;
+    }
+
+    .payment .cash.short {
+        color: #ff8a7a;
+    }
+
+    .nothing {
         font-size: 13px;
-        color: #b7c7de;
+        color: #6f84a3;
     }
 
-    .fields .spent {
-        color: #5c6f8e;
+    /* What the player can spend, in its own darker panel like the other steps' tables: the
+       total of their markers in each field, then their cash. */
+    .funds {
+        display: flex;
+        align-self: flex-start;
+        gap: 18px;
+        margin: 0;
+        padding: 8px 14px;
+        border: 1px solid #22314d;
+        border-radius: 8px;
+        background: #070a12;
+    }
+
+    .fund {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .fund dt {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8fa4c2;
+    }
+
+    .fund dd {
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+        margin: 0;
+    }
+
+    .fund.cash {
+        padding-left: 18px;
+        border-left: 1px solid #22314d;
+    }
+
+    .fund.cash dd {
+        font-size: 22px;
+        font-weight: 700;
+        color: #f2c94c;
+    }
+
+    @media (max-width: 639px) {
+        .funds {
+            align-self: stretch;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+        }
+
+        .fund.cash {
+            padding-left: 10px;
+        }
+
+        .fund dt {
+            font-size: 10px;
+            letter-spacing: 0.04em;
+        }
+
+        .fund.cash dd {
+            font-size: 18px;
+        }
     }
 </style>

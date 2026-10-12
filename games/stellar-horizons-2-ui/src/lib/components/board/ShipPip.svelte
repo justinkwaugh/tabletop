@@ -8,9 +8,9 @@
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_FILL } from '$lib/utils/presentation.js'
+    import { PROBE_SCALE } from './pipGeometry.js'
 
     const APPROACHING_FILL = 'rgba(0,0,0,0.55)'
-    const PROBE_SCALE = 0.8
     const PROBE_DIAMOND = 1.2
     const DAMAGE_GAP = 1
     const SELECTION_GAP = 5
@@ -124,25 +124,6 @@
             class:crippled={isCrippled(ship)}
         ></rect>
     {/if}
-    {#if ship.settlements > 0}
-        <circle cx={-r * 0.95} cy={-r * 0.7} r={r * 0.32} class="cargo"></circle>
-    {/if}
-    {#if approaching}
-        <circle
-            cx={r * 0.8}
-            cy={-r * 0.8}
-            r={r * 0.34}
-            stroke-width={Math.max(0.6, r * 0.05)}
-            class="eta"
-        ></circle>
-        <text
-            x={r * 0.8}
-            y={-r * 0.8 + r * 0.15}
-            text-anchor="middle"
-            font-size={r * 0.45}
-            class="eta-text">{ship.transit}</text
-        >
-    {/if}
 </g>
 
 <style>
@@ -196,21 +177,5 @@
 
     .damage.crippled {
         stroke-width: 3px;
-    }
-
-    .cargo {
-        fill: #f5f1e6;
-        stroke: #1d1a14;
-        stroke-width: 1px;
-    }
-
-    .eta {
-        fill: #f2c94c;
-        stroke: #000000;
-    }
-
-    .eta-text {
-        font-weight: 900;
-        fill: #111111;
     }
 </style>

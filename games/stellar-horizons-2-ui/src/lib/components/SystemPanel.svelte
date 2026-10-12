@@ -43,97 +43,121 @@
         >
     </header>
 
-    {#each summary.fleets as fleet (fleet.playerId)}
-        <section
-            class="fleet"
-            class:inspected={fleet.playerId === inspectedPlayerId}
-            style:--faction={fleet.faction ? FACTION_FILL[fleet.faction] : '#3d4a63'}
-            aria-label={fleet.faction ? factionName(fleet.faction) : 'Unaligned'}
-        >
-            <div class="fleet-head">
-                {#if fleet.faction}
-                    <img src={FACTION_ART[fleet.faction]} alt="" width="40" height="40" />
-                {/if}
-                <div class="fleet-name">
-                    <PlayerName playerId={fleet.playerId} />
-                    <span class="faction">{fleet.faction ? factionName(fleet.faction) : ''}</span>
-                </div>
-                {#if fleet.settlements > 0 && fleet.faction}
-                    <div
-                        class="settlements"
-                        title="{plural(
-                            fleet.settlements,
-                            'settlement'
-                        )} of {summary.settlementGoal} to win"
-                    >
-                        <img src={SETTLEMENT_ART[fleet.faction]} alt="" width="40" height="40" />
-                        <span class="count"
-                            >{fleet.settlements}<span class="goal">/{summary.settlementGoal}</span
-                            ></span
+    <div class="fleets">
+        {#each summary.fleets as fleet (fleet.playerId)}
+            <section
+                class="fleet"
+                class:inspected={fleet.playerId === inspectedPlayerId}
+                style:--faction={fleet.faction ? FACTION_FILL[fleet.faction] : '#3d4a63'}
+                aria-label={fleet.faction ? factionName(fleet.faction) : 'Unaligned'}
+            >
+                <div class="fleet-head">
+                    {#if fleet.faction}
+                        <img src={FACTION_ART[fleet.faction]} alt="" width="40" height="40" />
+                    {/if}
+                    <div class="fleet-name">
+                        <PlayerName playerId={fleet.playerId} />
+                        <span class="faction"
+                            >{fleet.faction ? factionName(fleet.faction) : ''}</span
                         >
                     </div>
-                {/if}
-            </div>
-            {#if fleet.ships.length > 0}
-                <div class="ships">
-                    {#each fleet.ships as ship (ship.shipId)}
-                        {@const selectable = gameSession.selectableShipIds.includes(ship.shipId)}
-                        <button
-                            type="button"
-                            class="ship"
-                            class:selectable
-                            class:selected={gameSession.selectedShip?.shipId === ship.shipId}
-                            disabled={!selectable}
-                            aria-label={shipDefinition(ship.shipId).name}
-                            onclick={() => choose(ship)}
+                    {#if fleet.settlements > 0 && fleet.faction}
+                        <div
+                            class="settlements"
+                            title="{plural(
+                                fleet.settlements,
+                                'settlement'
+                            )} of {summary.settlementGoal} to win"
                         >
-                            <svg
-                                width={COUNTER_SIZE}
-                                height={COUNTER_SIZE}
-                                viewBox="0 0 {COUNTER_SIZE} {COUNTER_SIZE}"
-                                overflow="visible"
-                                aria-hidden="true"
-                            >
-                                <ShipCounter {ship} size={COUNTER_SIZE} />
-                            </svg>
-                            <CargoHold
-                                gameState={gameSession.gameState}
-                                {ship}
-                                width={COUNTER_SIZE}
+                            <img
+                                src={SETTLEMENT_ART[fleet.faction]}
+                                alt=""
+                                width="40"
+                                height="40"
                             />
-                            {#if ship.transit > 0}
-                                <span class="arrival"
-                                    >Arrives in {plural(ship.transit, 'turn')}</span
-                                >
-                            {/if}
-                        </button>
-                    {/each}
+                            <span class="count"
+                                >{fleet.settlements}<span class="goal"
+                                    >/{summary.settlementGoal}</span
+                                ></span
+                            >
+                        </div>
+                    {/if}
                 </div>
-            {/if}
-        </section>
-    {:else}
-        <p class="muted">Nobody is here yet.</p>
-    {/each}
+                {#if fleet.ships.length > 0}
+                    <div class="ships">
+                        {#each fleet.ships as ship (ship.shipId)}
+                            {@const selectable = gameSession.selectableShipIds.includes(
+                                ship.shipId
+                            )}
+                            <button
+                                type="button"
+                                class="ship"
+                                class:selectable
+                                class:selected={gameSession.selectedShip?.shipId === ship.shipId}
+                                disabled={!selectable}
+                                aria-label={shipDefinition(ship.shipId).name}
+                                onclick={() => choose(ship)}
+                            >
+                                <svg
+                                    width={COUNTER_SIZE}
+                                    height={COUNTER_SIZE}
+                                    viewBox="0 0 {COUNTER_SIZE} {COUNTER_SIZE}"
+                                    overflow="visible"
+                                    aria-hidden="true"
+                                >
+                                    <ShipCounter {ship} size={COUNTER_SIZE} />
+                                </svg>
+                                <CargoHold
+                                    gameState={gameSession.gameState}
+                                    {ship}
+                                    width={COUNTER_SIZE}
+                                />
+                                {#if ship.transit > 0}
+                                    <span class="arrival"
+                                        >Arrives in {plural(ship.transit, 'turn')}</span
+                                    >
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
+            </section>
+        {:else}
+            <p class="muted">Nobody is here yet.</p>
+        {/each}
+    </div>
 </aside>
 
 <style>
+    /* The name and the way back stay put; only the fleets scroll beneath them. */
     .panel {
         height: 100%;
-        overflow-y: auto;
-        padding: 14px 16px;
+        overflow: hidden;
         border-left: 1px solid #1e2b44;
         background: linear-gradient(180deg, rgba(15, 22, 38, 0.97), rgba(7, 11, 20, 0.97));
         color: #dbe7f5;
         display: flex;
         flex-direction: column;
-        gap: 12px;
     }
 
     header {
         display: flex;
+        flex-shrink: 0;
         justify-content: space-between;
         align-items: center;
         gap: 10px;
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid #1e2b44;
+    }
+
+    .fleets {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 12px 16px 14px;
     }
 
     h2 {

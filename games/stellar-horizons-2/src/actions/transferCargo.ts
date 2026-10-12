@@ -12,6 +12,7 @@ import {
     transferCargo
 } from '../model/cargoTransfer.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { endIdleSteps } from '../model/idleSteps.js'
 
 export type TransferCargo = Type.Static<typeof TransferCargo>
 export const TransferCargo = Type.Evaluate(
@@ -63,6 +64,7 @@ export class HydratedTransferCargo
             throw Error('Invalid TransferCargo action')
         }
         this.metadata = transferCargo(state, ship, this.partner, this.settlements)
+        endIdleSteps(state, this.playerId)
     }
 
     static canTransferCargo(state: HydratedStellarHorizonsGameState, playerId: string) {

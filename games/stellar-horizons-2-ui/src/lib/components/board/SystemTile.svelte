@@ -6,6 +6,7 @@
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipClump from './ShipClump.svelte'
+    import ShipPipBadges from './ShipPipBadges.svelte'
     import BaseTab from './BaseTab.svelte'
     import type { BaseTab as BaseTabLayout } from '$lib/utils/baseTabLayout.js'
 
@@ -110,6 +111,11 @@
             pips={clump.pips}
             r={ships.radius}
         />
+    {/each}
+    {#each clumps as clump (clump.playerId)}
+        {#each clump.pips as pip (pip.ship.shipId)}
+            <ShipPipBadges ship={pip.ship} x={pip.x} y={pip.y} r={ships.radius} />
+        {/each}
     {/each}
 
     <!-- svelte-ignore a11y_click_events_have_key_events -->

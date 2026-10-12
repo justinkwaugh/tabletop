@@ -124,9 +124,18 @@
     font-weight: 700;
 }
 
+.sh-step button.primary:hover:not(:disabled) {
+    background: #ffd968;
+    border-color: #ffd968;
+}
+
 .sh-step button.danger {
     border-color: #7a2a24;
     background: #3a1714;
+}
+
+.sh-step button.danger:hover:not(:disabled) {
+    background: #54211c;
 }
 
 .sh-step .empty,
