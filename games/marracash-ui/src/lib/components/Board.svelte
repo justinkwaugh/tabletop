@@ -20,6 +20,8 @@
     import StreetWear from '$lib/components/StreetWear.svelte'
     import EarningsPopupLayer from '$lib/components/EarningsPopupLayer.svelte'
     import HaloRing from '$lib/components/HaloRing.svelte'
+    import StallPlacard from '$lib/components/StallPlacard.svelte'
+    import { getAuctionNoticeAnimator } from '$lib/animators/auctionNoticeAnimator.svelte.js'
     import { stallOutline } from '$lib/utils/stalls.js'
     import { fountainBounds, fountainOutline } from '$lib/utils/fountainShape.js'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
@@ -43,11 +45,21 @@
     // A walking pawn's box, centred on where it stands, holds the figure and its ground shadow.
     const WalkerBox = 32
 
+    // The overlay under a choice of fountain or entrance, and the deeper one under an auction,
+    // whose shop signs are dimmed half as much again.
+    const ChoiceDimming = 0.25
+    const AuctionDimming = 0.4
+
     const visitorMoveAnimator = new VisitorMoveAnimator(gameSession)
     visitorMoveAnimator.register()
     onDestroy(() => visitorMoveAnimator.unregister())
 
-    let spotlightShopId = $derived(gameSession.gameState.auction?.shopId)
+    const auctionNotice = getAuctionNoticeAnimator()
+    // An auction being announced spotlights its stall before its state is published, ahead of any
+    // auction the outgoing state still holds.
+    let spotlightShopId = $derived(
+        auctionNotice.shown?.shopId ?? gameSession.gameState.auction?.shopId
+    )
     let spotlightShop = $derived(
         gameSession.visibleShops.find((shop) => shop.shopId === spotlightShopId)
     )
@@ -63,12 +75,9 @@
         )
     )
     let dimmed = $derived(spotlightShop !== undefined || liftedFountains.length > 0)
-    // During an auction every fountain stays above the overlay.
-    let raisedFountainIds: FountainId[] = $derived(
-        spotlightShop !== undefined
-            ? gameSession.visibleFountains.map((fountain) => fountain.fountainId)
-            : liftedFountainIds
-    )
+    // Only fountains being chosen rise above the overlay whole; the rest, during an auction too,
+    // are dimmed with the ground while their visitors stay above it.
+    let raisedFountainIds: FountainId[] = $derived(liftedFountainIds)
 
     let hoveredRoute = $derived.by<Route | undefined>(() => {
         gameSession.updatingVisibleState
@@ -291,7 +300,10 @@
                 <g>
                     {#if dimmed}
                         <!-- One group opacity, so the pillars' overlap with the wall is not darkened twice -->
-                        <g opacity="0.25" pointer-events="auto">
+                        <g
+                            opacity={spotlightShop ? AuctionDimming : ChoiceDimming}
+                            pointer-events="auto"
+                        >
                             <rect width={BoardWidth} height={BoardHeight} fill="#000000"></rect>
                             {#each Towers as pillar (`${pillar.x},${pillar.y}`)}
                                 {#each [{ x: 0, y: 0 }, PillarShadowOffset] as offset (offset)}
@@ -309,7 +321,12 @@
                     {/if}
                 </g>
 
-                <g>
+                <!-- During an auction the signs dim half as much as the board beneath them. -->
+                <g
+                    style:filter={spotlightShop
+                        ? `brightness(${1 - AuctionDimming / 2})`
+                        : undefined}
+                >
                     {#each groundShops as shop (shop.shopId)}
                         <ShopTile {shop} layer="sign" />
                     {/each}
@@ -338,6 +355,10 @@
                     <g>
                         {#if spotlightShop}
                             <ShopTile shop={spotlightShop} spotlit />
+                            <StallPlacard
+                                shopId={spotlightShop.shopId}
+                                hidden={auctionNotice.shown !== undefined}
+                            />
                         {/if}
                     </g>
 
