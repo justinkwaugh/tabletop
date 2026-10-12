@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     GameEngine,
+    GameSyncStatus,
     Role,
     UserStatus,
+    type ActionHistoryPosition,
     type Game,
     type GameAction,
     type GameState,
@@ -17,7 +19,7 @@ import {
     type SpanGameOptions
 } from '@tabletop/common/test-fixtures/span-game'
 import { GameService } from './gameService.js'
-import { DisallowedActionError } from './errors.js'
+import { DisallowedActionError, DisallowedUndoError } from './errors.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
@@ -151,8 +153,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect((await mainLine()).machineState).toBe('branching')
             expect((await mainLine()).actionCount).toBe(1)
             expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2', 'p1'])
-            expect(response.branch?.branch.playerId).toBe('p1')
-            expect(summary(response.branch?.actions ?? [])).toEqual(['openBranch:p1'])
+            expect(response.unmergedBranch?.branch.playerId).toBe('p1')
+            expect(summary(response.unmergedBranch?.actions ?? [])).toEqual(['openBranch:p1'])
         })
 
         it('creates Branches only for the Players the span made active', async () => {
@@ -162,27 +164,27 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p1'])
         })
 
-        it('runs a Player’s Action in their Branch and leaves the Main Line and other Players alone', async () => {
+        it('runs a Player’s Action in their Branch, tells only that Player, and leaves the Main Line alone', async () => {
             await host()
             await act('p1', 'begin', 'begin')
             const etag = await settledEtag()
             sendNotification.mockClear()
             const response = await act('p2', 'work', 'w2')
             expect(response.actions).toEqual([])
-            expect(summary(response.branch?.actions ?? [])).toEqual(['work:p2'])
-            expect(response.branch?.actions[0].index).toBe(1)
-            expect(response.branch?.branch.actionCount).toBe(2)
+            expect(summary(response.unmergedBranch?.actions ?? [])).toEqual(['work:p2'])
+            expect(response.unmergedBranch?.actions[0].index).toBe(1)
+            expect(response.unmergedBranch?.branch.actionCount).toBe(2)
             expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
             expect((await mainLine()).actionCount).toBe(1)
             expect(await store.getGameEtag(game.id)).toBe(etag)
-            expect(sendNotification).not.toHaveBeenCalled()
+            expect(sendNotification.mock.calls.map(([sent]) => sent.topics)).toEqual([['user-p2']])
         })
 
         it('sends the owner their Branch with host-only values projected away', async () => {
             await host()
             await act('p1', 'begin', 'begin')
             const response = await act('p2', 'roll', 'r2')
-            const changed = JSON.stringify(response.branch?.branch.change)
+            const changed = JSON.stringify(response.unmergedBranch?.branch.change)
             expect(changed).toContain('rolls')
             expect(changed).not.toContain('rules')
         })
@@ -199,7 +201,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await act('p1', 'begin', 'begin')
             const response = await act('p2', 'finish', 'f2')
             expect(response.actions).toEqual([])
-            expect(response.branch?.branch.closed).toBe(true)
+            expect(response.unmergedBranch?.branch.closed).toBe(true)
             expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p1'])
             expect((await mainLine()).actionCount).toBe(1)
             expect((await store.findBranch(game.id, 'p2'))?.closed).toBe(true)
@@ -225,7 +227,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 'openBranch:p2',
                 'finish:p2'
             ])
-            expect(response.branch).toBeUndefined()
+            expect(response.unmergedBranch).toBeUndefined()
             expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
             expect(await branchCounts()).toEqual({ p1: 1, p2: undefined, p3: undefined })
             expect((await storedGame()).activePlayerIds).toEqual(['p1'])
@@ -346,6 +348,425 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(await branchCounts()).toEqual({ p1: undefined, p2: undefined, p3: undefined })
         })
 
+        describe('what each Player is sent', () => {
+            beforeEach(async () => {
+                await host()
+                await act('p1', 'begin', 'begin')
+                await act('p2', 'roll', 'r2')
+            })
+
+            function open(playerId: string, includeActions = true) {
+                return service.getGameForUser({
+                    gameId: game.id,
+                    user: user(playerId),
+                    includeActions
+                })
+            }
+
+            function etag(playerId: string) {
+                return service.getGameEtagForUser({ gameId: game.id, user: user(playerId) })
+            }
+
+            async function sync(playerId: string, branchPosition?: ActionHistoryPosition) {
+                const state = await mainLine()
+                return service.checkSync({
+                    gameId: game.id,
+                    index: state.actionCount - 1,
+                    checksum: state.actionChecksum,
+                    branchPosition,
+                    user: user(playerId)
+                })
+            }
+
+            it('is the Main Line for everyone, and for a Player their own Branch beside it', async () => {
+                const mine = await open('p2')
+                expect(mine?.game.state?.actionCount).toBe(1)
+                expect(summary(mine?.actions ?? [])).toEqual(['begin:p1'])
+                expect(mine?.unmergedBranch?.branch.playerId).toBe('p2')
+                expect(mine?.unmergedBranch?.branch.actionCount).toBe(2)
+                expect(summary(mine?.unmergedBranch?.actions ?? [])).toEqual([
+                    'openBranch:p2',
+                    'roll:p2'
+                ])
+
+                const theirs = await open('p3')
+                expect(theirs?.game.state).toEqual(mine?.game.state)
+                expect(theirs?.unmergedBranch?.branch.playerId).toBe('p3')
+                expect(theirs?.unmergedBranch?.branch.actionCount).toBe(1)
+
+                expect((await open('someone-watching'))?.unmergedBranch).toBeUndefined()
+            })
+
+            it('keeps host-only values out of the owner’s Branch', async () => {
+                const mine = await open('p2')
+                expect(JSON.stringify(mine?.unmergedBranch)).toContain('rolls')
+                expect(JSON.stringify(mine?.unmergedBranch)).not.toContain('"rules"')
+            })
+
+            it('sends the Branch without its Actions when the Game is opened without history', async () => {
+                const mine = await open('p2', false)
+                expect(mine?.historyComplete).toBe(false)
+                expect(mine?.unmergedBranch?.branch.actionCount).toBe(2)
+                expect(mine?.unmergedBranch?.actions).toEqual([])
+            })
+
+            it('sends no Branch once it has been merged', async () => {
+                await act('p3', 'finish', 'f3')
+                expect((await open('p3'))?.unmergedBranch).toBeUndefined()
+                expect((await open('p2'))?.unmergedBranch?.branch.playerId).toBe('p2')
+            })
+
+            it('does not send a stored Branch that belongs to another span', async () => {
+                const current = await store.findBranch(game.id, 'p3')
+                if (current === undefined) throw Error('p3 has no Branch')
+                await store.writeUnmergedBranch({
+                    gameId: game.id,
+                    write: {
+                        branch: { ...current, branchPoint: { actionCount: 99, actionChecksum: 1 } },
+                        addedActions: [],
+                        removedActions: []
+                    },
+                    validator: async () => UpdateValidationResult.Proceed
+                })
+                expect((await open('p3'))?.unmergedBranch).toBeUndefined()
+                expect((await open('p3', false))?.unmergedBranch).toBeUndefined()
+            })
+
+            function mergingOnce() {
+                let merged = false
+                return async () => {
+                    if (merged) return
+                    merged = true
+                    await act('p3', 'finish', 'f3')
+                }
+            }
+
+            const mergingBeforeFirst = {
+                findBranch() {
+                    const find = store.findBranch.bind(store)
+                    const merge = mergingOnce()
+                    vi.spyOn(store, 'findBranch').mockImplementation(async (gameId, playerId) => {
+                        await merge()
+                        return find(gameId, playerId)
+                    })
+                },
+                findUnmergedBranch() {
+                    const find = store.findUnmergedBranch.bind(store)
+                    const merge = mergingOnce()
+                    vi.spyOn(store, 'findUnmergedBranch').mockImplementation(
+                        async (gameId, playerId) => {
+                            await merge()
+                            return find(gameId, playerId)
+                        }
+                    )
+                }
+            }
+
+            it.each([
+                { includeActions: true, read: 'findUnmergedBranch' as const },
+                { includeActions: false, read: 'findBranch' as const }
+            ])(
+                'reads the Game again when its Branch was merged after the Game was read (history: $includeActions)',
+                async ({ includeActions, read }) => {
+                    mergingBeforeFirst[read]()
+                    const opened = await open('p3', includeActions)
+                    expect(opened?.unmergedBranch).toBeUndefined()
+                    expect(opened?.game.state?.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
+                    expect(opened?.game.state?.actionCount).toBe(3)
+                }
+            )
+
+            it('reads the Game once for a Player who has yet to start their Branch again', async () => {
+                await act('p3', 'finish', 'f3')
+                await service.undoAction({
+                    definition,
+                    gameId: game.id,
+                    actionId: 'f3',
+                    user: { ...user('admin'), roles: [Role.Admin] }
+                })
+                expect(await store.findBranch(game.id, 'p3')).toBeUndefined()
+                const read = vi.spyOn(store, 'readGameData')
+                const opened = await open('p3')
+                expect(opened?.unmergedBranch).toBeUndefined()
+                expect(opened?.game.state?.parallelSpan?.mergedPlayerIds).toEqual([])
+                expect(read).toHaveBeenCalledTimes(1)
+            })
+
+            it('changes only the owner’s entity tag when their Branch moves', async () => {
+                const mine = await etag('p2')
+                const theirs = await etag('p3')
+                await act('p2', 'work', 'w2')
+                expect(await etag('p2')).not.toBe(mine)
+                expect(await etag('p3')).toBe(theirs)
+            })
+
+            it('reports a Player in sync when they hold their Branch as stored', async () => {
+                const stored = await store.findBranch(game.id, 'p2')
+                const result = await sync('p2', stored)
+                expect(result.status).toBe(GameSyncStatus.InSync)
+                expect(result.branchSync).toEqual({ status: GameSyncStatus.InSync })
+            })
+
+            it('sends the Branch to a Player whose copy is behind, or who has none', async () => {
+                const behind = await sync('p2', { actionCount: 1, actionChecksum: 0 })
+                expect(behind.branchSync?.status).toBe(GameSyncStatus.OutOfSync)
+                expect(summary(behind.branchSync?.unmergedBranch?.actions ?? [])).toEqual([
+                    'openBranch:p2',
+                    'roll:p2'
+                ])
+                const none = await sync('p3')
+                expect(none.branchSync?.status).toBe(GameSyncStatus.OutOfSync)
+                expect(none.branchSync?.unmergedBranch?.branch.playerId).toBe('p3')
+            })
+
+            it('tells a Player their Branch is gone once it has been merged', async () => {
+                const held = await store.findBranch(game.id, 'p3')
+                await act('p3', 'finish', 'f3')
+                const result = await sync('p3', held)
+                expect(result.branchSync).toEqual({ status: GameSyncStatus.OutOfSync })
+            })
+
+            it('says nothing about Branches to someone who has none and claims none', async () => {
+                expect((await sync('someone-watching')).branchSync).toBeUndefined()
+            })
+
+            it('keeps a Closed Branch in step like any other', async () => {
+                const open = await store.findBranch(game.id, 'p2')
+                await act('p2', 'finish', 'f2')
+                const closed = await store.findBranch(game.id, 'p2')
+                expect(closed?.closed).toBe(true)
+                expect((await sync('p2', closed)).branchSync).toEqual({
+                    status: GameSyncStatus.InSync
+                })
+                const behind = await sync('p2', open)
+                expect(behind.branchSync?.status).toBe(GameSyncStatus.OutOfSync)
+                expect(behind.branchSync?.unmergedBranch?.branch.closed).toBe(true)
+            })
+
+            it('does not load the Game State to find a Branch in step', async () => {
+                const state = await mainLine()
+                const stored = await store.findBranch(game.id, 'p2')
+                const find = vi.spyOn(store, 'findGameById')
+                await service.checkSync({
+                    gameId: game.id,
+                    index: state.actionCount - 1,
+                    checksum: state.actionChecksum,
+                    branchPosition: stored,
+                    user: user('p2')
+                })
+                expect(find.mock.calls.filter(([, withState]) => withState)).toEqual([])
+            })
+
+            it('answers about the Main Line and the Branch as of one moment when a Merge lands between them', async () => {
+                const held = await store.findBranch(game.id, 'p3')
+                const before = await mainLine()
+                mergingBeforeFirst.findBranch()
+                const result = await service.checkSync({
+                    gameId: game.id,
+                    index: before.actionCount - 1,
+                    checksum: before.actionChecksum,
+                    branchPosition: held,
+                    user: user('p3')
+                })
+                expect(result.branchSync).toEqual({ status: GameSyncStatus.OutOfSync })
+                expect(result.checksum).toBe((await mainLine()).actionChecksum)
+                expect(summary(result.actions)).toEqual(['openBranch:p3', 'finish:p3'])
+            })
+        })
+
+        describe('Undo', () => {
+            const administrator: User = { ...user('admin'), roles: [Role.Admin] }
+
+            function undo(actionId: string, by: User) {
+                return service.undoAction({ definition, gameId: game.id, actionId, user: by })
+            }
+
+            beforeEach(async () => {
+                await host()
+                await act('p1', 'begin', 'begin')
+            })
+
+            it('reverses an Action in the Player’s own Branch and tells only that Player', async () => {
+                await act('p2', 'work', 'w2a')
+                await act('p2', 'work', 'w2b')
+                sendNotification.mockClear()
+                const response = await undo('w2a', user('p2'))
+                expect(response.unmergedBranch?.branch.actionCount).toBe(1)
+                expect(response.actionReplay).toEqual({ startIndex: 1, actions: [] })
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+                expect((await store.findUnmergedBranch(game.id, 'p2'))?.actions).toHaveLength(1)
+                expect((await mainLine()).actionCount).toBe(1)
+                expect(sendNotification.mock.calls.map(([sent]) => sent.topics)).toEqual([
+                    ['user-p2']
+                ])
+            })
+
+            it('stops a Player at their own Information-Revealing Action', async () => {
+                await act('p2', 'roll', 'r2')
+                await act('p2', 'work', 'w2')
+                await expect(undo('r2', user('p2'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 3, p3: 1 })
+            })
+
+            it('lets an administrator undo across it in a Player’s Branch', async () => {
+                await act('p2', 'roll', 'r2')
+                const response = await undo('r2', administrator)
+                expect(response.unmergedBranch).toBeUndefined()
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+            })
+
+            it('refuses a Player any Undo on the Main Line while the span is in progress', async () => {
+                await expect(undo('begin', user('p1'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                expect((await mainLine()).actionCount).toBe(1)
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+            })
+
+            it('refuses to undo in a Closed Branch', async () => {
+                await act('p2', 'work', 'w2')
+                await act('p2', 'finish', 'f2')
+                await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(DisallowedUndoError)
+            })
+
+            it('lands an administrator’s Undo inside a merged Branch at the start of that Branch', async () => {
+                await act('p2', 'work', 'w2')
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                expect((await mainLine()).actionCount).toBe(4)
+                await undo('f3', administrator)
+                const landed = await mainLine()
+                expect(landed.actionCount).toBe(1)
+                expect(landed.machineState).toBe('branching')
+                expect(landed.parallelSpan?.mergedPlayerIds).toEqual([])
+                expect(landed.parallelSpan?.branchPlayerId).toBeUndefined()
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: undefined })
+                await act('p3', 'work', 'w3-again')
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 2 })
+            })
+
+            it('waits again on the Player whose Branch was undone, and not on one who has closed', async () => {
+                await act('p1', 'finish', 'f1')
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                expect((await storedGame()).activePlayerIds).toEqual(['p2'])
+                const response = await undo('f3', administrator)
+                expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2'])
+                expect(response.actionReplay).toEqual({ startIndex: 1, actions: [] })
+                expect(response.checksum).toBe((await mainLine()).actionChecksum)
+            })
+
+            it('refuses a Player another Player’s Branch Action and their own merged Action', async () => {
+                await act('p2', 'work', 'w2')
+                await act('p3', 'work', 'w3')
+                await expect(undo('w2', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                await act('p3', 'finish', 'f3')
+                await expect(undo('w3', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                expect((await mainLine()).actionCount).toBe(4)
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: undefined })
+            })
+
+            describe('after Span Completion', () => {
+                beforeEach(async () => {
+                    await act('p3', 'finish', 'f3')
+                    await act('p2', 'finish', 'f2')
+                    await act('p1', 'work', 'w1')
+                    await act('p1', 'finish', 'f1')
+                    expect((await mainLine()).machineState).toBe('scoring')
+                })
+
+                it('refuses a Player their own merged Action', async () => {
+                    const completed = await mainLine()
+                    await expect(undo('w1', user('p1'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                    await expect(undo('f1', user('p1'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                    expect(await mainLine()).toEqual(completed)
+                })
+
+                it('takes an administrator back across it to the start of the last Branch', async () => {
+                    const completed = await mainLine()
+                    await undo('w1', administrator)
+                    const landed = await mainLine()
+                    expect(landed.machineState).toBe('branching')
+                    expect(landed.parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
+                    expect(landed.parallelSpan?.branchPlayerId).toBeUndefined()
+                    expect((await storedGame()).activePlayerIds).toEqual(['p1'])
+                    expect(await branchCounts()).toEqual({
+                        p1: undefined,
+                        p2: undefined,
+                        p3: undefined
+                    })
+                    await act('p1', 'work', 'w1')
+                    await act('p1', 'finish', 'f1')
+                    expect((await mainLine()).actionCount).toBe(completed.actionCount)
+                    expect((await mainLine()).machineState).toBe('scoring')
+                })
+            })
+
+            it('removes every Branch and any hold when an administrator undoes the span’s beginning', async () => {
+                vi.spyOn(console, 'error').mockImplementation(() => {})
+                await act('p2', 'peek', 'k2', { otherPlayerId: 'p3' })
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                await act('p2', 'finish', 'f2')
+                expect((await storedGame()).spanHold?.playerId).toBe('p2')
+                await undo('begin', administrator)
+                expect((await mainLine()).machineState).toBe('setup')
+                expect((await mainLine()).parallelSpan).toBeUndefined()
+                expect(await branchCounts()).toEqual({
+                    p1: undefined,
+                    p2: undefined,
+                    p3: undefined
+                })
+                expect((await storedGame()).spanHold).toBeUndefined()
+            })
+        })
+
+        describe('Fork', () => {
+            beforeEach(async () => {
+                await host()
+                await act('p1', 'begin', 'begin')
+                await act('p2', 'work', 'w2')
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+            })
+
+            function fork(actionIndex: number) {
+                return service.forkGame({
+                    definition,
+                    gameId: game.id,
+                    actionIndex,
+                    owner: user('p1')
+                })
+            }
+
+            it('takes only the Main Line when taken at the Branch Point', async () => {
+                const forked = await fork(0)
+                try {
+                    const state = (await store.findGameById(forked.id, true))?.state
+                    expect(state?.actionCount).toBe(1)
+                    expect(state?.parallelSpan?.mergedPlayerIds).toEqual([])
+                    expect(await store.findUnmergedBranches(forked.id, ['p1', 'p2', 'p3'])).toEqual(
+                        []
+                    )
+                } finally {
+                    await store.deleteGame(forked)
+                }
+            })
+
+            it('lands at the start of the Branch when taken inside a merged Branch', async () => {
+                const forked = await fork(2)
+                try {
+                    const state = (await store.findGameById(forked.id, true))?.state
+                    expect(state?.actionCount).toBe(1)
+                    expect(state?.parallelSpan?.branchPlayerId).toBeUndefined()
+                    expect(state?.parallelSpan?.mergedPlayerIds).toEqual([])
+                    expect(forked.activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+                    expect(forked.lastActionPlayerId).toBe('p1')
+                    expect(summary(await store.findActionsForGame(forked))).toEqual(['begin:p1'])
+                } finally {
+                    await store.deleteGame(forked)
+                }
+            })
+        })
+
         async function whileClosing(
             playerId: string,
             id: string,
@@ -398,7 +819,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 secondSpan?.branchPoint
             )
             expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2', 'p1'])
-            expect(summary(response.branch?.actions ?? [])).toEqual(['openBranch:p1'])
+            expect(summary(response.unmergedBranch?.actions ?? [])).toEqual(['openBranch:p1'])
             await act('p3', 'work', 'w3')
             expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 2 })
         })

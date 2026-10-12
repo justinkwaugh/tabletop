@@ -129,7 +129,8 @@ export function createSyntheticHost({ activeSeats = 1 } = {}) {
                 structuredClone(state),
                 structuredClone(undone),
                 newState,
-                gameUpdates
+                gameUpdates,
+                []
             )
             expect(result).toBe(UpdateValidationResult.Proceed)
             const priorState = state

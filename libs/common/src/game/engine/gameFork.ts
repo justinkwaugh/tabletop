@@ -8,6 +8,7 @@ import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import { type GameAction, type Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
+import { reverseToBranchStart } from './hostedSpan.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 
 export class GameForkError extends BaseError {
@@ -62,9 +63,12 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         for (const action of ordered.slice(end).toReversed()) {
             state = engine.undoProcessedAction({ action, state })
         }
-        const inherited = ordered.slice(0, end)
+        const branchStart = reverseToBranchStart({ engine, state, history: ordered.slice(0, end) })
+        assertExists(branchStart, 'Fork position is inside a Branch that has no start')
+        state = branchStart.state
+        const inherited = ordered.slice(0, end - branchStart.reversed.length)
         assert(
-            state.actionCount === end &&
+            state.actionCount === inherited.length &&
                 state.actionChecksum === calculateActionChecksum(0, inherited),
             'Fork position could not be reconstructed'
         )
@@ -83,6 +87,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         fork.startedAt = fork.createdAt
         fork.status = GameStatus.Started
         delete fork.tournament
+        delete fork.spanHold
         delete fork.state
         delete fork.finishedAt
         delete fork.result

@@ -32,11 +32,14 @@ export const StartingPositionRandomState = Type.Object({
     rules: ProtectedPrngState
 })
 
-export type BranchPoint = Type.Static<typeof BranchPoint>
-export const BranchPoint = Type.Object({
+export type ActionHistoryPosition = Type.Static<typeof ActionHistoryPosition>
+export const ActionHistoryPosition = Type.Object({
     actionCount: Type.Number(),
     actionChecksum: Type.Number()
 })
+
+export type BranchPoint = ActionHistoryPosition
+export const BranchPoint = ActionHistoryPosition
 
 export type ParallelSpanState = Type.Static<typeof ParallelSpanState>
 export const ParallelSpanState = Type.Object({

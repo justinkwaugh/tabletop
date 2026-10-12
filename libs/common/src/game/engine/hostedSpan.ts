@@ -1,7 +1,13 @@
 import { assertExists } from '../../util/assertions.js'
 import { BranchMergeError, type UnmergedBranch } from './branch.js'
 import { combineCascades, type ActionCascadeResult, type GameEngine } from './gameEngine.js'
-import { isRestingInSpan, restingSpan, sameBranchPoint, unmergedPlayerIds } from './parallelSpan.js'
+import {
+    isRestingInSpan,
+    restingSpan,
+    sameHistoryPosition,
+    unmergedPlayerIds
+} from './parallelSpan.js'
+import type { GameAction } from './gameAction.js'
 import type { Game, SpanHold } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 
@@ -36,7 +42,7 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
         const unmerged = unmergedPlayerIds(span)
         known = new Map(
             [...known].filter(([, record]) =>
-                sameBranchPoint(record.branch.branchPoint, span.branchPoint)
+                sameHistoryPosition(record.branch.branchPoint, span.branchPoint)
             )
         )
         for (const playerId of unmerged) {
@@ -83,4 +89,25 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
         mergedPlayerIds,
         ...(refusal === undefined ? {} : { refusal })
     }
+}
+
+export function reverseToBranchStart<T extends GameState, U extends HydratedGameState<T>>({
+    engine,
+    state,
+    history
+}: {
+    engine: GameEngine<T, U>
+    state: T
+    history: readonly GameAction[]
+}): { state: T; reversed: GameAction[] } | undefined {
+    const remaining = [...history]
+    const reversed: GameAction[] = []
+    let current = state
+    while (current.parallelSpan?.branchPlayerId !== undefined) {
+        const action = remaining.pop()
+        if (action === undefined) return undefined
+        current = engine.undoProcessedAction({ action, state: current })
+        reversed.unshift(action)
+    }
+    return { state: current, reversed }
 }
