@@ -6,7 +6,8 @@ import {
     User,
     GameStatusCategory,
     GameHistoryPage,
-    GameHistoryCursor
+    GameHistoryCursor,
+    UserGameStats
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
@@ -64,6 +65,7 @@ export interface GameStore {
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
     findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
+    findGameStats(user: User): Promise<UserGameStats>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findActiveGamesForTitle(titleId: string): Promise<Game[]>
     findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
@@ -144,7 +146,7 @@ export interface GameStore {
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>
 
-    deleteGame(game: Game): Promise<void>
+    deleteGame(game: Game, authorize?: (existingGame: Game) => void): Promise<void>
 
     getActionChecksum(gameId: string): Promise<number | undefined>
     setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void>
