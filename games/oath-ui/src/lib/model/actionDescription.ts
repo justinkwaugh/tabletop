@@ -413,6 +413,39 @@ function whenPlayedClause(
     return `: ${namedNote(shown, actorId, names, viewerId)}`
 }
 
+/**
+ * R-5.5.5, R-10.22 — where a sacrifice from a force in two places or more came from ("2 warbands
+ * on their board and 1 at Plains"): a board's first, then the sites in the record's order. One
+ * place, or a record from before the warbands were named, says only how many.
+ */
+function sacrificePlaces(
+    kills: readonly WarbandGroup[],
+    actorId: string,
+    names: HistoryNames
+): string | undefined {
+    const places = new Map<string, number>()
+    for (const group of [...kills].sort((a, b) => placeOrder(a) - placeOrder(b))) {
+        const place =
+            group.at.kind === 'site'
+                ? `at ${names.site(group.at.siteId)}`
+                : group.at.playerId === actorId
+                  ? 'on their board'
+                  : `on ${names.player(group.at.playerId)}'s board`
+        places.set(place, (places.get(place) ?? 0) + group.count)
+    }
+    const counted = [...places].filter(([, count]) => count > 0)
+    if (counted.length < 2) return undefined
+    return counted
+        .map(
+            ([place, count], index) => `${index === 0 ? plural(count, 'warband') : count} ${place}`
+        )
+        .join(' and ')
+}
+
+function placeOrder(group: WarbandGroup): number {
+    return group.at.kind === 'board' ? 0 : 1
+}
+
 /** R-5.5.7.I — each placement names its owner, so its piece takes that owner's colour. */
 function placementsClause(
     placements: readonly CampaignPlacement[],
@@ -666,8 +699,9 @@ function describeActionCited(
     }
     if (isCampaignSacrifice(action)) {
         const chooser = action.metadata?.awaitingLossesOf
+        const sacrificed = plural(action.metadata?.sacrificed ?? action.sacrifice, 'warband')
         return (
-            `sacrificed ${plural(action.metadata?.sacrificed ?? action.sacrifice, 'warband')} and ` +
+            `sacrificed ${sacrificePlaces(action.sacrificeKills ?? [], action.playerId, names) ?? sacrificed} and ` +
             (action.metadata?.attackerVictorious ? 'won the battle' : 'lost the battle') +
             (chooser ? `; ${nameOf(chooser)} picks the defense's losses` : '')
         )

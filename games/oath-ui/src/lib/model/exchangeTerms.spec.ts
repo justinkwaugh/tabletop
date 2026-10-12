@@ -191,6 +191,13 @@ describe('a count picked from its pieces', () => {
         expect(tappedCount(2, 2)).toBe(0)
     })
 
+    it('with a floor (a banner’s least bid), a tap on the piece at the count goes back to the floor', () => {
+        expect(tappedCount(2, 3, 2)).toBe(3)
+        expect(tappedCount(3, 2, 2)).toBe(2)
+        expect(tappedCount(2, 2, 2)).toBe(2)
+        expect(tappedCount(3, 3, 2)).toBe(2)
+    })
+
     it('a site’s count goes back to none where 0 is not legal, and to 0 where it is (the Crown)', () => {
         expect(tappedSiteCount([1, 2], undefined, 2)).toBe(2)
         expect(tappedSiteCount([1, 2], 2, 2)).toBeUndefined()

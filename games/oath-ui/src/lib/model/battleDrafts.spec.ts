@@ -3,7 +3,10 @@ import { Color, assert } from '@tabletop/common'
 import {
     Banner,
     CampaignTargetKind,
+    HydratedCampaignSacrifice,
     MachineState,
+    OathRevision,
+    PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
     cardPowers,
@@ -441,14 +444,16 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         expect(losses.sacrificed).toEqual([0, 0])
     })
 
-    it('a sacrifice is complete only at exactly the number needed', () => {
+    it('a sacrifice is complete only at exactly the number needed, and never picks past it', () => {
         const { losses } = sacrificing()
-        losses.setSacrificed(0, 3)
+        losses.setSacrificed(0, 1)
         expect(losses.winComplete).toBe(false)
-        losses.setSacrificed(0, 2)
+        losses.setSacrificed(0, 3)
+        expect(losses.sacrificed).toEqual([2, 0])
         expect(losses.winComplete).toBe(true)
         losses.setSacrificed(1, 1)
-        expect(losses.winComplete).toBe(false)
+        expect(losses.sacrificed).toEqual([2, 0])
+        expect(losses.winComplete).toBe(true)
         expect(losses.winRefusedBecause).toBeUndefined()
     })
 })
@@ -554,6 +559,127 @@ describe('the skull losses draft', () => {
             FOE
         )
         expect(session.skullLosses.groups).toEqual([])
+    })
+})
+
+/**
+ * R-5.5.5, R-5.5.6, R-5.5.5-H1 — a force of one owner in two places (Captains, Wild Allies, Vow
+ * of Union): the sacrifice is picked by place, the defeated half is the engine's.
+ */
+describe('the sacrifice from a force in two places', () => {
+    const RULED = 'p1'
+    const board = { kind: 'board', playerId: ME } as const
+    const site = { kind: 'site', siteId: RULED } as const
+
+    function split(onBoard: number, atSite: number, owner: string = ME) {
+        const session = battle(
+            MachineState.CampaignSacrifice,
+            { swords: 1, defense: 3, sacrificeWorth: 1, forceSiteIds: [RULED], asIfSiteId: RULED },
+            ME
+        )
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [owner]: onBoard }
+        session.gameState.warbandsBySite[RULED] = { [owner]: atSite }
+        const sent = vi.spyOn(session, 'resolveCampaignSacrifice').mockResolvedValue()
+        return { session, losses: session.attackerLosses, sent }
+    }
+
+    it('asks which warbands, place by place, with nothing picked', () => {
+        const { losses } = split(3, 2)
+        expect(losses.needed).toBe(3)
+        expect(losses.force).toEqual([
+            { at: site, owner: ME, count: 2 },
+            { at: board, owner: ME, count: 3 }
+        ])
+        expect(losses.choosesSacrifice).toBe(true)
+        expect(losses.sacrificed).toEqual([0, 0])
+        expect(losses.winComplete).toBe(false)
+        expect(losses.hasManualSelection()).toBe(false)
+    })
+
+    it('no place gives more than the number needed leaves it; lowering one opens the others again', () => {
+        const { losses } = split(3, 2)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+        losses.setSacrificed(1, 2)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 3])
+        losses.setSacrificed(0, 2)
+        expect(losses.sacrificed).toEqual([1, 2])
+        expect(losses.winComplete).toBe(true)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 2])
+        losses.setSacrificed(1, 0)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 2])
+        expect(losses.winComplete).toBe(false)
+        losses.setSacrificed(0, 0)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+    })
+
+    it('a win is sent with the warbands picked at each place', async () => {
+        const { losses, sent } = split(3, 2)
+        losses.setSacrificed(1, 2)
+        losses.setSacrificed(0, 1)
+        expect(losses.winRefusedBecause).toBeUndefined()
+        await losses.win()
+        expect(sent).toHaveBeenCalledWith(
+            3,
+            [
+                { at: site, owner: ME, count: 1 },
+                { at: board, owner: ME, count: 2 }
+            ],
+            []
+        )
+    })
+
+    it('asks no defeated half of one owner, so "Sacrifice nothing" is complete and sends the default half', async () => {
+        const { session, losses, sent } = split(3, 2)
+        expect(losses.defeatRequired).toBe(2)
+        expect(losses.choosesDefeat).toBe(false)
+        expect(losses.loseComplete).toBe(true)
+        expect(losses.loseRefusedBecause).toBeUndefined()
+        losses.setDefeated(0, 2)
+        expect(losses.defeated).toEqual([0, 0])
+        await losses.lose()
+        expect(sent).toHaveBeenCalledWith(
+            0,
+            undefined,
+            HydratedCampaignSacrifice.attackerDefeatKills(session.gameState, 0)
+        )
+    })
+
+    it('from revision 7, asks no defeated half of a Citizen’s Imperial warbands on the board and at a site they rule', () => {
+        const { session, losses } = split(3, 2, IMPERIAL_WARBANDS)
+        session.gameState.getPlayerState(ME).status = PlayerStatus.Citizen
+        // Every survivor of a defeated attacker ends on their own board (R-5.5.6-H2).
+        session.gameState.oathRevision = OathRevision.EngineFixes3
+        expect(losses.force.map((group) => group.owner)).toEqual([IMPERIAL_WARBANDS, IMPERIAL_WARBANDS])
+        expect(losses.choosesSacrifice).toBe(true)
+        expect(losses.choosesDefeat).toBe(false)
+    })
+
+    it('asks the defeated half of a force that mixes owners (a game from before revision 5)', () => {
+        const { session, losses } = split(3, 2)
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
+        expect(losses.choosesDefeat).toBe(true)
+        expect(losses.loseComplete).toBe(false)
+    })
+
+    it('a split with one answer, the whole force, starts picked', () => {
+        const { losses } = split(2, 1)
+        expect(losses.sacrificed).toEqual([1, 2])
+        expect(losses.winComplete).toBe(true)
+        expect(losses.winRefusedBecause).toBeUndefined()
+        expect(losses.hasManualSelection()).toBe(false)
+        losses.setSacrificed(1, 1)
+        expect(losses.sacrificed).toEqual([1, 1])
+        expect(losses.winComplete).toBe(false)
+    })
+
+    it('with too few warbands to win, asks no split and says why the win is refused', () => {
+        const { losses } = split(1, 1)
+        expect(losses.needed).toBe(3)
+        expect(losses.choosesSacrifice).toBe(false)
+        expect(losses.winComplete).toBe(true)
+        expect(losses.winRefusedBecause).toBe('only 2 warbands in your force to sacrifice')
+        expect(losses.loseComplete).toBe(true)
+        expect(losses.loseRefusedBecause).toBeUndefined()
     })
 })
 
@@ -748,9 +874,23 @@ describe('the losses draft (docs/user-interactions.md)', () => {
 
     it('recounting a group replaces its count only', () => {
         const defeat = defeated()
-        defeat.setPicked(0, 3)
-        defeat.setPicked(1, 1)
+        defeat.setPicked(0, 2)
         defeat.setPicked(0, 1)
+        defeat.setPicked(1, 1)
+        expect(defeat.picked).toEqual([1, 1])
+    })
+
+    it('no group gives more than the count owed leaves it; lowering one opens the other again', () => {
+        const defeat = defeated()
+        expect(defeat.required).toBe(2)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 2])
+        defeat.setPicked(0, 2)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 0])
+        defeat.setPicked(1, 1)
+        expect(defeat.picked).toEqual([2, 0])
+        defeat.setPicked(0, 1)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 1])
+        defeat.setPicked(1, 1)
         expect(defeat.picked).toEqual([1, 1])
     })
 })

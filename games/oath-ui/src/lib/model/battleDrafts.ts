@@ -13,6 +13,7 @@ import {
     forceTotal,
     powerKey,
     shroudedWoodChooser,
+    takeFromGroups,
     warbandEntries,
     type BattlePlanUse,
     type CardPower,
@@ -715,10 +716,17 @@ export class DefeatDraft implements PanelDraft {
         return this.complete ? this.blockedBecause : undefined
     }
 
+    /** The most this group can give: its warbands, or what the count owed leaves after the others. */
+    ceilingAt(index: number): number {
+        return ceilingIn(this.groups, this.picked, index, this.required)
+    }
+
     setPicked(index: number, count: number): void {
-        const group = this.groups[index]
-        if (!group) return
-        this.flow.set('kills', this.picked.with(index, Math.max(0, Math.min(count, group.count))))
+        if (!this.groups[index]) return
+        this.flow.set(
+            'kills',
+            this.picked.with(index, Math.max(0, Math.min(count, this.ceilingAt(index))))
+        )
     }
 
     async choose(): Promise<void> {
@@ -832,6 +840,19 @@ function total(counts: readonly number[]): number {
     return counts.reduce((sum, count) => sum + count, 0)
 }
 
+/** A group's count can rise to its warbands, or to what the total owed leaves after the others. */
+function ceilingIn(
+    groups: readonly WarbandGroup[],
+    picks: readonly number[],
+    index: number,
+    owed: number
+): number {
+    const group = groups[index]
+    if (!group) return 0
+    const elsewhere = total(picks) - (picks[index] ?? 0)
+    return Math.max(0, Math.min(group.count, owed - elsewhere))
+}
+
 type AttackerLossesValueByStage = { sacrificed: number[]; defeated: number[] }
 
 const ATTACKER_LOSSES_STAGE_ORDER = ['sacrificed', 'defeated'] as const
@@ -843,7 +864,8 @@ void _attackerLossesStagesAreCovered
 
 /**
  * R-5.5.5, R-5.5.6, R-10.22 — the attacker's own losses: which warbands are sacrificed to win,
- * or which half dies in defeat. Asked only when the force holds more than one kind.
+ * or which half dies in defeat. The sacrifice is asked only when the force holds more than one
+ * group; the defeat only when it also mixes owners (R-5.5.5-H1).
  */
 export class AttackerLossesDraft implements PanelDraft {
     private flow = new StagedFlow<AttackerLossesValueByStage>(ATTACKER_LOSSES_STAGE_ORDER)
@@ -880,8 +902,13 @@ export class AttackerLossesDraft implements PanelDraft {
             : 0
     }
 
+    /**
+     * R-5.5.5 — which warbands to sacrifice is asked when the force stands in more than one group
+     * and the rules allow the win at all: with too few warbands, or against Vow of Peace, no split
+     * can win, so none is asked and the reason takes the win's place.
+     */
     get choosesSacrifice(): boolean {
-        return this.force.length > 1 && this.needed > 0
+        return this.force.length > 1 && this.needed > 0 && this.winRefusedOutright === undefined
     }
 
     /** R-5.5.6 — the half that dies is picked only when the pick can change where the warbands end. */
@@ -894,8 +921,22 @@ export class AttackerLossesDraft implements PanelDraft {
         )
     }
 
+    /**
+     * Why no sacrifice of the number needed can win, whatever warbands are picked: the engine is
+     * asked with one split that adds up, so only a reason of the sacrifice itself remains.
+     */
+    private get winRefusedOutright(): string | undefined {
+        if (this.needed === 0) return undefined
+        return this.reasonFor(this.needed, takeFromGroups(this.force, this.needed), [])
+    }
+
+    /**
+     * Picks start empty; a split with one legal answer starts made. With the force in two or more
+     * groups, the only split that adds up to the number needed is the whole force.
+     */
     get sacrificed(): number[] {
-        return this.picksFor('sacrificed')
+        const whole = this.choosesSacrifice && this.needed === forceTotal(this.force)
+        return this.picksFor('sacrificed', whole)
     }
 
     get defeated(): number[] {
@@ -930,6 +971,13 @@ export class AttackerLossesDraft implements PanelDraft {
     /** Why the engine refuses the loss as picked, read only once it is complete. */
     get loseRefusedBecause(): string | undefined {
         return this.loseComplete ? this.loseBlockedBecause : undefined
+    }
+
+    /** The most a group can give to the sacrifice, or to the defeated half. */
+    ceilingAt(stage: 'sacrificed' | 'defeated', index: number): number {
+        return stage === 'sacrificed'
+            ? ceilingIn(this.force, this.sacrificed, index, this.needed)
+            : ceilingIn(this.force, this.defeated, index, this.defeatRequired)
     }
 
     setSacrificed(index: number, count: number): void {
@@ -995,16 +1043,22 @@ export class AttackerLossesDraft implements PanelDraft {
         })
     }
 
-    private picksFor(stage: 'sacrificed' | 'defeated'): number[] {
-        const stored = this.flow.value(stage) ?? []
-        return this.force.map((group, index) => Math.min(stored[index] ?? 0, group.count))
+    private picksFor(stage: 'sacrificed' | 'defeated', whole = false): number[] {
+        const stored = this.flow.value(stage)
+        return this.force.map((group, index) =>
+            stored === undefined
+                ? whole
+                    ? group.count
+                    : 0
+                : Math.min(stored[index] ?? 0, group.count)
+        )
     }
 
     private setPick(stage: 'sacrificed' | 'defeated', index: number, count: number): void {
-        const group = this.force[index]
-        if (!group) return
-        const picks = this.picksFor(stage)
-        this.flow.set(stage, picks.with(index, Math.max(0, Math.min(count, group.count))))
+        if (!this.force[index]) return
+        const picks = stage === 'sacrificed' ? this.sacrificed : this.defeated
+        const ceiling = this.ceilingAt(stage, index)
+        this.flow.set(stage, picks.with(index, Math.max(0, Math.min(count, ceiling))))
     }
 
     private groupsOf(picks: number[]): WarbandGroup[] {

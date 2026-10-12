@@ -174,6 +174,19 @@ describe('the question draft builds each answer', () => {
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 })
     })
 
+    it('burning: a count of 0 (a tap on the favor at the count) picks none again, and "Burn" waits', () => {
+        const { draft } = asked({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            cardId: 'denizen.arcane.alchemist',
+            askedPlayerId: ME
+        })
+        draft.setBurn(2)
+        expect(draft.burn).toBe(2)
+        draft.setBurn(0)
+        expect(draft.burn).toBeUndefined()
+        expect(draft.acceptComplete).toBe(false)
+    })
+
     it('Fae Merchant — offers every held relic but the Grand Scepter, and the drawn one unnamed', async () => {
         const CUP = 'relic.cup-of-plenty'
         const { draft, sent } = asked({ kind: PowerQuestionKind.BottomRelic, cardId: 'denizen.beast.fae-merchant', askedPlayerId: ME, relicCardId: 'relic.map' }, [CUP, 'relic.grand-scepter'])

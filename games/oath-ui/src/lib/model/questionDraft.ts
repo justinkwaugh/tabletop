@@ -552,10 +552,11 @@ export class QuestionDraft implements PanelDraft {
         await this.session.answerQuestion(answer)
     }
 
+    /** Revelation's count from its favor; 0 picks none again ("None" is the answer that sends 0). */
     setBurn(favor: number): void {
-        if (this.question?.kind === PowerQuestionKind.BurnFavorForSecrets) {
-            this.flow.set('burn', Math.max(1, favor))
-        }
+        if (this.question?.kind !== PowerQuestionKind.BurnFavorForSecrets) return
+        if (favor < 1) this.flow.clearFrom('burn')
+        else this.flow.set('burn', favor)
     }
 
     chooseFloorWith(playerId: string | undefined): void {

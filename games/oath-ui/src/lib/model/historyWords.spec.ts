@@ -219,6 +219,30 @@ describe('the History words: each row as the record says it, older records too',
         expect(sacrifice({ attackerVictorious: false, sacrificed: 0, planNotes: ['Military Parade: p2 gained 3 favor'] })).toBe('sacrificed 0 warbands and lost the battle; Rhys gained 3 favor (Military Parade)')
     })
 
+    it('393 the sacrifice from a force in two places names where, the board first; one place says only how many', () => {
+        const board = { kind: 'board', playerId: 'p1' }
+        const plains = { kind: 'site', siteId: 'slot.provinces.0' }
+        const sacrificed = (sacrificeKills: unknown[]) => ({
+            type: ActionType.CampaignSacrifice,
+            sacrifice: 3,
+            sacrificeKills,
+            metadata: { attack: 6, defense: 5, sacrificed: 3, attackerVictorious: true }
+        })
+        const split = sacrificed([
+            { at: plains, owner: 'p1', count: 1 },
+            { at: board, owner: 'p1', count: 2 }
+        ])
+        expect(row(split)).toBe('sacrificed 2 warbands on their board and 1 at Plains and won the battle')
+        expect(drawn(split, 'p3')).toBe('sacrificed 2[warband] on their board and 1 at Plains and won the battle')
+        expect(row(sacrificed([{ at: board, owner: 'p1', count: 3 }]))).toBe('sacrificed 3 warbands and won the battle')
+        expect(
+            row(sacrificed([
+                { at: board, owner: 'p1', count: 2 },
+                { at: board, owner: 'imperial', count: 1 }
+            ]))
+        ).toBe('sacrificed 3 warbands and won the battle')
+    })
+
     it('394 the losses: "picked the defense’s losses:"', () => {
         expect(row({ type: ActionType.CampaignDefeatKills, playerId: 'p2', kills: [], metadata: { defeatKilled: 2 } })).toBe("picked the defense's losses: 2 warbands killed")
     })

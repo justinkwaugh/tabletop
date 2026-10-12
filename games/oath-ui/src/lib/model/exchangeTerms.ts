@@ -215,9 +215,12 @@ function withSiteEntry(
     }
 }
 
-/** A tap on the Nth piece sets the count to N; a tap on the piece at the count sets 0. */
-export function tappedCount(picked: number, tapped: number): number {
-    return tapped === picked ? 0 : tapped
+/**
+ * A tap on the Nth piece sets the count to N; a tap on the piece at the count sets 0, or the
+ * floor where the count may not go under one (a banner's least bid).
+ */
+export function tappedCount(picked: number, tapped: number, floor = 0): number {
+    return tapped === picked ? floor : tapped
 }
 
 /**

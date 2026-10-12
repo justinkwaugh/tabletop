@@ -152,6 +152,9 @@ export type TableName =
     | 'attackerPlans'
     | 'sacrifice'
     | 'sacrificeMixed'
+    | 'sacrificeSplit'
+    | 'sacrificeShort'
+    | 'sacrificeWhole'
     | 'wonOutright'
     | 'spoils'
     | 'spoilsRelicHunter'
@@ -1559,6 +1562,22 @@ function battleState(
 
 function battleTable(step: BattleStep): PlayedTable {
     return tableOf(battleState(step))
+}
+
+/**
+ * R-5.5.5, Captains — the same battle, 3 to sacrifice, with the force on 'att''s board and at the
+ * next Provinces site, which 'att' rules and campaigns from as if their pawn were there.
+ */
+function sacrificeSplitTable(onBoard: number, atSite: number): PlayedTable {
+    const state = battleState('sacrifice')
+    const ruled = mapSlotId(Region.Provinces, 1)
+    state.getPlayerState('att').warbandsOnBoard = { att: onBoard }
+    state.warbandsBySite = { ...state.warbandsBySite, [ruled]: { att: atSite } }
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is fought mid-Campaign')
+    campaign.forceSiteIds = [ruled]
+    campaign.asIfSiteId = ruled
+    return tableOf(state)
 }
 
 /**
@@ -3988,6 +4007,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     attackerPlans: () => battleTable('attackerPlans'),
     sacrifice: () => battleTable('sacrifice'),
     sacrificeMixed: () => battleTable('sacrificeMixed'),
+    sacrificeSplit: () => sacrificeSplitTable(3, 2),
+    sacrificeShort: () => sacrificeSplitTable(1, 1),
+    sacrificeWhole: () => sacrificeSplitTable(2, 1),
     wonOutright: () => battleTable('wonOutright'),
     spoils: () => battleTable('spoils'),
     spoilsRelicHunter: spoilsRelicHunterTable,

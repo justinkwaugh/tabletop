@@ -318,11 +318,15 @@ async function tapDimmed(tile: ReturnType<Page['locator']>) {
     await tile.click({ force: true })
 }
 
-/** A count is a row of number buttons per group, each named "N of the … warbands …". */
+/**
+ * A count is a row of warband pieces per group, the Nth named "N of the … warbands …"; a tap on the
+ * Nth sets N. `group` counts the rows that hold an Nth piece.
+ */
 async function pickCount(page: Page, group: number, value: number) {
     await grid(page).getByRole('button', { name: new RegExp(`^${value} of the `) }).nth(group).click()
 }
-const countRows = (page: Page) => grid(page).getByRole('button', { name: /^0 of the / })
+/** Every row has a first piece. */
+const countRows = (page: Page) => grid(page).getByRole('button', { name: /^1 of the / })
 
 /** Scenario 29: the one line under the Act Phase grid. */
 test('scenario 29: a hover writes the summary, a dimmed tile the reason; a hover replaces the reason and a new state clears it', async ({
@@ -1281,7 +1285,7 @@ test.describe('on a phone, the answers and the exile buttons', () => {
 
 /** Scenario 31: the defending side's losses after a won battle (R-5.5.6.a). */
 test.describe('scenario 31: choosing the defending side’s losses', () => {
-    test('one row of number buttons per group and a count; Kill shows only once the count is right; Undo clears every count', async ({
+    test('one row of warband pieces per group and a count; Kill shows only once the count is right; Undo clears every count', async ({
         page
     }) => {
         await openTable(page, 'exileDefeated')
@@ -1332,6 +1336,27 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         await expect(grid(page)).toContainText('on your board')
         await expect(grid(page)).not.toContainText('the rest go home')
         await expect(grid(page)).not.toContainText('The attacker won')
+    })
+
+    test('the warbands picked to die are ringed rose; with the count owed picked the rest keep their place, untappable', async ({
+        page
+    }) => {
+        await openTable(page, 'exileDefeated')
+        const board = (n: number) => grid(page).getByRole('button', { name: `${n} of the warbands on your board`, exact: true })
+        const site = (n: number) => grid(page).getByRole('button', { name: new RegExp(`^${n} of the warbands at `) })
+        await board(2).click()
+        for (const piece of [board(1), board(2)]) {
+            await expect(piece).toHaveAttribute('aria-pressed', 'true')
+            await expect(piece).toHaveClass(/ring-oath-danger/)
+            await expect(piece).not.toHaveClass(/ring-oath-accent/)
+        }
+        await expect(site(1)).toBeDisabled()
+        await expect(site(2)).toBeDisabled()
+        await expect(answer(page, 'Kill')).toBeVisible()
+        await board(2).click()
+        await expect(board(1)).toHaveAttribute('aria-pressed', 'false')
+        await expect(site(1)).toBeEnabled()
+        await expect(answer(page, 'Kill')).toHaveCount(0)
     })
 
     test('for an Imperial defence the Chancellor chooses, not the defending Citizen', async ({
@@ -1905,6 +1930,195 @@ test.describe('scenario 62 on a phone: every label inside its button, on one lin
                     )
                 ).toBe(44)
             }
+        })
+    }
+})
+
+/** Scenario 66: every count of warbands, favor or secrets is a row of the pieces themselves. */
+test.describe('scenario 66: counts as pieces', () => {
+    const boardPiece = (page: Page, n: number) =>
+        grid(page).getByRole('button', { name: `${n} of the warbands on your board`, exact: true })
+    const sitePiece = (page: Page, n: number) =>
+        grid(page).getByRole('button', { name: new RegExp(`^${n} of the warbands at `) })
+    const pieces = (page: Page) => grid(page).getByRole('button', { name: /^\d+ of the / })
+    const win = (page: Page) => answer(page, 'Sacrifice 3 and win')
+    const lose = (page: Page) => answer(page, 'Sacrifice nothing')
+
+    test('the sacrifice from a force in two places: a row of warbands per place, the board first, nothing picked, no defeat rows', async ({
+        page
+    }) => {
+        await openTable(page, 'sacrificeSplit')
+        await expect(grid(page)).toContainText('To win, sacrifice 3:')
+        await expect(pieces(page)).toHaveCount(5)
+        await expect(pieces(page)).toHaveText(['', '', '', '', ''])
+        await expect(pieces(page).locator('img')).toHaveCount(5)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(grid(page)).not.toContainText('If you lose')
+        await expect(grid(page)).not.toContainText('Imperial')
+        await expect(win(page)).toHaveCount(0)
+        await expect(lose(page)).toBeVisible()
+
+        // One column of labels, the board's over the site's, each beside its pieces.
+        const boardLabel = grid(page).getByText(/^\s*on your board\s*$/)
+        const siteLabel = grid(page).getByText(/^\s*at\s+\S/)
+        const [boardBox, siteBox] = [await boxOf(boardLabel), await boxOf(siteLabel)]
+        expect(boardBox.y).toBeLessThan(siteBox.y)
+        expect(Math.abs(boardBox.x - siteBox.x)).toBeLessThan(1)
+        const [firstBoard, firstSite] = [await boxOf(boardPiece(page, 1)), await boxOf(sitePiece(page, 1))]
+        expect(Math.abs(firstBoard.x - firstSite.x)).toBeLessThan(1)
+        expect(firstBoard.x).toBeGreaterThan(boardBox.x + boardBox.width)
+    })
+
+    test('a tap on the Nth warband sets N, ringed rose; a second tap on it sets 0', async ({ page }) => {
+        await openTable(page, 'sacrificeSplit')
+        await boardPiece(page, 2).click()
+        for (let n = 1; n <= 3; n++) {
+            await expect(boardPiece(page, n)).toHaveAttribute('aria-pressed', n <= 2 ? 'true' : 'false')
+        }
+        await expect(boardPiece(page, 1)).toHaveClass(/ring-oath-danger/)
+        await expect(boardPiece(page, 1)).not.toHaveClass(/ring-oath-accent/)
+        await expect(win(page)).toHaveCount(0)
+        await boardPiece(page, 2).click()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+    })
+
+    test('"Sacrifice 3 and win" shows only once the picks add up; the rest can no longer be added and keep their place', async ({
+        page
+    }) => {
+        await openTable(page, 'sacrificeSplit')
+        await boardPiece(page, 2).click()
+        await expect(win(page)).toHaveCount(0)
+        await sitePiece(page, 1).click()
+        await expect(win(page)).toBeVisible()
+        expect(await backgroundOf(win(page))).toBe(await primaryBackground(page))
+        expect(await widthOf(win(page))).toBe(await widthOf(lose(page)))
+        await expect(boardPiece(page, 3)).toBeDisabled()
+        await expect(sitePiece(page, 2)).toBeDisabled()
+        await expect(pieces(page)).toHaveCount(5)
+        await expect(grid(page)).not.toContainText("Can't win")
+
+        // Lowering the board's count opens the site's second warband again.
+        await boardPiece(page, 1).click()
+        await expect(win(page)).toHaveCount(0)
+        await expect(sitePiece(page, 2)).toBeEnabled()
+        await sitePiece(page, 2).click()
+        await expect(win(page)).toBeVisible()
+        await win(page).click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).machineState)
+            .not.toBe('CampaignSacrifice')
+        expect((await call(page, 'tableFacts')).boardOf.att).toEqual({ att: 2 })
+    })
+
+    test('a split with one answer, the whole force, starts picked', async ({ page }) => {
+        await openTable(page, 'sacrificeWhole')
+        await expect(pieces(page)).toHaveCount(3)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(3)
+        await expect(win(page)).toBeVisible()
+        await expect(lose(page)).toBeVisible()
+    })
+
+    test('when no split can win, no rows show and one red line says why, beside "Sacrifice nothing"', async ({ page }) => {
+        await openTable(page, 'sacrificeShort')
+        await expect(grid(page)).not.toContainText('To win, sacrifice')
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(win(page)).toHaveCount(0)
+        await expect(lose(page)).toBeVisible()
+        const red = grid(page).locator('.text-oath-danger').filter({ hasText: "Can't win" })
+        await expect(red).toHaveCount(1)
+        await expect(red).toContainText('only 2 warbands in your force')
+    })
+
+    test('a force of two owners keeps the defeat rows, each named with its owner', async ({ page }) => {
+        await openTable(page, 'sacrificeMixed')
+        await expect(grid(page)).toContainText(/If you lose, \d die:/)
+        await expect(grid(page).getByRole('button', { name: /^1 of the Imperial warbands on your board$/ })).toHaveCount(2)
+        await expect(lose(page)).toHaveCount(0)
+    })
+
+    test('the Darkest Secret’s price: the secrets held, the least bid picked, those under it ringed but untappable', async ({ page }) => {
+        await openTable(page, 'recover')
+        await tile(page, 'Recover').click()
+        await page.getByRole('button', { name: /^Recover the Darkest Secret: pay/ }).click()
+        const secrets = grid(page).getByRole('button', { name: /^pay \d+ secrets$/ })
+        await expect(secrets).toHaveCount(3)
+        await expect(secrets.locator('img')).toHaveCount(3)
+        await expect(secrets).toHaveText(['', '', ''])
+        await expect(secrets.nth(0)).toBeDisabled()
+        await expect(secrets.nth(0)).toHaveAttribute('aria-pressed', 'true')
+        await expect(secrets.nth(1)).toHaveAttribute('aria-pressed', 'true')
+        await expect(secrets.nth(1)).toHaveClass(/ring-oath-accent/)
+        await expect(secrets.nth(2)).toHaveAttribute('aria-pressed', 'false')
+
+        // A tap on the least bid keeps it; the next sets 3, and a tap on it goes back to the least.
+        await secrets.nth(1).click()
+        await expect(secrets.nth(1)).toHaveAttribute('aria-pressed', 'true')
+        await secrets.nth(2).click()
+        await expect(secrets.nth(2)).toHaveAttribute('aria-pressed', 'true')
+        await secrets.nth(2).click()
+        await expect(secrets.nth(2)).toHaveAttribute('aria-pressed', 'false')
+        await expect(secrets.nth(1)).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByRole('button', { name: 'Recover the Darkest Secret', exact: true })).toBeVisible()
+    })
+
+    for (const viewport of [
+        { width: 375, height: 812 },
+        { width: 402, height: 874 }
+    ]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            /** Every piece in the panel, laid out 44 px square and drawn inside the panel. */
+            async function piecesFit(page: Page, name: RegExp, count: number) {
+                const found = grid(page).getByRole('button', { name })
+                await expect(found).toHaveCount(count)
+                const panel = await boxOf(grid(page))
+                for (const box of await boxesOf(found)) expect(inside(box, panel)).toBe(true)
+                const sizes = await found.evaluateAll((buttons) =>
+                    buttons.map((button) =>
+                        button instanceof HTMLElement ? [button.offsetWidth, button.offsetHeight] : [0, 0]
+                    )
+                )
+                for (const [width, height] of sizes) {
+                    expect(width).toBeGreaterThanOrEqual(44)
+                    expect(height).toBeGreaterThanOrEqual(44)
+                }
+            }
+
+            test('the sacrifice’s warbands, with each row beside its label', async ({ page }) => {
+                await openTable(page, 'sacrificeSplit')
+                await piecesFit(page, /^\d+ of the warbands /, 5)
+                const boardLabel = await boxOf(grid(page).getByText(/^\s*on your board\s*$/))
+                const firstBoard = await boxOf(boardPiece(page, 1))
+                expect(firstBoard.x).toBeGreaterThan(boardLabel.x + boardLabel.width)
+                expect(firstBoard.y).toBeLessThan(boardLabel.y + boardLabel.height)
+                await boardPiece(page, 2).click()
+                await sitePiece(page, 1).click()
+                expect(await clippedLabels(page)).toEqual([])
+            })
+
+            test('the defending side’s losses', async ({ page }) => {
+                await openTable(page, 'exileDefeated')
+                await piecesFit(page, /^\d+ of the warbands /, 4)
+            })
+
+            test('Move warbands', async ({ page }) => {
+                await openTable(page, 'moves')
+                await grid(page).getByRole('button', { name: 'Move warbands', exact: true }).click()
+                await piecesFit(page, /: move \d+$/, 6)
+            })
+
+            test('the Darkest Secret’s price', async ({ page }) => {
+                await openTable(page, 'recover')
+                await tile(page, 'Recover').click()
+                await page.getByRole('button', { name: /^Recover the Darkest Secret: pay/ }).click()
+                await piecesFit(page, /^pay \d+ secrets$/, 3)
+            })
+
+            test('Revelation’s favor', async ({ page }) => {
+                await openTable(page, 'askRevelation')
+                await piecesFit(page, /^burn \d+ favor$/, 4)
+            })
         })
     }
 })
@@ -2691,7 +2905,7 @@ test('scenario 49: Search lists each source it can draw from, a button draws', a
     await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('Searching')
 })
 
-test('scenario 20: Recover lists the banners to outbid, the price is a row of number buttons', async ({ page }) => {
+test('scenario 20: Recover lists the banners to outbid, the price is a row of the favor held, from the least bid', async ({ page }) => {
     await openTable(page, 'trade')
     const before = (await call(page, 'tableFacts')).favorOf.me ?? 0
     await tile(page, 'Recover').click()
@@ -2700,12 +2914,25 @@ test('scenario 20: Recover lists the banners to outbid, the price is a row of nu
     await expect(peoples).toBeVisible()
     await peoples.click()
     const amounts = grid(page).getByRole('button', { name: /^pay \d+ favor$/ })
+    const held = await amounts.count()
     await expect(amounts.first()).toHaveAttribute('aria-pressed', 'true')
-    const count = await amounts.count()
-    const choice = amounts.nth(count > 1 ? 1 : 0)
-    const paid = Number((await choice.textContent())?.trim())
+    await expect(amounts.first()).toHaveClass(/ring-oath-accent/)
+    // The least bid is picked; the favor under it cannot be tapped, and a tap on it keeps it.
+    const tappable = await amounts.evaluateAll(
+        (pieces) => pieces.filter((piece) => !piece.hasAttribute('disabled')).length
+    )
+    const least = held - tappable + 1
+    for (let n = 1; n <= held; n++) {
+        await expect(amounts.nth(n - 1)).toHaveAttribute('aria-pressed', n <= least ? 'true' : 'false')
+        if (n < least) await expect(amounts.nth(n - 1)).toBeDisabled()
+    }
+    await amounts.nth(least - 1).click()
+    await expect(amounts.nth(least - 1)).toHaveAttribute('aria-pressed', 'true')
+    const paid = least < held ? least + 1 : least
+    const choice = amounts.nth(paid - 1)
     await choice.click()
     await expect(choice).toHaveAttribute('aria-pressed', 'true')
+    await expect(choice).toHaveAccessibleName(`pay ${paid} favor`)
     await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
     await grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true }).click()
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - paid)
@@ -3585,13 +3812,17 @@ test('scenario 6: the facedown advisers to play are cards in the panel, a tap sh
     expect((await call(page, 'tableFacts')).staged).toBeUndefined()
 })
 
-test('scenario 18: each warband move is a row of counts, and a count sends', async ({ page }) => {
+test('scenario 18: each warband move is a row of warband pieces, drawn whole and never picked, and a tap on the Nth moves N', async ({ page }) => {
     await openTable(page, 'moves')
     await grid(page).getByRole('button', { name: 'Move warbands', exact: true }).click()
     const rows = page.getByRole('list', { name: 'Warband moves' }).getByRole('listitem')
     await expect(rows).toHaveCount(2)
     const onto = rows.filter({ hasText: 'From your board to your site' })
     await expect(onto.getByRole('button')).toHaveCount(4)
+    await expect(onto.getByRole('button')).toHaveText(['', '', '', ''])
+    await expect(onto.getByRole('button').locator('img')).toHaveCount(4)
+    await expect(page.getByRole('list', { name: 'Warband moves' }).locator('[aria-pressed]')).toHaveCount(0)
+    await expect(onto.getByRole('button').first().locator('img')).toHaveCSS('opacity', '1')
     await expect(rows.filter({ hasText: 'From your site to your board' }).getByRole('button')).toHaveCount(2)
     await expect(dimmedSites(page)).toHaveCount(0)
     await onto.getByRole('button', { name: /move 2$/ }).click()
@@ -5634,19 +5865,30 @@ test.describe('power questions', () => {
         await expect.poll(() => asked(page)).toBe(false)
     })
 
-    test('Revelation: the count runs from 1 with none picked; "None" alone until a count is picked, then "Burn"', async ({ page }) => {
+    test('Revelation: the favor held, none picked; "None" alone until a favor is tapped, then "Burn"; the favor to burn ringed rose', async ({ page }) => {
         await openTable(page, 'askRevelation')
         await expect(line(page)).toHaveText(/^Burn how many\s+for as many\s*\?$/)
         await expect(line(page).locator('img[alt="favor"]')).toHaveCount(1)
         await expect(line(page).locator('img[alt="secrets"]')).toHaveCount(1)
         await expect(smallCard(page, 'Revelation')).toBeVisible()
-        await expect(grid(page).getByRole('button', { name: /^burn \d favor$/ })).toHaveText(['1', '2', '3', '4'])
+        const favor = grid(page).getByRole('button', { name: /^burn \d favor$/ })
+        await expect(favor).toHaveCount(4)
+        await expect(favor).toHaveText(['', '', '', ''])
+        await expect(favor.locator('img')).toHaveCount(4)
         await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
         await expect(answer(page, 'Burn')).toHaveCount(0)
         await expect(answer(page, 'None')).toBeVisible()
         await expect(red(page)).toHaveCount(0)
 
-        await grid(page).getByRole('button', { name: 'burn 2 favor', exact: true }).click()
+        const second = grid(page).getByRole('button', { name: 'burn 2 favor', exact: true })
+        await second.click()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(2)
+        await expect(second).toHaveClass(/ring-oath-danger/)
+        await expect(answer(page, 'Burn')).toBeVisible()
+        await second.click()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(answer(page, 'Burn')).toHaveCount(0)
+        await second.click()
         await expect(answer(page, 'Burn')).toBeVisible()
         await answer(page, 'Burn').click()
         await expect.poll(() => asked(page)).toBe(false)

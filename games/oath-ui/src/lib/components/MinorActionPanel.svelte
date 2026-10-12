@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { range } from '@tabletop/common'
     import {
         ActionType,
         WarbandMoveKind,
@@ -10,10 +9,10 @@
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
-    import CountPicker from '$lib/components/CountPicker.svelte'
     import FavorTo from '$lib/components/FavorTo.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
-    import { warbandImage } from '$lib/images/pieceImages.js'
+    import TokenRow from '$lib/components/TokenRow.svelte'
+    import { warbandFigure, warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -81,18 +80,23 @@
             <div class="flex flex-col gap-1.5" role="list" aria-label="Warband moves">
                 {#each moves as option (JSON.stringify(option.move) + option.owner)}
                     {@const name = moveName(option)}
+                    {@const color = gameSession.warbandColor(option.owner)}
                     <MenuRow
-                        image={warbandImage(gameSession.warbandColor(option.owner))}
+                        image={warbandImage(color)}
                         imageAlt={gameSession.warbandOwnerName(option.owner)}
                         {name}
                         points={gameSession.warbandMoves.points(option)}
                     >
-                        <CountPicker
-                            values={range(1, option.max)}
-                            picked={undefined}
+                        <!-- A tap on the Nth warband moves N at once, so none is ever picked. -->
+                        <TokenRow
+                            image={warbandFigure(color)}
+                            held={option.max}
+                            addable={option.max}
+                            picked={0}
                             label={(count) => `${name}: move ${count}`}
-                            onpick={(count) => gameSession.warbandMoves.sendNow(option, count)}
-                            disabled={busy}
+                            ontap={(count) => gameSession.warbandMoves.sendNow(option, count)}
+                            tone="plain"
+                            {busy}
                         />
                     </MenuRow>
                 {/each}
