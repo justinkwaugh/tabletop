@@ -1,6 +1,6 @@
 # Parallel Spans: working design
 
-**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. On the host, storage of Unmerged Branches is built; the rest of the host, the Game Client and Stellar Horizons are not started. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
+**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host is built. In the Game Client, Local Games are built and Hosted Games are not started; nor is Stellar Horizons. The [build order](#build-order) has the detail. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
 
 ## The model in brief
 
@@ -118,12 +118,14 @@ _Avoid_: presented state
 
 ## An Unmerged Branch
 
-1. **Private and off the Main Line.** Only its Player receives its Actions and its Branch Change. Other Players learn only that it has closed.
+1. **Private and off the Main Line.** Only its Player receives its Actions and its Branch Change. Other Players learn only that it has closed. That much is no secret at a table either: everyone can see when a Player has finished a hidden simultaneous choice, or play could not continue.
 2. **Its own bookkeeping.** An Unmerged Branch has its own Machine State, Active Players, Action count starting from zero, and checksum. These are not part of its Branch Change and are not subject to the Branch Scope check.
 3. **Branch Change as patch operations,** recomputed after each Action from the main-line Game State and the Branch View.
 4. **A Branch never has to catch up.** When the Main Line moves, the Branch View is the newer main-line Game State with the same Branch Change applied.
-5. **Undo inside a Branch** reverses only that Branch and affects nobody else. The engine applies the rule itself: the Undo names a User Action and reverses it with everything after it; it never reaches Branch Start or the System Actions Branch Start generated; and it stops at the Player's own Information-Revealing Actions. Only an administrator may pass that last barrier. A Closed Branch cannot be undone for now.
-6. **The Branch Point is an Undo barrier for Players.** Once a span has begun, no Player can Undo the Action that began it or anything before it. Otherwise that Player could discard everyone's private play and take the same rolls again knowing their results. While a span is in progress, everything on the Main Line is either before the Branch Point or part of a merged Branch, so a Player's only Undo is inside their own Unmerged Branch.
+5. **History View and Exploration cover the Branch alone,** for a Player with an Unmerged Branch, for now: its own Actions from Branch Start on. The Main Line's earlier history is in reach again once the Branch has merged.
+6. **Spectators see only the Main Line** during a Parallel Span.
+7. **Undo inside a Branch** reverses only that Branch and affects nobody else. The engine applies the rule itself: the Undo names a User Action and reverses it with everything after it; it never reaches Branch Start or the System Actions Branch Start generated; and it stops at the Player's own Information-Revealing Actions. Only an administrator may pass that last barrier. A Closed Branch cannot be undone for now.
+8. **The Branch Point is an Undo barrier for Players.** Once a span has begun, no Player can Undo the Action that began it or anything before it. Otherwise that Player could discard everyone's private play and take the same rolls again knowing their results. While a span is in progress, everything on the Main Line is either before the Branch Point or part of a merged Branch, so a Player's only Undo is inside their own Unmerged Branch. This is a rule for Hosted Games. A Local Game has no private play to protect and follows ordinary Local Undo, which already stops at an Information-Revealing Action: undoing the Action that closed a Branch reopens it, and undoing the Action that began the span undoes the span.
 
 ## Merge
 
@@ -181,7 +183,9 @@ Working out the bound in full, and measuring how often it makes a decade scarce,
     2. Submission: routing a Player's Action to their Branch, creating Branches when a span begins, and merging. Done: `libs/common/src/game/engine/hostedSpan.spec.ts` for the settling logic and `libs/backend-services/src/games/gameSpans.spec.ts` for the service. Not yet: a Hosted Game that starts in a Branching Machine State, which the host refuses for now.
     3. What each Player is sent. Done: opening a Game and the sync check both carry the owner's Branch, and the owner's entity tag includes its Action count and checksum. The Game State and a Branch are read separately, so a Merge can land between the two. A read whose answer could be wrong for that reason confirms afterwards that the Main Line has not moved, and reads again if it has: opening a Game when the Player's Branch is missing, and a sync check that finds the Branch out of step. The sync check does not load the Game State while the Branch is in step. On the wire the Branch a Player is sent is `unmergedBranch`, the position a Game Client claims for its Branch is `branchPosition`, and the sync check's answer about the Branch is `branchSync`.
     4. Undo routing, and telling only a Branch's Player that it moved. Done: an Undo naming an Action in the Player's own Branch is a Branch Undo; any other Undo by a Player during a span is refused; a Branch Action or Branch Undo sends a Game update to that Player's own topic and nobody else's.
-4. Game Client support for a Branch View. The shared Game Client keeps the Player's Branch beside the Main Line and derives the Branch View with the function the host uses, so other Players' merged Actions arrive as real Actions and the Player's own Merge is a clean swap. A title's own Game UI is handed an ordinary Game State and does not need to know about Branches.
+4. Game Client, in two parts:
+    1. Local Games. Done, as rule 6 says: the Game Session executes a Local Game's Action through `executeInLocalGame`, which executes it and then asks the engine to advance the span, and the dev harness's stand-in host does the same. Specs: `libs/common/src/game/engine/localSpan.spec.ts` and, through a Game Session in a browser, `libs/frontend-components/tests/localSpanSession.spec.ts`. Not yet: a Local Game whose Main Line is already resting in the Branching Machine State when the Game Client receives it, which is a Game that starts there or an Exploration opened from a Hosted Game between Branches; and the check that finds how far Undo may reach in an Exploration opened from a projected Game, which replays each Action without asking the engine to advance.
+    2. Hosted Games: support for a Branch View. The shared Game Client keeps the Player's Branch beside the Main Line and derives the Branch View with the function the host uses, so other Players' merged Actions arrive as real Actions and the Player's own Merge is a clean swap. A title's own Game UI is handed an ordinary Game State and does not need to know about Branches.
 5. Stellar Horizons adoption.
 
 The host must be deployed before any title adopts this, and each adopting title republishes its UI Artifact. Titles that do not adopt it are unaffected.
@@ -198,11 +202,11 @@ Title decisions:
 
 Not yet examined:
 
-- **Reopening a Closed Branch** that has not been merged, and how the Game Client offers Undo inside a Branch.
+- **Reopening a Closed Branch** that has not been merged in a Hosted Game, and how the Game Client offers Undo inside a Branch.
 - **An explicit "wait for the Players ahead" control,** and whether waiting needs a limit.
 - **Tournament Game Undo restrictions** inside a Branch.
-- **Spectators** during a Parallel Span.
-- **Exploration and History View** for a Player with an Unmerged Branch.
+- **How an administrator views Unmerged Branches.** Agreed that they need a way; deferred. Until then an administrator sees only the Main Line, and gets nothing visible back when acting for a Player during a span.
+- **Explorations opened between Branches,** from a Main Line resting in the Branching Machine State.
 - **Simultaneous Action Groups:** whether they coexist with Parallel Spans in one title, and whether existing uses migrate.
 - **A Branch inside a Branch.** The engine rejects a Branch that enters another Branching Machine State until this is examined.
 - **A Game setting that overrides the title's form of Merge,** to force strict order or blind play.
@@ -232,7 +236,7 @@ Numbers refer to the list at the end of the exploration.
 | 5   | The Merge in detail                                    | Agreed: replay on the Main Line, then Span Completion                           |
 | 6   | System Action Identity inside a Branch                 | Agreed: a stream per Starting Position                                          |
 | 7   | Randomness opt-in                                      | Agreed: created when a title declares a Branching Machine State                 |
-| 8   | Exploration, Forks and History with an Unmerged Branch | Forks see only the Main Line. Exploration and History open                      |
+| 8   | Exploration, Forks and History with an Unmerged Branch | Forks see only the Main Line. Exploration and History: own Branch until merged  |
 | 9   | Change signals when only a Branch moved                | Agreed: published to its Player only; others' checksum and entity tag unmoved   |
 | 10  | Active Players, turn indicator, timers                 | Agreed for the site's Active Players. Waiting and timers open                   |
 | 11  | Out-of-Turn Actions and interactive sequences          | Agreed for now: rejected during a Parallel Span. Interactive play stays ordered |
@@ -241,7 +245,7 @@ Numbers refer to the list at the end of the exploration.
 | 14  | Tournament Undo restrictions                           | Open                                                                            |
 | 15  | Overriding the title's form of Merge                   | Open                                                                            |
 | 16  | Whether a Player's own rolls show before their Merge   | To that Player at once; to others not until the Merge                           |
-| 17  | Spectators                                             | Open                                                                            |
+| 17  | Spectators                                             | Agreed: the Main Line only. A view of Branches for administrators is deferred   |
 | 18  | Reopening a Closed Branch                              | Open                                                                            |
 | 19  | Undo inside a Branch in the Game Client                | Open                                                                            |
 | 20  | Abuse of waiting                                       | Open                                                                            |

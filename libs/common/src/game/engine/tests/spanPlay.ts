@@ -1,6 +1,7 @@
 import { assertExists } from '../../../util/assertions.js'
 import type { Branch } from '../branch.js'
 import type { GameAction } from '../gameAction.js'
+import { executeInLocalGame } from '../localSpan.js'
 import { createSpanGame, spanAction, type SpanGameState } from './spanGame.js'
 
 export { summary } from './spanGame.js'
@@ -18,20 +19,13 @@ export function playLocally(
     state: SpanGameState,
     actions: readonly GameAction[]
 ) {
-    const processedActions: GameAction[] = []
-    let current = state
-    const advance = () => {
-        const advanced = engine.advanceSpan({ game, state: current })
-        if (advanced === undefined) return
-        processedActions.push(...advanced.processedActions)
-        current = advanced.updatedState
-    }
-    advance()
+    const opened = engine.advanceSpan({ game, state })
+    const processedActions = [...(opened?.processedActions ?? [])]
+    let current = opened?.updatedState ?? state
     for (const action of actions) {
-        const result = engine.executeCanonicalAction({ game, state: current, action })
+        const result = executeInLocalGame({ engine, game, state: current, action })
         processedActions.push(...result.processedActions)
         current = result.updatedState
-        advance()
     }
     return { state: current, processedActions }
 }

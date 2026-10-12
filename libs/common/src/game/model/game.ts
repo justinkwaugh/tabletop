@@ -49,6 +49,10 @@ export enum GameStorage {
     None = 'none'
 }
 
+export function isLocalGame(game: Pick<Game, 'storage'>): boolean {
+    return game.storage === GameStorage.Local || game.storage === GameStorage.None
+}
+
 export enum GameCategory {
     Standard = 'standard',
     Exploration = 'exploration'
