@@ -94,9 +94,11 @@ export function unitsOfOpenSeat(step: SetupStep): string[] {
     if (inHand !== undefined) {
         return [inHand]
     }
-    return setup.detached
-        .map((entry) => entry.unitId)
-        .filter((unitId) => unitId !== setup.fixedBatteryId)
+    return open.kind === DestinationKind.Detached
+        ? setup.detached
+              .map((entry) => entry.unitId)
+              .filter((unitId) => unitId !== setup.fixedBatteryId)
+        : []
 }
 
 function opensCorps(open: SetupDestination, commanderId: string): boolean {

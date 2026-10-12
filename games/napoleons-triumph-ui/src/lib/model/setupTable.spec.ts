@@ -16,6 +16,7 @@ import {
     withFixedBatteryPosted,
     withUnitDetached,
     withUnitJoining,
+    withUnitReturned,
     type ArmySetup
 } from './armySetup.js'
 import { DestinationKind, type SetupDestination, type SetupStep } from './setupSelection.js'
@@ -239,6 +240,9 @@ describe('the set-up table', () => {
             second
         ])
         expect(unitsOfOpenSeat({ setup: arranged, open: FIXED_BATTERY })).toEqual([battery])
+        expect(
+            unitsOfOpenSeat({ setup: withUnitReturned(arranged, battery), open: FIXED_BATTERY })
+        ).toEqual([])
     })
 
     it('names the destination a unit standing on its own belongs to', () => {
