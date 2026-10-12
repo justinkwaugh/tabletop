@@ -5696,37 +5696,129 @@ test.describe('scenario 65: the History’s words', () => {
     })
 })
 
-test('scenario 59: every seat is told a Vision was seen, the drawer too; each clears it for itself, and it stays cleared on reopening', async ({ page }) => {
-    await openTable(page, 'majorEvents')
-    const seen = page.getByRole('dialog', { name: 'A Vision was seen' })
-    await expect(seen).toBeVisible()
-    await expect(seen).toContainText('have seen a Vision')
-    await expect(seen.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
-    await expect(page.locator('.panel')).toBeVisible()
+const sinceLastTurn = (page: Page) => page.getByRole('dialog', { name: 'Since your last turn' })
 
-    await magnifiers(page).first().click()
-    await expect(preview(page)).toBeVisible()
+test('scenario 59: the seat’s turn opens on one card of what changed since its last, oldest first and Next to win last; Escape and the pig clear it for the turn', async ({ page }) => {
+    await openTable(page, 'sinceLastTurn')
+    const card = sinceLastTurn(page)
+    await expect(card).toBeVisible()
+    const rows = card.getByRole('listitem')
+    await expect(rows).toHaveCount(5)
+    await expect(rows.nth(0)).toContainText('bea has seen a Vision')
+    await expect(rows.nth(0)).toContainText('World-deck Search · the Search now costs 3 Supply')
+    await expect(rows.nth(1)).toContainText('bea became a Citizen')
+    await expect(rows.nth(1)).toContainText("Accepted dana's offer")
+    await expect(rows.nth(2)).toContainText('rhys took the People’s Favor from dana')
+    await expect(rows.nth(2)).toContainText('Seized in a Campaign · now on its Mob side')
+    await expect(rows.nth(3)).toContainText('rhys took the Oathkeeper title from dana')
+    await expect(rows.nth(3)).toContainText('Holds the People’s Favor')
+    await expect(rows.nth(4)).toContainText('Next to win')
+    await expect(rows.nth(4)).toContainText('rhys becomes the Usurper at their next Wake and wins at the one after')
+    await expect(rows.nth(4)).toContainText('Before: dana, as the Oathkeeper, if the end die ended the game after round 5')
+    await expect(card.getByRole('img', { name: 'the People’s Favor, Mob side' })).toBeVisible()
+    await expect(card.getByRole('img', { name: 'the Oathkeeper title' })).toBeVisible()
+    await expect(card.getByRole('img', { name: 'a Citizen' })).toBeVisible()
+    expect(await card.evaluate((element) => element.querySelectorAll('[title]').length)).toBe(0)
+
+    // The turn bar and the action panel stay clear and usable.
+    const cardBox = await card.boundingBox()
+    for (const above of [page.locator('.info').first(), grid(page)]) {
+        const box = await above.boundingBox()
+        expect(box && cardBox && box.y + box.height <= cardBox.y).toBe(true)
+    }
+    await tile(page, 'Travel').click()
+    await expect(page.getByText('Tap a lit site.', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Undo' }).click()
+
+    // Rule 7: an open seat closes first; an Escape typed in the chat leaves the card.
+    await page.getByRole('button', { name: /you/ }).first().click()
+    const seat = page.getByRole('dialog', { name: /seat$/ })
+    await expect(seat).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(preview(page)).toHaveCount(0)
-    await expect(seen).toBeVisible()
-
-    await seen.getByRole('button', { name: 'The pig foresaw this: clear' }).click()
-    await expect(seen).toHaveCount(0)
-
-    expect(await call(page, 'viewOffTheClock')).toBe('ann')
-    await expect(seen).toBeVisible()
-    await expect(seen).toContainText('me has seen a Vision')
+    await expect(seat).toHaveCount(0)
+    await expect(card).toBeVisible()
     await page.getByRole('tab', { name: 'Chat' }).click()
     await page.locator('textarea').dispatchEvent('keydown', { key: 'Escape' })
-    await expect(seen).toBeVisible()
-
-    await call(page, 'open', 'majorEvents')
-    await expect(seen).toHaveCount(0)
-    expect(await call(page, 'viewOffTheClock')).toBe('ann')
-    await expect(seen).toBeVisible()
+    await expect(card).toBeVisible()
+    await page.getByRole('tab', { name: 'Players' }).click()
     await page.keyboard.press('Escape')
-    await expect(seen).toHaveCount(0)
+    await expect(card).toHaveCount(0)
+
+    // Cleared for this turn and remembered: reopening shows nothing until the seat's next turn.
+    await call(page, 'open', 'sinceLastTurn')
+    await expect(card).toHaveCount(0)
 })
+
+test('scenario 59: the pig clears the card; another seat, whose turn it is not, is told nothing; no turn of the seat’s closed yet, no card', async ({ page }) => {
+    await openTable(page, 'sinceLastTurn')
+    const card = sinceLastTurn(page)
+    await card.getByRole('button', { name: 'The pig foresaw this: clear' }).click()
+    await expect(card).toHaveCount(0)
+
+    await call(page, 'open', 'sinceLastTurn')
+    expect(await call(page, 'viewOffTheClock')).not.toBe('ann')
+    await expect(card).toHaveCount(0)
+
+    await openTable(page, 'actPhase')
+    await expect(page.locator('.panel')).toBeVisible()
+    await expect(card).toHaveCount(0)
+})
+
+test('scenario 59: another seat’s Vision is its back alone, though the record holds which Vision it was (R-9.4)', async ({ page }) => {
+    await openTable(page, 'sinceLastTurn')
+    const vision = sinceLastTurn(page).getByRole('listitem').first()
+    const back = vision.getByRole('img')
+    await expect(back).toHaveCount(1)
+    await expect(back).toHaveAccessibleName('a Vision, facedown')
+    expect(await back.getAttribute('src')).toMatch(/vision/)
+    expect(await back.getAttribute('src')).not.toMatch(/conquest/)
+    await expect(sinceLastTurn(page)).not.toContainText('Conquest')
+})
+
+for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 402, height: 874 },
+    { width: 375, height: 812 }
+]) {
+    test(`scenario 59 at ${viewport.width} by ${viewport.height}: the card sits on the board, nothing overflows, the pig is 44 px tall and stays in view while long rows scroll`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        for (const table of ['sinceLastTurn', 'sinceLastTurnLong'] as const) {
+            await openTable(page, table)
+            const card = sinceLastTurn(page)
+            await expect(card).toBeVisible()
+            const fit = await card.evaluate((element) => {
+                const box = element.getBoundingClientRect()
+                const board = element.parentElement?.getBoundingClientRect()
+                const pig = element.querySelector('.since-last-turn__pig')?.getBoundingClientRect()
+                const list = element.querySelector('.since-last-turn__rows')
+                const overflowing = [...element.querySelectorAll('.since-last-turn__text, .since-last-turn__pig')]
+                    .filter((part) => part.scrollWidth > part.clientWidth + 1)
+                    .map((part) => part.textContent)
+                return {
+                    width: box.width,
+                    inBoard: board !== undefined && box.left >= board.left && box.right <= board.right && box.top >= board.top && box.bottom <= board.bottom,
+                    pig: pig && { height: pig.height, inCard: pig.top >= box.top && pig.bottom <= box.bottom, onScreen: pig.bottom <= innerHeight },
+                    scrolls: list !== null && list.scrollHeight > list.clientHeight,
+                    overflowing,
+                    pageScrolls: document.documentElement.scrollWidth > innerWidth
+                }
+            })
+            expect(fit.inBoard).toBe(true)
+            expect(fit.width).toBeLessThanOrEqual(viewport.width > 639 ? 420 : 338)
+            expect(fit.pig?.height).toBeGreaterThanOrEqual(44)
+            expect(fit.pig?.inCard).toBe(true)
+            expect(fit.pig?.onScreen).toBe(true)
+            expect(fit.overflowing).toEqual([])
+            expect(fit.pageScrolls).toBe(false)
+            if (table === 'sinceLastTurnLong') {
+                await expect(card.getByRole('listitem')).toHaveCount(9)
+                if (viewport.width < 640) expect(fit.scrolls).toBe(true)
+            }
+            await page.keyboard.press('Escape')
+            await expect(card).toHaveCount(0)
+        }
+    })
+}
 
 test('scenario 35: at Rest a row is the card and its buttons, one width; a tap on a bank uses the power; an empty bank is tapped for its 0; a used power is not listed', async ({ page }) => {
     await openTable(page, 'restTurnFlow')
@@ -7697,7 +7789,7 @@ test.describe('no hover titles in Oath’s own areas', () => {
         '.seat-detail',
         '.goals-layer',
         '.card-preview',
-        '.vision-seen',
+        '.since-last-turn',
         '.chooser',
         '.map-pick-framing'
     ]

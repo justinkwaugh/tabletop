@@ -18,7 +18,7 @@
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
-    import VisionSeenOverlay from '$lib/components/VisionSeenOverlay.svelte'
+    import SinceLastTurn from '$lib/components/SinceLastTurn.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import FocusChooser from '$lib/components/FocusChooser.svelte'
     import MapPickFraming from '$lib/components/MapPickFraming.svelte'
@@ -133,16 +133,16 @@
     }
 
     // Rule 7 — Escape closes the topmost layer only: the enlarged card, the open goals or seat, then
-    // a Vision seen (never from a text field, as clearing it is remembered); with none open it is
-    // left to the board's wrapper, which leaves full screen.
+    // the "Since your last turn" card (never from a text field, as clearing it is remembered); with
+    // none open it is left to the board's wrapper, which leaves full screen.
     const closesTopLayer: Attachment = () => {
         const escape = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return
             if (cardPreview.open) cardPreview.dismiss()
             else if (oath.goalsView.open) oath.goalsView.close()
             else if (oath.seatDetail.openPlayerId) oath.seatDetail.close()
-            else if (oath.visionsSeen.draws.length > 0 && !typedInTextField(event)) {
-                oath.visionsSeen.clear()
+            else if (oath.turnNotice.open && !typedInTextField(event)) {
+                oath.turnNotice.clear()
             } else return
             event.preventDefault()
             event.stopPropagation()
@@ -250,7 +250,7 @@
                                 />
                             {/key}
                         {/if}
-                        <VisionSeenOverlay />
+                        <SinceLastTurn />
                     {/snippet}
                     {#snippet toolbar()}
                         <!-- Rule 6 — full screen is a modal dialog; anything outside it is behind it. -->

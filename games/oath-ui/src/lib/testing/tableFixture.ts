@@ -34,6 +34,7 @@ import {
     PlayerStatus,
     PowerQuestionKind,
     Region,
+    RecoverTargetKind,
     RerolledRollKind,
     ResolveWake,
     Search,
@@ -87,6 +88,7 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import { RecordedStory } from './recordedStory.js'
 
 export type TableName =
     | 'setup'
@@ -131,6 +133,8 @@ export type TableName =
     | 'cardsOpenTravel'
     | 'travelToll'
     | 'majorEvents'
+    | 'sinceLastTurn'
+    | 'sinceLastTurnLong'
     | 'stackOrder'
     | 'sneakAttack'
     | 'citizenship'
@@ -1021,6 +1025,159 @@ function majorEventsTable(): PlayedTable {
             revealsInfo: true
         })
     ])
+}
+
+/**
+ * Ann's turn opens after her last closed in round 4: Bea, an Exile, Searched the world deck and
+ * stopped on a Vision (R-5.1.2); in round 5 Dana, the Chancellor holding the Grand Scepter, offered
+ * Bea Citizenship and she accepted (R-6.6.1); Rhys seized the People's Favor from Dana in a
+ * Campaign (R-5.5.2, R-2.5.3) and with it the title (R-2.11). Long: the Favor then went back and
+ * forth once more, more rows than a phone's board holds.
+ */
+function sinceLastTurnTable(long: boolean): PlayedTable {
+    const [cradle, slum] = mapSlotsFor(Region.Cradle)
+    const [plains, saltFlats] = mapSlotsFor(Region.Provinces)
+    const [mountain] = mapSlotsFor(Region.Hinterland)
+    const hydrated = testState(
+        [
+            testPlayer({ playerId: 'ann', color: Color.Blue, siteId: slum, favor: 4, secrets: 2 }),
+            testPlayer({ playerId: 'bea', color: Color.Yellow, siteId: mountain, favor: 1, secrets: 1 }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: plains,
+                favor: 2,
+                secrets: 1,
+                relicIds: ['relic.grand-scepter']
+            }),
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: plains, favor: 3, secrets: 2 })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            oathType: OathType.ThePeople,
+            oathkeeperPlayerId: 'dana',
+            round: 4,
+            banners: {
+                ...testBanners(),
+                [Banner.PeoplesFavor]: { value: 3, mobSide: false, holderPlayerId: 'dana' }
+            },
+            warbandsBySite: { [cradle]: { [IMPERIAL_WARBANDS]: 2 }, [saltFlats]: { rhys: 2 } },
+            oathRevision: OathRevision.TurnFlow
+        }
+    )
+    hydrated.vault = testVaultWithRelics({})
+    const state = hydrated.dehydrate()
+    state.turnManager.turnOrder = ['ann', 'bea', 'dana', 'rhys']
+    state.turnManager.series = [{ type: 'turn', playerId: 'ann', start: 0 }]
+    state.activePlayerIds = ['ann']
+    const seat = (table: OathProjectedState, playerId: string) => {
+        const found = table.players.find((p) => p.playerId === playerId)
+        assertExists(found, `${playerId} is seated`)
+        return found
+    }
+    const toAct = (table: OathProjectedState) => {
+        table.machineState = MachineState.ActPhase
+    }
+    const peoplesFavor =
+        (holderPlayerId: string, value: number, mobSide: boolean) => (table: OathProjectedState) => {
+            table.banners[Banner.PeoplesFavor] = { holderPlayerId, value, mobSide }
+        }
+    const seize = (story: RecordedStory, playerId: string, from: string) =>
+        story.act(
+            {
+                type: ActionType.CampaignResolveVictory,
+                playerId,
+                placements: [],
+                burnFavor: false,
+                metadata: {
+                    warbandsPlaced: 0,
+                    relicsTaken: [],
+                    bannersSeized: [Banner.PeoplesFavor],
+                    seizeBurned: 2,
+                    favorBurned: 0,
+                    defenderPlayerId: from,
+                    replacedCount: 0,
+                    unreplacedCount: 0
+                }
+            },
+            peoplesFavor(playerId, 1, true)
+        )
+    const story = new RecordedStory(state, 'news-')
+        .act({ type: ActionType.EndActPhase, playerId: 'ann' }, (table) => {
+            table.machineState = MachineState.RestPhase
+        })
+        .rest('ann', 'bea', toAct)
+        .act(
+            {
+                type: ActionType.Search,
+                playerId: 'bea',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                metadata: {
+                    draw: {
+                        drawnCardIds: ['vision.conquest'],
+                        stoppedOnVision: true,
+                        worldDeckExhausted: false
+                    },
+                    supplySpent: 2,
+                    cardsDrawn: 1,
+                    visionsDrawn: 1,
+                    stoppedOnVision: true
+                }
+            },
+            (table) => {
+                table.visionsDrawn = 1
+            }
+        )
+        .rest('bea', 'dana', (table) => {
+            toAct(table)
+            table.round = 5
+        })
+        .act({
+            type: ActionType.OfferCitizenship,
+            playerId: 'dana',
+            exilePlayerId: 'bea',
+            reliquarySlotId: reliquarySlotId(0),
+            metadata: { resumeMachineState: MachineState.ActPhase }
+        })
+        .act(
+            {
+                type: ActionType.ResolveCitizenshipOffer,
+                playerId: 'bea',
+                granted: true,
+                metadata: { granted: true, resumeMachineState: MachineState.ActPhase }
+            },
+            (table) => {
+                seat(table, 'bea').status = PlayerStatus.Citizen
+            }
+        )
+        .rest('dana', 'rhys', toAct)
+    seize(story, 'rhys', 'dana').title('dana', 'rhys')
+    if (long) {
+        story
+            .act(
+                {
+                    type: ActionType.Recover,
+                    playerId: 'dana',
+                    target: { kind: RecoverTargetKind.Banner, banner: Banner.PeoplesFavor },
+                    amountPaid: 2,
+                    metadata: { supplySpent: 1, amountPaid: 2 }
+                },
+                peoplesFavor('dana', 2, false)
+            )
+            .title('rhys', 'dana')
+        seize(story, 'rhys', 'dana').title('dana', 'rhys')
+    }
+    story.rest('rhys', 'ann', toAct)
+    // The session checks the state's count and checksum against the history it is given.
+    return {
+        state: { ...story.state, actionChecksum: calculateActionChecksum(0, story.actions) },
+        actions: story.actions
+    }
 }
 
 const TRADE_BANKS: Record<Suit, number> = {
@@ -4153,6 +4310,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardsOpenTravel: travelCardsTable,
     travelToll: travelTollTable,
     majorEvents: majorEventsTable,
+    sinceLastTurn: () => sinceLastTurnTable(false),
+    sinceLastTurnLong: () => sinceLastTurnTable(true),
     stackOrder: stackOrderTable,
     sneakAttack: sneakAttackTable,
     citizenship: citizenshipTable,

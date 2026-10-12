@@ -107,7 +107,7 @@ import {
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
-import { VisionsSeen } from './visionsSeen.svelte.js'
+import { TurnNotice } from './turnNotice.svelte.js'
 import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
 import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
 import type { WarbandWhose } from './tokenText.js'
@@ -196,7 +196,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
-    readonly visionsSeen = new VisionsSeen(this)
+    readonly turnNotice = new TurnNotice(this)
 
     readonly campaign = new CampaignDraft(this)
     readonly setup = new SetupDraft(this)

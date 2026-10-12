@@ -99,6 +99,32 @@ function winsAs(kind: WinKind, isViewer: boolean): string {
     }
 }
 
+/** The way a win comes: a Usurper's win two Wakes away is the Usurper's win all the same. */
+export function nextWinKind(next: NextWin): WinKind {
+    return next.when === 'wakeAfterNext' ? WinKind.Usurper : next.kind
+}
+
+/** The next win changed when its winner or its way of winning did; the round it comes in does not count. */
+export function nextWinDiffers(before: NextWin | undefined, now: NextWin | undefined): boolean {
+    if (before === undefined || now === undefined) return before !== now
+    return before.playerId !== now.playerId || nextWinKind(before) !== nextWinKind(now)
+}
+
+/** An earlier reading, after the winner's name: how they would have won, and when. */
+export function nextWinBeforePhrase(next: NextWin, isViewer: boolean): string {
+    const their = isViewer ? 'your' : 'their'
+    switch (next.when) {
+        case 'wake':
+            return `${winsAs(next.kind, isViewer)}, at ${their} next Wake`
+        case 'wakeAfterNext':
+            return `${winsAs(WinKind.Usurper, isViewer)}, at the Wake after ${their} next`
+        case 'endDie':
+            return `${winsAs(next.kind, isViewer)}, if the end die ended the game after round ${next.round}`
+        case 'finalRound':
+            return `${winsAs(next.kind, isViewer)}, when round ${FINAL_ROUND} ends`
+    }
+}
+
 /** R-3.3 — the end die's printed odds for the round. */
 function odds(threshold: number): string {
     return threshold === 6 ? 'on a 6' : `on a ${threshold} or more`
