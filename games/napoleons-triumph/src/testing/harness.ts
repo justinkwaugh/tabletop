@@ -19,7 +19,8 @@ import {
     type NapoleonsTriumphGameState,
     type NapoleonsTriumphProjectedState
 } from '../model/gameState.js'
-import { suggestedDeployment, type Deployment } from '../model/setup.js'
+import type { Deployment } from '../model/setup.js'
+import { suggestedDeployment } from './suggestedDeployment.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 

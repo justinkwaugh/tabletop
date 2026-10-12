@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test'
 
 const USAGE = `Usage: [OPTIONS="Morale auction,1 December"] node scripts/screenshot.mjs <out.png> [width height] [steps]
-Starts a hotseat game in the dev harness, runs the steps (deploy by default) and captures the table.
+Starts a hotseat game in the dev harness, runs the steps (deploy by default, which sets both armies up the way the browser tests do) and captures the table.
 CLIP=<selector> [CLIP_PAD=90] crops the capture around an element; SCALE sets the pixel ratio.`
 
 const [out, width = '1440', height = '900', steps = 'deploy'] = process.argv.slice(2)
@@ -31,10 +31,9 @@ for (const label of (process.env.OPTIONS ?? '').split(',').filter(Boolean)) {
 await page.getByRole('button', { name: 'Create Game', exact: true }).click()
 await page.waitForTimeout(1500)
 if (steps.includes('deploy')) {
-    for (let i = 0; i < 2; i++) {
-        await page.getByRole('button', { name: 'Deploy the army' }).click()
-        await page.waitForTimeout(900)
-    }
+    const { deployBothArmies } = await import('../tests/table.ts')
+    await deployBothArmies(page)
+    await page.waitForTimeout(900)
 }
 try {
     for (const step of steps.split(',')) {

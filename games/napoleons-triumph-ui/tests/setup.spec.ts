@@ -1,53 +1,202 @@
-import { expect, test } from '@playwright/test'
-import { createGame, failOnPageErrors, tap } from './table.js'
+import { expect, test, type Page } from '@playwright/test'
+import {
+    ALLIED_ARMY,
+    FRENCH_ARMY,
+    createGame,
+    deployAllies,
+    failOnPageErrors,
+    fillCorps,
+    openSeat,
+    placeFixedBattery,
+    seat,
+    takeFromPool,
+    tap
+} from './table.js'
 
 failOnPageErrors()
 
-test('the French fixed battery turns to another approach of its locale without a detachment', async ({
+const KIENMAYER_MINIMUM = 3
+const KIENMAYER_LOCALE_HOLDS = 6
+const ST_HILAIRE_LOCALE = 93
+
+function units(page: Page, name: string) {
+    return seat(page, name).locator('.nt-unit-tile')
+}
+
+function emptySlots(page: Page, name: string) {
+    return seat(page, name).locator('.nt-setup-slot')
+}
+
+function neededSlots(page: Page, name: string) {
+    return seat(page, name).locator('.nt-setup-slot-needed')
+}
+
+test('corps start empty, show what they still need, then one free slot at a time up to what their locale holds', async ({
     page
 }) => {
     await createGame(page)
     const deploy = page.getByRole('button', { name: 'Deploy the army' })
-    await deploy.click()
-    const battery = page.locator('.nt-setup-units button', {
-        has: page.getByText('fixed battery')
-    })
-    const hint = page.locator('.nt-setup-hint')
-    const prompt = page.locator('.nt-setup-prompt')
+    const progress = page.locator('.nt-setup-progress')
+    const undo = page.getByRole('button', { name: 'Undo' })
 
-    await battery.click()
-    await expect(hint).toContainText('The fixed battery faces')
-    const facedAtFirst = await hint.innerText()
+    await expect(page.locator('.nt-setup-seat .nt-unit-tile')).toHaveCount(0)
+    await expect(progress).toHaveText('44 units to assign')
+    await expect(deploy).toBeDisabled()
+    await expect(undo).toBeHidden()
+    await expect(page.locator('svg [data-setup-locale]')).toHaveCount(9)
+    await expect(neededSlots(page, 'kienmayer')).toHaveCount(KIENMAYER_MINIMUM)
+    await expect(emptySlots(page, 'kienmayer')).toHaveCount(KIENMAYER_MINIMUM)
+
+    await tap(page, 'svg [data-setup-locale="kienmayer"]')
+    await expect(seat(page, 'kienmayer').locator('.nt-setup-head')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
+    for (let taken = 1; taken <= KIENMAYER_LOCALE_HOLDS; taken++) {
+        await takeFromPool(page, '2-strength infantry')
+        await expect(units(page, 'kienmayer')).toHaveCount(taken)
+        await expect(neededSlots(page, 'kienmayer')).toHaveCount(
+            Math.max(0, KIENMAYER_MINIMUM - taken)
+        )
+        await expect(emptySlots(page, 'kienmayer')).toHaveCount(
+            taken < KIENMAYER_MINIMUM
+                ? KIENMAYER_MINIMUM - taken
+                : Number(taken < KIENMAYER_LOCALE_HOLDS)
+        )
+    }
+    await expect(progress).toHaveText('38 units to assign')
+    await expect(page.locator('.nt-setup-prompt')).toHaveText(
+        'Kienmayer’s corps can take no more units.'
+    )
+    await expect(page.getByRole('button', { name: 'Take 2-strength infantry' })).toBeDisabled()
+
+    await units(page, 'kienmayer').first().click()
+    await expect(units(page, 'kienmayer')).toHaveCount(KIENMAYER_LOCALE_HOLDS - 1)
+    await expect(page.getByRole('button', { name: 'Take 2-strength infantry' })).toBeEnabled()
+
+    await undo.click()
+    await expect(units(page, 'kienmayer')).toHaveCount(KIENMAYER_LOCALE_HOLDS)
+    await undo.click()
+    await expect(units(page, 'kienmayer')).toHaveCount(KIENMAYER_LOCALE_HOLDS - 1)
+})
+
+test('the army deploys once every unit is assigned and every corps has its minimum', async ({
+    page
+}) => {
+    await createGame(page)
+    const deploy = page.getByRole('button', { name: 'Deploy the army' })
+    const { prebyshevsky, ...others } = ALLIED_ARMY
+    await fillCorps(page, others)
+    await openSeat(page, 'prebyshevsky')
+    for (const face of prebyshevsky.slice(1)) await takeFromPool(page, face)
+    await expect(neededSlots(page, 'prebyshevsky')).toHaveCount(1)
+    await expect(deploy).toBeDisabled()
+
+    await takeFromPool(page, prebyshevsky[0])
+    await expect(page.locator('.nt-setup-progress')).toHaveText('')
+    await expect(deploy).toBeEnabled()
 
     await tap(page, 'svg [aria-label="Block this approach"]')
-    await expect(prompt).toContainText('0 of 6 detached')
-    await battery.click()
-    await expect(hint).toContainText('The fixed battery faces')
-    await expect(hint).not.toHaveText(facedAtFirst)
+    await expect(seat(page, 'prebyshevsky').locator('.nt-setup-where').nth(1)).toContainText(
+        'facing'
+    )
 
     await deploy.click()
+    await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
+    await expect(page.locator('[data-commander="prebyshevsky"]')).toBeVisible()
+})
+
+test('a French unit is set up on its own straight from the pool, in a locale and then on an approach of it', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployAllies(page)
+    const prompt = page.locator('.nt-setup-prompt')
+    const left = seat(page, 'detached').locator('.nt-setup-where').nth(1)
+    const undo = page.getByRole('button', { name: 'Undo' })
+
+    await openSeat(page, 'detached')
+    await expect(left).toHaveText('6 left')
+    await expect(page.locator('svg [aria-label^="Move to"]')).toHaveCount(0)
+    await takeFromPool(page, '2-strength cavalry')
+    await expect(prompt).toHaveText('Now tap the locale it stands in.')
+    await expect(page.locator('svg [aria-label="Block this approach"]')).toHaveCount(0)
+
+    await tap(page, `svg [data-locale="${ST_HILAIRE_LOCALE}"]`)
+    await expect(units(page, 'detached')).toHaveCount(1)
+    await expect(left).toHaveText('5 left')
+    await expect(prompt).toContainText('It stands in reserve at locale 93')
+    await expect(page.locator('[data-commander="detached"]')).toHaveCount(1)
+    await expect(units(page, 'st-hilaire')).toHaveCount(1)
+    await expect(units(page, 'st-hilaire').first()).toBeDisabled()
+
+    await tap(page, 'svg [aria-label="Block this approach"]')
+    await expect(prompt).toContainText('It stands facing')
+
+    await undo.click()
+    await expect(prompt).toContainText('It stands in reserve at locale 93')
+    await undo.click()
+    await expect(units(page, 'detached')).toHaveCount(0)
+    await expect(prompt).toHaveText('Now tap the locale it stands in.')
+    await undo.click()
+    await expect(prompt).toContainText('Tap a unit to set it up on its own')
+
+    await takeFromPool(page, '2-strength cavalry')
+    await tap(page, `svg [data-locale="${ST_HILAIRE_LOCALE}"]`)
+    await units(page, 'detached').first().click()
+    await expect(units(page, 'detached')).toHaveCount(0)
+    await expect(left).toHaveText('6 left')
+})
+
+test('the French fixed battery blocks an approach of a corps’s locale without using a detachment', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployAllies(page)
+    const deploy = page.getByRole('button', { name: 'Deploy the army' })
+    const prompt = page.locator('.nt-setup-prompt')
+    await fillCorps(page, FRENCH_ARMY)
+    await expect(page.locator('.nt-setup-progress')).toHaveText('1 unit to assign')
+
+    await openSeat(page, 'fixed-battery')
+    await expect(page.getByRole('button', { name: 'Take 3-strength infantry' })).toBeDisabled()
+    await placeFixedBattery(page)
+    await expect(units(page, 'fixed-battery')).toHaveCount(1)
+    await expect(prompt).toContainText('The fixed battery is placed')
+    await expect(seat(page, 'detached').locator('.nt-setup-where').nth(1)).toHaveText('6 left')
+    await expect(deploy).toBeEnabled()
+
+    const faced = seat(page, 'fixed-battery').locator('.nt-setup-where').nth(1)
+    const facedAtFirst = await faced.innerText()
+    await openSeat(page, 'lannes')
+    await openSeat(page, 'fixed-battery')
+    await tap(page, 'svg [aria-label="Block this approach"]')
+    await expect(faced).not.toHaveText(facedAtFirst)
+
+    await deploy.click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 })
 
-// With this deal of the blocks no corps near the Santon is dealt artillery unless the set-up gives it some.
-const NO_ARTILLERY_NEAR_THE_SANTON = '0000000000000000000000009e3779b1'
+// With this deal of the blocks the artillery units carry other numbers than in the usual deal.
+const ANOTHER_DEAL = '0000000000000000000000009e3779b1'
 
-test('with the Santon in use the French set-up opens ready to deploy, its fixed battery held on the Santon', async ({
+test('with the Santon in use the fixed battery goes straight to the Santon as a detachment', async ({
     page
 }) => {
-    await createGame(page, { santon: true, seed: NO_ARTILLERY_NEAR_THE_SANTON })
-    const deploy = page.getByRole('button', { name: 'Deploy the army' })
-    await deploy.click()
-    await expect(page.locator('.nt-setup-prompt')).toContainText('1 of 6 detached')
-    await expect(page.locator('.nt-setup-problem')).toHaveCount(0)
-    await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
+    await createGame(page, { santon: true, seed: ANOTHER_DEAL })
+    await deployAllies(page)
+    await fillCorps(page, FRENCH_ARMY)
+    await placeFixedBattery(page)
 
-    await page.locator('.nt-setup-units button', { has: page.getByText('fixed battery') }).click()
-    await expect(page.locator('.nt-setup-hint')).toContainText('stays on the Santon')
+    await expect(seat(page, 'fixed-battery').locator('.nt-setup-where').first()).toHaveText(
+        'Santon'
+    )
+    await expect(page.locator('.nt-setup-prompt')).toContainText('holds the Santon')
     await expect(page.locator('svg [aria-label="Block this approach"]')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Return it to its corps' })).toHaveCount(0)
+    await expect(seat(page, 'detached').locator('.nt-setup-where').nth(1)).toHaveText('5 left')
 
-    await deploy.click()
-    await expect(page.locator('.nt-setup-prompt')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 })

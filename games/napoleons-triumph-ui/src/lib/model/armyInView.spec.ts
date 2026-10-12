@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { NapoleonsTriumphRuntime, Side, suggestedDeployment } from '@tabletop/napoleons-triumph'
+import { NapoleonsTriumphRuntime, Side } from '@tabletop/napoleons-triumph'
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import { showsArmyOf } from './armyInView.js'
+import { emptySetup, unassignedStacks } from './armySetup.js'
 
 function viewOf(game: TestGame, side: Side) {
     return NapoleonsTriumphRuntime.hydrator.hydrateState(
@@ -27,12 +28,12 @@ describe('whose army a state shows', () => {
         expect(showsArmyOf(game.hydrated, game.playerOf(Side.French))).toBe(true)
     })
 
-    it('is what the rules need before they can set an army up', () => {
+    it('is what setting an army up needs', () => {
         const game = new TestGame()
         const view = viewOf(game, Side.Allied)
-        expect(() => suggestedDeployment(view, Side.Allied)).not.toThrow()
-        expect(() => suggestedDeployment(view, Side.French)).toThrow(
-            'The face of unit F01 is not known'
-        )
+        const unitsToSetUp = (side: Side) =>
+            unassignedStacks(view, game.playerOf(side), emptySetup(view, side))
+        expect(() => unitsToSetUp(Side.Allied)).not.toThrow()
+        expect(() => unitsToSetUp(Side.French)).toThrow('The face of unit F01 is not known')
     })
 })

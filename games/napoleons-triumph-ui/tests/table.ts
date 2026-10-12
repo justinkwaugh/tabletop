@@ -38,17 +38,89 @@ export async function createGame(
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
 }
 
-export async function deployBothArmies(page: Page) {
-    const deploy = page.getByRole('button', { name: 'Deploy the army' })
-    await deploy.click()
-    await expect(page.locator('[data-commander="langeron"]')).toBeVisible()
-    await deploy.click()
-    await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
+const INFANTRY_2 = '2-strength infantry'
+const INFANTRY_3 = '3-strength infantry'
+const GUARD = 'guard infantry'
+const CAVALRY_2 = '2-strength cavalry'
+const HEAVY_CAVALRY = 'heavy cavalry'
+const ARTILLERY = 'artillery'
+
+type Army = Record<string, string[]>
+
+export const ALLIED_ARMY: Army = {
+    bagration: [INFANTRY_2, INFANTRY_2, INFANTRY_2, INFANTRY_2, ARTILLERY],
+    constantine: [GUARD, INFANTRY_2, INFANTRY_2, INFANTRY_3, '1-strength cavalry'],
+    dokhturov: [INFANTRY_2, INFANTRY_2, INFANTRY_2, INFANTRY_2, ARTILLERY],
+    kienmayer: [INFANTRY_3, INFANTRY_3, INFANTRY_2, ARTILLERY, '1-strength cavalry'],
+    kollowrath: [INFANTRY_2, '1-strength infantry', GUARD, '1-strength cavalry', CAVALRY_2],
+    langeron: [INFANTRY_2, INFANTRY_2, INFANTRY_2, INFANTRY_2, CAVALRY_2],
+    liechtenstein: [INFANTRY_3, INFANTRY_2, INFANTRY_2, INFANTRY_2, HEAVY_CAVALRY],
+    miloradovich: [INFANTRY_3, GUARD, '1-strength infantry', CAVALRY_2, HEAVY_CAVALRY],
+    prebyshevsky: [CAVALRY_2, CAVALRY_2, ARTILLERY, CAVALRY_2]
+}
+
+export const FRENCH_ARMY: Army = {
+    bernadotte: [CAVALRY_2, INFANTRY_2, INFANTRY_2, GUARD, HEAVY_CAVALRY],
+    bessieres: [INFANTRY_2, INFANTRY_3, INFANTRY_2, INFANTRY_2, CAVALRY_2],
+    davout: [CAVALRY_2, INFANTRY_3, INFANTRY_2, INFANTRY_2, ARTILLERY],
+    lannes: [INFANTRY_2, INFANTRY_2, INFANTRY_2, INFANTRY_3],
+    legrand: [INFANTRY_2, INFANTRY_3, INFANTRY_2, HEAVY_CAVALRY],
+    murat: [INFANTRY_3, INFANTRY_3, INFANTRY_2, INFANTRY_2],
+    'st-hilaire': [INFANTRY_2, GUARD, INFANTRY_2, HEAVY_CAVALRY],
+    vandamme: [INFANTRY_3, ARTILLERY, CAVALRY_2, CAVALRY_2]
+}
+
+const FIXED_BATTERY_LOCALE = 64
+const FIXED_BATTERY_APPROACH = 175
+
+export function seat(page: Page, name: string) {
+    return page.locator(`[data-seat="${name}"]`)
+}
+
+export async function openSeat(page: Page, name: string) {
+    await seat(page, name).locator('.nt-setup-head').click()
+}
+
+export async function takeFromPool(page: Page, face: string) {
+    await page.getByRole('button', { name: `Take ${face}`, exact: true }).click()
 }
 
 // Workaround: blocks and targets are small SVG shapes under one another's hit areas, so they are clicked directly.
 export async function tap(page: Page, selector: string) {
     await page.locator(selector).first().dispatchEvent('click')
+}
+
+export async function fillCorps(page: Page, army: Army) {
+    for (const [commander, faces] of Object.entries(army)) {
+        await openSeat(page, commander)
+        for (const face of faces) await takeFromPool(page, face)
+    }
+}
+
+/** With the Santon in use the fixed battery goes to the Santon by itself; otherwise it blocks an approach of Lannes's locale. */
+export async function placeFixedBattery(page: Page) {
+    await openSeat(page, 'fixed-battery')
+    await takeFromPool(page, ARTILLERY)
+    const onTheSanton = await seat(page, 'fixed-battery').locator('.nt-unit-tile').count()
+    if (onTheSanton === 0) {
+        await tap(page, `svg [data-locale="${FIXED_BATTERY_LOCALE}"]`)
+        await tap(page, `svg [data-approach="${FIXED_BATTERY_APPROACH}"]`)
+    }
+}
+
+export async function deployAllies(page: Page) {
+    await fillCorps(page, ALLIED_ARMY)
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
+}
+
+export async function deployBothArmies(page: Page) {
+    await deployAllies(page)
+    await fillCorps(page, FRENCH_ARMY)
+    await placeFixedBattery(page)
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
+    await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 }
 
 // Pieces carry role="button" only while the session takes choices, so Playwright waits out an action or Undo still settling.

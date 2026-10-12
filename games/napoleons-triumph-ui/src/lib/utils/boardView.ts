@@ -79,3 +79,35 @@ export function boundsOf(points: Point[], rotation: number): BoundingBox {
     const y = Math.min(...ys)
     return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
 }
+
+export interface ViewFrame {
+    width: number
+    height: number
+    /** How much of the height, from the top, is on screen: the map can reach below the fold when the panel above it is tall. */
+    seenHeight: number
+}
+
+export interface Focus {
+    maxScale: number
+    padding: number
+}
+
+export interface FocusOn extends Focus {
+    rect: BoundingBox
+}
+
+/** What to focus on so that the rectangle ends up centred in the part of the view that is on screen, at the largest scale that fits it there. The view centres whatever it focuses on in its whole height, so the rectangle is extended downwards by the part that cannot be seen. */
+export function focusWhereSeen(rect: BoundingBox, frame: ViewFrame, focus: Focus): FocusOn {
+    const roomAcross = frame.width - focus.padding * 2
+    const roomDown = frame.seenHeight - focus.padding * 2
+    const hidden = frame.height - frame.seenHeight
+    if (hidden <= 0 || roomAcross <= 0 || roomDown <= 0) {
+        return { rect, ...focus }
+    }
+    const scale = Math.min(roomAcross / rect.width, roomDown / rect.height, focus.maxScale)
+    return {
+        rect: { ...rect, height: rect.height + hidden / scale },
+        maxScale: scale,
+        padding: focus.padding
+    }
+}

@@ -13,7 +13,7 @@
         marker,
         roleMark,
         label,
-        compact = false,
+        scale = 1,
         onclick
     }: {
         playerId: string
@@ -23,13 +23,12 @@
         marker?: string
         roleMark?: RoleMark
         label: string
-        compact?: boolean
+        scale?: number
         onclick?: () => void
     } = $props()
 
     const gameSession = getGameSession()
     const PAD = 3
-    const scale = $derived(compact ? 0.82 : 1)
 </script>
 
 <button

@@ -69,6 +69,7 @@
             role="button"
             tabindex="0"
             aria-label={label(target)}
+            data-locale={target.position.locale}
             onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         ></polygon>
@@ -81,6 +82,7 @@
             role="button"
             tabindex="0"
             aria-label="Block this approach"
+            data-approach={target.position.approach}
             onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >

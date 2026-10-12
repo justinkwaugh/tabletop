@@ -38,16 +38,16 @@ import {
     undoCommandSelection,
     unitsPickedUpWith
 } from './commandSelection.js'
+import type { ArmySetup } from './armySetup.js'
 import {
-    editedDeployment,
+    DestinationKind,
     hasManualSetupSelection,
+    latestSetupStep,
     noSetupSelection,
-    pickedSetupCorps,
-    pickedSetupUnit,
-    recordSetupEdit,
-    toggleSetupCorps,
-    toggleSetupUnit,
-    undoSetupSelection
+    recordSetupStep,
+    sameDestination,
+    undoSetupSelection,
+    type SetupDestination
 } from './setupSelection.js'
 import { stagedSelection } from './stagedSelection.js'
 
@@ -370,47 +370,56 @@ describe('battle selections', () => {
 })
 
 describe('set-up selection', () => {
-    const first = { corps: [], detachments: [] }
-    const second = { corps: [], detachments: [{ unitId: 'F01', position: { locale: 53 } }] }
+    const lannes: SetupDestination = { kind: DestinationKind.Corps, commanderId: 'lannes' }
+    const detached: SetupDestination = { kind: DestinationKind.Detached }
+    const empty: ArmySetup = { corps: [], detached: [] }
+    const posted: ArmySetup = {
+        corps: [],
+        detached: [{ unitId: 'F01', position: { locale: 53 } }]
+    }
 
-    it('steps back one arrangement at a time, the picked unit first', () => {
-        const edited = recordSetupEdit(recordSetupEdit(noSetupSelection(), first), second)
-        const picked = toggleSetupUnit(edited, 'F02')
-        expect(pickedSetupUnit(picked)).toBe('F02')
+    it('takes back one tap at a time: the place given, the unit taken in hand, the destination opened', () => {
+        const opened = recordSetupStep(noSetupSelection(), { setup: empty, open: detached })
+        const inHand = recordSetupStep(opened, { setup: empty, open: detached, heldUnitId: 'F01' })
+        const placed = recordSetupStep(inHand, { setup: posted, open: detached, heldUnitId: 'F01' })
+        expect(latestSetupStep(placed)).toEqual({
+            setup: posted,
+            open: detached,
+            heldUnitId: 'F01'
+        })
 
-        const unpicked = undoSetupSelection(picked)
-        expect(pickedSetupUnit(unpicked)).toBeUndefined()
-        expect(editedDeployment(unpicked)).toEqual(second)
+        const unplaced = undoSetupSelection(placed)
+        expect(latestSetupStep(unplaced)).toEqual({
+            setup: empty,
+            open: detached,
+            heldUnitId: 'F01'
+        })
 
-        const earlier = undoSetupSelection(unpicked)
-        expect(editedDeployment(earlier)).toEqual(first)
+        const putDown = undoSetupSelection(unplaced)
+        expect(latestSetupStep(putDown)).toEqual({ setup: empty, open: detached })
 
-        const untouched = undoSetupSelection(earlier)
-        expect(editedDeployment(untouched)).toBeUndefined()
+        const untouched = undoSetupSelection(putDown)
+        expect(latestSetupStep(untouched)).toBeUndefined()
         expect(hasManualSetupSelection(untouched)).toBe(false)
     })
 
-    it('holds a unit or a corps, never both, and Undo puts either down before any arrangement', () => {
-        const edited = recordSetupEdit(noSetupSelection(), first)
-        const corps = toggleSetupCorps(toggleSetupUnit(edited, 'F02'), 'lannes')
-        expect(pickedSetupCorps(corps)).toBe('lannes')
-        expect(pickedSetupUnit(corps)).toBeUndefined()
-
-        const unit = toggleSetupUnit(corps, 'F03')
-        expect(pickedSetupUnit(unit)).toBe('F03')
-        expect(pickedSetupCorps(unit)).toBeUndefined()
-
-        expect(pickedSetupCorps(toggleSetupCorps(corps, 'lannes'))).toBeUndefined()
-        expect(pickedSetupCorps(recordSetupEdit(corps, second))).toBeUndefined()
-
-        const putDown = undoSetupSelection(corps)
-        expect(pickedSetupCorps(putDown)).toBeUndefined()
-        expect(editedDeployment(putDown)).toEqual(first)
+    it('is a manual selection from the first tap, so Undo is offered for it', () => {
+        expect(hasManualSetupSelection(noSetupSelection())).toBe(false)
+        expect(
+            hasManualSetupSelection(
+                recordSetupStep(noSetupSelection(), { setup: empty, open: lannes })
+            )
+        ).toBe(true)
     })
 
-    it('puts a picked unit down when it is tapped again or the arrangement changes', () => {
-        const picked = toggleSetupUnit(noSetupSelection(), 'F02')
-        expect(pickedSetupUnit(toggleSetupUnit(picked, 'F02'))).toBeUndefined()
-        expect(pickedSetupUnit(recordSetupEdit(picked, first))).toBeUndefined()
+    it('tells one corps from another and a corps from the units set up on their own', () => {
+        expect(
+            sameDestination(lannes, { kind: DestinationKind.Corps, commanderId: 'lannes' })
+        ).toBe(true)
+        expect(sameDestination(lannes, { kind: DestinationKind.Corps, commanderId: 'murat' })).toBe(
+            false
+        )
+        expect(sameDestination(lannes, detached)).toBe(false)
+        expect(sameDestination(detached, { kind: DestinationKind.Detached })).toBe(true)
     })
 })

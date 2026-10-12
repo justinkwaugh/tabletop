@@ -1,270 +1,450 @@
 <script lang="ts">
-    import {
-        MAX_CORPS_UNITS,
-        DETACHMENT_REACH,
-        MAX_FRENCH_DETACHMENTS,
-        SANTON_LOCALE,
-        Scenario,
-        Side,
-        UnitType,
-        commanderDefinition,
-        type CorpsDeployment
-    } from '@tabletop/napoleons-triumph'
-    import { setupLocaleOf } from '$lib/model/deploymentEdits.js'
+    import type { Attachment } from 'svelte/attachments'
+    import { MAX_FRENCH_DETACHMENTS, commanderDefinition } from '@tabletop/napoleons-triumph'
+    import { setupLocaleOf } from '$lib/model/armySetup.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { DestinationKind } from '$lib/model/setupSelection.js'
+    import type { CorpsSeat, DetachedSeat, FixedBatterySeat } from '$lib/model/setupTable.js'
+    import { faceName } from '$lib/utils/faceName.js'
+    import { standingAt, type Standing } from '$lib/utils/standing.js'
     import UnitTile from './UnitTile.svelte'
+
+    const SLOT_SCALE = 0.7
+    const POOL_SCALE = 0.82
 
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
-    const deployment = $derived(gameSession.deployment)
-    const side = $derived(gameSession.mySide)
-    const picked = $derived(gameSession.setupUnitId)
-    const detached = $derived(new Set(deployment?.detachments.map((entry) => entry.unitId) ?? []))
-    const chooseAdvanceGuard = $derived(
-        side === Side.Allied && game.scenario === Scenario.December1
+    const table = $derived(gameSession.setupTable)
+    const playerId = $derived(gameSession.myPlayerId)
+    const openCorps = $derived(table?.corps.find((seat) => seat.open))
+    const heldStack = $derived(table?.stacks.find((stack) => stack.held))
+    const openKey = $derived(
+        openCorps?.commanderId ?? (table?.detached?.open ? 'detached' : 'fixed-battery')
     )
-    const pickedIsArtillery = $derived(
-        picked !== undefined && game.unit(picked).face?.type === UnitType.Artillery
-    )
-    const pickedOnMap = $derived(
-        picked !== undefined &&
-            deployment?.corps.some((corps) => !corps.offMap && corps.unitIds.includes(picked)) ===
-                true
+    const corpsToStart = $derived(
+        table?.corps.some((seat) => seat.mayStartOnMap !== undefined)
+            ? 2 - table.corps.filter((seat) => !seat.offMap).length
+            : 0
     )
 
-    function standing(corps: CorpsDeployment): string {
-        if (corps.offMap) {
-            return 'off the map'
+    function standingOf(seat: CorpsSeat): Standing {
+        if (seat.offMap) {
+            return {
+                place: 'off the map',
+                stance: commanderDefinition(seat.commanderId).reinforcement ? 'enters later' : ''
+            }
         }
-        const place = game.map.label(setupLocaleOf(game.map, corps.commanderId).id)
-        if (corps.approach === undefined) {
-            return `in reserve at ${place}`
-        }
-        return `at ${place}, facing ${game.map.label(game.map.approach(corps.approach).neighbour)}`
+        return standingAt(game.map, {
+            locale: setupLocaleOf(game.map, seat.commanderId).id,
+            approach: seat.approach
+        })
     }
 
-    const batteryPosition = $derived.by(() => {
-        const battery = deployment?.fixedBattery?.unitId
-        return battery ? gameSession.setupPreview.state?.unit(battery).position : undefined
+    const batteryStanding = $derived(
+        table?.fixedBattery?.position
+            ? standingAt(game.map, table.fixedBattery.position)
+            : { place: 'not placed', stance: '' }
+    )
+
+    function corpsGuidance(seat: CorpsSeat): string {
+        const name = commanderDefinition(seat.commanderId).name
+        if (seat.room === 0) {
+            return `${name}’s corps can take no more units.`
+        }
+        return seat.offMap
+            ? `Tap units to add them to ${name}’s corps.`
+            : `Tap units to add them to ${name}’s corps. On the map, tap an approach of its locale to block it.`
+    }
+
+    function detachedGuidance(seat: DetachedSeat): string {
+        if (seat.held) {
+            const { place, stance } = standingAt(game.map, seat.held.position)
+            return `It stands ${stance} at ${place}. Tap an approach of the locale to block it.`
+        }
+        if (heldStack) {
+            return 'Now tap the locale it stands in.'
+        }
+        return seat.room === 0
+            ? `All ${MAX_FRENCH_DETACHMENTS} detachments are made.`
+            : 'Tap a unit to set it up on its own, then its locale on the map.'
+    }
+
+    function batteryGuidance(seat: FixedBatterySeat): string {
+        if (game.santon) {
+            return seat.unitId === undefined
+                ? 'Tap an artillery unit to make it the fixed battery. With the Santon in use it stands on the Santon.'
+                : 'The fixed battery holds the Santon. Tap it to take it back.'
+        }
+        if (seat.position?.approach !== undefined) {
+            return 'The fixed battery is placed. Tap another approach of its locale to turn it, or the battery to take it back.'
+        }
+        if (seat.position) {
+            return 'Now tap the approach the fixed battery blocks.'
+        }
+        return heldStack
+            ? 'Now tap the locale the fixed battery stands in.'
+            : 'Tap an artillery unit to make it the fixed battery: it blocks an approach and never moves again.'
+    }
+
+    const guidance = $derived.by(() => {
+        if (openCorps) {
+            return corpsGuidance(openCorps)
+        }
+        if (table?.detached?.open) {
+            return detachedGuidance(table.detached)
+        }
+        return table?.fixedBattery ? batteryGuidance(table.fixedBattery) : ''
     })
-    const batteryAim = $derived(
-        batteryPosition?.approach === undefined
-            ? undefined
-            : game.map.label(game.map.approach(batteryPosition.approach).neighbour)
-    )
-    const batteryOnTheSanton = $derived(
-        game.santon &&
-            batteryPosition?.locale === SANTON_LOCALE &&
-            batteryPosition.approach === undefined
-    )
 
-    function marker(unitId: string): string | undefined {
-        if (deployment?.fixedBattery?.unitId === unitId) {
-            return 'fixed battery'
+    const progress = $derived.by(() => {
+        if (!table) {
+            return ''
         }
-        return detached.has(unitId) ? 'detached' : undefined
+        if (table.unassigned > 0) {
+            const units = table.unassigned === 1 ? '1 unit' : `${table.unassigned} units`
+            return corpsToStart > 0
+                ? `${units} to assign · choose ${corpsToStart === 1 ? 'one more corps' : 'two corps'} to start on the map`
+                : `${units} to assign`
+        }
+        return table.problem ?? ''
+    })
+
+    // The seats scroll sideways on a narrow screen, and a destination can be opened from the map, so the open one is brought into the row's view. Only the row scrolls: the map stays under the finger that tapped it.
+    const keepOpenSeatInView: Attachment<HTMLElement> = (row) => {
+        void openKey
+        const seat = row.querySelector('.nt-setup-seat-open')?.getBoundingClientRect()
+        const view = row.getBoundingClientRect()
+        if (seat && seat.left < view.left) {
+            row.scrollLeft -= view.left - seat.left
+        } else if (seat && seat.right > view.right) {
+            row.scrollLeft += seat.right - view.right
+        }
     }
+
+    const ready = $derived(table?.unassigned === 0 && table.problem === undefined)
 </script>
 
-{#if deployment && side}
-    <div class="nt-setup">
-        <div class="nt-setup-prompt">
-            Organise your army. Tap a unit, then tap the corps it should join{side === Side.French
-                ? `, or a place on the map to detach it there (${deployment.detachments.length} of ${MAX_FRENCH_DETACHMENTS} detached)`
-                : ''}. To change where a corps stands, tap it on the map and then an approach of its
-            locale, or the locale to hold it in reserve.
-            {#if side === Side.French && deployment.fixedBattery}
-                {#if game.santon}
-                    One artillery unit is your fixed battery. With the Santon in use it stands on
-                    the Santon, in reserve, as one of your detachments, and cannot be moved. Other
-                    artillery of a corps within {DETACHMENT_REACH} locales of the Santon can take its
-                    place: pick it to make it the fixed battery.
-                {:else}
-                    One artillery unit is your fixed battery: it blocks an approach and never moves
-                    again. Pick it to aim it at another approach of its locale, or pick another
-                    artillery unit to make that one the fixed battery.
-                {/if}
-            {/if}
-        </div>
-        <div class="nt-setup-corps">
-            {#each deployment.corps as corps (corps.commanderId)}
-                {@const definition = commanderDefinition(corps.commanderId)}
-                <div
-                    class="nt-setup-card"
-                    class:nt-setup-short={corps.unitIds.length < definition.minimumUnits}
-                >
-                    <button
-                        type="button"
-                        class="nt-setup-name"
-                        disabled={picked === undefined || corps.unitIds.includes(picked)}
-                        onclick={() => gameSession.assignPickedTo(corps.commanderId)}
-                        aria-label="Give the picked unit to {definition.name}"
-                    >
-                        {definition.name}
-                        <span class="nt-setup-count"
-                            >{corps.unitIds.length}/{MAX_CORPS_UNITS} · min {definition.minimumUnits}</span
-                        >
-                    </button>
-                    <span
-                        class="nt-setup-stance"
-                        class:nt-setup-picked={gameSession.setupCorpsId === corps.commanderId}
-                        >{standing(corps)}</span
-                    >
-                    {#if chooseAdvanceGuard}
-                        <button
-                            type="button"
-                            class="nt-setup-stance"
-                            onclick={() => gameSession.toggleCorpsOffMap(corps.commanderId)}
-                            >{corps.offMap ? 'start on the map' : 'hold off the map'}</button
-                        >
-                    {/if}
-                    <div class="nt-setup-units">
-                        {#each corps.unitIds as unitId (unitId)}
-                            <UnitTile
-                                playerId={game.unit(unitId).playerId}
-                                face={game.unit(unitId).face}
-                                selected={picked === unitId}
-                                marker={marker(unitId)}
-                                label="Pick this unit"
-                                compact
-                                onclick={() => gameSession.pickSetupUnit(unitId)}
-                            />
-                        {/each}
-                    </div>
+{#snippet emptySlots(needed: number, room: number)}
+    {#each { length: needed }, index (index)}
+        <span class="nt-setup-slot nt-setup-slot-needed"></span>
+    {:else}
+        {#if room > 0}
+            <span class="nt-setup-slot"></span>
+        {/if}
+    {/each}
+{/snippet}
+
+{#if table && playerId}
+    <div class="nt-setup" style:--nt-army={gameSession.armyColors(playerId).block}>
+        <div class="nt-setup-prompt">{guidance}</div>
+        <div class="nt-setup-pool" aria-label="Units to assign">
+            {#each table.stacks as stack (faceName(stack.face))}
+                {@const name = faceName(stack.face)}
+                <div class="nt-setup-stack" class:nt-setup-stack-spent={stack.count === 0}>
+                    <UnitTile
+                        {playerId}
+                        face={stack.face}
+                        scale={POOL_SCALE}
+                        selected={stack.held}
+                        dimmed={!stack.offered}
+                        label={stack.held ? `Put the ${name} down` : `Take ${name}`}
+                        onclick={stack.offered ? () => gameSession.takeFromPool(stack) : undefined}
+                    />
+                    <span class="nt-setup-stack-count">×{stack.count}</span>
                 </div>
             {/each}
         </div>
-        <div class="nt-setup-footer">
-            {#if picked !== undefined}
-                {#if detached.has(picked) && !(game.santon && deployment.fixedBattery?.unitId === picked)}
-                    <button
-                        type="button"
-                        class="nt-plain-button"
-                        onclick={() => gameSession.recallDetachment(picked)}
-                        >Return it to its corps</button
-                    >
-                {/if}
-                {#if deployment.fixedBattery?.unitId === picked && batteryAim && !game.santon}
-                    <span class="nt-setup-hint"
-                        >The fixed battery faces {batteryAim}. Tap another approach of its locale to
-                        turn it there.</span
-                    >
-                {:else if deployment.fixedBattery?.unitId === picked && batteryOnTheSanton}
-                    <span class="nt-setup-hint"
-                        >The fixed battery stays on the Santon, in reserve, and can fire across any
-                        of its approaches.</span
-                    >
-                {/if}
-                {#if pickedIsArtillery && pickedOnMap && side === Side.French && gameSession.mayNameFixedBattery(picked)}
-                    <button
-                        type="button"
-                        class="nt-plain-button"
-                        onclick={() => gameSession.nameFixedBattery(picked)}
-                        >Make it the fixed battery</button
-                    >
-                {/if}
-            {/if}
-            {#if gameSession.setupPreview.problem}
-                <span class="nt-setup-problem">{gameSession.setupPreview.problem}</span>
-            {:else}
-                <button
-                    type="button"
-                    class="nt-plain-button nt-setup-commit"
-                    onclick={() => gameSession.commitSetup()}>Deploy the army</button
+        <div class="nt-setup-seats" {@attach keepOpenSeatInView}>
+            {#each table.corps as seat (seat.commanderId)}
+                {@const definition = commanderDefinition(seat.commanderId)}
+                {@const standing = standingOf(seat)}
+                <div
+                    class="nt-setup-seat"
+                    class:nt-setup-seat-open={seat.open}
+                    data-seat={seat.commanderId}
                 >
+                    <button
+                        type="button"
+                        class="nt-setup-head"
+                        aria-pressed={seat.open}
+                        aria-label="Open {definition.name}’s corps"
+                        onclick={() =>
+                            gameSession.openSetupDestination({
+                                kind: DestinationKind.Corps,
+                                commanderId: seat.commanderId
+                            })}
+                    >
+                        <span class="nt-setup-name">{definition.name}</span>
+                        <span class="nt-setup-where">{standing.place}</span>
+                        <span class="nt-setup-where">{standing.stance}</span>
+                    </button>
+                    {#if seat.mayStartOnMap !== undefined}
+                        <button
+                            type="button"
+                            class="nt-setup-switch"
+                            disabled={!seat.mayStartOnMap}
+                            onclick={() =>
+                                gameSession.startCorpsOnMap(seat.commanderId, seat.offMap)}
+                            >{seat.offMap ? 'start on map' : 'hold off map'}</button
+                        >
+                    {/if}
+                    <div class="nt-setup-slots">
+                        {#each seat.unitIds as unitId (unitId)}
+                            <UnitTile
+                                {playerId}
+                                face={game.unit(unitId).face}
+                                scale={SLOT_SCALE}
+                                label="Take this unit back"
+                                onclick={() => gameSession.returnToPool(unitId)}
+                            />
+                        {/each}
+                        {#each seat.creditedIds as unitId (unitId)}
+                            <span
+                                class="nt-setup-credited"
+                                title="Detached; counts towards this corps"
+                            >
+                                <UnitTile
+                                    {playerId}
+                                    face={game.unit(unitId).face}
+                                    scale={SLOT_SCALE}
+                                    dimmed
+                                    label="Detached unit that counts towards this corps"
+                                />
+                            </span>
+                        {/each}
+                        {@render emptySlots(seat.stillNeeded, seat.room)}
+                    </div>
+                </div>
+            {/each}
+            {#if table.fixedBattery}
+                {@const battery = table.fixedBattery}
+                <div
+                    class="nt-setup-seat"
+                    class:nt-setup-seat-open={battery.open}
+                    data-seat="fixed-battery"
+                >
+                    <button
+                        type="button"
+                        class="nt-setup-head"
+                        aria-pressed={battery.open}
+                        aria-label="Open the fixed battery"
+                        onclick={() =>
+                            gameSession.openSetupDestination({
+                                kind: DestinationKind.FixedBattery
+                            })}
+                    >
+                        <span class="nt-setup-name">Fixed battery</span>
+                        <span class="nt-setup-where">{batteryStanding.place}</span>
+                        <span class="nt-setup-where">{batteryStanding.stance}</span>
+                    </button>
+                    <div class="nt-setup-slots">
+                        {#if battery.unitId !== undefined}
+                            {@const unitId = battery.unitId}
+                            <UnitTile
+                                {playerId}
+                                face={game.unit(unitId).face}
+                                scale={SLOT_SCALE}
+                                label="Take this unit back"
+                                onclick={() => gameSession.returnToPool(unitId)}
+                            />
+                        {:else}
+                            {@render emptySlots(1, 1)}
+                        {/if}
+                    </div>
+                </div>
             {/if}
+            {#if table.detached}
+                {@const detached = table.detached}
+                <div
+                    class="nt-setup-seat"
+                    class:nt-setup-seat-open={detached.open}
+                    data-seat="detached"
+                >
+                    <button
+                        type="button"
+                        class="nt-setup-head"
+                        aria-pressed={detached.open}
+                        aria-label="Open the detached units"
+                        onclick={() =>
+                            gameSession.openSetupDestination({ kind: DestinationKind.Detached })}
+                    >
+                        <span class="nt-setup-name">Detached</span>
+                        <span class="nt-setup-where">on their own</span>
+                        <span class="nt-setup-where">{detached.room} left</span>
+                    </button>
+                    <div class="nt-setup-slots">
+                        {#each detached.unitIds as unitId (unitId)}
+                            <UnitTile
+                                {playerId}
+                                face={game.unit(unitId).face}
+                                scale={SLOT_SCALE}
+                                selected={detached.held?.unitId === unitId}
+                                label="Take this unit back"
+                                onclick={() => gameSession.returnToPool(unitId)}
+                            />
+                        {/each}
+                        {@render emptySlots(0, detached.room)}
+                    </div>
+                </div>
+            {/if}
+        </div>
+        <div class="nt-setup-footer">
+            <button
+                type="button"
+                class="nt-plain-button"
+                disabled={!ready}
+                onclick={() => gameSession.commitSetup()}>Deploy the army</button
+            >
+            <span class="nt-setup-progress" class:nt-setup-problem={table.unassigned === 0}
+                >{progress}</span
+            >
         </div>
     </div>
 {/if}
 
 <style>
     .nt-setup {
+        --nt-slot-width: 83px;
+        --nt-slot-height: 23px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 7px;
         font-size: 13px;
     }
 
     .nt-setup-prompt {
         font-size: 15px;
-        max-width: 90ch;
         line-height: 1.3;
+        min-height: 1.3em;
     }
 
-    .nt-setup-corps {
+    .nt-setup-pool {
         display: flex;
-        gap: 6px;
+        flex-wrap: wrap;
+        gap: 2px 8px;
+    }
+
+    .nt-setup-stack {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .nt-setup-stack-count {
+        min-width: 2.2ch;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .nt-setup-stack-spent {
+        opacity: 0.35;
+    }
+
+    .nt-setup-seats {
+        display: flex;
+        gap: 5px;
         overflow-x: auto;
     }
 
-    .nt-setup-card {
+    .nt-setup-seat {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 3px;
         flex: none;
-        width: 108px;
-        padding: 5px 6px 4px;
+        padding: 5px 5px 5px;
         border-radius: 3px;
-        background: color-mix(in srgb, var(--nt-ink) 7%, transparent);
+        background: color-mix(in srgb, var(--nt-ink) 6%, transparent);
     }
 
-    .nt-setup-short .nt-setup-name {
-        color: var(--nt-warn);
+    .nt-setup-seat-open {
+        background: color-mix(in srgb, var(--nt-ink) 19%, transparent);
     }
 
-    .nt-setup-name {
+    .nt-setup-head {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        font-style: italic;
-        font-size: 14px;
-        line-height: 1.15;
+        width: var(--nt-slot-width);
         text-align: left;
-    }
-
-    .nt-setup-name:not([disabled]) {
-        text-decoration: underline;
+        line-height: 1.15;
         cursor: pointer;
     }
 
-    .nt-setup-count {
-        font-style: normal;
-        font-size: 11px;
-        opacity: 0.7;
+    .nt-setup-name {
+        font-style: italic;
+        font-size: 13px;
+        white-space: nowrap;
     }
 
-    .nt-setup-stance {
-        font-size: 11px;
+    .nt-setup-where {
+        min-height: 1.15em;
+        font-size: 10.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        opacity: 0.8;
+    }
+
+    .nt-setup-switch {
+        width: var(--nt-slot-width);
+        font-size: 10.5px;
         line-height: 1.15;
         text-align: left;
-    }
-
-    button.nt-setup-stance {
+        white-space: nowrap;
         text-decoration: underline dotted;
     }
 
-    .nt-setup-picked {
-        font-weight: 700;
+    .nt-setup-switch[disabled] {
+        opacity: 0.4;
+        text-decoration: none;
     }
 
-    .nt-setup-units {
+    .nt-setup-slots {
         display: flex;
         flex-direction: column;
-        margin-top: 2px;
+        gap: 1px;
+    }
+
+    .nt-setup-slots :global(.nt-unit-tile) {
+        height: var(--nt-slot-height);
+        justify-content: center;
+    }
+
+    .nt-setup-credited {
+        display: flex;
+    }
+
+    .nt-setup-slot {
+        width: var(--nt-slot-width);
+        height: var(--nt-slot-height);
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--nt-ink) 5%, transparent);
+        background-clip: content-box;
+        padding: 3px 2px;
+    }
+
+    .nt-setup-slot-needed {
+        background-color: color-mix(in srgb, var(--nt-army) 30%, transparent);
     }
 
     .nt-setup-footer {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+    }
+
+    .nt-setup-footer .nt-plain-button[disabled] {
+        opacity: 0.4;
+    }
+
+    .nt-setup-progress {
+        opacity: 0.8;
     }
 
     .nt-setup-problem {
         color: var(--nt-warn);
-    }
-
-    .nt-setup-hint {
-        opacity: 0.75;
+        opacity: 1;
     }
 </style>

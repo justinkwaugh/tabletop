@@ -32,7 +32,13 @@
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { battleLocalesOf } from '$lib/model/battleStage.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
-    import { boundsOf, nextView, viewFor } from '$lib/utils/boardView.js'
+    import {
+        boundsOf,
+        focusWhereSeen,
+        nextView,
+        viewFor,
+        type Focus
+    } from '$lib/utils/boardView.js'
     import { commandTrackCorners } from '$lib/utils/commandTrack.js'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
@@ -151,8 +157,87 @@
         }
     }
 
+    const SETUP_FOCUS = { maxScale: 0.62, padding: 40 }
+    const SEAT_FOCUS = { maxScale: 0.8, padding: 36 }
+
+    // On a small screen the panel above the map is tall and the map's lower part is below the fold, so a set-up focus is aimed at the part of the map on screen.
+    function focusWhereSeenOnSetup(locales: number[], focus: Focus, animate: boolean) {
+        if (!boardHost || locales.length === 0) return
+        const host = boardHost.getBoundingClientRect()
+        const seenHeight = Math.min(host.bottom, window.innerHeight) - host.top
+        const { rect, ...where } = focusWhereSeen(
+            boundsOf(outlines(locales), session.boardRotation),
+            { width: host.width, height: host.height, seenHeight },
+            focus
+        )
+        wrapper?.focusRect(rect, { animate, ...where })
+    }
+
+    function showSetupArea(animate: boolean) {
+        focusWhereSeenOnSetup(
+            session.setupLocales.map((entry) => entry.locale),
+            SETUP_FOCUS,
+            animate
+        )
+    }
+
+    // The same width at which the styles below treat the screen as a small one.
+    const SMALL_SCREEN = '(max-width: 639px)'
+
+    // On a small screen the view closes in on the seat just opened: a corps's set-up locale and the locales around it, or the locale the fixed battery stands in. A seat with no one place on the map (a corps held off it, the detached units, a fixed battery not yet placed) gets the whole set-up area back.
+    function closeInOnOpenSeat(animate: boolean) {
+        const battery = session.setupTable?.fixedBattery
+        const locale =
+            session.setupLocales.find((entry) => entry.open)?.locale ??
+            (battery?.open ? battery.position?.locale : undefined)
+        if (locale === undefined) {
+            showSetupArea(animate)
+            return
+        }
+        focusWhereSeenOnSetup(
+            [locale, ...session.gameState.map.adjacentLocales(locale)],
+            SEAT_FOCUS,
+            animate
+        )
+    }
+
+    // A wide screen shows the whole set-up area, so the view stays as it is unless it has been moved off the open corps's locale, which is then brought back in at the zoom the board has.
+    function keepOpenSeatInView(animate: boolean) {
+        const open = session.setupLocales.find((entry) => entry.open)
+        const shape =
+            open &&
+            boardHost?.querySelector(`[data-setup-locale="${CSS.escape(open.commanderId)}"]`)
+        if (!open || !shape || !boardHost) return
+        const at = shape.getBoundingClientRect()
+        const view = boardHost.getBoundingClientRect()
+        const inView =
+            at.left >= view.left &&
+            at.right <= view.right &&
+            at.top >= view.top &&
+            at.bottom <= view.bottom
+        if (!inView) {
+            wrapper?.focusRect(boundsOf(outlines([open.locale]), session.boardRotation), {
+                animate,
+                maxScale: session.zoom,
+                padding: UNCOVERED_PADDING
+            })
+        }
+    }
+
+    function showOpenSeat(animate: boolean) {
+        if (window.matchMedia(SMALL_SCREEN).matches) {
+            closeInOnOpenSeat(animate)
+        } else {
+            keepOpenSeatInView(animate)
+        }
+    }
+
     async function showPickedUp(animate: boolean) {
         await tick()
+        if (session.isDeploying) {
+            showOpenSeat(animate)
+            return
+        }
         const group = session.selectedGroup
         if (!group) return
         const sheet = table?.querySelector('.nt-orders-drawer')
@@ -190,6 +275,23 @@
         if (to.roadMarch && !from?.roadMarch) {
             animationContext.afterAnimations(() => void showPickedUp(action !== undefined))
         }
+        if (to.machineState !== from?.machineState) {
+            animationContext.afterAnimations(() => void showSetup())
+        }
+    }
+
+    let showingSetup = false
+
+    // A set-up opens on the locales the army sets up in, so every corps can be found on the map before any seat is tapped; when it is over the whole field comes back.
+    async function showSetup() {
+        await tick()
+        if (session.isDeploying && session.setupLocales.length > 0 && !showingSetup) {
+            showingSetup = true
+            showSetupArea(false)
+        } else if (!session.isDeploying && showingSetup) {
+            showingSetup = false
+            wrapper?.fitToContent()
+        }
     }
 
     // The armies sit along the long sides of the board (rule 4 map), so a wide screen opens turned to the viewer's side.
@@ -198,6 +300,7 @@
             session.boardView = viewFor(session.mySide)
         }
         showBattle(session.battleLocales, false)
+        void showSetup()
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
         const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())

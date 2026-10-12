@@ -178,13 +178,21 @@ export function arrowsToKeepClear(approachIds: readonly number[], zoom: number):
     )
 }
 
+/** A commander's flag standing where its corps will set up, before the corps has any units to carry it. */
+export interface PlantedFlag {
+    commanderId: string
+    at: Point
+    colors: ArmyColors
+}
+
 export function flagMarks(
     sprites: readonly GroupSprite[],
     view: FlagView,
     keepClear: Point[],
-    bearerOf: (group: PieceGroup) => FlagBearer
+    bearerOf: (group: PieceGroup) => FlagBearer,
+    planted: readonly PlantedFlag[] = []
 ): FlagMark[] {
-    const standing = sprites.flatMap((sprite) => {
+    const carried = sprites.flatMap((sprite) => {
         const { commander, units, key } = sprite.group
         if (!commander || !sprite.flagFeetByPreference) {
             return []
@@ -200,6 +208,18 @@ export function flagMarks(
             hasCommanded
         }
     })
+    const standing = [
+        ...carried,
+        ...planted.map(({ commanderId, at, colors }) => ({
+            key: `planted:${commanderId}`,
+            feetByPreference: [at],
+            name: commanderDefinition(commanderId).name,
+            colors,
+            count: 0,
+            tallies: [],
+            hasCommanded: false
+        }))
+    ]
     const placements = placeFlags(
         standing.map(({ key, feetByPreference, name, tallies }) => ({
             key,

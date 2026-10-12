@@ -13,6 +13,7 @@
     import FlagLayer from './board/FlagLayer.svelte'
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
+    import SetupLocales from './board/SetupLocales.svelte'
 
     const gameSession = getGameSession()
 
@@ -57,6 +58,7 @@
             <ApproachBars />
             <CommandDiscs />
             <HeldApproaches approaches={gameSession.heldApproaches} />
+            <SetupLocales />
             <TargetLayer />
             <PiecesLayer />
             <ApproachSymbols />

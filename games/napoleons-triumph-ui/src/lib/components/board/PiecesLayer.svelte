@@ -73,15 +73,14 @@
         {/each}
     </g>
 {/each}
-{#if gameSession.selectedSprite}
-    {@const sprite = gameSession.selectedSprite}
+{#each gameSession.ringedSprites as sprite (sprite.group.key)}
     <circle
         cx={sprite.centre.x}
         cy={sprite.centre.y}
         r={sprite.radius + 10}
         class="nt-selection-ring"
     ></circle>
-{/if}
+{/each}
 
 <style>
     .nt-selectable {

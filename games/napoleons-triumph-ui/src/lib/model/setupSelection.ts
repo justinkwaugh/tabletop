@@ -1,60 +1,64 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
-import type { Deployment } from '@tabletop/napoleons-triumph'
+import type { ArmySetup } from './armySetup.js'
 import { stagedSelection } from './stagedSelection.js'
 
+export enum DestinationKind {
+    Corps = 'Corps',
+    Detached = 'Detached',
+    FixedBattery = 'FixedBattery'
+}
+
+/** Where units tapped in the pool go next: a corps, a post of their own, or the fixed battery's post. */
+export type SetupDestination =
+    | { kind: DestinationKind.Corps; commanderId: string }
+    | { kind: DestinationKind.Detached }
+    | { kind: DestinationKind.FixedBattery }
+
+/** The set-up after one tap: the army as arranged, the destination open, and the unit in hand that the map is placing. */
+export interface SetupStep {
+    setup: ArmySetup
+    open: SetupDestination
+    heldUnitId?: string
+}
+
 type SetupSelectionValues = {
-    edits: Deployment[]
-    unit: string
-    corps: string
+    steps: SetupStep[]
 }
 
 export type SetupSelection = StagedSelectionState<SetupSelectionValues>
 
-const setupSelection = stagedSelection<SetupSelectionValues>()(['edits', 'unit', 'corps'])
+const setupSelection = stagedSelection<SetupSelectionValues>()(['steps'])
 
 export function noSetupSelection(): SetupSelection {
     return setupSelection.empty()
 }
 
-export function editedDeployment(selection: SetupSelection): Deployment | undefined {
-    return setupSelection.value(selection, 'edits')?.at(-1)
+export function latestSetupStep(selection: SetupSelection): SetupStep | undefined {
+    return setupSelection.value(selection, 'steps')?.at(-1)
 }
 
-export function pickedSetupUnit(selection: SetupSelection): string | undefined {
-    return setupSelection.value(selection, 'unit')
+export function sameDestination(a: SetupDestination, b: SetupDestination): boolean {
+    return (
+        a.kind === b.kind &&
+        (a.kind !== DestinationKind.Corps ||
+            b.kind !== DestinationKind.Corps ||
+            a.commanderId === b.commanderId)
+    )
 }
 
-export function recordSetupEdit(selection: SetupSelection, deployment: Deployment): SetupSelection {
-    const edits = setupSelection.value(selection, 'edits') ?? []
-    return setupSelection.set(selection, 'edits', [...edits, deployment], 'manual')
-}
-
-export function toggleSetupUnit(selection: SetupSelection, unitId: string): SetupSelection {
-    return pickedSetupUnit(selection) === unitId
-        ? setupSelection.clearFrom(selection, 'unit')
-        : setupSelection.set(selection, 'unit', unitId, 'manual')
-}
-
-export function pickedSetupCorps(selection: SetupSelection): string | undefined {
-    return setupSelection.value(selection, 'corps')
-}
-
-export function toggleSetupCorps(selection: SetupSelection, commanderId: string): SetupSelection {
-    const putDown = setupSelection.clearFrom(selection, 'unit')
-    return pickedSetupCorps(selection) === commanderId
-        ? putDown
-        : setupSelection.set(putDown, 'corps', commanderId, 'manual')
+export function recordSetupStep(selection: SetupSelection, step: SetupStep): SetupSelection {
+    const steps = setupSelection.value(selection, 'steps') ?? []
+    return setupSelection.set(selection, 'steps', [...steps, step], 'manual')
 }
 
 export function hasManualSetupSelection(selection: SetupSelection): boolean {
     return setupSelection.hasManual(selection)
 }
 
+/** Each tap of the set-up is a step of its own, so Undo takes back one tap at a time. */
 export function undoSetupSelection(selection: SetupSelection): SetupSelection {
-    const edits = setupSelection.value(selection, 'edits') ?? []
-    const picked = pickedSetupUnit(selection) ?? pickedSetupCorps(selection)
-    if (picked !== undefined || edits.length <= 1) {
-        return setupSelection.undo(selection)
-    }
-    return setupSelection.set(selection, 'edits', edits.slice(0, -1), 'manual')
+    const steps = setupSelection.value(selection, 'steps') ?? []
+    return steps.length <= 1
+        ? setupSelection.undo(selection)
+        : setupSelection.set(selection, 'steps', steps.slice(0, -1), 'manual')
 }

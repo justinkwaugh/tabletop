@@ -123,7 +123,11 @@
                 {#if detached.length > 0}
                     <div class="nt-corps">
                         <div class="nt-corps-head">
-                            <span class="nt-corps-name">Detached</span>
+                            <span class="nt-corps-name"
+                                >{detached.some((unit) => unit.position)
+                                    ? 'Detached'
+                                    : 'To set up'}</span
+                            >
                             <span class="nt-corps-where">{strength(detached)}</span>
                         </div>
                         {#if detached.some((unit) => gameSession.visibleFace(unit))}
