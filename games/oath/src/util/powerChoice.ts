@@ -35,6 +35,13 @@ export interface ChoiceSpec {
     fromRevision?: OathRevision
     /** R-X.4 — asked only in a game created before this revision. */
     beforeRevision?: OathRevision
+    /**
+     * Warbands: the specs of this kind and domain name this many warbands together, or every one
+     * the domain holds when it holds fewer (Terror Spells' "two"). The effect's own check reads it.
+     */
+    together?: number
+    /** Warbands: the count goes in multiples of it (Blood Pact's "an even number"). */
+    step?: number
 }
 
 export function exchangeAllowanceOf(spec: ChoiceSpec): ExchangeAllowance {
