@@ -22,10 +22,10 @@ import {
     emptyPicks,
     isMay,
     isOr,
+    openRunBanks,
     optionIndexOf,
     picksComplete,
     powerChoicesFrom,
-    runBankOpen,
     runCeilingAt,
     runSuits,
     withBranch,
@@ -145,10 +145,41 @@ describe('Salad Days — one row of the banks, three different, an empty one shu
     })
 
     it('an empty bank is shut while three banks hold favor, and open when fewer do', () => {
-        const run = onlyRun(bankRuns(offered(SALAD)))
-        expect(runBankOpen(run, 0, 5)).toBe(false)
-        expect(runBankOpen(run, 2, 5)).toBe(true)
-        expect(runBankOpen(run, 0, 2)).toBe(true)
+        const choices = offered(SALAD)
+        const run = onlyRun(bankRuns(choices))
+        const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
+        expect(openRunBanks(run, all, [], BANKS)).toEqual([Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast])
+        const two = { ...BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
+        expect(openRunBanks(run, all, [], two)).toEqual(all)
+    })
+
+    // Revision 8: "while fewer than three banks hold favor, every bank that holds favor must be named".
+    it('with two banks holding favor, one empty bank fills the third and no more, so three empty banks are never picked', () => {
+        const two = { ...BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
+        const choices = offered(SALAD, table({}, { favorBank: two }))
+        const run = onlyRun(bankRuns(choices))
+        const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
+        const oneEmpty = withRunToggled(run, choices, emptyPicks(), Suit.Discord)
+        expect(openRunBanks(run, all, runSuits(run, choices, oneEmpty), two)).toEqual([Suit.Order, Suit.Hearth])
+        // Tapping the empty banks first, each only while it is open, still names both banks that hold favor.
+        const tapped = [Suit.Discord, Suit.Arcane, Suit.Beast, Suit.Nomad, Suit.Order, Suit.Hearth].reduce(
+            (picks, suit) =>
+                openRunBanks(run, all, runSuits(run, choices, picks), two).includes(suit)
+                    ? withRunToggled(run, choices, picks, suit)
+                    : picks,
+            emptyPicks()
+        )
+        expect(runSuits(run, choices, tapped)).toEqual([Suit.Discord, Suit.Order, Suit.Hearth])
+        expect(picksComplete(choices, tapped)).toBe(true)
+    })
+
+    it('with no bank holding favor, any three are named', () => {
+        const none = { ...BANKS, [Suit.Order]: 0, [Suit.Hearth]: 0, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
+        const choices = offered(SALAD, table({}, { favorBank: none }))
+        const run = onlyRun(bankRuns(choices))
+        const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
+        const twoEmpty = [Suit.Discord, Suit.Arcane].reduce((p, suit) => withRunToggled(run, choices, p, suit), emptyPicks())
+        expect(openRunBanks(run, all, runSuits(run, choices, twoEmpty), none)).toEqual([Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad])
     })
 })
 

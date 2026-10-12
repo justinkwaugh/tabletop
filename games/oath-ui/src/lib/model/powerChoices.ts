@@ -430,11 +430,23 @@ export function withRunToggled(
 }
 
 /**
- * R-7.1.3 — a distinct run's empty bank is not offered while enough banks hold favor to fill the
- * run without it; with fewer, the empty banks fill the rest.
+ * R-7.1.3 — the banks a distinct run may still name: while it has room, every offered bank that
+ * holds favor, and an empty one only while the room left keeps a place for each bank that holds
+ * favor and is not yet named. So the empty banks fill only what the banks with favor leave, and
+ * with fewer than three holding favor Salad Days names every one that does (revision 8).
  */
-export function runBankOpen(run: BankRun, favor: number, banksWithFavor: number): boolean {
-    return favor > 0 || banksWithFavor < run.total
+export function openRunBanks(
+    run: BankRun,
+    offered: readonly Suit[],
+    named: readonly Suit[],
+    favor: Readonly<Record<Suit, number>>
+): Suit[] {
+    const room = run.total - named.length
+    if (room <= 0) return []
+    const holdingLeft = offered.filter((suit) => favor[suit] > 0 && !named.includes(suit)).length
+    return offered.filter(
+        (suit) => !named.includes(suit) && (favor[suit] > 0 || holdingLeft < room)
+    )
 }
 
 // No default where the player has a choice: a required spec with one legal value starts on it,

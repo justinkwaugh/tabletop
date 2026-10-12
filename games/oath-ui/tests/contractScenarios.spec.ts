@@ -8411,6 +8411,19 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
         await expect(play(page)).toBeVisible()
     })
 
+    test('Salad Days with two banks holding favor: once an empty bank fills the third, no other empty bank opens', async ({ page }) => {
+        await keepAsAdviser(page, 'pickerSaladShort', 'Salad Days')
+        const bank = (name: string) => grid(page).getByRole('button', { name: new RegExp(`^${name} bank, \\d favor$`) })
+        await bank('Nomad').click()
+        for (const name of ['Discord', 'Arcane', 'Beast']) await expect(bank(name)).toBeDisabled()
+        await expect(bank('Order')).toBeEnabled()
+        await expect(bank('Hearth')).toBeEnabled()
+        await bank('Order').click()
+        await expect(play(page)).toHaveCount(0)
+        await bank('Hearth').click()
+        await expect(play(page)).toBeVisible()
+    })
+
     test('Royal Ambitions: "Become a Citizen" a row, off, Play at once; on, the relics as backs, none picked, Play waits', async ({ page }) => {
         await keepAsAdviser(page, 'pickerMay', 'Royal Ambitions')
         const row = grid(page).getByRole('button', { name: /Become a Citizen/ })

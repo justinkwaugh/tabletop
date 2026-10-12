@@ -60,10 +60,10 @@
         mayOf,
         NO_OPTION,
         openCountCeiling,
+        openRunBanks,
         optionIndexOf,
         playerOptions,
         runAt,
-        runBankOpen,
         runCeilingAt,
         runSuits,
         warbandGrids,
@@ -238,13 +238,12 @@
         <TokenText text={words.banks?.(run.total) ?? `${legal.spec.what ?? 'a favor bank'}:`} />
     </div>
     {#if run.distinct}
-        {@const banksWithFavor = offered.filter((suit) => favorBank[suit] > 0).length}
+        {@const open = openRunBanks(run, offered, suits, favorBank)}
         <SuitPicker
             framed
             suits={offered}
             picked={suits}
-            open={(suit) =>
-                suits.length < run.total && runBankOpen(run, favorBank[suit], banksWithFavor)}
+            open={(suit) => open.includes(suit)}
             onpick={(suit) => tapRunBank(run, suit)}
             {busy}
         />
