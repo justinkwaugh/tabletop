@@ -1,4 +1,8 @@
 <script lang="ts">
+    // Instance-scoped SVG ids, so two of these on one page never resolve each other's defs.
+    const uid = $props.id()
+    const svgId = (name: string) => `${uid}-${name}`
+
     import { onMount } from 'svelte'
     import { Color } from '@tabletop/common'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
@@ -580,31 +584,31 @@
          {@attach attachAnimator(droughtDust)}
          {@attach attachAnimator(session.landMoodAnimator)}>
         <defs>
-            <clipPath id="canalReveal">
+            <clipPath id={svgId('canalReveal')}>
                 <rect x="0" y="0" width={W} height={H}
                       {@attach (el: SVGRectElement) => {
                           canalBuild.setRevealRect(el)
                           return () => canalBuild.setRevealRect(undefined)
                       }} />
             </clipPath>
-            <radialGradient id="droughtDust">
+            <radialGradient id={svgId('droughtDust')}>
                 <stop offset="0%" stop-color="rgb(238, 214, 172)" stop-opacity="1"/>
                 <stop offset="60%" stop-color="rgb(228, 200, 154)" stop-opacity="0.75"/>
                 <stop offset="100%" stop-color="rgb(218, 188, 140)" stop-opacity="0"/>
             </radialGradient>
-            <linearGradient id="surveyStakeWood" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={svgId('surveyStakeWood')} x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stop-color="#f0c48a"/>
                 <stop offset="100%" stop-color="#b47a42"/>
             </linearGradient>
             <!-- Horizontal piece: lighter on top edge (light from above) -->
-            <linearGradient id="canalH" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={svgId('canalH')} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   stop-color="#8888cc"/>
                 <stop offset="18%"  stop-color="#2222aa"/>
                 <stop offset="65%"  stop-color="#0000a0"/>
                 <stop offset="100%" stop-color="#000081"/>
             </linearGradient>
             <!-- Vertical piece: lighter on left edge -->
-            <linearGradient id="canalV" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={svgId('canalV')} x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%"   stop-color="#8888cc"/>
                 <stop offset="18%"  stop-color="#2222aa"/>
                 <stop offset="65%"  stop-color="#0000a0"/>
@@ -615,13 +619,13 @@
                  show the same color right at the joint, instead of their differently
                  -oriented tube-shading clashing there. Fully transparent in the middle,
                  so the shading still shows along most of a segment's length. -->
-            <linearGradient id="canalFadeH" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={svgId('canalFadeH')} x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%"   stop-color="#0000a0" stop-opacity="1"/>
                 <stop offset="15%"  stop-color="#0000a0" stop-opacity="0"/>
                 <stop offset="85%"  stop-color="#0000a0" stop-opacity="0"/>
                 <stop offset="100%" stop-color="#0000a0" stop-opacity="1"/>
             </linearGradient>
-            <linearGradient id="canalFadeV" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={svgId('canalFadeV')} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   stop-color="#0000a0" stop-opacity="1"/>
                 <stop offset="15%"  stop-color="#0000a0" stop-opacity="0"/>
                 <stop offset="85%"  stop-color="#0000a0" stop-opacity="0"/>
@@ -630,7 +634,7 @@
             <!-- Self-similar radial gradient — since it's relative to the pulse circle's
                  own (animated) radius, the light band always sits near its current outer
                  edge, reading as a wavefront rippling outward as the circle grows. -->
-            <radialGradient id="springPulseGradient">
+            <radialGradient id={svgId('springPulseGradient')}>
                 <stop offset="0%"   stop-color="#7dd3fc" stop-opacity="0"/>
                 <stop offset="55%"  stop-color="#7dd3fc" stop-opacity="0"/>
                 <stop offset="80%"  stop-color="#bee7fd" stop-opacity="0.85"/>
@@ -643,7 +647,7 @@
                  only the small sliver between the sharp point and the fillet arc is actually
                  hidden. What shows through there is the board's own background underneath the
                  canal overlay — a natural look for a rounded canal bend. -->
-            <mask id="canalCornerMask" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
+            <mask id={svgId('canalCornerMask')} maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
                 <rect x="0" y="0" width={W} height={H} fill="white" />
                 {#each canalCornerFillets as f, i (i)}
                     <rect x={Math.min(f.cx, f.cx + f.ox * CANAL_FILLET_RADIUS)}
@@ -661,13 +665,13 @@
              so adjoining segments tile together seamlessly with no separate joint patch.
              The mask then softens each junction's one genuinely exposed corner with a
              small curve (see canalCornerMask above). -->
-        <g mask="url(#canalCornerMask)">
+        <g mask="url(#{svgId('canalCornerMask')})">
             {#each boardCanals as seg (segmentKey(seg))}
                 {@const isH = seg.orientation === 'H'}
                 {@const d = canalPathD(seg, canalJunctionKeys)}
-                <g clip-path={segmentKey(seg) === canalBuild.revealingKey ? 'url(#canalReveal)' : undefined}>
-                    <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
-                    <path {d} fill={isH ? 'url(#canalFadeH)' : 'url(#canalFadeV)'}/>
+                <g clip-path={segmentKey(seg) === canalBuild.revealingKey ? `url(#${svgId('canalReveal')})` : undefined}>
+                    <path {d} fill={isH ? `url(#${svgId('canalH')})` : `url(#${svgId('canalV')})`}/>
+                    <path {d} fill={isH ? `url(#${svgId('canalFadeH')})` : `url(#${svgId('canalFadeV')})`}/>
                 </g>
             {/each}
         </g>
@@ -687,7 +691,7 @@
         {#each droughtDust.puffs as puff (puff.key)}
             <g transform="translate({puff.x} {puff.y})">
                 {#each { length: DUST_PARTICLES } as _, i (i)}
-                    <circle r={7 + (i % 3) * 2.5} fill="url(#droughtDust)" opacity="0"
+                    <circle r={7 + (i % 3) * 2.5} fill="url(#{svgId('droughtDust')})" opacity="0"
                             {@attach droughtDust.particle(dustParticleKey(puff.key, i))} />
                 {/each}
             </g>
@@ -754,6 +758,7 @@
                    return () => canalBuild.setSurveyNode(key, undefined)
                }}>
             <SurveyLine
+                stakeWood={`url(#${svgId('surveyStakeWood')})`}
                 {...c}
                 selected={session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
                 selectedColor={session.myPlayer ? playerColor(session.myPlayer.id) : undefined}
@@ -816,7 +821,7 @@
                 cx={intersectionX(session.gameState.board.spring.col)}
                 cy={intersectionY(session.gameState.board.spring.row)}
                 r="0"
-                fill="url(#springPulseGradient)"
+                fill="url(#{svgId('springPulseGradient')})"
                 class={session.gameState.board.canals.length > 0 ? 'spring-pulse-slow' : 'spring-pulse'}
             /> -->
         {:else if session.isSpringPlacementTurn}

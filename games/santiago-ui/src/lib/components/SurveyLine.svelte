@@ -11,6 +11,7 @@
         bunting,
         selectedColor,
         fillsFromFarEnd = false,
+        stakeWood,
         children
     }: {
         x1: number
@@ -22,6 +23,8 @@
         bunting?: string[]
         selectedColor?: string
         fillsFromFarEnd?: boolean
+        // The fill for the stakes, a gradient the board defines once for every spot.
+        stakeWood: string
         children?: Snippet
     } = $props()
 
@@ -88,7 +91,7 @@
         width="6"
         height={STAKE_HEIGHT}
         rx="1.5"
-        fill="url(#surveyStakeWood)"
+        fill={stakeWood}
         stroke="rgba(80, 42, 14, 0.7)"
         stroke-width="0.8"
     ></rect>
