@@ -1,6 +1,6 @@
 # Parallel Spans: working design
 
-**Status:** design agreed in discussion, 2026-10-12. No engine work has started, and nothing here has been tested against the engine. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
+**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host, the Game Client and Stellar Horizons are not started. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
 
 ## The model in brief
 
@@ -92,13 +92,13 @@ _Avoid_: presented state
 
 1. **One machine.** A Branch is the Game Title's regular Game State Machine run in parallel, not a second machine. No extra Machine State Handlers are registered for it, and inside a Branch a handler sees an ordinary Game State.
 2. **A Branch closes where it started.** It leaves the Branching Machine State, passes through whatever Machine States its play needs, and is closed when it is back. In a Hosted Game the Main Line itself stays in that Machine State until a Merge runs a Branch through it.
-3. **The Branching Machine State is a marker, not a place to play.** Game Titles differ in how they lay out Machine States, and many re-enter a Machine State after each Action. That is why the state that marks branching is a dedicated one: returning to it can then mean only one thing, that the Branch is closed. A Machine State where Players take Actions is never the Branching Machine State, and no User Action is valid in it.
+3. **The Branching Machine State is a marker, not a place to play.** Game Titles differ in how they lay out Machine States, and many re-enter a Machine State after each Action. That is why the state that marks branching is a dedicated one: returning to it can then mean only one thing, that the Branch is closed. A Machine State where Players take Actions is never the Branching Machine State, and no User Action is valid in it. Its entry behaviour runs every time it is entered, as for any Machine State: when the span begins and each time a Branch returns. A return is part of that Branch, so the Branch Scope check applies to it. Work done once per span, such as dealing, belongs to the Action or Machine State that leads into the span, not to this entry.
 4. **The engine opens every Branch with Branch Start.** Entry into the first Machine State of play may carry a Player with nothing to do straight through, so their Branch closes with no User Action at all.
 5. **Only Span Completion ends a span.** If the last Player's Action moved the machine on for good, that Branch would run differently on the Main Line than it ran privately. A span in which no Player has anything to do completes at once, because every Branch Start runs through.
-6. **Branch Start and Span Completion are steps of their own.** No handler queues them and they belong to no User Action's cascade. Whoever owns the history, the Game Client in a Local Game or the host in a Hosted Game, asks the engine to advance the span whenever the Main Line rests in the Branching Machine State: open the next Branch, or complete the span once every Branch is on the Main Line. Executing a Player's Action never does either, so an Action runs the same privately, in a Local Game and in a Merge.
+6. **Branch Start and Span Completion are steps of their own.** No handler queues them and they belong to no User Action's cascade. Whoever owns the history, the Game Client in a Local Game or the host in a Hosted Game, asks the engine to advance the span whenever the Main Line rests in the Branching Machine State: open the next Branch, or complete the span once every Branch is on the Main Line. Executing a Player's Action never does either, so an Action runs the same privately, in a Local Game and in a Merge. Their identities are fixed when the span begins and held in the span record, and the engine recognises each by its identity. A recorded Branch Start therefore opens its Branch again when replayed on its own, and nothing but the span's own Span Completion can end it. A Branch must end its cascade when it closes: no System Action may still be waiting.
 7. **A Local Game plays Branches on the Main Line, one at a time.** It has no Unmerged Branches. Branches are opened in Merge Order: the first on entering the span, the next when the one before closes. This is why rule 2 is required and not only convenient.
-8. **Inside a Branch the only Active Player is that Branch's Player,** until it closes. In a Local Game that is the Player whose Branch is being played on the Main Line, so the Game Client's existing choice of Acting Player follows the Merge Order without change.
-9. **Game State records the span.** A Branch can take the Main Line through other Machine States, so the current Machine State cannot say whether a span is in progress. Game State records the span's Branch Point, its Players, which Players' Branches are on the Main Line, and whose Branch is being played, if any. That last entry is how a handler or a System Action knows whose Branch it is in. Whether an Unmerged Branch has closed is not in Game State, which changes only through main-line Actions; it is on the Branch's own record and on the Game.
+8. **Inside a Branch the only Active Player is that Branch's Player,** until it closes. The engine sets Active Players throughout a span; handlers do not. Between Branches the Active Players are those whose Branches are not yet on the Main Line. In a Local Game that is the Player whose Branch is being played on the Main Line, so the Game Client's existing choice of Acting Player follows the Merge Order without change.
+9. **Game State records the span.** A Branch can take the Main Line through other Machine States, so the current Machine State cannot say whether a span is in progress. Game State records the span's Branch Point, its Players, which Players' Branches are on the Main Line, whose Branch is being played, if any, and the identities of each Branch Start and of Span Completion. That last entry is how a handler or a System Action knows whose Branch it is in. Whether an Unmerged Branch has closed is not in Game State, which changes only through main-line Actions; it is on the Branch's own record and on the Game.
 10. **What a Game Title declares** for a Branching Machine State: which Players take part, the Merge Order, Barrier Merge or Ordered Merge, and the Branch Start and Span Completion Actions.
 11. **Out-of-Turn Actions are rejected during a Parallel Span,** for now.
 12. **Contested and interactive play,** such as selling to a shared market or combat, stays in ordinary ordered Machine States.
@@ -107,9 +107,9 @@ _Avoid_: presented state
 ## What a Branch may change
 
 1. **Branch Scope is defined and enforced.** The Merge already proves Branch Independence, but the proof alone fails late: only when two Players collide in a live Game, and only at the Merge, after private play. A defined scope fails at the offending Action, every time, so a title's first test finds a wrong write. It does not catch one Branch reading what another changed; only the Merge does. It also keeps whoever implements a title, people and agents alike, from changing shared Game State by accident.
-2. **Scope is ownership.** A Branch may change only what its Player owns: Game State inside an object that carries that Player's identity. This is wider than the owner-only policy in the visibility rules, which looks only at a value's immediate parent. A title declares no list of paths, so there is no list to widen when a check fails.
+2. **Scope is ownership.** A Branch may change only what its Player owns: Game State inside an object that carries that Player's identity. This is wider than the owner-only policy in the visibility rules, which looks only at a value's immediate parent. A title declares no list of paths, so there is no list to widen when a check fails. State that is merely keyed by a Player's identity, without carrying it, is not owned. Ownership is judged against the Game State as it stood before the Action, so a Branch cannot make something its own by writing its Player's identity onto it, and cannot give away what it owns.
 3. **The engine checks every Branch Action,** and the System Actions it generates, and rejects one that changes anything else. The Machine State, Active Players, Action count, checksum and the span record are exempt, since the engine maintains them. Span Completion and what it generates are Main Line Actions and are not checked. The check runs wherever a Branch Action executes: privately, in a Local Game, and in a Merge.
-4. **Stable addresses.** Under an Ordered Merge a Branch Change is applied to a Main Line that has moved, so anything a Branch changes needs an address that another Player's merged Branch cannot shift. Shared collections are keyed by identity, not by position. They do not have to be split per Player.
+4. **Stable addresses.** Under an Ordered Merge a Branch Change is applied to a Main Line that has moved, so anything a Branch changes needs an address that another Player's merged Branch cannot shift. Shared collections are keyed by identity, not by position. They do not have to be split per Player. The check enforces this: a Branch may add an entry it owns to a keyed collection and remove its own, but adding to or removing from a positional collection it does not own is rejected, as is removing another Player's entry.
 5. **A Branch never writes outside its Branch Scope.** A Game Title that needs something shared inside a Parallel Span uses one of three patterns:
     - **Deal it at the start of the span,** when a Player needs the result during the span. The Main Line hands each Player their own share before Branches begin.
     - **Queue it for the end of the span,** when the result can wait. The Branch records a Completion Queue entry.
@@ -121,14 +121,14 @@ _Avoid_: presented state
 2. **Its own bookkeeping.** An Unmerged Branch has its own Machine State, Active Players, Action count starting from zero, and checksum. These are not part of its Branch Change and are not subject to the Branch Scope check.
 3. **Branch Change as patch operations,** recomputed after each Action from the main-line Game State and the Branch View.
 4. **A Branch never has to catch up.** When the Main Line moves, the Branch View is the newer main-line Game State with the same Branch Change applied.
-5. **Undo inside a Branch** reverses only that Branch, stops at the Player's own Information-Revealing Actions, and affects nobody else.
-6. **The Branch Point is an Undo barrier for Players.** Once a span has begun, no Player can Undo the Action that began it or anything before it. Otherwise that Player could discard everyone's private play and take the same rolls again knowing their results.
+5. **Undo inside a Branch** reverses only that Branch and affects nobody else. The engine applies the rule itself: the Undo names a User Action and reverses it with everything after it; it never reaches Branch Start or the System Actions Branch Start generated; and it stops at the Player's own Information-Revealing Actions. Only an administrator may pass that last barrier. A Closed Branch cannot be undone for now.
+6. **The Branch Point is an Undo barrier for Players.** Once a span has begun, no Player can Undo the Action that began it or anything before it. Otherwise that Player could discard everyone's private play and take the same rolls again knowing their results. While a span is in progress, everything on the Main Line is either before the Branch Point or part of a merged Branch, so a Player's only Undo is inside their own Unmerged Branch.
 
 ## Merge
 
-1. **The Merge replays, and the replay is the proof.** The host runs a Closed Branch on the Main Line through the ordinary engine: Branch Start, then each of its User Actions. It requires each System Action cascade to match the recorded one, and the resulting Game State to match what the Branch View showed, compared by content without regard to Action counts, checksums or positions, as the Commutation Proof does. This is the same execution a Local Game performs, it assigns final positions and undo patches, and it is what establishes Branch Independence: it catches a Branch that depends on what a Branch ahead of it changed, whether by changing the same thing or by reading it. Its cost is that every Branch Action executes twice on the host.
-2. **Order and form.** Branches are merged in Merge Order, by a Barrier Merge or an Ordered Merge.
-3. **After a Merge there is one ordinary history,** and the Merge is final: a merged Branch's Actions are never Undo Candidates for a Player.
+1. **The Merge replays, and the replay is the proof.** The host runs a Closed Branch on the Main Line through the ordinary engine: Branch Start, then each of its User Actions. It requires each System Action cascade to match the recorded one, and the resulting Game State to match what the Branch View showed, compared by content without regard to Action counts, checksums, positions or Active Players, as the Commutation Proof does for the first three. This is the same execution a Local Game performs, it assigns final positions and undo patches, and it is what establishes Branch Independence: it catches a Branch that depends on what a Branch ahead of it changed, whether by changing the same thing or by reading it. Its cost is that every Branch Action executes twice on the host.
+2. **Order and form.** Branches are merged in Merge Order, and the engine refuses one out of turn. Which are ready is the title's choice of form: under an Ordered Merge, the Closed Branches with nobody open ahead of them; under a Barrier Merge, none until every Branch is closed.
+3. **After a Merge there is one ordinary history,** and the Merge is final: a merged Branch's Actions are never Undo Candidates for a Player. Span Completion is an Information-Revealing Action, since by then every Branch has been shown to everyone. That keeps a Player's later Undo from reaching back into a completed span, by the rule that already governs Undo everywhere.
 4. **Branch Start runs twice in a Hosted Game.** Every Player's Unmerged Branch is created with its Branch Start when the span begins, so nobody waits to begin. The Merge generates Branch Start again on the Main Line and requires the same result. The host also creates any Unmerged Branch that is missing for a Game whose Main Line is in a span, as after a Fork taken at the Branch Point.
 5. **Span Completion runs on the Main Line only,** once every Branch is there. Its identity and randomness come from the shared streams. A private Branch never contains it.
 6. **A Merge that fails its check is refused,** and the Game is held for an administrator. This should never happen: it means a rule in one Branch depended on a Branch ahead of it, which is a defect in the title. A test helper that runs each of a title's Branches with and without the Branches ahead of it is how such rules are caught before release.
@@ -158,7 +158,7 @@ A decade stays one Parallel Span, with no deviation from the rules and no Player
 
 - **The steps of a decade become Machine States.** Today one Machine State covers the decade and each Player's step is a field on their Player State. A dedicated Branching Machine State marks the decade. A Branch leaves it, moves through build, cargo, movement, exploration and development as Machine States, and returns when the Player is done.
 - **What each Player could draw can be bounded when the decade starts.** A move takes at least one decade, so a ship moved this decade cannot explore this decade. The bound has to cover everything else a Player can do before exploring in the same decade: build, repair, scrap and rebuild, and clone settlements. It also has to cover markers awarded when an exploring ship is lost, which for a colony ship is one biology marker and several engineering markers. The bound must never be too low; the looser it is, the more often a decade counts as scarce.
-- **Dealing.** On the Main Line at the start of the decade, each field's pool is shuffled and each Player is dealt a hidden pile of that bound for the field. Exploring draws from the Player's own pile with Starting Position Randomness, so marker values show at once. Pile sizes do not depend on which markers land in them, so the odds match drawing from one pool.
+- **Dealing.** On the Main Line at the start of the decade, before the Branching Machine State is entered, each field's pool is shuffled and each Player is dealt a hidden pile of that bound for the field. Exploring draws from the Player's own pile with Starting Position Randomness, so marker values show at once. Pile sizes do not depend on which markers land in them, so the odds match drawing from one pool.
 - **Hidden piles.** A pile is hidden from everyone, its Player included. Only the host can resolve an exploration.
 - **End of the decade.** On the Main Line, undrawn piles and the markers spent on techs return to the pool. Spent markers are held by the Player until then.
 - **Surveys** stay queued and are resolved in initiative order, with the queue entry held in the Player's own state.
@@ -169,8 +169,8 @@ Working out the bound in full, and measuring how often it makes a decade scarce,
 
 ## Build order
 
-1. Branch execution with the Branch Scope check and Starting Position Randomness, engine only, against a toy title.
-2. Branch Undo and the Merge, engine only, with the check that merged history is a valid Local Game history.
+1. Branch execution with the Branch Scope check and Starting Position Randomness, engine only, against a toy title. Done.
+2. Branch Undo and the Merge, engine only, with the check that merged history is a valid Local Game history. Done.
 3. Host storage, submission, synchronization, projection and notifications.
 4. Game Client support for a Branch View.
 5. Stellar Horizons adoption.
@@ -179,11 +179,8 @@ The host must be deployed before any title adopts this, and each adopting title 
 
 ## Open
 
-To settle in the engine specs:
+To measure:
 
-- **Who writes Active Players inside a Branch:** the engine alone, or handlers using the span record.
-- **Ownership of state keyed by Player,** such as a record whose keys are Player identities and whose values do not carry one.
-- **Adding and removing in a shared collection.** A Branch adding an entry it owns, or removing its own, must pass; removing another Player's must not.
 - **Cost of the replaying Merge** on production hardware.
 
 Title decisions:
@@ -198,7 +195,7 @@ Not yet examined:
 - **Spectators** during a Parallel Span.
 - **Exploration and History View** for a Player with an Unmerged Branch.
 - **Simultaneous Action Groups:** whether they coexist with Parallel Spans in one title, and whether existing uses migrate.
-- **A Branch inside a Branch.**
+- **A Branch inside a Branch.** The engine rejects a Branch that enters another Branching Machine State until this is examined.
 - **A Game setting that overrides the title's form of Merge,** to force strict order or blind play.
 
 ## Naming notes

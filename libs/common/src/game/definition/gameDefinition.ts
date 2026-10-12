@@ -22,6 +22,13 @@ export interface GameInfo {
     preferences?: TitlePreferenceDefinition
 }
 
+export interface ParallelSpanDefinition<U extends HydratedGameState = HydratedGameState> {
+    mergeOrder(state: U): string[]
+    merge: 'barrier' | 'ordered'
+    branchStart: Type.TSchema
+    spanCompletion: Type.TSchema
+}
+
 export interface GameRuntime<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
@@ -35,6 +42,7 @@ export interface GameRuntime<
     playerColors: Color[]
     apiActions: Record<string, Type.TSchema>
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
+    parallelSpans?: Record<string, ParallelSpanDefinition<U>>
     stateLogger?: GameStateLogger
     visibility?: GameVisibility<T, T>
     scoring?: GameScoring<T>
