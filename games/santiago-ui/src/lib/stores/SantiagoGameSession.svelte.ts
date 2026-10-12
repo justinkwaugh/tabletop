@@ -146,6 +146,25 @@ export class SantiagoGameSession extends GameSession<
         this.droughtDust.clearPreview()
     }
 
+    // A chosen field tile or bribe spot is a manual staged selection, which Undo clears before it
+    // undoes any action; see docs/user-interactions.md.
+    get hasManualSelection(): boolean {
+        return this.selectedBribeSegment !== undefined || this.selectedTileIndex >= 0
+    }
+
+    override async undo() {
+        if (this.selectedBribeSegment !== undefined) {
+            this.selectedBribeSegment = undefined
+            this.proposalAmount = 1
+            return
+        }
+        if (this.selectedTileIndex >= 0) {
+            this.selectedTileIndex = -1
+            return
+        }
+        await super.undo()
+    }
+
     override willUndo(_action: GameAction) {
         this.proposalAmount = 1
         this.selectedTileIndex = -1

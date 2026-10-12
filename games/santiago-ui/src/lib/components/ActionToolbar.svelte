@@ -10,7 +10,7 @@
     const state = $derived(session.gameState)
     const ms = $derived(state.machineState)
 
-    const canUndo = $derived(!!session.undoableAction)
+    const canUndo = $derived(session.hasManualSelection || !!session.undoableAction)
 
     const activePlayerId = $derived(state.activePlayerIds[0])
     // 45 tiles total
