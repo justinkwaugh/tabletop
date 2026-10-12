@@ -415,8 +415,8 @@ export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
     })
 }
 
-// Browsers fetch UI assets straight from the public bucket, which serves this object metadata.
-const IMMUTABLE_ARTIFACT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+// The public bucket serves this object metadata to browsers the backend redirects to it.
+const GAME_UI_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 export const deployGameUiCommand = (
     repoRoot: string,
@@ -437,7 +437,7 @@ export const deployGameUiCommand = (
             'storage',
             'rsync',
             '--recursive',
-            `--cache-control=${IMMUTABLE_ARTIFACT_CACHE_CONTROL}`,
+            `--cache-control=${GAME_UI_CACHE_CONTROL}`,
             sourceDir,
             destination
         ],
