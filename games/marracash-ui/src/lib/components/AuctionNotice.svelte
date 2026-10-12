@@ -18,7 +18,7 @@
         (name: AuctionNoticePart): Attachment<HTMLElement> =>
         (element) => {
             animator.setPart(name, element)
-            return () => animator.setPart(name, undefined)
+            return () => animator.clearPart(name, element)
         }
 </script>
 
@@ -27,10 +27,13 @@
     <div class="pointer-events-none absolute inset-0 z-40 flex items-center justify-center p-4">
         <div class="backdrop absolute inset-0" {@attach part('backdrop')}></div>
         <div class="relative flex flex-col items-center gap-4">
-            <div class="placard" aria-hidden="true" {@attach part('placard')}>
-                <svg viewBox="-54 -18 108 36" width="324" height="108">
-                    <AuctionPlacard />
-                </svg>
+            <!-- The placard's resting place, which the flight is measured from. -->
+            <div aria-hidden="true">
+                <div class="placard" {@attach part('placard')}>
+                    <svg viewBox="-54 -18 108 36" width="324" height="108">
+                        <AuctionPlacard />
+                    </svg>
+                </div>
             </div>
             <p class="card marracash-display" role="status" {@attach part('card')}>
                 <PlayerName playerId={notice.auctioneerId} /> is auctioning a
