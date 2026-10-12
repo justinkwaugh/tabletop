@@ -8,7 +8,7 @@ import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import { type GameAction, type Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
-import { reverseToBranchStart } from './hostedSpan.js'
+import { reverseToForkPosition } from './hostedSpan.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 
 export class GameForkError extends BaseError {
@@ -63,10 +63,10 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         for (const action of ordered.slice(end).toReversed()) {
             state = engine.undoProcessedAction({ action, state })
         }
-        const branchStart = reverseToBranchStart({ engine, state, history: ordered.slice(0, end) })
-        assertExists(branchStart, 'Fork position is inside a Branch that has no start')
-        state = branchStart.state
-        const inherited = ordered.slice(0, end - branchStart.reversed.length)
+        const landed = reverseToForkPosition({ engine, state, history: ordered.slice(0, end) })
+        assertExists(landed, 'Fork position cannot be moved clear of an Unmerged Branch')
+        state = landed.state
+        const inherited = ordered.slice(0, end - landed.reversed.length)
         assert(
             state.actionCount === inherited.length &&
                 state.actionChecksum === calculateActionChecksum(0, inherited),

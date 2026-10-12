@@ -200,7 +200,6 @@ describe('GameNotifications', () => {
             playerId: 'player-one',
             branchPoint: { actionCount: 4, actionChecksum: 11 },
             machineState: 'working',
-            activePlayerIds: ['player-one'],
             actionCount: 1,
             actionChecksum: 7,
             closed: false,

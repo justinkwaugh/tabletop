@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionSource, type GameAction } from './gameAction.js'
 import { branchView, branchViewDuringMerge } from './branch.js'
+import { BranchCloseActionType } from './parallelSpan.js'
+import { Visibility } from '../../index.js'
 import {
     createSpanGame,
     spanAction,
@@ -64,8 +66,10 @@ describe('Parallel Span on the Main Line', () => {
         expect(summary(played.processedActions)).toEqual([
             'openBranch:p3',
             'finish:p3',
+            'closeBranch:p3',
             'openBranch:p1',
             'finish:p1',
+            'closeBranch:p1',
             'complete:'
         ])
     })
@@ -127,8 +131,10 @@ describe('Parallel Span on the Main Line', () => {
             'openBranch:p3',
             'work:p3',
             'finish:p3',
+            'closeBranch:p3',
             'openBranch:p2'
         ])
+        expect(closed.state.parallelSpan?.closedPlayerIds).toEqual(['p3'])
         expect(closed.state.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
         expect(closed.state.parallelSpan?.branchPlayerId).toBe('p2')
         expect(playerOf(closed.state, 'p3').work).toBe(1)
@@ -170,8 +176,10 @@ describe('Parallel Span on the Main Line', () => {
         expect(summary(played.processedActions)).toEqual([
             'openBranch:p3',
             'finish:p3',
+            'closeBranch:p3',
             'openBranch:p2',
             'idleSkip:p2',
+            'closeBranch:p2',
             'openBranch:p1'
         ])
         expect(played.state.parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
@@ -211,10 +219,13 @@ describe('Parallel Span on the Main Line', () => {
         expect(summary(played.processedActions)).toEqual([
             'openBranch:p3',
             'idleSkip:p3',
+            'closeBranch:p3',
             'openBranch:p2',
             'idleSkip:p2',
+            'closeBranch:p2',
             'openBranch:p1',
             'idleSkip:p1',
+            'closeBranch:p1',
             'complete:'
         ])
         expect(played.state.machineState).toBe('scoring')
@@ -252,6 +263,107 @@ describe('Parallel Span on the Main Line', () => {
         expect(
             spanGame.engine.advanceSpan({ game: spanGame.game, state: spanGame.state })
         ).toBeUndefined()
+    })
+})
+
+describe('Branch Close', () => {
+    it('records on the Main Line that a Player’s Branch has returned, and nothing else', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const closed = spanGame.engine.closeBranch({ state, playerId: 'p2' })
+        expect(closed.processedActions).toMatchObject([
+            {
+                id: state.parallelSpan?.branchCloseIds.p2,
+                type: BranchCloseActionType,
+                source: ActionSource.System,
+                playerId: 'p2',
+                index: 1
+            }
+        ])
+        expect(closed.processedActions[0].revealsInfo).toBeUndefined()
+        expect(closed.updatedState).toEqual({
+            ...state,
+            parallelSpan: { ...state.parallelSpan, closedPlayerIds: ['p2'] },
+            activePlayerIds: ['p3', 'p1'],
+            actionCount: 2,
+            actionChecksum: closed.updatedState.actionChecksum
+        })
+        expect(closed.updatedState.actionChecksum).not.toBe(state.actionChecksum)
+        expect(
+            spanGame.engine.undoProcessedAction({
+                action: closed.processedActions[0],
+                state: closed.updatedState
+            })
+        ).toEqual(state)
+    })
+
+    it('fixes its identity when the span begins, apart from every Branch Start', () => {
+        const spanGame = createSpanGame()
+        const span = beginSpan(spanGame).parallelSpan
+        const ids = [
+            ...Object.values(span?.branchCloseIds ?? {}),
+            ...Object.values(span?.branchStartIds ?? {}),
+            span?.completionId
+        ]
+        expect(Object.keys(span?.branchCloseIds ?? {})).toEqual(SPAN_MERGE_ORDER)
+        expect(new Set(ids).size).toBe(7)
+    })
+
+    it('refuses a second close for a Player, and one for a Player outside the span', () => {
+        const spanGame = createSpanGame({ sitsOut: ['p2'] })
+        const state = beginSpan(spanGame)
+        const closed = spanGame.engine.closeBranch({ state, playerId: 'p3' }).updatedState
+        expect(() => spanGame.engine.closeBranch({ state: closed, playerId: 'p3' })).toThrow(
+            'The Branch of p3 is already closed'
+        )
+        expect(() => spanGame.engine.closeBranch({ state, playerId: 'p2' })).toThrow(
+            'Player p2 takes no part in this span'
+        )
+    })
+
+    it('is applied again from its record alone', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const closed = spanGame.engine.closeBranch({ state, playerId: 'p2' })
+        const { undoPatch: _undoPatch, ...recorded } = closed.processedActions[0]
+        expect(
+            spanGame.engine.applyProcessedAction({ action: recorded, state, game: spanGame.game })
+        ).toEqual(closed.updatedState)
+    })
+
+    it('is shown to every Player and to spectators as it is', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const closed = spanGame.engine.closeBranch({ state, playerId: 'p2' })
+        const visibility = spanGame.runtime.visibility
+        if (visibility === undefined) throw Error('The span fixture defines visibility')
+        for (const perspective of [
+            { kind: 'player', playerId: 'p3' },
+            { kind: 'spectator' }
+        ] as const) {
+            const shown = Visibility.projectActionCascade(closed.actionCascade, {
+                visibility,
+                perspective,
+                game: spanGame.game
+            })
+            expect(shown.actions).toMatchObject([
+                { id: closed.processedActions[0].id, type: BranchCloseActionType, playerId: 'p2' }
+            ])
+        }
+    })
+
+    it('leaves a Player who has closed out of the Active Players, in their own view too', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const mine = playPrivately(spanGame, state, 'p2', [spanAction('f2', 'finish', 'p2')])
+        const closed = spanGame.engine.closeBranch({ state, playerId: 'p2' }).updatedState
+        expect(closed.activePlayerIds).toEqual(['p3', 'p1'])
+        expect(branchView(closed, mine.branch).activePlayerIds).toEqual(['p3', 'p1'])
+
+        const theirs = playPrivately(spanGame, state, 'p3', [])
+        const seen = branchView(closed, theirs.branch)
+        expect(seen.activePlayerIds).toEqual(['p3'])
+        expect(seen.parallelSpan?.closedPlayerIds).toEqual(['p2'])
     })
 })
 
@@ -398,10 +510,10 @@ describe('Unmerged Branch', () => {
             playerId: 'p2',
             branchPoint: state.parallelSpan?.branchPoint,
             machineState: 'working',
-            activePlayerIds: ['p2'],
             actionCount: 1,
             closed: false
         })
+        expect(created.view.activePlayerIds).toEqual(['p2'])
         expect(state).toEqual(before)
     })
 

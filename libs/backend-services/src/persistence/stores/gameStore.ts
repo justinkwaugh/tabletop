@@ -27,8 +27,6 @@ export type BranchWriteValidator = (existing: {
     game: Game
     state: GameState
     branch: Branch | undefined
-    watchedBranches: Branch[]
-    gameUpdates: Partial<Game>
 }) => Promise<UpdateValidationResult>
 
 export interface UnmergedBranchWrite {
@@ -130,14 +128,12 @@ export interface GameStore {
     writeUnmergedBranch({
         gameId,
         write,
-        watchBranchesOf,
         validator
     }: {
         gameId: string
         write: UnmergedBranchWrite
-        watchBranchesOf?: readonly string[]
         validator: BranchWriteValidator
-    }): Promise<{ written: boolean; updatedGame: Game }>
+    }): Promise<{ written: boolean }>
 
     addActionsToGame({
         game,

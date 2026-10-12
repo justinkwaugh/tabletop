@@ -41,7 +41,11 @@ describe('Executing an Action in a Local Game', () => {
         const play = localPlay()
         play.take(spanAction('begin', 'begin', 'p1'))
         const closed = play.take(spanAction('f3', 'finish', 'p3'))
-        expect(summary(closed.processedActions)).toEqual(['finish:p3', 'openBranch:p2'])
+        expect(summary(closed.processedActions)).toEqual([
+            'finish:p3',
+            'closeBranch:p3',
+            'openBranch:p2'
+        ])
         expect(play.state.activePlayerIds).toEqual(['p2'])
     })
 
@@ -51,7 +55,7 @@ describe('Executing an Action in a Local Game', () => {
         play.take(spanAction('f3', 'finish', 'p3'))
         play.take(spanAction('f2', 'finish', 'p2'))
         const last = play.take(spanAction('f1', 'finish', 'p1'))
-        expect(summary(last.processedActions)).toEqual(['finish:p1', 'complete:'])
+        expect(summary(last.processedActions)).toEqual(['finish:p1', 'closeBranch:p1', 'complete:'])
         expect(play.state.machineState).toBe('scoring')
         expect(play.state.parallelSpan).toBeUndefined()
     })
@@ -62,8 +66,10 @@ describe('Executing an Action in a Local Game', () => {
         const closed = play.take(spanAction('f3', 'finish', 'p3'))
         expect(summary(closed.processedActions)).toEqual([
             'finish:p3',
+            'closeBranch:p3',
             'openBranch:p2',
             'idleSkip:p2',
+            'closeBranch:p2',
             'openBranch:p1'
         ])
         expect(play.state.parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
@@ -78,6 +84,7 @@ describe('Executing an Action in a Local Game', () => {
         const last = play.take(spanAction('f1', 'finish', 'p1'))
         expect(summary(last.processedActions)).toEqual([
             'finish:p1',
+            'closeBranch:p1',
             'complete:',
             'nextSpan:',
             'openBranch:p3'

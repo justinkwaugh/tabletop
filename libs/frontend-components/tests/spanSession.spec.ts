@@ -12,6 +12,8 @@ const scenarios = {
         'runHostedSpanSyncFailure',
         'runHostedSpanFork',
         'runHostedSpanSecondSession',
+        'runHostedSpanReopen',
+        'runHostedSpanClosesCross',
         'runJoinedHistoryGrowth'
     ]
 }

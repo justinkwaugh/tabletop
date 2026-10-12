@@ -1,14 +1,19 @@
 import { assert, assertExists } from '../../../util/assertions.js'
-import { BranchUndoError, type UnmergedBranch } from '../branch.js'
+import type { UnmergedBranch } from '../branch.js'
 import type { GameAction } from '../gameAction.js'
 import { combineCascades, type ActionCascadeResult } from '../gameEngine.js'
-import { settleSpan, siteActivePlayerIds } from '../hostedSpan.js'
+import { removeBranchCloses, settleSpan } from '../hostedSpan.js'
 import { actsInBranch, isRestingInSpan } from '../parallelSpan.js'
 import { createSpanGame, type SpanGameOptions, type SpanGameState } from './spanGame.js'
 
 export interface SpanHostSubmission {
     readonly mainLine?: ActionCascadeResult<SpanGameState>
     readonly unmergedBranch?: UnmergedBranch
+}
+
+export interface SpanHostUndo {
+    readonly unmergedBranch: UnmergedBranch
+    readonly replay: { readonly startIndex: number; readonly actions: GameAction[] }
 }
 
 export class SpanHost {
@@ -39,14 +44,31 @@ export class SpanHost {
         return { mainLine, ...(created === undefined ? {} : { unmergedBranch: created }) }
     }
 
-    undoInBranch(playerId: string, actionId: string): UnmergedBranch {
+    undoInBranch(playerId: string, actionId: string): SpanHostUndo {
         const record = this.branches.get(playerId)
         assertExists(record, `Player ${playerId} has no Branch`)
-        if (record.branch.closed) throw new BranchUndoError(playerId, 'the Branch is closed')
+        const replay = record.branch.closed
+            ? this.reopenOnMainLine(playerId)
+            : { startIndex: this.state.actionCount, actions: [] }
         const undone = this.engine.undoBranchAction({ state: this.state, ...record, actionId })
         const kept = record.actions.slice(0, record.actions.length - undone.undoneActions.length)
         this.branches.set(playerId, { branch: undone.branch, actions: kept })
-        return { branch: undone.branch, actions: [] }
+        return { unmergedBranch: { branch: undone.branch, actions: [] }, replay }
+    }
+
+    private reopenOnMainLine(playerId: string): SpanHostUndo['replay'] {
+        const reopened = removeBranchCloses({
+            engine: this.engine,
+            game: this.game,
+            state: this.state,
+            history: this.actions,
+            playerIds: [playerId]
+        })
+        const startIndex = this.actions.length - reopened.removed.length
+        this.state = reopened.state
+        this.actions = [...this.actions.slice(0, startIndex), ...reopened.replayed]
+        this.game.activePlayerIds = [...this.state.activePlayerIds]
+        return { startIndex, actions: reopened.replayed }
     }
 
     private executeOnMainLine(action: GameAction): ActionCascadeResult<SpanGameState> {
@@ -102,10 +124,7 @@ export class SpanHost {
         for (const created of settlement.createdBranches) {
             this.branches.set(created.branch.playerId, created)
         }
-        this.game.activePlayerIds = siteActivePlayerIds(
-            this.state,
-            [...this.branches.values()].map(({ branch }) => branch)
-        )
+        this.game.activePlayerIds = [...this.state.activePlayerIds]
         return advanced
     }
 }

@@ -31,7 +31,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 playerId,
                 branchPoint: { actionCount: 0, actionChecksum: 0 },
                 machineState: 'working',
-                activePlayerIds: [playerId],
                 actionCount,
                 actionChecksum: actionCount * 11,
                 closed: false,
@@ -61,19 +60,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
 
         function write(branchWrite: UnmergedBranchWrite, validator = proceed) {
             return store.writeUnmergedBranch({ gameId: game.id, write: branchWrite, validator })
-        }
-
-        function closingWrite(playerId: string) {
-            const open = freshBranch(playerId)
-            return write(
-                { ...open, branch: { ...open.branch, closed: true } },
-                async (existing) => {
-                    existing.gameUpdates.activePlayerIds = existing.game.activePlayerIds?.filter(
-                        (activePlayerId) => activePlayerId !== playerId
-                    )
-                    return UpdateValidationResult.Proceed
-                }
-            )
         }
 
         async function storedActionIds(playerId: string): Promise<string[] | undefined> {
@@ -276,29 +262,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(found.map(({ actions }) => actions.length)).toEqual([2, 3])
         })
 
-        it('updates the Game too when the write that closes a Branch says so', async () => {
-            const etag = await store.getGameEtag(game.id)
-            await warmGameKeys()
-            const { updatedGame } = await closingWrite('p1')
-            expect(updatedGame.activePlayerIds).toEqual(['p2'])
-            expect(updatedGame.lastActionAt).toBeInstanceOf(Date)
-            expect((await store.findGameById(game.id, false))?.activePlayerIds).toEqual(['p2'])
-            expect(await store.getGameEtag(game.id)).not.toBe(etag)
-            expect((await store.findBranch(game.id, 'p1'))?.closed).toBe(true)
-        })
-
-        it('keeps the Game State and checksum cached when a Branch closes', async () => {
-            await warmGameKeys()
-            await closingWrite('p1')
-            expect(await isCached(GameCacheKeys.state(game.id))).toBe(true)
-            expect(await isCached(GameCacheKeys.checksum(game.id))).toBe(true)
-        })
-
-        it('keeps both Game updates when two Players close at the same moment', async () => {
-            await Promise.all([closingWrite('p1'), closingWrite('p2')])
-            expect((await store.findGameById(game.id, false))?.activePlayerIds).toEqual([])
-        })
-
         it('shows the validator what is stored, and changes nothing when it cancels', async () => {
             await write(freshBranch('p1'))
             await warmGameKeys()
@@ -315,7 +278,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                         machineState: existing.state.machineState,
                         actionCount: existing.branch?.actionCount
                     })
-                    existing.gameUpdates.activePlayerIds = []
                     return UpdateValidationResult.Cancel
                 }
             )
@@ -402,21 +364,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             })
             expect(seen).toEqual([3])
             expect((await store.findBranch(game.id, 'p1'))?.actionCount).toBe(3)
-        })
-
-        it('shows a Branch write the other Branches it asks to watch', async () => {
-            await write(freshBranch('p2', 4))
-            const seen: (number | undefined)[] = []
-            await store.writeUnmergedBranch({
-                gameId: game.id,
-                write: freshBranch('p1'),
-                watchBranchesOf: ['p2'],
-                validator: async (existing) => {
-                    seen.push(...existing.watchedBranches.map((branch) => branch.actionCount))
-                    return UpdateValidationResult.Proceed
-                }
-            })
-            expect(seen).toEqual([4])
         })
 
         it('writes no Branch when the Main Line write is cancelled', async () => {

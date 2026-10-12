@@ -2,6 +2,7 @@ import { assertExists, type GameState, type HydratedGameState } from '@tabletop/
 import {
     createSpanGame,
     spanAction,
+    summary,
     type SpanActionType
 } from '@tabletop/common/test-fixtures/span-game'
 import type { GameUIRuntime } from '../../definition/gameUiDefinition.js'
@@ -15,7 +16,7 @@ export class SpanSession extends GameSession<GameState, HydratedGameState> {
     constructor(...args: ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>) {
         super(...args)
         this.addGameStateChangeListener(async ({ action }) => {
-            this.shown.push(action ? `${action.type}:${action.playerId ?? ''}` : 'state')
+            this.shown.push(action ? summary([action])[0] : 'state')
             if (this.animationMilliseconds > 0) {
                 await new Promise((resolve) => setTimeout(resolve, this.animationMilliseconds))
             }

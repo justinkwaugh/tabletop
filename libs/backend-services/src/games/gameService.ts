@@ -62,10 +62,7 @@ import {
     actsInBranch,
     combineCascades,
     createMissingBranches,
-    siteActivePlayerIds,
     isRestingInSpan,
-    sameHistoryPosition,
-    reverseToBranchStart,
     settleSpan,
     unmergedPlayerIds,
     type ActionCascadeResult,
@@ -173,10 +170,10 @@ import {
     readAtOneMainLinePosition,
     spanVisibility
 } from './spanReads.js'
+import { settleAfterReversal, type ReopenedBranch } from './spanReversal.js'
 import {
     assertBranchesUnmoved,
     assertGameUnmoved,
-    branchesAfterReversal,
     fillGameUpdatesAfterActions,
     freshBranchWrite,
     submitBranchAction,
@@ -410,7 +407,6 @@ export class GameService {
             runtime: definition.runtime,
             name
         })
-        fork.game.activePlayerIds = siteActivePlayerIds(fork.state, [])
         fork.game.ownerId = owner.id
         fork.game.storage = GameStorage.Remote
         fork.game.status = GameStatus.WaitingForPlayers
@@ -1219,7 +1215,7 @@ export class GameService {
                   game,
                   state: actionResult.updatedState,
                   unmergedBranches: [],
-                  held: game.spanHold !== undefined
+                  mergesHeld: game.spanHold !== undefined
               })
             : undefined
         if (settlement !== undefined) spanVisibility(definition, game)
@@ -1310,8 +1306,7 @@ export class GameService {
                         gameUpdates,
                         lastActionPlayerId: findLast(actions, (a) => a.playerId != undefined)
                             ?.playerId,
-                        settlement,
-                        unmergedBranches: settlement?.createdBranches ?? []
+                        settlement
                     })
 
                     return UpdateValidationResult.Proceed
@@ -1353,8 +1348,18 @@ export class GameService {
             game,
             action
         })
-        this.reportRefusedMerge(game.id, submission.settlement?.refusal)
         if (submission.kind === 'mainLine') {
+            this.reportRefusedMerge(game.id, submission.settlement.refusal)
+            const closed = submission.unmergedBranch
+            if (closed?.branch.closed) {
+                await publishBranchUpdate({
+                    game: submission.updatedGame,
+                    state: submission.settlement.updatedState,
+                    unmergedBranch: closed,
+                    visibility,
+                    notificationService: this.notificationService
+                })
+            }
             return this.finishActionApplication({
                 definition,
                 game,
@@ -1383,9 +1388,6 @@ export class GameService {
             visibility,
             notificationService: this.notificationService
         })
-        if (submission.unmergedBranch.branch.closed) {
-            await this.notifyGamePlayers(GameNotificationAction.Update, { game: results.game })
-        }
         return results
     }
 
@@ -2058,70 +2060,29 @@ export class GameService {
             gameState = updatedState
         }
 
-        const insideMergedBranch = gameState.parallelSpan?.branchPlayerId !== undefined
-        if (insideMergedBranch && (plan.retainedActions.length > 0 || redoneActions.length > 0)) {
+        const landsInSpan = gameState.parallelSpan !== undefined
+        if (landsInSpan && (plan.retainedActions.length > 0 || redoneActions.length > 0)) {
             throw new DisallowedUndoError({
                 gameId: game.id,
                 actionId: actionToUndo.id,
-                reason: 'that position is inside a merged Branch'
+                reason: 'that position is inside a Parallel Span'
             })
         }
-        const targetIndex = actionToUndo.index
-        assertExists(targetIndex, 'Undo target has no index')
-        const landed = await this.landAtBranchStart({
-            game,
-            gameEngine,
-            state: gameState,
-            endIndex: targetIndex
-        })
-        const span = plan.state.parallelSpan
-        const landedSpan = landed.state.parallelSpan
-        const leavesSpan =
-            span !== undefined &&
-            (landedSpan === undefined ||
-                !sameHistoryPosition(landedSpan.branchPoint, span.branchPoint))
 
         return this.persistReversal({
             definition,
             game,
             user,
             actionToUndo,
-            startIndex: plan.startIndex - landed.reversed.length,
+            startIndex: plan.startIndex,
             retainedActions: plan.retainedActions,
-            actions: [...landed.reversed, ...actions],
+            actions,
             redoneActions,
-            updatedState: landed.state,
+            updatedState: gameState,
             priorActionCount,
             priorChecksum,
-            resolvingVoteId,
-            leavesSpan
+            resolvingVoteId
         })
-    }
-
-    private async landAtBranchStart({
-        game,
-        gameEngine,
-        state,
-        endIndex
-    }: {
-        game: Game
-        gameEngine: GameEngine
-        state: GameState
-        endIndex: number
-    }): Promise<{ state: GameState; reversed: GameAction[] }> {
-        const span = state.parallelSpan
-        if (span?.branchPlayerId === undefined) return { state, reversed: [] }
-        const landed = reverseToBranchStart({
-            engine: gameEngine,
-            state,
-            history: await this.gameStore.findActionRangeForGame({
-                game,
-                startIndex: span.branchPoint.actionCount,
-                endIndex
-            })
-        })
-        assertExists(landed, 'The start of the merged Branch is not in Action History')
-        return landed
     }
 
     private async undoInBranch({
@@ -2148,19 +2109,37 @@ export class GameService {
             asAdministrator
         })
         if (undone === undefined) return undefined
-        const visibility = spanVisibility(definition, game)
-        await publishBranchUpdate({
+        const state = game.state
+        assertExists(state, 'A Branch Undo requires current Game State')
+        if (undone.kind === 'reopen') {
+            return this.persistReversal({
+                definition,
+                game,
+                user,
+                actionToUndo: undone.reopened.undoneActions[0],
+                startIndex: state.actionCount,
+                retainedActions: [],
+                actions: [],
+                redoneActions: [],
+                updatedState: state,
+                priorActionCount: state.actionCount,
+                priorChecksum: state.actionChecksum,
+                reopened: undone.reopened
+            })
+        }
+        const branchUpdate = {
             game,
-            state: undone.state,
+            state,
             unmergedBranch: undone.unmergedBranch,
-            visibility,
+            visibility: spanVisibility(definition, game)
+        }
+        await publishBranchUpdate({
+            ...branchUpdate,
             notificationService: this.notificationService
         })
         return createBranchUndoRepresentation({
-            game,
-            state: undone.state,
+            ...branchUpdate,
             ...undone.unmergedBranch,
-            visibility,
             user
         })
     }
@@ -2178,7 +2157,7 @@ export class GameService {
         priorActionCount,
         priorChecksum,
         resolvingVoteId,
-        leavesSpan = false
+        reopened
     }: {
         definition: GameDefinition
         game: Game
@@ -2192,32 +2171,33 @@ export class GameService {
         priorActionCount: number
         priorChecksum: number
         resolvingVoteId?: string
-        leavesSpan?: boolean
+        reopened?: ReopenedBranch
     }): Promise<UndoResultsRepresentation> {
         const undoneFromIndex = actionToUndo.index
         assertExists(undoneFromIndex, 'Undo target has no index')
         const gameEngine = new GameEngine(definition.runtime)
         measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
         const gameId = game.id
-        const branches = await branchesAfterReversal({
+        const settled = await settleAfterReversal({
             gameStore: this.gameStore,
             engine: gameEngine,
             game,
             state: updatedState,
-            leavesSpan
+            reopened
         })
+        const reappliedActions = [...redoneActions, ...settled.reappliedActions]
         const {
             undoneActions,
             updatedGame,
             redoneActions: processedRedoneActions
         } = await this.gameStore.undoActionsFromGame({
             gameId,
-            actions,
-            redoneActions,
-            state: updatedState,
-            removeUnmergedBranches: leavesSpan,
-            setUnmergedBranches: branches.fresh.map(freshBranchWrite),
-            watchBranchesOf: branches.watchedPlayerIds,
+            actions: [...settled.removedActions, ...actions],
+            redoneActions: reappliedActions,
+            state: settled.state,
+            removeUnmergedBranches: settled.leavesSpan,
+            setUnmergedBranches: settled.branchWrites,
+            watchBranchesOf: settled.watchedPlayerIds,
             validator: async (
                 existingGame,
                 existingState,
@@ -2243,8 +2223,8 @@ export class GameService {
                 )
 
                 // Also checksum the redone actions
-                if (redoneActions.length > 0) {
-                    undoneChecksum = calculateActionChecksum(undoneChecksum, redoneActions)
+                if (reappliedActions.length > 0) {
+                    undoneChecksum = calculateActionChecksum(undoneChecksum, reappliedActions)
                 }
 
                 if (undoneChecksum !== newState.actionChecksum) {
@@ -2258,12 +2238,12 @@ export class GameService {
 
                 assertBranchesUnmoved(
                     gameId,
-                    branches.watchedPlayerIds,
+                    settled.watchedPlayerIds,
                     existingBranches,
-                    branches.kept
+                    settled.storedBranches
                 )
-                gameUpdates.activePlayerIds = siteActivePlayerIds(newState, existingBranches)
-                if (leavesSpan) gameUpdates.spanHold = undefined
+                gameUpdates.activePlayerIds = newState.activePlayerIds
+                if (settled.leavesSpan) gameUpdates.spanHold = undefined
                 if (resolvingVoteId !== undefined && existingGame.vote?.id !== resolvingVoteId) {
                     throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
                 }
@@ -2279,7 +2259,7 @@ export class GameService {
         })
         const replayActions = [...retainedActions, ...processedRedoneActions]
         const actionReplay = {
-            startIndex,
+            startIndex: startIndex - settled.removedActions.length,
             actions: replayActions.map((action) => structuredClone(action))
         }
         const representation = measureSync('projection.response.undo', () =>
@@ -2309,7 +2289,22 @@ export class GameService {
             game: representation.game
         })
 
-        return representation
+        if (reopened === undefined) return representation
+        const branchUpdate = {
+            game: updatedGame,
+            state: settled.state,
+            unmergedBranch: { branch: reopened.branch, actions: [] },
+            visibility: spanVisibility(definition, updatedGame)
+        }
+        await publishBranchUpdate({
+            ...branchUpdate,
+            notificationService: this.notificationService
+        })
+        return withUnmergedBranch(representation, {
+            ...branchUpdate,
+            ...branchUpdate.unmergedBranch,
+            user
+        })
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {

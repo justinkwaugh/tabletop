@@ -46,9 +46,11 @@ export const ParallelSpanState = Type.Object({
     machineState: Type.String(),
     branchPoint: BranchPoint,
     playerIds: Type.Array(Type.String()),
+    closedPlayerIds: Type.Array(Type.String()),
     mergedPlayerIds: Type.Array(Type.String()),
     branchPlayerId: Type.Optional(Type.String()),
     branchStartIds: Type.Record(Type.String(), Type.String()),
+    branchCloseIds: Type.Record(Type.String(), Type.String()),
     completionId: Type.String()
 })
 
