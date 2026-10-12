@@ -34,7 +34,7 @@
             type="button"
             class="nt-map-chip"
             aria-pressed={gameSession.darkBorders}
-            onclick={() => (gameSession.darkBorders = !gameSession.darkBorders)}
+            onclick={() => gameSession.setDarkBorders(!gameSession.darkBorders)}
             >Darker borders</button
         >
         <button type="button" class="nt-map-chip" aria-label="Turn the map" onclick={onturn}

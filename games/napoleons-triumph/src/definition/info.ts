@@ -1,5 +1,6 @@
 import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { NapoleonsTriumphConfigurator } from './config.js'
+import { NapoleonsTriumphPreferenceDefinition } from './preferences.js'
 import { GAME_VERSION } from './version.js'
 
 export const NapoleonsTriumphInfo: GameInfo = {
@@ -17,5 +18,6 @@ export const NapoleonsTriumphInfo: GameInfo = {
         beta: true,
         visibility: GameVisibility.Alpha
     },
-    configurator: new NapoleonsTriumphConfigurator()
+    configurator: new NapoleonsTriumphConfigurator(),
+    preferences: NapoleonsTriumphPreferenceDefinition
 }

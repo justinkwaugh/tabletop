@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
 import { assert, assertExists, type Point } from '@tabletop/common'
 import {
     ActionType,
@@ -14,6 +14,7 @@ import {
     EndTurn,
     MachineState,
     Move,
+    NapoleonsTriumphPreferenceDefinition,
     Occupy,
     PassBid,
     PlaceBid,
@@ -32,6 +33,7 @@ import {
     type FeintEnd,
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
+    type NapoleonsTriumphPreferences,
     type NapoleonsTriumphProjectedState,
     type ProjectedUnit,
     type Side
@@ -171,7 +173,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     boardView: BoardView = $state(BoardView.North)
 
-    darkBorders = $state(false)
+    readonly preferences: TitlePreferences<typeof NapoleonsTriumphPreferences> =
+        this.createPreferences(NapoleonsTriumphPreferenceDefinition)
+
+    darkBorders = $derived(this.preferences.values.darkBorders)
 
     approachSymbolsShown = $state(false)
 
@@ -869,6 +874,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     closeMoveReplay() {
         this.openedReplay = undefined
+    }
+
+    setDarkBorders(darkBorders: boolean) {
+        this.preferences.set({ darkBorders })
     }
 
     async visitMoveReplay() {
