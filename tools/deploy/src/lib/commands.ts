@@ -415,26 +415,85 @@ export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
     })
 }
 
+// The public bucket serves this object metadata to browsers the backend redirects to it.
+const GAME_UI_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
+const gameUiUpload = (
+    repoRoot: string,
+    packageId: string,
+    version: string,
+    config: DeployConfig
+) => {
+    if (!config.gcsBucket) {
+        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
+    }
+    return {
+        sourceDir: path.join(repoRoot, 'games', `${packageId}-ui`, 'bundle'),
+        destination: `gs://${config.gcsBucket}/games/${packageId}/ui/${version}`
+    }
+}
+
 export const deployGameUiCommand = (
     repoRoot: string,
     packageId: string,
     version: string,
     config: DeployConfig
 ): CommandSpec => {
-    if (!config.gcsBucket) {
-        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
-    }
-    const sourceDir = path.join(repoRoot, 'games', `${packageId}-ui`, 'bundle')
-    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${version}`
+    const { sourceDir, destination } = gameUiUpload(repoRoot, packageId, version, config)
 
     return {
         label: `deploy-ui:${packageId}`,
         command: 'gcloud',
-        args: ['storage', 'rsync', '--recursive', sourceDir, destination],
+        args: [
+            'storage',
+            'rsync',
+            '--recursive',
+            `--cache-control=${GAME_UI_CACHE_CONTROL}`,
+            sourceDir,
+            destination
+        ],
         cwd: repoRoot,
         logPath: `/tmp/${packageId}-ui-deploy.log`,
         requiresDeploy: true
     }
+}
+
+const BROTLI_SCRIPT_SUFFIX = '.js.br'
+
+// The bucket serves an object's bytes as stored and cannot pick a compressed file per request, so
+// each script object is replaced by its Brotli file, labelled as such. The .br files stay for the
+// backend, which chooses them itself.
+export const deployGameUiBrotliScriptCommands = (
+    repoRoot: string,
+    packageId: string,
+    version: string,
+    config: DeployConfig
+): CommandSpec[] => {
+    const { sourceDir, destination } = gameUiUpload(repoRoot, packageId, version, config)
+
+    return fs
+        .readdirSync(sourceDir, { recursive: true, encoding: 'utf8' })
+        .filter((file) => file.endsWith(BROTLI_SCRIPT_SUFFIX))
+        .sort()
+        .map((brotliFile, index) => {
+            const script = brotliFile.slice(0, -'.br'.length).split(path.sep).join('/')
+            return {
+                label: `deploy-ui-brotli:${packageId}:${script}`,
+                command: 'gcloud',
+                args: [
+                    'storage',
+                    'cp',
+                    '--content-encoding=br',
+                    '--content-type=text/javascript',
+                    `--cache-control=${GAME_UI_CACHE_CONTROL}`,
+                    path.join(sourceDir, brotliFile),
+                    `${destination}/${script}`
+                ],
+                cwd: repoRoot,
+                logPath: `/tmp/${packageId}-ui-brotli-${index + 1}.log`,
+                requiresDeploy: true
+            }
+        })
 }
 
 export const buildGameLogicPackageCommand = (repoRoot: string, packageId: string): CommandSpec => ({
@@ -522,7 +581,7 @@ export const deployManifestCommand = (manifestPath: string, config: DeployConfig
     return {
         label: 'deploy-manifest',
         command: 'gcloud',
-        args: ['storage', 'cp', manifestPath, destination],
+        args: ['storage', 'cp', '--cache-control=no-store', manifestPath, destination],
         cwd: path.dirname(manifestPath),
         logPath: '/tmp/manifest-deploy.log',
         requiresDeploy: true

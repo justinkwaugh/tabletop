@@ -1,21 +1,33 @@
 import { mount, tick, unmount } from 'svelte'
 import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
+    AnswerQuestion,
+    ActionType,
     Banner,
+    CampaignDefend,
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    CURRENT_OATH_REVISION,
+    ConsentRequestKind,
+    HydratedCampaignSacrifice,
+    HydratedOathGameState,
     EndActPhase,
+    HydratedTravel,
     IMPERIAL_WARBANDS,
     LetPeek,
     LetPeekSubjectKind,
+    isLetPeek,
     MachineState,
     MoveWarbands,
     OathRevision,
+    OfferCitizenship,
     OathType,
     PlayerStatus,
     PowerQuestionKind,
     Region,
+    RerolledRollKind,
+    ResolveWake,
     Search,
     SearchPlay,
     SearchSource,
@@ -23,10 +35,21 @@ import {
     Suit,
     TOP_CRADLE_SLOT,
     Travel,
+    UseActionPower,
+    PowerChoiceKind,
+    PowerTiming,
+    powerIndexOf,
     WarbandMoveKind,
     allMapSlots,
+    type WarbandMove,
     mapSlotId,
     mapSlotsFor,
+    reliquarySlotId,
+    type CitizenshipTerms,
+    type CitizenshipTransfer,
+    type LetPeekSubject,
+    type OathPlayerState,
+    type OathProjectedState,
     type PowerQuestion,
     type WarbandCounts,
     type WarbandGroup
@@ -51,16 +74,20 @@ import {
     played,
     searchingTable,
     setupTable,
+    shortBankTable,
     tableOf,
     type PlayedTable
 } from './sessionHarness.js'
+import { shroudedWoodState } from './shroudedWoodTable.js'
 
 export type TableName =
     | 'setup'
+    | 'shortBank'
     | 'searching'
     | 'prophets'
     | 'offTurn'
     | 'actPhase'
+    | 'leavingBuriedGiant'
     | 'warbandMoveAsked'
     | 'staleWarbandMoveAsked'
     | 'joinDefenceAsked'
@@ -69,12 +96,19 @@ export type TableName =
     | 'visionBacks'
     | 'restBanks'
     | 'restTurnFlow'
+    | 'wakeMob'
+    | 'wakeSite'
+    | 'wakeForced'
     | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'careless'
+    | 'musterEmptyBank'
+    | 'recover'
+    | 'recoverSeen'
     | 'peek'
     | 'relics'
     | 'searchToll'
@@ -85,7 +119,71 @@ export type TableName =
     | 'cardOpensSearch'
     | 'cardChangesSearch'
     | 'cardsOpenTravel'
+    | 'travelToll'
     | 'majorEvents'
+    | 'stackOrder'
+    | 'sneakAttack'
+    | 'citizenship'
+    | 'citizenshipShort'
+    | 'citizenshipNone'
+    | 'citizenshipEnough'
+    | 'freeTravel'
+    | 'askedOffTurn'
+    | 'defenderPlans'
+    | 'oathkeeperChoice'
+    | 'sneakAttackHeld'
+    | 'searchTollByRhys'
+    | 'searchConspiracy'
+    | 'campaignTwoDefenders'
+    | 'battleDefenderPlans'
+    | 'attackerPlans'
+    | 'sacrifice'
+    | 'sacrificeMixed'
+    | 'wonOutright'
+    | 'spoils'
+    | 'spoilsRelicHunter'
+    | QuestionTableName
+    | 'warbandGiveAsked'
+    | 'offerCitizenship'
+    | 'offerCitizenshipToOne'
+    | 'offerCitizenshipSilenced'
+    | 'offerCitizenshipSelf'
+    | 'everyMinor'
+    | 'show'
+    | 'harpSearch'
+    | 'usePower'
+    | 'showOne'
+    | 'exileCitizens'
+    | 'selfExile'
+    | 'oathkeeperTie'
+    | 'tavernSongs'
+    | 'usurperWins'
+    | 'deedWriter'
+    | 'woodTraveller'
+    | 'woodRuler'
+    | 'woodRulerToll'
+    | 'woodTollAsked'
+    | 'banditCrown'
+    | 'banditCrownChancellor'
+    | 'banditCrownExile'
+    | 'banditCrownCampaign'
+    | 'banditCrownFive'
+    | 'tollAsked'
+    | 'oracleToll'
+    | 'oracleNoFavor'
+    | 'campaignLossOrder'
+    | 'skullLosses'
+    | 'skullLossesTwoSites'
+    | 'sacrificeInTwoPlaces'
+    | 'freeTravelAsked'
+    | 'freeCampaignAsked'
+    | 'witchsBargain'
+    | 'witchsBargainSilenced'
+    | 'witchsBargainOneOther'
+    | 'drumAsked'
+    | 'drumAskedCitizen'
+    | 'drumAfterToll'
+    | 'drumAfterBrassHorse'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -100,6 +198,29 @@ function prophet(visionCardId: string): PowerQuestion {
         askedPlayerId: 'me',
         visionCardId
     }
+}
+
+/** Inquisitor found the Conspiracy among ann's advisers; ann holds a relic to take. */
+function inquisitorTable(advisers: string[]): PlayedTable {
+    return questionTable(
+        {
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            cardId: 'denizen.arcane.inquisitor',
+            askedPlayerId: 'me',
+            holderPlayerId: 'ann',
+            index: 0
+        },
+        {
+            me: { advisers: advisers.map((cardId) => ({ cardId, faceUp: true })) },
+            ann: {
+                advisers: [
+                    { cardId: 'vision.conspiracy', faceUp: false },
+                    { cardId: 'denizen.arcane.alchemist', faceUp: true }
+                ],
+                relicIds: ['relic.ring-of-devotion']
+            }
+        }
+    )
 }
 
 /** Visual contract scenario 16: two False Prophet questions for one player, at the adviser limit. */
@@ -133,6 +254,252 @@ function prophetsTable(): PlayedTable {
     state.vault = testVaultWithRelics({})
     return tableOf(state)
 }
+
+type Seat = Parameters<typeof testPlayer>[0]
+
+const RING = 'relic.ring-of-devotion'
+const CUP = 'relic.cup-of-plenty'
+const faceup = (cardId: string) => ({ cardId, faceUp: true })
+
+/**
+ * R-X.1 — a power's question put to this seat, asked by the Chancellor, both pawns at the top
+ * Cradle site of a dealt board. `me` holds 4 favor and 2 secrets.
+ */
+function questionTable(
+    question: PowerQuestion,
+    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {}
+): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                ...seats.me
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 3,
+                ...seats.ann
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            pendingQuestions: {
+                queue: [question],
+                askingPlayerId: 'ann',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+const asked = { askedPlayerId: 'me' } as const
+
+/** R-7.3.3 — a Search kept Fabled Feast, whose When Played power asks for one favor bank of several. */
+function fabledFeastTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                favor: 2,
+                handIds: [
+                    'denizen.hearth.fabled-feast',
+                    'denizen.arcane.tutor',
+                    'denizen.order.scouts'
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.Searching,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** Each power question, as the asked seat sees it. */
+const QUESTION_TABLES = {
+    askRevelation: () =>
+        questionTable({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            cardId: 'denizen.arcane.revelation',
+            ...asked
+        }),
+    askBlackmail: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.PayOrLoseRelic,
+                cardId: 'denizen.discord.blackmail',
+                ...asked,
+                takerPlayerId: 'ann',
+                relicCardId: RING,
+                price: 3
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askHerald: () =>
+        questionTable({
+            kind: PowerQuestionKind.PickFavorBank,
+            cardId: 'denizen.hearth.herald',
+            ...asked,
+            amount: 1
+        }),
+    askTinkersFair: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.Exchange,
+                cardId: 'denizen.hearth.tinkers-fair',
+                ...asked,
+                proposerPlayerId: 'ann',
+                terms: { fromProposer: { favor: 2 }, fromCounterparty: { relicCardIds: [RING] } }
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askGatheringJoin: () =>
+        questionTable({
+            kind: PowerQuestionKind.JoinSite,
+            cardId: 'denizen.nomad.the-gathering',
+            ...asked,
+            siteId: mapSlotsFor(Region.Provinces)[0]
+        }),
+    askGatheringFloor: () =>
+        questionTable({
+            kind: PowerQuestionKind.GatheringFloor,
+            cardId: 'denizen.nomad.the-gathering',
+            ...asked,
+            siteId: mapSlotsFor(Region.Cradle)[0]
+        }),
+    askHeirloom: () =>
+        questionTable({
+            kind: PowerQuestionKind.KeepOrBottomRelic,
+            cardId: 'denizen.hearth.family-heirloom',
+            ...asked,
+            relicCardId: CUP
+        }),
+    askFaeMerchant: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.BottomRelic,
+                cardId: 'denizen.beast.fae-merchant',
+                ...asked,
+                relicCardId: CUP
+            },
+            { me: { relicIds: [RING] } }
+        ),
+    askSkeletonKey: () =>
+        questionTable({
+            kind: PowerQuestionKind.TakeOrLeaveRelic,
+            cardId: 'relic.skeleton-key',
+            ...asked,
+            slotId: 'reliquary.1',
+            relicCardId: RING
+        }),
+    askJinx: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.RerollDice,
+                cardId: 'denizen.arcane.jinx',
+                ...asked,
+                powerIndex: 0,
+                roll: { kind: RerolledRollKind.GamblingHall, bank: Suit.Arcane, shields: 2 }
+            },
+            { me: { advisers: [faceup('denizen.arcane.jinx')] } }
+        ),
+    askRelicThief: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.RelicThiefRoll,
+                cardId: 'denizen.discord.relic-thief',
+                ...asked,
+                powerIndex: 0,
+                takerPlayerId: 'ann',
+                relicCardIds: [RING]
+            },
+            { me: { advisers: [faceup('denizen.discord.relic-thief')] }, ann: { relicIds: [RING] } }
+        ),
+    askBrassHorse: () =>
+        questionTable({
+            kind: PowerQuestionKind.TravelFreeTo,
+            cardId: 'relic.brass-horse',
+            ...asked,
+            siteIds: [
+                ...mapSlotsFor(Region.Provinces).slice(0, 2),
+                mapSlotsFor(Region.Hinterland)[0]
+            ]
+        }),
+    askSneakAttack: () =>
+        questionTable({
+            kind: PowerQuestionKind.SneakAttack,
+            cardId: 'denizen.discord.sneak-attack',
+            ...asked,
+            defenderPlayerId: 'ann'
+        }),
+    askInquisitor: () => inquisitorTable(['denizen.arcane.jinx', 'denizen.arcane.tutor']),
+    // R-5.1.4.II — the finder already holds three advisers.
+    askInquisitorAtLimit: () =>
+        inquisitorTable(['denizen.hearth.herald', 'denizen.arcane.tutor', 'denizen.arcane.jinx']),
+    askWildMounts: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.DiscardInstead,
+                cardId: 'denizen.nomad.wild-mounts',
+                ...asked,
+                planCardIds: ['denizen.nomad.horse-archers', 'denizen.nomad.lancers'],
+                insteadCardIds: ['denizen.beast.war-tortoise', 'denizen.beast.wolves'],
+                actingPlayerId: 'me'
+            },
+            { me: { advisers: ['denizen.beast.war-tortoise', 'denizen.beast.wolves'].map(faceup) } }
+        ),
+    askPilgrimage: () =>
+        questionTable({
+            kind: PowerQuestionKind.OrderDrawnCards,
+            cardId: 'denizen.nomad.pilgrimage',
+            ...asked,
+            region: Region.Provinces,
+            cardCount: 3,
+            cardIds: [
+                'denizen.arcane.alchemist',
+                'denizen.discord.assassin',
+                'denizen.hearth.book-binders'
+            ]
+        }),
+    askFalseProphet: () =>
+        questionTable(prophet('vision.conquest'), {
+            me: { advisers: PROPHET_ADVISERS.map((cardId) => ({ cardId, faceUp: false })) }
+        }),
+    fabledFeast: fabledFeastTable
+} satisfies Record<string, () => PlayedTable>
+
+export type QuestionTableName = keyof typeof QUESTION_TABLES
 
 /** The let-peek coexistence rule off the clock: another seat's Act Phase, this seat holding a facedown adviser. */
 function offTurnTable(): PlayedTable {
@@ -242,6 +609,47 @@ function restTurnFlowTable(): PlayedTable {
     return tableOf(state)
 }
 
+type WakeScene = 'mob' | 'site' | 'forced'
+
+/**
+ * R-4.1.1 to R-4.1.4: this seat's Wake at the Drowned City, which holds a secret. On the Mob side
+ * it holds the People's Favor with the Discord and Order banks tied for least; at the site alone
+ * it holds no banner; forced, the People's Favor holds 1 favor, so the one step is a Place, and
+ * the site holds nothing to take.
+ */
+function wakeTable(scene: WakeScene): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const peoplesFavor = {
+        mob: { value: 3, mobSide: true, holderPlayerId: 'me' },
+        site: { value: 3, mobSide: false, holderPlayerId: 'ann' },
+        forced: { value: 1, mobSide: false, holderPlayerId: 'me' }
+    }[scene]
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 4 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.WakePhase,
+            chancellorPlayerId: 'ann',
+            oathRevision: OathRevision.TurnFlow,
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.drowned-city' },
+            cardTokens: { 'site.drowned-city': { favor: 0, secrets: scene === 'forced' ? 0 : 1 } },
+            banners: { ...testBanners(), [Banner.PeoplesFavor]: peoplesFavor },
+            favorBank: { arcane: 2, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 1 }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-3.3, R-3.3-H1: the last seat of round six ends its Act Phase while the Chancellor holds the title. */
 function endOfRoundTable(): PlayedTable {
     const state = testState(
@@ -274,6 +682,75 @@ function endOfRoundTable(): PlayedTable {
             source: ActionSource.User,
             playerId: 'dev'
         })
+    ])
+}
+
+/** R-2.11.b — on Rhys's turn the holder ("me") no longer rules the most sites; Rhys and Ann tie. */
+function oathkeeperTieTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'p1' }),
+            testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'h1' })
+        ],
+        {
+            machineState: MachineState.OathkeeperChoice,
+            chancellorPlayerId: 'me',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'me',
+            pendingOathkeeperChoice: {
+                holderPlayerId: 'me',
+                candidates: ['rhys', 'ann'],
+                resumeMachineState: MachineState.ActPhase
+            },
+            warbandsBySite: {
+                c1: { [IMPERIAL_WARBANDS]: 1 },
+                p1: { rhys: 1 },
+                p2: { rhys: 1 },
+                h1: { ann: 1 },
+                h2: { ann: 1 }
+            }
+        }
+    )
+    openTurn(state, 'rhys')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-3.1 — an Exile wakes holding the Oathkeeper title on its Usurper side, and wins. */
+function usurperWinsTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            })
+        ],
+        {
+            machineState: MachineState.WakePhase,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'me',
+            oathkeeperIsUsurper: true,
+            round: 4,
+            warbandsBySite: { c1: { me: 1 }, c2: { me: 1 }, p1: { [IMPERIAL_WARBANDS]: 1 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    return played(table, [
+        createAction(ResolveWake, { ...envelope(table), playerId: 'me', favorSteps: [] })
     ])
 }
 
@@ -373,6 +850,32 @@ function actPhaseTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-11.12: this seat's Act Phase at the Buried Giant with a secret, so a destination has two ways to pay. */
+function leavingBuriedGiantTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 3, secrets: 1 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.buried-giant' },
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-5.1.2, R-2.11-H1: a world-deck Search stops on a Vision, and ruling a site takes the title from the Chancellor. */
 function majorEventsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -416,32 +919,50 @@ function majorEventsTable(): PlayedTable {
     ])
 }
 
-/** R-5.3.2: three denizens at the seat's site, one carrying favor, two Hearth advisers and an empty Discord bank. */
-function tradeTable(): PlayedTable {
+const TRADE_BANKS: Record<Suit, number> = {
+    [Suit.Discord]: 0,
+    [Suit.Arcane]: 3,
+    [Suit.Order]: 3,
+    [Suit.Hearth]: 3,
+    [Suit.Beast]: 3,
+    [Suit.Nomad]: 3
+}
+
+/** Three denizens at the seat's site, one carrying favor, and two Hearth advisers. */
+function tradeSiteTable(
+    me: Partial<OathPlayerState> = {},
+    over: Partial<OathProjectedState> = {},
+    chancellor: 'me' | 'ann' = 'ann'
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
+    // The Chancellor's pieces are purple; an Exile has no purple avatar.
+    const seat = (playerId: 'me' | 'ann', exileColor: Color) =>
+        playerId === chancellor
+            ? { status: PlayerStatus.Chancellor, color: Color.Purple }
+            : { status: PlayerStatus.Exile, color: exileColor }
     const state = testState(
         [
             testPlayer({
                 playerId: 'me',
-                color: Color.Red,
+                ...seat('me', Color.Red),
                 siteId: home,
                 secrets: 1,
                 favor: 3,
                 advisers: [
                     { cardId: 'denizen.hearth.a-round-of-ale', faceUp: true },
                     { cardId: 'denizen.hearth.armed-mob', faceUp: true }
-                ]
+                ],
+                ...me
             }),
             testPlayer({
                 playerId: 'ann',
-                color: Color.Purple,
-                status: PlayerStatus.Chancellor,
+                ...seat('ann', Color.Blue),
                 siteId: mapSlotId(Region.Provinces, 0)
             })
         ],
         {
             machineState: MachineState.ActPhase,
-            chancellorPlayerId: 'ann',
+            chancellorPlayerId: chancellor,
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: {
@@ -452,14 +973,8 @@ function tradeTable(): PlayedTable {
                 ]
             },
             cardTokens: { 'denizen.order.council-seat': { favor: 1, secrets: 0 } },
-            favorBank: {
-                [Suit.Discord]: 0,
-                [Suit.Arcane]: 3,
-                [Suit.Order]: 3,
-                [Suit.Hearth]: 3,
-                [Suit.Beast]: 3,
-                [Suit.Nomad]: 3
-            }
+            favorBank: TRADE_BANKS,
+            ...over
         }
     )
     openTurn(state, 'me')
@@ -467,8 +982,67 @@ function tradeTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-5.3.2: the Discord bank empty. */
+function tradeTable(): PlayedTable {
+    return tradeSiteTable()
+}
+
+/** R-6.6.2.a: the seat is the Chancellor with Careless's Reliquary space uncovered, every bank holding favor. */
+function carelessTable(): PlayedTable {
+    return tradeSiteTable(
+        {},
+        {
+            favorBank: { ...TRADE_BANKS, [Suit.Discord]: 3 },
+            reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) }))
+        },
+        'me'
+    )
+}
+
+/** R-5.2, R-9.3: the seat's warband bank is empty. */
+function musterEmptyBankTable(): PlayedTable {
+    return tradeSiteTable({ warbandsInPersonalBank: { me: 0 } })
+}
+
+/** R-5.4: a relic at the Ancient City, priced in favor, and both banners on the rail. */
+function recoverTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const slotId = `${home}.relic.0`
+    return tradeSiteTable(
+        { favor: 4, secrets: 3 },
+        {
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
+            relicsBySite: { [home]: [{ slotId }] },
+            vault: testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' })
+        }
+    )
+}
+
+/** R-5.4, R-6.3: two relics at the Ancient City, the second already peeked by the seat, and both banners. */
+function recoverSeenTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
+    return tradeSiteTable(
+        { favor: 6, secrets: 3, peekedRelicSlotIds: [second], peekedRelics: { [second]: 'relic.map' } },
+        {
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
+            relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
+            vault: testVaultWithRelics({ [first]: 'relic.cup-of-plenty', [second]: 'relic.map' })
+        }
+    )
+}
+
 /** R-6.5.a — the Citizen asks to move two Imperial warbands off their site, so the Chancellor is asked. */
 function warbandMoveAskedTable(): PlayedTable {
+    return citizenAsksChancellor({ kind: WarbandMoveKind.SiteToBoard })
+}
+
+/** R-6.5.b — the Citizen asks to give the Chancellor, at the same site, two Imperial warbands. */
+function warbandGiveAskedTable(): PlayedTable {
+    return citizenAsksChancellor({ kind: WarbandMoveKind.GiveToImperial, otherPlayerId: 'chan' })
+}
+
+function citizenAsksChancellor(move: WarbandMove): PlayedTable {
     const state = testState(
         [
             testPlayer({
@@ -501,7 +1075,7 @@ function warbandMoveAskedTable(): PlayedTable {
         createAction(MoveWarbands, {
             ...envelope(table),
             playerId: 'cit',
-            move: { kind: WarbandMoveKind.SiteToBoard },
+            move,
             owner: IMPERIAL_WARBANDS,
             count: 2
         })
@@ -559,8 +1133,8 @@ function joinDefenceAskedTable(): PlayedTable {
     ])
 }
 
-/** R-5.5.6.a — a won battle whose defending force spans two groups, so the defending side chooses. */
-function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
+/** R-5.5.5 — the attacker's sacrifice after a won roll, against a defending force in two groups. */
+function wonBattle(defence: 'exile' | 'imperial') {
     const imperial = defence === 'imperial'
     const owner = imperial ? IMPERIAL_WARBANDS : 'def'
     const defendingForce: WarbandGroup[] = [
@@ -617,14 +1191,113 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     )
     openTurn(state, 'att')
     state.activePlayerIds = ['att']
-    const table = tableOf(state)
+    return state
+}
+
+/** R-5.5.6.a — a won battle whose defending force spans two groups, so the defending side chooses. */
+function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
+    const table = tableOf(wonBattle(defence))
     return played(table, [
         createAction(CampaignSacrifice, { ...envelope(table), playerId: 'att', sacrifice: 0 })
     ])
 }
 
-/** R-5.5: the seat stands at the Chancellor's site, which the Empire rules. */
-function campaignTable(): PlayedTable {
+/** R-5.5.3 — the defender answers with battle plans before anything is rolled, on the attacker's turn. */
+function defenderPlansTable(): PlayedTable {
+    const state = wonBattle('exile')
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is a Campaign')
+    state.machineState = MachineState.CampaignPlans
+    state.campaign = {
+        ...campaign,
+        attackRoll: [],
+        defenseRoll: [],
+        pendingDefenderPlans: { queue: ['def'] }
+    }
+    state.activePlayerIds = ['def']
+    return tableOf(state)
+}
+
+/** Sneak Attack — the campaigner chooses a sacrifice while the defender's own turn is paused. */
+function sneakAttackHeldTable(): PlayedTable {
+    const state = wonBattle('exile')
+    openTurn(state, 'def')
+    state.heldTurn = { queue: [], askingPlayerId: 'def', resumeMachineState: MachineState.ActPhase }
+    return tableOf(state)
+}
+
+/** R-X.1 — a card asks a seat whose turn it is not (Herald, during another seat's Act Phase). */
+function askedOffTurnTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Red, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.PickFavorBank,
+                        cardId: 'denizen.hearth.herald',
+                        askedPlayerId: 'ann',
+                        amount: 1
+                    }
+                ],
+                askingPlayerId: 'dev',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-2.11.b — the outgoing Oathkeeper names the new holder during another seat's turn. */
+function oathkeeperChoiceTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Red, siteId: 'c2' }),
+            testPlayer({ playerId: 'cal', color: Color.Blue, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.OathkeeperChoice,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            pendingOathkeeperChoice: {
+                holderPlayerId: 'ann',
+                candidates: ['dev', 'cal'],
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/**
+ * R-5.5: the seat stands at the Chancellor's site, which the Empire rules, so the Chancellor is
+ * the one defender; with the site unheld, the bandits may be attacked too. A board of two owners
+ * is a game from before revision 5, which still declares the skulls' loss order.
+ */
+function campaignTable(imperialHeld = true, twoOwners = false): PlayedTable {
     const site = mapSlotId(Region.Provinces, 0)
     const state = testState(
         [
@@ -632,7 +1305,7 @@ function campaignTable(): PlayedTable {
                 playerId: 'me',
                 color: Color.Red,
                 siteId: site,
-                warbandsOnBoard: { me: 4 }
+                warbandsOnBoard: twoOwners ? { me: 3, [IMPERIAL_WARBANDS]: 1 } : { me: 4 }
             }),
             testPlayer({
                 playerId: 'ann',
@@ -647,11 +1320,164 @@ function campaignTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [site]: [] },
-            warbandsBySite: { [site]: { [IMPERIAL_WARBANDS]: 2 } }
+            warbandsBySite: imperialHeld ? { [site]: { [IMPERIAL_WARBANDS]: 2 } } : {}
         }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+type BattleStep =
+    'defenderPlans' | 'attackerPlans' | 'sacrifice' | 'sacrificeMixed' | 'wonOutright' | 'spoils'
+
+const WILD_MOUNTS = 'denizen.nomad.wild-mounts'
+const HORSE_ARCHERS = 'denizen.nomad.horse-archers'
+
+/**
+ * R-5.5.3 to R-5.5.7 — one step of a Campaign the seat 'att' declared against the Exile 'def' at
+ * the top Provinces site, which 'def' rules: the defender's plans, the attacker's plans after the
+ * Citizens answered, the sacrifice (one group, two, or none needed) and the spoils.
+ */
+function battleState(step: BattleStep): HydratedOathGameState {
+    const site = mapSlotId(Region.Provinces, 0)
+    const mixed = step === 'sacrificeMixed'
+    const rolled = {
+        attackPool: 3,
+        defensePool: 2,
+        attackRoll: range(0, 3).map(() => ({ swords: 1, hollowSwords: 0, skulls: 0 })),
+        defenseRoll: [
+            { shields: 1, doubling: false },
+            { shields: 1, doubling: false }
+        ]
+    }
+    const battle = {
+        defenderPlans: {},
+        attackerPlans: {},
+        sacrifice: { ...rolled, swords: 1, defense: 3 },
+        sacrificeMixed: { ...rolled, swords: 1, defense: 2 },
+        wonOutright: { ...rolled, swords: 3, defense: 2 },
+        spoils: { ...rolled, swords: 3, defense: 2, attackerVictorious: true }
+    }[step]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'att',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: mixed ? { att: 4, [IMPERIAL_WARBANDS]: 1 } : { att: 4 },
+                warbandsInPersonalBank: { att: 10 },
+                advisers: [{ cardId: HORSE_ARCHERS, faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'def',
+                color: Color.Yellow,
+                siteId: site,
+                favor: 4,
+                warbandsOnBoard: { def: 2 },
+                warbandsInPersonalBank: { def: 10 },
+                advisers: [{ cardId: WILD_MOUNTS, faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: {
+                defenderPlans: MachineState.CampaignPlans,
+                attackerPlans: MachineState.CampaignPlans,
+                sacrifice: MachineState.CampaignSacrifice,
+                sacrificeMixed: MachineState.CampaignSacrifice,
+                wonOutright: MachineState.CampaignSacrifice,
+                spoils: MachineState.CampaignVictory
+            }[step],
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            // The spoils draw the site taken: a printed site with no power that acts on them.
+            siteCards:
+                step === 'spoils'
+                    ? { ...fixtureSitesOnTheBoard(), [site]: 'site.steppe' }
+                    : fixtureSitesOnTheBoard(),
+            warbandsBySite: { [site]: { def: 1 } },
+            banners: testBanners({ [Banner.PeoplesFavor]: 'def' }),
+            pendingCampaign:
+                step === 'attackerPlans'
+                    ? {
+                          declaration: {
+                              attackerPlayerId: 'att',
+                              defenderPlayerId: 'def',
+                              targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                              attackDice: 3,
+                              plans: [],
+                              forceSiteIds: [],
+                              allyPlayerIds: [],
+                              attackerSiteId: site
+                          },
+                          toAsk: ['def'],
+                          awaitingAttackerPlans: true
+                      }
+                    : undefined,
+            campaign:
+                step === 'attackerPlans'
+                    ? undefined
+                    : {
+                          attackerPlayerId: 'att',
+                          defenderPlayerId: 'def',
+                          nonImperialPlayerIds: [],
+                          allyPlayerIds: [],
+                          targets: [
+                              { kind: CampaignTargetKind.Site, siteId: site },
+                              { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor },
+                              { kind: CampaignTargetKind.PawnAndFavor }
+                          ],
+                          attackPool: 3,
+                          defensePool: 2,
+                          attackRoll: [],
+                          defenseRoll: [],
+                          defense: 0,
+                          swords: 0,
+                          defendingForce: [
+                              { at: { kind: 'site', siteId: site }, owner: 'def', count: 1 }
+                          ],
+                          defendingBandits: 0,
+                          pendingDefenderPlans:
+                              step === 'defenderPlans' ? { queue: ['def'] } : undefined,
+                          ...campaignRecords(),
+                          ...battle
+                      }
+        }
+    )
+    openTurn(state, 'att')
+    state.activePlayerIds = [step === 'defenderPlans' ? 'def' : 'att']
+    return state
+}
+
+function battleTable(step: BattleStep): PlayedTable {
+    return tableOf(battleState(step))
+}
+
+/**
+ * R-5.5.7, Relic Hunter — the spoils of the same battle when 'att' took the top two Provinces
+ * sites and the relic lying at the first (seen, as the targeted relics are), but not the pawn.
+ */
+function spoilsRelicHunterTable(): PlayedTable {
+    const state = battleState('spoils')
+    const [first, second] = mapSlotsFor(Region.Provinces)
+    const slotId = `${first}.relic.0`
+    state.siteCards = { ...state.siteCards, [second]: 'site.plains' }
+    state.relicsBySite = { [first]: [{ slotId }] }
+    state.vault = testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' })
+    state.getPlayerState('att').peekedRelics = { [slotId]: 'relic.cup-of-plenty' }
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is fought mid-Campaign')
+    campaign.targets = [
+        { kind: CampaignTargetKind.Site, siteId: first },
+        { kind: CampaignTargetKind.Site, siteId: second },
+        { kind: CampaignTargetKind.SiteRelic, slotId }
+    ]
     return tableOf(state)
 }
 
@@ -875,6 +1701,197 @@ function mushroomsTable(supply: number): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.4: the seat holds Truthful Harp, a Search modifier whose printed text carries emphasis marks. */
+function harpSearchTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 4,
+                relicIds: ['relic.truthful-harp']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-7.4, R-6.2: Use a power with a card that makes a Search possible (Mushrooms, 1 Supply), an
+ * adviser that changes a Travel (Tents) and an "Action:" power that costs a secret (the Whistle,
+ * which picks a pawn at another site).
+ */
+function usePowerTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 1,
+                favor: 2,
+                secrets: 3,
+                relicIds: ['relic.whistle'],
+                advisers: [{ cardId: 'denizen.nomad.tents', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.beast.mushrooms'] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * Witch's Bargain in Dana's advisers, in a game created at revision 7: Dana (5 favor, 3 secrets),
+ * Rhys (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Rhys
+ * the only player there. With Vow of Silence too, Dana cannot give anyone secrets.
+ */
+function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 5,
+                secrets: 3,
+                advisers: [
+                    { cardId: 'denizen.arcane.witchs-bargain', faceUp: true },
+                    ...(silenced ? [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }] : [])
+                ]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 4,
+                secrets: 2
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: annAway ? next : home,
+                favor: 1,
+                secrets: 1
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            oathRevision: OathRevision.EngineFixes3
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/** R-9.4: Tavern Songs at the seat's site peeks at the Cradle discard pile, which nobody else sees. */
+function tavernSongsTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.hearth.tavern-songs'] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-10.8: Deed Writer at the seat's site, which the seat rules, opens an exchange with Ann. */
+function deedWriterTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const away = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7, favor: 2 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: away,
+                favor: 2
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.hearth.deed-writer'] },
+            warbandsBySite: { [home]: { me: 2 }, [away]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 /** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
 function travelCardsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -911,12 +1928,1128 @@ function travelCardsTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-7.1.4 — Toll Roads stands at the first Provinces site, which the Empire rules: travelling there
+ * gives the Chancellor (ann) a favor. The seat is at the top Cradle site with Supply to spare.
+ */
+function travelTollTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const tolled = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 6, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [], [tolled]: ['denizen.order.toll-roads'] },
+            warbandsBySite: { [tolled]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+const STACKED_CARDS = [
+    'denizen.order.longbows',
+    'denizen.hearth.wayside-inn',
+    'denizen.beast.wolves'
+]
+
+/** R-10.5: Pilgrimage asks the seat to stack three drawn cards onto the Cradle discard pile. */
+function stackOrderTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.OrderDrawnCards,
+                        cardId: 'denizen.nomad.pilgrimage',
+                        askedPlayerId: 'me',
+                        region: Region.Cradle,
+                        cardCount: STACKED_CARDS.length,
+                        cardIds: STACKED_CARDS
+                    }
+                ],
+                askingPlayerId: 'me',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-7.1.4-H2: ann's Campaign against the seat ends, and the seat's Sneak Attack asks it to strike back. */
+function sneakAttackTable(): PlayedTable {
+    const site = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: { me: 4 },
+                advisers: [{ cardId: 'denizen.discord.sneak-attack', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: site,
+                supply: 6,
+                warbandsOnBoard: { ann: 6 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [site]: [] }
+        }
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    const campaign = played(table, [
+        createAction(Campaign, {
+            ...envelope(table),
+            playerId: 'ann',
+            defender: { kind: 'player', playerId: 'me' },
+            targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+            attackDice: 0,
+            plans: []
+        })
+    ])
+    const defended =
+        campaign.state.machineState === MachineState.CampaignPlans
+            ? played(campaign, [
+                  createAction(CampaignDefend, { ...envelope(table), playerId: 'me', plans: [] })
+              ])
+            : campaign
+    const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+        new HydratedOathGameState(defended.state),
+        0
+    )
+    return played(defended, [
+        createAction(CampaignSacrifice, {
+            ...envelope(table),
+            playerId: 'ann',
+            sacrifice: 0,
+            defeatKills
+        })
+    ])
+}
+
+const RELIQUARY_RELICS = [
+    'relic.dowsing-sticks',
+    'relic.oracular-pig',
+    'relic.brass-horse',
+    'relic.truthful-harp'
+]
+
+/** R-6.6.1: the seat is the Chancellor holding the Scepter, and ann is an Exile it may offer Citizenship. */
+function citizenshipTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c2',
+                favor: 2
+            })
+        ],
+        { machineState: MachineState.ActPhase, chancellorPlayerId: 'me' }
+    )
+    state.reliquary = state.reliquary.map((slot, index) => ({
+        ...slot,
+        cardId: RELIQUARY_RELICS[index]
+    }))
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/**
+ * R-6.6.1, R-6.6.2, R-9.3 — the Chancellor offers the Exile Citizenship for 2 favor; the Exile has
+ * three warbands on their board and two at Fertile Valley, and the Empire this many to replace them.
+ */
+function citizenshipOfferedTable(imperial: number, fromExile?: CitizenshipTransfer): PlayedTable {
+    const valley = mapSlotId(Region.Cradle, 1)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                favor: 4,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: imperial }
+            }),
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: valley,
+                favor: 2,
+                secrets: 2,
+                warbandsOnBoard: { me: 3 },
+                warbandsInPersonalBank: { me: 9 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [valley]: 'site.fertile-valley' },
+            denizensBySite: { [valley]: [] },
+            warbandsBySite: { [valley]: { me: 2 } }
+        }
+    )
+    state.vault = testVaultWithRelics(
+        Object.fromEntries(
+            [
+                'relic.book-of-records',
+                'relic.brass-horse',
+                'relic.cracked-horn',
+                'relic.grand-mask'
+            ].map((relicId, index) => [reliquarySlotId(index), relicId])
+        )
+    )
+    openTurn(state, 'ann')
+    state.activePlayerIds = ['ann']
+    const table = tableOf(state)
+    return played(table, [
+        createAction(OfferCitizenship, {
+            ...envelope(table),
+            playerId: 'ann',
+            exilePlayerId: 'me',
+            reliquarySlotId: reliquarySlotId(0),
+            terms: { fromScepterHolder: { favor: 2 }, fromExile }
+        })
+    ])
+}
+
+/** R-10.2: a granted free Travel is due, so only it, giving it up or ending the phase is offered. */
+function freeTravelTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 3, favor: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                advisers: [{ cardId: 'denizen.arcane.tutor', faceUp: false }]
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.hearth.wayside-inn'], [next]: [] }
+        }
+    )
+    state.getPlayerState('me').freeTravelAtAction = state.actionCount
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-7.1.4: Rhys rules this seat's site with Forced Labor, so a Search gives him a favor. */
+function searchTollByRhysTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7, favor: 3 }),
+            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: home }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.order.forced-labor'] },
+            warbandsBySite: { [home]: { rhys: 2 } },
+            discardPileCounts: { cradle: 3, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.beast.wolves'
+                ]
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-5.1.4.IV: the Conspiracy drawn by a Search, with Rhys at this seat's site holding a relic. */
+function searchConspiracyTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                secrets: 2,
+                handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
+                advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
+                    (cardId) => ({ cardId, faceUp: true })
+                )
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: home,
+                relicIds: ['relic.cup-of-plenty'],
+                advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.Searching,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-2.3 — the Reliquary's relics are held facedown in the vault; the Scepter's holder knows each (R-6.4-H1). */
+const RELIQUARY: Record<string, string> = {
+    'reliquary.0': 'relic.ring-of-devotion',
+    'reliquary.1': 'relic.cup-of-plenty',
+    'reliquary.2': 'relic.skeleton-key',
+    'reliquary.3': 'relic.brass-horse'
+}
+const RELIQUARY_KNOWN = { peekedRelicSlotIds: Object.keys(RELIQUARY), peekedRelics: RELIQUARY }
+
+/**
+ * R-6.6.1 — the Grand Scepter's holder, holding both banners, in their Act Phase with every
+ * Reliquary relic known to them (R-6.4-H1). `two`: Rhys and Ann are Exiles; `one`: Rhys alone;
+ * `silenced`: both, Rhys with Vow of Silence, so he may give no secrets; `self`: the holder is the
+ * one Exile, Rhys a Citizen and Ann the Chancellor.
+ */
+function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const self = exiles === 'self'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: self ? Color.Yellow : Color.Purple,
+                status: self ? PlayerStatus.Exile : PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: self ? { dana: 14 } : { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: self ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                secrets: 1,
+                advisers: exiles === 'silenced' ? [faceup('denizen.arcane.vow-of-silence')] : [],
+                warbandsInPersonalBank: { rhys: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: self ? Color.Purple : Color.Blue,
+                status: self
+                    ? PlayerStatus.Chancellor
+                    : exiles === 'one'
+                      ? PlayerStatus.Citizen
+                      : PlayerStatus.Exile,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: self ? { [IMPERIAL_WARBANDS]: 16 } : { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: self ? 'ann' : 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY),
+            banners: testBanners({ [Banner.PeoplesFavor]: 'dana', [Banner.DarkestSecret]: 'dana' })
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
+ * R-6 — the Grand Scepter's holder offered every minor the rules allow together: a facedown
+ * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site he
+ * rules, Rhys an Exile and Ann a Citizen.
+ */
+function everyMinorTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const relic = `${home}.relic.0`
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                supply: 7,
+                favor: 12,
+                secrets: 3,
+                relicIds: ['relic.grand-scepter'],
+                advisers: [
+                    { cardId: 'denizen.order.curfew', faceUp: false },
+                    { cardId: 'denizen.nomad.tents', faceUp: true }
+                ],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                warbandsInPersonalBank: { rhys: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            warbandsBySite: { [home]: { [IMPERIAL_WARBANDS]: 2 } },
+            relicsBySite: { [home]: [{ slotId: relic }] },
+            vault: testVaultWithRelics({ ...RELIQUARY, [relic]: 'relic.cup-of-plenty' })
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+const SWARM = 'denizen.beast.insect-swarm'
+const FORCED_LABOR = 'denizen.order.forced-labor'
+
+/**
+ * R-6.1, R-6.6.1, R-9.4 — what Show offers: Dana, the Chancellor, holds the Grand Scepter from an
+ * earlier turn, knows every Reliquary relic (R-6.4-H1) and has Insect Swarm facedown; Rhys is an
+ * Exile with Forced Labor facedown, and Ann a Citizen. `on` is the seat whose Act Phase it is.
+ */
+function showTable(on: 'dana' | 'rhys'): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: ['relic.grand-scepter'],
+                advisers: [{ cardId: SWARM, faceUp: false }],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 3,
+                secrets: 1,
+                advisers: [{ cardId: FORCED_LABOR, faceUp: false }],
+                warbandsInPersonalBank: { rhys: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY)
+        }
+    )
+    openTurn(state, on)
+    state.activePlayerIds = [on]
+    return tableOf(state)
+}
+
+/** R-6.7 — the Grand Scepter's holder may exile Rhys (5 favor) or Ann, who holds the People's Favor (6). */
+function exileCitizensTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 12,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { rhys: 14 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 2,
+                warbandsInPersonalBank: { ann: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY),
+            banners: testBanners({ [Banner.PeoplesFavor]: 'ann' })
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/** R-6.8 — Rhys, a Citizen with one secret and two warbands on his board, may exile himself for 3 favor. */
+function selfExileTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Citizen,
+                siteId: home,
+                favor: 5,
+                secrets: 1,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { rhys: 14 }
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                favor: 4,
+                relicIds: ['relic.grand-scepter'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                ...RELIQUARY_KNOWN
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            vault: testVaultWithRelics(RELIQUARY)
+        }
+    )
+    openTurn(state, 'rhys')
+    state.activePlayerIds = ['rhys']
+    return tableOf(state)
+}
+
+/** R-11.7 — Rhys asked where Dana goes from the Shrouded Wood Rhys rules. */
+function woodRulerTable(): PlayedTable {
+    const state = shroudedWoodState(2, { onBoard: true })
+    const table = tableOf(state)
+    return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Dana' })])
+}
+
+/**
+ * R-11.7, Toll Roads — the Wood ruler's tables, with Rhys also ruling the Great Slum, which holds
+ * Toll Roads, and Dana holding 2 favor.
+ */
+function woodTollState(): HydratedOathGameState {
+    const state = shroudedWoodState(2, { onBoard: true })
+    const slum = mapSlotsFor(Region.Provinces)[1]
+    state.denizensBySite = { ...state.denizensBySite, [slum]: ['denizen.order.toll-roads'] }
+    state.warbandsBySite = { ...state.warbandsBySite, [slum]: { Rhys: 1 } }
+    state.getPlayerState('Dana').favor = 2
+    return state
+}
+
+/** Dana has set out from Rhys's Wood; Rhys picks, the Great Slum marked with its toll. */
+function woodRulerTollTable(): PlayedTable {
+    const table = tableOf(woodTollState())
+    return played(table, [createAction(Travel, { ...envelope(table), playerId: 'Dana' })])
+}
+
+/** Rhys picked the Great Slum: Dana is asked for the toll before paying any Supply. */
+function woodTollAskedTable(): PlayedTable {
+    const table = tableOf(woodTollState())
+    return played(table, [
+        createAction(Travel, { ...envelope(table), playerId: 'Dana' }),
+        createAction(AnswerQuestion, {
+            ...envelope(table),
+            playerId: 'Rhys',
+            answer: {
+                kind: PowerQuestionKind.ShroudedWoodDestination,
+                siteId: mapSlotsFor(Region.Provinces)[1]
+            }
+        })
+    ])
+}
+
+const BANDIT_CROWN = 'relic.bandit-crown'
+
+/** The empty Provinces site the Bandit Crown's tables enlarge, dealt the Great Slums. */
+const CROWN_SITE = mapSlotId(Region.Provinces, 1)
+
+type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five'
+
+/**
+ * R-7.6.5 with R-6.6.3 — the Bandit Crown in a new game: Dana the Chancellor, Ann a Citizen,
+ * Rhys an Exile and the Exile Bea on the clock. The Empire's warbands hold the top Provinces
+ * site and Rhys's the top Cradle site; every other site is empty. 'campaign': Ann, holding the
+ * Crown, has declared against Dana (R-5.5.1.a suspends her). 'five': Bea, Dov and Wes are
+ * Citizens too, and Rhys is on the clock.
+ */
+function banditCrownTable(scene: CrownScene): PlayedTable {
+    const holderId = {
+        citizen: 'ann',
+        chancellor: 'dana',
+        exile: 'rhys',
+        campaign: 'ann',
+        five: 'ann'
+    }[scene]
+    const crown = (playerId: string) => (playerId === holderId ? [BANDIT_CROWN] : [])
+    const citizen = (playerId: string, color: Color) =>
+        testPlayer({
+            playerId,
+            color,
+            status: PlayerStatus.Citizen,
+            siteId: mapSlotId(Region.Hinterland, 0),
+            relicIds: crown(playerId)
+        })
+    const plains = mapSlotId(Region.Provinces, 0)
+    const home = mapSlotId(Region.Cradle, 0)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: plains,
+                relicIds: crown('dana'),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            }),
+            citizen('ann', Color.Blue),
+            ...(scene === 'five'
+                ? [
+                      citizen('bea', Color.Yellow),
+                      citizen('dov', Color.Black),
+                      citizen('wes', Color.White)
+                  ]
+                : [
+                      testPlayer({
+                          playerId: 'bea',
+                          color: Color.Yellow,
+                          siteId: mapSlotId(Region.Cradle, 1)
+                      })
+                  ]),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: home,
+                relicIds: crown('rhys'),
+                warbandsOnBoard: { rhys: 4 }
+            })
+        ],
+        {
+            oathRevision: CURRENT_OATH_REVISION,
+            machineState:
+                scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [CROWN_SITE]: 'site.great-slums' },
+            denizensBySite: { [CROWN_SITE]: [] },
+            warbandsBySite: { [plains]: { [IMPERIAL_WARBANDS]: 2 }, [home]: { rhys: 1 } },
+            campaign:
+                scene === 'campaign'
+                    ? {
+                          attackerPlayerId: 'ann',
+                          defenderPlayerId: 'dana',
+                          nonImperialPlayerIds: ['ann'],
+                          allyPlayerIds: [],
+                          targets: [{ kind: CampaignTargetKind.Site, siteId: plains }],
+                          attackPool: 2,
+                          defensePool: 2,
+                          attackRoll: [],
+                          defenseRoll: [],
+                          defense: 0,
+                          swords: 0,
+                          defendingForce: [
+                              {
+                                  at: { kind: 'site', siteId: plains },
+                                  owner: IMPERIAL_WARBANDS,
+                                  count: 2
+                              }
+                          ],
+                          defendingBandits: 0,
+                          pendingDefenderPlans: { queue: ['dana'] },
+                          ...campaignRecords()
+                      }
+                    : undefined
+        }
+    )
+    const onTheClock = scene === 'campaign' ? 'dana' : scene === 'five' ? 'rhys' : 'bea'
+    openTurn(state, scene === 'campaign' ? 'ann' : onTheClock)
+    state.activePlayerIds = [onTheClock]
+    return tableOf(state)
+}
+
+const GREAT_SLUM = mapSlotId(Region.Provinces, 1)
+const RIVER = mapSlotId(Region.Provinces, 2)
+const WHISTLE = 'relic.whistle'
+const ORACLE = 'denizen.nomad.oracle'
+
+/**
+ * Toll Roads on a power's move: Rhys (Exile) rules the Great Slum, which holds Toll Roads, Forced
+ * Labor and Oracle; Dana (Chancellor) stands at the River.
+ */
+function tollTable(rhys: Record<string, unknown>, dana: Record<string, unknown>, turn: string) {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: RIVER,
+                supply: 3,
+                favor: 4,
+                secrets: 1,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                ...dana
+            }),
+            testPlayer({
+                playerId: 'Rhys',
+                color: Color.Red,
+                siteId: GREAT_SLUM,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { Rhys: 9 },
+                ...rhys
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'Dana',
+            oathkeeperPlayerId: 'Rhys',
+            oathRevision: OathRevision.UiBatch1,
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [GREAT_SLUM]: 'site.great-slums',
+                [RIVER]: 'site.river'
+            },
+            denizensBySite: {
+                [GREAT_SLUM]: ['denizen.order.toll-roads', 'denizen.order.forced-labor', ORACLE],
+                [RIVER]: []
+            },
+            warbandsBySite: { [GREAT_SLUM]: { Rhys: 2 } }
+        }
+    )
+    openTurn(state, turn)
+    state.activePlayerIds = [turn]
+    state.vault = testVaultWithRelics({})
+    return state
+}
+
+/** Rhys has used the Whistle on Dana, who is asked to pay Toll Roads or refuse. */
+function tollAskedTable(): PlayedTable {
+    const table = tableOf(tollTable({ relicIds: [WHISTLE] }, {}, 'Rhys'))
+    return played(table, [
+        createAction(UseActionPower, {
+            ...envelope(table),
+            playerId: 'Rhys',
+            cardId: WHISTLE,
+            powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
+            choices: [{ kind: PowerChoiceKind.Player, playerId: 'Dana' }]
+        })
+    ])
+}
+
+/** Dana's Act Phase at the Great Slum: Oracle's draw owes Forced Labor's toll to Rhys. */
+function oracleTable(favor: number): PlayedTable {
+    const state = tollTable(
+        { siteId: RIVER },
+        { siteId: GREAT_SLUM, favor, secrets: 2, relicIds: favor > 0 ? [] : [WHISTLE] },
+        'Dana'
+    )
+    return tableOf(state)
+}
+
+const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
+const SECOND_WIND = 'denizen.discord.second-wind'
+
+/** A rolled attack die: a skull face is a skull and two swords (`data/dice.ts`). */
+const SKULL_FACE = { swords: 2, hollowSwords: 0, skulls: 1 }
+const SWORD_FACE = { swords: 1, hollowSwords: 0, skulls: 0 }
+
+/**
+ * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, his force on his board and at
+ * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for his pick, or,
+ * at `sacrifice`, a battle that needs 3 sacrificed, so the defeat would be the default half.
+ */
+function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedTable {
+    const [here, plains, river] = mapSlotsFor(Region.Provinces)
+    const forceSiteIds = sites === 1 ? [plains] : [plains, river]
+    const skulls = sites === 1 ? 2 : 3
+    const attackRoll = [
+        ...range(0, skulls).map(() => SKULL_FACE),
+        SWORD_FACE,
+        { swords: 0, hollowSwords: 1, skulls: 0 }
+    ]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: here,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: sites === 1 ? 3 : 1 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: here,
+                warbandsOnBoard: { rhys: 4 },
+                warbandsInPersonalBank: { rhys: 10 }
+            })
+        ],
+        {
+            machineState:
+                step === 'skulls' ? MachineState.CampaignSkullLosses : MachineState.CampaignSacrifice,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            warbandsBySite: Object.fromEntries(
+                forceSiteIds.map((siteId) => [siteId, { [IMPERIAL_WARBANDS]: 2 }])
+            ),
+            campaign: {
+                attackerPlayerId: 'dana',
+                defenderPlayerId: 'rhys',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackPool: attackRoll.length,
+                defensePool: 2,
+                attackRoll,
+                defenseRoll: [
+                    { shields: 1, doubling: false },
+                    { shields: 2, doubling: false }
+                ],
+                defense: 7,
+                swords: step === 'skulls' ? skulls * 2 + 1 : 5,
+                defendingForce: [{ at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }],
+                defendingBandits: 0,
+                pendingSkullLosses: step === 'skulls' ? { skulls } : undefined,
+                ...campaignRecords(),
+                forceSiteIds
+            }
+        }
+    )
+    state.oathRevision = OathRevision.EngineFixes3
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
+ * Second Wind out of turn, revision 7 — ann won a Sneak Attack during rhys's turn with Second Wind,
+ * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which he rules).
+ */
+function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): PlayedTable {
+    const [tribunal] = mapSlotsFor(Region.Provinces)
+    const [slum] = mapSlotsFor(Region.Hinterland)
+    const travel = action === ActionType.Travel
+    const state = testState(
+        [
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: tribunal, supply: 1 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                siteId: travel ? tribunal : slum,
+                supply: 2,
+                favor: 3,
+                warbandsOnBoard: { ann: 4 },
+                advisers: [
+                    { cardId: SNEAK_ATTACK, faceUp: true },
+                    { cardId: SECOND_WIND, faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: slum,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            })
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            warbandsBySite: { [tribunal]: { ann: 2 }, [slum]: { [IMPERIAL_WARBANDS]: 3 } },
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.FreeActionOutOfTurn,
+                        cardId: SECOND_WIND,
+                        askedPlayerId: 'ann',
+                        action
+                    }
+                ],
+                askingPlayerId: 'rhys',
+                resumeMachineState: MachineState.ActPhase
+            },
+            heldTurn: { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+        }
+    )
+    state.oathRevision = OathRevision.EngineFixes3
+    openTurn(state, 'rhys')
+    state.activePlayerIds = ['ann']
+    const ann = state.getPlayerState('ann')
+    if (travel) ann.freeTravelAtAction = state.actionCount
+    ann.freeCampaignAtAction = state.actionCount
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+const DRUM = 'relic.dragonskin-drum'
+const BRASS_HORSE = 'relic.brass-horse'
+type DrumScene = 'whistle' | 'citizen' | 'toll' | 'horse'
+
+/**
+ * Dragonskin Drum on a power's move (revision 7): Dana holds the Drum at the River; Rhys, with the
+ * Whistle, rules the Great Slum (with Toll Roads there in 'toll'); Ann is the Chancellor, and in
+ * 'citizen' Dana is her Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
+ */
+function drumState(scene: DrumScene) {
+    const citizen = scene === 'citizen'
+    const horse = scene === 'horse'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Blue,
+                status: citizen ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: RIVER,
+                supply: 3,
+                favor: 4,
+                secrets: 2,
+                relicIds: horse ? [DRUM, BRASS_HORSE] : [DRUM],
+                warbandsOnBoard: citizen ? { [IMPERIAL_WARBANDS]: 2 } : { Dana: 2 }
+            }),
+            testPlayer({
+                playerId: 'Rhys',
+                color: Color.Red,
+                siteId: GREAT_SLUM,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                relicIds: [WHISTLE],
+                warbandsOnBoard: { Rhys: 9 }
+            }),
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotsFor(Region.Hinterland)[0],
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }
+            })
+        ],
+        {
+            machineState: horse ? MachineState.PowerQuestion : MachineState.ActPhase,
+            chancellorPlayerId: 'Ann',
+            oathkeeperPlayerId: 'Rhys',
+            oathRevision: OathRevision.EngineFixes3,
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [GREAT_SLUM]: 'site.great-slums',
+                [RIVER]: 'site.river'
+            },
+            denizensBySite: {
+                [GREAT_SLUM]: scene === 'toll' ? ['denizen.order.toll-roads'] : [],
+                [RIVER]: []
+            },
+            warbandsBySite: { [GREAT_SLUM]: { Rhys: 2 } },
+            pendingQuestions: horse
+                ? {
+                      queue: [
+                          {
+                              kind: PowerQuestionKind.TravelFreeTo,
+                              cardId: BRASS_HORSE,
+                              askedPlayerId: 'Dana',
+                              siteIds: [GREAT_SLUM]
+                          }
+                      ],
+                      askingPlayerId: 'Dana',
+                      resumeMachineState: MachineState.ActPhase
+                  }
+                : undefined
+        }
+    )
+    const turn = horse ? 'Dana' : 'Rhys'
+    openTurn(state, turn)
+    state.activePlayerIds = horse ? ['Dana'] : [turn]
+    state.vault = testVaultWithRelics({})
+    return state
+}
+
+/** Rhys uses the Whistle on Dana, who then holds the Drum at the Great Slum (or is first asked Toll Roads). */
+function drumTable(scene: DrumScene): PlayedTable {
+    const table = tableOf(drumState(scene))
+    if (scene === 'horse') return table
+    return played(table, [
+        createAction(UseActionPower, {
+            ...envelope(table),
+            playerId: 'Rhys',
+            cardId: WHISTLE,
+            powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
+            choices: [{ kind: PowerChoiceKind.Player, playerId: 'Dana' }]
+        })
+    ])
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
+    drumAsked: () => drumTable('whistle'),
+    drumAskedCitizen: () => drumTable('citizen'),
+    drumAfterToll: () => drumTable('toll'),
+    drumAfterBrassHorse: () => drumTable('horse'),
+    banditCrown: () => banditCrownTable('citizen'),
+    banditCrownChancellor: () => banditCrownTable('chancellor'),
+    banditCrownExile: () => banditCrownTable('exile'),
+    banditCrownCampaign: () => banditCrownTable('campaign'),
+    banditCrownFive: () => banditCrownTable('five'),
+    campaignLossOrder: () => campaignTable(true, true),
+    skullLosses: () => forceInPlacesTable('skulls', 1),
+    skullLossesTwoSites: () => forceInPlacesTable('skulls', 2),
+    sacrificeInTwoPlaces: () => forceInPlacesTable('sacrifice', 1),
+    freeTravelAsked: () => freeActionAskedTable(ActionType.Travel),
+    freeCampaignAsked: () => freeActionAskedTable(ActionType.Campaign),
+    warbandGiveAsked: warbandGiveAskedTable,
+    offerCitizenship: () => offerCitizenshipTable('two'),
+    offerCitizenshipToOne: () => offerCitizenshipTable('one'),
+    offerCitizenshipSilenced: () => offerCitizenshipTable('silenced'),
+    offerCitizenshipSelf: () => offerCitizenshipTable('self'),
+    everyMinor: everyMinorTable,
+    show: () => showTable('dana'),
+    showOne: () => showTable('rhys'),
+    harpSearch: harpSearchTable,
+    usePower: usePowerTable,
+    witchsBargain: () => witchsBargainTable(false, false),
+    witchsBargainSilenced: () => witchsBargainTable(true, false),
+    witchsBargainOneOther: () => witchsBargainTable(false, true),
+    exileCitizens: exileCitizensTable,
+    selfExile: selfExileTable,
     setup: setupTable,
+    shortBank: shortBankTable,
     searching: searchingTable,
     prophets: prophetsTable,
     offTurn: offTurnTable,
     actPhase: actPhaseTable,
+    leavingBuriedGiant: leavingBuriedGiantTable,
     warbandMoveAsked: warbandMoveAskedTable,
     staleWarbandMoveAsked: staleWarbandMoveAskedTable,
     joinDefenceAsked: joinDefenceAskedTable,
@@ -925,12 +3058,19 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restTurnFlow: restTurnFlowTable,
+    wakeMob: () => wakeTable('mob'),
+    wakeSite: () => wakeTable('site'),
+    wakeForced: () => wakeTable('forced'),
     endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
+    careless: carelessTable,
+    musterEmptyBank: musterEmptyBankTable,
+    recover: recoverTable,
+    recoverSeen: recoverSeenTable,
     peek: peekTable,
     relics: relicsTable,
     searchToll: searchTollTable,
@@ -941,7 +3081,50 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
     cardsOpenTravel: travelCardsTable,
-    majorEvents: majorEventsTable
+    travelToll: travelTollTable,
+    majorEvents: majorEventsTable,
+    stackOrder: stackOrderTable,
+    sneakAttack: sneakAttackTable,
+    citizenship: citizenshipTable,
+    citizenshipShort: () => citizenshipOfferedTable(3, { secrets: 1 }),
+    citizenshipNone: () => citizenshipOfferedTable(0, { secrets: 1 }),
+    citizenshipEnough: () => citizenshipOfferedTable(5),
+    freeTravel: freeTravelTable,
+    askedOffTurn: askedOffTurnTable,
+    defenderPlans: defenderPlansTable,
+    oathkeeperChoice: oathkeeperChoiceTable,
+    sneakAttackHeld: sneakAttackHeldTable,
+    searchTollByRhys: searchTollByRhysTable,
+    searchConspiracy: searchConspiracyTable,
+    campaignTwoDefenders: () => campaignTable(false),
+    battleDefenderPlans: () => battleTable('defenderPlans'),
+    attackerPlans: () => battleTable('attackerPlans'),
+    sacrifice: () => battleTable('sacrifice'),
+    sacrificeMixed: () => battleTable('sacrificeMixed'),
+    wonOutright: () => battleTable('wonOutright'),
+    spoils: () => battleTable('spoils'),
+    spoilsRelicHunter: spoilsRelicHunterTable,
+    ...QUESTION_TABLES,
+    oathkeeperTie: oathkeeperTieTable,
+    tavernSongs: tavernSongsTable,
+    usurperWins: usurperWinsTable,
+    deedWriter: deedWriterTable,
+    woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
+    woodRuler: woodRulerTable,
+    woodRulerToll: woodRulerTollTable,
+    woodTollAsked: woodTollAskedTable,
+    tollAsked: tollAskedTable,
+    oracleToll: () => oracleTable(4),
+    oracleNoFavor: () => oracleTable(0)
+}
+
+/** Every table a scenario can open. */
+export function tableNames(): TableName[] {
+    return Object.keys(TABLES).filter(isTableName)
+}
+
+function isTableName(name: string): name is TableName {
+    return name in TABLES
 }
 
 let session: OathGameSession | undefined
@@ -1023,13 +3206,24 @@ export function searchPicks(): { kept?: string; placement?: SearchPlay } {
     return { kept: search.kept, placement: search.placement?.play }
 }
 
-export function questionPicks(): { visionDiscard?: string; offered: string[]; queued: number } {
+export function questionPicks(): {
+    visionDiscard?: string
+    offered: string[]
+    stacked: string[]
+    queued: number
+} {
     const table = current()
     return {
         visionDiscard: table.question.visionDiscard,
         offered: table.question.visionDiscards,
+        stacked: table.question.stackTapped,
         queued: table.gameState.pendingQuestions?.queue.length ?? 0
     }
+}
+
+/** The kind of the question open on the table, if any. */
+export function openQuestionKind(): PowerQuestionKind | undefined {
+    return current().gameState.pendingQuestions?.queue[0]?.kind
 }
 
 export function viewOffTheClock(): string | undefined {
@@ -1045,6 +3239,14 @@ export function letPeekState(): { open: boolean; staged: boolean; action?: strin
         staged: table.letPeekIsStaged,
         action: table.selection.action
     }
+}
+
+/** The last Action sent, when it let another player peek: whom, and what (R-6.1, R-6.6.1). */
+export function lastLetPeek(): { toPlayerId: string; subject: LetPeekSubject } | undefined {
+    const action = current().actions.at(-1)
+    return isLetPeek(action)
+        ? { toPlayerId: action.toPlayerId, subject: action.subject }
+        : undefined
 }
 
 /** The seat on screen travels, sent as its own client would send it (R-5.6). */
@@ -1105,6 +3307,7 @@ export function tableFacts(): {
     campaignUnderway: boolean
     staged: string | undefined
     favorOf: Record<string, number>
+    secretsOf: Record<string, number>
     favorBank: Record<Suit, number>
     secretsOn: Record<string, number>
 } {
@@ -1121,11 +3324,44 @@ export function tableFacts(): {
         campaignUnderway: state.campaign !== undefined,
         staged: table.selection.action,
         favorOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.favor])),
+        secretsOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.secrets])
+        ),
         favorBank: state.favorBank,
         secretsOn: Object.fromEntries(
             Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
         )
     }
+}
+
+/** R-5.6 — the destinations the engine accepts for the seat on screen's Travel, with no modifier declared. */
+export function legalTravelDestinations(): string[] {
+    const table = current()
+    const seatId = table.myPlayer?.id
+    assertExists(seatId, 'A seat is on the clock')
+    return HydratedTravel.legalDestinations(table.gameState, seatId, [])
+}
+
+/** Each seat's standing, and the request the game waits on, if any (R-6.6, R-6.7, R-6.8). */
+export function standing(): {
+    statusOf: Record<string, PlayerStatus>
+    asked?: { kind: string; askedPlayerId: string }
+} {
+    const state = current().gameState
+    const pending = state.pendingConsent
+    return {
+        statusOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.status])),
+        ...(pending
+            ? { asked: { kind: pending.request.kind, askedPlayerId: pending.askedPlayerId } }
+            : {})
+    }
+}
+
+/** R-6.6.1 — the terms of the Citizenship offer the game waits on: `none` when it carries none. */
+export function offeredCitizenshipTerms(): CitizenshipTerms | 'none' | undefined {
+    const request = current().gameState.pendingConsent?.request
+    if (request?.kind !== ConsentRequestKind.CitizenshipOffer) return undefined
+    return request.terms ?? 'none'
 }
 
 export function defeatPicks(): { required: number; picked: number[]; blockedBecause?: string } {

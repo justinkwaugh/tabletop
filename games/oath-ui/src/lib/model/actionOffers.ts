@@ -16,12 +16,62 @@ import {
     type TravelTerms
 } from '@tabletop/oath'
 
-export type BoardPick = { sites: string[]; label: string }
+/**
+ * R-1.23.1 — Setup's start sites on the map: lit while the pick is open (`pickable`), the one
+ * picked marked; once the discards are asked, or when one site is legal, the pick alone.
+ */
+export type BoardPick = {
+    sites: string[]
+    label: string
+    picked: string | undefined
+    pickable: boolean
+}
+
+/** A choice made by tapping the map, as a phone frames it: the sites its frame and chips count. */
+export type MapPick = {
+    /** Setup's start site, a Travel destination, or where the spoils banish the defeated pawn. */
+    kind: 'start' | 'travel' | 'banish'
+    sites: string[]
+    /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
+    choosing: boolean
+}
+
 export type SiteOffer =
-    | { slotId: string; intent: 'start'; label: string }
-    | { slotId: string; intent: 'travel'; cost: number | undefined; toll: string }
+    | {
+          slotId: string
+          intent: 'start'
+          label: string
+          /** The site picked so far: ringed and marked with the label. */
+          picked: boolean
+          /** A tap on the map picks it. */
+          pickable: boolean
+      }
+    | {
+          slotId: string
+          intent: 'travel'
+          cost: number | undefined
+          toll: string
+          ways: TravelWay[]
+          /** Its ways to pay are open in the panel, as a map pick opens them. */
+          picked: boolean
+      }
     | { slotId: string; intent: 'target'; targeted: boolean }
     | { slotId: string; intent: 'moveWarbands' }
+    /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
+    | { slotId: string; intent: 'banish' }
+    /**
+     * R-11.7 — a site the Shrouded Wood's ruler may send the traveller to on their own Travel: what
+     * the traveller pays there, the cards that changed it (Decadent), and whether Toll Roads will
+     * ask them (R-7.1.4). A tap on the map sends the pick; a desktop lights these, a phone does not.
+     */
+    | { slotId: string; intent: 'wood'; cost: number; foldedBy: string[]; toll: boolean }
+
+/** Choosing among sites dims the rest of the map: Setup only while its start site is open to a pick. */
+export function dimsTheMap(offers: readonly SiteOffer[]): boolean {
+    return offers.some((offer) =>
+        offer.intent === 'start' ? offer.pickable : offer.intent !== 'moveWarbands'
+    )
+}
 
 /** R-5.4.2 — every amount the engine accepts, lowest first. */
 /** R-1.16 — favor the Chancellor places on one site at setup. */

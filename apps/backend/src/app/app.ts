@@ -21,6 +21,7 @@ import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
+import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
@@ -271,6 +272,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             })
             frontendStaticReady = true
         }
+
+        await fastify.register(GameAssetRedirectPlugin)
 
         const gameAssetsAreImmutable = service !== 'local'
 

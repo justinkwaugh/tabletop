@@ -6,6 +6,7 @@ import { registerBattlePlan, registerEffect, registerPersistent } from './regist
 import { siteHasCardOfSuit, regionOfPawn } from './vocabulary.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import { reasonCannotTravelByPower } from '../util/powerTravel.js'
+import { canPayPowerMoveToll } from '../util/powerMoveTolls.js'
 import { seeDiscardPile } from '../util/knowledge.js'
 
 // "You may target facedown relics at targeted sites, adding 1 [defenseDie] per relic.
@@ -43,7 +44,9 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
                   .filter(
                       (siteId) =>
                           siteHasCardOfSuit(ctx.state, siteId, suit) &&
-                          reasonCannotTravelByPower(ctx.state, ctx.playerId, siteId) === undefined
+                          reasonCannotTravelByPower(ctx.state, ctx.playerId, siteId) ===
+                              undefined &&
+                          canPayPowerMoveToll(ctx.state, ctx.playerId, siteId)
                   )
             : []
         if (sites.length > 0) {

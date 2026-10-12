@@ -67,7 +67,7 @@ describe('History text, which draws warbands too', () => {
     it('draws a counted warband as its token, keeping the words for its alt', () => {
         expect(history('killed a warband on your board')).toEqual([
             text('killed '),
-            { kind: 'warband', count: 1, imperial: false, words: 'warband' },
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
             text(' on your board')
         ])
     })
@@ -75,13 +75,38 @@ describe('History text, which draws warbands too', () => {
     it('marks the Empire’s warbands, and swallows a named owner into the token', () => {
         expect(history('moved 2 Imperial warbands to you')).toEqual([
             text('moved '),
-            { kind: 'warband', count: 2, imperial: true, words: 'Imperial warbands' },
+            { kind: 'warband', count: 2, whose: { kind: 'imperial' }, words: 'Imperial warbands' },
             text(' to you')
         ])
         expect(history("moved 3 of Bob's warbands to the Plains")).toEqual([
             text('moved '),
-            { kind: 'warband', count: 3, imperial: false, words: "of Bob's warbands" },
+            { kind: 'warband', count: 3, whose: { kind: 'seat', name: 'Bob' }, words: "of Bob's warbands" },
             text(' to the Plains')
+        ])
+    })
+
+    it('R-10.13 — a phrase names its own owner: the viewer’s "your", the actor’s "their own"', () => {
+        expect(history('gained 1 of your own warbands')).toEqual([
+            text('gained '),
+            { kind: 'warband', count: 1, whose: { kind: 'viewer' }, words: 'of your own warbands' }
+        ])
+        expect(history('3 of your warbands went back to your bank')).toEqual([
+            { kind: 'warband', count: 3, whose: { kind: 'viewer' }, words: 'of your warbands' },
+            text(' went back to your bank')
+        ])
+        expect(history('gained 3 of their own warbands')).toEqual([
+            text('gained '),
+            { kind: 'warband', count: 3, whose: { kind: 'actor' }, words: 'of their own warbands' }
+        ])
+    })
+
+    it('R-10.13 — a row with several owners gives each phrase its own', () => {
+        expect(history("moved 2 of Cass's warbands and 2 Imperial warbands from the Cage")).toEqual([
+            text('moved '),
+            { kind: 'warband', count: 2, whose: { kind: 'seat', name: 'Cass' }, words: "of Cass's warbands" },
+            text(' and '),
+            { kind: 'warband', count: 2, whose: { kind: 'imperial' }, words: 'Imperial warbands' },
+            text(' from the Cage')
         ])
     })
 
@@ -100,7 +125,7 @@ describe('History text, which draws warbands too', () => {
         ])
         expect(tokenParts('mustered at Secret Police, gaining 2 warbands', { warbands: true })).toEqual([
             text('mustered at Secret Police, gaining '),
-            { kind: 'warband', count: 2, imperial: false, words: 'warbands' }
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' }
         ])
         expect(tokenParts('used Secret Signal: gained a secret')).toEqual([
             text('used Secret Signal: gained '),

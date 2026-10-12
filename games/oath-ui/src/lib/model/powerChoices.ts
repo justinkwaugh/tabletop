@@ -7,6 +7,7 @@ import {
     type PowerChoice,
     type Suit
 } from '@tabletop/oath'
+import { bargainChoices, type BargainPick } from './bargainPicks.js'
 
 export type PowerChoicePicks = {
     option: Record<number, number>
@@ -14,17 +15,20 @@ export type PowerChoicePicks = {
     terms: Record<number, ExchangeTerms>
     several: Record<number, number[]>
     severalCount: Record<string, number>
+    /** Witch's Bargain from revision 7: the players picked, in order, and what each is given. */
+    bargain: Record<number, BargainPick[]>
 }
 
 export function emptyPicks(): PowerChoicePicks {
-    return { option: {}, count: {}, terms: {}, several: {}, severalCount: {} }
+    return { option: {}, count: {}, terms: {}, several: {}, severalCount: {}, bargain: {} }
 }
 
 export const NO_OPTION = -1
 
 /**
- * R-7.1.2 — an open count (Witch's Bargain) stops at what the player can give: their secrets, or
- * the favor they can use, which Vow of Kinship keeps in a bank. The engine judges the pair.
+ * R-7.1.2 — in a game created before revision 7, an open count (Witch's Bargain) stops at what the
+ * player can give: their secrets, or the favor they can use, which Vow of Kinship keeps in a bank.
+ * The engine judges the pair.
  */
 export function openCountCeiling(
     state: HydratedOathGameState,
@@ -68,11 +72,11 @@ function boundedCount(option: PowerChoice | undefined, count: number): number {
         : Math.max(0, count)
 }
 
-// A required spec defaults to its first legal value; an optional one to none.
+// No default where the player has a choice: a required spec with one legal value starts on it.
 export function optionIndexOf(legal: LegalChoice, index: number, picks: PowerChoicePicks): number {
     const picked = picks.option[index]
     if (picked !== undefined) return picked
-    return legal.spec.min > 0 && legal.options.length > 0 ? 0 : NO_OPTION
+    return legal.spec.min > 0 && legal.options.length === 1 ? 0 : NO_OPTION
 }
 
 export function withOptionPick(
@@ -120,12 +124,36 @@ export function withSeveralCount(
     }
 }
 
+/**
+ * A confirm waits until every spec has at least its least picks. A required single pick
+ * counts the option the picker shows picked, as `powerChoicesFrom` sends it.
+ */
+export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
+    return choices.every((legal, index) => pickedCount(legal, index, picks) >= legal.spec.min)
+}
+
+function pickedCount(legal: LegalChoice, index: number, picks: PowerChoicePicks): number {
+    // Witch's Bargain: a player picked with nothing given is no entry yet.
+    if (legal.spec.kind === PowerChoiceKind.Bargain) {
+        return bargainChoices(picks.bargain[index] ?? []).length
+    }
+    if (allowsSeveral(legal)) {
+        return (picks.several[index] ?? []).filter((option) => legal.options[option] !== undefined)
+            .length
+    }
+    return legal.options[optionIndexOf(legal, index, picks)] === undefined ? 0 : 1
+}
+
 export function powerChoicesFrom(
     choices: readonly LegalChoice[],
     picks: PowerChoicePicks
 ): PowerChoice[] {
     const out: PowerChoice[] = []
     choices.forEach((legal, index) => {
+        if (legal.spec.kind === PowerChoiceKind.Bargain) {
+            out.push(...bargainChoices(picks.bargain[index] ?? []))
+            return
+        }
         if (allowsSeveral(legal)) {
             for (const optionIndex of picks.several[index] ?? []) {
                 const option = legal.options[optionIndex]

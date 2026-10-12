@@ -266,6 +266,37 @@ describe('Careless — Trade (R-6.6.2.a)', () => {
         expect(action.metadata?.favorGained).toBe(3)
         expect(action.metadata?.modifierNotes).toBeUndefined()
     })
+
+    describe('sideFavor: the favor a Trade gains beside its own gain, counted before it is made', () => {
+        const hearthBank = (favor: number) => ({ favorBank: { ...board([]).favorBank, [Suit.Hearth]: favor } })
+        const counted = (s: ReturnType<typeof board>, option: TradeOption) =>
+            HydratedTrade.sideFavor(s, 'ruler', INN, option, HydratedTrade.plan(s, 'ruler', INN, option).active, [])
+        const gainedBeside = (s: ReturnType<typeof board>, option: TradeOption) => {
+            const placed = option === TradeOption.ForSecrets ? 2 : 0
+            const before = s.getPlayerState('ruler').favor
+            const action = trade(s, option)
+            return s.getPlayerState('ruler').favor - before + placed - (action.metadata?.favorGained ?? 0)
+        }
+
+        it('Careless on a Trade for secrets: one favor, with or without a matching adviser, as the Trade gives it', () => {
+            for (const advisers of [[], [RETURN]]) {
+                expect(counted(board([CARELESS], {}, {}, [INN], advisers), TradeOption.ForSecrets)).toBe(1)
+                expect(gainedBeside(board([CARELESS], {}, {}, [INN], advisers), TradeOption.ForSecrets)).toBe(1)
+            }
+        })
+
+        it('none from an empty bank (R-9.3), as the Trade gives none', () => {
+            expect(counted(board([CARELESS], hearthBank(0)), TradeOption.ForSecrets)).toBe(0)
+            expect(gainedBeside(board([CARELESS], hearthBank(0)), TradeOption.ForSecrets)).toBe(0)
+        })
+
+        it('none on a Trade for favor, which folds Careless into its own gain, and none without Careless', () => {
+            expect(counted(board([CARELESS]), TradeOption.ForFavor)).toBe(0)
+            expect(gainedBeside(board([CARELESS]), TradeOption.ForFavor)).toBe(0)
+            expect(counted(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
+            expect(gainedBeside(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
+        })
+    })
 })
 
 describe('Careless under Vow of Poverty — "You still don’t get the favor from Careless" (its Q&A)', () => {
@@ -402,6 +433,76 @@ describe('Secret Signal under Vow of Poverty — no favor from the Trade, so not
         let replayed = structuredClone(before)
         for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
         expect(replayed).toEqual(recorded.updatedState)
+    })
+})
+
+/** The favor shown before a Trade for secrets is the favor the Trade then gains beside its own. */
+describe('sideFavor under Vow of Poverty and with Secret Signal', () => {
+    const SIGNAL = 'denizen.arcane.secret-signal'
+    const counted = (s: ReturnType<typeof board>, modifiers: ModifierUse[] = []) =>
+        HydratedTrade.sideFavor(
+            s,
+            'ruler',
+            INN,
+            TradeOption.ForSecrets,
+            HydratedTrade.plan(s, 'ruler', INN, TradeOption.ForSecrets, modifiers).active,
+            modifiers
+        )
+    // A Trade for secrets places 2 favor on the card and gains none of its own.
+    const gainedBeside = (s: ReturnType<typeof board>, modifiers: ModifierUse[] = []) => {
+        const before = s.getPlayerState('ruler').favor
+        new HydratedTrade(
+            buildAction(Trade, { playerId: 'ruler', cardId: INN, option: TradeOption.ForSecrets, modifiers })
+        ).apply(s)
+        return s.getPlayerState('ruler').favor - before + 2
+    }
+    const both = (make: () => ReturnType<typeof board>, modifiers: ModifierUse[] = []) => [
+        counted(make(), modifiers),
+        gainedBeside(make(), modifiers)
+    ]
+    const hearth = (favor: number) => ({ favorBank: { ...board([]).favorBank, [Suit.Hearth]: favor } })
+
+    it('Vow of Poverty withholds Careless’s favor from revision 5, and the count says none', () => {
+        const vowed = (oathRevision: number) => () =>
+            board([CARELESS], { oathRevision }, {}, [INN], [RETURN, POVERTY])
+        expect(both(vowed(OathRevision.EngineFixes2))).toEqual([0, 0])
+        expect(both(vowed(OathRevision.CardFixes1))).toEqual([1, 1])
+    })
+
+    it('Secret Signal adds its one more favor to the count', () => {
+        const make = () => board([CARELESS], {}, {}, [INN], [RETURN, SIGNAL])
+        expect(both(make, [modifierUse(SIGNAL)])).toEqual([2, 2])
+    })
+
+    it('with one favor in the bank, Careless takes it and the count is 1 (R-9.3)', () => {
+        const make = () => board([CARELESS], hearth(1), {}, [INN], [RETURN, SIGNAL])
+        expect(both(make, [modifierUse(SIGNAL)])).toEqual([1, 1])
+    })
+
+    describe('Master of Disguise: the count reads the borrowed advisers, as the Trade does (its Q&A)', () => {
+        const disguise = [modifierUse(DISGUISE, [player('other')])]
+        const borrowing = (own: string[], theirs: string[]) => () => {
+            const s = board([CARELESS], { oathRevision: OathRevision.EngineFixes2 }, {}, [INN], [...own, DISGUISE])
+            s.getPlayerState('other').setAdvisers(theirs.map((cardId) => ({ cardId, faceUp: true })))
+            return s
+        }
+
+        it('no Vow of her own, borrowing one: the Trade gains nothing beside, and the count says so', () => {
+            expect(both(borrowing([RETURN], [POVERTY]), disguise)).toEqual([0, 0])
+        })
+
+        it("her own Vow, borrowing advisers with none: the Trade gains Careless's favor, and the count shows it", () => {
+            expect(both(borrowing([RETURN, POVERTY], [STEED]), disguise)).toEqual([1, 1])
+        })
+    })
+
+    it('Vow of Poverty with Secret Signal: Secret Signal is refused, and nothing is counted', () => {
+        const make = () =>
+            board([CARELESS], { oathRevision: OathRevision.EngineFixes2 }, {}, [INN], [RETURN, POVERTY, SIGNAL])
+        expect(HydratedTrade.plan(make(), 'ruler', INN, TradeOption.ForSecrets, [modifierUse(SIGNAL)]).reason).toBe(
+            `${SIGNAL}: you cannot gain favor from Trade (Vow of Poverty)`
+        )
+        expect(both(make)).toEqual([0, 0])
     })
 })
 

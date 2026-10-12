@@ -3,7 +3,7 @@ import type { HiddenRequest, HiddenReveal } from '../model/hidden.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import { assertExists } from '@tabletop/common'
 import { hasAccessToCard, isFacedownAdviserOf, poweredCardIds } from './access.js'
-import { cardPowers, powersWithTiming, PowerTiming } from '../data/cardPowers.js'
+import { cardPowers, powersWithTiming, PowerTiming, type CardPower } from '../data/cardPowers.js'
 import { SearchPlay } from '../model/oathEnums.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import {
@@ -13,6 +13,8 @@ import {
     type LegalPowerUse
 } from './powerChoice.js'
 import { effectFor, hasEffect, type EffectResult } from '../powers/registry.js'
+import { payToll, tollsFor, type Toll } from './tolls.js'
+import { costPayment, favorPayment, reasonCannotPayInAll } from './actionPayment.js'
 
 /** R-7.1.1 to R-7.1.3 */
 
@@ -53,7 +55,9 @@ export function reasonCannotUsePower(
         return `${cardId}'s power ${powerIndex} is ${power.timing}, not ${article} ${label} power`
     }
 
-    const unpayable = reasonCannotPayPowerCost(state, playerId, power)
+    const unpayable =
+        reasonCannotPayPowerCost(state, playerId, power) ??
+        reasonCannotPayPowerTolls(state, playerId, power)
     if (unpayable) return unpayable
 
     const badChoice = reasonChoicesInvalid(state, playerId, power, choices)
@@ -81,8 +85,35 @@ export function usePower(
     const power = cardPowers(cardId)[powerIndex]
     const effect = effectFor(power)
     assertExists(effect, `${cardId} power ${powerIndex} has no built effect`)
+    const tolls = powerTolls(state, playerId, power)
     payPowerCost(state, playerId, power)
-    return effect.resolve({ state, playerId, power, choices: choices ?? [], reveal })
+    for (const toll of tolls) payToll(state, playerId, toll)
+    const result = effect.resolve({ state, playerId, power, choices: choices ?? [], reveal })
+    if (tolls.length === 0) return result
+    return { ...result, tollsGiven: tolls.map(({ cardId, payeeId }) => ({ cardId, payeeId })) }
+}
+
+/** R-7.1.4 — Forced Labor on Oracle: a power that draws "as if you searched" owes the search's tolls. */
+export function powerTolls(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower
+): Toll[] {
+    const occasion = effectFor(power)?.tollOccasion
+    return occasion ? tollsFor(state, playerId, occasion).filter((toll) => !toll.discount) : []
+}
+
+function reasonCannotPayPowerTolls(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower
+): string | undefined {
+    const tolls = powerTolls(state, playerId, power)
+    if (tolls.length === 0) return undefined
+    return reasonCannotPayInAll(state, playerId, [
+        costPayment(power.cost),
+        favorPayment(tolls.length)
+    ])
 }
 
 export function powerOutcomeOf(result: EffectResult): PowerOutcome {
@@ -96,7 +127,9 @@ export function powerOutcomeOf(result: EffectResult): PowerOutcome {
         mergePiles: result.mergePiles,
         visionDrawn: result.visionDrawn || undefined,
         targetPlayerId: result.targetPlayerId,
-        pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined
+        pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
+        tollsGiven: result.tollsGiven,
+        tollMove: result.tollMove
     }
 }
 
@@ -141,6 +174,7 @@ export function legalPowers(
         for (const power of powersWithTiming(cardId, timing)) {
             if (!hasEffect(power)) continue
             if (reasonCannotPayPowerCost(state, playerId, power)) continue
+            if (reasonCannotPayPowerTolls(state, playerId, power)) continue
             usable.push({
                 cardId,
                 powerIndex: power.powerIndex,

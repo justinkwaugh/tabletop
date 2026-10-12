@@ -12,8 +12,6 @@ export type MusterRow = {
     /** Initiation Rite places a secret instead of favor. */
     paysSecret: boolean
     gain: number
-    /** R-9.3 — the bank holds fewer warbands than the Muster asks for. */
-    bankShort: boolean
 }
 
 /** Every Muster the player can make now, read from the engine's own plan (R-5.2, R-7.4). */
@@ -28,14 +26,12 @@ export function musterRows(
         if (!suit) return []
         const { active } = HydratedMuster.plan(state, playerId, cardId, modifiers)
         const wanted = HydratedMuster.wanted(state, playerId, cardId, active)
-        const gain = Math.min(wanted, available)
         return [
             {
                 cardId,
                 suit,
                 paysSecret: HydratedMuster.placesSecret(active),
-                gain,
-                bankShort: gain < wanted
+                gain: Math.min(wanted, available)
             }
         ]
     })

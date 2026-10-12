@@ -13,6 +13,8 @@ export enum MachineState {
     EndOfRound = 'EndOfRound',
     /** R-5.1.3, R-5.1.4 */
     Searching = 'Searching',
+    /** R-5.5.5 — from revision 7, the attacker picks where the skulls kill. */
+    CampaignSkullLosses = 'CampaignSkullLosses',
     /** R-5.5.5 */
     CampaignSacrifice = 'CampaignSacrifice',
     /** R-5.5.3, R-7.5.2 */

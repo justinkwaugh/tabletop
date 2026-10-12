@@ -22,8 +22,13 @@ export function adjustCount(counts: WarbandCounts, owner: WarbandOwner, delta: n
     counts[owner] = countOf(counts, owner) + delta
 }
 
+export function countedWarbands(count: number): string {
+    return `${count} ${count === 1 ? 'warband' : 'warbands'}`
+}
+
 export function describeWarbands(count: number, owner: WarbandOwner): string {
-    if (owner === IMPERIAL_WARBANDS) return `${count} Imperial warbands`
+    if (owner === IMPERIAL_WARBANDS)
+        return `${count} Imperial ${count === 1 ? 'warband' : 'warbands'}`
     return `${count} of ${owner}'s warbands`
 }
 

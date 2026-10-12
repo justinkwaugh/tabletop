@@ -12,6 +12,7 @@
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
+    import BargainPicker from '$lib/components/BargainPicker.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -38,8 +39,16 @@
 
     let {
         choices,
-        picks = $bindable(emptyPicks())
-    }: { choices: LegalChoice[]; picks?: PowerChoicePicks } = $props()
+        picks = $bindable(emptyPicks()),
+        tallOnPhone = false,
+        tollAt = () => false
+    }: {
+        choices: LegalChoice[]
+        picks?: PowerChoicePicks
+        /** Its list is 44 px tall on a phone, as Use a power draws its pick beside its buttons. */
+        tallOnPhone?: boolean
+        tollAt?: (siteId: string) => boolean
+    } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
@@ -99,7 +108,10 @@
             case PowerChoiceKind.Card:
                 return cardName(option.cardId)
             case PowerChoiceKind.Site:
-                return siteName(gameSession.gameState, option.siteId)
+                return (
+                    siteName(gameSession.gameState, option.siteId) +
+                    (tollAt(option.siteId) ? ' · toll 1 favor' : '')
+                )
             case PowerChoiceKind.Warbands:
                 return `${option.group.count} ${ownerName(option.group.owner)} at ${
                     option.group.at.kind === 'site'
@@ -121,6 +133,8 @@
                 return gameSession.getPlayerName(option.withPlayerId)
             case PowerChoiceKind.Count:
                 return `${option.n}`
+            case PowerChoiceKind.Bargain:
+                return gameSession.getPlayerName(option.playerId)
         }
     }
 
@@ -154,7 +168,14 @@
     {@const pick = optionIndexOf(legal, i, picks)}
     {@const option = legal.options[pick]}
     <div class="mb-1 text-xs">
-        {#if legal.spec.kind === PowerChoiceKind.Count}
+        {#if legal.spec.kind === PowerChoiceKind.Bargain}
+            <BargainPicker
+                {legal}
+                picks={picks.bargain[i] ?? []}
+                onchange={(value) =>
+                    (picks = { ...picks, bargain: { ...picks.bargain, [i]: value } })}
+            />
+        {:else if legal.spec.kind === PowerChoiceKind.Count}
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
                 <CountPicker
@@ -238,12 +259,16 @@
                     <span class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</span>
                     <select
                         disabled={busy}
-                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
+                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow {tallOnPhone
+                            ? 'max-sm:min-h-11'
+                            : ''}"
                         value={pick}
                         onchange={(event) => setOption(legal, i, Number(event.currentTarget.value))}
                     >
                         {#if legal.spec.min === 0}
                             <option value={NO_OPTION}>none</option>
+                        {:else if pick === NO_OPTION}
+                            <option value={NO_OPTION} disabled></option>
                         {/if}
                         {#each legal.options as choice, j (j)}
                             <option value={j}>{label(choice)}</option>

@@ -3,6 +3,9 @@
     "type": "module",
     "version": "0.0.0",
     "exports": "./index.js",
+    "scripts": {
+        "test": "node --test *.test.mjs"
+    },
     "dependencies": {
         "@tabletop/games-config": "workspace:*",
         "@rollup/plugin-commonjs": "^29.0.0",

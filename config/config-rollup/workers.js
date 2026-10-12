@@ -1,6 +1,15 @@
 import fs from 'node:fs'
 import { basename } from 'node:path'
 
+// A worker must share its creator's origin, so a bundle served from another origin starts its
+// worker from a blob. The blob imports the script statically, so its message handler exists
+// before the first message arrives, and then releases its own URL.
+const sameOriginWorkerUrlExpression = (workerUrlExpression) =>
+    `(() => { const workerUrl = ${workerUrlExpression}; ` +
+    `return workerUrl.origin === self.location.origin ? workerUrl : URL.createObjectURL(new Blob(` +
+    `['import ' + JSON.stringify(workerUrl.href) + ';URL.revokeObjectURL(self.location.href)'], ` +
+    `{ type: 'text/javascript' })) })()`
+
 export const moduleWorkers = () => ({
     name: 'module-workers',
     async transform(code, id) {
@@ -12,7 +21,9 @@ export const moduleWorkers = () => ({
             const reference = this.emitFile({ type: 'chunk', id: resolved.id })
             code =
                 code.slice(0, match.index) +
-                `new URL(import.meta.ROLLUP_FILE_URL_${reference}, import.meta.url)` +
+                sameOriginWorkerUrlExpression(
+                    `new URL(import.meta.ROLLUP_FILE_URL_${reference}, import.meta.url)`
+                ) +
                 code.slice(match.index + match[0].length)
         }
         return matches.length ? { code, map: null } : null

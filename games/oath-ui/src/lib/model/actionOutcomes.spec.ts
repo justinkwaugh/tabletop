@@ -168,17 +168,12 @@ describe('pile deposits and merges', () => {
 })
 
 describe('latestActorNotice — what the notice above the panel shows', () => {
-    it('shows the actor a peek and names the card that showed it', () => {
-        expect(latestActorNotice([powerUse], 'me')).toEqual({
-            shownBy: 'relic.dowsing-sticks',
-            cards: ['relic.map'],
-            relicToDeckBottom: undefined
-        })
+    it('shows the actor a peek: the cards alone, since the history row names the card that showed it', () => {
+        expect(latestActorNotice([powerUse], 'me')).toEqual({ cards: ['relic.map'] })
     })
 
-    it('shows the relic sent under the deck, named by the question’s card', () => {
-        expect(latestActorNotice([keepOrBottom], 'me')?.shownBy).toBe('denizen.hearth.family-heirloom')
-        expect(latestActorNotice([keepOrBottom], 'me')?.cards).toEqual(['relic.map'])
+    it('shows the relic sent under the deck: the card alone, since the history row says where it went', () => {
+        expect(latestActorNotice([keepOrBottom], 'me')).toEqual({ cards: ['relic.map'] })
     })
 
     it('shows nothing for the actor’s own discards or stacked cards', () => {

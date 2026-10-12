@@ -13,25 +13,31 @@
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CountPicker from '$lib/components/CountPicker.svelte'
+    import FavorTo from '$lib/components/FavorTo.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
     import { warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, siteName } from '$lib/model/names.js'
 
-    // R-6.1, R-6.3, R-6.5, R-6.7, R-9.4; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
+    // R-6.1, R-6.3, R-6.5, R-6.7, R-6.8, R-9.4; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
     let { action }: { action: ActionType } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
+    // A facedown adviser's plays share one width.
+    const playWidth = new ChoiceWidth()
 
     let advisers = $derived(
         action === ActionType.PlayFacedownAdviser ? gameSession.facedownAdviserOptions : []
     )
     let chosenAdviser = $derived(advisers.find((a) => a.cardId === gameSession.adviserCardId))
     let moves = $derived(gameSession.warbandMoves.options)
-    let citizens = $derived(gameSession.exileTargets)
+    let exileOffers = $derived(gameSession.exileOffers)
+    let selfExile = $derived(gameSession.selfExileOffer)
+    const exileWidth = new ChoiceWidth()
 
     const MOVE_LABELS: Record<WarbandMoveKind, string> = {
         [WarbandMoveKind.SiteToBoard]: 'From your site to your board',
@@ -144,25 +150,28 @@
                                 }
                             />
                         {/if}
-                        {#if reason}
-                            <p class="text-[11px] text-oath-danger">
-                                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-                            </p>
+                        {#if gameSession.adviserPlayComplete}
+                            {#if reason}
+                                <p class="text-[11px] text-oath-danger">
+                                    <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                                </p>
+                            {/if}
+                            <button
+                                class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs"
+                                disabled={busy || !!reason}
+                                onclick={() => gameSession.confirmAdviserPlay()}
+                            >
+                                Play {cardName(adviser.cardId)}
+                            </button>
                         {/if}
-                        <button
-                            class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
-                            disabled={busy || !!reason}
-                            onclick={() => gameSession.confirmAdviserPlay()}
-                        >
-                            Play {cardName(adviser.cardId)}
-                        </button>
                     </div>
                 {:else}
                     <div class="flex flex-wrap gap-1.5 grow">
-                        {#each adviser.placements.filter((p) => p.blockedBecause === undefined) as option (option.label)}
+                        {#each adviser.placements as option (option.label)}
                             <MenuChoice
                                 label="{option.label}: {cardName(adviser.cardId)}"
                                 disabled={busy}
+                                width={playWidth}
                                 onclick={() =>
                                     gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
                             >
@@ -202,15 +211,45 @@
             </div>
         {/if}
     {:else if action === ActionType.ExileCitizen}
-        {#each citizens as citizenPlayerId (citizenPlayerId)}
-            <button
-                class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent
-                       px-2 py-1 text-sm text-left"
-                disabled={busy}
-                onclick={() => gameSession.exileCitizen(citizenPlayerId)}
-            >
-                Exile {gameSession.getPlayerName(citizenPlayerId)}
-            </button>
-        {/each}
+        <!-- R-6.7 — each button is the price and whom it goes to; a tap exiles them. One width
+             for all, the widest label's, on a phone as on a desktop; side by side while they fit,
+             and those that do not go to the next line at the same width. -->
+        <div class="flex flex-wrap self-start gap-2">
+            {#each exileOffers as offer (offer.citizenPlayerId)}
+                <button
+                    type="button"
+                    class="flex items-center justify-center rounded-md border border-oath-frame bg-oath-surface
+                           px-3 py-1.5 text-[15px] font-semibold hover:border-oath-accent hover:bg-oath-accent-soft
+                           disabled:opacity-40 max-sm:min-h-11"
+                    aria-label="{offer.favor} favor to {gameSession.getPlayerName(
+                        offer.citizenPlayerId
+                    )}"
+                    disabled={busy}
+                    onclick={() => gameSession.exileCitizen(offer.citizenPlayerId)}
+                >
+                    <span class="flex justify-center" style:min-width="{exileWidth.widest}px">
+                        <span class="flex w-max" {@attach exileWidth.measure}>
+                            <FavorTo
+                                favor={offer.favor}
+                                playerId={offer.citizenPlayerId}
+                                gold={true}
+                            />
+                        </span>
+                    </span>
+                </button>
+            {/each}
+        </div>
+    {:else if action === ActionType.SelfExile && selfExile}
+        <!-- R-6.8 — staged, so the price shows before it is paid; this sends it and ends the Act Phase. -->
+        <button
+            type="button"
+            class="self-start rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover
+                   disabled:opacity-40 border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+            aria-label="{selfExile.favor} favor to {gameSession.getPlayerName(selfExile.holderId)}"
+            disabled={busy}
+            onclick={() => gameSession.selfExile()}
+        >
+            <FavorTo favor={selfExile.favor} playerId={selfExile.holderId} gold={false} />
+        </button>
     {/if}
 </div>

@@ -71,7 +71,7 @@ export class StagedFlow<V extends Record<string, unknown>> {
     }
 }
 
-/** A panel's draft as the session sees it: Back unwinds it, Undo waits for it, a new state ends it. */
+/** A panel's draft as the session sees it: Undo unwinds it before any sent action, and a new state ends it. */
 export interface PanelDraft {
     hasManualSelection(): boolean
     back(): boolean

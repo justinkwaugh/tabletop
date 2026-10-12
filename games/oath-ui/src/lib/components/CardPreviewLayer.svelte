@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { siteHolding, siteReference } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
@@ -9,7 +10,7 @@
     import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
     import { cardName, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { banditWarbandImage, pawnImage, warbandImage } from '$lib/images/pieceImages.js'
+    import { pawnImage, siteBanditsImage, warbandImage } from '$lib/images/pieceImages.js'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
     import { cardRulerIds, sitePieces } from '$lib/model/siteRule.js'
@@ -46,10 +47,6 @@
     let sentence = $derived(
         preview?.cardId && preview.back === undefined ? siteReference(preview.cardId) : undefined
     )
-
-    function namesOf(playerIds: string[]): string {
-        return playerIds.map((id) => gameSession.getPlayerName(id)).join(', ')
-    }
 
     // R-10.21 — a denizen's ruler, which the Grand Mask can part from its site's.
     let cardFacts = $derived.by(() => {
@@ -97,6 +94,15 @@
     // The boxes under the card can outgrow what the card leaves; the whole stack shrinks to fit.
     let stackScale = $derived(stackHeight > areaHeight ? areaHeight / stackHeight : 1)
 </script>
+
+<!-- Each ruler is their colour chip; a long line wraps between chips, never inside one. -->
+{#snippet ruledBy(playerIds: string[])}
+    <span class="piece muted ruled-by"
+        >ruled by {#each playerIds as playerId, index (playerId)}<span class="ruler"
+                ><PlayerName {playerId} />{index < playerIds.length - 1 ? ',' : ''}</span
+            >{/each}</span
+    >
+{/snippet}
 
 {#if preview}
     <!-- Rule 4 — over a backdrop that takes the next press, so the press that closes it does nothing else. -->
@@ -168,10 +174,22 @@
                                 {/each}
                             {:else if pieces.bandits}
                                 <span class="piece">
-                                    <img class="figure" src={banditWarbandImage()} alt="" />
-                                    {pieces.rule.banditsRule
-                                        ? 'bandits rule here'
-                                        : `bandits serve ${namesOf(pieces.rule.banditsServeIds)} here`}
+                                    <!-- The board's figure, in the colour the board draws. -->
+                                    <img
+                                        class="figure"
+                                        src={siteBanditsImage(pieces.rule, (id) =>
+                                            gameSession.colors.getPlayerColor(id)
+                                        )}
+                                        alt=""
+                                    />
+                                    {#if pieces.rule.banditsHolderId === undefined}
+                                        bandits rule here
+                                    {:else}
+                                        <!-- R-7.6.5 — "your warbands": the holder alone, while every Imperial player may rule. -->
+                                        bandits serve <PlayerName
+                                            playerId={pieces.rule.banditsHolderId}
+                                        /> here
+                                    {/if}
                                 </span>
                             {:else}
                                 <span class="piece muted">no warbands</span>
@@ -183,7 +201,7 @@
                                         src={pawnImage(pawn.color)}
                                         alt="{pawn.name}'s pawn"
                                     />
-                                    {pawn.name}
+                                    <PlayerName playerId={pawn.playerId} />
                                 </span>
                             {/each}
                             <TokenPair
@@ -198,9 +216,7 @@
                                 <span class="piece muted">{plural(pieces.relics, 'relic')}</span>
                             {/if}
                             {#if pieces.rule.rulerIds.length > 0}
-                                <span class="piece muted"
-                                    >ruled by {namesOf(pieces.rule.rulerIds)}</span
-                                >
+                                {@render ruledBy(pieces.rule.rulerIds)}
                             {/if}
                         </div>
                     {/if}
@@ -212,9 +228,7 @@
                                 </span>
                             {/if}
                             {#if cardFacts.rulerIds.length > 0}
-                                <span class="piece muted"
-                                    >ruled by {namesOf(cardFacts.rulerIds)}</span
-                                >
+                                {@render ruledBy(cardFacts.rulerIds)}
                             {/if}
                         </div>
                     {/if}
@@ -305,6 +319,14 @@
     .piece.muted {
         color: var(--oath-text-muted);
         font-weight: 400;
+    }
+
+    .ruled-by {
+        flex-wrap: wrap;
+    }
+
+    .ruler {
+        white-space: nowrap;
     }
 
     .card-preview__frame {

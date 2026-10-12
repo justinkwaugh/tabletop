@@ -24,6 +24,7 @@ import '../powers/index.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { testGame } from '../testing/game.js'
 import { adviser } from '../testing/tables.js'
+import { OathRevision } from '../util/revision.js'
 
 /** R-7.1.4-H2 — its "you may" holds the interrupted turn until its Campaign is over. */
 const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
@@ -466,11 +467,23 @@ describe('Sneak Attack — powers that speak of the attacker’s own turn', () =
         expect(goesOn.pendingQuestions?.queue).toMatchObject([{ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y }])
     })
 
-    it('a free action granted out of turn is forfeit: its player has no Act Phase to use it in', () => {
+    it('before revision 7 (R-X.4), a free action granted out of turn is forfeit: its player has no Act Phase to use it in', () => {
         const s = wonOutOfTurn()
+        s.oathRevision = OathRevision.UiBatch1
         Object.assign(s.getPlayerState(Y), { freeTravelAtAction: s.actionCount + 1, freeCampaignAtAction: s.actionCount + 1 })
         resolve(s)
         expect(s.getPlayerState(Y).freeTravelAtAction).toBeUndefined()
         expect(s.getPlayerState(Y).freeCampaignAtAction).toBeUndefined()
+    })
+    it('from revision 7 it is kept: its player is asked "Travel now?" at once, and the turn stays held until the chain is over', () => {
+        const s = wonOutOfTurn()
+        s.oathRevision = OathRevision.EngineFixes3
+        const next = s.actionCount + 1
+        Object.assign(s.getPlayerState(Y), { freeTravelAtAction: next, freeCampaignAtAction: next })
+        const action = resolve(s)
+        expect(action.metadata?.resumeMachineState).toBe(MachineState.ActPhase)
+        expect(s.heldTurn).toEqual({ queue: [], askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(s.pendingQuestions?.queue).toEqual([{ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Travel }])
+        expect(s.getPlayerState(Y)).toMatchObject({ freeTravelAtAction: next, freeCampaignAtAction: next })
     })
 })

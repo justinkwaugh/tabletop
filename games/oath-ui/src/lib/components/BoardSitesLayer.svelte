@@ -2,10 +2,20 @@
     import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import BoardCard from '$lib/components/BoardCard.svelte'
+    import SiteMagnifier from '$lib/components/SiteMagnifier.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
-    import { siteName, slotLabel } from '$lib/model/names.js'
+    import { cardName, siteName, slotLabel } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { SiteOffer } from '$lib/model/actionOffers.js'
+    import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import {
+        chipWords,
+        travelChip,
+        woodChip,
+        type ChipWay,
+        type TravelChip
+    } from '$lib/model/travelOnTheMap.js'
+    import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { SITE_SLOT_RECTS, SITE_TOKEN_RADIUS, fitRect } from '$lib/definitions/boardGeometry.js'
 
@@ -14,7 +24,32 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    let offers = $derived(gameSession.siteOffers)
+    // The lit map is Setup's start-site menu, the spoils' banish and Travel's, at every width: a
+    // tap on a lit site picks it. On a desktop it is the Shrouded Wood ruler's too; a phone keeps
+    // that pick in the panel, so its map lights nothing for it.
+    const layout = new PhoneLayout()
+    let offers = $derived(
+        layout.phone
+            ? gameSession.siteOffers.filter((offer) => offer.intent !== 'wood')
+            : gameSession.siteOffers
+    )
+    let dimmed = $derived(dimsTheMap(offers))
+
+    function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
+        if (offer?.intent === 'start' && offer.pickable) {
+            return () => gameSession.setup.chooseSite(offer.slotId)
+        }
+        if (offer?.intent === 'banish') {
+            return () => gameSession.victory.banishTo(offer.slotId)
+        }
+        if (offer?.intent === 'travel') {
+            return () => void gameSession.pickTravelSite(offer.slotId)
+        }
+        if (offer?.intent === 'wood') {
+            return () => void gameSession.question.sendThrough(offer.slotId)
+        }
+        return undefined
+    }
 
     const SITE_ASPECT = cardAspect({ back: CardKind.Site })
 
@@ -24,37 +59,74 @@
             : `Facedown site — ${slotLabel(slotId)}`
     }
 
-    // One reading of the offer: the tooltip and the chip under the card.
-    function offerText(slotId: string, offer: SiteOffer | undefined) {
+    // One reading of the offer: the tooltip and the chip on the card.
+    function offerText(
+        slotId: string,
+        offer: SiteOffer | undefined
+    ): { title: string; chip: TravelChip | undefined } {
         const resting = restingLabel(slotId)
         switch (offer?.intent) {
             case 'start':
-                return { title: `${siteName(gameState, slotId)} — a start site`, chip: offer.label }
+                // "start here" marks the pick alone; the other start sites are lit with no chip.
+                return {
+                    title: `${siteName(gameState, slotId)} — a start site`,
+                    chip: offer.picked ? { words: offer.label } : undefined
+                }
             case 'travel':
-                // R-5.6.1 prices by region, R-7.1.4 adds tolls: shown before the tap.
+                // R-5.6.1 prices by region, R-7.1.4 adds tolls, R-11.12 the Buried Giant's flip.
                 return offer.cost === undefined
                     ? { title: resting, chip: undefined }
                     : {
                           title: `Travel here — ${offer.cost} Supply${offer.toll}`,
-                          chip: `${offer.cost} supply${offer.toll}`
+                          chip: travelChip(offer.ways)
                       }
             case 'target':
                 return offer.targeted
                     ? {
                           title: `${siteName(gameState, slotId)} — targeted`,
-                          chip: '✓ target'
+                          chip: { words: '✓ target' }
                       }
-                    : { title: `${siteName(gameState, slotId)} — a target`, chip: 'target?' }
+                    : {
+                          title: `${siteName(gameState, slotId)} — a target`,
+                          chip: { words: 'target?' }
+                      }
             case 'moveWarbands':
                 return {
                     title: 'Warbands may move from your board onto this site',
                     chip: undefined
                 }
+            case 'banish':
+                return { title: resting, chip: { words: 'banish' } }
+            case 'wood': {
+                // R-11.7 — what the traveller pays there; the card that changed it is named here.
+                const note =
+                    offer.foldedBy.length > 0 ? ` (${offer.foldedBy.map(cardName).join(', ')})` : ''
+                return {
+                    title: `${siteName(gameState, slotId)} — ${offer.cost} Supply${note}${
+                        offer.toll ? ' · toll 1 favor' : ''
+                    }`,
+                    chip: woodChip(offer.cost, offer.toll)
+                }
+            }
             case undefined:
                 return { title: resting, chip: undefined }
         }
     }
 </script>
+
+{#snippet chipWay(way: ChipWay)}
+    <span class="travel-cost__way"
+        >{way.cost}{#if way.favor > 0}+{way.favor > 1 ? way.favor : ''}<img
+                class="travel-cost__token"
+                src={favorTokenImage()}
+                alt="favor"
+            />{/if}{#if way.secret}+<img
+                class="travel-cost__token"
+                src={secretTokenImage()}
+                alt="secret"
+            />{/if}</span
+    >
+{/snippet}
 
 {#each Object.entries(SITE_SLOT_RECTS) as [slotId, slot] (`${slotId}:${gameState.siteCardAt(slotId) ?? ''}`)}
     {@const rect = fitRect(slot, SITE_ASPECT)}
@@ -64,11 +136,19 @@
     {@const targeted = offer?.intent === 'target' && offer.targeted}
     {@const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }}
     {@const text = offerText(slotId, offer)}
+    {@const onpick = pickOnMap(offer)}
+    {@const onMap =
+        offer?.intent === 'travel' ||
+        offer?.intent === 'start' ||
+        offer?.intent === 'banish' ||
+        offer?.intent === 'wood'}
 
     <div
         class="site"
-        class:dimmed={gameSession.mapDimmed && !offer}
+        class:dimmed={dimmed && !offer}
         class:targeted
+        class:on-map={onMap}
+        data-slot={slotId}
         style="left:{rect.x}px; top:{rect.y}px; width:{rect.width}px; height:{rect.height}px;"
     >
         <BoardCard
@@ -80,12 +160,26 @@
             width={rect.width}
             offered={offer !== undefined}
             pointed={menuPointer.is({ kind: 'site', slotId })}
+            picked={(offer?.intent === 'travel' || offer?.intent === 'start') && offer.picked}
             previewSlotId={slotId}
             title={text.title}
+            {onpick}
+            pickLabel={text.chip === undefined
+                ? restingLabel(slotId)
+                : `${restingLabel(slotId)}, ${chipWords(text.chip)}`}
         />
 
         {#if text.chip !== undefined}
-            <span class="travel-cost" class:targeted>{text.chip}</span>
+            <span class="travel-cost" class:targeted>
+                {#if 'words' in text.chip}
+                    {text.chip.words}
+                {:else}
+                    {#each text.chip.ways as way, index (index)}
+                        {#if index > 0}<span class="travel-cost__or">{' or '}</span>{/if}
+                        {@render chipWay(way)}
+                    {/each}
+                {/if}
+            </span>
         {/if}
 
         {#if tokens.favor > 0 || tokens.secrets > 0}
@@ -96,6 +190,18 @@
                     size={SITE_TOKEN_RADIUS * 2}
                 />
             </span>
+        {/if}
+
+        {#if onpick}
+            <SiteMagnifier
+                preview={{
+                    cardId,
+                    back: faceUp ? undefined : CardKind.Site,
+                    label: restingLabel(slotId),
+                    slotId
+                }}
+                label={restingLabel(slotId)}
+            />
         {/if}
     </div>
 {/each}
@@ -127,6 +233,8 @@
         bottom: -13px;
         transform: translateX(-50%);
         z-index: 3;
+        display: inline-flex;
+        align-items: center;
         padding: 2px 10px 1px;
         border-radius: 999px;
         background: #fbbf24;
@@ -136,6 +244,50 @@
         letter-spacing: 0.04em;
         white-space: nowrap;
         pointer-events: none;
+    }
+
+    .travel-cost__way {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* "or" reads smaller than the costs it joins. */
+    .travel-cost__or {
+        font-size: 0.7em;
+        white-space: pre;
+    }
+
+    /* Sized by its height alone: a percentage cap would let the chip measure it at no width. */
+    .travel-cost__token {
+        flex: none;
+        height: 1em;
+        width: auto;
+        max-width: none;
+        margin-left: 0.1em;
+    }
+
+    /* On the lit map a token is no taller than the numeral beside it. */
+    .site.on-map .travel-cost__token {
+        height: 0.78em;
+    }
+
+    /* A pick on the map, at every width: the chip is read at the board's zoom, so it is larger
+       (about 13 px on screen with the whole board at 1280), wholly on its own card, and over the
+       pieces standing there. */
+    .site.on-map .travel-cost {
+        z-index: 6;
+        left: 0;
+        right: 0;
+        bottom: 14px;
+        width: max-content;
+        max-width: calc(100% - 16px);
+        margin-inline: auto;
+        transform: none;
+        padding: 3px 20px 2px;
+        font-size: 36px;
+        white-space: normal;
+        text-align: center;
+        justify-content: center;
     }
 
     /* Top-left: the only corner the site's own print leaves free. */

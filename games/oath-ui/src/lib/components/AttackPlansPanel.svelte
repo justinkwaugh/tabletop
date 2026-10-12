@@ -3,35 +3,32 @@
     import { powerKey } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.2.a then R-5.5.3 — the Citizens asked to join have answered; the attacker's plans come next.
     let gameSession = getGameSession()
     let draft = $derived(gameSession.attackPlans)
     let busy = $derived(gameSession.busy)
+    const plansWidth = new ChoiceWidth()
     let mine = $derived(
         draft.attackerId !== undefined && draft.attackerId === gameSession.myPlayer?.id
     )
-    let reason = $derived(mine ? draft.blockedBecause : undefined)
+    let useRefusedBecause = $derived(mine ? draft.usePlansRefusedBecause : undefined)
+    let noneRefusedBecause = $derived(mine ? draft.noPlansRefusedBecause : undefined)
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
-        Campaign — the attacker's battle plans
-    </h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">Battle plans</h3>
     {#if !mine}
-        <p class="text-sm text-oath-text-muted">
-            Waiting for {draft.attackerId
-                ? gameSession.getPlayerName(draft.attackerId)
-                : 'the attacker'}
-            to choose battle plans.
-        </p>
+        <WaitingOn />
     {:else}
-        <p class="text-sm mb-2">
-            The Citizens have answered. Use any battle plans you rule, once each.
-        </p>
+        {#if draft.usable.length > 0}
+            <p class="text-sm mb-2">Tap the plans to use.</p>
+        {/if}
         <div class="mb-1">
             <CardChoiceRow
                 choices={powerUseCards(draft.usable)}
@@ -61,17 +58,41 @@
                 </div>
             {/if}
         {/each}
-        {#if reason}
+        <!-- Use plans waits for a plan and its picks; a refusal takes the button's place. -->
+        {#if useRefusedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+                <TokenText text={gameSession.humanizeReason(useRefusedBecause) ?? ''} />
             </p>
         {/if}
-        <button
-            class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
-            disabled={busy || !!reason}
-            onclick={() => draft.declare()}
-        >
-            {draft.plans.length > 0 ? 'Use these plans' : 'Use no plans'}
-        </button>
+        {#if noneRefusedBecause}
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={gameSession.humanizeReason(noneRefusedBecause) ?? ''} />
+            </p>
+        {/if}
+        <!-- One width for the two, the wider one's; one per line when they do not fit. The confirm is the primary. -->
+        <div class="flex flex-wrap gap-2">
+            {#if draft.plansComplete && !useRefusedBecause}
+                <button
+                    class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    style:min-width="{plansWidth.widest}px"
+                    disabled={busy}
+                    onclick={() => draft.declare(true)}
+                >
+                    <span class="inline-block w-max" {@attach plansWidth.measure}>Use plans</span>
+                </button>
+            {/if}
+            {#if !noneRefusedBecause}
+                <button
+                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                           max-sm:min-h-11"
+                    style:min-width="{plansWidth.widest}px"
+                    disabled={busy}
+                    onclick={() => draft.declare(false)}
+                >
+                    <span class="inline-block w-max" {@attach plansWidth.measure}>No plans</span>
+                </button>
+            {/if}
+        </div>
     {/if}
 </div>

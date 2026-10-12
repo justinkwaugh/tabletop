@@ -135,18 +135,12 @@ export function actionCards(state: HydratedOathGameState, playerId: string): Act
     })
 }
 
-export function cardsThatCan(
+/** R-7.4 — the cards that would make an action possible that cannot be taken as printed. */
+export function cardsMakingPossible(
     cards: readonly ActionCard[],
-    action: ActionType,
-    nameOf: (cardId: string) => string
-): string | undefined {
-    const names = cards
-        .filter((card) => card.action === action && card.kind === 'makesPossible')
-        .map((card) => nameOf(card.cardId))
-    if (names.length === 0) return undefined
-    const list =
-        names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`
-    return `${list} can: see Use a power.`
+    action: ActionType
+): ActionCard[] {
+    return cards.filter((card) => card.action === action && card.kind === 'makesPossible')
 }
 
 /** R-7.1.2 — what using the card costs, as its row says it before the press. */
@@ -168,15 +162,13 @@ export function cardCostLine(cost: PowerCost): string {
     return clauses.length > 0 ? clauses.join(', ') : 'free'
 }
 
-/** A card's printed power in words the panel's tokens can be drawn from. */
-export function printedPowerWords(text: string): string {
-    return text
-        .replace(/(?:\[(?:favor|secret)\])+/g, (run) => {
-            const count = run.split('][').length
-            const noun = run.includes('favor') ? 'favor' : 'secret'
-            return count === 1 ? noun : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
-        })
-        .replace(/\[suit:([a-z]+)\]/g, '$1')
-        .replace(/\*\*/g, '')
-        .replace(/_/g, '')
+/** A power's cost as the answer that pays it shows it: "1 favor + 1 secret"; nothing when free. */
+export function answerCostText(cost: PowerCost): string | undefined {
+    const favor = cost.placeFavor + cost.burnFavor
+    const secrets = cost.placeSecret + cost.burnSecret
+    const parts = [
+        ...(favor > 0 ? [`${favor} favor`] : []),
+        ...(secrets > 0 ? [`${secrets} ${secrets === 1 ? 'secret' : 'secrets'}`] : [])
+    ]
+    return parts.length > 0 ? parts.join(' + ') : undefined
 }

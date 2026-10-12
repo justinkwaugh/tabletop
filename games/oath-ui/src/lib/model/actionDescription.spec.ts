@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     AnswerQuestion,
+    CampaignTargetKind,
     ExileCitizen,
     HydratedAnswerQuestion,
     HydratedExileCitizen,
@@ -28,11 +29,13 @@ import {
     SearchResolve,
     SearchSource,
     SelfExile,
+    Suit,
     UseActionPower,
     ownWarbandOwner,
     powerIndexOf
 } from '@tabletop/oath'
-import { UNDESCRIBED, describeAction, rowWarbandOwner } from './actionDescription.js'
+import { UNDESCRIBED, describeAction, phraseWarbandOwner, rowWarbandOwner } from './actionDescription.js'
+import { tokenParts } from './tokenText.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { buildAction, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
@@ -65,6 +68,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.UseRestPower]: { cardId: CARD, powerIndex: 0 },
     [ActionType.CampaignSacrifice]: { sacrifice: 0 },
     [ActionType.CampaignDefeatKills]: { kills: [] },
+    [ActionType.CampaignSkullLosses]: { kills: [] },
     [ActionType.CampaignResolveVictory]: { placements: [], burnFavor: false },
     [ActionType.PlayFacedownAdviser]: { cardId: CARD, play: 'adviser' },
     [ActionType.UseActionPower]: { cardId: CARD },
@@ -125,10 +129,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 32 action types, and reaches no fallback', () => {
+    it('has a sentence for all 33 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(32)
+        expect(types).toHaveLength(33)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -137,6 +141,16 @@ describe('the history tab describes every action', () => {
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
         }
+    })
+
+    it('R-5.5.5 — the skulls’ losses name where they fell, one place or each place', () => {
+        const names = { ...nameOf, site: (slotId: string) => ({ 'slot.cradle.0': 'Plains', 'slot.cradle.1': 'River' })[slotId] ?? slotId }
+        const board = { at: { kind: 'board', playerId: 'p1' }, owner: 'p1' }
+        const at = (siteId: string) => ({ at: { kind: 'site', siteId }, owner: 'p1' })
+        const losses = (killed: Array<Record<string, unknown>>) =>
+            describeAction(action({ type: ActionType.CampaignSkullLosses, playerId: 'p1', kills: killed, metadata: { killed } }), names)
+        expect(losses([{ ...board, count: 2 }])).toBe('lost 2 to skulls, on their board')
+        expect(losses([{ ...board, count: 1 }, { ...at('slot.cradle.0'), count: 1 }, { ...at('slot.cradle.1'), count: 1 }])).toBe('lost 3 to skulls: 1 on their board, 1 at Plains, 1 at River')
     })
 
     it('R-10.2 — names the free action given up', () => {
@@ -165,9 +179,20 @@ describe('the history tab describes every action', () => {
         expect(search({})).toBe('searched the world deck, spending 3 Supply')
     })
 
+    it('R-7.1.4 — a Search names its toll: the favor, whom it went to and the card; a burned one; an older record as before', () => {
+        const FORCED_LABOR = 'denizen.order.forced-labor'
+        const search = (metadata: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.Search, playerId: 'p1', drawFrom: SearchSource.WorldDeck, metadata: { supplySpent: 2, cardsDrawn: 3, visionsDrawn: 0, ...metadata } }), nameOf, 'p2')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: gave a favor to p3`] })).toBe('searched the world deck, spending 2 Supply; 1 favor to Cass (Forced Labor)')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: burned a favor for the bandits`] })).toBe('searched the world deck, spending 2 Supply; burned 1 favor (Forced Labor)')
+        expect(search({ tollsPaid: [`${FORCED_LABOR}: gave a favor to p3`], stoppedOnVision: true })).toBe('searched the world deck, spending 2 Supply; 1 favor to Cass (Forced Labor); the draw stopped on a Vision')
+        expect(search({ tollsPaid: ['not a toll note'] })).toBe('searched the world deck, spending 2 Supply')
+        expect(search({})).toBe('searched the world deck, spending 2 Supply')
+    })
+
     it('names the banners the spoils seized', () => {
         const spoils = (metadata: Record<string, unknown>) =>
-            describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p1', metadata: { warbandsPlaced: 0, seizeBurned: 0, favorBurned: 0, relicsTaken: [], bannersSeized: [], ...metadata } }), nameOf)
+            describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p1', placements: [], burnFavor: false, metadata: { warbandsPlaced: 0, seizeBurned: 0, favorBurned: 0, relicsTaken: [], bannersSeized: [], ...metadata } }), nameOf)
         expect(spoils({ relicsTaken: ['relic.book-of-records'], bannersSeized: ['darkestSecret'] })).toBe('took the spoils, taking Book of Records and seizing the Darkest Secret')
         expect(spoils({ bannersSeized: ['darkestSecret'] })).toBe('took the spoils, seizing the Darkest Secret')
     })
@@ -297,6 +322,14 @@ describe('the history tab describes every action', () => {
                 actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
                 target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
                 third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets'
+            },
+            {
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: with p2, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with p3, gave 0 secrets for 0 favor and 2 favor for 1 secrets",
+                actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with you, gave 0 secrets for 0 favor and 2 favor for 1 secrets'
             },
             {
                 card: 'denizen.discord.relic-thief',
@@ -433,6 +466,14 @@ describe('the history tab describes every action', () => {
                 third: 'played the Conspiracy and took from Bob'
             },
             {
+                name: 'the Conspiracy played as an adviser, facedown',
+                card: 'denizen.arcane.inquisitor',
+                summary: () => answered({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: 'denizen.arcane.inquisitor', askedPlayerId: 'p1', holderPlayerId: 'p3', index: 0 }, { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true }, { p3: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }] } }),
+                answerer: 'played the Conspiracy as an adviser, facedown',
+                other: 'played the Conspiracy as an adviser, facedown',
+                third: 'played the Conspiracy as an adviser, facedown'
+            },
+            {
                 name: 'a Relic Thief roll that failed',
                 card: 'denizen.discord.relic-thief',
                 summary: () => `Relic Thief: rolled 1 shields; ${RELIC} stayed with p2`,
@@ -503,6 +544,40 @@ describe('the history tab describes every action', () => {
             nameOf
         )
         expect(text).toContain('Usurper')
+    })
+
+    it('R-4.1.1, R-4.1.4 — the Wake says each People’s Favor step and the site’s take, from its own record', () => {
+        const wake = (fields: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.ResolveWake, playerId: 'p1', ...fields }), nameOf)
+        expect(
+            wake({
+                favorSteps: [{ kind: 'place' }, { kind: 'return', toSuit: Suit.Order }],
+                sitePowerTake: 'secret'
+            })
+        ).toBe(
+            'began the turn; placed 1 favor on the People’s Favor; returned 1 favor to the Order bank; took 1 secret from their site'
+        )
+        expect(wake({ favorSteps: [], sitePowerTake: 'favor' })).toBe(
+            'began the turn; took 1 favor from their site'
+        )
+        expect(wake({ favorSteps: [{ kind: 'place' }], metadata: { flippedToMob: true } })).toBe(
+            'began the turn; placed 1 favor on the People’s Favor — the People’s Favor flipped to Mob'
+        )
+    })
+
+    it('R-4.1.2 — a Wake that won the game took nothing from the site', () => {
+        expect(
+            describeAction(
+                action({
+                    type: ActionType.ResolveWake,
+                    playerId: 'p1',
+                    favorSteps: [],
+                    sitePowerTake: 'favor',
+                    metadata: { wonBy: 'R-3.1' }
+                }),
+                nameOf
+            )
+        ).toBe('began the turn')
     })
 
     it('never says "their" about the acting player', () => {
@@ -587,6 +662,83 @@ describe('the history tab describes every action', () => {
         ).toBe(
             'travelled to Cradle 2, spending 1 Supply — revealing Mine and 1 facedown relic'
         )
+    })
+
+    it('Second Wind out of turn — the free Travel and Campaign end "(free, Second Wind)"', () => {
+        const SECOND_WIND = 'denizen.discord.second-wind'
+        const travelled = describeAction(
+            action({
+                type: ActionType.Travel,
+                playerId: 'p1',
+                siteId: 'slot.cradle.1',
+                metadata: { supplySpent: 0, supplyRemaining: 0, freeActionOf: SECOND_WIND }
+            }),
+            nameOf
+        )
+        expect(travelled).toBe('travelled to Cradle 2 (free, Second Wind)')
+        const campaigned = describeAction(
+            action({
+                type: ActionType.Campaign,
+                playerId: 'p1',
+                defender: { kind: 'player', playerId: 'p2' },
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackDice: 0,
+                metadata: { supplySpent: 0, freeActionOf: SECOND_WIND, awaitingAllies: true }
+            }),
+            nameOf
+        )
+        expect(campaigned).toMatch(/^campaigned against Bob for .+ \(free, Second Wind\) — /)
+    })
+
+    describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
+        const travel = (metadata: Record<string, unknown>) =>
+            describeAction(
+                action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.provinces.1',
+                    metadata: { supplySpent: 2, supplyRemaining: 4, ...metadata }
+                }),
+                nameOf
+            )
+
+        it('a toll given to a player names them and the card', () => {
+            expect(travel({ tollsPaid: ['denizen.order.toll-roads: gave a favor to p2'] })).toBe(
+                'travelled to Provinces 2, spending 2 Supply; 1 favor to Bob (Toll Roads)'
+            )
+        })
+
+        it('a toll the bandits rule is burned', () => {
+            expect(
+                travel({ tollsPaid: ['denizen.order.toll-roads: burned a favor for the bandits'] })
+            ).toBe('travelled to Provinces 2, spending 2 Supply; burned 1 favor (Toll Roads)')
+        })
+
+        it('two tolls are two clauses, in the record’s order', () => {
+            expect(
+                travel({
+                    tollsPaid: [
+                        'denizen.order.toll-roads: gave a favor to p2',
+                        'denizen.nomad.way-station: gave a favor to p3'
+                    ]
+                })
+            ).toBe(
+                'travelled to Provinces 2, spending 2 Supply; 1 favor to Bob (Toll Roads); 1 favor to Cass (Way Station)'
+            )
+        })
+
+        it('a flipped secret is named after the tolls', () => {
+            expect(travel({ secretFlipped: true })).toBe(
+                'travelled to Provinces 2, spending 2 Supply; flipped 1 secret'
+            )
+        })
+
+        it('a note of another shape is not printed, and a record without tolls reads as before', () => {
+            expect(travel({ tollsPaid: ['something else'] })).toBe(
+                'travelled to Provinces 2, spending 2 Supply'
+            )
+            expect(travel({})).toBe('travelled to Provinces 2, spending 2 Supply')
+        })
     })
 
     it('describes an action that has no metadata yet', () => {
@@ -780,7 +932,8 @@ describe('the history tab describes every action', () => {
         })
 
         it('R-6.7-H1 — an exile’s row keeps today’s words before revision 5 and names the Chancellor’s bank from it', () => {
-            // p1 holds the Grand Scepter; p2's board holds 16 Imperial warbands against 14 of their own.
+            // p1 holds the Grand Scepter, so a self-exile names them; p2's board holds 16 Imperial
+            // warbands against 14 of their own.
             const row = (oathRevision: OathRevision, exile: 'self' | 'exiled') => {
                 const state = testState(
                     [
@@ -797,10 +950,47 @@ describe('the history tab describes every action', () => {
                 return describeAction(applied.dehydrate(), nameOf)
             }
 
-            expect(row(OathRevision.CardFixes1, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, with 2 warbands left Imperial')
-            expect(row(OathRevision.EngineFixes2, 'self')).toBe('went into exile, giving 16 favor to the Grand Scepter’s holder, returning 2 Imperial warbands to the Chancellor’s bank')
+            expect(row(OathRevision.CardFixes1, 'self')).toBe('went into exile, giving 16 favor to Alice, with 2 warbands left Imperial')
+            expect(row(OathRevision.EngineFixes2, 'self')).toBe('went into exile, giving 16 favor to Alice, returning 2 Imperial warbands to the Chancellor’s bank')
             expect(row(OathRevision.CardFixes1, 'exiled')).toBe('exiled Bob, giving them 5 favor, with 2 warbands left Imperial')
             expect(row(OathRevision.EngineFixes2, 'exiled')).toBe('exiled Bob, giving them 5 favor, returning 2 Imperial warbands to the Chancellor’s bank')
+        })
+
+        it('R-9.3 — one warband left Imperial is “1 warband”, on either exile and on a Citizenship', () => {
+            const one = { favorGiven: 2, replacedCount: 1, unreplacedCount: 1 }
+            expect(
+                describeAction(action({ type: ActionType.SelfExile, playerId: 'p1', metadata: one }), nameOf)
+            ).toBe('went into exile, giving 2 favor to the Grand Scepter’s holder, with 1 warband left Imperial')
+            expect(
+                describeAction(
+                    action({ type: ActionType.ExileCitizen, playerId: 'p1', citizenPlayerId: 'p2', metadata: one }),
+                    nameOf
+                )
+            ).toBe('exiled Bob, giving them 2 favor, with 1 warband left Imperial')
+            expect(
+                describeAction(
+                    action({
+                        type: ActionType.ResolveCitizenshipOffer,
+                        playerId: 'p2',
+                        granted: true,
+                        metadata: { outcome: { unreplacedCount: 1 } }
+                    }),
+                    nameOf
+                )
+            ).toBe('accepted Citizenship, removing 1 warband for want of Imperial ones')
+        })
+
+        it('R-6.8, R-10.11 — a self-exile names who got the favor; a record without the holder keeps its words', () => {
+            const paid = { favorGiven: 3, replacedCount: 2, unreplacedCount: 0 }
+            expect(
+                describeAction(
+                    action({ type: ActionType.SelfExile, playerId: 'p1', metadata: { ...paid, scepterHolderId: 'p2' } }),
+                    nameOf
+                )
+            ).toBe('went into exile, giving 3 favor to Bob')
+            expect(
+                describeAction(action({ type: ActionType.SelfExile, playerId: 'p1', metadata: paid }), nameOf)
+            ).toBe('went into exile, giving 3 favor to the Grand Scepter’s holder')
         })
 
         it('R-6.1 — names the card in place, with no dangling "it"', () => {
@@ -889,6 +1079,33 @@ describe('the history tab describes every action', () => {
     })
 })
 
+describe('Dragonskin Drum on a power’s move — the answer’s own row, after the move’s', () => {
+    const DRUM = 'relic.dragonskin-drum'
+    const drum = (gain: boolean, warbandGain?: { owner: string; count: number }) =>
+        action({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.DragonskinDrum, gain }, metadata: { cardId: DRUM, kind: PowerQuestionKind.DragonskinDrum, summary: gain ? 'gained 1 warband' : 'skipped', resumeMachineState: MachineState.ActPhase, last: true, ...(warbandGain ? { warbandGain } : {}) } })
+
+    it('Gain reads "+1 warband (Dragonskin Drum)", the warband its token in the History', () => {
+        const line = describeAction(drum(true, { owner: 'p2', count: 1 }), nameOf, 'p1')
+        expect(line).toBe('+1 warband (Dragonskin Drum)')
+        expect(tokenParts(line, { warbands: true })).toEqual([
+            { kind: 'text', text: '+' },
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            { kind: 'text', text: ' (Dragonskin Drum)' }
+        ])
+    })
+
+    it('Skip adds nothing to the move: its row says only that it was skipped', () => {
+        expect(describeAction(drum(false), nameOf, 'p1')).toBe('skipped the Dragonskin Drum')
+    })
+
+    it('the warband is the owner the answer recorded: a Citizen’s, the Empire’s', () => {
+        const own = (playerId: string) => playerId
+        expect(rowWarbandOwner(drum(true, { owner: IMPERIAL_WARBANDS, count: 1 }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(drum(true, { owner: 'p2', count: 1 }), own)).toBe('p2')
+        expect(rowWarbandOwner(drum(false), own)).toBe('p2')
+    })
+})
+
 describe('R-10.13 — whose warbands a History row counts', () => {
     const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
     const group = (owner: string, count: number) => ({ at: { kind: 'site', siteId: 'c1' }, owner, count })
@@ -972,5 +1189,162 @@ describe('R-10.13 — whose warbands a History row counts', () => {
     it('anything else counts the actor’s own, the Empire’s for the Chancellor', () => {
         expect(rowWarbandOwner(action({ type: ActionType.ResolveCitizenshipOffer, playerId: 'p2', granted: true }), own)).toBe('p2')
         expect(rowWarbandOwner(action({ type: ActionType.TransferOathkeeper, source: 'system', toPlayerId: 'p1' }), own)).toBeUndefined()
+    })
+})
+
+describe('R-10.13 — each counted warband takes the owner its own words name, else the row’s', () => {
+    // p1 is the Chancellor (the Empire's warbands), p2 a Citizen, p3 an Exile.
+    const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
+    const PLAINS = 'slot.provinces.0'
+
+    function pieces(row: GameAction, viewerId?: string) {
+        return tokenParts(describeAction(row, nameOf, viewerId), { warbands: true }).flatMap((part) =>
+            part.kind === 'warband' ? [{ count: part.count, owner: phraseWarbandOwner(part.whose, row, { names: nameOf, viewerId }, own) }] : []
+        )
+    }
+
+    it('"Imperial" is the Empire’s; a named seat is that seat’s, though the row counts another', () => {
+        const row = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: 'relic.obsidian-cage', powerIndex: 0, metadata: { summary: "Obsidian Cage: moved 2 of p3's warbands and 2 Imperial warbands from the Cage to their owners' boards" } })
+        expect(pieces(row)).toEqual([{ count: 2, owner: 'p3' }, { count: 2, owner: IMPERIAL_WARBANDS }])
+    })
+
+    it('"your" is the viewer’s, "their own" the actor’s', () => {
+        const row = action({ type: ActionType.UseActionPower, playerId: 'p3', cardId: 'denizen.beast.second-chance', powerIndex: 0, metadata: { summary: "killed a warband on p2's board and gained 1 of p3's warbands", targetPlayerId: 'p2', warbandOwner: IMPERIAL_WARBANDS } })
+        expect(describeAction(row, nameOf, 'p3')).toBe("used Second Chance, placing a secret on it: killed a warband on Bob's board and gained 1 of your own warbands")
+        expect(pieces(row, 'p3')).toEqual([{ count: 1, owner: IMPERIAL_WARBANDS }, { count: 1, owner: 'p3' }])
+        expect(pieces(row, 'p2')).toEqual([{ count: 1, owner: IMPERIAL_WARBANDS }, { count: 1, owner: 'p3' }])
+        const alone = action({ type: ActionType.UseRestPower, playerId: 'p3', cardId: CARD, powerIndex: 0, metadata: { summary: "gained 2 of p3's warbands" } })
+        expect(describeAction(alone, nameOf, 'p2')).toBe('rested with Errand Boy: gained 2 of their own warbands')
+        expect(pieces(alone, 'p2')).toEqual([{ count: 2, owner: 'p3' }])
+    })
+
+    it('a bare count takes the owner the row recorded, else the seat acted on, else the actor’s own', () => {
+        const recorded = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: 'denizen.hearth.relic-breaker', powerIndex: 0, metadata: { summary: 'Relic Breaker: the relic went to the bottom of the relic deck; gained 3 warbands', warbandOwner: IMPERIAL_WARBANDS } })
+        expect(pieces(recorded)).toEqual([{ count: 3, owner: IMPERIAL_WARBANDS }])
+        const actedOn = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: CARD, powerIndex: 0, metadata: { summary: 'killed 2 warbands', targetPlayerId: 'p3' } })
+        expect(pieces(actedOn)).toEqual([{ count: 2, owner: 'p3' }])
+        expect(pieces(action({ type: ActionType.Muster, playerId: 'p3', cardId: CARD, metadata: { warbandsGained: 2, supplySpent: 1 } }))).toEqual([{ count: 2, owner: 'p3' }])
+    })
+
+    it('a Citizen’s own stay theirs: accepting Citizenship removes their own warbands', () => {
+        expect(pieces(action({ type: ActionType.ResolveCitizenshipOffer, playerId: 'p2', granted: true, metadata: { outcome: { unreplacedCount: 2 } } }))).toEqual([{ count: 2, owner: 'p2' }])
+    })
+
+    it('a seat the reader cannot name keeps the row’s owner', () => {
+        const row = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: CARD, powerIndex: 0, metadata: { summary: "moved 2 of Dana's warbands" } })
+        expect(pieces(row)).toEqual([{ count: 2, owner: 'p2' }])
+    })
+
+    describe('the Cage’s rows', () => {
+        it('a now-Citizen’s return names them, their warbands in their colour and the Empire’s replacing them', () => {
+            const row = action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'relic.obsidian-cage', powerIndex: 0, metadata: { summary: "Obsidian Cage: 3 of p2's warbands went back to p2's bank and 1 Imperial warband came from the Chancellor's bank in their place" } })
+            expect(describeAction(row, nameOf)).toBe("used Obsidian Cage: 3 of Bob's warbands went back to Bob's bank and 1 Imperial warband came from the Chancellor's bank in their place")
+            expect(pieces(row)).toEqual([{ count: 3, owner: 'p2' }, { count: 1, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('groups of two owners draw two colours, where one count drew the actor’s', () => {
+            const today = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: 'relic.obsidian-cage', powerIndex: 0, metadata: { summary: "Obsidian Cage: moved 4 warbands from the Cage to their owners' boards" } })
+            expect(pieces(today)).toEqual([{ count: 4, owner: 'p2' }])
+            const proposed = action({ type: ActionType.UseActionPower, playerId: 'p2', cardId: 'relic.obsidian-cage', powerIndex: 0, metadata: { summary: "Obsidian Cage: moved 2 of p3's warbands and 2 Imperial warbands from the Cage to their owners' boards" } })
+            expect(describeAction(proposed, nameOf)).toBe("used Obsidian Cage: moved 2 of Cass's warbands and 2 Imperial warbands from the Cage to their owners' boards")
+            expect(pieces(proposed)).toEqual([{ count: 2, owner: 'p3' }, { count: 2, owner: IMPERIAL_WARBANDS }])
+        })
+    })
+
+    describe('R-5.5.7.I — the spoils name each placement in its owner’s colour', () => {
+        it('a Citizen places the Empire’s warbands', () => {
+            const row = action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: IMPERIAL_WARBANDS, count: 2 }], burnFavor: false, metadata: { warbandsPlaced: 2, relicsTaken: ['Obsidian Cage'], bannersSeized: [], seizeBurned: 0, favorBurned: 0 } })
+            expect(describeAction(row, nameOf)).toBe('took the spoils, taking Obsidian Cage; placed 2 Imperial warbands at Provinces 1')
+            expect(pieces(row)).toEqual([{ count: 2, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('each owner’s placement, and none of nothing', () => {
+            const row = action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: 'p2', count: 1 }, { siteId: 'slot.cradle.1', owner: IMPERIAL_WARBANDS, count: 0 }, { siteId: 'slot.cradle.1', owner: IMPERIAL_WARBANDS, count: 1 }], burnFavor: false })
+            expect(describeAction(row, nameOf)).toBe('took the spoils; placed 1 warband at Provinces 1 and 1 Imperial warband at Cradle 2')
+            expect(pieces(row)).toEqual([{ count: 1, owner: 'p2' }, { count: 1, owner: IMPERIAL_WARBANDS }])
+            expect(describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: 'p2', count: 0 }], burnFavor: false }), nameOf)).toBe('took the spoils')
+        })
+    })
+
+    describe('R-7.3.3, R-7.4, R-5.5.8, R-11.2 — the History shows what a play, a modifier, a battle plan or a Homeland gained, on the row that recorded it', () => {
+        const searched = { discardedCardIds: [], discardedCount: 0, discardPileRegion: 'cradle', favorGained: 0 }
+
+        it('a When Played gain follows the kept card', () => {
+            const row = action({ type: ActionType.SearchResolve, playerId: 'p2', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [], play: SearchPlay.Adviser, metadata: { ...searched, playedCardId: 'denizen.discord.a-small-favor', whenPlayed: 'gained 4 Imperial warbands' } })
+            expect(describeAction(row, nameOf)).toBe('kept A Small Favor and played it as an adviser: gained 4 Imperial warbands')
+            expect(pieces(row)).toEqual([{ count: 4, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('a When Played summary that names its card is not named twice', () => {
+            const row = action({ type: ActionType.SearchResolve, playerId: 'p2', keptCardId: 'denizen.discord.key-to-the-city', discardOrder: [], play: SearchPlay.Site, metadata: { ...searched, playedCardId: 'denizen.discord.key-to-the-city', whenPlayed: 'Key to the City: killed 1 at slot.provinces.0, gained 1 Imperial warband and placed 1 there' } })
+            expect(describeAction(row, nameOf)).toBe('kept Key to the City and played it to their site: killed 1 at Provinces 1, gained 1 Imperial warband and placed 1 there')
+        })
+
+        it('Land Warden’s second card, a triggered power, a Homeland and a modifier each follow as their own clause', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.order.knights-errant',
+                discardOrder: [],
+                play: SearchPlay.Site,
+                metadata: {
+                    ...searched,
+                    playedCardId: 'denizen.order.knights-errant',
+                    secondPlayedCardId: 'denizen.discord.a-small-favor',
+                    secondWhenPlayed: 'gained 4 Imperial warbands',
+                    triggered: ['Saddle Makers: gained 1 favor'],
+                    sitePower: 'Ancient City (Homeland): gained 2 Imperial warbands',
+                    modifierNotes: ['Wild Cry: gained 1 Supply and 2 Imperial warbands']
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe('kept Knights Errant and played it to their site; A Small Favor: gained 4 Imperial warbands; Saddle Makers: gained 1 favor; Ancient City (Homeland): gained 2 Imperial warbands; Wild Cry: gained 1 Supply and 2 Imperial warbands')
+            expect(pieces(row)).toEqual([{ count: 4, owner: IMPERIAL_WARBANDS }, { count: 2, owner: IMPERIAL_WARBANDS }, { count: 2, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('a facedown adviser’s play carries its When Played and its modifier’s gain', () => {
+            const row = action({ type: ActionType.PlayFacedownAdviser, playerId: 'p2', cardId: 'denizen.beast.animal-host', play: SearchPlay.Adviser, metadata: { playedCardId: 'denizen.beast.animal-host', whenPlayed: 'gained 3 Imperial warbands (3 beast cards at sites)', modifiers: ['denizen.beast.wild-cry'], modifierNotes: ['Wild Cry: gained 1 Supply and 2 Imperial warbands'], discardedCardIds: [], discardPileRegion: 'cradle', favorGained: 0 } })
+            expect(describeAction(row, nameOf)).toBe('turned Animal Host faceup as an adviser (Wild Cry): gained 3 Imperial warbands (3 beast cards at sites); Wild Cry: gained 1 Supply and 2 Imperial warbands')
+            expect(pieces(row)).toEqual([{ count: 3, owner: IMPERIAL_WARBANDS }, { count: 2, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('Travel, Muster, Trade and Recover carry their modifiers’ gains', () => {
+            const travel = action({ type: ActionType.Travel, playerId: 'p2', siteId: PLAINS, metadata: { supplySpent: 2, modifierNotes: ['Dragonskin Drum: gained 1 Imperial warband'] } })
+            expect(describeAction(travel, nameOf)).toBe('travelled to Provinces 1, spending 2 Supply; Dragonskin Drum: gained 1 Imperial warband')
+            expect(pieces(travel)).toEqual([{ count: 1, owner: IMPERIAL_WARBANDS }])
+            const modifierNotes = ['Welcoming Party: gained 1 favor from the hearth bank']
+            expect(describeAction(action({ type: ActionType.Muster, playerId: 'p2', cardId: CARD, metadata: { warbandsGained: 2, supplySpent: 1, warbandOwner: IMPERIAL_WARBANDS, modifierNotes } }), nameOf)).toBe('mustered at Errand Boy, gaining 2 warbands, spending 1 Supply; Welcoming Party: gained 1 favor from the Hearth bank')
+            expect(describeAction(action({ type: ActionType.Trade, playerId: 'p2', cardId: CARD, option: 'forFavor', metadata: { favorGained: 2, supplySpent: 1, modifierNotes } }), nameOf)).toBe('traded at Errand Boy for 2 favor, spending 1 Supply; Welcoming Party: gained 1 favor from the Hearth bank')
+            expect(describeAction(action({ type: ActionType.Recover, playerId: 'p2', target: { kind: 'relic', slotId: 's1' }, metadata: { supplySpent: 1, modifierNotes } }), nameOf)).toBe('recovered a relic at their site, spending 1 Supply; Welcoming Party: gained 1 favor from the Hearth bank')
+        })
+
+        it('a battle plan’s gain follows the battle row that recorded it, in its owner’s colour', () => {
+            const sacrifice = action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 3, metadata: { sacrificed: 3, attackerVictorious: false, sacrificedOwner: IMPERIAL_WARBANDS, planNotes: ["Field Promotion: gained 3 of p3's warbands", "Cursed Cauldron: gained 2 of p3's warbands, one per enemy warband killed"] } })
+            expect(describeAction(sacrifice, nameOf)).toBe("sacrificed 3 warbands and lost the battle; Field Promotion: gained 3 of Cass's warbands; Cursed Cauldron: gained 2 of Cass's warbands, one per enemy warband killed")
+            expect(pieces(sacrifice)).toEqual([{ count: 3, owner: IMPERIAL_WARBANDS }, { count: 3, owner: 'p3' }, { count: 2, owner: 'p3' }])
+            const planNotes = ["Bear Traps: killed a warband on p2's board"]
+            expect(describeAction(action({ type: ActionType.CampaignDefend, playerId: 'p3', plans: [], metadata: { plansUsed: ['Bear Traps'], swords: 2, defense: 3, planNotes } }), nameOf)).toBe("used Bear Traps and rolled — 2 swords against 3 defence; Bear Traps: killed a warband on Bob's board")
+            expect(describeAction(action({ type: ActionType.CampaignDefeatKills, playerId: 'p3', kills: [], metadata: { defeatKilled: 1, planNotes } }), nameOf)).toBe("chose the defending side's losses, 1 warband killed; Bear Traps: killed a warband on Bob's board")
+            const battle = { swords: 2, defense: 1, planNotes }
+            expect(describeAction(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 1, metadata: { battle } }), nameOf)).toBe("campaigned against the bandits — 2 swords against 1 defence; Bear Traps: killed a warband on their own board")
+            expect(describeAction(action({ type: ActionType.CampaignAttackPlans, playerId: 'p2', plans: [], metadata: { battle } }), nameOf)).toBe("chose the attacking battle plans — 2 swords against 1 defence; Bear Traps: killed a warband on their own board")
+            expect(describeAction(action({ type: ActionType.AnswerConsent, playerId: 'p3', granted: false, metadata: { kind: 'joinDefence', askingPlayerId: 'p2', battle } }), nameOf)).toBe("stayed out of the battle — 2 swords against 1 defence; Bear Traps: killed a warband on Bob's board")
+        })
+
+        it('the victor’s plans follow the spoils, after the placements', () => {
+            const row = action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: IMPERIAL_WARBANDS, count: 2 }], burnFavor: false, metadata: { warbandsPlaced: 2, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, triggered: ['Field Promotion: gained 3 Imperial warbands'] } })
+            expect(describeAction(row, nameOf)).toBe('took the spoils; placed 2 Imperial warbands at Provinces 1; Field Promotion: gained 3 Imperial warbands')
+            expect(pieces(row)).toEqual([{ count: 2, owner: IMPERIAL_WARBANDS }, { count: 3, owner: IMPERIAL_WARBANDS }])
+        })
+
+        it('a record without them prints the line it always did', () => {
+            expect(describeAction(action({ type: ActionType.SearchResolve, playerId: 'p2', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [], play: SearchPlay.Adviser, metadata: { ...searched, playedCardId: 'denizen.discord.a-small-favor' } }), nameOf)).toBe('kept A Small Favor and played it as an adviser')
+            expect(describeAction(action({ type: ActionType.Travel, playerId: 'p2', siteId: PLAINS, metadata: { supplySpent: 2 } }), nameOf)).toBe('travelled to Provinces 1, spending 2 Supply')
+            expect(describeAction(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 3, metadata: { sacrificed: 3, attackerVictorious: true } }), nameOf)).toBe('sacrificed 3 warbands and won the battle')
+        })
+
+        it('a game recorded before the gains named their owner draws a bare count as it did: the actor’s own', () => {
+            const row = action({ type: ActionType.SearchResolve, playerId: 'p2', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [], play: SearchPlay.Adviser, metadata: { ...searched, playedCardId: 'denizen.discord.a-small-favor', whenPlayed: 'gained 4 warbands' } })
+            expect(pieces(row)).toEqual([{ count: 4, owner: 'p2' }])
+        })
     })
 })

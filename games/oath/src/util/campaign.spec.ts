@@ -434,7 +434,7 @@ describe('declaring targets (R-5.5.2)', () => {
         expect(
             reasonCannotDeclareTargets(
                 state,
-                parties([siteTarget('h3')], { defenderPlayerId: undefined })
+                parties([siteTarget('h3')], { defenderPlayerId: undefined, attackerSiteId: 'h3' })
             )
         ).toBeUndefined()
     })

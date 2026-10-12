@@ -53,13 +53,14 @@ describe('a power choice drawn as cards', () => {
 })
 
 describe('a power offered for use drawn as its card', () => {
-    it('is keyed by card and power, so one card with two powers gives two picks, and captioned with its text', () => {
+    it('is keyed by card and power, so one card with two powers gives two picks, named by the card with no text under it', () => {
         const cards = powerUseCards([
-            { cardId: 'denizen.nomad.tents', powerIndex: 0, text: 'first' },
-            { cardId: 'denizen.nomad.tents', powerIndex: 1, text: 'second' }
+            { cardId: 'denizen.nomad.tents', powerIndex: 0 },
+            { cardId: 'denizen.nomad.tents', powerIndex: 1 }
         ])
         expect(new Set(cards.map((card) => card.key)).size).toBe(2)
-        expect(cards.map((card) => card.caption)).toEqual(['first', 'second'])
+        expect(cards.map((card) => card.label)).toEqual(['Tents', 'Tents'])
+        expect(cards.map((card) => card.caption)).toEqual([undefined, undefined])
         expect(cards.every((card) => card.cardId === 'denizen.nomad.tents')).toBe(true)
     })
 })

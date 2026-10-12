@@ -187,6 +187,7 @@ registerEffect('denizen.nomad.convoys', powerIndexOf('denizen.nomad.convoys', Po
 // "Action: Draw the Vision closest to the top of the world deck. Play or discard it as if you searched." Cost: place 2 secrets.
 registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', PowerTiming.Action), {
     choices: [],
+    tollOccasion: { kind: 'asIfSearched' },
     hidden: () => ({ kind: 'worldDeckVision' }),
     resolve: (ctx) => {
         if (ctx.reveal?.kind !== 'vision')

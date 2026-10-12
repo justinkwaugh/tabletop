@@ -5,7 +5,8 @@ import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/sea
 import { HydratedRecover, RecoverTargetKind } from '../actions/recover.js'
 import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestion.js'
 import { Region } from '../model/oathEnums.js'
-import { PowerQuestionKind } from '../model/question.js'
+import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
+import { type ConspiracyPlay } from '../model/conspiracy.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { PowerChoiceKind } from '../util/powerChoice.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -82,6 +83,77 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
         expect(discard.metadata?.discardedCardIds).toEqual([CONSPIRACY_ID])
         expect(discard.metadata?.discardPileRegion).toBe(Region.Provinces)
         expect(discard.revealsInfo).toBe(true)
+    })
+
+    // R-5.1.4-H1 — the card's Q&A: "If I find the Conspiracy, can I play it facedown to my advisers?" "Yes!"
+    const facedownAnswer = (fields: { play?: boolean; conspiracy?: ConspiracyPlay; discardedAdviserCardId?: string } = {}): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true, ...fields })
+    const answering = (answer: QuestionAnswer) => new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer }))
+    function found(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
+        const s = board([INQUISITOR], { ...over, foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }, { cardId: TENTS, faceUp: false }], ...over['foe'] } }, state)
+        actionPowerUse('me', INQUISITOR, [facedown('foe', 0)]).apply(s)
+        return s
+    }
+
+    it('… or plays it facedown to their own advisers: seen by the table, not boxed, no take', () => {
+        const s = found()
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toBeUndefined()
+        const reply = answering(facedownAnswer())
+        reply.apply(s)
+        expect(s.getPlayerState('me').knownAdvisers()).toEqual([{ cardId: INN, faceUp: true }, { cardId: CONSPIRACY_ID, faceUp: false, seen: true }])
+        expect(s.getPlayerState('me').advisers[1]).toEqual({ faceUp: false, vision: true, seen: true, shownCardId: CONSPIRACY_ID })
+        expect(s.getPlayerState('foe').knownAdviserIds()).toEqual([TENTS])
+        expect(s.boxIds).not.toContain(CONSPIRACY_ID)
+        expect(s.getPlayerState('me').secrets).toBe(3)
+        expect(s.discardPileCounts[Region.Provinces]).toBe(0)
+        expect(s.pendingQuestions?.queue ?? []).toEqual([])
+        expect(reply.metadata?.summary).toBe('played the Conspiracy as an adviser, facedown')
+        expect(reply.metadata?.discardedCardIds).toBeUndefined()
+    })
+
+    it('at the adviser limit it goes down only over a discarded adviser, which goes to the pile (R-5.1.4.II)', () => {
+        const PROPHET = 'denizen.discord.false-prophet'
+        const s = found({ me: { advisers: [{ cardId: INN, faceUp: true }, { cardId: FILLER, faceUp: false }, { cardId: PROPHET, faceUp: true }] } })
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(/already at the adviser limit of 3/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ discardedAdviserCardId: PROPHET }))).toMatch(/is locked and cannot be discarded/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ discardedAdviserCardId: TENTS }))).toMatch(/is not one of your other advisers/)
+        const reply = answering(facedownAnswer({ discardedAdviserCardId: FILLER }))
+        reply.apply(s)
+        expect(s.getPlayerState('me').knownAdviserIds()).toEqual([INN, PROPHET, CONSPIRACY_ID])
+        expect(reply.metadata).toMatchObject({ summary: 'played the Conspiracy as an adviser, facedown', discardedCardIds: [FILLER], discardPileRegion: Region.Provinces })
+        expect(s.discardPileCounts[Region.Provinces]).toBe(1)
+        // Under the limit there is nothing to discard.
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(found(), 'me', facedownAnswer({ discardedAdviserCardId: INN }))).toBe('cannot discard an adviser without being at the limit')
+    })
+
+    it("Gossip refuses it to its ruler's enemies, as any facedown adviser play (R-7.1.4)", () => {
+        // h1 holds no warbands, so the bandits rule Gossip there, and they are enemies to all (R-10.7).
+        const s = found({}, { denizensBySite: { c1: [INQUISITOR], c2: [WOLVES], p1: [], h1: ['denizen.discord.gossip'] } })
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(/Gossip/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false })).toBeUndefined()
+    })
+
+    it('a facedown answer is a play with no take; an adviser is discarded only with it', () => {
+        const s = found({ foe: { relicIds: ['relic.ring-of-devotion'] } })
+        const take: ConspiracyPlay = { targetPlayerId: 'foe', take: { kind: 'relic', cardId: 'relic.ring-of-devotion' } }
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ conspiracy: take }))).toBe('the take comes only with the Conspiracy played faceup (R-5.1.4.IV)')
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ play: false }))).toBe('played facedown, the Conspiracy is played, not discarded')
+        for (const play of [true, false])
+            expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play, discardedAdviserCardId: INN })).toBe('an adviser is discarded only to play the Conspiracy facedown')
+    })
+
+    it('a stored answer without facedown resolves as it always has: faceup to the box, or discarded', () => {
+        const s = found()
+        const played = answering({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true })
+        played.apply(s)
+        expect(played.metadata?.summary).toBe('played the Conspiracy')
+        expect(s.boxIds).toContain(CONSPIRACY_ID)
+        expect(s.getPlayerState('me').knownAdviserIds()).toEqual([INN])
+        const t = found()
+        const discarded = answering({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false })
+        discarded.apply(t)
+        expect(discarded.metadata).toMatchObject({ summary: 'discarded the Conspiracy', discardedCardIds: [CONSPIRACY_ID] })
+        expect(t.boxIds).not.toContain(CONSPIRACY_ID)
+        expect(t.getPlayerState('me').knownAdviserIds()).toEqual([INN])
     })
 })
 

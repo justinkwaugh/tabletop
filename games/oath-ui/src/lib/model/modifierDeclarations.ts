@@ -79,7 +79,7 @@ export class ModifierDeclarations {
         const staged = this.session.selection.modifiers
         const rest = staged.filter((m) => !samePowerUse(m.use, use))
         if (!on) {
-            // An action only a card makes possible keeps one such card in use; Back leaves the menu.
+            // An action only a card makes possible keeps one such card in use; Undo leaves the menu.
             if (this.aloneMakesPossible(use, rest)) return
             this.session.selection.set('modifiers', this.keepingRoute(staged, rest))
             return

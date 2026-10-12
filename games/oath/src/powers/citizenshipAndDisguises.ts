@@ -12,7 +12,8 @@ import {
 } from './registry.js'
 import { gainFavorFromBank, siteHasCardOfSuit, hasFaceupAdviserOfSuit } from './vocabulary.js'
 import { ownerIfAny } from '../util/warbands.js'
-import { siteHolding } from '../util/access.js'
+import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { otherRegionChoices } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
 
@@ -170,10 +171,13 @@ registerEffect(
 // "When played, if you're an Exile and have more secrets (even on cards) than the Chancellor, you may become a Citizen — …"
 function secretsOf(ctx: EffectContext, playerId: string): number {
     const p = ctx.state.getPlayerState(playerId)
-    // R-7.1.2 places tokens on the card whose power is used, which a facedown adviser has not.
-    const onCards = p
-        .faceupAdviserIds()
-        .reduce((n, cardId) => n + ctx.state.tokensOn(cardId).secrets, 0)
+    // R-7.3.3-H1 — "even on cards": every card that is theirs, the relics they hold and the cards they
+    // rule (R-10.21). Before revision 8 (R-X.4), their faceup advisers only. R-7.1.2 places tokens on
+    // the card whose power is used, which a facedown adviser has not.
+    const cards = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4)
+        ? [...ruledFaceupCardIds(ctx.state, playerId), ...p.relicIds]
+        : p.faceupAdviserIds()
+    const onCards = cards.reduce((n, cardId) => n + ctx.state.tokensOn(cardId).secrets, 0)
     return p.secrets + p.secretsFacedown + onCards
 }
 registerEffect(

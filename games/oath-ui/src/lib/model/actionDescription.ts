@@ -2,6 +2,7 @@ import {
     ActionType,
     ConsentRequestKind,
     LetPeekSubjectKind,
+    PowerQuestionKind,
     RecoverTargetKind,
     SearchPlay,
     SearchSource,
@@ -14,6 +15,7 @@ import {
     isCampaignDefend,
     isCampaignResolveVictory,
     isCampaignSacrifice,
+    isCampaignSkullLosses,
     isCompleteRest,
     isEndActPhase,
     isForgoFreeAction,
@@ -40,14 +42,21 @@ import {
     isUseRestPower,
     cardPower,
     soleOwner,
+    PowerMoveTollOutcome,
     IMPERIAL_WARBANDS,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
+    type CampaignPlacement,
     type CampaignTarget,
+    type WarbandGroup,
     Suit,
     type LetPeek,
+    type PaidToll,
+    type ShroudedWoodPick,
+    type WarbandGain,
     type Search,
     type UseActionPower,
+    type ResolveWake,
     type UseRestPower,
     type WarbandMove,
     type WarbandOwner
@@ -61,6 +70,7 @@ import {
     plural,
     reliquaryLabel,
     nameIds,
+    siteInLine,
     stripRules,
     suitName,
     warbandsOf,
@@ -73,6 +83,13 @@ import {
     pileDepositsOf,
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
+import type { WarbandWhose } from '$lib/model/tokenText.js'
+import {
+    paidTollClause,
+    tollMoveText,
+    tollStoryText,
+    tollsGivenText
+} from '$lib/model/tollMoveText.js'
 
 // Past tense with no leading capital or possessive about the actor: `PlayerName` renders "You" first.
 // R-9.4 — a card is named only where the game showed it, recorded as `playedCardId`.
@@ -103,7 +120,17 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
 
 export function rowActorOf(action: GameAction): string | undefined {
     if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
-    return action.playerId
+    return woodTravelerOf(action) ?? tollMoverOf(action) ?? action.playerId
+}
+
+/** R-11.7 — the ruler's pick settles the traveller's Travel, so the row is the traveller's. */
+function woodTravelerOf(action: GameAction): string | undefined {
+    return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
+}
+
+/** Toll Roads — the moved player's answer tells the mover's story, so it starts with the mover. */
+function tollMoverOf(action: GameAction): string | undefined {
+    return isAnswerQuestion(action) ? action.metadata?.tollMove?.moverPlayerId : undefined
 }
 
 /**
@@ -121,8 +148,41 @@ export function rowWarbandOwner(
     const seat =
         (isUseActionPower(action) || isUseRestPower(action)
             ? action.metadata?.targetPlayerId
-            : undefined) ?? action.playerId
+            : undefined) ??
+        woodTravelerOf(action) ??
+        action.playerId
     return seat === undefined ? undefined : ownWarbandsOf(seat)
+}
+
+/**
+ * R-10.13 — a counted phrase's warbands: the owner its own words name ("Imperial", a seat, the
+ * viewer's "your", the actor's "their own"), else the row's. A seat this reader cannot name
+ * leaves them the row's, as every phrase was before.
+ */
+export function phraseWarbandOwner(
+    whose: WarbandWhose,
+    action: GameAction,
+    reader: { names: Seats; viewerId: string | undefined },
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    switch (whose.kind) {
+        case 'imperial':
+            return IMPERIAL_WARBANDS
+        case 'viewer':
+            assertExists(reader.viewerId, 'only a seated viewer reads "your" in a History row')
+            return reader.viewerId
+        case 'actor':
+            assertExists(action.playerId, 'only an actor’s row reads "their own"')
+            return action.playerId
+        case 'seat':
+            return (
+                reader.names.seats.find(
+                    (playerId) => reader.names.player(playerId) === whose.name
+                ) ?? rowWarbandOwner(action, ownWarbandsOf)
+            )
+        case 'row':
+            return rowWarbandOwner(action, ownWarbandsOf)
+    }
 }
 
 function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
@@ -134,14 +194,105 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
     }
     if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
+    if (isAnswerQuestion(action)) {
+        return action.metadata?.woodPick?.warbandOwner ?? action.metadata?.warbandGain?.owner
+    }
     return undefined
+}
+
+/** Dragonskin Drum on a power's move — what it added, then its name; a skip adds nothing to the move. */
+function drumText(cardId: string, gain: WarbandGain | undefined): string {
+    return gain && gain.count > 0
+        ? `+${plural(gain.count, 'warband')} (${cardName(cardId)})`
+        : `skipped the ${cardName(cardId)}`
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
     return nameIds(
-        stripRules(describeActionCited(action, names, viewerId) + outcomeClauses(action, viewerId)),
+        stripRules(
+            describeActionCited(action, names, viewerId) +
+                recordedNoteClauses(action, names, viewerId) +
+                outcomeClauses(action, viewerId)
+        ),
         names.site
     )
+}
+
+function recordedNoteClauses(
+    action: GameAction,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    return recordedNotes(action)
+        .map((note) => `; ${namedNote(note, action.playerId, names, viewerId)}`)
+        .join('')
+}
+
+/**
+ * R-7.3.3, R-7.1.4, R-11.2, R-7.4, R-5.5.8 — what a second When Played card, a triggered power, a
+ * Homeland, a modifier or a battle plan did, as the row that set it off recorded it.
+ */
+function recordedNotes(action: GameAction): readonly string[] {
+    if (isSearchResolve(action)) {
+        const meta = action.metadata
+        const second = meta?.secondWhenPlayed
+        return [
+            ...(second ? [secondWhenPlayedNote(second, meta?.secondPlayedCardId)] : []),
+            ...(meta?.triggered ?? []),
+            ...(meta?.sitePower ? [meta.sitePower] : []),
+            ...(meta?.modifierNotes ?? [])
+        ]
+    }
+    if (isPlayFacedownAdviser(action)) {
+        const meta = action.metadata
+        return [...(meta?.sitePower ? [meta.sitePower] : []), ...(meta?.modifierNotes ?? [])]
+    }
+    if (isTravel(action) || isMuster(action) || isTrade(action) || isRecover(action)) {
+        return action.metadata?.modifierNotes ?? []
+    }
+    if (isCampaign(action) || isCampaignAttackPlans(action) || isAnswerConsent(action)) {
+        return action.metadata?.battle?.planNotes ?? []
+    }
+    if (isCampaignDefend(action) || isCampaignSacrifice(action) || isCampaignDefeatKills(action)) {
+        return action.metadata?.planNotes ?? []
+    }
+    if (isCampaignResolveVictory(action)) return action.metadata?.triggered ?? []
+    // R-5.5.8 — the plans and the end that waited on a banish's answer (Toll Roads, the Shrouded Wood).
+    if (isAnswerQuestion(action)) return action.metadata?.triggered ?? []
+    return []
+}
+
+/** Land Warden — the second card's When Played, under that card's name once. */
+function secondWhenPlayedNote(summary: string, cardId: string | undefined): string {
+    return cardId ? `${cardName(cardId)}: ${withoutCardName(summary, cardId)}` : summary
+}
+
+/** R-7.3.3 — the kept card's When Played follows it: "…: gained 4 Imperial warbands". */
+function whenPlayedClause(
+    whenPlayed: string | undefined,
+    cardId: string | undefined,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    if (!whenPlayed) return ''
+    const shown = cardId ? withoutCardName(whenPlayed, cardId) : whenPlayed
+    return `: ${namedNote(shown, actorId, names, viewerId)}`
+}
+
+/** R-5.5.7.I — each placement names its owner, so its piece takes that owner's colour. */
+function placementsClause(
+    placements: readonly CampaignPlacement[],
+    actorId: string,
+    names: HistoryNames
+): string {
+    const placed = placements
+        .filter((placement) => placement.count > 0)
+        .map(
+            (placement) =>
+                `${warbandsOf(placement.count, placement.owner, names.player, actorId)} at ${names.site(placement.siteId)}`
+        )
+    return placed.length > 0 ? `; placed ${placed.join(' and ')}` : ''
 }
 
 // R-9.4 — a pile's region is public; the cards and what was seen are the actor's alone.
@@ -185,6 +336,30 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
+/** Second Wind out of turn — the card whose free action this was, in brackets. */
+function freeActionClause(cardId: string | undefined): string {
+    return cardId ? ` (free, ${cardName(cardId)})` : ''
+}
+
+const TOLL_GIVEN = /^(.+): gave a favor to (.+)$/
+const TOLL_BURNED = /^(.+): burned a favor for the bandits$/
+
+/**
+ * R-7.1.4 — each toll the record says was paid, as its own clause: the favor, whom it went to and
+ * the card that asked it, or the favor burned for the bandits. A note in another form is skipped,
+ * and a record from before the field prints no clause.
+ */
+export function tollClauses(notes: readonly string[] | undefined, nameOf: NameOf): string {
+    return (notes ?? [])
+        .map((note) => {
+            const given = TOLL_GIVEN.exec(note)
+            if (given) return `; 1 favor to ${nameOf(given[2])} (${cardName(given[1])})`
+            const burned = TOLL_BURNED.exec(note)
+            return burned ? `; burned 1 favor (${cardName(burned[1])})` : ''
+        })
+        .join('')
+}
+
 function describeActionCited(
     action: GameAction,
     names: HistoryNames,
@@ -210,9 +385,13 @@ function describeActionCited(
         // R-11.7 — the Shrouded Wood's ruler names the site in their answer.
         if (action.siteId === undefined) {
             const chooser = meta?.destinationChooser
-            return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${chooser ? nameOf(chooser) : 'its ruler'} chooses where`
+            const ruler = chooser ? nameOf(chooser) : 'its ruler'
+            if (meta?.paysAtPick) {
+                return `set out from the Shrouded Wood${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
+            }
+            return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${ruler} chooses where`
         }
-        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${revealed}`
+        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}${freeActionClause(meta?.freeActionOf)}`
     }
     if (isMuster(action)) {
         const meta = action.metadata
@@ -237,6 +416,7 @@ function describeActionCited(
         return (
             `searched ${from}${supply(action.metadata?.supplySpent)}` +
             (shown ? `, showing ${shown.map(cardName).join(', ')} (Truthful Harp)` : '') +
+            tollClauses(action.metadata?.tollsPaid, nameOf) +
             (searchStoppedOnVision(action) ? '; the draw stopped on a Vision' : '')
         )
     }
@@ -245,7 +425,8 @@ function describeActionCited(
         const secrets = action.metadata?.secretsGained ?? 0
         return (
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
-            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '')
+            (secrets > 0 ? `, gaining ${plural(secrets, 'secret')}` : '') +
+            whenPlayedClause(action.metadata?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
     if (isRecover(action)) {
@@ -259,7 +440,7 @@ function describeActionCited(
         const targets = action.targets
             .map((target) => describeTarget(target, names.site))
             .join(', ')
-        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}`
+        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}${freeActionClause(action.metadata?.freeActionOf)}`
         // R-5.5.2.a — nothing is rolled until the Citizens asked have answered.
         if (action.metadata?.awaitingAllies)
             return `${declared} — Citizens are asked to join the defence`
@@ -289,6 +470,9 @@ function describeActionCited(
             (chooser ? ` — ${nameOf(chooser)} chooses the defending side's losses` : '')
         )
     }
+    if (isCampaignSkullLosses(action)) {
+        return describeSkullLosses(action.metadata?.killed ?? action.kills, names.site)
+    }
     if (isCampaignDefeatKills(action)) {
         return `chose the defending side's losses, ${plural(action.metadata?.defeatKilled ?? 0, 'warband')} killed`
     }
@@ -300,10 +484,15 @@ function describeActionCited(
             ...(taken.length > 0 ? [`taking ${taken.join(', ')}`] : []),
             ...(seized.length > 0 ? [`seizing ${seized.join(' and ')}`] : [])
         ]
+        const toll = meta?.tollMove
         return (
             'took the spoils' +
             (gains.length > 0 ? `, ${gains.join(' and ')}` : '') +
-            ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '')
+            ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '') +
+            placementsClause(action.placements, action.playerId, names) +
+            (toll && toll.outcome !== PowerMoveTollOutcome.Asked
+                ? `; ${tollStoryText(toll, names, viewerId)}`
+                : '')
         )
     }
     if (isPlayFacedownAdviser(action)) {
@@ -321,15 +510,19 @@ function describeActionCited(
         return (
             describeAdviserPlay(action.play, shownCard(meta?.playedCardId)) +
             gained +
-            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '')
+            (modifiers.length > 0 ? ` (${modifiers.map(cardName).join(', ')})` : '') +
+            whenPlayedClause(meta?.whenPlayed, meta?.playedCardId, action.playerId, names, viewerId)
         )
     }
     if (isUseActionPower(action)) {
-        return (
-            `used ${cardName(action.cardId)}` +
-            printedCost(action.cardId, action.powerIndex) +
-            powerEffect(action, names, viewerId)
-        )
+        const cost = printedCost(action.cardId, action.powerIndex)
+        const toll = action.metadata?.tollMove
+        if (toll) return tollMoveText(toll, names, viewerId, cost)
+        // Forced Labor on Oracle — what the power did, then the toll with its card.
+        const tolls = action.metadata?.tollsGiven ?? []
+        const paying =
+            tolls.length > 0 ? `; ${tollsGivenText(tolls, names, viewerId, action.playerId)}` : ''
+        return `used ${cardName(action.cardId)}${cost}${powerEffect(action, names, viewerId)}${paying}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -355,12 +548,21 @@ function describeActionCited(
         return action.granted
             ? 'accepted Citizenship' +
                   (unreplaced > 0
-                      ? `, removing ${unreplaced} warbands for want of Imperial ones`
+                      ? `, removing ${plural(unreplaced, 'warband')} for want of Imperial ones`
                       : '')
             : 'refused Citizenship'
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
+        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover).
+        if (meta?.woodPick) {
+            const toll = meta.tollMove
+            const rulerId = toll?.moverPlayerId ?? action.playerId
+            return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
+        }
+        if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
+        if (meta?.kind === PowerQuestionKind.DragonskinDrum)
+            return drumText(meta.cardId, meta.warbandGain)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
             : 'answered a question'
@@ -375,11 +577,13 @@ function describeActionCited(
         )
     }
     if (isSelfExile(action)) {
+        // R-6.8, R-10.11 — the favor goes to the Grand Scepter's holder, named once the record keeps them.
         const meta = action.metadata
+        const holderId = meta?.scepterHolderId
         return (
             'went into exile' +
             ((meta?.favorGiven ?? 0) > 0
-                ? `, giving ${meta?.favorGiven} favor to the Grand Scepter’s holder`
+                ? `, giving ${meta?.favorGiven} favor to ${holderId ? nameOf(holderId) : 'the Grand Scepter’s holder'}`
                 : '') +
             unreplacedClause(meta?.unreplacedCount ?? 0, meta?.unreplacedReturned === true)
         )
@@ -387,7 +591,7 @@ function describeActionCited(
     if (isResolveWake(action)) {
         // R-4.1.3's Usurper flip decides R-3.1 at the next Wake.
         return (
-            'began the turn' +
+            ['began the turn', ...wakeDone(action)].join('; ') +
             (action.metadata?.flippedToUsurper
                 ? ' — the Oathkeeper title flipped to Usurper'
                 : '') +
@@ -423,6 +627,27 @@ function describeActionCited(
             : `took the Oathkeeper title from ${nameOf(action.fromPlayerId)}`
     }
     return UNDESCRIBED
+}
+
+/** R-11.7 — the traveller's row: where the ruler sent them, what they paid, and what fired there. */
+function describeWoodPick(
+    pick: ShroudedWoodPick,
+    rulerId: string,
+    names: HistoryNames,
+    viewerId: string | undefined,
+    toll?: PaidToll
+): string {
+    const site = (slotId: string) => siteInLine(names.site(slotId))
+    const paid = pick.supplySpent > 0 ? String(pick.supplySpent) : 'no'
+    // Toll Roads, paid before the Supply, then what fired at the site.
+    const tollClause = toll ? `; ${paidTollClause(toll)}` : ''
+    const notes = (pick.notes ?? []).map((note) => `; ${nameIds(note, site)}`).join('')
+    return nameSeats(
+        `left the Shrouded Wood for ${site(pick.siteId)} (${rulerId}'s pick), paying ${paid} Supply${tollClause}${notes}`,
+        names,
+        viewerId,
+        pick.travelerPlayerId
+    )
 }
 
 /** R-5.1.2 — public from the record's own flag; a Search recorded before it shows its stop to the drawer alone. */
@@ -471,10 +696,33 @@ function namedSummary(
     names: HistoryNames,
     viewerId: string | undefined
 ): string {
-    return namedBanks(nameSeats(withoutCardName(summary, cardId), names, viewerId, actorId))
+    return namedNote(withoutCardName(summary, cardId), actorId, names, viewerId)
 }
 
-export function withoutCardName(summary: string, cardId: string): string {
+function namedNote(
+    note: string,
+    actorId: string | undefined,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    return namedBanks(nameSeats(note, names, viewerId, actorId))
+}
+
+/** R-4.1.1, R-4.1.4 — the People's Favor steps and the site's take; R-4.1.2's win ends the Wake before the take. */
+function wakeDone(action: ResolveWake): string[] {
+    const steps = action.favorSteps.map((step) =>
+        step.kind === 'place'
+            ? 'placed 1 favor on the People’s Favor'
+            : `returned 1 favor to the ${suitName(step.toSuit)} bank`
+    )
+    const took =
+        action.sitePowerTake && !action.metadata?.wonBy
+            ? [`took 1 ${action.sitePowerTake} from their site`]
+            : []
+    return [...steps, ...took]
+}
+
+function withoutCardName(summary: string, cardId: string): string {
     const prefix = `${cardName(cardId)}: `
     return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
 }
@@ -491,7 +739,7 @@ function unreplacedClause(count: number, returned: boolean): string {
     if (count <= 0) return ''
     return returned
         ? `, returning ${plural(count, 'Imperial warband')} to the Chancellor’s bank`
-        : `, with ${count} warbands left Imperial`
+        : `, with ${plural(count, 'warband')} left Imperial`
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {
@@ -526,6 +774,21 @@ function describePlay(play: SearchPlay): string {
 
 function describeTarget(target: CampaignTarget, site: HistoryNames['site']): string {
     return campaignTargetText(target, { site, relicSlot: () => 'a site' })
+}
+
+/** R-5.5.5 — where the skulls killed, as the attacker picked: the board is always their own. */
+function describeSkullLosses(killed: readonly WarbandGroup[], site: HistoryNames['site']): string {
+    const places = killed
+        .filter((group) => group.count > 0)
+        .map((group) => ({
+            count: group.count,
+            where: group.at.kind === 'board' ? 'on their board' : `at ${site(group.at.siteId)}`
+        }))
+    const total = places.reduce((sum, place) => sum + place.count, 0)
+    const [only, ...more] = places
+    if (!only) return `lost ${total} to skulls`
+    if (more.length === 0) return `lost ${total} to skulls, ${only.where}`
+    return `lost ${total} to skulls: ${places.map(({ count, where }) => `${count} ${where}`).join(', ')}`
 }
 
 function describeBattle(battle: CampaignBattleMetadata | undefined): string {

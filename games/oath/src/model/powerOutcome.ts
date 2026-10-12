@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Visibility } from '@tabletop/common'
 import { Region } from './oathEnums.js'
 import { PileDeposit } from './hidden.js'
+import { PaidToll, PowerMoveToll } from './powerMoveToll.js'
 
 /** R-9.4 — a relic sent to the bottom of the relic deck may be one only the actor saw. */
 export const RelicToDeckBottom = Visibility.protect(Type.String(), {
@@ -28,5 +29,9 @@ export const PowerOutcome = Type.Object({
     targetPlayerId: Type.Optional(Type.String()),
     /** R-2.7.1 — the Visions Drawn track is public; the drawn card stays the drawer's (R-9.4). */
     visionDrawn: Type.Optional(Type.Boolean()),
-    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
+    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** Forced Labor on Oracle — "as if you searched". */
+    tollsGiven: Type.Optional(Type.Array(PaidToll, { maxItems: 8 })),
+    /** Toll Roads on the Whistle's or Palanquin's move. */
+    tollMove: Type.Optional(PowerMoveToll)
 })

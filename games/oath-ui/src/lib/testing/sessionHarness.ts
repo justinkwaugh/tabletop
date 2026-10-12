@@ -137,11 +137,24 @@ export function disposeSessions(): void {
 
 const SEARCH_SEED = '00000000000000000000000000000001'
 
+function dealt(gameId: string, playerIds: readonly string[], masterSeed: string): PlayedTable {
+    const created = harnessGame(gameId, playerIds, GameStatus.WaitingToStart)
+    const { initialState } = engine.startGame(created, { masterSeed })
+    return { state: initialState, actions: [] }
+}
+
 /** A three-seat deal at its first setup choice (R-1.23). */
 export function setupTable(): PlayedTable {
-    const created = harnessGame('game-1', ['p1', 'p2', 'p3'], GameStatus.WaitingToStart)
-    const { initialState } = engine.startGame(created, { masterSeed: SEARCH_SEED })
-    return { state: initialState, actions: [] }
+    return dealt('game-1', ['p1', 'p2', 'p3'], SEARCH_SEED)
+}
+
+/**
+ * R-1.16 — a six-seat deal whose bank holds 4 favor when the sites are paid, with the Salt Flats
+ * (2) and the Mine (3) faceup, so the Chancellor splits a short bank.
+ */
+export function shortBankTable(): PlayedTable {
+    const playerIds = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
+    return dealt('game-6', playerIds, '0000000000000000000000000000002c')
 }
 
 /** The same deal after setup, whose opening Search drew three cards, so a kept card leaves two to order. */

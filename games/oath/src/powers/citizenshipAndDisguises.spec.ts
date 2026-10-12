@@ -13,7 +13,9 @@ import { MachineState } from '../definition/states.js'
 import { SearchingStateHandler } from '../stateHandlers/searching.js'
 import { CampaignVictoryStateHandler } from '../stateHandlers/campaigning.js'
 import { CampaignTargetKind } from '../model/campaign.js'
-import { Banner, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
+import { Banner, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
+import { registerCards } from '../data/cardRegistry.js'
+import { OathRevision } from '../util/revision.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { MAX_SUPPLY } from '../util/rest.js'
@@ -36,6 +38,14 @@ const BEWITCH = 'denizen.arcane.bewitch'
 const MARTIAL = 'denizen.order.martial-culture'
 const STORYTELLER = 'denizen.hearth.storyteller'
 const WOLVES = 'denizen.beast.wolves'
+
+/** A powerless relic and denizen to carry secret tokens. */
+const KEEPSAKE = 'relic.test.keepsake'
+const CHARM = 'denizen.test.charm'
+registerCards([
+    { id: KEEPSAKE, name: 'Keepsake', kind: CardKind.Relic },
+    { id: CHARM, name: 'Charm', kind: CardKind.Denizen, suit: Suit.Arcane }
+])
 
 
 function board(cards: Record<string, string[]> = {}, advisers: Record<string, string[]> = {}, over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
@@ -156,6 +166,49 @@ describe('Citizenship routes', () => {
         playDrawnCard(w, BEWITCH, SearchPlay.Site, [yes])
         expect(w.getPlayerState('ruler').status).toBe(PlayerStatus.Citizen)
         expect(() => playDrawnCard(board({}, {}, { chancellor: { secrets: 4 } }), BEWITCH, SearchPlay.Site, [yes])).toThrow(/not more than the Chancellor/)
+    })
+
+    describe('Bewitch — "(even on cards)": the secrets on every card that is yours', () => {
+        // 'ruler' rules c1 and 'other' c2; the Chancellor rules h1.
+        const table = (
+            revision: OathRevision,
+            secrets: { ruler: number; chancellor: number },
+            relics: { ruler?: string[]; chancellor?: string[] } = {},
+            cards: Record<string, string[]> = {},
+            tokens: Record<string, number> = {}
+        ) => {
+            const s = board(cards, {}, {
+                ruler: { secrets: secrets.ruler, relicIds: relics.ruler ?? [] },
+                chancellor: { secrets: secrets.chancellor, relicIds: relics.chancellor ?? [] }
+            })
+            s.oathRevision = revision
+            for (const [cardId, n] of Object.entries(tokens)) s.cardTokens[cardId] = { favor: 0, secrets: n }
+            return s
+        }
+        const becomesCitizen = (s: ReturnType<typeof table>) => {
+            playDrawnCard(s, BEWITCH, SearchPlay.Adviser, [yes])
+            return s.getPlayerState('ruler').status === PlayerStatus.Citizen
+        }
+
+        it('from revision 8, a held relic counts: 1 on the board and 2 on the relic beat the Chancellor\'s 2; before it, refused', () => {
+            const held = (revision: OathRevision) => table(revision, { ruler: 1, chancellor: 2 }, { ruler: [KEEPSAKE] }, {}, { [KEEPSAKE]: 2 })
+            expect(becomesCitizen(held(OathRevision.EngineFixes4))).toBe(true)
+            expect(() => becomesCitizen(held(OathRevision.EngineFixes3))).toThrow(/you have 1 secrets, not more than the Chancellor's 2/)
+        })
+
+        it('from revision 8, a card at a site you rule counts, and one at a site another player rules does not', () => {
+            const ruled = table(OathRevision.EngineFixes4, { ruler: 1, chancellor: 2 }, {}, { c1: [CHARM] }, { [CHARM]: 2 })
+            expect(becomesCitizen(ruled)).toBe(true)
+            const theirs = table(OathRevision.EngineFixes4, { ruler: 1, chancellor: 2 }, {}, { c2: [CHARM] }, { [CHARM]: 2 })
+            expect(() => becomesCitizen(theirs)).toThrow(/you have 1 secrets, not more than the Chancellor's 2/)
+        })
+
+        it('from revision 8, the Chancellor\'s count is read the same way: their relic and the card at their site count; before it, they did not', () => {
+            const widened = (revision: OathRevision) =>
+                table(revision, { ruler: 3, chancellor: 1 }, { chancellor: [KEEPSAKE] }, { h1: [CHARM] }, { [KEEPSAKE]: 1, [CHARM]: 1 })
+            expect(() => becomesCitizen(widened(OathRevision.EngineFixes4))).toThrow(/you have 3 secrets, not more than the Chancellor's 3/)
+            expect(becomesCitizen(widened(OathRevision.EngineFixes3))).toBe(true)
+        })
     })
 
     it('Martial Culture — an Exile who defeats another Exile with it becomes a Citizen, and the phase ends after the spoils', () => {
