@@ -26,9 +26,14 @@ import {
 } from '@tabletop/oath'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, planChoices, planMoves, planPicksComplete } from './planChoices.js'
-import { emptyPicks, hasPicks, type PowerChoicePicks } from './powerChoices.js'
-import { withoutLastPick, type MovePick, type PowerMoves } from './powerMoves.js'
-import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
+import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
+import type { MovePick, PowerMoves } from './powerMoves.js'
+import {
+    StagedFlow,
+    TapHistoryDraft,
+    type PanelDraft,
+    type StagesCover
+} from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
 /** Keyed by site, then by warband owner. */
@@ -440,19 +445,17 @@ export class VictoryDraft implements PanelDraft {
     }
 }
 
-type PlanValueByStage = { plans: string[]; planPicks: Record<string, PowerChoicePicks> }
+/** The plans declared, by key, and each plan's picks, kept while its plan is taken back. */
+type PlanDeclaration = { plans: string[]; planPicks: Record<string, PowerChoicePicks> }
 
-const PLAN_STAGE_ORDER = ['plans', 'planPicks'] as const
-const _planStagesAreCovered: StagesCover<PlanValueByStage, typeof PLAN_STAGE_ORDER> = true
-void _planStagesAreCovered
-
-/** R-5.5.3 — one player's battle plans, each with the picks its text asks for. */
-abstract class PlanDeclarationDraft implements PanelDraft {
-    private flow = new StagedFlow<PlanValueByStage>(PLAN_STAGE_ORDER)
-    // The plan whose moves were picked last: Undo takes its picks back one at a time.
-    private movesPicked: string | undefined
-
-    constructor(protected readonly session: OathGameSession) {}
+/**
+ * R-5.5.3 — one player's battle plans, each with the picks its text asks for. The draft keeps the
+ * plans and picks after each tap, so Undo takes back one tap at a time.
+ */
+abstract class PlanDeclarationDraft extends TapHistoryDraft<PlanDeclaration> {
+    constructor(protected readonly session: OathGameSession) {
+        super({ plans: [], planPicks: {} })
+    }
 
     /** The seat on screen, while it is the one declaring. */
     protected abstract get playerId(): string | undefined
@@ -462,8 +465,7 @@ abstract class PlanDeclarationDraft implements PanelDraft {
     get plans(): BattlePlanUse[] {
         const playerId = this.playerId
         if (!playerId) return []
-        const chosen = this.flow.value('plans') ?? []
-        const picks = this.flow.value('planPicks') ?? {}
+        const { plans: chosen, planPicks: picks } = this.current
         return this.usable
             .filter((power) => chosen.includes(powerKey(power.cardId, power.powerIndex)))
             .map((power) =>
@@ -485,15 +487,14 @@ abstract class PlanDeclarationDraft implements PanelDraft {
     }
 
     planPicksOf(use: PowerUseKey): PowerChoicePicks {
-        return this.flow.value('planPicks')?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+        return this.current.planPicks[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
     }
 
     setPlanPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
         if (!this.isDeclared(use)) return
-        this.movesPicked = undefined
-        this.flow.set('planPicks', {
-            ...this.flow.value('planPicks'),
-            [powerKey(use.cardId, use.powerIndex)]: picks
+        this.tap({
+            ...this.current,
+            planPicks: { ...this.current.planPicks, [powerKey(use.cardId, use.powerIndex)]: picks }
         })
     }
 
@@ -506,10 +507,9 @@ abstract class PlanDeclarationDraft implements PanelDraft {
             : undefined
     }
 
+    // A move's From, count or To is a tap like any other pick, so Undo takes it back as one.
     setMoves(use: PowerUseKey, moves: MovePick[]): void {
-        if (!this.isDeclared(use)) return
         this.setPlanPicks(use, { ...this.planPicksOf(use), moves })
-        this.movesPicked = powerKey(use.cardId, use.powerIndex)
     }
 
     // Read from the keys, not `plans`, which reads every declared plan's choices.
@@ -517,7 +517,7 @@ abstract class PlanDeclarationDraft implements PanelDraft {
         const key = powerKey(use.cardId, use.powerIndex)
         return (
             this.playerId !== undefined &&
-            (this.flow.value('plans') ?? []).includes(key) &&
+            this.current.plans.includes(key) &&
             this.usable.some((p) => samePowerUse(p, use))
         )
     }
@@ -554,34 +554,15 @@ abstract class PlanDeclarationDraft implements PanelDraft {
         const rest = this.plans
             .map((p) => powerKey(p.cardId, p.powerIndex))
             .filter((k) => k !== key)
-        const picks = this.flow.value('planPicks')
-        this.movesPicked = undefined
-        this.flow.set('plans', on ? [...rest, key] : rest)
-        if (picks !== undefined) this.flow.set('planPicks', picks)
+        this.tap({ ...this.current, plans: on ? [...rest, key] : rest })
     }
 
-    hasManualSelection(): boolean {
-        return this.flow.hasManualSelection()
-    }
-
-    /** Undo takes back the last move pick when moves were picked last; otherwise the last stage. */
-    back(): boolean {
-        const key = this.movesPicked
-        const stored = this.flow.value('planPicks')
-        const picks = key === undefined ? undefined : stored?.[key]
-        if (key === undefined || picks === undefined || picks.moves.length === 0) {
-            this.movesPicked = undefined
-            return this.flow.back() !== undefined
-        }
-        const rest = { ...stored, [key]: { ...picks, moves: withoutLastPick(picks.moves) } }
-        if (Object.values(rest).some(hasPicks)) this.flow.set('planPicks', rest)
-        else this.flow.back()
-        return true
-    }
-
-    reset(): void {
-        this.movesPicked = undefined
-        this.flow.reset()
+    /**
+     * Undo takes back the last tap: a plan ticked or unticked, a pick, or a move's From, count or
+     * To, and the plans and picks are as they were before it.
+     */
+    protected isBare(declaration: PlanDeclaration): boolean {
+        return declaration.plans.length === 0
     }
 }
 

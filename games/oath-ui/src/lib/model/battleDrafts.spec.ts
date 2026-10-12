@@ -16,6 +16,8 @@ import {
 import { campaignRecords, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
+import { emptyPicks } from './powerChoices.js'
+import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 
 afterEach(() => {
     disposeSessions()
@@ -908,13 +910,25 @@ describe('Warning Signals’ moves in the defence draft', () => {
             'Warning Signals’ battle plan'
         ).powerIndex
     }
+    const GIANT = 'denizen.nomad.mountain-giant'
+    const GIANT_PLAN = {
+        cardId: GIANT,
+        powerIndex: required(
+            cardPowers(GIANT).find((power) => power.timing === PowerTiming.BattlePlan),
+            'Mountain Giant’s battle plan'
+        ).powerIndex
+    }
     const onBoard = { at: { kind: 'board' as const, playerId: FOE }, owner: FOE }
     const at = (siteId: string) => ({ at: { kind: 'site' as const, siteId }, owner: FOE })
 
-    /** FOE defends with 2 on their board, 3 at c1 and 2 at c2, and Warning Signals as an adviser. */
+    /**
+     * FOE defends with 2 on their board, 3 at c1 and 2 at c2, and Warning Signals as an adviser
+     * (with Mountain Giant beside it, and the secret it costs, when asked).
+     */
     function warned(
         board: Record<string, number> = { [FOE]: 2 },
-        sites: Record<string, Record<string, number>> = { c1: { [FOE]: 3 }, c2: { [FOE]: 2 } }
+        sites: Record<string, Record<string, number>> = { c1: { [FOE]: 3 }, c2: { [FOE]: 2 } },
+        giant = false
     ) {
         const state = testState(
             [
@@ -924,7 +938,11 @@ describe('Warning Signals’ moves in the defence draft', () => {
                     color: Color.Blue,
                     siteId: 'c1',
                     warbandsOnBoard: board,
-                    advisers: [{ cardId: WARNING, faceUp: true }]
+                    secrets: giant ? 1 : 0,
+                    advisers: [
+                        { cardId: WARNING, faceUp: true },
+                        ...(giant ? [{ cardId: GIANT, faceUp: true }] : [])
+                    ]
                 })
             ],
             {
@@ -1005,7 +1023,16 @@ describe('Warning Signals’ moves in the defence draft', () => {
 
     it('Undo takes back one pick, then the move before, then the plan', () => {
         const defence = warned().defence
-        defence.setMoves(WARNING_PLAN, [
+        // Each part is its own tap, as the panel sends it.
+        const tap = (pick: (picks: MovePick[]) => MovePick[]) =>
+            defence.setMoves(WARNING_PLAN, pick(defence.planPicksOf(WARNING_PLAN).moves))
+        const shown = () => defence.movesOf(WARNING_PLAN)?.open?.count
+        tap((picks) => withFrom(picks, 0, at('c1')))
+        tap((picks) => withCount(picks, 0, shown(), 2))
+        tap((picks) => withTo(picks, 0, { kind: 'board' }))
+        tap((picks) => withFrom(picks, 1, onBoard))
+        tap((picks) => withCount(picks, 1, shown(), 3))
+        expect(defence.planPicksOf(WARNING_PLAN).moves).toEqual([
             { from: at('c1'), count: 2, to: { kind: 'board' } },
             { from: onBoard, count: 3 }
         ])
@@ -1025,6 +1052,46 @@ describe('Warning Signals’ moves in the defence draft', () => {
         expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
         expect(defence.back()).toBe(true)
         expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+    })
+
+    it('Undo takes back the last tap, across plans: a count changed after another plan’s pick comes back as it was', () => {
+        const defence = warned(undefined, undefined, true).defence
+        const moves = () => defence.planPicksOf(WARNING_PLAN).moves
+        const count = (n: number) =>
+            defence.setMoves(
+                WARNING_PLAN,
+                withCount(moves(), 0, defence.movesOf(WARNING_PLAN)?.open?.count, n)
+            )
+        const threes = { ...emptyPicks(), option: { 0: 0 } }
+
+        defence.setMoves(WARNING_PLAN, withFrom(moves(), 0, at('c1')))
+        count(1)
+        defence.setPlan(GIANT_PLAN, true)
+        defence.setPlanPicks(GIANT_PLAN, threes)
+        count(2)
+        expect(moves()).toEqual([{ from: at('c1'), count: 2 }])
+
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.planPicksOf(GIANT_PLAN)).toEqual(threes)
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.planPicksOf(GIANT_PLAN)).toEqual(emptyPicks())
+        expect(defence.isDeclared(GIANT_PLAN)).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.isDeclared(GIANT_PLAN)).toBe(false)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1') }])
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        // The moves Undo cleared stay cleared.
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+        expect(defence.hasManualSelection()).toBe(false)
+        expect(defence.back()).toBe(false)
     })
 
     it('a lone From starts made; after the 16th whole move no From opens', () => {

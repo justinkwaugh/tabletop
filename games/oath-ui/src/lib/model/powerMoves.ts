@@ -155,16 +155,6 @@ export function powerMovesComplete(moves: PowerMoves): boolean {
     return moves.whole.length > 0 && moves.open?.from === undefined
 }
 
-/** Undo takes back the last pick (To, then How many, then From), so a whole move goes last. */
-export function withoutLastPick(picks: readonly MovePick[]): MovePick[] {
-    const last = picks.at(-1)
-    if (!last) return []
-    const rest = picks.slice(0, -1)
-    if (last.to) return withoutEmptyTail([...rest, picked(last.from, last.count)])
-    if (last.count !== undefined) return withoutEmptyTail([...rest, picked(last.from)])
-    return withoutEmptyTail(rest)
-}
-
 /** A tap on a From: picks it, or clears the move when it is the one picked. */
 export function withFrom(picks: readonly MovePick[], index: number, from: MoveFrom): MovePick[] {
     const current = picks[index]?.from

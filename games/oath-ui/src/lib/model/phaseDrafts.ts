@@ -77,7 +77,12 @@ import {
     type PowerMoves
 } from './powerMoves.js'
 import { addableCount, tappedCount } from './exchangeTerms.js'
-import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
+import {
+    StagedFlow,
+    TapHistoryDraft,
+    type PanelDraft,
+    type StagesCover
+} from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
 import { suitName } from './names.js'
@@ -446,7 +451,11 @@ type PicksByPower = Record<string, PowerChoicePicks>
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
-export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
+export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
+    constructor(private readonly session: OathGameSession) {
+        super({})
+    }
+
     private get playerId(): string | undefined {
         return this.session.selection.action === ActionType.UseActionPower
             ? this.session.liveTurnSeatId
@@ -465,12 +474,8 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         })
     }
 
-    private get current(): PicksByPower | undefined {
-        return this.stored?.at(-1)
-    }
-
     private storedOf(use: PowerUseKey): PowerChoicePicks {
-        return this.current?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+        return this.current[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
     }
 
     /** A power whose site is picked on the lit map: its rows, and its picks as they read back. */
@@ -497,12 +502,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
             return
         }
         this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks })
-    }
-
-    // A tap that changes nothing is no pick for Undo to take back.
-    private tap(next: PicksByPower): void {
-        if (JSON.stringify(this.current ?? {}) === JSON.stringify(next)) return
-        this.store([...(this.stored ?? []), next])
     }
 
     /** The row a power's site spec draws, when it is picked on the map. */
@@ -617,14 +616,8 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
      * Undo takes back the last tap, of any power in the panel: a pick, a move's From, count or To,
      * or a site on the map, and the picks are as they were before it.
      */
-    override back(): boolean {
-        const history = this.stored
-        const before = history?.at(-2)
-        if (history === undefined || before === undefined || !Object.values(before).some(hasPicks)) {
-            return super.back()
-        }
-        this.store(history.slice(0, -1))
-        return true
+    protected isBare(picks: PicksByPower): boolean {
+        return !Object.values(picks).some(hasPicks)
     }
 }
 
