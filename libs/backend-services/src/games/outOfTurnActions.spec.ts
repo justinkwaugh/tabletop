@@ -104,7 +104,8 @@ function createHost() {
                 newState,
                 added,
                 gameUpdates,
-                relatedActions
+                relatedActions,
+                []
             )
             expect(result).toBe(UpdateValidationResult.Proceed)
             const priorState = state

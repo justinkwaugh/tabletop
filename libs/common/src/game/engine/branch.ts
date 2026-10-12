@@ -22,6 +22,12 @@ export const Branch = Type.Object({
     change: Patch
 })
 
+export type UnmergedBranch = Type.Static<typeof UnmergedBranch>
+export const UnmergedBranch = Type.Object({
+    branch: Branch,
+    actions: Type.Array(GameAction)
+})
+
 export interface BranchExecution<T extends GameState = GameState> {
     readonly branch: Branch
     readonly processedActions: GameAction[]
