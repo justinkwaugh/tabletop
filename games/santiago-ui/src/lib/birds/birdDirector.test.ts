@@ -216,7 +216,14 @@ describe('bird director and dried-out fields', () => {
             const f = fixture(squares)
             for (let i = 0; i < visit; i++) f.env.random()
             f.director.summon()
-            outcomes.add(f.director.hasFlyover ? 'flew over' : 'landing')
+            const poses = new Set<string | undefined>()
+            for (const id of f.ids) {
+                const dataset: DOMStringMap = {}
+                f.director.setBirdNode(id, { setAttribute: () => {}, dataset })
+                f.env.ticker.callbacks.add(() => poses.add(dataset.pose))
+            }
+            f.env.ticker.run(20)
+            outcomes.add(poses.has('ground') ? 'landing' : 'flew over')
             f.detach()
         }
         expect(outcomes).toEqual(new Set(['landing', 'flew over']))

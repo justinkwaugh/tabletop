@@ -27,6 +27,9 @@ export interface Ticker {
 
 type BoardHolder = { readonly board: { readonly squares: BoardSquare[][] } }
 
+// The part of a bird's SVG node the director writes.
+export type BirdNode = Pick<SVGGElement, 'setAttribute' | 'dataset'>
+
 export type BirdHost = {
     readonly isViewingHistory: boolean
     readonly gameState: BoardHolder
@@ -98,7 +101,7 @@ export function browserBirdEnvironment(): BirdEnvironment {
 export class BirdDirector {
     private flock: Flock | undefined
     private fields: Intersection[] = []
-    private readonly nodes = new Map<number, SVGGElement>()
+    private readonly nodes = new Map<number, BirdNode>()
     private readonly poses = new Map<number, BirdPose>()
     private idleTimer: ReturnType<typeof setTimeout> | undefined
     private publish: PresenceListener = () => {}
@@ -114,10 +117,6 @@ export class BirdDirector {
 
     get hasFlock(): boolean {
         return this.flock !== undefined
-    }
-
-    get hasFlyover(): boolean {
-        return this.flock !== undefined && !this.flock.lands
     }
 
     attach(onPresence: PresenceListener): () => void {
@@ -137,7 +136,7 @@ export class BirdDirector {
         return this.tryVisit()
     }
 
-    setBirdNode(id: number, element?: SVGGElement) {
+    setBirdNode(id: number, element?: BirdNode) {
         if (element) this.nodes.set(id, element)
         else this.nodes.delete(id)
     }
