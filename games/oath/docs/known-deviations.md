@@ -22,6 +22,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Salad Days:** in a game created before revision 8 (R-X.4) it accepts an empty favor bank while another bank holds favor (R-7.1.3). From revision 8 the banks are judged before a site play takes its own favor (R-5.1.4.I), so Salad Days played to a site with one favor in the Hearth bank may name that bank and gain nothing from it while another bank holds favor.
 - **Forgotten Vault:** in a game created before revision 8 (R-X.4) a burn at the Darkest Secret's last secret is accepted and burns nothing; the card says "not last".
 - **Bewitch:** in a game created before revision 8 (R-X.4) "(even on cards)" counts only the secrets on faceup advisers, its player's and the Chancellor's (R-7.3.3-H1).
+- **Captains, Wild Allies:** in a game created before revision 8 (R-X.4) they may name a site where no player can defend (R-5.5.1); the cost is paid and the free Campaign from there can only be given up.
 - **The Tribunal:** its exchange binds what changes hands at once, not promises of later actions (R-7.6.3-H1).
 - **Vow of Kinship:** Nomad-bank favor is always put into the People's Favor Wake, and Plague Engines and Dissent force it too; its Q&A makes it optional.
 - **Forced Labor:** in a game created before revision 6 (R-X.4) not charged for Oracle's draw, and before revision 3 not for an R-6.1 play either; both Q&As charge it.

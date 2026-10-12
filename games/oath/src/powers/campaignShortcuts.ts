@@ -20,9 +20,10 @@ import { nextActionIndex } from '../util/freeActions.js'
 import { siteChoicesYouRule } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { collectDefensePool } from '../util/campaign.js'
+import { collectDefensePool, defendersOpenToAt } from '../util/campaign.js'
 import { addCosts, favorNeeded } from '../util/powerCost.js'
-import { extraBattlePlanCost } from '../util/persistent.js'
+import { extraBattlePlanCost, reasonPersistentForbidsCampaign } from '../util/persistent.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 // "As defender, you're victorious now. At end, discard Hearts and Minds unless you hold the People's Favor." Defender. Cost: place 3 favor.
 const HEARTS_AND_MINDS = 'denizen.hearth.hearts-and-minds'
@@ -98,10 +99,29 @@ registerBattlePlan(PEACE_ENVOY, powerIndexOf(PEACE_ENVOY, PowerTiming.BattlePlan
     }
 })
 
+/**
+ * R-5.5.1 — the site named is "your site", so a Campaign from it needs a defender there: another
+ * player who rules it or whose pawn is there, or the bandits where no player rules. R-X.4: from
+ * revision 8 a site without one, or any site while a power forbids the Campaign, is not offered;
+ * before it, every site was, and the free Campaign from one without a defender could only be given up.
+ */
+function withDefender(domain: ChoiceDomain): ChoiceDomain {
+    return (state, playerId, power) => {
+        const sites = domain(state, playerId, power)
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes4)) return sites
+        if (reasonPersistentForbidsCampaign(state, playerId)) return []
+        return sites.filter(
+            (choice) =>
+                choice.kind === PowerChoiceKind.Site &&
+                defendersOpenToAt(state, playerId, choice.siteId).length > 0
+        )
+    }
+}
+
 /** "Action: Campaign at <site>. Act as if your pawn is there. Spend no Supply and add your warbands there to your force." */
 function campaignFrom(cardId: string, what: string, domain: ChoiceDomain) {
     registerEffect(cardId, powerIndexOf(cardId, PowerTiming.Action), {
-        choices: [one(PowerChoiceKind.Site, { what, domain })],
+        choices: [one(PowerChoiceKind.Site, { what, domain: withDefender(domain) })],
         resolve: (ctx) => {
             const [site] = chosen(ctx, PowerChoiceKind.Site)
             const me = ctx.state.getPlayerState(ctx.playerId)

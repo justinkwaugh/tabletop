@@ -89,12 +89,16 @@ export function suspendedImperialsFor(
     return []
 }
 
-/** R-5.5.1.a, R-5.5.2.a — the sides as declared, before any Citizen joins. */
+/**
+ * R-5.5.1.a, R-5.5.2.a — the sides as declared, before any Citizen joins. `asIfSiteId` is the site
+ * Wild Allies or Captains would name, judged before the card names it.
+ */
 export function declaredParties(
     state: HydratedOathGameState,
     attackerPlayerId: string,
     defenderPlayerId: string | undefined,
-    targets: readonly CampaignTarget[]
+    targets: readonly CampaignTarget[],
+    asIfSiteId?: string
 ): CampaignParties {
     const base: CampaignParties = {
         attackerPlayerId,
@@ -102,9 +106,9 @@ export function declaredParties(
         allyPlayerIds: [],
         nonImperialPlayerIds: suspendedImperialsFor(state, attackerPlayerId, defenderPlayerId),
         targets,
-        attackerSiteId: attackingSiteOf(state, attackerPlayerId),
-        forceSiteIds: forceSitesOf(state, attackerPlayerId),
-        asIfSiteId: campaignAsIfSiteNow(state, attackerPlayerId)
+        attackerSiteId: asIfSiteId ?? attackingSiteOf(state, attackerPlayerId),
+        forceSiteIds: forceSitesOf(state, attackerPlayerId, asIfSiteId),
+        asIfSiteId: asIfSiteId ?? campaignAsIfSiteNow(state, attackerPlayerId)
     }
     return { ...base, allyPlayerIds: compulsoryAllies(state, base) }
 }
@@ -123,12 +127,13 @@ function compulsoryAllies(state: HydratedOathGameState, parties: CampaignParties
 export function reasonNoCampaignAgainst(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderPlayerId: string | undefined
+    defenderPlayerId: string | undefined,
+    asIfSiteId?: string
 ): string | undefined {
-    const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId)
+    const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId, asIfSiteId)
     if (reason) return reason
 
-    const parties = declaredParties(state, attackerId, defenderPlayerId, [])
+    const parties = declaredParties(state, attackerId, defenderPlayerId, [], asIfSiteId)
     const candidates = targetableBy(state, parties)
     const declarable = (targets: CampaignTarget[]) => {
         const declared = { ...parties, targets }
@@ -151,6 +156,23 @@ export function reasonNoCampaignAgainst(
 
 /** R-5.5.1, R-5.5.2 — the other players, and the bandits, a Campaign from the attacker's site may declare. */
 export function defendersOpenTo(state: HydratedOathGameState, attackerId: string): CampaignDefender[] {
+    return defendersOpenFrom(state, attackerId)
+}
+
+/** Wild Allies, Captains — those a Campaign acting as if from `siteId` may declare, before the card names it. */
+export function defendersOpenToAt(
+    state: HydratedOathGameState,
+    attackerId: string,
+    siteId: string
+): CampaignDefender[] {
+    return defendersOpenFrom(state, attackerId, siteId)
+}
+
+function defendersOpenFrom(
+    state: HydratedOathGameState,
+    attackerId: string,
+    asIfSiteId?: string
+): CampaignDefender[] {
     const defenders: CampaignDefender[] = [
         ...state.players
             .filter((other) => other.playerId !== attackerId)
@@ -162,7 +184,8 @@ export function defendersOpenTo(state: HydratedOathGameState, attackerId: string
             reasonNoCampaignAgainst(
                 state,
                 attackerId,
-                defender.kind === 'player' ? defender.playerId : undefined
+                defender.kind === 'player' ? defender.playerId : undefined,
+                asIfSiteId
             ) === undefined
     )
 }
@@ -202,13 +225,14 @@ function targetableBy(state: HydratedOathGameState, parties: CampaignParties): C
     )
 }
 
-/** R-5.5.1 — an undefined defender is the bandits. */
+/** R-5.5.1 — an undefined defender is the bandits; `asIfSiteId` as for `declaredParties`. */
 export function reasonCannotChooseDefender(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderPlayerId: string | undefined
+    defenderPlayerId: string | undefined,
+    asIfSiteId?: string
 ): string | undefined {
-    const siteId = attackingSiteOf(state, attackerId)
+    const siteId = asIfSiteId ?? attackingSiteOf(state, attackerId)
 
     if (defenderPlayerId === undefined) {
         if (!banditsRuleSite(state, siteId)) {
@@ -420,7 +444,7 @@ export function reasonCannotDeclareTargets(
     state: HydratedOathGameState,
     parties: CampaignParties
 ): string | undefined {
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
+    const attackerSiteId = parties.attackerSiteId
 
     const seen = new Set<string>()
     for (const target of parties.targets) {
@@ -464,7 +488,7 @@ function reasonCannotTarget(
     parties: CampaignParties,
     target: CampaignTarget
 ): string | undefined {
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
+    const attackerSiteId = parties.attackerSiteId
     const defenderId = parties.defenderPlayerId
     const defender = defenderId ? state.getPlayerState(defenderId) : undefined
 

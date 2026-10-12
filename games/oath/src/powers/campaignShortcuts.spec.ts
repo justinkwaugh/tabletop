@@ -1,19 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import { Color, assert } from '@tabletop/common'
-import { HydratedUseActionPower } from '../actions/useActionPower.js'
-import { HydratedCampaign, Campaign } from '../actions/campaign.js'
+import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
+import { HydratedCampaign, Campaign, type CampaignDefender } from '../actions/campaign.js'
+import { ForgoFreeAction, isForgoFreeAction } from '../actions/forgoFreeAction.js'
+import { ActionType } from '../definition/actions.js'
 import { HydratedCampaignDefend, CampaignDefend } from '../actions/campaignDefend.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
 import { HydratedRecover, RecoverTargetKind, Recover } from '../actions/recover.js'
 import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestion.js'
-import { Banner, CardKind } from '../model/oathEnums.js'
+import { Banner, CardKind, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { registerCards } from '../data/cardRegistry.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { testPlayer, testState, testVaultWithRelics, openTurn } from '../testing/fixture.js'
-import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { warbandsAt } from '../util/rule.js'
+import { PowerTiming, cardPowers, powerIndexOf } from '../data/cardPowers.js'
+import { sitesRuledBy, warbandsAt } from '../util/rule.js'
+import { legalChoices, PowerChoiceKind } from '../util/powerChoice.js'
+import { OathRevision } from '../util/revision.js'
+import { faceupSitesWithCardOfSuit } from './vocabulary.js'
+import { RunMode, engine } from '../testing/engine.js'
+import { testGame } from '../testing/game.js'
 import { attackingSiteOf } from '../util/campaignSite.js'
 import { killFromAttackingForce } from '../util/campaignRoll.js'
 import '../powers/index.js'
@@ -305,5 +314,184 @@ describe('Relic Thief — a roll for the relics somebody took', () => {
             playConspiracy(s, 'att', CONSPIRACY_ID, { targetPlayerId: 'def', take: { kind: 'relic', cardId: CUP } })
             expect(thiefAsked(s)).toMatchObject({ takerPlayerId: 'att', relicCardIds: [CUP] })
         })
+    })
+})
+
+// R-5.5.1 — "You can choose any one other player who rules your site or whose pawn is at your site.
+// If no player rules your site, you can choose the bandits." Captains and Wild Allies make the site
+// they name "your site", so from revision 8 they name only a site a Campaign from there can be
+// declared at.
+describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; revision 8)', () => {
+    const DANA = 'dana'
+    const RHYS = 'rhys'
+    const ANN = 'ann'
+    const BEA = 'bea'
+    const CAL = 'cal'
+    const PEACE = 'denizen.hearth.vow-of-peace'
+    const BRACKEN = 'denizen.beast.bracken'
+    const BIRDSONG = 'denizen.beast.birdsong'
+    const fixed = OathRevision.EngineFixes4
+    const before = OathRevision.EngineFixes3
+    const indexOf = (cardId: string) => powerIndexOf(cardId, PowerTiming.Action)
+
+    /**
+     * Dana, an Exile at c1 with Captains there, rules c1 and c2 alone, and p2, where Ann, the
+     * Chancellor, stands. Rhys, an Exile, rules p1 and stands there unless moved. Wild Allies, when
+     * Dana holds it, reaches the beast cards at c2 (Dana's), p1 (Rhys's) and h2 (no warbands).
+     */
+    function exiles({ oathRevision = fixed, rhysAt = 'p1', danaAdvisers = [] as string[] } = {}) {
+        const s = testState(
+            [
+                testPlayer({ playerId: DANA, color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [DANA]: 4 }, advisers: danaAdvisers.map((cardId) => ({ cardId, faceUp: true })) }),
+                testPlayer({ playerId: RHYS, color: Color.Blue, siteId: rhysAt, favor: 3, secrets: 1, supply: 4, warbandsOnBoard: { [RHYS]: 2 } }),
+                testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p2', favor: 3, supply: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+            ],
+            {
+                oathRevision,
+                denizensBySite: { c1: [CAPTAINS], c2: [WOLVES], p1: [BRACKEN], p2: [], h1: [], h2: [BIRDSONG] },
+                warbandsBySite: { c1: { [DANA]: 1 }, c2: { [DANA]: 2 }, p1: { [RHYS]: 2 }, p2: { [DANA]: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } }
+            }
+        )
+        openTurn(s, DANA)
+        return s
+    }
+
+    /**
+     * Bea and Cal are Citizens: Bea at c1 with Captains there, Cal away at h2. The Empire's warbands
+     * alone hold c1, c2 and h1, so Ann, the Chancellor at h1, Bea and Cal all rule them (R-6.6.3).
+     */
+    function imperials(turn: string) {
+        const s = testState(
+            [
+                testPlayer({ playerId: BEA, color: Color.Red, status: PlayerStatus.Citizen, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
+                testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, supply: 6, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
+                testPlayer({ playerId: CAL, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'h2', favor: 2, supply: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 } })
+            ],
+            {
+                oathRevision: fixed,
+                denizensBySite: { c1: [CAPTAINS], c2: [], h1: [], h2: [] },
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } }
+            }
+        )
+        openTurn(s, turn)
+        return s
+    }
+
+    /** The sites the card's one choice offers. */
+    function offered(s: HydratedOathGameState, playerId: string, cardId: string): string[] {
+        const power = required(cardPowers(cardId)[indexOf(cardId)], `${cardId}'s Action power`)
+        return legalChoices(s, playerId, power).flatMap((legal) =>
+            legal.options.flatMap((option) => (option.kind === PowerChoiceKind.Site ? [option.siteId] : []))
+        )
+    }
+    const refusal = (s: HydratedOathGameState, playerId: string, cardId: string, siteId: string) =>
+        HydratedUseActionPower.reasonCannotUse(s, playerId, cardId, indexOf(cardId), [site(siteId)])
+
+    /** The card is used on `siteId`; the next action is the free Campaign from there. */
+    function usedOn(s: HydratedOathGameState, playerId: string, cardId: string, siteId: string) {
+        actionPowerUse(playerId, cardId, [site(siteId)]).apply(s)
+        s.actionCount += 1
+        return s
+    }
+
+    /** R-5.5.1, R-5.5.2 — the defenders a Campaign acting from `siteId` has, the card's flag set by hand. */
+    function defendersFrom(s: HydratedOathGameState, playerId: string, siteId: string): CampaignDefender[] {
+        const copy = new HydratedOathGameState(structuredClone(s.dehydrate()))
+        copy.getPlayerState(playerId).campaignAsIf = { siteId, atAction: copy.actionCount }
+        return HydratedCampaign.legalDefenders(copy, playerId)
+    }
+
+    const useCaptainsOnC2 = () => buildAction(UseActionPower, { playerId: DANA, cardId: CAPTAINS, powerIndex: indexOf(CAPTAINS), choices: [site('c2')] })
+
+    it('Captains: a site Dana rules with no other pawn and no other ruler is not offered, and naming it is refused', () => {
+        const s = exiles()
+        expect(offered(s, DANA, CAPTAINS)).toEqual(['p2'])
+        expect(refusal(s, DANA, CAPTAINS, 'c2')).toMatch(/c2 is not among the options for a site you rule/)
+        expect(refusal(s, DANA, CAPTAINS, 'c1')).toMatch(/c1 is not among the options for a site you rule/)
+        expect(refusal(s, DANA, CAPTAINS, 'p2')).toBeUndefined()
+        expect(() => usedOn(s, DANA, CAPTAINS, 'c2')).toThrow(/c2 is not among the options/)
+        expect(s.getPlayerState(DANA).freeCampaignAtAction).toBeUndefined()
+        expect(s.getPlayerState(DANA).favor).toBe(4)
+    })
+
+    it("Captains: the same site with another player's pawn there is offered, and the Campaign against them can be declared", () => {
+        const s = exiles({ rhysAt: 'c2' })
+        expect(offered(s, DANA, CAPTAINS)).toEqual(['c2', 'p2'])
+        usedOn(s, DANA, CAPTAINS, 'c2')
+        expect(HydratedCampaign.legalDefenders(s, DANA)).toEqual([{ kind: 'player', playerId: RHYS }])
+        expect(HydratedCampaign.reasonCannotCampaign(s, DANA, { defender: { kind: 'player', playerId: RHYS }, targets: [{ kind: CampaignTargetKind.PawnAndFavor }], attackDice: 6 })).toBeUndefined()
+    })
+
+    it('Captains, Imperial: a Citizen naming a site the Empire holds, with no pawn there, may campaign against the Chancellor or a Citizen who shares its rule', () => {
+        const s = imperials(BEA)
+        expect(offered(s, BEA, CAPTAINS)).toEqual(['c1', 'c2', 'h1'])
+        usedOn(s, BEA, CAPTAINS, 'c2')
+        expect(HydratedCampaign.legalDefenders(s, BEA)).toEqual([
+            { kind: 'player', playerId: ANN },
+            { kind: 'player', playerId: CAL }
+        ])
+        expect(HydratedCampaign.reasonCannotCampaign(s, BEA, { defender: { kind: 'player', playerId: CAL }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 5 })).toBeUndefined()
+    })
+
+    it('Captains, Imperial: for the Chancellor, Citizens who only share the rule of a site are no defenders there (R-5.5.1.a)', () => {
+        const s = imperials(ANN)
+        // c1 has Bea's pawn. At c2 the Chancellor's attack makes a Citizen not Imperial, so they rule
+        // nothing to target (R-5.5.2). h1 holds only the Chancellor's own pawn.
+        expect(offered(s, ANN, CAPTAINS)).toEqual(['c1'])
+        expect(defendersFrom(s, ANN, 'c2')).toEqual([])
+        expect(refusal(s, ANN, CAPTAINS, 'c2')).toMatch(/c2 is not among the options/)
+    })
+
+    it('Wild Allies: a beast site Dana alone rules is refused; one another player rules, and an empty one the bandits hold, are offered', () => {
+        const s = exiles({ danaAdvisers: [WILD_ALLIES] })
+        expect(offered(s, DANA, WILD_ALLIES)).toEqual(['p1', 'h2'])
+        expect(refusal(s, DANA, WILD_ALLIES, 'c2')).toMatch(/c2 is not among the options for a site with a beast card/)
+        expect(defendersFrom(s, DANA, 'p1')).toEqual([{ kind: 'player', playerId: RHYS }])
+        usedOn(s, DANA, WILD_ALLIES, 'h2')
+        expect(HydratedCampaign.legalDefenders(s, DANA)).toEqual([{ kind: 'bandits' }])
+        expect(HydratedCampaign.reasonCannotCampaign(s, DANA, { defender: { kind: 'bandits' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h2' }], attackDice: 4 })).toBeUndefined()
+    })
+
+    it('Vow of Peace ("You cannot campaign"): neither card offers a site', () => {
+        const s = exiles({ rhysAt: 'c2', danaAdvisers: [PEACE, WILD_ALLIES] })
+        expect(offered(s, DANA, CAPTAINS)).toEqual([])
+        expect(offered(s, DANA, WILD_ALLIES)).toEqual([])
+    })
+
+    it('R-X.4 — before revision 8 Captains on a site with no defender is accepted, its free Campaign can only be given up, and the game replays; from 8 it is refused', () => {
+        const game = testGame([DANA, RHYS, ANN])
+        const initial = exiles({ oathRevision: before }).dehydrate()
+        const used = engine.runNext(useCaptainsOnC2(), structuredClone(initial), game)
+        const dana = used.updatedState.players.find((player) => player.playerId === DANA)
+        expect(dana?.freeCampaignAtAction).toBe(used.updatedState.actionCount)
+        expect(engine.getValidActionTypesForPlayer(game, used.updatedState, DANA)).toEqual([ActionType.ForgoFreeAction, ActionType.EndActPhase])
+        const forgone = engine.runNext(buildAction(ForgoFreeAction, { playerId: DANA }), structuredClone(used.updatedState), game)
+        expect(forgone.processedActions.find(isForgoFreeAction)?.metadata).toEqual({ forgone: ActionType.Campaign })
+        let replayed = structuredClone(initial)
+        for (const action of [...used.processedActions, ...forgone.processedActions]) {
+            replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        }
+        expect(replayed).toEqual(forgone.updatedState)
+
+        expect(() => engine.runNext(useCaptainsOnC2(), exiles().dehydrate(), game)).toThrow(/c2 is not among the options/)
+    })
+
+    it('every site the two cards offer has a legal defender from there, and every site they leave out has none', () => {
+        const scenes: [string, HydratedOathGameState, string, string, string[]][] = [
+            ['Captains, Exiles', exiles(), DANA, CAPTAINS, sitesRuledBy(exiles(), DANA)],
+            ["Captains, Rhys's pawn at c2", exiles({ rhysAt: 'c2' }), DANA, CAPTAINS, sitesRuledBy(exiles({ rhysAt: 'c2' }), DANA)],
+            ['Captains, a Citizen', imperials(BEA), BEA, CAPTAINS, sitesRuledBy(imperials(BEA), BEA)],
+            ['Captains, the Chancellor', imperials(ANN), ANN, CAPTAINS, sitesRuledBy(imperials(ANN), ANN)],
+            ['Wild Allies', exiles({ danaAdvisers: [WILD_ALLIES] }), DANA, WILD_ALLIES, faceupSitesWithCardOfSuit(exiles(), Suit.Beast)]
+        ]
+        let leftOut = 0
+        for (const [name, s, playerId, cardId, candidates] of scenes) {
+            const named = offered(s, playerId, cardId)
+            for (const siteId of candidates) {
+                expect(named.includes(siteId), `${name}: ${siteId}`).toBe(defendersFrom(s, playerId, siteId).length > 0)
+            }
+            leftOut += candidates.length - named.length
+        }
+        expect(leftOut).toBeGreaterThan(0)
     })
 })
