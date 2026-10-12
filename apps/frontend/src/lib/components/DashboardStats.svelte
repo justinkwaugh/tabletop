@@ -1,25 +1,25 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import type { UserGameStats } from '@tabletop/common'
-    import { listenForGameListChanges } from '$lib/services/gameListUpdates'
+    import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         countOf,
         formatRate,
         formatRecord,
         localMonth,
-        monthlyPlays,
+        monthlyGames,
         monthName,
         monthsThrough,
         type GameStatsScope
     } from '$lib/utils/gameStats'
     import GameStatsSheet from './stats/GameStatsSheet.svelte'
 
-    const ALL_GAMES = 'all'
+    const ALL_GAMES_VALUE = ''
     const { api, notificationService, libraryService } = getAppContext()
     let stats = $state<UserGameStats>()
     let failed = $state(false)
-    let selectedId = $state(ALL_GAMES)
+    let selectedTitleId = $state<string>()
     let latestRequest = 0
     let disposed = false
 
@@ -28,27 +28,39 @@
         const { total, titles, countedGames } = stats
         return [
             {
-                id: ALL_GAMES,
+                kind: 'all',
                 name: 'All games',
-                playsNote: countOf(titles.length, 'different game'),
+                gamesNote: countOf(titles.length, 'different game'),
                 summary: total,
-                monthlyPlays: monthlyPlays(countedGames, localMonth)
+                monthlyGames: monthlyGames(countedGames, localMonth)
             },
-            ...titles.map(({ titleId, summary, scores }) => ({
-                id: titleId,
+            ...titles.map(({ titleId, summary, bestScore }): GameStatsScope => ({
+                kind: 'title',
+                titleId,
                 name: libraryService.getNameForTitle(titleId),
                 thumbnailUrl: libraryService.getThumbnailForTitle(titleId),
-                playsNote: `since ${monthName(localMonth(summary.firstFinishedAt), 'short')}`,
+                gamesNote: `since ${monthName(localMonth(summary.firstFinishedAt), 'short')}`,
                 summary,
-                scores,
-                monthlyPlays: monthlyPlays(
+                bestScore,
+                monthlyGames: monthlyGames(
                     countedGames.filter((game) => game.titleId === titleId),
                     localMonth
                 )
             }))
         ]
     })
-    const selected = $derived(scopes.find((scope) => scope.id === selectedId) ?? scopes[0])
+    const selected = $derived(
+        scopes.find((scope) => scope.kind === 'title' && scope.titleId === selectedTitleId) ??
+            scopes[0]
+    )
+
+    function selectValue(scope: GameStatsScope): string {
+        return scope.kind === 'title' ? scope.titleId : ALL_GAMES_VALUE
+    }
+    function select(value: string) {
+        selectedTitleId = value === ALL_GAMES_VALUE ? undefined : value
+    }
+
     const months = $derived(
         stats?.total
             ? monthsThrough(localMonth(stats.total.firstFinishedAt), localMonth(Date.now()))
@@ -68,7 +80,11 @@
     }
 
     onMount(() => {
-        const stopListening = listenForGameListChanges(notificationService, load)
+        const stopListening = listenForGameListChanges(
+            notificationService,
+            changesFinishedGames,
+            load
+        )
         void load()
         return () => {
             disposed = true
@@ -91,26 +107,26 @@
             <nav class="rail" aria-label="Stats by game">
                 <select
                     aria-label="Show stats for"
-                    value={selected.id}
-                    onchange={(event) => (selectedId = event.currentTarget.value)}
+                    value={selectValue(selected)}
+                    onchange={(event) => select(event.currentTarget.value)}
                 >
-                    {#each scopes as scope (scope.id)}
-                        <option value={scope.id}>
-                            {scope.name} — {scope.summary.plays} played, {formatRate(
+                    {#each scopes as scope (selectValue(scope))}
+                        <option value={selectValue(scope)}>
+                            {scope.name} — {scope.summary.games} played, {formatRate(
                                 scope.summary.winRate
                             )}
                         </option>
                     {/each}
                 </select>
                 <ul>
-                    {#each scopes as scope (scope.id)}
+                    {#each scopes as scope (selectValue(scope))}
                         <li>
                             <button
-                                class:selected={scope.id === selected.id}
-                                aria-current={scope.id === selected.id ? 'true' : undefined}
-                                onclick={() => (selectedId = scope.id)}
+                                class:selected={scope === selected}
+                                aria-current={scope === selected ? 'true' : undefined}
+                                onclick={() => select(selectValue(scope))}
                             >
-                                {#if scope.id === ALL_GAMES}
+                                {#if scope.kind === 'all'}
                                     <span class="mark all" aria-hidden="true">All</span>
                                 {:else if scope.thumbnailUrl}
                                     <img class="mark" src={scope.thumbnailUrl} alt="" />
@@ -120,7 +136,7 @@
                                 <span class="name">
                                     {scope.name}
                                     <small>
-                                        {scope.summary.plays} played · {formatRecord(scope.summary)}
+                                        {scope.summary.games} played · {formatRecord(scope.summary)}
                                     </small>
                                 </span>
                                 <span class="rate">{formatRate(scope.summary.winRate)}</span>

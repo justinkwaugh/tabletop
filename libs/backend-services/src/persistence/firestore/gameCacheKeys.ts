@@ -31,7 +31,7 @@ export class GameCacheKeys {
         return `games-public-${titleId}`
     }
 
-    static history(userId: string, older = false): string {
+    static finishedGamesGeneration(userId: string, older = false): string {
         return `game-history-${older ? 'older' : 'head'}-${userId}`
     }
 
@@ -71,9 +71,9 @@ export class GameCacheKeys {
             ...(after?.status === GameStatus.Finished ? gameUserIds(after) : [])
         ])
         const historyKeys = [...historyUsers].flatMap((userId) => [
-            this.history(userId),
+            this.finishedGamesGeneration(userId),
             ...(before?.status === GameStatus.Finished || before === undefined
-                ? [this.history(userId, true)]
+                ? [this.finishedGamesGeneration(userId, true)]
                 : [])
         ])
         return [

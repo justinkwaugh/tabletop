@@ -1,15 +1,14 @@
 <script lang="ts">
-    import { countOf, monthName, type CalendarMonth, type MonthlyPlays } from '$lib/utils/gameStats'
+    import { countOf, monthName, type MonthIndex, type MonthlyGames } from '$lib/utils/gameStats'
     import { monthlyChart } from '$lib/utils/monthlyChart'
 
-    let { monthlyPlays, months }: { monthlyPlays: MonthlyPlays[]; months: CalendarMonth[] } =
-        $props()
+    let { monthlyGames, months }: { monthlyGames: MonthlyGames[]; months: MonthIndex[] } = $props()
 
     const HEIGHT = 200
     let width = $state(0)
-    let hoveredMonth = $state<string>()
+    let hoveredMonth = $state<MonthIndex>()
     const chart = $derived(
-        width > 0 ? monthlyChart(monthlyPlays, months, width, HEIGHT) : undefined
+        width > 0 ? monthlyChart(monthlyGames, months, width, HEIGHT) : undefined
     )
     const hovered = $derived(chart?.columns.find((column) => column.month === hoveredMonth))
 </script>
@@ -59,7 +58,7 @@
                 style:left={`${hovered.centerX}px`}
                 style:top={`${hovered.topY - 6}px`}
             >
-                {monthName(hovered.month, 'long')}: {hovered.plays} finished, {hovered.wonOrTied} won
+                {monthName(hovered.month, 'long')}: {hovered.games} finished, {hovered.wonOrTied} won
                 or tied
             </div>
         {/if}
@@ -75,10 +74,10 @@
         <tr><th>Month</th><th>Finished</th><th>Won or tied</th></tr>
     </thead>
     <tbody>
-        {#each monthlyPlays as entry (entry.month)}
+        {#each monthlyGames as entry (entry.month)}
             <tr>
                 <td>{monthName(entry.month, 'long')}</td>
-                <td>{countOf(entry.plays, 'game')}</td>
+                <td>{countOf(entry.games, 'game')}</td>
                 <td>{entry.wonOrTied}</td>
             </tr>
         {/each}

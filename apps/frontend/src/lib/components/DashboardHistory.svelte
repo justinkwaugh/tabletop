@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { GameCategory, GameStatus, type Game } from '@tabletop/common'
-    import { listenForGameListChanges } from '$lib/services/gameListUpdates'
+    import { GameCategory, type Game } from '@tabletop/common'
+    import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from './DashboardGameList.svelte'
 
@@ -59,14 +59,13 @@
         await loadGames()
     }
     onMount(() => {
-        const stopListening = listenForGameListChanges(notificationService, async (change) => {
-            if (
-                'discontinuity' in change ||
-                change.game.status === GameStatus.Finished ||
-                games.some((item) => item.id === change.game.id)
-            )
-                await refresh()
-        })
+        const stopListening = listenForGameListChanges(
+            notificationService,
+            (change) =>
+                changesFinishedGames(change) ||
+                ('game' in change && games.some((item) => item.id === change.game.id)),
+            refresh
+        )
         void loadGames()
         return () => {
             disposed = true

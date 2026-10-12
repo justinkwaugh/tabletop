@@ -1,6 +1,6 @@
 # Game Lifecycle
 
-Game Lifecycle governs a Game Instance from creation through participation, play, completion, Fork, and deletion. It owns canonical Action history and distinguishes Local authority from Hosted authority.
+Game Lifecycle governs a Game Instance from creation through participation, play, completion, Fork, and deletion. It owns canonical Action history, distinguishes Local authority from Hosted authority, and defines the stats a User accumulates over Finished games.
 
 ## Game instances
 
@@ -118,18 +118,24 @@ _Avoid_: Exploration
 ## Stats
 
 **Counted Game**:
-A Finished Hosted Game that contributes to a User's stats: the User is a Player in it, it is not a Fork or an Exploration, it was not Hotseat Play, and it was not abandoned. Tournament Games are Counted Games.
+A Finished Hosted Game, other than a Fork or an Abandoned Game, that contributes to the stats of each User with a Player in it. Tournament Games are Counted Games.
+
+**Abandoned Game**:
+A Finished Game Instance whose result records that play was given up, with no winners.
 
 **Outcome**:
 A Player's result in one Counted Game: won as its only winner, tied as one of several winners, or lost.
 _Avoid_: Shared win, Draw
 
+**Win Rate**:
+The share of a User's Counted Games that they won, counting a tied Outcome as an equal fraction of a win among its winners.
+
+**Even Odds**:
+The Win Rate a User would have if every Player in each of their Counted Games were equally likely to win.
+
 **Opponent**:
-Another User who is a Player in the same Counted Game.
+Another Player in one of a User's Counted Games. Opponents are told apart across games by their associated User.
 
 **Finish**:
 A Player's position in a Counted Game that recorded final scores: first for every recorded winner, then the remaining Players in order of final score, with equal scores sharing a position.
 _Avoid_: Rank, Placement
-
-**Even Odds**:
-The win rate a User would have if every Player in each of their Counted Games were equally likely to win. A tied Outcome among several winners counts as an equal fraction of a win.

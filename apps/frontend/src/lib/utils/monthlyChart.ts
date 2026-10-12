@@ -1,4 +1,4 @@
-import { monthName, type CalendarMonth, type MonthlyPlays } from './gameStats'
+import { monthName, type MonthIndex, type MonthlyGames } from './gameStats'
 
 const AXIS_WIDTH = 22
 const AXIS_LABEL_HEIGHT = 20
@@ -10,7 +10,7 @@ const COLUMN_RADIUS = 3
 const MONTH_LABEL_WIDTH = 70
 const MAX_GRID_INTERVALS = 5
 
-export type MonthlyChartColumn = MonthlyPlays & {
+export type MonthlyChartColumn = MonthlyGames & {
     slotX: number
     centerX: number
     topY: number
@@ -28,13 +28,13 @@ export type MonthlyChart = {
 }
 
 export function monthlyChart(
-    monthlyPlays: MonthlyPlays[],
-    months: CalendarMonth[],
+    monthlyGames: MonthlyGames[],
+    months: MonthIndex[],
     width: number,
     height: number
 ): MonthlyChart {
-    const byMonth = new Map(monthlyPlays.map((entry) => [entry.month, entry]))
-    const peak = Math.max(1, ...monthlyPlays.map((entry) => entry.plays))
+    const byMonth = new Map(monthlyGames.map((entry) => [entry.month, entry]))
+    const peak = Math.max(1, ...monthlyGames.map((entry) => entry.games))
     const step = gridStep(peak)
     const ceiling = Math.ceil(peak / step) * step
     const plotBottom = height - AXIS_LABEL_HEIGHT
@@ -52,17 +52,17 @@ export function monthlyChart(
             y: y(index * step)
         })),
         columns: months.map((month, index) => {
-            const { plays = 0, wonOrTied = 0 } = byMonth.get(month) ?? {}
+            const { games = 0, wonOrTied = 0 } = byMonth.get(month) ?? {}
             const slotX = AXIS_WIDTH + index * slotWidth
             const x = slotX + (slotWidth - columnWidth) / 2
-            const lost = plays - wonOrTied
+            const lost = games - wonOrTied
             return {
                 month,
-                plays,
+                games,
                 wonOrTied,
                 slotX,
                 centerX: slotX + slotWidth / 2,
-                topY: y(plays),
+                topY: y(games),
                 wonOrTiedPath:
                     wonOrTied > 0
                         ? columnPath(
@@ -77,7 +77,7 @@ export function monthlyChart(
                     lost > 0
                         ? columnPath(
                               x,
-                              y(plays),
+                              y(games),
                               columnWidth,
                               y(wonOrTied) - (wonOrTied > 0 ? SEGMENT_GAP : 0),
                               COLUMN_RADIUS

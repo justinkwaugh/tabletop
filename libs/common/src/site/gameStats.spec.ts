@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { GameCategory } from '../game/model/game.js'
 import { GameResult } from '../game/model/gameResult.js'
 import { PlayerStatus, type Player } from '../game/model/player.js'
-import { PlayOutcome, summarizeUserGames, type GameStatsSource } from './gameStats.js'
+import {
+    evenOddsWinRate,
+    gameOutcome,
+    GameOutcome,
+    summarizeUserGames,
+    type GameStatsSource
+} from './gameStats.js'
 
 const DAY = 86_400_000
 const START = Date.UTC(2026, 0, 10)
@@ -48,7 +54,7 @@ describe('user game stats', () => {
             finished(5, [], { result: GameResult.Abandoned }),
             finished(6, ['ann'], { users: ['ann', 'bo'] })
         ])
-        expect(stats.total?.plays).toBe(1)
+        expect(stats.total?.games).toBe(1)
     })
 
     it('rejects a Finished game that has no result', () => {
@@ -64,12 +70,12 @@ describe('user game stats', () => {
             finished(3, ['bo']),
             finished(4, ['ann'], { users: ['me', 'ann'] })
         ])
-        expect(stats.total).toMatchObject({ plays: 4, wins: 1, ties: 1, losses: 2 })
+        expect(stats.total).toMatchObject({ games: 4, wins: 1, ties: 1, losses: 2 })
         expect(stats.total?.winRate).toBeCloseTo(1.5 / 4)
         expect(stats.total?.evenOddsWinRate).toBeCloseTo((1 / 3 + 1 / 3 + 1 / 3 + 1 / 2) / 4)
         expect(stats.total?.playerCounts).toEqual([
-            { playerCount: 2, plays: 1, winRate: 0, evenOddsWinRate: 1 / 2 },
-            { playerCount: 3, plays: 3, winRate: 0.5, evenOddsWinRate: 1 / 3 }
+            { playerCount: 2, games: 1, winRate: 0 },
+            { playerCount: 3, games: 3, winRate: 0.5 }
         ])
     })
 
@@ -86,13 +92,13 @@ describe('user game stats', () => {
         const stats = summarize(games.toReversed())
         expect(stats.total).toMatchObject({ bestWinStreak: 3, currentWinStreak: 2 })
         expect(stats.total?.recentOutcomes).toEqual([
-            PlayOutcome.Won,
-            PlayOutcome.Won,
-            PlayOutcome.Won,
-            PlayOutcome.Tied,
-            PlayOutcome.Lost,
-            PlayOutcome.Won,
-            PlayOutcome.Won
+            GameOutcome.Won,
+            GameOutcome.Won,
+            GameOutcome.Won,
+            GameOutcome.Tied,
+            GameOutcome.Lost,
+            GameOutcome.Won,
+            GameOutcome.Won
         ])
         expect(stats).toEqual(summarize(games))
     })
@@ -102,7 +108,7 @@ describe('user game stats', () => {
             finished(index + 1, [index < 3 ? 'ann' : 'me'])
         )
         expect(summarize(games).total?.recentOutcomes).toEqual(
-            Array.from({ length: 20 }, () => PlayOutcome.Won)
+            Array.from({ length: 20 }, () => GameOutcome.Won)
         )
     })
 
@@ -113,7 +119,7 @@ describe('user game stats', () => {
             finished(3, ['me']),
             finished(4, ['bo'], { typeId: 'bus' })
         ])
-        expect(stats.titles.map((title) => [title.titleId, title.summary.plays])).toEqual([
+        expect(stats.titles.map((title) => [title.titleId, title.summary.games])).toEqual([
             ['freshfish', 2],
             ['bus', 1],
             ['kaivai', 1]
@@ -133,8 +139,8 @@ describe('user game stats', () => {
         ])
         expect(stats.total?.opponentCount).toBe(2)
         expect(stats.total?.opponents).toEqual([
-            { name: 'Ann the Great', plays: 3, wins: 1, opponentWins: 1 },
-            { name: 'bo', plays: 3, wins: 1, opponentWins: 1 }
+            { name: 'Ann the Great', games: 3, wins: 1, opponentWins: 1 },
+            { name: 'bo', games: 3, wins: 1, opponentWins: 1 }
         ])
     })
 
@@ -160,7 +166,7 @@ describe('user game stats', () => {
         expect(stats.total).toMatchObject({
             firstFinishedAt: START + DAY,
             lastFinishedAt: START + 30 * DAY,
-            tournamentPlays: 2,
+            tournamentGames: 2,
             tournamentWins: 1
         })
         expect(stats.total?.averageDays).toBeCloseTo((2 + 2 + 10) / 3)
@@ -174,9 +180,9 @@ describe('user game stats', () => {
             finished(4, ['me'], { hotseat: true })
         ])
         expect(stats.countedGames).toEqual([
-            { titleId: 'freshfish', finishedAt: START + DAY, outcome: PlayOutcome.Won },
-            { titleId: 'freshfish', finishedAt: START + 2 * DAY, outcome: PlayOutcome.Lost },
-            { titleId: 'kaivai', finishedAt: START + 3 * DAY, outcome: PlayOutcome.Tied }
+            { titleId: 'freshfish', finishedAt: START + DAY, outcome: GameOutcome.Won },
+            { titleId: 'freshfish', finishedAt: START + 2 * DAY, outcome: GameOutcome.Lost },
+            { titleId: 'kaivai', finishedAt: START + 3 * DAY, outcome: GameOutcome.Tied }
         ])
     })
 
@@ -211,12 +217,12 @@ describe('user game stats', () => {
             }),
             finished(3, ['bo'])
         ])
-        expect(stats.total?.plays).toBe(3)
+        expect(stats.total?.games).toBe(3)
         expect(stats.total?.finishes).toEqual({ average: 1.5, averagePlayerCount: 2.5 })
         expect(summarize([finished(1, ['me'])]).total?.finishes).toBeUndefined()
     })
 
-    it('reports best and average score per title, never across titles', () => {
+    it('reports a best score per title, never across titles', () => {
         const stats = summarize([
             finished(1, ['me'], {
                 finalScores: { 'player-me': 9, 'player-ann': 4, 'player-bo': 2 }
@@ -231,12 +237,47 @@ describe('user game stats', () => {
             finished(4, ['bo'], { typeId: 'container' })
         ])
         expect(
-            Object.fromEntries(stats.titles.map((title) => [title.titleId, title.scores]))
-        ).toEqual({
-            freshfish: { best: 9, average: 3 },
-            indonesia: { best: 900, average: 900 },
-            container: undefined
-        })
-        expect(stats.total).not.toHaveProperty('scores')
+            Object.fromEntries(stats.titles.map((title) => [title.titleId, title.bestScore]))
+        ).toEqual({ freshfish: 9, indonesia: 900, container: undefined })
+        expect(stats.total).not.toHaveProperty('bestScore')
+    })
+
+    it('reports no best score where final scores only mark who won', () => {
+        const wonOrLost = (day: number, winner: string) =>
+            finished(day, [winner], {
+                typeId: 'oath',
+                finalScores: Object.fromEntries(
+                    ['me', 'ann', 'bo'].map((user) => [`player-${user}`, user === winner ? 1 : 0])
+                )
+            })
+        const stats = summarize([wonOrLost(1, 'me'), wonOrLost(2, 'ann')])
+        expect(stats.titles[0].bestScore).toBeUndefined()
+        expect(stats.titles[0].summary.finishes).toEqual({ average: 1.5, averagePlayerCount: 3 })
+
+        const withPoints = summarize([
+            wonOrLost(1, 'me'),
+            finished(2, ['me'], {
+                typeId: 'oath',
+                finalScores: { 'player-me': 1, 'player-ann': 1, 'player-bo': 0 }
+            })
+        ])
+        expect(withPoints.titles[0].bestScore).toBe(1)
+    })
+
+    it('gives no Finish to a game whose final scores miss a Player', () => {
+        const stats = summarize([
+            finished(1, ['ann'], { finalScores: { 'player-me': 4, 'player-ann': 9 } })
+        ])
+        expect(stats.total?.games).toBe(1)
+        expect(stats.total?.finishes).toBeUndefined()
+        expect(stats.titles[0].bestScore).toBeUndefined()
+    })
+
+    it("names a Player's Outcome and the even odds at a table", () => {
+        expect(gameOutcome({ winningPlayerIds: ['p1'] }, 'p1')).toBe(GameOutcome.Won)
+        expect(gameOutcome({ winningPlayerIds: ['p1', 'p2'] }, 'p1')).toBe(GameOutcome.Tied)
+        expect(gameOutcome({ winningPlayerIds: ['p2'] }, 'p1')).toBe(GameOutcome.Lost)
+        expect(gameOutcome({ winningPlayerIds: [] }, 'p1')).toBe(GameOutcome.Lost)
+        expect(evenOddsWinRate(4)).toBe(0.25)
     })
 })

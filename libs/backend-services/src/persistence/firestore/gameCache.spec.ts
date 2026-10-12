@@ -195,13 +195,13 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 await store.games.doc(won.id).set(won)
                 const reads = vi.spyOn(Query.prototype, 'get')
                 expect((await store.findGameStats(owner)).total).toMatchObject({
-                    plays: 1,
+                    games: 1,
                     wins: 1,
                     losses: 0
                 })
                 expect(reads).toHaveBeenCalledTimes(1)
                 reads.mockClear()
-                expect((await store.findGameStats(owner)).total?.plays).toBe(1)
+                expect((await store.findGameStats(owner)).total?.games).toBe(1)
                 expect(reads).not.toHaveBeenCalled()
                 const statsTtl = await client.ttl(GameCacheKeys.stats(owner.id))
                 expect(statsTtl).toBeGreaterThan(6 * 24 * 60 * 60)
@@ -220,7 +220,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 })
                 reads.mockClear()
                 expect((await store.findGameStats(owner)).total).toMatchObject({
-                    plays: 2,
+                    games: 2,
                     wins: 1,
                     losses: 1
                 })
@@ -228,7 +228,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
 
                 await store.deleteGame(won)
                 expect((await store.findGameStats(owner)).total).toMatchObject({
-                    plays: 1,
+                    games: 1,
                     wins: 0,
                     losses: 1
                 })
@@ -435,6 +435,22 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 ])
             }
         )
+
+        it('keeps a game when its deletion is refused inside the transaction', async () => {
+            await store.createGame(game)
+            const key = await primeUser(owner, GameStatusCategory.Active)
+            await expect(
+                store.deleteGame(game, (existingGame) => {
+                    expect(existingGame.id).toBe(game.id)
+                    throw new Error('Deletion refused')
+                })
+            ).rejects.toThrow()
+            expect((await db.doc(`games/${game.id}`).get()).exists).toBe(true)
+            expect(await store.findGamesForUser(owner, GameStatusCategory.Active)).toHaveLength(1)
+            await store.deleteGame(game, () => {})
+            expect((await db.doc(`games/${game.id}`).get()).exists).toBe(false)
+            expect((await live.cache.cacheGet(key)).cached).toBe(false)
+        })
 
         it('remembers that a game was Finished after an Undo reopens it', async () => {
             game.status = GameStatus.Started

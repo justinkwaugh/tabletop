@@ -146,7 +146,7 @@ export interface GameStore {
         validator?: UpdateValidator<Game>
     }): Promise<[Game, string[], Game]>
 
-    deleteGame(game: Game): Promise<void>
+    deleteGame(game: Game, authorize?: (existingGame: Game) => void): Promise<void>
 
     getActionChecksum(gameId: string): Promise<number | undefined>
     setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void>

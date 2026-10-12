@@ -1,6 +1,7 @@
 import {
     GameCreateNotification,
     GameDeleteNotification,
+    GameStatus,
     GameUpdateNotification,
     type Game
 } from '@tabletop/common'
@@ -8,30 +9,48 @@ import {
     isDataEvent,
     isDiscontinuityEvent,
     NotificationChannel,
-    type NotificationListener,
+    type NotificationEvent,
     type NotificationService
 } from '@tabletop/frontend-components'
 import * as Value from 'typebox/value'
+import { refreshOnNotifications } from './notificationRefresh'
 
 export type GameListChange = { game: Game } | { discontinuity: true }
 
 export function listenForGameListChanges(
     notifications: Pick<NotificationService, 'addListener' | 'removeListener'>,
-    onChange: (change: GameListChange) => Promise<void>
+    isRelevant: (change: GameListChange) => boolean,
+    refresh: () => Promise<void>
 ): () => void {
-    const listener: NotificationListener = async (event) => {
-        if (isDataEvent(event)) {
-            const notification = event.notification
-            if (
-                Value.Check(GameUpdateNotification, notification) ||
-                Value.Check(GameDeleteNotification, notification) ||
-                Value.Check(GameCreateNotification, notification)
-            )
-                await onChange({ game: notification.data.game })
-        } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
-            await onChange({ discontinuity: true })
-        }
+    return refreshOnNotifications(
+        notifications,
+        (event) => {
+            const change = gameListChange(event)
+            return change !== undefined && isRelevant(change)
+        },
+        refresh
+    )
+}
+
+export function changesFinishedGames(change: GameListChange): boolean {
+    return (
+        'discontinuity' in change ||
+        change.game.status === GameStatus.Finished ||
+        change.game.everFinished === true
+    )
+}
+
+function gameListChange(event: NotificationEvent): GameListChange | undefined {
+    if (isDataEvent(event)) {
+        const notification = event.notification
+        if (
+            Value.Check(GameUpdateNotification, notification) ||
+            Value.Check(GameDeleteNotification, notification) ||
+            Value.Check(GameCreateNotification, notification)
+        )
+            return { game: notification.data.game }
+    } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+        return { discontinuity: true }
     }
-    notifications.addListener(listener)
-    return () => notifications.removeListener(listener)
+    return undefined
 }

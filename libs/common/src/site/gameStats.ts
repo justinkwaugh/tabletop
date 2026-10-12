@@ -3,14 +3,14 @@ import { assertExists } from '../util/assertions.js'
 import { findPlayerForUserId, GameCategory, type Game } from '../game/model/game.js'
 import { GameResult } from '../game/model/gameResult.js'
 
-export enum PlayOutcome {
+export enum GameOutcome {
     Won = 'won',
     Tied = 'tied',
     Lost = 'lost'
 }
 
 export const GameStatsSummary = Type.Object({
-    plays: Type.Integer(),
+    games: Type.Integer(),
     wins: Type.Integer(),
     ties: Type.Integer(),
     losses: Type.Integer(),
@@ -21,7 +21,7 @@ export const GameStatsSummary = Type.Object({
     firstFinishedAt: Type.Integer(),
     lastFinishedAt: Type.Integer(),
     averageDays: Type.Number(),
-    tournamentPlays: Type.Integer(),
+    tournamentGames: Type.Integer(),
     tournamentWins: Type.Integer(),
     opponentCount: Type.Integer(),
     finishes: Type.Optional(
@@ -30,19 +30,18 @@ export const GameStatsSummary = Type.Object({
             averagePlayerCount: Type.Number()
         })
     ),
-    recentOutcomes: Type.Array(Type.Enum(PlayOutcome)),
+    recentOutcomes: Type.Array(Type.Enum(GameOutcome)),
     playerCounts: Type.Array(
         Type.Object({
             playerCount: Type.Integer(),
-            plays: Type.Integer(),
-            winRate: Type.Number(),
-            evenOddsWinRate: Type.Number()
+            games: Type.Integer(),
+            winRate: Type.Number()
         })
     ),
     opponents: Type.Array(
         Type.Object({
             name: Type.String(),
-            plays: Type.Integer(),
+            games: Type.Integer(),
             wins: Type.Integer(),
             opponentWins: Type.Integer()
         })
@@ -53,19 +52,14 @@ export type GameStatsSummary = Type.Static<typeof GameStatsSummary>
 export const TitleGameStats = Type.Object({
     titleId: Type.String(),
     summary: GameStatsSummary,
-    scores: Type.Optional(
-        Type.Object({
-            best: Type.Number(),
-            average: Type.Number()
-        })
-    )
+    bestScore: Type.Optional(Type.Number())
 })
 export type TitleGameStats = Type.Static<typeof TitleGameStats>
 
 export const CountedGame = Type.Object({
     titleId: Type.String(),
     finishedAt: Type.Integer(),
-    outcome: Type.Enum(PlayOutcome)
+    outcome: Type.Enum(GameOutcome)
 })
 export type CountedGame = Type.Static<typeof CountedGame>
 
@@ -92,15 +86,14 @@ export type GameStatsSource = Pick<
     | 'finishedAt'
 >
 
-type CountedPlay = {
+type ScoredFinish = { finish: number; score: number; scoresOnlyMarkWinners: boolean }
+
+type CountedGameFacts = CountedGame & {
     gameId: string
-    titleId: string
-    finishedAt: number
     days: number
     playerCount: number
-    outcome: PlayOutcome
     winShare: number
-    standing?: { finish: number; score: number }
+    scored?: ScoredFinish
     tournament: boolean
     opponents: { userId: string; name: string; won: boolean }[]
 }
@@ -109,32 +102,41 @@ const RECENT_OUTCOMES = 20
 const LISTED_OPPONENTS = 6
 const MILLISECONDS_PER_DAY = 86_400_000
 
+export function gameOutcome(game: Pick<Game, 'winningPlayerIds'>, playerId: string): GameOutcome {
+    if (!game.winningPlayerIds.includes(playerId)) return GameOutcome.Lost
+    return game.winningPlayerIds.length > 1 ? GameOutcome.Tied : GameOutcome.Won
+}
+
+export function evenOddsWinRate(playerCount: number): number {
+    return 1 / playerCount
+}
+
 export function summarizeUserGames(
     games: readonly GameStatsSource[],
     userId: string
 ): UserGameStats {
-    const plays = games
-        .flatMap((game) => countedPlay(game, userId) ?? [])
+    const counted = games
+        .flatMap((game) => countedGameFacts(game, userId) ?? [])
         .sort((a, b) => a.finishedAt - b.finishedAt || a.gameId.localeCompare(b.gameId))
-    if (plays.length === 0) return { titles: [], countedGames: [] }
+    if (counted.length === 0) return { titles: [], countedGames: [] }
     return {
-        countedGames: plays.map(({ titleId, finishedAt, outcome }) => ({
+        countedGames: counted.map(({ titleId, finishedAt, outcome }) => ({
             titleId,
             finishedAt,
             outcome
         })),
-        total: summarize(plays),
-        titles: [...groupBy(plays, (play) => play.titleId)]
-            .map(([titleId, titlePlays]) => ({
+        total: summarize(counted),
+        titles: [...groupBy(counted, (game) => game.titleId)]
+            .map(([titleId, titleGames]) => ({
                 titleId,
-                summary: summarize(titlePlays),
-                scores: scores(titlePlays)
+                summary: summarize(titleGames),
+                bestScore: bestScore(titleGames)
             }))
-            .sort((a, b) => b.summary.plays - a.summary.plays || a.titleId.localeCompare(b.titleId))
+            .sort((a, b) => b.summary.games - a.summary.games || a.titleId.localeCompare(b.titleId))
     }
 }
 
-function countedPlay(game: GameStatsSource, userId: string): CountedPlay | undefined {
+function countedGameFacts(game: GameStatsSource, userId: string): CountedGameFacts | undefined {
     if (game.hotseat || game.parentId !== undefined) return undefined
     if (game.category === GameCategory.Exploration) return undefined
     const player = findPlayerForUserId(game, userId)
@@ -144,16 +146,15 @@ function countedPlay(game: GameStatsSource, userId: string): CountedPlay | undef
     assertExists(game.startedAt, 'Finished games require a start timestamp')
     assertExists(game.finishedAt, 'Finished games require a completion timestamp')
     const winners = game.winningPlayerIds
-    const won = winners.includes(player.id)
     return {
         gameId: game.id,
         titleId: game.typeId,
         finishedAt: game.finishedAt.getTime(),
         days: (game.finishedAt.getTime() - game.startedAt.getTime()) / MILLISECONDS_PER_DAY,
         playerCount: game.players.length,
-        outcome: !won ? PlayOutcome.Lost : winners.length > 1 ? PlayOutcome.Tied : PlayOutcome.Won,
-        winShare: won ? 1 / winners.length : 0,
-        standing: standing(game, player.id),
+        outcome: gameOutcome(game, player.id),
+        winShare: winners.includes(player.id) ? 1 / winners.length : 0,
+        scored: scoredFinish(game, player.id),
         tournament: game.tournament !== undefined,
         opponents: game.players.flatMap((opponent) =>
             opponent.userId === undefined || opponent.userId === userId
@@ -162,99 +163,109 @@ function countedPlay(game: GameStatsSource, userId: string): CountedPlay | undef
                       {
                           userId: opponent.userId,
                           name: opponent.name,
-                          won: winners.length === 1 && winners.includes(opponent.id)
+                          won: gameOutcome(game, opponent.id) === GameOutcome.Won
                       }
                   ]
         )
     }
 }
 
-function standing(
+function scoredFinish(
     game: Pick<Game, 'players' | 'winningPlayerIds' | 'finalScores'>,
     playerId: string
-): CountedPlay['standing'] {
+): ScoredFinish | undefined {
     const finalScores = game.finalScores
-    if (!finalScores) return undefined
-    const score = finalScores[playerId]
+    if (!finalScores || !game.players.every((player) => Number.isFinite(finalScores[player.id])))
+        return undefined
     const winners = game.winningPlayerIds
-    if (winners.includes(playerId)) return { finish: 1, score }
+    const score = finalScores[playerId]
+    const scoresOnlyMarkWinners = game.players.every(
+        (player) => finalScores[player.id] === (winners.includes(player.id) ? 1 : 0)
+    )
+    if (winners.includes(playerId)) return { finish: 1, score, scoresOnlyMarkWinners }
     const higherScoringLosers = game.players.filter(
         (other) => !winners.includes(other.id) && finalScores[other.id] > score
     )
-    return { finish: 1 + winners.length + higherScoringLosers.length, score }
-}
-
-function scores(plays: CountedPlay[]): TitleGameStats['scores'] {
-    const recorded = plays.flatMap((play) => play.standing?.score ?? [])
-    if (recorded.length === 0) return undefined
-    return { best: Math.max(...recorded), average: average(recorded, (score) => score) }
-}
-
-function finishes(plays: CountedPlay[]): GameStatsSummary['finishes'] {
-    const placed = plays.flatMap((play) =>
-        play.standing ? [{ finish: play.standing.finish, playerCount: play.playerCount }] : []
-    )
-    if (placed.length === 0) return undefined
     return {
-        average: average(placed, (play) => play.finish),
-        averagePlayerCount: average(placed, (play) => play.playerCount)
+        finish: 1 + winners.length + higherScoringLosers.length,
+        score,
+        scoresOnlyMarkWinners
     }
 }
 
-function summarize(plays: CountedPlay[]): GameStatsSummary {
-    const count = (outcome: PlayOutcome) => plays.filter((play) => play.outcome === outcome).length
-    const tournamentPlays = plays.filter((play) => play.tournament)
-    const opponents = opponentRecords(plays)
+function bestScore(games: CountedGameFacts[]): number | undefined {
+    const scored = games.flatMap((game) => game.scored ?? [])
+    if (scored.every((game) => game.scoresOnlyMarkWinners)) return undefined
+    return Math.max(...scored.map((game) => game.score))
+}
+
+function finishes(games: CountedGameFacts[]): GameStatsSummary['finishes'] {
+    const scored = games.flatMap((game) =>
+        game.scored ? [{ finish: game.scored.finish, playerCount: game.playerCount }] : []
+    )
+    if (scored.length === 0) return undefined
     return {
-        plays: plays.length,
-        wins: count(PlayOutcome.Won),
-        ties: count(PlayOutcome.Tied),
-        losses: count(PlayOutcome.Lost),
-        winRate: average(plays, (play) => play.winShare),
-        evenOddsWinRate: average(plays, (play) => 1 / play.playerCount),
-        ...winStreaks(plays),
-        firstFinishedAt: plays[0].finishedAt,
-        lastFinishedAt: plays[plays.length - 1].finishedAt,
-        averageDays: average(plays, (play) => play.days),
-        tournamentPlays: tournamentPlays.length,
-        tournamentWins: tournamentPlays.filter((play) => play.outcome === PlayOutcome.Won).length,
+        average: average(scored, (game) => game.finish),
+        averagePlayerCount: average(scored, (game) => game.playerCount)
+    }
+}
+
+function summarize(games: CountedGameFacts[]): GameStatsSummary {
+    const count = (outcome: GameOutcome) => games.filter((game) => game.outcome === outcome).length
+    const tournamentGames = games.filter((game) => game.tournament)
+    const opponents = opponentRecords(games)
+    return {
+        games: games.length,
+        wins: count(GameOutcome.Won),
+        ties: count(GameOutcome.Tied),
+        losses: count(GameOutcome.Lost),
+        winRate: average(games, (game) => game.winShare),
+        evenOddsWinRate: average(games, (game) => evenOddsWinRate(game.playerCount)),
+        ...winStreaks(games),
+        firstFinishedAt: games[0].finishedAt,
+        lastFinishedAt: games[games.length - 1].finishedAt,
+        averageDays: average(games, (game) => game.days),
+        tournamentGames: tournamentGames.length,
+        tournamentWins: tournamentGames.filter((game) => game.outcome === GameOutcome.Won).length,
         opponentCount: opponents.length,
-        finishes: finishes(plays),
-        recentOutcomes: plays.slice(-RECENT_OUTCOMES).map((play) => play.outcome),
-        playerCounts: [...groupBy(plays, (play) => play.playerCount)]
+        finishes: finishes(games),
+        recentOutcomes: games.slice(-RECENT_OUTCOMES).map((game) => game.outcome),
+        playerCounts: [...groupBy(games, (game) => game.playerCount)]
             .map(([playerCount, sized]) => ({
                 playerCount,
-                plays: sized.length,
-                winRate: average(sized, (play) => play.winShare),
-                evenOddsWinRate: 1 / playerCount
+                games: sized.length,
+                winRate: average(sized, (game) => game.winShare)
             }))
             .sort((a, b) => a.playerCount - b.playerCount),
         opponents: opponents.slice(0, LISTED_OPPONENTS)
     }
 }
 
-function winStreaks(plays: CountedPlay[]): { bestWinStreak: number; currentWinStreak: number } {
+function winStreaks(games: CountedGameFacts[]): {
+    bestWinStreak: number
+    currentWinStreak: number
+} {
     let bestWinStreak = 0
     let currentWinStreak = 0
-    for (const play of plays) {
-        currentWinStreak = play.outcome === PlayOutcome.Won ? currentWinStreak + 1 : 0
+    for (const game of games) {
+        currentWinStreak = game.outcome === GameOutcome.Won ? currentWinStreak + 1 : 0
         bestWinStreak = Math.max(bestWinStreak, currentWinStreak)
     }
     return { bestWinStreak, currentWinStreak }
 }
 
-function opponentRecords(plays: CountedPlay[]): GameStatsSummary['opponents'] {
-    const shared = plays.flatMap((play) =>
-        play.opponents.map((opponent) => ({ opponent, outcome: play.outcome }))
+function opponentRecords(games: CountedGameFacts[]): GameStatsSummary['opponents'] {
+    const meetings = games.flatMap((game) =>
+        game.opponents.map((opponent) => ({ opponent, outcome: game.outcome }))
     )
-    return [...groupBy(shared, (meeting) => meeting.opponent.userId).values()]
-        .map((meetings) => ({
-            name: meetings[meetings.length - 1].opponent.name,
-            plays: meetings.length,
-            wins: meetings.filter((meeting) => meeting.outcome === PlayOutcome.Won).length,
-            opponentWins: meetings.filter((meeting) => meeting.opponent.won).length
+    return [...groupBy(meetings, (meeting) => meeting.opponent.userId).values()]
+        .map((shared) => ({
+            name: shared[shared.length - 1].opponent.name,
+            games: shared.length,
+            wins: shared.filter((meeting) => meeting.outcome === GameOutcome.Won).length,
+            opponentWins: shared.filter((meeting) => meeting.opponent.won).length
         }))
-        .sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name))
+        .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name))
 }
 
 function average<T>(items: T[], value: (item: T) => number): number {

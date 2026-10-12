@@ -305,11 +305,12 @@ export class GameService {
         if (game.ownerId !== user.id && !isAdmin) {
             throw new UnauthorizedAccessError({ user, gameId })
         }
-        if (!isAdmin && !ownerMayDeleteGame(game)) {
-            throw new FinishedGameDeletionError({ id: gameId })
-        }
 
-        await this.gameStore.deleteGame(game)
+        await this.gameStore.deleteGame(game, (existingGame) => {
+            if (!isAdmin && !ownerMayDeleteGame(existingGame)) {
+                throw new FinishedGameDeletionError({ id: gameId })
+            }
+        })
         if (game.isPublic) {
             await this.notifyGlobal(GameNotificationAction.Delete, { game })
         } else {

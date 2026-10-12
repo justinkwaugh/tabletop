@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { PlayOutcome } from '@tabletop/common'
+    import { GameOutcome } from '@tabletop/common'
 
-    let { outcomes }: { outcomes: PlayOutcome[] } = $props()
+    let { outcomes }: { outcomes: GameOutcome[] } = $props()
 
-    const LETTERS: Record<PlayOutcome, string> = {
-        [PlayOutcome.Won]: 'W',
-        [PlayOutcome.Tied]: 'T',
-        [PlayOutcome.Lost]: 'L'
+    const LETTERS: Record<GameOutcome, string> = {
+        [GameOutcome.Won]: 'W',
+        [GameOutcome.Tied]: 'T',
+        [GameOutcome.Lost]: 'L'
     }
 </script>
 

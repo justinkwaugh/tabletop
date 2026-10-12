@@ -7,6 +7,8 @@
         GameStatus,
         PlayerStatus,
         GameResult,
+        GameOutcome,
+        gameOutcome,
         ownerMayDeleteGame
     } from '@tabletop/common'
     import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
@@ -265,9 +267,9 @@
     }
 
     function gameResultPlayerText() {
-        if (game.winningPlayerIds.includes(myPlayer?.id ?? '')) {
-            return `You${game.winningPlayerIds.length > 1 ? ' and others' : ''}`
-        }
+        const myOutcome = myPlayer ? gameOutcome(game, myPlayer.id) : GameOutcome.Lost
+        if (myOutcome === GameOutcome.Won) return 'You'
+        if (myOutcome === GameOutcome.Tied) return 'You and others'
         if (game.winningPlayerIds.length === 0) {
             return '-'
         } else if (game.winningPlayerIds.length === 1) {

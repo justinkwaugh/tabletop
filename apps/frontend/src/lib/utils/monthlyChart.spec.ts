@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { monthsThrough } from './gameStats'
 import { monthlyChart } from './monthlyChart'
 
+const month = (year: number, monthOfYear: number) => year * 12 + monthOfYear - 1
+
 describe('monthly games chart', () => {
     it('scales columns to a rounded axis and separates won from lost games', () => {
-        const months = ['2026-01', '2026-02', '2026-03', '2026-04']
+        const months = monthsThrough(month(2026, 1), month(2026, 4))
         const chart = monthlyChart(
             [
-                { month: '2026-01', plays: 9, wonOrTied: 3 },
-                { month: '2026-03', plays: 2, wonOrTied: 2 },
-                { month: '2026-04', plays: 1, wonOrTied: 0 }
+                { month: month(2026, 1), games: 9, wonOrTied: 3 },
+                { month: month(2026, 3), games: 2, wonOrTied: 2 },
+                { month: month(2026, 4), games: 1, wonOrTied: 0 }
             ],
             months,
             422,
@@ -24,7 +26,7 @@ describe('monthly games chart', () => {
         expect(mixed.topY).toBe(16)
         expect(mixed.wonOrTiedPath).toContain('V76')
         expect(mixed.lostPath).toContain('V74Z')
-        expect(empty).toMatchObject({ plays: 0, wonOrTiedPath: undefined, lostPath: undefined })
+        expect(empty).toMatchObject({ games: 0, wonOrTiedPath: undefined, lostPath: undefined })
         expect(allWon.lostPath).toBeUndefined()
         expect(allWon.wonOrTiedPath).toContain('V106Z')
         expect(allLost.wonOrTiedPath).toBeUndefined()
@@ -33,9 +35,9 @@ describe('monthly games chart', () => {
     })
 
     it('keeps the axis readable for busy months and labels only as many months as fit', () => {
-        const months = monthsThrough('2024-01', '2026-12')
+        const months = monthsThrough(month(2024, 1), month(2026, 12))
         const chart = monthlyChart(
-            [{ month: '2025-06', plays: 130, wonOrTied: 60 }],
+            [{ month: month(2025, 6), games: 130, wonOrTied: 60 }],
             months,
             350,
             200

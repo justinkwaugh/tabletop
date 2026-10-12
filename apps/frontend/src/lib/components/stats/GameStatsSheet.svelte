@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { evenOddsWinRate } from '@tabletop/common'
     import { createTimeAgo } from '@tabletop/frontend-components'
     import {
         countOf,
@@ -7,14 +8,14 @@
         formatRecord,
         localMonth,
         monthName,
-        type CalendarMonth,
-        type GameStatsScope
+        type GameStatsScope,
+        type MonthIndex
     } from '$lib/utils/gameStats'
     import MonthlyGamesChart from './MonthlyGamesChart.svelte'
     import OutcomeStrip from './OutcomeStrip.svelte'
     import WinRateMeter from './WinRateMeter.svelte'
 
-    let { scope, months }: { scope: GameStatsScope; months: CalendarMonth[] } = $props()
+    let { scope, months }: { scope: GameStatsScope; months: MonthIndex[] } = $props()
 
     const timeAgo = createTimeAgo()
     const summary = $derived(scope.summary)
@@ -25,12 +26,12 @@
         summary.averageDays < 1
             ? 'under a day per game on average'
             : `${countOf(Math.round(summary.averageDays), 'day')} per game on average`,
-        ...(scope.scores
-            ? [`best score ${scope.scores.best}, average ${formatAverage(scope.scores.average)}`]
+        ...(scope.kind === 'title' && scope.bestScore !== undefined
+            ? [`best score ${scope.bestScore}`]
             : []),
-        ...(summary.tournamentPlays > 0
+        ...(summary.tournamentGames > 0
             ? [
-                  `${countOf(summary.tournamentPlays, 'tournament table')}, ${summary.tournamentWins} won`
+                  `${countOf(summary.tournamentGames, 'tournament table')}, ${summary.tournamentWins} won`
               ]
             : [])
     ])
@@ -38,7 +39,9 @@
 
 <section class="sheet" aria-label={`${scope.name} stats`}>
     <header class="sheet-head">
-        {#if scope.thumbnailUrl}<img src={scope.thumbnailUrl} alt="" />{/if}
+        {#if scope.kind === 'title' && scope.thumbnailUrl}
+            <img src={scope.thumbnailUrl} alt="" />
+        {/if}
         <div>
             <h2>{scope.name}</h2>
             <p class="facts">{facts.join(' · ')}</p>
@@ -48,8 +51,8 @@
     <dl class="figures">
         <div class="figure">
             <dt>games finished</dt>
-            <dd class="value">{summary.plays}</dd>
-            <dd class="note">{scope.playsNote}</dd>
+            <dd class="value">{summary.games}</dd>
+            <dd class="note">{scope.gamesNote}</dd>
         </div>
         <div class="figure">
             <dt>won–tied–lost</dt>
@@ -84,10 +87,13 @@
                     {#each summary.playerCounts as size (size.playerCount)}
                         <tr>
                             <th scope="row">{size.playerCount} players</th>
-                            <td class="games">{countOf(size.plays, 'game')}</td>
+                            <td class="games">{countOf(size.games, 'game')}</td>
                             <td class="rate">{formatRate(size.winRate)}</td>
                             <td class="meter">
-                                <WinRateMeter rate={size.winRate} evenOdds={size.evenOddsWinRate} />
+                                <WinRateMeter
+                                    rate={size.winRate}
+                                    evenOdds={evenOddsWinRate(size.playerCount)}
+                                />
                             </td>
                         </tr>
                     {/each}
@@ -110,7 +116,7 @@
         </div>
         <div class="panel wide">
             <h3>Games finished per month</h3>
-            <MonthlyGamesChart monthlyPlays={scope.monthlyPlays} {months} />
+            <MonthlyGamesChart monthlyGames={scope.monthlyGames} {months} />
         </div>
         {#if summary.opponents.length}
             <div class="panel wide">
@@ -128,7 +134,7 @@
                         {#each summary.opponents as opponent, index (index)}
                             <tr>
                                 <td>{opponent.name}</td>
-                                <td class="number">{opponent.plays}</td>
+                                <td class="number">{opponent.games}</td>
                                 <td class="number">{opponent.wins}</td>
                                 <td class="number">{opponent.opponentWins}</td>
                             </tr>

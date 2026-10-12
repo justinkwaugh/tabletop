@@ -1,57 +1,33 @@
 import {
     assertExists,
-    PlayOutcome,
+    GameOutcome,
     type CountedGame,
-    type GameStatsSummary,
-    type TitleGameStats
+    type GameStatsSummary
 } from '@tabletop/common'
 
-export type CalendarMonth = string
+export type MonthIndex = number
 
-export type MonthlyPlays = { month: CalendarMonth; plays: number; wonOrTied: number }
+export type MonthlyGames = { month: MonthIndex; games: number; wonOrTied: number }
 
-export type GameStatsScope = {
-    id: string
+type ScopedGameStats = {
     name: string
-    thumbnailUrl?: string
-    playsNote: string
+    gamesNote: string
     summary: GameStatsSummary
-    scores?: TitleGameStats['scores']
-    monthlyPlays: MonthlyPlays[]
+    monthlyGames: MonthlyGames[]
 }
 
-export const localMonth = calendarMonthIn(Intl.DateTimeFormat().resolvedOptions().timeZone)
+export type GameStatsScope =
+    | (ScopedGameStats & { kind: 'all' })
+    | (ScopedGameStats & {
+          kind: 'title'
+          titleId: string
+          thumbnailUrl: string
+          bestScore?: number
+      })
 
-export function calendarMonthIn(timeZone: string): (time: number) => CalendarMonth {
-    const format = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit'
-    })
-    return (time) => {
-        const parts = format.formatToParts(time)
-        const year = parts.find((part) => part.type === 'year')
-        const month = parts.find((part) => part.type === 'month')
-        assertExists(year, 'Formatted date has no year')
-        assertExists(month, 'Formatted date has no month')
-        return `${year.value}-${month.value}`
-    }
-}
+const MONTHS_PER_YEAR = 12
 
-export function monthlyPlays(
-    games: readonly CountedGame[],
-    monthOf: (time: number) => CalendarMonth
-): MonthlyPlays[] {
-    const months = new Map<CalendarMonth, MonthlyPlays>()
-    for (const game of games) {
-        const month = monthOf(game.finishedAt)
-        const entry = months.get(month) ?? { month, plays: 0, wonOrTied: 0 }
-        entry.plays += 1
-        if (game.outcome !== PlayOutcome.Lost) entry.wonOrTied += 1
-        months.set(month, entry)
-    }
-    return [...months.values()]
-}
+export const localMonth = monthIn(Intl.DateTimeFormat().resolvedOptions().timeZone)
 
 export function formatRate(rate: number): string {
     return `${Math.round(rate * 100)}%`
@@ -69,26 +45,48 @@ export function countOf(count: number, noun: string): string {
     return `${count} ${count === 1 ? noun : `${noun}s`}`
 }
 
-export function monthName(month: CalendarMonth, style: 'short' | 'long'): string {
-    return new Date(`${month}-15T00:00:00Z`).toLocaleDateString('en-US', {
+export function monthIn(timeZone: string): (time: number) => MonthIndex {
+    const format = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: 'numeric'
+    })
+    return (time) => {
+        const parts = format.formatToParts(time)
+        const year = parts.find((part) => part.type === 'year')
+        const month = parts.find((part) => part.type === 'month')
+        assertExists(year, 'Formatted date has no year')
+        assertExists(month, 'Formatted date has no month')
+        return Number(year.value) * MONTHS_PER_YEAR + Number(month.value) - 1
+    }
+}
+
+export function monthName(month: MonthIndex, style: 'short' | 'long'): string {
+    const date = new Date(
+        Date.UTC(Math.floor(month / MONTHS_PER_YEAR), month % MONTHS_PER_YEAR, 15)
+    )
+    return date.toLocaleDateString('en-US', {
         month: style,
         year: style === 'long' ? 'numeric' : '2-digit',
         timeZone: 'UTC'
     })
 }
 
-export function monthsThrough(first: CalendarMonth, last: CalendarMonth): CalendarMonth[] {
-    const months: CalendarMonth[] = []
-    let [year, month] = first.split('-').map(Number)
-    for (;;) {
-        const current = `${year}-${String(month).padStart(2, '0')}`
-        if (current > last) return months
-        months.push(current)
-        if (month === 12) {
-            year += 1
-            month = 1
-        } else {
-            month += 1
-        }
+export function monthsThrough(first: MonthIndex, last: MonthIndex): MonthIndex[] {
+    return Array.from({ length: Math.max(0, last - first + 1) }, (_, offset) => first + offset)
+}
+
+export function monthlyGames(
+    games: readonly CountedGame[],
+    monthOf: (time: number) => MonthIndex
+): MonthlyGames[] {
+    const months = new Map<MonthIndex, MonthlyGames>()
+    for (const game of games) {
+        const month = monthOf(game.finishedAt)
+        const entry = months.get(month) ?? { month, games: 0, wonOrTied: 0 }
+        entry.games += 1
+        if (game.outcome !== GameOutcome.Lost) entry.wonOrTied += 1
+        months.set(month, entry)
     }
+    return [...months.values()]
 }
