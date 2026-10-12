@@ -330,6 +330,7 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
     const PEACE = 'denizen.hearth.vow-of-peace'
     const BRACKEN = 'denizen.beast.bracken'
     const BIRDSONG = 'denizen.beast.birdsong'
+    const HIDDEN_PLACE = 'site.the-hidden-place'
     const fixed = OathRevision.EngineFixes4
     const before = OathRevision.EngineFixes3
     const indexOf = (cardId: string) => powerIndexOf(cardId, PowerTiming.Action)
@@ -474,6 +475,38 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
         expect(replayed).toEqual(forgone.updatedState)
 
         expect(() => engine.runNext(useCaptainsOnC2(), exiles().dehydrate(), game)).toThrow(/c2 is not among the options/)
+    })
+
+    // The Hidden Place: "You cannot travel to here or declare campaign targets here unless you flip one secret on
+    // your board facedown." Wild Allies costs a secret, paid before the Campaign is declared.
+    it("Wild Allies: a site is judged after its cost is paid, so The Hidden Place needs a second faceup secret for the flip", () => {
+        const withSecrets = (secrets: number) => {
+            const s = exiles({ danaAdvisers: [WILD_ALLIES] })
+            s.siteCards = { ...s.siteCards, p1: HIDDEN_PLACE }
+            s.getPlayerState(DANA).secrets = secrets
+            return s
+        }
+        const one = withSecrets(1)
+        expect(offered(one, DANA, WILD_ALLIES)).toEqual(['h2'])
+        expect(refusal(one, DANA, WILD_ALLIES, 'p1')).toMatch(/p1 is not among the options for a site with a beast card/)
+
+        const two = withSecrets(2)
+        expect(offered(two, DANA, WILD_ALLIES)).toEqual(['p1', 'h2'])
+        usedOn(two, DANA, WILD_ALLIES, 'p1')
+        expect(two.getPlayerState(DANA).secrets).toBe(1)
+        expect(HydratedCampaign.legalDefenders(two, DANA)).toEqual([{ kind: 'player', playerId: RHYS }])
+        expect(HydratedCampaign.reasonCannotCampaign(two, DANA, { defender: { kind: 'player', playerId: RHYS }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'p1' }], attackDice: 4, flipSecret: true })).toBeUndefined()
+    })
+
+    it("Captains: its favor cost leaves the secret The Hidden Place asks for, so the site is still offered", () => {
+        const s = exiles()
+        s.siteCards = { ...s.siteCards, p2: HIDDEN_PLACE }
+        s.getPlayerState(DANA).secrets = 1
+        s.getPlayerState(DANA).favor = 1
+        expect(offered(s, DANA, CAPTAINS)).toEqual(['p2'])
+        usedOn(s, DANA, CAPTAINS, 'p2')
+        expect(s.getPlayerState(DANA)).toMatchObject({ favor: 0, secrets: 1 })
+        expect(HydratedCampaign.legalDefenders(s, DANA)).toEqual([{ kind: 'player', playerId: ANN }])
     })
 
     it('every site the two cards offer has a legal defender from there, and every site they leave out has none', () => {
