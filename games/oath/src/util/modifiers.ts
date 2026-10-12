@@ -106,6 +106,20 @@ export function mandatoryModifiers(
     return found
 }
 
+/** R-7.4.1 — a modifier the engine applies by itself: it is never declared. */
+export function isMandatoryModifier(power: CardPower): boolean {
+    return effectFor(power)?.mandatory === true
+}
+
+/**
+ * A free gain (Dragonskin Drum, Rowdy Pub, Wild Cry …): an optional modifier that costs nothing,
+ * asks nothing and only gains, so a menu may start it in use. Read by no rule: a modifier applies
+ * only when it is declared (R-7.4.1).
+ */
+export function isFreeGain(power: CardPower): boolean {
+    return effectFor(power)?.freeGain === true
+}
+
 /** A printed condition depends on the action's particulars, so it is checked at declaration. */
 export function usableModifiers(
     state: HydratedOathGameState,

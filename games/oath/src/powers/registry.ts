@@ -358,6 +358,11 @@ export interface EffectDefinition {
     modifier?: ModifierHooks
     /** R-7.4.1's "must": applied unasked, never declared. */
     mandatory?: boolean
+    /**
+     * An optional modifier that costs nothing, asks nothing and only gains, so a menu may start it
+     * in use. Nothing in play reads it: a modifier applies only when declared (R-7.4.1).
+     */
+    freeGain?: boolean
     /** R-7.5 */
     battlePlan?: BattlePlanHooks
     /** R-7.1.4-H1 */
@@ -397,6 +402,7 @@ export function registerModifier(
         choices?: ChoiceSpec[]
         reasonCannotResolve?: (ctx: EffectContext) => string | undefined
         mandatory?: boolean
+        freeGain?: boolean
     }
 ): void {
     registerEffect(cardId, index, {
@@ -408,7 +414,8 @@ export function registerModifier(
             )
         },
         modifier: definition.hooks,
-        mandatory: definition.mandatory
+        mandatory: definition.mandatory,
+        freeGain: definition.freeGain
     })
 }
 

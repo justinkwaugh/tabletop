@@ -62,6 +62,7 @@ registerModifier(
     'relic.dragonskin-drum',
     powerIndexOf('relic.dragonskin-drum', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             after: (ctx) => {
                 const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
@@ -75,6 +76,7 @@ registerModifier(
 
 // "Spend no Supply if you're trading with a card that matches any of your advisers."
 registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', PowerTiming.Modifier), {
+    freeGain: true,
     hooks: {
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
