@@ -14,6 +14,7 @@
         points = undefined,
         width = undefined,
         label = undefined,
+        tagUnder = false,
         onclick
     }: {
         image: string
@@ -32,6 +33,8 @@
         width?: ChoiceWidth
         /** Its spoken name, where the printed one carries a count as a picture. */
         label?: string
+        /** On a phone the tag goes under the line, for a row in a narrow column beside a card. */
+        tagUnder?: boolean
         onclick: () => void
     } = $props()
 
@@ -42,6 +45,14 @@
         piece: 'h-8 w-8 object-contain'
     }
 </script>
+
+{#snippet tagged(placed: string)}
+    <span
+        class="shrink-0 rounded bg-oath-accent px-1.5 py-px text-[11px] font-extrabold text-oath-surface-raised {placed}"
+        class:invisible={!on}
+        aria-hidden={!on}>{tag}</span
+    >
+{/snippet}
 
 <button
     type="button"
@@ -65,14 +76,9 @@
             {#if typeof detail === 'string'}<span class="text-xs text-oath-text-muted"
                     >{detail}</span
                 >{:else if detail}<span class="text-xs">{@render detail()}</span>{/if}
+            {#if tag && tagUnder}{@render tagged('mt-0.5 self-start sm:hidden')}{/if}
         </span>
         <!-- The tag keeps its room when off, so a row keeps its width when tapped. -->
-        {#if tag}
-            <span
-                class="shrink-0 rounded bg-oath-accent px-1.5 py-px text-[11px] font-extrabold text-oath-surface-raised"
-                class:invisible={!on}
-                aria-hidden={!on}>{tag}</span
-            >
-        {/if}
+        {#if tag}{@render tagged(tagUnder ? 'max-sm:hidden' : '')}{/if}
     </span>
 </button>

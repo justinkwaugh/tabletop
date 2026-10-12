@@ -245,6 +245,21 @@ describe('the History words: each row as the record says it, older records too',
         expect(played({ modifiers: ['denizen.beast.wild-cry'] })).toBe('turned Animal Host faceup as an adviser (Wild Cry)')
     })
 
+    it('396 a facedown adviser played: a card that chose where it went is named after the place', () => {
+        const record = { discardedCardIds: [], discardPileRegion: 'cradle', favorGained: 1 }
+        const toSite = (fields: Record<string, unknown>, modifiers?: string[]) =>
+            row({ type: ActionType.PlayFacedownAdviser, cardId: 'denizen.beast.wolves', play: SearchPlay.Site, ...fields, metadata: { ...record, playedCardId: 'denizen.beast.wolves', modifiers } })
+        expect(toSite({ toSiteId: 'slot.provinces.0' }, ['denizen.beast.new-growth'])).toBe('played Wolves to Plains (New Growth), gaining 1 favor')
+        // The People's Favor's other site: the site, and no card.
+        expect(toSite({ toSiteId: 'slot.cradle.1' })).toBe('played Wolves to The Hidden Place, gaining 1 favor')
+        expect(toSite({ discardFirstCardId: 'denizen.hearth.wayside-inn' }, ['denizen.hearth.crop-rotation'])).toBe('played Wolves to their site, discarding Wayside Inn first (Crop Rotation), gaining 1 favor')
+        expect(toSite({ toSiteId: 'slot.provinces.0', discardFirstCardId: 'denizen.hearth.wayside-inn' }, ['denizen.beast.wild-cry', 'denizen.beast.new-growth', 'denizen.hearth.crop-rotation'])).toBe(
+            'played Wolves to Plains (New Growth), discarding Wayside Inn first (Crop Rotation), gaining 1 favor (Wild Cry)'
+        )
+        const discarded = row({ type: ActionType.PlayFacedownAdviser, cardId: 'denizen.beast.wolves', play: SearchPlay.Discard, metadata: { ...record, favorGained: 0, discardToWorldDeck: true, modifiers: ['relic.cracked-horn'] } })
+        expect(discarded).toBe('discarded a card under the world deck (Cracked Horn)')
+    })
+
     it('402 the Citizenship offer: its terms from its own record', () => {
         const offer = (terms?: unknown) => row({ type: ActionType.OfferCitizenship, exilePlayerId: 'p2', reliquarySlotId: 'reliquary.1', terms })
         expect(offer({ fromScepterHolder: { favor: 2 }, fromExile: { secrets: 1 } })).toBe('offered Rhys Citizenship, the relic on Reliquary space 2 and 2 favor, for 1 secret')

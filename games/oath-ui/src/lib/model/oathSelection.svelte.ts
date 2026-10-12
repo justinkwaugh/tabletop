@@ -41,6 +41,8 @@ export type OathValueByStage = {
     whenPlayed: PowerChoicePicks
     conspiracy: ConspiracyPick
     adviserDiscards: string[]
+    discardPlace: PowerUseKey | 'pile'
+    playCards: PowerUseKey[]
     amount: number
     favorStart: Suit
 }
@@ -61,6 +63,8 @@ export const OATH_STAGE_ORDER = [
     'whenPlayed',
     'conspiracy',
     'adviserDiscards',
+    'discardPlace',
+    'playCards',
     'amount',
     'favorStart'
 ] as const

@@ -166,6 +166,7 @@ export type TableName =
     | 'harpSearch'
     | 'usePower'
     | ModifierScene
+    | FacedownScene
     | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
@@ -2735,6 +2736,68 @@ function conspiracyNoTakeTable(machineState: MachineState, me: Partial<Seat>): P
     return tableOf(state)
 }
 
+/** R-6.1, R-7.4 — the scenes for the Search cards a facedown adviser's play may use. */
+type FacedownScene = 'facedownCards' | 'facedownFullSite' | 'facedownNewGrowth'
+
+/**
+ * R-6.1, R-7.4 — the seat's one facedown adviser, War Tortoise (a beast card), with Wild Cry and
+ * Crop Rotation faceup and the Cracked Horn; its site holds Book Binders and Fabled Feast, with
+ * room for one more. `facedownFullSite`: a third denizen fills the site. `facedownNewGrowth`: New
+ * Growth in place of the Horn, Crop Rotation at the site beside Book Binders, and the People's
+ * Favor with three cards at the next Cradle site, so every site is open and five cards may go
+ * first: a later step taller than the card.
+ */
+function facedownTable(scene: FacedownScene): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const adviser = (cardId: string) => ({ cardId, faceUp: true })
+    const growth = scene === 'facedownNewGrowth'
+    const here = ['denizen.hearth.book-binders', 'denizen.hearth.fabled-feast']
+    const full = scene === 'facedownCards' ? here : [...here, 'denizen.order.captains']
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                relicIds: growth ? [] : ['relic.cracked-horn'],
+                advisers: [
+                    { cardId: 'denizen.beast.war-tortoise', faceUp: false },
+                    adviser('denizen.beast.wild-cry'),
+                    adviser(growth ? 'denizen.beast.new-growth' : 'denizen.hearth.crop-rotation')
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            banners: testBanners({ [Banner.PeoplesFavor]: growth ? 'me' : undefined }),
+            denizensBySite: growth
+                ? {
+                      [home]: ['denizen.hearth.book-binders', 'denizen.hearth.crop-rotation'],
+                      [next]: [
+                          'denizen.order.captains',
+                          'denizen.nomad.elders',
+                          'denizen.order.curfew'
+                      ]
+                  }
+                : { [home]: full }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-5.1.4.IV: a Search drew Wolves, Toll Roads and the Conspiracy; no one here to take from. */
 function searchConspiracyNoTakeTable(): PlayedTable {
     return conspiracyNoTakeTable(MachineState.Searching, {
@@ -3848,6 +3911,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     modifierMuster: () => modifierTable('modifierMuster'),
     modifierTrade: () => modifierTable('modifierTrade'),
     modifierSearch: () => modifierTable('modifierSearch'),
+    facedownCards: () => facedownTable('facedownCards'),
+    facedownFullSite: () => facedownTable('facedownFullSite'),
+    facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
     modifierPair: () => modifierTable('modifierPair'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,

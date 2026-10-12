@@ -16,6 +16,7 @@
         on,
         disabled,
         width = undefined,
+        tagUnder = false,
         onclick
     }: {
         cardId: string
@@ -23,6 +24,8 @@
         on: boolean
         disabled: boolean
         width?: ChoiceWidth
+        /** On a phone "in use" goes under the line, for a row in a narrow column beside a card. */
+        tagUnder?: boolean
         onclick: () => void
     } = $props()
 
@@ -39,6 +42,7 @@
         {on}
         {disabled}
         {width}
+        {tagUnder}
         {onclick}
     />
     <Magnifier preview={{ cardId, label: name }} label={name} size="small" />

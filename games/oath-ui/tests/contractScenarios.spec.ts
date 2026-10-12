@@ -4768,7 +4768,7 @@ test('scenario 23: with no one to take from, the take step says why, the name a 
 test('the facedown Conspiracy with no one to take from: why, where the take would be, above "Play Conspiracy"', async ({ page }) => {
     await openTable(page, 'flipConspiracyNoTake')
     await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
-    await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+    // The one facedown adviser opens at once, large beside its plays.
     await grid(page).getByRole('button', { name: 'Play it: Conspiracy', exact: true }).click()
     const why = grid(page).locator('.text-oath-danger')
     await expect(why).toHaveCount(1)
@@ -4795,7 +4795,7 @@ test.describe('the Conspiracy with no one to take from, on a phone', () => {
 
         await openTable(page, 'flipConspiracyNoTake')
         await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
-        await grid(page).getByRole('button', { name: 'Conspiracy', exact: true }).click()
+        // The one facedown adviser opens at once, large beside its plays.
         await grid(page).getByRole('button', { name: 'Play it: Conspiracy', exact: true }).click()
         const flip = grid(page).getByRole('button', { name: 'Play Conspiracy', exact: true })
         const flipBox = await flip.boundingBox()
@@ -7369,6 +7369,185 @@ test.describe('the cards in every action’s menu', () => {
                     }
                     await expectOneWidth(rows)
                     await expect(grid(page).locator('[title]')).toHaveCount(0)
+                    expect(await clippedLabels(page)).toEqual([])
+                }
+            })
+        })
+    }
+})
+
+/**
+ * Play a facedown adviser (R-6.1, R-7.4): the card large on the left, the plays and every later step
+ * in one column beside it; each Search card the play may use in the step it changes.
+ */
+test.describe('the facedown play: the card beside its plays, each card in the step it changes', () => {
+    const playCard = (page: Page) => grid(page).locator('[data-play-card]')
+    const column = (page: Page) => grid(page).locator('[data-play-column]')
+    const plays = (page: Page) => column(page).getByRole('button', { name: /: War Tortoise$/ })
+    const confirm = (page: Page, word: 'Play' | 'Discard') =>
+        grid(page).getByRole('button', { name: `${word} War Tortoise`, exact: true })
+    const history = (page: Page) => page.locator('.history')
+    const cardHeight = (page: Page) =>
+        playCard(page)
+            .locator('img')
+            .first()
+            .evaluate((image) => (image instanceof HTMLElement ? image.offsetHeight : 0))
+
+    /** The panel's box inside its border and padding, as drawn (the panel may be fitted smaller). */
+    const panelContent = (page: Page): Promise<Box> =>
+        grid(page).evaluate((panel) => {
+            const box = panel.getBoundingClientRect()
+            const style = getComputedStyle(panel)
+            const scale = panel instanceof HTMLElement && panel.offsetWidth > 0 ? box.width / panel.offsetWidth : 1
+            const inset = (side: 'left' | 'right' | 'top' | 'bottom') =>
+                (parseFloat(style.getPropertyValue(`padding-${side}`)) + parseFloat(style.getPropertyValue(`border-${side}-width`))) * scale
+            return {
+                x: box.x + inset('left'),
+                y: box.y + inset('top'),
+                width: box.width - inset('left') - inset('right'),
+                height: box.height - inset('top') - inset('bottom')
+            }
+        })
+
+    async function choose(page: Page, scene: TableFixture.TableName, play?: string) {
+        await openTable(page, scene)
+        await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+        if (play) await grid(page).getByRole('button', { name: `${play}: War Tortoise`, exact: true }).click()
+    }
+
+    test('one facedown adviser opens at once: the card 280 px tall, ringed, its magnifier; the plays in one column to its right, one width', async ({ page }) => {
+        await choose(page, 'facedownCards')
+        await expect(playCard(page)).toBeVisible()
+        // Laid out 280 px tall, to the pixel the card's width rounds to.
+        expect(Math.abs((await cardHeight(page)) - 280)).toBeLessThanOrEqual(1)
+        await expect(playCard(page)).toHaveClass(/ring-2/)
+        await expect(playCard(page).getByRole('button', { name: 'Enlarge War Tortoise', exact: true })).toBeVisible()
+        await expect(plays(page)).toHaveText(['To your site', 'Turn faceup', 'Discard'])
+        await expectOneWidth(plays(page))
+        const card = await boxOf(playCard(page))
+        const panel = await boxOf(grid(page))
+        const boxes = await boxesOf(plays(page))
+        for (const [i, box] of boxes.entries()) {
+            expect(box.x, 'beside the card').toBeGreaterThan(card.x + card.width)
+            expect(Math.abs(box.x - (boxes[0]?.x ?? 0)), 'one column').toBeLessThanOrEqual(1)
+            if (i > 0) expect(box.y, 'one under another').toBeGreaterThan(boxes[i - 1]?.y ?? 0)
+            expect(inside(box, panel)).toBe(true)
+        }
+        await expect(grid(page).locator('[title]')).toHaveCount(0)
+    })
+
+    test('"To your site": Crop Rotation’s cards under "Discard first", Wild Cry in use above "Play"; picking a card uses Crop Rotation', async ({ page }) => {
+        await choose(page, 'facedownCards', 'To your site')
+        await expect(column(page).locator('[data-chosen-play]')).toHaveText('To your site')
+        await expect(plays(page)).toHaveCount(0)
+        await expect(column(page).locator('h4')).toHaveText(['Discard first', 'Cards'])
+        await expect(cardToggle(page, 'denizen.beast.wild-cry')).toHaveAttribute('aria-pressed', 'true')
+        await expect(cardRow(page, 'denizen.beast.wild-cry')).toContainText('in use')
+        await expect(cardRow(page, 'denizen.hearth.crop-rotation')).toHaveCount(0)
+        await expect(confirm(page, 'Play')).toHaveText('Play')
+        await expect(stepBacks(page)).toHaveCount(0)
+        const card = await boxOf(playCard(page))
+        expect((await boxOf(confirm(page, 'Play'))).x, 'in the column on a desktop').toBeGreaterThan(card.x + card.width)
+
+        await grid(page).getByRole('button', { name: 'Book Binders', exact: true }).click()
+        await confirm(page, 'Play').click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('played War Tortoise to their site, discarding Book Binders first (Crop Rotation)')
+        await expect(history(page)).toContainText('(Wild Cry)')
+    })
+
+    test('a tap puts Wild Cry down, and the play is sent without it; "Turn faceup" shows Wild Cry alone', async ({ page }) => {
+        await choose(page, 'facedownCards', 'Turn faceup')
+        await expect(column(page).locator('h4')).toHaveText(['Cards'])
+        await cardToggle(page, 'denizen.beast.wild-cry').click()
+        await expect(cardToggle(page, 'denizen.beast.wild-cry')).toHaveAttribute('aria-pressed', 'false')
+        await undoButton(page).click()
+        await expect(cardToggle(page, 'denizen.beast.wild-cry')).toHaveAttribute('aria-pressed', 'true')
+        await cardToggle(page, 'denizen.beast.wild-cry').click()
+        await confirm(page, 'Play').click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('turned War Tortoise faceup as an adviser')
+        await expect(history(page)).not.toContainText('Wild Cry')
+    })
+
+    test('"Discard": the Cracked Horn as a second place, the discard pile picked; "Under the world deck" sends the Horn', async ({ page }) => {
+        await choose(page, 'facedownCards', 'Discard')
+        await expect(column(page).locator('h4')).toHaveText(['To'])
+        const pile = grid(page).getByRole('button', { name: 'The discard pile', exact: true })
+        const deck = grid(page).getByRole('button', { name: 'Under the world deck', exact: true })
+        await expect(pile).toHaveAttribute('aria-pressed', 'true')
+        await expect(deck).toHaveAttribute('aria-pressed', 'false')
+        await expectOneWidth(grid(page).getByRole('button', { name: /^(The discard pile|Under the world deck)$/ }))
+        await expect(cardRow(page, 'denizen.beast.wild-cry')).toHaveCount(0)
+        await deck.click()
+        await expect(deck).toHaveAttribute('aria-pressed', 'true')
+        await expect(pile).toHaveAttribute('aria-pressed', 'false')
+        await expect(confirm(page, 'Discard')).toHaveText('Discard')
+        await confirm(page, 'Discard').click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('discarded a card under the world deck (Cracked Horn)')
+    })
+
+    test('a full site: "Play" waits for a card to go first, with no red line; the card picked uses Crop Rotation', async ({ page }) => {
+        await choose(page, 'facedownFullSite', 'To your site')
+        await expect(grid(page).getByRole('button', { name: 'Captains', exact: true })).toBeVisible()
+        await expect(confirm(page, 'Play')).toHaveCount(0)
+        await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
+        await grid(page).getByRole('button', { name: 'Captains', exact: true }).click()
+        await confirm(page, 'Play').click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('discarding Captains first (Crop Rotation)')
+    })
+
+    test('New Growth: its sites join "Play to:", and the site picked uses it; the step grows under the card', async ({ page }) => {
+        await choose(page, 'facedownNewGrowth', 'To your site')
+        const playTo = grid(page).getByRole('combobox')
+        const sites = await playTo.locator('option').allTextContents()
+        expect(sites.length).toBeGreaterThan(2)
+        const card = await boxOf(playCard(page))
+        const steps = await boxOf(column(page))
+        expect(steps.y + steps.height, 'the column taller than the card').toBeGreaterThan(card.y + card.height)
+        // The last site is in the Hinterland, which the People's Favor does not reach and New Growth does.
+        const far = sites.at(-1) ?? ''
+        await playTo.selectOption({ label: far })
+        await confirm(page, 'Play').click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText(`played War Tortoise to ${far} (New Growth)`)
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            test('the card 170 px beside one column, drawn larger than 100 px; every button 44 px tall, inside the panel; the confirm under both, as wide as its words', async ({ page }) => {
+                const cases: [TableFixture.TableName, string, 'Play' | 'Discard'][] = [
+                    ['facedownCards', 'To your site', 'Play'],
+                    ['facedownCards', 'Discard', 'Discard'],
+                    ['facedownFullSite', 'To your site', 'Play']
+                ]
+                for (const [scene, play, word] of cases) {
+                    await choose(page, scene, play)
+                    if (scene === 'facedownFullSite') {
+                        await grid(page).getByRole('button', { name: 'Captains', exact: true }).click()
+                    }
+                    expect(Math.abs((await cardHeight(page)) - 170)).toBeLessThanOrEqual(1)
+                    const card = await boxOf(playCard(page))
+                    expect(card.height, `${scene} ${play}: drawn larger than 100 px`).toBeGreaterThan(100)
+                    const panel = await panelContent(page)
+                    const buttons = grid(page).locator('[data-facedown-play] button')
+                    for (const button of await buttons.all()) {
+                        // The confirm is drawn once, in the column on a desktop and under both on a phone.
+                        if (!(await button.isVisible())) continue
+                        const label = (await button.getAttribute('aria-label')) ?? (await button.textContent()) ?? ''
+                        expect(inside(await boxOf(button), panel), `${label}: inside the panel`).toBe(true)
+                        // The magnifiers and the small cards to discard first are pictures, not rows of words.
+                        if (label.startsWith('Enlarge ') || (await button.locator('img').count()) > 0 && !(await button.getAttribute('aria-pressed'))) continue
+                        const height = await button.evaluate((element) => (element instanceof HTMLElement ? element.offsetHeight : 0))
+                        expect(height, `${label}: 44 tall`).toBeGreaterThanOrEqual(44)
+                    }
+                    const done = await boxOf(confirm(page, word))
+                    expect(done.y, 'under the card').toBeGreaterThan(card.y + card.height)
+                    expect(done.width, 'as wide as its words').toBeLessThan(120)
                     expect(await clippedLabels(page)).toEqual([])
                 }
             })

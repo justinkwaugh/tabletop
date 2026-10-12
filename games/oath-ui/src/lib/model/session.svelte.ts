@@ -66,9 +66,11 @@ import {
     type PeekTarget,
     type LetPeekSubject,
     type ConspiracyPlay,
+    type CardPower,
     type LegalChoice,
     type ModifierUse,
     type PowerChoice,
+    type PowerUseKey,
     type QuestionAnswer,
     type SearchResolveChoice,
     type SearchSource,
@@ -121,11 +123,16 @@ import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import { letPeekKey } from './letPeekChoices.js'
 import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
 import {
+    NO_PLAY_CARDS,
     adviserDiscardFirstOptions,
     adviserOtherSites,
     adviserPlacements,
-    type AdviserPlacement
+    rowsAtStart,
+    sitePlayUses,
+    type AdviserPlacement,
+    type FacedownPlayCards
 } from './adviserPlacements.js'
+import { powerUseKey, samePowerUse } from './powerUse.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
     dimsTheMap,
@@ -535,13 +542,21 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.adviserCardId === undefined ? this.legalAdvisers : []
     }
 
+    // R-6.1, R-7.4 — each legal adviser's plays, with the cards each may declare: judged once per
+    // state, since every later step reads them.
+    private readonly adviserOptions = $derived.by(
+        (): { cardId: string; placements: AdviserPlacement[] }[] => {
+            const playerId = this.liveTurnSeatId
+            if (!playerId) return []
+            return this.legalAdvisers.map((cardId) => ({
+                cardId,
+                placements: adviserPlacements(this.gameState, playerId, cardId)
+            }))
+        }
+    )
+
     get facedownAdviserOptions(): { cardId: string; placements: AdviserPlacement[] }[] {
-        const playerId = this.liveTurnSeatId
-        if (!playerId) return []
-        return this.legalAdvisers.map((cardId) => ({
-            cardId,
-            placements: adviserPlacements(this.gameState, playerId, cardId)
-        }))
+        return this.adviserOptions
     }
 
     // R-6.3 — the relics a Peek can show that this player has not already seen.
@@ -628,15 +643,27 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const placement = this.facedownAdviserOptions
             .find((adviser) => adviser.cardId === cardId)
             ?.placements.find((p) => p.play === play)
+        const cards = placement?.cards ?? NO_PLAY_CARDS
+        const carried = rowsAtStart(cards)
         const asks =
             (placement?.room.needed ?? 0) > 0 ||
             (play === SearchPlay.Site &&
-                (adviserOtherSites(this.gameState, playerId, cardId).length > 0 ||
-                    adviserDiscardFirstOptions(this.gameState, playerId, cardId, undefined).length >
-                        0)) ||
+                (adviserOtherSites(this.gameState, playerId, cardId, cards.placing, carried)
+                    .length > 0 ||
+                    adviserDiscardFirstOptions(
+                        this.gameState,
+                        playerId,
+                        cardId,
+                        undefined,
+                        cards.placing,
+                        carried
+                    ).length > 0)) ||
             whenPlayedChoices(this.gameState, playerId, cardId, play, true).length > 0 ||
             // R-5.1.4.IV — the take, or why there is none to make.
-            play === SearchPlay.Conspiracy
+            play === SearchPlay.Conspiracy ||
+            // R-6.1, R-7.4 — a card the play may use is shown in the step it changes.
+            cards.rows.length > 0 ||
+            cards.places.length > 0
         if (!asks) {
             await this.playFacedownAdviser(cardId, play)
             return
@@ -715,12 +742,100 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    /** R-5.1.4.I the People's Favor — the other sites a staged site play may go to. */
+    /** R-6.1, R-7.4 — the cards the staged play may use, each in the step it changes. */
+    private get adviserPlayCards(): FacedownPlayCards {
+        return this.stagedAdviserPlacement?.cards ?? NO_PLAY_CARDS
+    }
+
+    /** R-7.4 — a card that adds to the play once made (Wild Cry): a row above the confirm. */
+    get adviserCardRows(): CardPower[] {
+        return this.adviserPlayCards.rows
+    }
+
+    /** The rows in use: the free gains from the start, until a tap puts one down. */
+    get adviserRowsInUse(): ModifierUse[] {
+        const tapped = this.selection.value('playCards')
+        if (tapped === undefined) return rowsAtStart(this.adviserPlayCards)
+        return this.adviserCardRows
+            .filter((row) => tapped.some((use) => samePowerUse(use, row)))
+            .map(powerUseKey)
+    }
+
+    toggleAdviserCardRow(use: PowerUseKey): void {
+        if (!this.adviserCardRows.some((row) => samePowerUse(row, use))) return
+        const inUse = this.adviserRowsInUse
+        this.selection.set(
+            'playCards',
+            inUse.some((row) => samePowerUse(row, use))
+                ? inUse.filter((row) => !samePowerUse(row, use))
+                : [...inUse, powerUseKey(use)]
+        )
+    }
+
+    /** R-6.1 — where a discarded adviser may go besides the discard pile (the Cracked Horn). */
+    get adviserDiscardPlaces(): CardPower[] {
+        return this.adviserPlay === SearchPlay.Discard ? this.adviserPlayCards.places : []
+    }
+
+    /** The place picked: the discard pile until a card's place is. */
+    get adviserDiscardPlace(): PowerUseKey | 'pile' {
+        const place = this.selection.value('discardPlace')
+        return place !== undefined &&
+            place !== 'pile' &&
+            this.adviserDiscardPlaces.some((card) => samePowerUse(card, place))
+            ? place
+            : 'pile'
+    }
+
+    setAdviserDiscardPlace(place: PowerUseKey | 'pile'): void {
+        if (place === 'pile') this.selection.set('discardPlace', place)
+        else if (this.adviserDiscardPlaces.some((card) => samePowerUse(card, place))) {
+            this.selection.set('discardPlace', powerUseKey(place))
+        }
+    }
+
+    /** R-6.1, R-7.4 — the placing cards the picked site, and the card picked to go first, need. */
+    private get adviserSiteUses(): ModifierUse[] {
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return []
+        return (
+            sitePlayUses(
+                this.gameState,
+                playerId,
+                cardId,
+                { toSiteId: this.adviserToSite, discardFirstCardId: this.adviserDiscardFirst },
+                this.adviserPlayCards.placing,
+                this.adviserRowsInUse
+            ) ?? []
+        )
+    }
+
+    /**
+     * R-6.1, R-7.4 — the cards the play is judged and sent with: the rows in use, the cards the
+     * site picks need, and the place picked for a discard.
+     */
+    get adviserModifiers(): ModifierUse[] {
+        const place = this.adviserDiscardPlace
+        return [
+            ...this.adviserRowsInUse,
+            ...this.adviserSiteUses,
+            ...(place === 'pile' ? [] : [place])
+        ]
+    }
+
+    /** R-5.1.4.I the People's Favor, New Growth — the other sites a staged site play may go to. */
     get adviserOtherSites(): string[] {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return []
-        return adviserOtherSites(this.gameState, playerId, cardId)
+        return adviserOtherSites(
+            this.gameState,
+            playerId,
+            cardId,
+            this.adviserPlayCards.placing,
+            this.adviserRowsInUse
+        )
     }
 
     get adviserToSite(): string | undefined {
@@ -733,12 +848,22 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         else if (this.adviserOtherSites.includes(siteId)) this.selection.set('toSite', siteId)
     }
 
-    /** R-11.10 the Great Slum, R-5.1.4.I the People's Favor — a denizen discarded before the site play. */
+    /**
+     * R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded
+     * before the site play.
+     */
     get adviserDiscardFirstOptions(): string[] {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return []
-        return adviserDiscardFirstOptions(this.gameState, playerId, cardId, this.adviserToSite)
+        return adviserDiscardFirstOptions(
+            this.gameState,
+            playerId,
+            cardId,
+            this.adviserToSite,
+            this.adviserPlayCards.placing,
+            this.adviserRowsInUse
+        )
     }
 
     get adviserDiscardFirst(): string | undefined {
@@ -766,9 +891,31 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.selection.value('whenPlayed') ?? emptyPicks()
     }
 
-    /** "Play" waits until every When Played choice has its picks. */
+    /** "Play" waits until every When Played choice has its picks, and a card to go first that the site needs. */
     get adviserPlayComplete(): boolean {
-        return picksComplete(this.adviserPlayChoices, this.adviserPlayPicks)
+        return (
+            picksComplete(this.adviserPlayChoices, this.adviserPlayPicks) &&
+            !this.adviserFirstPending
+        )
+    }
+
+    /** R-5.1.4.I, R-11.10, Crop Rotation — a site play that only a card discarded first opens. */
+    private get adviserFirstPending(): boolean {
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return false
+        if (this.adviserDiscardFirst !== undefined) return false
+        return (
+            this.adviserDiscardFirstOptions.length > 0 &&
+            sitePlayUses(
+                this.gameState,
+                playerId,
+                cardId,
+                { toSiteId: this.adviserToSite },
+                this.adviserPlayCards.placing,
+                this.adviserRowsInUse
+            ) === undefined
+        )
     }
 
     setAdviserPlayPicks(picks: PowerChoicePicks): void {
@@ -792,6 +939,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             discardedAdviserCardIds: this.adviserPlayDiscards,
             toSiteId: this.adviserToSite,
             discardFirstCardId: this.adviserDiscardFirst,
+            modifiers: this.adviserModifiers,
             tolls: HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         })
     }
@@ -807,7 +955,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.adviserConspiracy,
             this.adviserPlayDiscards,
             this.adviserToSite,
-            this.adviserDiscardFirst
+            this.adviserDiscardFirst,
+            this.adviserModifiers
         )
     }
 
@@ -818,7 +967,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         conspiracy?: ConspiracyPlay,
         discardedAdviserCardIds: string[] = [],
         toSiteId?: string,
-        discardFirstCardId?: string
+        discardFirstCardId?: string,
+        modifiers: ModifierUse[] = []
     ): Promise<void> {
         const playerId = this.liveTurnSeatId
         assertExists(playerId, 'A facedown adviser is played only by the live seat')
@@ -833,6 +983,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 ...(discardedAdviserCardIds.length > 0 ? { discardedAdviserCardIds } : {}),
                 ...(toSiteId ? { toSiteId } : {}),
                 ...(discardFirstCardId ? { discardFirstCardId } : {}),
+                ...(modifiers.length > 0 ? { modifiers } : {}),
                 ...(tolls.length > 0 ? { tolls } : {})
             })
         )

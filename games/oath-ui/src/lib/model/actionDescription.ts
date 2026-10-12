@@ -684,10 +684,23 @@ function describeActionCited(
     if (isPlayFacedownAdviser(action)) {
         // R-6.1 plays the adviser faceup, which shows it, or discards it, which does not.
         const meta = action.metadata
+        // R-7.4 — a card that chose where the play went is named after the place it chose.
+        const usedFor = (cardId: string, did: boolean) =>
+            did ? gainCards(meta?.modifiers, new Set([cardId]), named) : []
+        const elsewhere = action.toSiteId
+        const grew = usedFor(NEW_GROWTH, elsewhere !== undefined)
+        const first = action.discardFirstCardId
+        const rotated = usedFor(CROP_ROTATION, first !== undefined)
+        const horn = usedFor(CRACKED_HORN, meta?.discardToWorldDeck === true)
+        const played = shownCard(meta?.playedCardId)
         return (
-            describeAdviserPlay(action.play, shownCard(meta?.playedCardId)) +
+            (action.play === SearchPlay.Site && elsewhere !== undefined
+                ? `played ${played} to ${names.site(elsewhere)}${inBrackets(grew)}`
+                : describeAdviserPlay(action.play, played)) +
+            (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
+            (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0) +
-            cardsInBrackets(meta?.modifiers, named) +
+            cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
             whenPlayedClause(
                 meta?.whenPlayed,
                 meta?.playedCardId,
@@ -839,6 +852,9 @@ function describeActionCited(
 }
 
 const TRUTHFUL_HARP = 'relic.truthful-harp'
+const NEW_GROWTH = 'denizen.beast.new-growth'
+const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+const CRACKED_HORN = 'relic.cracked-horn'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
 
