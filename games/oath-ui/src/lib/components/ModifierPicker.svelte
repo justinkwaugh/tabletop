@@ -1,5 +1,6 @@
 <script lang="ts">
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ActionType, IMPERIAL_WARBANDS, powerKey, type CardPower } from '@tabletop/oath'
     import CardLine from '$lib/components/CardLine.svelte'
     import CardToggleRow from '$lib/components/CardToggleRow.svelte'
@@ -59,19 +60,25 @@
             {/each}
         </div>
         {#each listed as power (powerKey(power.cardId, power.powerIndex))}
-            {#if gameSession.modifiers.isDeclared(powerUseKey(power))}
+            <!-- A card whose pile the menu's rows pick (Errand Boy, Observatory) draws no picker. -->
+            {#if gameSession.modifiers.isDeclared(powerUseKey(power)) && !gameSession.modifiers.picksInMenu(power)}
                 {@const legal = gameSession.modifiers.choicesOf(power)}
+                {@const words = pickerWords(power.cardId)}
                 {#if legal.length > 0}
-                    <div class="mt-1">
-                        <div class="text-oath-text-muted mb-0.5">
-                            {cardName(power.cardId)}:
-                        </div>
+                    <div class="mt-1" data-modifier-picks={power.cardId}>
+                        <!-- A card's own few words ("To:") stand for its name. -->
+                        {#if !words.pile}
+                            <div class="text-oath-text-muted mb-0.5">
+                                {cardName(power.cardId)}:
+                            </div>
+                        {/if}
                         <PowerChoicePicker
                             choices={legal}
                             bind:picks={
                                 () => gameSession.modifiers.picksOf(powerUseKey(power)),
                                 (picks) => gameSession.modifiers.setPicks(powerUseKey(power), picks)
                             }
+                            {words}
                         />
                     </div>
                 {/if}

@@ -1,24 +1,39 @@
 <script lang="ts">
     import {
+        FAVOR_BANK_ORDER,
+        PlayerStatus,
         PowerChoiceKind,
         exchangeAllowanceOf,
         type LegalChoice,
         type PowerChoice,
+        type Region,
+        type Suit,
         type WarbandOwner
     } from '@tabletop/oath'
+    import { PlayerName } from '@tabletop/frontend-components'
+    import AnswerButton from '$lib/components/AnswerButton.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import CardLine from '$lib/components/CardLine.svelte'
     import CountPicker from '$lib/components/CountPicker.svelte'
+    import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import PileRows from '$lib/components/PileRows.svelte'
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
+    import TokenRow from '$lib/components/TokenRow.svelte'
+    import TokenText from '$lib/components/TokenText.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import BargainPicker from '$lib/components/BargainPicker.svelte'
     import PlayerChips from '$lib/components/PlayerChips.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
+    import { avatarImage } from '$lib/images/boardImages.js'
+    import { suitImage } from '$lib/images/suitImages.js'
+    import { favorToken } from '$lib/images/tileImages.js'
     import { noExchangePicks, type ExchangePicks } from '$lib/model/exchangeTerms.js'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { PickerWords } from '$lib/model/powerPickerWords.js'
+    import type { MayWords, PickerWords } from '$lib/model/powerPickerWords.js'
     import type { PowerSiteRow } from '$lib/model/powerSites.js'
     import {
         cardName,
@@ -26,24 +41,40 @@
         reliquaryLabel,
         siteName,
         slotLabel,
+        suitName,
         warbandOwnerName
     } from '$lib/model/names.js'
     import {
         allowsSeveral,
+        asked,
+        bankRuns,
         emptyPicks,
         exchangePartners,
         favorBankSuits,
+        FIRST_BRANCH,
         gridAt,
         gridCeilingAt,
         gridCounts,
+        isMay,
+        isOr,
+        mayOf,
         NO_OPTION,
         openCountCeiling,
         optionIndexOf,
         playerOptions,
+        runAt,
+        runBankOpen,
+        runCeilingAt,
+        runSuits,
         warbandGrids,
+        withBranch,
         withCount,
         withGridCount,
+        withMay,
         withOptionPick,
+        withRunCount,
+        withRunToggled,
+        type BankRun,
         type PowerChoicePicks,
         type WarbandGrid
     } from '$lib/model/powerChoices.js'
@@ -69,9 +100,12 @@
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
+    let favorBank = $derived(gameSession.gameState.favorBank)
 
     let countCeiling = $derived(openCountCeiling(gameSession.gameState, gameSession.myPlayer?.id))
     let grids = $derived(warbandGrids(choices))
+    let runs = $derived(bankRuns(choices))
+    const orWidth = new ChoiceWidth()
 
     function relicSlotLabel(slotId: string): string {
         if (/^reliquary\./.test(slotId)) return reliquaryLabel(slotId)
@@ -163,6 +197,12 @@
         }
     }
 
+    function regionsOf(options: readonly PowerChoice[]): Region[] {
+        return options.flatMap((option) =>
+            option.kind === PowerChoiceKind.Region ? [option.region] : []
+        )
+    }
+
     function setOption(legal: LegalChoice, i: number, pick: number) {
         picks = withOptionPick(picks, legal, i, pick)
     }
@@ -179,15 +219,145 @@
     function setGridCount(grid: WarbandGrid, row: number, count: number) {
         picks = withGridCount(picks, grid, row, count)
     }
+    // A tap on the Nth favor sets the bank's count to N; a tap on the last one picked sets none.
+    function tapRunFavor(run: BankRun, suit: Suit, count: number) {
+        const now = runSuits(run, choices, picks).filter((named) => named === suit).length
+        picks = withRunCount(run, choices, picks, suit, count === now ? 0 : count, favorBank[suit])
+    }
+    function tapRunBank(run: BankRun, suit: Suit) {
+        picks = withRunToggled(run, choices, picks, suit)
+    }
 </script>
+
+<!-- R-7.1.3 — a run of favor picks: a row of favor per bank that holds any, held to the run's
+     total; or, where each bank is named once, one row of the banks. -->
+{#snippet bankRun(run: BankRun, legal: LegalChoice)}
+    {@const suits = runSuits(run, choices, picks)}
+    {@const offered = favorBankSuits(legal.options)}
+    <div class="text-oath-text-muted mb-1">
+        <TokenText text={words.banks?.(run.total) ?? `${legal.spec.what ?? 'a favor bank'}:`} />
+    </div>
+    {#if run.distinct}
+        {@const banksWithFavor = offered.filter((suit) => favorBank[suit] > 0).length}
+        <SuitPicker
+            framed
+            suits={offered}
+            picked={suits}
+            open={(suit) =>
+                suits.length < run.total && runBankOpen(run, favorBank[suit], banksWithFavor)}
+            onpick={(suit) => tapRunBank(run, suit)}
+            {busy}
+        />
+    {:else}
+        <div class="flex flex-col gap-1">
+            {#each FAVOR_BANK_ORDER.filter((suit) => offered.includes(suit) && favorBank[suit] > 0) as suit (suit)}
+                {@const held = favorBank[suit]}
+                <div class="flex items-center gap-2" data-bank-row={suit}>
+                    <img
+                        class="h-7 w-7 shrink-0 max-sm:h-8 max-sm:w-8"
+                        src={suitImage(suit)}
+                        alt={suitName(suit)}
+                    />
+                    <TokenRow
+                        image={favorToken()}
+                        {held}
+                        addable={runCeilingAt(run, suits, suit, held)}
+                        picked={suits.filter((named) => named === suit).length}
+                        label={(n) => `${suitName(suit)} bank: ${n} favor`}
+                        ontap={(n) => tapRunFavor(run, suit, n)}
+                        {busy}
+                    />
+                </div>
+            {/each}
+        </div>
+    {/if}
+{/snippet}
+
+<!-- A card's "or": two answers of one width, neither picked until a tap (or the one legal). -->
+{#snippet orAnswers(legal: LegalChoice, i: number)}
+    {@const pick = optionIndexOf(legal, i, picks)}
+    {@const or = words.or}
+    {#if or?.row}
+        <div class="text-oath-text-muted mb-1">{or.row}</div>
+    {/if}
+    <div class="flex flex-wrap gap-2" role="group">
+        <AnswerButton
+            width={orWidth}
+            picked={pick === FIRST_BRANCH}
+            disabled={busy}
+            label={or?.first}
+            onclick={() => (picks = withBranch(picks, i, false))}
+        >
+            <TokenText text={or?.first ?? 'no'} />
+        </AnswerButton>
+        {#if legal.options.length > 0}
+            <AnswerButton
+                width={orWidth}
+                picked={pick === 0}
+                disabled={busy}
+                label={or
+                    ? [or.second, or.secondConsequence].filter(Boolean).join(' · ')
+                    : undefined}
+                onclick={() => (picks = withBranch(picks, i, true))}
+            >
+                <TokenText text={or?.second ?? legal.spec.what ?? 'yes'} />
+                {#if or?.secondConsequence}
+                    <span class="text-oath-text-muted" aria-hidden="true">·</span>
+                    <span class="text-oath-danger">{or.secondConsequence}</span>
+                {/if}
+            </AnswerButton>
+        {/if}
+    </div>
+{/snippet}
+
+<!-- A card's "may": a toggle row, off, saying what the yes brings and, on its own line in rose,
+     what it ends; what it gives the Chancellor first, in gold. -->
+{#snippet mayLine(may: MayWords)}
+    {#if may.toChancellor}
+        <span class="block text-oath-accent"
+            >{may.toChancellor} to <PlayerName
+                playerId={gameSession.gameState.chancellorId()}
+            /></span
+        >
+    {/if}
+    <span class="block"><CardLine gives={may.gives} /></span>
+    <span class="block"><CardLine consequence={may.consequence} /></span>
+{/snippet}
+
+{#snippet mayRow(legal: LegalChoice, i: number)}
+    {@const on = legal.options[optionIndexOf(legal, i, picks)] !== undefined}
+    {@const may = words.may}
+    {@const me = gameSession.myPlayer?.id}
+    {#snippet mayDetail()}
+        {#if may}{@render mayLine(may)}{/if}
+    {/snippet}
+    <MenuToggleRow
+        image={avatarImage(
+            PlayerStatus.Citizen,
+            me ? gameSession.colors.getPlayerColor(me) : undefined
+        )}
+        name={may?.name ?? legal.spec.what ?? 'yes'}
+        detail={may ? mayDetail : undefined}
+        {on}
+        disabled={busy}
+        onclick={() => (picks = withMay(choices, picks, i, !on))}
+    />
+{/snippet}
 
 {#each choices as legal, i (i)}
     {@const pick = optionIndexOf(legal, i, picks)}
     {@const option = legal.options[pick]}
     {@const grid = gridAt(grids, i)}
+    {@const run = runAt(runs, i)}
     {@const onMap = words.site ? siteOnMap(i) : undefined}
-    <!-- A grid draws every spec it answers once, at its first. -->
-    {#if !grid || grid.specs[0] === i}
+    {@const shown =
+        (!grid || grid.specs[0] === i) &&
+        (!run || run.specs[0] === i) &&
+        asked(choices, i, picks) &&
+        !(isMay(legal) && legal.options.length === 0)}
+    <!-- A grid or a run draws every spec it answers once, at its first; a may's own pick shows
+         only while the may is on, and a may the card does not offer now is not drawn. -->
+    {#if shown}
         <div class="mb-1 text-xs">
             {#if grid}
                 {@const counts = gridCounts(grid, picks)}
@@ -216,6 +386,8 @@
                     onchange={(value) =>
                         (picks = { ...picks, bargain: { ...picks.bargain, [i]: value } })}
                 />
+            {:else if run}
+                {@render bankRun(run, legal)}
             {:else if onMap && words.site}
                 <!-- R-7.1.3 — the site is a tap on the lit map, once the picks before it are made. -->
                 {#if onMap.ready}
@@ -289,6 +461,17 @@
                         )}
                     {busy}
                 />
+            {:else if legal.spec.kind === PowerChoiceKind.Region && !allowsSeveral(legal)}
+                <!-- R-9.4 — a discard pile is a row: its top back and count, then its name. -->
+                {@const regions = regionsOf(legal.options)}
+                <div class="text-oath-text-muted mb-1">
+                    {words.pile ?? `${legal.spec.what ?? 'a discard pile'}:`}
+                </div>
+                <PileRows
+                    {regions}
+                    picked={option?.kind === PowerChoiceKind.Region ? option.region : undefined}
+                    onpick={(region) => tapOption(legal, i, pick, regions.indexOf(region))}
+                />
             {:else if legal.spec.kind === PowerChoiceKind.FavorBank}
                 {@const banks = favorBankSuits(legal.options)}
                 <div class="text-oath-text-muted mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
@@ -326,27 +509,25 @@
                         <span>{label(choice)}</span>
                     </label>
                 {/each}
-            {:else if legal.spec.kind === PowerChoiceKind.Yes}
-                <label class="flex items-center gap-2">
-                    <input
-                        disabled={busy}
-                        type="checkbox"
-                        checked={pick >= 0}
-                        onchange={(event) =>
-                            setOption(legal, i, event.currentTarget.checked ? 0 : NO_OPTION)}
-                    />
-                    <span>{legal.spec.what ?? 'yes'}</span>
-                </label>
+            {:else if isOr(legal)}
+                {@render orAnswers(legal, i)}
+            {:else if isMay(legal)}
+                {@render mayRow(legal, i)}
             {:else}
                 {@const cards = powerChoiceCards(legal.options, resolve)}
+                {@const underMay = mayOf(choices, i) !== undefined}
                 {#if cards}
-                    <div class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</div>
+                    <div class="text-oath-text-muted">
+                        {underMay && words.may?.take
+                            ? words.may.take
+                            : `${legal.spec.what ?? legal.spec.kind}:`}
+                    </div>
                     <CardChoiceRow
                         choices={cards}
                         picked={pick >= 0 ? [String(pick)] : []}
                         onpick={(key) => tapOption(legal, i, pick, Number(key))}
                         {busy}
-                        height={80}
+                        height={underMay ? 56 : 80}
                     />
                 {:else}
                     <label class="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import {
-    legalChoices,
+    offeredChoices,
     type BattlePlanUse,
     type CardPower,
     type HydratedOathGameState,
@@ -25,7 +25,7 @@ export function planChoices(
     playerId: string,
     power: CardPower
 ): LegalChoice[] {
-    return legalChoices(state, playerId, power)
+    return offeredChoices(state, playerId, power)
 }
 
 /** Warning Signals' moves, one at a time as Messenger's are; undefined for a plan whose picks are not moves. */

@@ -9,6 +9,7 @@ import type { StagedSelectionState } from '@tabletop/frontend-components'
 import { StagedFlow, type StagesCover } from './stagedFlow.svelte.js'
 import type { PowerChoicePicks } from './powerChoices.js'
 import type { ConspiracyPick } from './conspiracyTake.js'
+import type { PilePlace } from './adviserPlacements.js'
 
 /**
  * R-7.4 — a modifier declared on the staged action, with the choices its text opens. `opened`
@@ -41,7 +42,7 @@ export type OathValueByStage = {
     whenPlayed: PowerChoicePicks
     conspiracy: ConspiracyPick
     adviserDiscards: string[]
-    discardPlace: PowerUseKey | 'pile'
+    discardPlace: PowerUseKey | 'pile' | PilePlace
     playCards: PowerUseKey[]
     amount: number
     favorStart: Suit

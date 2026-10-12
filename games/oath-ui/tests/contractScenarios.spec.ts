@@ -4007,22 +4007,15 @@ test.describe('Messenger’s moves', () => {
         expect(await wrappedLabels(page)).toEqual([])
     })
 
-    test('a power’s pick from a list is as wide as its longest option, not the panel', async ({ page }) => {
+    test('a power’s discard piles are rows as wide as the widest of them, not the panel', async ({ page }) => {
         await openTable(page, 'pickerWhistle')
         await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
-        // Scryer's pile is still a list; a power's site is picked on the map.
-        const select = grid(page).locator('[data-action-power="denizen.discord.scryer"] select')
-        const { drawn, longest } = await select.evaluate((element) => {
-            if (!(element instanceof HTMLElement)) throw Error('a select')
-            const drawn = element.offsetWidth
-            element.style.flexGrow = '0'
-            element.style.width = 'max-content'
-            const longest = element.offsetWidth
-            element.style.flexGrow = ''
-            element.style.width = ''
-            return { drawn, longest }
-        })
-        expect(Math.abs(drawn - longest)).toBeLessThanOrEqual(1)
+        // Scryer's pile is a row per pile; a power's site is picked on the map.
+        const scryer = grid(page).locator('[data-action-power="denizen.discord.scryer"]')
+        await expect(scryer.locator('select')).toHaveCount(0)
+        const rows = scryer.getByRole('button', { name: / pile, \d+ cards?$/ })
+        await expectOneWidth(rows)
+        expect((await boxOf(rows.first())).width).toBeLessThan((await boxOf(scryer)).width / 2)
     })
 
     test.describe('on a 375 px phone', () => {
@@ -8263,6 +8256,294 @@ test.describe('the facedown play: the card beside its plays, each card in the st
                     expect(done.width, 'as wide as its words').toBeLessThan(120)
                     expect(await clippedLabels(page)).toEqual([])
                 }
+            })
+        })
+    }
+})
+
+/** Scenario 69: a power's discard piles, repeated banks, "may" and "or". */
+test.describe('scenario 69: a power’s piles, banks, “may” and “or”', () => {
+    const SCRYER = 'denizen.discord.scryer'
+    const CONVOYS = 'denizen.nomad.convoys'
+    const ALCHEMIST = 'denizen.arcane.alchemist'
+    const MEMORY = 'denizen.beast.memory-of-nature'
+    const VAULT = 'denizen.arcane.forgotten-vault'
+    const powerRow = (page: Page, cardId: string) => grid(page).locator(`[data-action-power="${cardId}"]`)
+    const pileRows = (scope: Locator) => scope.getByRole('button', { name: /^(Cradle|Provinces|Hinterland) pile, \d+ cards?$/ })
+    const pile = (scope: Locator, region: string) => scope.getByRole('button', { name: new RegExp(`^${region} pile, `) })
+    const bankFavor = (scope: Locator, bank: string, n: number) =>
+        scope.getByRole('button', { name: `${bank} bank: ${n} favor`, exact: true })
+    const bankRows = (scope: Locator) => scope.locator('[data-bank-row]')
+    const useButton = (scope: Locator) => scope.getByRole('button', { name: /^Use(, paying .*)?$/ })
+    const play = (page: Page) => grid(page).getByRole('button', { name: 'Play', exact: true })
+    const pickedIn = (scope: Locator) => scope.locator('button[aria-pressed="true"]')
+
+    async function openPower(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await usePower(page).click()
+    }
+
+    /** The Search kept `card` and played it to the advisers: its When Played step, if it asks one. */
+    async function keepAsAdviser(page: Page, table: TableFixture.TableName, card: string) {
+        await openTable(page, table)
+        await grid(page).getByRole('button', { name: card }).first().click()
+        await grid(page).getByRole('button', { name: /adviser/i }).first().click()
+    }
+
+    async function searchWith(page: Page, ...cards: string[]) {
+        await openTable(page, 'pickerPiles')
+        await tile(page, 'Search').click()
+        for (const card of cards) await grid(page).getByRole('button', { name: new RegExp(card) }).first().click()
+    }
+
+    async function discardWithBracken(page: Page) {
+        await openTable(page, 'pickerFacedownBracken')
+        await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+        await grid(page).getByRole('button', { name: /^Discard/ }).first().click()
+    }
+
+    test('Scryer and Convoys: each pile a row with its back and count, nothing picked; a tap picks and Use shows', async ({ page }) => {
+        await openPower(page, 'pickerPiles')
+        const scryer = powerRow(page, SCRYER)
+        const convoys = powerRow(page, CONVOYS)
+        await expect(scryer.getByText('Peek at:', { exact: true })).toBeVisible()
+        await expect(convoys.getByText('Take:', { exact: true })).toBeVisible()
+        await expect(grid(page).locator('select')).toHaveCount(0)
+        await expect(pileRows(scryer)).toHaveCount(3)
+        await expect(pileRows(convoys)).toHaveCount(2)
+        await expect(pile(convoys, 'Provinces')).toHaveCount(0)
+        await expect(scryer.locator('[data-count]')).toHaveText(['5', '3', '8'])
+        await expectOneWidth(pileRows(scryer))
+        await expect(pickedIn(scryer)).toHaveCount(0)
+        await expect(useButton(scryer)).toHaveCount(0)
+        await expect(useButton(convoys)).toHaveCount(0)
+
+        await pile(scryer, 'Hinterland').click()
+        await expect(pile(scryer, 'Hinterland')).toHaveAttribute('aria-pressed', 'true')
+        await expect(useButton(scryer)).toHaveAccessibleName('Use, paying 1 secret')
+        await pile(convoys, 'Cradle').click()
+        await useButton(convoys).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).discardPiles).toEqual({ cradle: 0, provinces: 8, hinterland: 8 })
+    })
+
+    test('a Search with Errand Boy in use: its own pile stays a plain row; the other piles carry its cost in gold, and no list of its own', async ({ page }) => {
+        await searchWith(page, 'Errand Boy')
+        const menu = page.getByRole('list', { name: 'Sources to search' })
+        await expect(menu.getByRole('button')).toHaveCount(4)
+        await expect(menu.getByRole('button', { name: /^Search the Provinces discard pile: spend 2 Supply, draw 3$/ })).toBeVisible()
+        for (const region of ['Cradle', 'Hinterland']) {
+            await expect(menu.getByRole('button', { name: new RegExp(`^Search the ${region} discard pile: spend 2 Supply and 1 favor, draw 3$`) })).toBeVisible()
+        }
+        await expect(grid(page).locator('select')).toHaveCount(0)
+        await expect(grid(page).locator('[data-modifier-picks]')).toHaveCount(0)
+        // The own pile is sent without Errand Boy, so its favor stays with Dana.
+        await menu.getByRole('button', { name: /^Search the Provinces discard pile/ }).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('Searching')
+        expect((await call(page, 'tableFacts')).favorOf.dana).toBe(3)
+    })
+
+    test('Bracken in a Search: "To:" over the three piles, then Top and Bottom, nothing picked; the menu waits for both', async ({ page }) => {
+        await searchWith(page, 'Bracken')
+        const picks = grid(page).locator('[data-modifier-picks="denizen.beast.bracken"]')
+        const menu = page.getByRole('list', { name: 'Sources to search' })
+        await expect(picks.getByText('To:', { exact: true })).toBeVisible()
+        await expect(pileRows(picks)).toHaveCount(3)
+        await expect(picks.getByRole('button', { name: 'Top', exact: true })).toHaveAttribute('aria-pressed', 'false')
+        await expect(picks.getByRole('button', { name: 'Bottom', exact: true })).toHaveAttribute('aria-pressed', 'false')
+        await expect(pickedIn(picks)).toHaveCount(0)
+        await expect(menu.getByRole('button')).toHaveCount(0)
+        await pile(picks, 'Cradle').click()
+        await expect(menu.getByRole('button')).toHaveCount(0)
+        await picks.getByRole('button', { name: 'Bottom', exact: true }).click()
+        await expect(menu.getByRole('button')).toHaveCount(2)
+    })
+
+    test('Alchemist and Memory of Nature: a favor row per bank that holds any, nothing picked; held to four and to X', async ({ page }) => {
+        await openPower(page, 'pickerBanks')
+        const alchemist = powerRow(page, ALCHEMIST)
+        const memory = powerRow(page, MEMORY)
+        await expect(alchemist.getByText(/^Gain 4/)).toBeVisible()
+        await expect(bankRows(alchemist)).toHaveCount(5)
+        // No Beast bank to move from, and the empty Nomad bank has no row.
+        await expect(bankRows(memory)).toHaveCount(4)
+        await expect(memory.locator('[data-bank-row="beast"], [data-bank-row="nomad"]')).toHaveCount(0)
+        await expect(pickedIn(grid(page))).toHaveCount(0)
+        await expect(useButton(alchemist)).toHaveCount(0)
+        // X is 3: the fourth Order favor cannot be reached.
+        await expect(bankFavor(memory, 'Order', 4)).toBeDisabled()
+
+        await bankFavor(alchemist, 'Order', 3).click()
+        await expect(pickedIn(alchemist)).toHaveCount(3)
+        await expect(useButton(alchemist)).toHaveCount(0)
+        await expect(bankFavor(alchemist, 'Hearth', 2)).toBeDisabled()
+        await bankFavor(alchemist, 'Hearth', 1).click()
+        await expect(bankFavor(alchemist, 'Discord', 1)).toBeDisabled()
+        await expect(useButton(alchemist)).toHaveAccessibleName('Use, paying 2 secrets')
+        await useButton(alchemist).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.rhys).toBe(6)
+        const banks = (await call(page, 'tableFacts')).favorBank
+        expect([banks.order, banks.hearth]).toEqual([1, 2])
+    })
+
+    test('Salad Days: one row of the six banks, nothing picked, the empty bank shut; three picks shut the rest and Play shows', async ({ page }) => {
+        await keepAsAdviser(page, 'pickerSalad', 'Salad Days')
+        const bank = (name: string) => grid(page).getByRole('button', { name: new RegExp(`^${name} bank, \\d favor$`) })
+        await expect(grid(page).getByText(/^Gain .* from 3:$/)).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: / bank, \d favor$/ })).toHaveCount(6)
+        await expect(bank('Nomad')).toBeDisabled()
+        await expect(play(page)).toHaveCount(0)
+        for (const name of ['Discord', 'Order', 'Hearth']) await bank(name).click()
+        await expect(bank('Arcane')).toBeDisabled()
+        await bank('Order').click()
+        await expect(bank('Arcane')).toBeEnabled()
+        await bank('Order').click()
+        await play(page).click()
+        await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+    })
+
+    test('Salad Days with two banks holding favor: the empty banks fill the third pick', async ({ page }) => {
+        await keepAsAdviser(page, 'pickerSaladShort', 'Salad Days')
+        const bank = (name: string) => grid(page).getByRole('button', { name: new RegExp(`^${name} bank, \\d favor$`) })
+        await expect(bank('Nomad')).toBeEnabled()
+        await bank('Order').click()
+        await bank('Hearth').click()
+        await bank('Nomad').click()
+        await expect(play(page)).toBeVisible()
+    })
+
+    test('Royal Ambitions: "Become a Citizen" a row, off, Play at once; on, the relics as backs, none picked, Play waits', async ({ page }) => {
+        await keepAsAdviser(page, 'pickerMay', 'Royal Ambitions')
+        const row = grid(page).getByRole('button', { name: /Become a Citizen/ })
+        await expect(row).toHaveAttribute('aria-pressed', 'false')
+        await expect(row).toContainText('ends your Act Phase')
+        await expect(grid(page).getByText('Take:', { exact: true })).toHaveCount(0)
+        await expect(play(page)).toBeVisible()
+        await expect(grid(page).locator('input[type="checkbox"]')).toHaveCount(0)
+
+        await row.click()
+        await expect(row).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByText('Take:', { exact: true })).toBeVisible()
+        const relics = grid(page).getByRole('button', { name: /^Reliquary space \d$/ })
+        await expect(relics).toHaveCount(4)
+        await expect(pickedIn(grid(page))).toHaveCount(1)
+        await expect(play(page)).toHaveCount(0)
+        await relics.nth(1).click()
+        await expect(play(page)).toBeVisible()
+        await row.click()
+        await expect(grid(page).getByText('Take:', { exact: true })).toHaveCount(0)
+        await row.click()
+        await expect(play(page)).toHaveCount(0)
+    })
+
+    test('Royal Ambitions played by a Citizen: nothing to ask, so the Search goes straight on', async ({ page }) => {
+        await keepAsAdviser(page, 'pickerMayCitizen', 'Royal Ambitions')
+        await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /Become a Citizen/ })).toHaveCount(0)
+    })
+
+    test('Forgotten Vault: "Darkest Secret:" over Place and Burn, one width, neither picked; Burn picked, Use burns one', async ({ page }) => {
+        await openPower(page, 'pickerVault')
+        const vault = powerRow(page, VAULT)
+        const place = vault.getByRole('button', { name: 'Place secret', exact: true })
+        const burn = vault.getByRole('button', { name: 'Burn secret', exact: true })
+        await expect(vault.getByText('Darkest Secret:', { exact: true })).toBeVisible()
+        await expect(place).toHaveAttribute('aria-pressed', 'false')
+        await expect(burn).toHaveAttribute('aria-pressed', 'false')
+        await expectOneWidth(vault.getByRole('button', { name: /secret$/ }))
+        await expect(useButton(vault)).toHaveCount(0)
+        await burn.click()
+        await expect(burn).toHaveAttribute('aria-pressed', 'true')
+        await useButton(vault).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).darkestSecret).toBe(2)
+    })
+
+    test('Forgotten Vault at the last secret: no Burn, Place picked, Use shows and places one', async ({ page }) => {
+        await openPower(page, 'pickerVaultLast')
+        const vault = powerRow(page, VAULT)
+        await expect(vault.getByRole('button', { name: 'Burn secret', exact: true })).toHaveCount(0)
+        await expect(vault.getByRole('button', { name: 'Place secret', exact: true })).toHaveAttribute('aria-pressed', 'true')
+        await useButton(vault).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).darkestSecret).toBe(2)
+    })
+
+    test('the facedown discard with Bracken: its piles under "To", Top and Bottom, nothing picked; Discard waits, then sends under the pile', async ({ page }) => {
+        await discardWithBracken(page)
+        const to = grid(page).locator('[data-discard-to]')
+        const discard = grid(page).getByRole('button', { name: /^Discard Giant Python$/ })
+        await expect(to.getByText('To', { exact: true })).toBeVisible()
+        await expect(pileRows(to)).toHaveCount(3)
+        await expect(pickedIn(to)).toHaveCount(0)
+        await expect(discard).toHaveCount(0)
+        await pile(to, 'Hinterland').click()
+        await expect(discard).toHaveCount(0)
+        await to.getByRole('button', { name: 'Bottom', exact: true }).click()
+        await discard.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).discardPiles.hinterland).toBe(9)
+    })
+
+    for (const viewport of [
+        { width: 375, height: 812 },
+        { width: 402, height: 874 }
+    ]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            /** Every control laid out at least 44 px tall inside the panel, no label clipped. */
+            async function controlsFit(page: Page, controls: Locator, count: number) {
+                await expect(controls).toHaveCount(count)
+                const panel = await boxOf(grid(page))
+                for (const box of await boxesOf(controls)) expect(inside(box, panel)).toBe(true)
+                const heights = await controls.evaluateAll((buttons) =>
+                    buttons.map((button) => (button instanceof HTMLElement ? button.offsetHeight : 0))
+                )
+                for (const height of heights) expect(height).toBeGreaterThanOrEqual(44)
+                expect(await clippedLabels(page)).toEqual([])
+            }
+
+            test('the pile rows and their Use', async ({ page }) => {
+                await openPower(page, 'pickerPiles')
+                await controlsFit(page, pileRows(grid(page)), 5)
+                await pile(powerRow(page, SCRYER), 'Cradle').click()
+                await controlsFit(page, useButton(powerRow(page, SCRYER)), 1)
+            })
+
+            test('the favor rows', async ({ page }) => {
+                await openPower(page, 'pickerBanks')
+                await controlsFit(page, grid(page).getByRole('button', { name: / bank: \d favor$/ }), 23)
+            })
+
+            test('Salad Days’ banks and Play', async ({ page }) => {
+                await keepAsAdviser(page, 'pickerSalad', 'Salad Days')
+                await controlsFit(page, grid(page).getByRole('button', { name: / bank, \d favor$/ }), 6)
+                for (const name of ['Discord', 'Order', 'Hearth']) {
+                    await grid(page).getByRole('button', { name: new RegExp(`^${name} bank`) }).click()
+                }
+                await controlsFit(page, play(page), 1)
+            })
+
+            test('the "may" row and the relics', async ({ page }) => {
+                await keepAsAdviser(page, 'pickerMay', 'Royal Ambitions')
+                await controlsFit(page, grid(page).getByRole('button', { name: /Become a Citizen/ }), 1)
+                await controlsFit(page, play(page), 1)
+            })
+
+            test('the "or" answers', async ({ page }) => {
+                await openPower(page, 'pickerVault')
+                await controlsFit(page, powerRow(page, VAULT).getByRole('button', { name: /secret$/ }), 2)
+            })
+
+            test('Bracken in a Search', async ({ page }) => {
+                await searchWith(page, 'Bracken')
+                const picks = grid(page).locator('[data-modifier-picks="denizen.beast.bracken"]')
+                await controlsFit(page, picks.getByRole('button'), 5)
+            })
+
+            test('Bracken on the facedown discard: "To" under the card', async ({ page }) => {
+                await discardWithBracken(page)
+                const to = grid(page).locator('[data-discard-to]')
+                await controlsFit(page, to.getByRole('button'), 5)
+                const card = await boxOf(grid(page).locator('[data-play-card]'))
+                expect((await boxOf(to)).y).toBeGreaterThan(card.y + card.height)
             })
         })
     }

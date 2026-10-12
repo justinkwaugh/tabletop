@@ -3,7 +3,7 @@ import { Color, assert } from '@tabletop/common'
 import { ActionType, MachineState, PowerChoiceKind, PowerTiming, Region, SearchSource, isSearch, powerIndexOf } from '@tabletop/oath'
 import { openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
-import { emptyPicks, withOptionPick } from './powerChoices.js'
+import { withBranch, withOptionPick } from './powerChoices.js'
 import type { OathGameSession } from './session.svelte.js'
 
 afterEach(() => {
@@ -50,22 +50,44 @@ function pickRegion(session: OathGameSession, cardId: string, region: Region) {
     const power = required(session.modifiers.options.find((p) => p.cardId === cardId), `${cardId} is usable`)
     const choice = required(session.modifiers.choicesOf(power)[0], `${cardId} asks for a region`)
     const pick = choice.options.findIndex((o) => o.kind === PowerChoiceKind.Region && o.region === region)
-    session.modifiers.setPicks(use(cardId), withOptionPick(emptyPicks(), choice, 0, pick))
+    session.modifiers.setPicks(use(cardId), withOptionPick(session.modifiers.picksOf(use(cardId)), choice, 0, pick))
+}
+
+/** Bracken's "or": the top of the pile (its first branch) or the bottom. */
+function pickSide(session: OathGameSession, bottom: boolean) {
+    session.modifiers.setPicks(use(BRACKEN), withBranch(session.modifiers.picksOf(use(BRACKEN)), 1, bottom))
 }
 
 describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
-    it('lists no source until Bracken’s region is picked, then the pawn’s pile once (Bracken names where the discards go)', () => {
+    it('lists no source until Bracken’s pile and side are both picked, then the pawn’s pile once (Bracken names where the discards go)', () => {
         const { session } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
         expect(session.searchRows).toEqual([])
         pickRegion(session, BRACKEN, Region.Hinterland)
+        expect(session.searchRows).toEqual([])
+        pickSide(session, false)
         expect(piles(session)).toEqual([Region.Cradle])
+    })
+
+    it('a side picked first still waits for the pile; Bottom sends Bracken’s yes', async () => {
+        const { session, sent } = searching([BRACKEN])
+        session.modifiers.declare(use(BRACKEN), true)
+        pickSide(session, true)
+        expect(session.searchRows).toEqual([])
+        pickRegion(session, BRACKEN, Region.Cradle)
+        await session.searchFrom(required(session.searchRows.find((row) => row.region === Region.Cradle), 'the Cradle pile is listed'))
+        const action = sent.mock.calls[0][0]
+        assert(isSearch(action), 'a Search is sent')
+        expect(action.modifiers).toEqual([
+            { ...use(BRACKEN), choices: [{ kind: PowerChoiceKind.Region, region: Region.Cradle }, { kind: PowerChoiceKind.Yes }] }
+        ])
     })
 
     it('a Search from a pile Observatory names keeps the pile Bracken sends the discards to', async () => {
         const { session, sent } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
         pickRegion(session, BRACKEN, Region.Hinterland)
+        pickSide(session, false)
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
 
@@ -81,7 +103,7 @@ describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
     it('one Search draws from one pile, so declaring a second modifier that names it puts the first down', () => {
         const { session } = searching([ERRAND_BOY])
         session.modifiers.declare(use(ERRAND_BOY), true)
-        expect(piles(session)).toEqual([Region.Provinces, Region.Hinterland])
+        expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
 
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(session.modifiers.isDeclared(use(ERRAND_BOY))).toBe(false)
@@ -89,7 +111,20 @@ describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
 
         session.modifiers.declare(use(ERRAND_BOY), true)
         expect(session.modifiers.isDeclared(use(OBSERVATORY))).toBe(false)
-        expect(piles(session)).toEqual([Region.Provinces, Region.Hinterland])
+        expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
+    })
+
+    it('with Errand Boy in use, the seat’s own pile stays and is sent without it; another pile is sent with it and its cost', async () => {
+        const { session, sent } = searching([ERRAND_BOY])
+        session.modifiers.declare(use(ERRAND_BOY), true)
+        const rows = session.searchRows.filter((row) => row.source === SearchSource.Discard)
+        expect(rows.map((row) => row.cardCost?.placeFavor)).toEqual([undefined, 1, 1])
+        expect(session.modifiers.picksInMenu(required(session.modifiers.options.find((p) => p.cardId === ERRAND_BOY), 'Errand Boy is usable'))).toBe(true)
+
+        await session.searchFrom(required(rows[0], 'the Cradle pile is listed'))
+        const own = sent.mock.calls[0][0]
+        assert(isSearch(own), 'a Search is sent')
+        expect(own.modifiers).toEqual([])
     })
 })
 

@@ -2,18 +2,30 @@ import {
     ActionType,
     HydratedOathGameState,
     HydratedPlayFacedownAdviser,
+    HydratedSearch,
+    PowerChoiceKind,
     SearchPlay,
+    discardRegionFor,
     discardTargetOf,
     isFreeGain,
-    legalChoices,
+    offeredChoices,
     playShowsCard,
     runAfter,
     usableModifiers,
     type ActiveModifier,
     type CardPower,
-    type ModifierUse
+    type LegalChoice,
+    type ModifierUse,
+    type Region
 } from '@tabletop/oath'
 import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
+import {
+    FIRST_BRANCH,
+    emptyPicks,
+    isOr,
+    powerChoicesFrom,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { powerUseKey } from './powerUse.js'
 
 // R-5.1.4 — the plays a Search and a facedown adviser print alike; an adviser play reads differently in each.
@@ -46,6 +58,8 @@ export type FacedownPlayCards = {
     rows: CardPower[]
     /** A place a discarded adviser may go besides the discard pile (the Cracked Horn). */
     places: CardPower[]
+    /** A card that names the pile, and the side, a discarded adviser goes to (Bracken). */
+    pile?: CardPower
     /** A card that opens a site to play to, or a card to discard first there (New Growth, Crop Rotation). */
     placing: ModifierUse[]
 }
@@ -87,11 +101,99 @@ function addsToThePlay(
 }
 
 /**
+ * A discard sent to a pile: the pile and the side picked so far. R-10.5 — with nothing picked,
+ * a discard goes on top of the next region's pile.
+ */
+export type PilePlace = { region?: Region; bottom?: boolean }
+
+/** R-10.5 — the pile a discard goes to without a card: the next region's, on top. */
+export function usualDiscardRegion(state: HydratedOathGameState, playerId: string): Region {
+    return discardRegionFor(HydratedSearch.drawRegion(state, playerId, []))
+}
+
+/** A pile card's picks for a pile and a side: its Region spec, then its "or" (Bracken's top or bottom). */
+function pilePicks(
+    legal: readonly LegalChoice[],
+    region: Region,
+    bottom: boolean
+): PowerChoicePicks {
+    const option: Record<number, number> = {}
+    legal.forEach((choice, index) => {
+        if (isOr(choice)) option[index] = bottom ? 0 : FIRST_BRANCH
+        const at = choice.options.findIndex(
+            (o) => o.kind === PowerChoiceKind.Region && o.region === region
+        )
+        if (at >= 0) option[index] = at
+    })
+    return { ...emptyPicks(), option }
+}
+
+/** The pile card declared for a pile and a side, as the play sends it. */
+export function pileCardUse(
+    state: HydratedOathGameState,
+    playerId: string,
+    card: CardPower,
+    region: Region,
+    bottom: boolean
+): ModifierUse {
+    const legal = offeredChoices(state, playerId, card)
+    return {
+        ...powerUseKey(card),
+        choices: powerChoicesFrom(legal, pilePicks(legal, region, bottom))
+    }
+}
+
+/**
+ * R-6.1, Bracken — the card a discarded adviser's pile and side are sent with: none while the
+ * pick is not whole, or is where the discard goes anyway (the next region's pile, on top).
+ */
+export function pilePlaceUses(
+    state: HydratedOathGameState,
+    playerId: string,
+    card: CardPower | undefined,
+    place: PilePlace
+): ModifierUse[] {
+    const { region, bottom } = place
+    if (!card || region === undefined || bottom === undefined) return []
+    if (region === usualDiscardRegion(state, playerId) && !bottom) return []
+    return [pileCardUse(state, playerId, card, region, bottom)]
+}
+
+/** The piles a pile card offers, in its options' order. */
+export function pileCardRegions(
+    state: HydratedOathGameState,
+    playerId: string,
+    card: CardPower
+): Region[] {
+    return offeredChoices(state, playerId, card).flatMap((choice) =>
+        choice.options.flatMap((o) => (o.kind === PowerChoiceKind.Region ? [o.region] : []))
+    )
+}
+
+/** R-7.4 — a card whose picks name the pile a discard goes to (Bracken), as the engine reads it. */
+function namesDiscardPile(
+    state: HydratedOathGameState,
+    playerId: string,
+    play: SearchPlay,
+    power: CardPower
+): boolean {
+    const [region] = pileCardRegions(state, playerId, power)
+    if (region === undefined) return false
+    const active = declaredAlone(
+        state,
+        playerId,
+        play,
+        pileCardUse(state, playerId, power, region, false)
+    )
+    return active !== undefined && discardTargetOf(state, playerId, active)?.region === region
+}
+
+/**
  * R-6.1, R-7.4 — each usable Search card the engine accepts alone on this play, by the step it
  * changes, as the engine's own hooks say: where a discard goes (the Cracked Horn, under Discard
  * only), what the play adds once made (Wild Cry, only where it adds something), or where a site
- * play may go (New Growth, Crop Rotation). A card that asks picks of its own (Bracken's pile) is
- * not offered on this play.
+ * play may go (New Growth, Crop Rotation). Of the cards that ask picks of their own, one that
+ * names the pile a discard goes to (Bracken) is offered under Discard; the others are not.
  */
 export function facedownPlayCards(
     state: HydratedOathGameState,
@@ -101,7 +203,16 @@ export function facedownPlayCards(
 ): FacedownPlayCards {
     const cards: FacedownPlayCards = { rows: [], places: [], placing: [] }
     for (const power of usableModifiers(state, playerId, ActionType.Search)) {
-        if (legalChoices(state, playerId, power).length > 0) continue
+        if (offeredChoices(state, playerId, power).length > 0) {
+            if (
+                play === SearchPlay.Discard &&
+                !cards.pile &&
+                namesDiscardPile(state, playerId, play, power)
+            ) {
+                cards.pile = power
+            }
+            continue
+        }
         const use = powerUseKey(power)
         const active = declaredAlone(state, playerId, play, use)
         if (!active) continue

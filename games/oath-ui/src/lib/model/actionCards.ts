@@ -1,7 +1,7 @@
 import {
     ActionType,
     MachineState,
-    legalChoices,
+    offeredChoices,
     freeActionTypesNow,
     powerKey,
     usableModifiers,
@@ -134,7 +134,7 @@ export function soleDeclarations(
     power: CardPower
 ): ModifierUse[] {
     const use = powerUseKey(power)
-    const legal = legalChoices(state, playerId, power)
+    const legal = offeredChoices(state, playerId, power)
     if (legal.length === 0) return [use]
     let picked: PowerChoicePicks[] = [emptyPicks()]
     legal.forEach((choice, index) => {

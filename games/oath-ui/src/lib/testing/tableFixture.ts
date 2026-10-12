@@ -11,6 +11,7 @@ import {
 import {
     ActionType,
     AnswerQuestion,
+    CardKind,
     Banner,
     CampaignDefend,
     CampaignSacrifice,
@@ -212,6 +213,7 @@ export type TableName =
     | 'warningSignals'
     | PickerScene
     | PowerSitesScene
+    | PickerTwoScene
     | 'historyAct'
     | 'historyCampaign'
     | 'historyDeals'
@@ -2539,6 +2541,189 @@ function powerPickerTable(scene: PickerScene): PlayedTable {
     return tableOf(state)
 }
 
+type PickerTwoScene =
+    | 'pickerPiles'
+    | 'pickerBanks'
+    | 'pickerSalad'
+    | 'pickerSaladShort'
+    | 'pickerMay'
+    | 'pickerMayCitizen'
+    | 'pickerVault'
+    | 'pickerVaultLast'
+    | 'pickerFacedownBracken'
+
+const PICKER_BANKS: Record<Suit, number> = {
+    [Suit.Discord]: 2,
+    [Suit.Arcane]: 2,
+    [Suit.Order]: 4,
+    [Suit.Hearth]: 3,
+    [Suit.Beast]: 1,
+    [Suit.Nomad]: 0
+}
+
+/**
+ * The rest of the power pickers: discard piles, repeated banks, the "may" and the "or". Seats
+ * Dana (purple), Rhys (red), Ann (blue) and Bea (yellow); Dana is the Chancellor.
+ * - `pickerPiles`: Dana's turn at the Great Slum (Provinces), with Scryer, Errand Boy and Bracken
+ *   faceup and Convoys at her site. Piles: Cradle 5, Provinces 3, Hinterland 8, a Vision on top.
+ * - `pickerBanks`: Rhys's turn, an Exile with Alchemist and Memory of Nature and 3 secrets. The
+ *   banks hold Discord 2, Arcane 2, Order 4, Hearth 3, Beast 1, Nomad 0; three Beast cards are
+ *   at sites, so X is 3.
+ * - `pickerSalad`: Rhys searching, with Salad Days drawn beside Wolves and Tutor; the same banks.
+ *   `pickerSaladShort`: only two banks hold favor.
+ * - `pickerMay`: Ann's turn, an Exile ruling the Mountain (2) and the Wastes (3), searching with
+ *   Royal Ambitions drawn; Dana rules only the Plains (2). The Reliquary holds four relics.
+ *   `pickerMayCitizen`: Ann is a Citizen.
+ * - `pickerVault`: Bea's turn at the Steppe, where Forgotten Vault stands, with 2 favor; Rhys holds
+ *   the Darkest Secret with 3 secrets on it. `pickerVaultLast`: one secret on it.
+ * - `pickerFacedownBracken`: Rhys's turn at the Mountain (Hinterland), Bracken faceup and Giant
+ *   Python facedown; the piles as `pickerPiles`.
+ */
+function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
+    const [plains, steppe] = mapSlotsFor(Region.Cradle)
+    const [slum, river] = mapSlotsFor(Region.Provinces)
+    const [mountain, wastes] = mapSlotsFor(Region.Hinterland)
+    const turnOf: Record<PickerTwoScene, string> = {
+        pickerPiles: 'dana',
+        pickerBanks: 'rhys',
+        pickerSalad: 'rhys',
+        pickerSaladShort: 'rhys',
+        pickerMay: 'ann',
+        pickerMayCitizen: 'ann',
+        pickerVault: 'bea',
+        pickerVaultLast: 'bea',
+        pickerFacedownBracken: 'rhys'
+    }
+    const searching = ['pickerSalad', 'pickerSaladShort', 'pickerMay', 'pickerMayCitizen'].includes(scene)
+    const may = scene === 'pickerMay' || scene === 'pickerMayCitizen'
+    const salad = scene === 'pickerSalad' || scene === 'pickerSaladShort'
+    const vault = scene === 'pickerVault' || scene === 'pickerVaultLast'
+    const seats: Record<string, Partial<OathPlayerState>> = {
+        dana:
+            scene === 'pickerPiles'
+                ? {
+                      siteId: slum,
+                      supply: 5,
+                      favor: 3,
+                      secrets: 2,
+                      advisers: [
+                          faceup('denizen.discord.scryer'),
+                          faceup('denizen.beast.errand-boy'),
+                          faceup('denizen.beast.bracken')
+                      ]
+                  }
+                : { siteId: plains },
+        rhys:
+            scene === 'pickerBanks'
+                ? {
+                      siteId: river,
+                      secrets: 3,
+                      advisers: [
+                          faceup('denizen.arcane.alchemist'),
+                          faceup('denizen.beast.memory-of-nature')
+                      ]
+                  }
+                : salad
+                  ? {
+                        siteId: river,
+                        secrets: 3,
+                        handIds: [
+                            'denizen.hearth.salad-days',
+                            'denizen.beast.wolves',
+                            'denizen.arcane.tutor'
+                        ]
+                    }
+                  : scene === 'pickerFacedownBracken'
+                    ? {
+                          siteId: mountain,
+                          supply: 3,
+                          favor: 2,
+                          secrets: 1,
+                          advisers: [
+                              faceup('denizen.beast.bracken'),
+                              { cardId: 'denizen.beast.giant-python', faceUp: false }
+                          ]
+                      }
+                    : { siteId: river, secrets: vault ? 1 : 0 },
+        ann: may
+            ? {
+                  siteId: mountain,
+                  status: scene === 'pickerMayCitizen' ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                  handIds: [
+                      'denizen.discord.royal-ambitions',
+                      'denizen.beast.wolves',
+                      'denizen.arcane.tutor'
+                  ]
+              }
+            : { siteId: river },
+        bea: vault ? { siteId: steppe, favor: 2 } : { siteId: river }
+    }
+    const colors: [string, Color][] = [
+        ['dana', Color.Purple],
+        ['rhys', Color.Red],
+        ['ann', Color.Blue],
+        ['bea', Color.Yellow]
+    ]
+    const state = testState(
+        colors.map(([playerId, color]) =>
+            testPlayer({
+                playerId,
+                color,
+                status: playerId === 'dana' ? PlayerStatus.Chancellor : PlayerStatus.Exile,
+                supply: 5,
+                favor: 2,
+                secrets: 1,
+                warbandsInPersonalBank:
+                    playerId === 'dana' ? { [IMPERIAL_WARBANDS]: 12 } : { [playerId]: 10 },
+                ...seats[playerId]
+            })
+        ),
+        {
+            machineState: searching ? MachineState.Searching : MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: {
+                [plains]: 'site.plains',
+                [steppe]: 'site.steppe',
+                [slum]: 'site.great-slums',
+                [river]: 'site.river',
+                [mountain]: 'site.mountain',
+                [wastes]: 'site.wastes'
+            },
+            denizensBySite: {
+                [plains]: ['denizen.beast.wild-cry'],
+                [steppe]: vault ? ['denizen.arcane.forgotten-vault'] : [],
+                [slum]: scene === 'pickerPiles' ? ['denizen.nomad.convoys'] : [],
+                [river]: ['denizen.beast.birdsong'],
+                [mountain]: ['denizen.beast.rangers'],
+                [wastes]: []
+            },
+            warbandsBySite: may
+                ? { [plains]: { [IMPERIAL_WARBANDS]: 2 }, [mountain]: { ann: 2 }, [wastes]: { ann: 3 } }
+                : {},
+            favorBank:
+                scene === 'pickerSaladShort'
+                    ? { ...PICKER_BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
+                    : PICKER_BANKS,
+            discardPileCounts: { cradle: 5, provinces: 3, hinterland: 8 },
+            discardTopBackType: {
+                cradle: CardKind.Denizen,
+                provinces: CardKind.Denizen,
+                hinterland: CardKind.Vision
+            },
+            banners: testBanners(vault ? { [Banner.DarkestSecret]: 'rhys' } : {}),
+            vault: testVaultWithRelics(
+                Object.fromEntries(RELIQUARY_RELICS.map((relic, index) => [reliquarySlotId(index), relic]))
+            )
+        }
+    )
+    state.banners[Banner.DarkestSecret].value = scene === 'pickerVault' ? 3 : 1
+    openTurn(state, turnOf[scene])
+    state.activePlayerIds = [turnOf[scene]]
+    return tableOf(state)
+}
+
 type PowerSitesScene = 'pickerSites' | 'pickerSitesOne' | 'pickerPalanquin'
 
 /**
@@ -4373,6 +4558,15 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerSites: () => powerSitesTable('pickerSites'),
     pickerSitesOne: () => powerSitesTable('pickerSitesOne'),
     pickerPalanquin: () => powerSitesTable('pickerPalanquin'),
+    pickerPiles: () => pickerTwoTable('pickerPiles'),
+    pickerBanks: () => pickerTwoTable('pickerBanks'),
+    pickerSalad: () => pickerTwoTable('pickerSalad'),
+    pickerSaladShort: () => pickerTwoTable('pickerSaladShort'),
+    pickerMay: () => pickerTwoTable('pickerMay'),
+    pickerMayCitizen: () => pickerTwoTable('pickerMayCitizen'),
+    pickerVault: () => pickerTwoTable('pickerVault'),
+    pickerVaultLast: () => pickerTwoTable('pickerVaultLast'),
+    pickerFacedownBracken: () => pickerTwoTable('pickerFacedownBracken'),
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
     historyDeals: () => historyWordsTable('deals')
@@ -4570,6 +4764,8 @@ export function tableFacts(): {
     secretsOf: Record<string, number>
     favorBank: Record<Suit, number>
     secretsOn: Record<string, number>
+    discardPiles: Record<Region, number>
+    darkestSecret: number
 } {
     const table = current()
     const state = table.gameState
@@ -4590,7 +4786,9 @@ export function tableFacts(): {
         favorBank: state.favorBank,
         secretsOn: Object.fromEntries(
             Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
-        )
+        ),
+        discardPiles: state.discardPileCounts,
+        darkestSecret: state.banners[Banner.DarkestSecret].value
     }
 }
 

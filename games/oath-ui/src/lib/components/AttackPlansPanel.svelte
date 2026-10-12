@@ -6,6 +6,7 @@
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.2.a then R-5.5.3 — the Citizens asked to join have answered; the attacker's plans come next.
@@ -47,6 +48,7 @@
                             () => draft.planPicksOf(power),
                             (picks) => draft.setPlanPicks(power, picks)
                         }
+                        words={pickerWords(power.cardId)}
                     />
                 </div>
             {/if}

@@ -15,6 +15,7 @@
         width = undefined,
         label = undefined,
         tagUnder = false,
+        count = undefined,
         onclick
     }: {
         image: string
@@ -35,6 +36,8 @@
         label?: string
         /** On a phone the tag goes under the line, for a row in a narrow column beside a card. */
         tagUnder?: boolean
+        /** A count on the picture's corner: a discard pile's cards, public (R-9.4). */
+        count?: number
         onclick: () => void
     } = $props()
 
@@ -68,7 +71,18 @@
     {onclick}
 >
     <span class="flex w-max max-w-full items-center gap-2.5" {@attach width?.measure}>
-        <img class="shrink-0 {SHAPES[shape]}" src={image} alt="" />
+        {#if count === undefined}
+            <img class="shrink-0 {SHAPES[shape]}" src={image} alt="" />
+        {:else}
+            <span class="relative shrink-0">
+                <img class="{SHAPES[shape]} block" src={image} alt="" />
+                <span
+                    class="absolute -bottom-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-oath-frame bg-oath-surface px-0.5 text-[10px] font-bold leading-none"
+                    aria-hidden="true"
+                    data-count>{count}</span
+                >
+            </span>
+        {/if}
         <span class="flex min-w-0 flex-col">
             <span class="text-[15px] font-bold"
                 >{#if typeof name === 'string'}{name}{:else}{@render name()}{/if}</span

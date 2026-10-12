@@ -8,6 +8,7 @@
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.3, R-7.5.2 — the defending side's battle plans, answered knowing
@@ -82,6 +83,7 @@
                                 () => defence.planPicksOf(power),
                                 (picks) => defence.setPlanPicks(power, picks)
                             }
+                            words={pickerWords(power.cardId)}
                         />
                     {/if}
                 </div>

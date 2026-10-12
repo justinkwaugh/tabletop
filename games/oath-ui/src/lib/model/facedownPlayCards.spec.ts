@@ -7,7 +7,9 @@ import {
     HydratedPlayFacedownAdviser,
     MachineState,
     OathRevision,
+    PowerChoiceKind,
     PowerTiming,
+    Region,
     SearchPlay,
     isPlayFacedownAdviser,
     type PlayFacedownAdviser,
@@ -245,10 +247,77 @@ describe('R-6.1, R-7.4 — the Cracked Horn: a second place under "Discard"', ()
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Adviser)
         expect(declared(lastSent())).toEqual([])
     })
+})
 
-    it('Bracken, which names a pile, is not offered on this play', async () => {
+describe('R-6.1, Bracken — its piles and their side under "To", nothing picked; Discard waits for both', () => {
+    it('lists all three piles, even the pawn’s own; nothing is picked and the play waits', async () => {
+        const { session, sent } = playing(table(WOLVES, [BRACKEN]))
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.adviserDiscardPileCard?.cardId).toBe(BRACKEN)
+        expect(session.adviserDiscardPiles).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
+        expect(session.adviserDiscardPlace).toEqual({})
+        expect(session.adviserPlayComplete).toBe(false)
+        session.setAdviserDiscardPile(Region.Hinterland)
+        expect(session.adviserPlayComplete).toBe(false)
+        session.setAdviserDiscardSide(true)
+        expect(session.adviserPlayComplete).toBe(true)
+    })
+
+    it('a side picked first keeps it when the pile is picked', async () => {
+        const { session } = playing(table(WOLVES, [BRACKEN]))
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
+        session.setAdviserDiscardSide(true)
+        expect(session.adviserPlayComplete).toBe(false)
+        session.setAdviserDiscardPile(Region.Cradle)
+        expect(session.adviserDiscardPlace).toEqual({ region: Region.Cradle, bottom: true })
+        expect(session.adviserPlayComplete).toBe(true)
+    })
+
+    it('another pile, or the bottom, uses Bracken: the play is sent with its pile and side', async () => {
+        const state = table(WOLVES, [BRACKEN])
+        const { session, lastSent } = playing(state)
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
+        session.setAdviserDiscardPile(Region.Hinterland)
+        session.setAdviserDiscardSide(true)
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = lastSent()
+        expect(action.modifiers).toEqual([
+            { ...use(BRACKEN), choices: [{ kind: PowerChoiceKind.Region, region: Region.Hinterland }, { kind: PowerChoiceKind.Yes }] }
+        ])
+        const applied = new HydratedPlayFacedownAdviser(action)
+        applied.apply(state)
+        expect(applied.metadata?.discardPileRegion).toBe(Region.Hinterland)
+        expect(applied.metadata?.discardToBottom).toBe(true)
+    })
+
+    it('the usual pile on top is where the discard goes anyway: sent without Bracken', async () => {
         const { session, lastSent } = playing(table(WOLVES, [BRACKEN]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
+        // R-10.5 — from the Cradle, the Provinces pile.
+        session.setAdviserDiscardPile(Region.Provinces)
+        session.setAdviserDiscardSide(false)
+        await session.confirmAdviserPlay()
+        expect(declared(lastSent())).toEqual([])
+    })
+
+    it('with the Cracked Horn, "Under the world deck" is in the same list; picking it sends the Horn alone', async () => {
+        const { session, lastSent } = playing(table(WOLVES, [BRACKEN], { relics: [HORN] }))
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
+        expect(session.adviserDiscardPlaces.map((power) => power.cardId)).toEqual([HORN])
+        expect(session.adviserDiscardPlace).toEqual({})
+        session.setAdviserDiscardPile(Region.Hinterland)
+        session.setAdviserDiscardPlace(use(HORN))
+        expect(session.adviserDiscardPlace).toEqual(use(HORN))
+        expect(session.adviserPlayComplete).toBe(true)
+        await session.confirmAdviserPlay()
+        expect(declared(lastSent())).toEqual([HORN])
+    })
+
+    it('is offered under Discard only: the site play is sent at once without it', async () => {
+        const { session, lastSent } = playing(table(WOLVES, [BRACKEN]))
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Site)
         expect(declared(lastSent())).toEqual([])
     })
 })

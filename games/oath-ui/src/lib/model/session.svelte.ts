@@ -72,6 +72,7 @@ import {
     type PowerChoice,
     type PowerUseKey,
     type QuestionAnswer,
+    type Region,
     type SearchResolveChoice,
     type SearchSource,
     type TravelTerms,
@@ -127,10 +128,13 @@ import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
     adviserPlacements,
+    pileCardRegions,
+    pilePlaceUses,
     rowsAtStart,
     sitePlayUses,
     type AdviserPlacement,
-    type FacedownPlayCards
+    type FacedownPlayCards,
+    type PilePlace
 } from './adviserPlacements.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
@@ -152,7 +156,7 @@ import {
     type RecoverBannerRow,
     type RecoverRelicRow
 } from './recoverRows.js'
-import { searchModifiers, searchRows, type SearchRow } from './searchRows.js'
+import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeModifiers, tradeRows, type TradeRow } from './tradeRows.js'
 import { travelModifiers, travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
@@ -663,7 +667,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             play === SearchPlay.Conspiracy ||
             // R-6.1, R-7.4 — a card the play may use is shown in the step it changes.
             cards.rows.length > 0 ||
-            cards.places.length > 0
+            cards.places.length > 0 ||
+            cards.pile !== undefined
         if (!asks) {
             await this.playFacedownAdviser(cardId, play)
             return
@@ -777,14 +782,41 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.adviserPlay === SearchPlay.Discard ? this.adviserPlayCards.places : []
     }
 
-    /** The place picked: the discard pile until a card's place is. */
-    get adviserDiscardPlace(): PowerUseKey | 'pile' {
+    /** R-6.1, Bracken — the card that names the pile, and the side, a discarded adviser goes to. */
+    get adviserDiscardPileCard(): CardPower | undefined {
+        return this.adviserPlay === SearchPlay.Discard ? this.adviserPlayCards.pile : undefined
+    }
+
+    /** Its piles, each a place under "To" ("even your region's"). */
+    get adviserDiscardPiles(): Region[] {
+        const playerId = this.liveTurnSeatId
+        const card = this.adviserDiscardPileCard
+        return playerId && card ? pileCardRegions(this.gameState, playerId, card) : []
+    }
+
+    /**
+     * The place picked. With a pile card, nothing until a pile and its side, or another card's
+     * place, is picked (a required pick starts empty); without one, the discard pile until a
+     * card's place is.
+     */
+    get adviserDiscardPlace(): PowerUseKey | 'pile' | PilePlace {
         const place = this.selection.value('discardPlace')
+        const piles = this.adviserDiscardPiles
+        if (
+            place !== undefined &&
+            place !== 'pile' &&
+            'cardId' in place &&
+            this.adviserDiscardPlaces.some((card) => samePowerUse(card, place))
+        ) {
+            return place
+        }
+        if (piles.length === 0) return 'pile'
         return place !== undefined &&
             place !== 'pile' &&
-            this.adviserDiscardPlaces.some((card) => samePowerUse(card, place))
+            !('cardId' in place) &&
+            (place.region === undefined || piles.includes(place.region))
             ? place
-            : 'pile'
+            : {}
     }
 
     setAdviserDiscardPlace(place: PowerUseKey | 'pile'): void {
@@ -792,6 +824,42 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         else if (this.adviserDiscardPlaces.some((card) => samePowerUse(card, place))) {
             this.selection.set('discardPlace', powerUseKey(place))
         }
+    }
+
+    /** A pile picked under "To", the side kept; another card's place gives way to it. */
+    setAdviserDiscardPile(region: Region): void {
+        if (!this.adviserDiscardPiles.includes(region)) return
+        this.selection.set('discardPlace', { ...this.pilePicked, region })
+    }
+
+    /** Top or bottom of the pile picked, or of the one still to pick. */
+    setAdviserDiscardSide(bottom: boolean): void {
+        if (this.adviserDiscardPiles.length === 0) return
+        this.selection.set('discardPlace', { ...this.pilePicked, bottom })
+    }
+
+    private get pilePicked(): PilePlace {
+        const place = this.adviserDiscardPlace
+        return place !== 'pile' && !('cardId' in place) ? place : {}
+    }
+
+    /** "Discard" waits while a pile card's place is half picked: a pile without its side, or neither. */
+    private get adviserDiscardPending(): boolean {
+        const place = this.adviserDiscardPlace
+        return (
+            place !== 'pile' &&
+            !('cardId' in place) &&
+            (place.region === undefined || place.bottom === undefined)
+        )
+    }
+
+    /** The card the place picked is sent with: a card's place, or the pile card when it moves the discard. */
+    private get adviserPlaceUses(): ModifierUse[] {
+        const playerId = this.liveTurnSeatId
+        const place = this.adviserDiscardPlace
+        if (place === 'pile' || !playerId) return []
+        if ('cardId' in place) return [place]
+        return pilePlaceUses(this.gameState, playerId, this.adviserDiscardPileCard, place)
     }
 
     /** R-6.1, R-7.4 — the placing cards the picked site, and the card picked to go first, need. */
@@ -816,12 +884,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
      * site picks need, and the place picked for a discard.
      */
     get adviserModifiers(): ModifierUse[] {
-        const place = this.adviserDiscardPlace
-        return [
-            ...this.adviserRowsInUse,
-            ...this.adviserSiteUses,
-            ...(place === 'pile' ? [] : [place])
-        ]
+        return [...this.adviserRowsInUse, ...this.adviserSiteUses, ...this.adviserPlaceUses]
     }
 
     /** R-5.1.4.I the People's Favor, New Growth — the other sites a staged site play may go to. */
@@ -895,7 +958,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get adviserPlayComplete(): boolean {
         return (
             picksComplete(this.adviserPlayChoices, this.adviserPlayPicks) &&
-            !this.adviserFirstPending
+            !this.adviserFirstPending &&
+            !this.adviserDiscardPending
         )
     }
 
@@ -1341,13 +1405,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
+    /**
+     * R-7.4 — a row is sent with the cards it was judged with: the seat's own pile without the card
+     * that names another pile, and a pile that card names with it.
+     */
     async searchFrom(row: SearchRow): Promise<void> {
         if (row.variant !== undefined) {
             const variant = this.modifiers.regionVariants[row.variant]
             assertExists(variant, 'A Search row names a pile its modifier offers')
             this.modifiers.setPicks(variant.use, variant.picks)
         }
-        await this.chooseSearchSource(row.source)
+        await this.chooseSearchSource(row.source, row.modifiers)
     }
 
     knownRelicAt(slotId: string | undefined): string | undefined {
@@ -1455,7 +1523,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    async chooseSearchSource(source: SearchSource): Promise<void> {
+    private async chooseSearchSource(
+        source: SearchSource,
+        modifiers: readonly ModifierUse[]
+    ): Promise<void> {
         const playerId = this.liveTurnSeatId
         assertExists(playerId, 'A Search source is offered only to the live seat')
         this.selection.set('option', source)
@@ -1465,12 +1536,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 type: ActionType.Search,
                 drawFrom: source,
                 revealsInfo: true,
-                modifiers: searchModifiers(
-                    this.gameState,
-                    playerId,
-                    source,
-                    this.modifiers.declared
-                ),
+                modifiers: [...modifiers],
                 ...(tolls.length > 0 ? { tolls } : {})
             })
         )

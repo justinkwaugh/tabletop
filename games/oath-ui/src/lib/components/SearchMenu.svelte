@@ -3,14 +3,18 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
+    import TokenText from '$lib/components/TokenText.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
+    import { answerCostText } from '$lib/model/actionCards.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { regionName } from '$lib/model/names.js'
+    import { pileBack } from '$lib/model/pileRows.js'
     import type { SearchRow } from '$lib/model/searchRows.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-5.1.1 — a row per source the engine accepts, its price on the button.
+    // R-5.1.1 — a row per source the engine accepts, its price on the button; a pile another card
+    // names (Errand Boy) adds that card's cost, in gold (R-7.1.2).
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
     let rows = $derived(gameSession.searchRows)
@@ -22,22 +26,26 @@
     const nameOf = (row: SearchRow) => sourceOf(row).replace(/^the/, 'The')
 
     function backOf(row: SearchRow): string {
-        const back =
+        return cardBack(
             row.source === SearchSource.WorldDeck
-                ? gameState.topCardBackType
+                ? (gameState.topCardBackType ?? CardKind.Denizen)
                 : row.region
-                  ? gameState.discardTopBackIn(row.region)
-                  : undefined
-        return cardBack(back ?? CardKind.Denizen)
+                  ? pileBack(gameState, row.region)
+                  : CardKind.Denizen
+        )
     }
 
     const payee = (playerId: string | undefined) =>
         playerId ? gameSession.getPlayerName(playerId) : 'the fire'
 
+    const cardCostOf = (row: SearchRow) => (row.cardCost ? answerCostText(row.cardCost) : undefined)
+
     function spoken(row: SearchRow): string {
         const tolls = row.favorTo.map((to) => `, give 1 favor to ${payee(to)}`).join('')
+        const card = cardCostOf(row)
+        const paid = card ? ` and ${card}` : ''
         const bottom = row.fromBottom ? ' from the bottom' : ''
-        return `Search ${sourceOf(row)}: spend ${row.cost} Supply${tolls}, draw ${row.draw}${bottom}`
+        return `Search ${sourceOf(row)}: spend ${row.cost} Supply${paid}${tolls}, draw ${row.draw}${bottom}`
     }
 
     // R-7.1.4 — the favor a toll takes goes to its payee, or is burned for the bandits.
@@ -75,8 +83,13 @@
             >
                 {@const payees = payeesOf(row)}
                 {@const burned = burnedOf(row)}
+                {@const card = cardCostOf(row)}
                 <span class="flex items-center gap-1.5 whitespace-nowrap text-oath-accent">
                     {row.cost} Supply
+                    {#if card}
+                        <span>+</span>
+                        <TokenText text={card} />
+                    {/if}
                     {#if payees.length > 0}
                         <span>+</span>
                         {@render favor(payees.length)}

@@ -26,6 +26,7 @@
         relicSiteName,
         siteName
     } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
 
     // The draft lives on the session, because the board's site layer toggles targets.
     let gameSession = getGameSession()
@@ -254,6 +255,7 @@
                                     () => draft.planPicksOf(use),
                                     (picks) => draft.setPlanPicks(use, picks)
                                 }
+                                words={pickerWords(power.cardId)}
                             />
                         </div>
                     {/if}

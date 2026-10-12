@@ -36,6 +36,7 @@ import {
     OathRevision,
     isAtLeastOathRevision,
     cardPower,
+    offeredChoices,
     powerMoveToll,
     powerTolls,
     type Toll
@@ -456,10 +457,16 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
             : undefined
     }
 
-    get powers() {
-        return this.playerId
-            ? HydratedUseActionPower.legalActionPowers(this.session.gameState, this.playerId)
-            : []
+    /** Each power with the choices its card offers now (a bank the run cannot name is not one). */
+    get powers(): LegalPowerUse[] {
+        const playerId = this.playerId
+        if (!playerId) return []
+        const state = this.session.gameState
+        return HydratedUseActionPower.legalActionPowers(state, playerId).map((use) => {
+            const printed = cardPower(use.cardId, use.powerIndex)
+            assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
+            return { ...use, choices: offeredChoices(state, playerId, printed) }
+        })
     }
 
     private get current(): PicksByPower | undefined {

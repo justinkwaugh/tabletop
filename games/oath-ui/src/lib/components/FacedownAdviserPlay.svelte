@@ -10,6 +10,10 @@
     import CardToggleRow from '$lib/components/CardToggleRow.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
+    import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import AnswerButton from '$lib/components/AnswerButton.svelte'
+    import PileRows from '$lib/components/PileRows.svelte'
+    import { cardBack } from '$lib/images/cardImages.js'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
@@ -19,12 +23,14 @@
     import { powerUseKey, samePowerUse } from '$lib/model/powerUse.js'
     import { actionCardLine, answerCostText } from '$lib/model/actionCards.js'
     import type { AdviserPlacement } from '$lib/model/adviserPlacements.js'
+    import { PILE_SIDES, pickerWords } from '$lib/model/powerPickerWords.js'
 
     // R-6.1 — the chosen facedown adviser large on the left, ringed, with its magnifier; its plays,
     // then every later step of the play, in one column beside it. R-7.4 — each Search card the play
     // may use sits in the step it changes: a site New Growth opens under "Play to:", a card Crop
-    // Rotation lets go first under "Discard first", the Cracked Horn's place under "To", and a card
-    // that adds to the play (Wild Cry) as a row above the confirm.
+    // Rotation lets go first under "Discard first", the Cracked Horn's place and Bracken's piles
+    // under "To", and a card that adds to the play (Wild Cry) as a row above the confirm. On a
+    // phone Bracken's piles run under the card: the column beside it is too narrow for them.
     let { cardId, placements }: { cardId: string; placements: AdviserPlacement[] } = $props()
 
     let gameSession = getGameSession()
@@ -33,6 +39,7 @@
     const playWidth = new ChoiceWidth()
     const placeWidth = new ChoiceWidth()
     const rowWidth = new ChoiceWidth()
+    const sideWidth = new ChoiceWidth()
 
     let name = $derived(cardName(cardId))
     // 280 px tall on a desktop, 170 on a phone; a landscape Vision keeps a portrait card's width.
@@ -53,9 +60,56 @@
     let complete = $derived(play !== undefined && gameSession.adviserPlayComplete)
     let reason = $derived(gameSession.adviserPlayReason)
     let confirmWord = $derived(play === SearchPlay.Discard ? 'Discard' : 'Play')
+    let piles = $derived(gameSession.adviserDiscardPiles)
+    let pilePicked = $derived(place !== 'pile' && !('cardId' in place) ? place : undefined)
+    let pilesUnder = $derived(layout.narrow && piles.length > 0)
 
     const heading = 'text-[11px] font-semibold uppercase tracking-widest text-oath-heading'
 </script>
+
+<!-- Bracken: its piles, the Cracked Horn's world deck in the same list, then the pile's side;
+     nothing picked until a tap, and "Discard" waits for a pile and a side, or the deck. -->
+{#snippet pileTo()}
+    <div data-discard-to>
+        <h4 class="mb-1 {heading}">To</h4>
+        <PileRows
+            regions={piles}
+            picked={pilePicked?.region}
+            onpick={(region) => gameSession.setAdviserDiscardPile(region)}
+            width={placeWidth}
+        >
+            {#snippet after()}
+                {#each gameSession.adviserDiscardPlaces as card (powerKey(card.cardId, card.powerIndex))}
+                    <MenuToggleRow
+                        image={cardBack(gameSession.gameState.topCardBackType ?? CardKind.Denizen)}
+                        name="Under the world deck"
+                        shape="card"
+                        on={place !== 'pile' && 'cardId' in place && samePowerUse(place, card)}
+                        disabled={busy}
+                        width={placeWidth}
+                        onclick={() => gameSession.setAdviserDiscardPlace(powerUseKey(card))}
+                    />
+                {/each}
+            {/snippet}
+        </PileRows>
+        <div class="mt-1.5 flex gap-2" role="group">
+            <AnswerButton
+                width={sideWidth}
+                picked={pilePicked?.bottom === false}
+                disabled={busy}
+                onclick={() => gameSession.setAdviserDiscardSide(false)}
+                >{PILE_SIDES.first}</AnswerButton
+            >
+            <AnswerButton
+                width={sideWidth}
+                picked={pilePicked?.bottom === true}
+                disabled={busy}
+                onclick={() => gameSession.setAdviserDiscardSide(true)}
+                >{PILE_SIDES.second}</AnswerButton
+            >
+        </div>
+    </div>
+{/snippet}
 
 {#snippet confirm()}
     {#if reason}
@@ -174,9 +228,12 @@
                             () => gameSession.adviserPlayPicks,
                             (picks) => gameSession.setAdviserPlayPicks(picks)
                         }
+                        words={pickerWords(cardId)}
                     />
                 {/if}
-                {#if gameSession.adviserDiscardPlaces.length > 0}
+                {#if piles.length > 0}
+                    {#if !pilesUnder}{@render pileTo()}{/if}
+                {:else if gameSession.adviserDiscardPlaces.length > 0}
                     <div>
                         <h4 class="mb-1 {heading}">To</h4>
                         <div class="flex flex-col gap-1.5">
@@ -194,7 +251,9 @@
                                     label="Under the world deck"
                                     disabled={busy}
                                     width={placeWidth}
-                                    picked={place !== 'pile' && samePowerUse(place, card)}
+                                    picked={place !== 'pile' &&
+                                        'cardId' in place &&
+                                        samePowerUse(place, card)}
                                     onclick={() =>
                                         gameSession.setAdviserDiscardPlace(powerUseKey(card))}
                                 >
@@ -238,6 +297,7 @@
             {/if}
         </div>
     </div>
+    {#if chosen && pilesUnder}{@render pileTo()}{/if}
     {#if chosen && complete}
         <!-- On a phone the confirm goes under both, as wide as its words. -->
         <div class="flex flex-col items-start gap-1 sm:hidden">

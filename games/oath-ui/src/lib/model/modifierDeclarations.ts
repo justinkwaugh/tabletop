@@ -3,11 +3,12 @@ import {
     HydratedSearch,
     PowerChoiceKind,
     isFreeGain,
-    legalChoices,
+    offeredChoices,
     usableModifiers,
     type CardPower,
     type LegalChoice,
     type ModifierUse,
+    type PowerCost,
     type PowerUseKey,
     type Region
 } from '@tabletop/oath'
@@ -37,6 +38,8 @@ export type RegionVariant = {
     modifiers: ModifierUse[]
     use: PowerUseKey
     picks: PowerChoicePicks
+    /** R-7.1.2 — what the card naming the pile costs, paid with the row. */
+    cost: PowerCost
 }
 
 function cardAction(action: ActionType | undefined): CardAction | undefined {
@@ -93,7 +96,7 @@ export class ModifierDeclarations {
 
     choicesOf(power: CardPower): LegalChoice[] {
         const playerId = this.session.liveSeatId
-        return playerId ? legalChoices(this.session.gameState, playerId, power) : []
+        return playerId ? offeredChoices(this.session.gameState, playerId, power) : []
     }
 
     get declared(): ModifierUse[] {
@@ -105,7 +108,7 @@ export class ModifierDeclarations {
             if (down) return []
             const power = usable.find((p) => samePowerUse(p, use))
             if (!power) return []
-            const legal = legalChoices(this.session.gameState, playerId, power)
+            const legal = offeredChoices(this.session.gameState, playerId, power)
             if (legal.length === 0) return [use]
             return [{ ...use, choices: powerChoicesFrom(legal, picks ?? emptyPicks()) }]
         })
@@ -233,6 +236,11 @@ export class ModifierDeclarations {
         )
     }
 
+    /** R-7.4 — a card whose pile is picked by the Search menu's rows, so it draws no picker. */
+    picksInMenu(power: CardPower): boolean {
+        return this.drawPileChoice(power) !== undefined
+    }
+
     /**
      * R-7.4 — the region choice of a modifier that names the pile a Search draws from, as Errand Boy
      * and Observatory do: the engine draws from the region picked. Bracken's region is where the
@@ -242,7 +250,7 @@ export class ModifierDeclarations {
         const playerId = this.session.liveSeatId
         if (!playerId || this.session.selection.action !== ActionType.Search) return undefined
         const state = this.session.gameState
-        const legal = legalChoices(state, playerId, power)
+        const legal = offeredChoices(state, playerId, power)
         const index = legal.findIndex((choice) =>
             choice.options.some((option) => option.kind === PowerChoiceKind.Region)
         )
@@ -259,7 +267,10 @@ export class ModifierDeclarations {
         return drawsFromThePick ? { legal, index } : undefined
     }
 
-    /** R-7.4 — each pile the declared modifier lets the Search draw from. */
+    /**
+     * R-7.4 — each other pile the declared modifier lets the Search draw from. The seat's own pile
+     * is the menu's plain row, drawn without the card.
+     */
     get regionVariants(): RegionVariant[] {
         const playerId = this.session.liveSeatId
         const action = this.session.selection.action
@@ -276,12 +287,15 @@ export class ModifierDeclarations {
             const { legal, index } = pile
             const choice = legal[index]
             if (!choice) continue
+            const home = HydratedSearch.drawRegion(state, playerId, [])
             return choice.options.flatMap((option, pick) => {
-                if (option.kind !== PowerChoiceKind.Region) return []
+                if (option.kind !== PowerChoiceKind.Region || option.region === home) return []
                 const picks = withOptionPick(entry.picks ?? emptyPicks(), choice, index, pick)
                 const named = { ...entry.use, choices: powerChoicesFrom(legal, picks) }
                 const modifiers = declared.map((m) => (samePowerUse(m, entry.use) ? named : m))
-                return [{ region: option.region, modifiers, use: entry.use, picks }]
+                return [
+                    { region: option.region, modifiers, use: entry.use, picks, cost: power.cost }
+                ]
             })
         }
         return []

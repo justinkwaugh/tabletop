@@ -1,4 +1,5 @@
 import {
+    FAVOR_BANK_ORDER,
     PowerChoiceKind,
     usableFavor,
     type HydratedOathGameState,
@@ -243,10 +244,205 @@ export function gridAt(grids: readonly WarbandGrid[], index: number): WarbandGri
     return grids.find((grid) => grid.specs.includes(index))
 }
 
-// No default where the player has a choice: a required spec with one legal value starts on it.
+/**
+ * The first branch of a card's "or" picked (Forgotten Vault's place, Mountain Giant's ±1,
+ * Bracken's top): it sends no yes. R-7.1.3 — neither branch is a default, so none starts picked.
+ */
+export const FIRST_BRANCH = -2
+
+/** A card's "or": two answers, the yes its second branch. */
+export function isOr(legal: LegalChoice | undefined): boolean {
+    return legal?.spec.kind === PowerChoiceKind.Yes && legal.spec.or === true
+}
+
+/** A card's "may": an optional yes that is no branch of an "or", drawn as a toggle row, off. */
+export function isMay(legal: LegalChoice | undefined): boolean {
+    return legal?.spec.kind === PowerChoiceKind.Yes && legal.spec.min === 0 && !isOr(legal)
+}
+
+/** The "may" a later spec is part of (Royal Ambitions' relic is taken only with its yes). */
+export function mayOf(choices: readonly LegalChoice[], index: number): number | undefined {
+    for (let at = index - 1; at >= 0; at -= 1) if (isMay(choices[at])) return at
+    return undefined
+}
+
+function mayOn(choices: readonly LegalChoice[], index: number, picks: PowerChoicePicks): boolean {
+    const legal = choices[index]
+    return legal !== undefined && legal.options[optionIndexOf(legal, index, picks)] !== undefined
+}
+
+/** A spec drawn and sent: always, unless it is part of a "may" left off. */
+export function asked(
+    choices: readonly LegalChoice[],
+    index: number,
+    picks: PowerChoicePicks
+): boolean {
+    const may = mayOf(choices, index)
+    return may === undefined || mayOn(choices, may, picks)
+}
+
+/** The "may" on or off; off takes back what only its yes asked for. */
+export function withMay(
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    index: number,
+    on: boolean
+): PowerChoicePicks {
+    const option = Object.fromEntries(
+        Object.entries(picks.option).filter(([key]) => {
+            const at = Number(key)
+            return at !== index && (on || mayOf(choices, at) !== index)
+        })
+    )
+    return { ...picks, option: on ? { ...option, [index]: 0 } : option }
+}
+
+/** One of an "or"'s two answers picked; a picked answer stays picked, as the pick is required. */
+export function withBranch(
+    picks: PowerChoicePicks,
+    index: number,
+    second: boolean
+): PowerChoicePicks {
+    return { ...picks, option: { ...picks.option, [index]: second ? 0 : FIRST_BRANCH } }
+}
+
+/**
+ * R-7.1.3 — a run of favor bank picks that repeat one pick (Alchemist's four, Memory of Nature's
+ * X, Salad Days' three). A counted run names one favor per spec, as many from a bank as it
+ * holds, and comes to `total` (the engine's `favorTotal`); a distinct run names `total` banks,
+ * each once. Either is sent as its specs in the board's bank order, the first to the first spec.
+ */
+export type BankRun = { specs: number[]; distinct: boolean; total: number }
+
+function sameRun(one: LegalChoice, other: LegalChoice | undefined): boolean {
+    return (
+        other?.spec.kind === PowerChoiceKind.FavorBank &&
+        one.spec.what === other.spec.what &&
+        one.spec.min === other.spec.min &&
+        JSON.stringify(one.options) === JSON.stringify(other.options)
+    )
+}
+
+export function bankRuns(choices: readonly LegalChoice[]): BankRun[] {
+    const runs: BankRun[] = []
+    let index = 0
+    while (index < choices.length) {
+        const legal = choices[index]
+        let length = 1
+        while (
+            legal?.spec.kind === PowerChoiceKind.FavorBank &&
+            sameRun(legal, choices[index + length])
+        ) {
+            length += 1
+        }
+        const specs = Array.from({ length }, (_, at) => index + at)
+        if (legal && length > 1 && legal.spec.min > 0) {
+            runs.push({ specs, distinct: true, total: length })
+        } else if (legal && length > 1 && legal.total !== undefined) {
+            runs.push({ specs, distinct: false, total: Math.min(legal.total, length) })
+        }
+        index += length
+    }
+    return runs
+}
+
+export function runAt(runs: readonly BankRun[], index: number): BankRun | undefined {
+    return runs.find((run) => run.specs.includes(index))
+}
+
+/** The banks a run names, one entry per favor, in spec order. */
+export function runSuits(
+    run: BankRun,
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks
+): Suit[] {
+    return run.specs.flatMap((spec) => {
+        const legal = choices[spec]
+        const option = legal?.options[optionIndexOf(legal, spec, picks)]
+        return option?.kind === PowerChoiceKind.FavorBank ? [option.suit] : []
+    })
+}
+
+/** The run's specs given these banks, sorted to the board's order; the rest unpicked. */
+function withRunSuits(
+    run: BankRun,
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    suits: readonly Suit[]
+): PowerChoicePicks {
+    const ordered = FAVOR_BANK_ORDER.flatMap((suit) => suits.filter((named) => named === suit))
+    const option = Object.fromEntries(
+        Object.entries(picks.option).filter(([key]) => !run.specs.includes(Number(key)))
+    )
+    run.specs.forEach((spec, at) => {
+        const suit = ordered[at]
+        const pick = (choices[spec]?.options ?? []).findIndex(
+            (choice) => choice.kind === PowerChoiceKind.FavorBank && choice.suit === suit
+        )
+        if (suit !== undefined && pick >= 0) option[spec] = pick
+    })
+    return { ...picks, option }
+}
+
+/** The most a bank's row may be set to with the other rows as they are. */
+export function runCeilingAt(
+    run: BankRun,
+    suits: readonly Suit[],
+    suit: Suit,
+    held: number
+): number {
+    const others = suits.filter((named) => named !== suit).length
+    return Math.max(0, Math.min(held, run.total - others))
+}
+
+/** A counted run's bank set to `count` favor, kept within what it holds and what the total leaves. */
+export function withRunCount(
+    run: BankRun,
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    suit: Suit,
+    count: number,
+    held: number
+): PowerChoicePicks {
+    const suits = runSuits(run, choices, picks)
+    const kept = Math.max(0, Math.min(count, runCeilingAt(run, suits, suit, held)))
+    const others = suits.filter((named) => named !== suit)
+    return withRunSuits(run, choices, picks, [...others, ...Array<Suit>(kept).fill(suit)])
+}
+
+/** A distinct run's bank tapped: in, while the run has room; out, when it was in. */
+export function withRunToggled(
+    run: BankRun,
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    suit: Suit
+): PowerChoicePicks {
+    const suits = runSuits(run, choices, picks)
+    if (suits.includes(suit)) {
+        return withRunSuits(
+            run,
+            choices,
+            picks,
+            suits.filter((named) => named !== suit)
+        )
+    }
+    return suits.length < run.total ? withRunSuits(run, choices, picks, [...suits, suit]) : picks
+}
+
+/**
+ * R-7.1.3 — a distinct run's empty bank is not offered while enough banks hold favor to fill the
+ * run without it; with fewer, the empty banks fill the rest.
+ */
+export function runBankOpen(run: BankRun, favor: number, banksWithFavor: number): boolean {
+    return favor > 0 || banksWithFavor < run.total
+}
+
+// No default where the player has a choice: a required spec with one legal value starts on it,
+// and so does an "or" whose second branch is not offered.
 export function optionIndexOf(legal: LegalChoice, index: number, picks: PowerChoicePicks): number {
     const picked = picks.option[index]
     if (picked !== undefined) return picked
+    if (isOr(legal) && legal.options.length === 0) return FIRST_BRANCH
     return legal.spec.min > 0 && legal.options.length === 1 ? 0 : NO_OPTION
 }
 
@@ -274,10 +470,12 @@ export function withCount(picks: PowerChoicePicks, index: number, count: number)
  * A confirm waits until every spec has at least its least picks. A required single pick
  * counts the option the picker shows picked, as `powerChoicesFrom` sends it; an exchange also
  * waits for terms that move something, every picked site counted (R-10.8); a warband grid for
- * its least groups and, where the power names a total, that total.
+ * its least groups and, where the power names a total, that total; a counted bank run for its
+ * total; an "or" for one of its answers; and a "may" that is on, for what its yes asks.
  */
 export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
     const grids = warbandGrids(choices)
+    const runs = bankRuns(choices)
     return choices.every((legal, index) => {
         // Witch's Bargain: a player picked with nothing given is no entry yet.
         if (legal.spec.kind === PowerChoiceKind.Bargain) {
@@ -285,6 +483,19 @@ export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoic
         }
         const grid = gridAt(grids, index)
         if (grid) return index !== grid.specs[0] || gridComplete(grid, gridCounts(grid, picks))
+        const run = runAt(runs, index)
+        if (run && !run.distinct) {
+            return index !== run.specs[0] || runSuits(run, choices, picks).length === run.total
+        }
+        // An "or" waits for one of its answers; a may's own pick waits only while the may is on.
+        if (isOr(legal)) return optionIndexOf(legal, index, picks) !== NO_OPTION
+        if (mayOf(choices, index) !== undefined) {
+            return (
+                !asked(choices, index, picks) ||
+                legal.options.length === 0 ||
+                legal.options[optionIndexOf(legal, index, picks)] !== undefined
+            )
+        }
         if (allowsSeveral(legal)) {
             const picked = (picks.several[index] ?? []).filter(
                 (option) => legal.options[option] !== undefined
@@ -315,6 +526,7 @@ export function powerChoicesFrom(
             if (index === grid.specs[0]) out.push(...gridSent(grid, picks))
             return
         }
+        if (!asked(choices, index, picks)) return
         if (allowsSeveral(legal)) {
             for (const optionIndex of picks.several[index] ?? []) {
                 const option = legal.options[optionIndex]
