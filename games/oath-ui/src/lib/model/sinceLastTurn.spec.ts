@@ -10,6 +10,7 @@ import {
     OathRevision,
     OathType,
     PlayerStatus,
+    PowerQuestionKind,
     Recover,
     RecoverTargetKind,
     SearchSource,
@@ -435,6 +436,96 @@ describe('the rows, each kind', () => {
                 how: { kind: 'card', cardId: 'denizen.beast.long-lost-heir' }
             }
         ])
+    })
+
+    it('a Citizen made by a battle plan names the plan from the battle’s note, the attacker’s or the defender’s', () => {
+        const madeBy = (playerId: string) =>
+            afterMyTurn()
+                .act(
+                    {
+                        type: ActionType.CampaignSacrifice,
+                        playerId: 'bea',
+                        sacrifice: 0,
+                        metadata: {
+                            attack: 3,
+                            defense: 4,
+                            sacrificed: 0,
+                            attackerVictorious: playerId === 'bea',
+                            planNotes: [
+                                `Martial Culture: ${playerId} became a Citizen (2 warbands became Imperial); Supply refreshed`
+                            ]
+                        }
+                    },
+                    (state) => {
+                        player(state, playerId).status = PlayerStatus.Citizen
+                    }
+                )
+                .rest('bea', 'me')
+                .rows()
+        for (const playerId of ['bea', 'rhys']) {
+            expect(madeBy(playerId)).toEqual([
+                {
+                    kind: 'citizen',
+                    actionId: 'a2',
+                    playerId,
+                    how: { kind: 'card', cardId: 'denizen.order.martial-culture' }
+                }
+            ])
+        }
+    })
+
+    it('a Citizen made by Land Warden’s second card names that card, not the first', () => {
+        const story = afterMyTurn()
+            .act(
+                {
+                    type: ActionType.SearchResolve,
+                    playerId: 'bea',
+                    metadata: {
+                        playedCardId: 'denizen.hearth.wayside-inn',
+                        secondPlayedCardId: 'denizen.arcane.bewitch',
+                        secondWhenPlayed:
+                            'Bewitch: became a Citizen (2 warbands became Imperial); Supply refreshed, Act Phase over'
+                    }
+                },
+                (state) => {
+                    player(state, 'bea').status = PlayerStatus.Citizen
+                }
+            )
+            .rest('bea', 'me')
+        expect(story.rows()).toEqual([
+            {
+                kind: 'citizen',
+                actionId: 'a2',
+                playerId: 'bea',
+                how: { kind: 'card', cardId: 'denizen.arcane.bewitch' }
+            }
+        ])
+    })
+
+    it('a banner taken with the Conspiracy the Inquisitor found reads as the Conspiracy’s take', () => {
+        const story = afterMyTurn()
+            .act(
+                {
+                    type: ActionType.AnswerQuestion,
+                    playerId: 'bea',
+                    answer: {
+                        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                        play: true,
+                        conspiracy: {
+                            targetPlayerId: 'dana',
+                            take: { kind: 'banner', banner: Banner.PeoplesFavor }
+                        }
+                    }
+                },
+                (state) => {
+                    state.banners[Banner.PeoplesFavor].holderPlayerId = 'bea'
+                }
+            )
+            .rest('bea', 'me')
+        const how = story
+            .rows()
+            .flatMap((row) => (row.kind === 'banner' ? [[row.banner, row.toId, row.how]] : []))
+        expect(how).toEqual([[Banner.PeoplesFavor, 'bea', { kind: 'conspiracy' }]])
     })
 
     it('an Exile: exiled by the Scepter’s holder, or by their own choice, with the favor that moved (R-6.7, R-6.8)', () => {

@@ -260,7 +260,7 @@ function historyWords(text: string): string {
  * R-7.3.3, R-7.1.4, R-11.2, R-7.4, R-5.5.8 — what a triggered power, a Homeland, a modifier or a
  * battle plan did, as the row that set it off recorded it.
  */
-function recordedNotes(action: GameAction): readonly string[] {
+export function recordedNotes(action: GameAction): readonly string[] {
     if (isSearchResolve(action)) {
         const meta = action.metadata
         return [

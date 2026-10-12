@@ -2,7 +2,10 @@ import {
     Banner,
     OathType,
     PlayerStatus,
+    PowerQuestionKind,
     RecoverTargetKind,
+    cardDefinitions,
+    isAnswerQuestion,
     isCampaignResolveVictory,
     isExileCitizen,
     isOfferCitizenship,
@@ -15,10 +18,12 @@ import {
     isSelfExile,
     isTransferOathkeeper,
     isUseActionPower,
+    type ConspiracyTake,
     type HydratedOathGameState,
     type OathProjectedState
 } from '@tabletop/oath'
 import { RecordedHistory, type GameAction, type Turn } from '@tabletop/common'
+import { recordedNotes } from './actionDescription.js'
 import { nextWin, nextWinDiffers, type NextWin } from './nextWin.js'
 
 /** R-2.11 — the goal a new holder of the title meets. */
@@ -317,12 +322,36 @@ function offererOf(playerId: string, place: Place): string | undefined {
     return undefined
 }
 
+// "<Card>: [<seat> ]became a Citizen" — a card's own words on the record; no seat is the actor.
+const MADE_A_CITIZEN = /^([^:]+): (?:(\S+) )?became a Citizen\b/
+
+/**
+ * The card whose words on the record made this seat a Citizen, where the first played card did
+ * not: Land Warden's second card, its When Played kept apart (named only where its play was
+ * shown), or a battle plan's note (Martial Culture, the attacker's or the defender's).
+ */
+function cardThatMadeCitizen(action: GameAction, playerId: string): string | undefined {
+    const madeThem = (words: string) => {
+        const made = MADE_A_CITIZEN.exec(words)
+        return made !== null && (made[2] ?? action.playerId) === playerId
+    }
+    if (isSearchResolve(action)) {
+        const { secondPlayedCardId, secondWhenPlayed } = action.metadata ?? {}
+        if (secondPlayedCardId && secondWhenPlayed && madeThem(secondWhenPlayed)) {
+            return secondPlayedCardId
+        }
+    }
+    const note = recordedNotes(action).find(madeThem)
+    const name = note === undefined ? undefined : MADE_A_CITIZEN.exec(note)?.[1]
+    return name === undefined ? undefined : cardDefinitions().find((card) => card.name === name)?.id
+}
+
 function citizenHow(action: GameAction, playerId: string, place: Place): CitizenHow | undefined {
     if (isResolveCitizenshipOffer(action)) {
         const offererId = offererOf(playerId, place)
         return offererId ? { kind: 'offer', offererId } : undefined
     }
-    const cardId = playedCardId(action)
+    const cardId = cardThatMadeCitizen(action, playerId) ?? playedCardId(action)
     return cardId ? { kind: 'card', cardId } : undefined
 }
 
@@ -353,19 +382,29 @@ function bannerHow(action: GameAction, banner: Banner, place: Place): BannerHow 
     if (isCampaignResolveVictory(action) && action.metadata?.bannersSeized.includes(banner)) {
         return { kind: 'seized' }
     }
-    if (
-        (isSearchResolve(action) || isPlayFacedownAdviser(action)) &&
-        action.conspiracy?.take.kind === 'banner' &&
-        action.conspiracy.take.banner === banner
-    ) {
-        return { kind: 'conspiracy' }
-    }
+    const take = conspiracyTake(action)
+    if (take?.kind === 'banner' && take.banner === banner) return { kind: 'conspiracy' }
     if (isResolveCitizenshipOffer(action)) {
         const offererId = offererOf(action.playerId, place)
         return offererId ? { kind: 'offer', offererId } : undefined
     }
     const cardId = playedCardId(action)
     return cardId ? { kind: 'card', cardId } : undefined
+}
+
+/**
+ * R-5.1.4.IV — the Conspiracy's take: on the Search or facedown play that played it, or on the
+ * answer that played the one the Inquisitor found.
+ */
+function conspiracyTake(action: GameAction): ConspiracyTake | undefined {
+    if (isSearchResolve(action) || isPlayFacedownAdviser(action)) return action.conspiracy?.take
+    if (
+        isAnswerQuestion(action) &&
+        action.answer.kind === PowerQuestionKind.PlayOrDiscardConspiracy
+    ) {
+        return action.answer.conspiracy?.take
+    }
+    return undefined
 }
 
 /** R-2.11 — the Oath's goal; under Supremacy an Imperial holder holds it with the Empire's sites. */
