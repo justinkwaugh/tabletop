@@ -415,6 +415,9 @@ export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
     })
 }
 
+// Browsers fetch UI assets straight from the public bucket, which serves this object metadata.
+const IMMUTABLE_ARTIFACT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
 export const deployGameUiCommand = (
     repoRoot: string,
     packageId: string,
@@ -430,7 +433,14 @@ export const deployGameUiCommand = (
     return {
         label: `deploy-ui:${packageId}`,
         command: 'gcloud',
-        args: ['storage', 'rsync', '--recursive', sourceDir, destination],
+        args: [
+            'storage',
+            'rsync',
+            '--recursive',
+            `--cache-control=${IMMUTABLE_ARTIFACT_CACHE_CONTROL}`,
+            sourceDir,
+            destination
+        ],
         cwd: repoRoot,
         logPath: `/tmp/${packageId}-ui-deploy.log`,
         requiresDeploy: true
@@ -522,7 +532,7 @@ export const deployManifestCommand = (manifestPath: string, config: DeployConfig
     return {
         label: 'deploy-manifest',
         command: 'gcloud',
-        args: ['storage', 'cp', manifestPath, destination],
+        args: ['storage', 'cp', '--cache-control=no-store', manifestPath, destination],
         cwd: path.dirname(manifestPath),
         logPath: '/tmp/manifest-deploy.log',
         requiresDeploy: true

@@ -420,6 +420,35 @@ test('revision suffixes are valid Cloud Run names', async () => {
     assert.equal(revisionSuffixForVersion('2.10.3-rc.1'), 'v2-10-3-rc-1')
 })
 
+test('uploads set the cache headers the public bucket serves', async () => {
+    const { deployGameUiCommand, deployManifestCommand, directoryPlaceholderSpecs } =
+        await import('../esm/lib/commands.js')
+    const config = { gcsBucket: 'b' }
+
+    const ui = deployGameUiCommand('/repo', 'a', '2.1.0', config)
+    assert.deepEqual(ui.args, [
+        'storage',
+        'rsync',
+        '--recursive',
+        '--cache-control=public, max-age=31536000, immutable',
+        '/repo/games/a-ui/bundle',
+        'gs://b/games/a/ui/2.1.0'
+    ])
+    assert.deepEqual(
+        directoryPlaceholderSpecs('/repo', ui).map((spec) => spec.args.at(-1)),
+        ['gs://b/games/', 'gs://b/games/a/', 'gs://b/games/a/ui/', 'gs://b/games/a/ui/2.1.0/']
+    )
+
+    const manifest = deployManifestCommand('/tmp/site-manifest.json', config)
+    assert.deepEqual(manifest.args, [
+        'storage',
+        'cp',
+        '--cache-control=no-store',
+        '/tmp/site-manifest.json',
+        'gs://b/config/site-manifest.json'
+    ])
+})
+
 test('backend services roll out tasks first, then backend', async () => {
     const { orderServices } = await import('../esm/lib/backendPublish.js')
     assert.deepEqual(orderServices(['backend', 'tasks']), ['tasks', 'backend'])
