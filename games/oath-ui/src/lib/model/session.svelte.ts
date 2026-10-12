@@ -1140,6 +1140,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                     }
                 })
             }
+            // R-7.1.3 — one map pick for the panel: every site a listed power can take.
+            case ActionType.UseActionPower:
+                return this.actionPowers.mapSites.map(({ siteId, words, picked }) => ({
+                    slotId: siteId,
+                    intent: 'power',
+                    rows: words,
+                    picked
+                }))
             default:
                 return []
         }
@@ -1153,7 +1161,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /**
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
-     * ordered; Travel's destinations; or where the spoils banish the defeated pawn.
+     * ordered; Travel's destinations; where the spoils banish the defeated pawn; or the sites the
+     * powers in Use a power can take.
      */
     get mapPick(): MapPick | undefined {
         if (this.setup.boardPick) {
@@ -1165,8 +1174,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const destinations = this.siteOffers.flatMap((offer) =>
             offer.intent === 'travel' ? [offer.slotId] : []
         )
-        return destinations.length > 0
-            ? { kind: 'travel', sites: destinations, choosing: true }
+        if (destinations.length > 0) return { kind: 'travel', sites: destinations, choosing: true }
+        const powerSites = this.siteOffers.flatMap((offer) =>
+            offer.intent === 'power' ? [offer.slotId] : []
+        )
+        return powerSites.length > 0
+            ? { kind: 'power', sites: powerSites, choosing: true }
             : undefined
     }
 

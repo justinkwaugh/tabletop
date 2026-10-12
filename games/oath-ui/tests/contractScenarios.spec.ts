@@ -2348,6 +2348,159 @@ test.describe('scenario 67: a power’s picks as chips and pieces', () => {
     }
 })
 
+/** Scenario 68: a power's site is a tap on the lit map, one pick for the whole Use a power panel. */
+test.describe('scenario 68: a power’s site on the lit map', () => {
+    const CAPTAINS = 'denizen.order.captains'
+    const SIEGE_ENGINES = 'denizen.order.siege-engines'
+    const PALANQUIN = 'denizen.order.palanquin'
+    const [CITY, PLAINS] = ['slot.cradle.0', 'slot.cradle.1']
+    const [SLUM, RIVER, MOUNTAIN] = ['slot.provinces.0', 'slot.provinces.1', 'slot.provinces.2']
+    const PASS = 'slot.hinterland.0'
+    const powerRow = (page: Page, cardId: string) => grid(page).locator(`[data-action-power="${cardId}"]`)
+    const siteRow = (page: Page, cardId: string) => powerRow(page, cardId).locator('[data-site-row]')
+    const useIn = (page: Page, cardId: string) => powerRow(page, cardId).getByRole('button', { name: /^Use\b/ })
+    const chipOn = (page: Page, slotId: string) => siteAt(page, slotId).locator('.travel-cost')
+
+    async function openPower(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await usePower(page).click()
+    }
+
+    test('two powers: every site either takes is lit, each chip naming the rows it fills, the rest dimmed; the rows wait', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerSites')
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*tap a lit site\.\s*$/)
+        await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/^\s*Kill 2 at:\s*tap a lit site\.\s*$/)
+        await expect(grid(page).locator('select')).toHaveCount(0)
+        await expect(useIn(page, CAPTAINS)).toHaveCount(0)
+        await expect(useIn(page, SIEGE_ENGINES)).toHaveCount(0)
+        expect(await litSlots(page)).toEqual([CITY, PLAINS, SLUM].sort())
+        await expect(dimmedSites(page)).toHaveCount(5)
+        await expect(chipOn(page, CITY)).toHaveText('Kill 2')
+        // The panel lists an adviser's power before a site's, and the chip names its rows in that order.
+        await expect(chipOn(page, PLAINS)).toHaveText('Kill 2 · Campaign')
+        await expect(chipOn(page, SLUM)).toHaveText('Campaign')
+        await expect(pickedSites(page)).toHaveCount(0)
+        for (const slotId of [CITY, PLAINS, SLUM]) await expectPhoneChip(page, slotId)
+    })
+
+    test('a tap on a site both offer fills both rows and shows both Uses; nothing is sent until one is pressed', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerSites')
+        await siteCard(page, PLAINS).click()
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*Plains\s*$/)
+        await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/^\s*Kill 2 at:\s*Plains\s*$/)
+        await expect(useIn(page, CAPTAINS)).toHaveAccessibleName('Use, paying 1 favor')
+        await expect(useIn(page, SIEGE_ENGINES)).toHaveAccessibleName('Use, paying 1 favor')
+        await expect(pickedSites(page)).toHaveCount(1)
+        await expect(siteAt(page, PLAINS).locator('.board-card.picked')).toHaveCount(1)
+        expect((await call(page, 'tableFacts')).warbandsAt[PLAINS]).toEqual({ imperial: 2 })
+
+        // Siege Engines kills two at the Plains, even yours.
+        await useIn(page, SIEGE_ENGINES).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).warbandsAt[PLAINS]?.imperial ?? 0).toBe(0)
+    })
+
+    test('a tap on a site one row lacks fills only the other; a tap elsewhere moves the one ring; Undo takes back each tap', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerSites')
+        await siteCard(page, PLAINS).click()
+        await siteCard(page, CITY).click()
+        await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/^\s*Kill 2 at:\s*Drowned City\s*$/)
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*tap a lit site\.\s*$/)
+        await expect(useIn(page, CAPTAINS)).toHaveCount(0)
+        await expect(useIn(page, SIEGE_ENGINES)).toBeVisible()
+        await expect(pickedSites(page)).toHaveCount(1)
+        await expect(siteAt(page, CITY).locator('.board-card.picked')).toHaveCount(1)
+        expect(await litSlots(page)).toEqual([CITY, PLAINS, SLUM].sort())
+
+        await undoButton(page).click()
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*Plains\s*$/)
+        await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/^\s*Kill 2 at:\s*Plains\s*$/)
+        await undoButton(page).click()
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/tap a lit site\./)
+        await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/tap a lit site\./)
+        await expect(pickedSites(page)).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).staged).toBe('useActionPower')
+    })
+
+    test('one power wants a site: its sites are lit, and a tap rings one and shows its Use; Use campaigns from there', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerSitesOne')
+        await expect(powerRow(page, SIEGE_ENGINES)).toHaveCount(0)
+        expect(await litSlots(page)).toEqual([PLAINS, SLUM].sort())
+        await expect(chipOn(page, SLUM)).toHaveText('Campaign')
+        await siteCard(page, SLUM).click()
+        await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*Great Slum\s*$/)
+        await useIn(page, CAPTAINS).click()
+        await expect.poll(() => call(page, 'cardTokens', CAPTAINS)).toEqual({ favor: 1, secrets: 0 })
+    })
+
+    test('Palanquin: nothing is lit before its player; then only the sites that player can travel to', async ({ page }) => {
+        await openPower(page, 'pickerPalanquin')
+        await expect(siteRow(page, PALANQUIN)).toHaveCount(0)
+        // Captains, at the Plains Dana rules, is listed too: only its sites are lit.
+        expect(await litSlots(page)).toEqual([PLAINS, SLUM].sort())
+        await expect(page.locator('.site .travel-cost').filter({ hasText: 'Carry' })).toHaveCount(0)
+        await powerRow(page, PALANQUIN).getByRole('button', { name: /^rhys$/i }).click()
+        await expect(siteRow(page, PALANQUIN)).toHaveText(/^\s*Carry to:\s*tap a lit site\.\s*$/)
+        // R-5.6: never the site they stand at; into the Hinterland only through the Narrow Pass.
+        expect(await litSlots(page)).toEqual([PLAINS, SLUM, RIVER, MOUNTAIN, PASS].sort())
+        await expect(chipOn(page, RIVER)).toHaveText('Carry')
+        await expect(chipOn(page, PLAINS)).toHaveText('Carry · Campaign')
+        await siteCard(page, RIVER).click()
+        await expect(siteRow(page, PALANQUIN)).toHaveText(/^\s*Carry to:\s*River\s*$/)
+        await useIn(page, PALANQUIN).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.rhys).toBe(RIVER)
+        expect((await call(page, 'tableFacts')).siteOf.dana).toBe(RIVER)
+    })
+
+    for (const viewport of [
+        { width: 375, height: 812 },
+        { width: 402, height: 874 }
+    ]) {
+        test.describe(`on a ${viewport.width} px phone held upright`, () => {
+            test.use({ viewport, hasTouch: true })
+
+            test('the map opens framed on the pawn’s region with region chips counting the lit sites; a tap shows Use, 44 px', async ({
+                page
+            }) => {
+                await openTable(page, 'pickerSites')
+                await usePower(page).tap()
+                await expect(regionChip(page, 'Cradle')).toHaveAccessibleName('Cradle: 2 lit sites')
+                await expect(regionChip(page, 'Provinces')).toHaveAccessibleName('Provinces: 1 lit site')
+                await expect(regionChip(page, 'Hinterland')).toHaveCount(0)
+                await expect(regionChip(page, 'Cradle')).toHaveAttribute('aria-pressed', 'true')
+                await expect.poll(() => onScreen(page, siteCard(page, PLAINS))).toBe(true)
+                for (const slotId of [CITY, PLAINS]) {
+                    expect(inside(await boxOf(chipOn(page, slotId)), await boxOf(siteCard(page, slotId)))).toBe(true)
+                }
+
+                await siteCard(page, PLAINS).tap()
+                await expect(useIn(page, CAPTAINS)).toBeVisible()
+                await expect(useIn(page, SIEGE_ENGINES)).toBeVisible()
+                const panel = await boxOf(grid(page))
+                for (const cardId of [CAPTAINS, SIEGE_ENGINES]) {
+                    const use = useIn(page, cardId)
+                    expect((await layoutSizeOf(use))?.height).toBeGreaterThanOrEqual(44)
+                    expect(inside(await boxOf(use), panel)).toBe(true)
+                }
+                expect(await clippedLabels(page)).toEqual([])
+
+                await regionChip(page, 'Provinces').tap()
+                await expect.poll(() => onScreen(page, siteCard(page, SLUM))).toBe(true)
+                await siteCard(page, SLUM).tap()
+                await expect(siteRow(page, CAPTAINS)).toHaveText(/^\s*Campaign at:\s*Great Slum\s*$/)
+                await expect(siteRow(page, SIEGE_ENGINES)).toHaveText(/tap a lit site\./)
+            })
+        })
+    }
+})
+
 /** Scenario 32: every panel waits while a send is in flight or a new state is being shown. */
 test.describe('scenario 32: waiting on a send', () => {
     test('while a Travel is in flight nothing is offered; refused or accepted, the send ends the draft', async ({
@@ -3857,7 +4010,8 @@ test.describe('Messenger’s moves', () => {
     test('a power’s pick from a list is as wide as its longest option, not the panel', async ({ page }) => {
         await openTable(page, 'pickerWhistle')
         await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
-        const select = grid(page).locator('[data-action-power="denizen.order.siege-engines"] select')
+        // Scryer's pile is still a list; a power's site is picked on the map.
+        const select = grid(page).locator('[data-action-power="denizen.discord.scryer"] select')
         const { drawn, longest } = await select.evaluate((element) => {
             if (!(element instanceof HTMLElement)) throw Error('a select')
             const drawn = element.offsetWidth

@@ -200,6 +200,7 @@
                                 }
                                 tollAt={draft.moveTollAt(p)}
                                 words={pickerWords(p.cardId)}
+                                siteOnMap={(spec) => draft.siteRow(p, spec)}
                             />
                         </div>
                     {/if}

@@ -19,11 +19,13 @@
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PickerWords } from '$lib/model/powerPickerWords.js'
+    import type { PowerSiteRow } from '$lib/model/powerSites.js'
     import {
         cardName,
         facedownAdviserLabel,
         reliquaryLabel,
         siteName,
+        slotLabel,
         warbandOwnerName
     } from '$lib/model/names.js'
     import {
@@ -51,7 +53,8 @@
         picks = $bindable(emptyPicks()),
         tallOnPhone = false,
         tollAt = () => false,
-        words = { tone: 'gold' }
+        words = { tone: 'gold' },
+        siteOnMap = () => undefined
     }: {
         choices: LegalChoice[]
         picks?: PowerChoicePicks
@@ -60,6 +63,8 @@
         tollAt?: (siteId: string) => boolean
         /** The power's own few words for its picks, and the ring its warbands take. */
         words?: PickerWords
+        /** A site spec picked on the lit map (Use a power): its row, read from the panel's draft. */
+        siteOnMap?: (spec: number) => PowerSiteRow | undefined
     } = $props()
 
     let gameSession = getGameSession()
@@ -102,6 +107,13 @@
 
     function ownerName(owner: WarbandOwner): string {
         return warbandOwnerName(owner, (playerId) => gameSession.getPlayerName(playerId))
+    }
+
+    // A facedown site is named as the board names it: the site back has no name to show.
+    function mapSiteName(siteId: string): string {
+        return gameSession.gameState.isSiteFaceup(siteId)
+            ? siteName(gameSession.gameState, siteId)
+            : `Facedown site — ${slotLabel(siteId)}`
     }
 
     // A pick of a card-drawn option: a tap on the picked card clears it when the choice is optional.
@@ -173,6 +185,7 @@
     {@const pick = optionIndexOf(legal, i, picks)}
     {@const option = legal.options[pick]}
     {@const grid = gridAt(grids, i)}
+    {@const onMap = words.site ? siteOnMap(i) : undefined}
     <!-- A grid draws every spec it answers once, at its first. -->
     {#if !grid || grid.specs[0] === i}
         <div class="mb-1 text-xs">
@@ -203,6 +216,25 @@
                     onchange={(value) =>
                         (picks = { ...picks, bargain: { ...picks.bargain, [i]: value } })}
                 />
+            {:else if onMap && words.site}
+                <!-- R-7.1.3 — the site is a tap on the lit map, once the picks before it are made. -->
+                {#if onMap.ready}
+                    <p class="flex flex-wrap items-baseline gap-x-1" data-site-row>
+                        <span class="text-oath-text-muted">{words.site.row}</span>
+                        {#if onMap.picked}
+                            <span class="font-semibold"
+                                >{mapSiteName(onMap.picked)}{tollAt(onMap.picked)
+                                    ? ' · toll 1 favor'
+                                    : ''}</span
+                            >
+                        {:else if onMap.sites.length > 0}
+                            <span>tap a lit site.</span>
+                        {/if}
+                    </p>
+                    {#if onMap.sites.length === 0 && legal.spec.min > 0}
+                        <p class="text-oath-danger">no legal site right now</p>
+                    {/if}
+                {/if}
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
@@ -342,7 +374,7 @@
                     </label>
                 {/if}
             {/if}
-            {#if legal.options.length === 0 && legal.spec.min > 0}
+            {#if !onMap && legal.options.length === 0 && legal.spec.min > 0}
                 <p class="text-oath-danger">
                     no legal {legal.spec.what ?? legal.spec.kind} right now
                 </p>

@@ -207,6 +207,7 @@ export type TableName =
     | 'messengerTwoOwners'
     | 'warningSignals'
     | PickerScene
+    | PowerSitesScene
     | 'historyAct'
     | 'historyCampaign'
     | 'historyDeals'
@@ -2295,9 +2296,9 @@ type PickerScene = 'pickerWhistle' | 'pickerTerror' | 'pickerPact' | 'pickerCage
 
 /**
  * Use a power's picks as chips and pieces; Dana's turn.
- * - `pickerWhistle`: Dana, an Exile at the Ancient City, holds the Whistle and Siege Engines (its
- *   site still a list); Rhys stands at the Mountain and Ann, the Chancellor, at the Marshes, both
- *   at another site.
+ * - `pickerWhistle`: Dana, an Exile at the Ancient City, holds the Whistle and Scryer (its pile
+ *   still a list); Rhys stands at the Mountain and Ann, the Chancellor, at the Marshes, both at
+ *   another site.
  * - `pickerTerror`: Dana, an Exile at the Mountain (Provinces), holds the Darkest Secret and Terror
  *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on his board; Dana has 2
  *   at the Marshes and 3 on her board; Ann's pawn is at the Ancient City (Cradle), 2 on her board.
@@ -2314,7 +2315,7 @@ function powerPickerTable(scene: PickerScene): PlayedTable {
         pickerWhistle: {
             siteId: city,
             relicIds: ['relic.whistle'],
-            advisers: [faceup('denizen.order.siege-engines')]
+            advisers: [faceup('denizen.discord.scryer')]
         },
         pickerTerror: {
             siteId: mountain,
@@ -2374,6 +2375,89 @@ function powerPickerTable(scene: PickerScene): PlayedTable {
                 ? { 'relic.obsidian-cage': { rhys: 3, [IMPERIAL_WARBANDS]: 2 } }
                 : {},
             banners: testBanners(terror ? { [Banner.DarkestSecret]: 'dana' } : {})
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+type PowerSitesScene = 'pickerSites' | 'pickerSitesOne' | 'pickerPalanquin'
+
+/**
+ * A power's site picked on the lit map; Dana's turn, the Chancellor. She stands at the Drowned
+ * City (Cradle), which Rhys rules with 2. She rules the Plains (Cradle) with 2, where Captains lies
+ * and Rhys's pawn stands, and the Great Slum (Provinces) with 3, where Ann's pawn stands; the River
+ * and the Mountain are empty; the Hinterland holds the Narrow Pass, the Wastes and a facedown site.
+ * - `pickerSites`: Siege Engines is faceup in her advisers. Captains offers the Plains and the
+ *   Great Slum, Siege Engines the Drowned City and the Plains; each costs 1 favor.
+ * - `pickerSitesOne`: the same, after a use of Siege Engines: its favor is on it, so it is not
+ *   listed and only Captains wants a site.
+ * - `pickerPalanquin`: Palanquin in her advisers in place of Siege Engines, and Rhys and Ann stand
+ *   with her at the Drowned City.
+ */
+function powerSitesTable(scene: PowerSitesScene): PlayedTable {
+    const [city, plains] = mapSlotsFor(Region.Cradle)
+    const [slum, river, mountain] = mapSlotsFor(Region.Provinces)
+    const [pass, wastes] = mapSlotsFor(Region.Hinterland)
+    const palanquin = scene === 'pickerPalanquin'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: city,
+                supply: 7,
+                favor: 3,
+                secrets: 2,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 13 },
+                advisers: [faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: palanquin ? city : plains,
+                warbandsInPersonalBank: { rhys: 8 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                siteId: palanquin ? city : slum,
+                warbandsInPersonalBank: { ann: 9 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: {
+                [city]: 'site.drowned-city',
+                [plains]: 'site.plains',
+                [slum]: 'site.great-slums',
+                [river]: 'site.river',
+                [mountain]: 'site.mountain',
+                [pass]: 'site.narrow-pass',
+                [wastes]: 'site.wastes'
+            },
+            denizensBySite: {
+                [city]: [],
+                [plains]: ['denizen.order.captains'],
+                [slum]: [],
+                [river]: [],
+                [mountain]: [],
+                [pass]: [],
+                [wastes]: []
+            },
+            warbandsBySite: {
+                [city]: { rhys: 2 },
+                [plains]: { [IMPERIAL_WARBANDS]: 2 },
+                [slum]: { [IMPERIAL_WARBANDS]: 3 }
+            },
+            cardTokens:
+                scene === 'pickerSitesOne'
+                    ? { 'denizen.order.siege-engines': { favor: 1, secrets: 0 } }
+                    : {}
         }
     )
     openTurn(state, 'dana')
@@ -4127,6 +4211,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerTerror: () => powerPickerTable('pickerTerror'),
     pickerPact: () => powerPickerTable('pickerPact'),
     pickerCage: () => powerPickerTable('pickerCage'),
+    pickerSites: () => powerSitesTable('pickerSites'),
+    pickerSitesOne: () => powerSitesTable('pickerSitesOne'),
+    pickerPalanquin: () => powerSitesTable('pickerPalanquin'),
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
     historyDeals: () => historyWordsTable('deals')

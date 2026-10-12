@@ -24,9 +24,9 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    // The lit map is Setup's start-site menu, the spoils' banish and Travel's, at every width: a
-    // tap on a lit site picks it. On a desktop it is the Shrouded Wood ruler's too; a phone keeps
-    // that pick in the panel, so its map lights nothing for it.
+    // The lit map is Setup's start-site menu, the spoils' banish, Travel's and the site of a power
+    // in Use a power, at every width: a tap on a lit site picks it. On a desktop it is the Shrouded
+    // Wood ruler's too; a phone keeps that pick in the panel, so its map lights nothing for it.
     const layout = new PhoneLayout()
     let offers = $derived(
         layout.phone
@@ -47,6 +47,9 @@
         }
         if (offer?.intent === 'wood') {
             return () => void gameSession.question.sendThrough(offer.slotId)
+        }
+        if (offer?.intent === 'power') {
+            return () => gameSession.actionPowers.pickSite(offer.slotId)
         }
         return undefined
     }
@@ -79,6 +82,9 @@
                 return { chip: { words: offer.targeted ? '✓ target' : 'target?' }, note: '' }
             case 'banish':
                 return { chip: { words: 'banish' }, note: '' }
+            case 'power':
+                // What a tap there does: the words of every row it fills.
+                return { chip: { words: offer.rows.join(' · ') }, note: '' }
             case 'wood':
                 // R-11.7 — what the traveller pays there; the card that changed it is named after it.
                 return {
@@ -122,7 +128,8 @@
         offer?.intent === 'travel' ||
         offer?.intent === 'start' ||
         offer?.intent === 'banish' ||
-        offer?.intent === 'wood'}
+        offer?.intent === 'wood' ||
+        offer?.intent === 'power'}
 
     <div
         class="site"
@@ -141,7 +148,10 @@
             width={rect.width}
             offered={offer !== undefined}
             pointed={menuPointer.is({ kind: 'site', slotId })}
-            picked={(offer?.intent === 'travel' || offer?.intent === 'start') && offer.picked}
+            picked={(offer?.intent === 'travel' ||
+                offer?.intent === 'start' ||
+                offer?.intent === 'power') &&
+                offer.picked}
             previewSlotId={slotId}
             {onpick}
             pickLabel={text.chip === undefined
