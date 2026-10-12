@@ -67,9 +67,9 @@
                 : ''}. To change where a corps stands, tap it on the map and then an approach of its
             locale, or the locale to hold it in reserve.
             {#if side === Side.French && deployment.fixedBattery}
-                One battery is your fixed battery: it blocks an approach and never moves again. Pick
-                it to aim it at another approach of its locale, or pick other guns to name them
-                instead.
+                One artillery unit is your fixed battery: it blocks an approach and never moves
+                again. Pick it to aim it at another approach of its locale, or pick another
+                artillery unit to make that one the fixed battery.
             {/if}
         </div>
         <div class="nt-setup-corps">

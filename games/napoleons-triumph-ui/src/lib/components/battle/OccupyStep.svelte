@@ -31,7 +31,7 @@
     {/if}
     {#if stage.gunsMayStay}
         <button type="button" class="nt-plain-button" onclick={() => gameSession.holdGuns()}
-            >Show the guns and hold them in place</button
+            >Show the artillery and hold it in place</button
         >
     {/if}
 </div>

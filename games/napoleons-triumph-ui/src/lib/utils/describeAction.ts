@@ -186,7 +186,7 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
     }
     if (isOccupy(action)) {
         return action.artilleryStays
-            ? `${army} show their guns and hold them in place.`
+            ? `${army} show their artillery and hold it in place.`
             : `${army} move into the abandoned locale with ${action.orders.map((order) => force(order)).join(' and ')}.`
     }
     if (isEndTurn(action)) {
