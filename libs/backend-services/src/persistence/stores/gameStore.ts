@@ -164,6 +164,7 @@ export interface GameStore {
         redoneActions,
         state,
         removeUnmergedBranches,
+        setUnmergedBranches,
         watchBranchesOf,
         validator
     }: {
@@ -172,6 +173,7 @@ export interface GameStore {
         redoneActions: GameAction[]
         state: GameState
         removeUnmergedBranches?: boolean
+        setUnmergedBranches?: readonly UnmergedBranchWrite[]
         watchBranchesOf?: readonly string[]
         validator?: ActionUndoValidator
     }): Promise<{

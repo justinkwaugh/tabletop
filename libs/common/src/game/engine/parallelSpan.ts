@@ -30,6 +30,14 @@ export function unmergedPlayerIds(span: ParallelSpanState): string[] {
     return span.playerIds.filter((playerId) => !span.mergedPlayerIds.includes(playerId))
 }
 
+export function actsInBranch(state: GameState, playerId: string | undefined): boolean {
+    return (
+        playerId !== undefined &&
+        isRestingInSpan(state) &&
+        unmergedPlayerIds(restingSpan(state)).includes(playerId)
+    )
+}
+
 export function spanAwaitingBranch(state: GameState, playerId: string): ParallelSpanState {
     const span = restingSpan(state)
     assert(span.playerIds.includes(playerId), `Player ${playerId} takes no part in this span`)

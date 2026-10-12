@@ -228,11 +228,14 @@ export class GameService implements GameServiceInterface {
         }
 
         // Check remote games
-        const { game, actions, historyComplete } = await this.api.getGame(id, options)
+        const { game, actions, historyComplete, unmergedBranch } = await this.api.getGame(
+            id,
+            options
+        )
         if (game) {
             this.gamesById.set(game.id, game)
         }
-        return { game, actions, historyComplete }
+        return { game, actions, historyComplete, unmergedBranch }
     }
 
     getExplorations(gameId: string): Game[] {

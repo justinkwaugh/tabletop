@@ -1403,6 +1403,7 @@ export class FirestoreGameStore implements GameStore {
         redoneActions,
         state,
         removeUnmergedBranches = false,
+        setUnmergedBranches = [],
         watchBranchesOf = [],
         validator
     }: {
@@ -1411,6 +1412,7 @@ export class FirestoreGameStore implements GameStore {
         redoneActions: GameAction[]
         state: GameState
         removeUnmergedBranches?: boolean
+        setUnmergedBranches?: readonly UnmergedBranchWrite[]
         watchBranchesOf?: readonly string[]
         validator: ActionUndoValidator
     }): Promise<{
@@ -1426,6 +1428,7 @@ export class FirestoreGameStore implements GameStore {
 
         const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
+        const setBranchesOf = setUnmergedBranches.map(({ branch }) => branch.playerId)
 
         const transactionBody = async (
             transaction: Transaction,
@@ -1491,6 +1494,19 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
+            const applyBranchWrites = await Promise.all(
+                setUnmergedBranches.map((write) =>
+                    this.prepareBranchWrite(
+                        transaction,
+                        gameId,
+                        write,
+                        [...removedBranches, ...watchedBranches].find(
+                            (existing) => existing.playerId === write.branch.playerId
+                        )
+                    )
+                )
+            )
+
             const updatedGame = structuredClone(existingGame) as Game
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
@@ -1525,8 +1541,11 @@ export class FirestoreGameStore implements GameStore {
                 this.createGameUpdateDocument(gameUpdates, updatedGame)
             )
             transaction.set(stateCollection.doc(gameId), state)
+            for (const applyBranchWrite of applyBranchWrites) applyBranchWrite()
             for (const branch of removedBranches) {
-                this.deleteUnmergedBranch(transaction, gameId, branch)
+                if (!setBranchesOf.includes(branch.playerId)) {
+                    this.deleteUnmergedBranch(transaction, gameId, branch)
+                }
             }
 
             return {
@@ -1538,8 +1557,14 @@ export class FirestoreGameStore implements GameStore {
         }
 
         try {
-            return await this.writeGame(gameId, GameCacheKeys.gameWrite(gameId), async (locks) =>
-                this.runTransaction((transaction) => transactionBody(transaction, locks))
+            return await this.writeGame(
+                gameId,
+                [
+                    ...GameCacheKeys.gameWrite(gameId),
+                    ...GameCacheKeys.branches(gameId, [...watchBranchesOf, ...setBranchesOf])
+                ],
+                async (locks) =>
+                    this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
         } catch (error) {
             this.handleError(error, gameId)

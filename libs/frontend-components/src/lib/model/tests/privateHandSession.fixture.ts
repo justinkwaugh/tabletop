@@ -71,7 +71,7 @@ export const uiRuntime = {
     }
 } satisfies GameUIRuntime<SharedState, HydratedPrivateHandState>
 
-class Authorization extends HarnessAuthorizationService {
+export class Authorization extends HarnessAuthorizationService {
     constructor(private readonly perspective: Visibility.Perspective) {
         super()
     }

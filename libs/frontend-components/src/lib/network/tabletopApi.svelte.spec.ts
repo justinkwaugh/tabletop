@@ -232,6 +232,74 @@ describe('TabletopApi Game views', () => {
     })
 })
 
+describe('TabletopApi and a Player’s Unmerged Branch', () => {
+    const branch = {
+        playerId: 'p1',
+        branchPoint: { actionCount: 4, actionChecksum: 11 },
+        machineState: 'working',
+        activePlayerIds: ['p1'],
+        actionCount: 2,
+        actionChecksum: 7,
+        closed: false,
+        change: []
+    }
+
+    function respondWith(payload: object) {
+        const bodies: unknown[] = []
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+                const body = input instanceof Request ? await input.text() : init?.body
+                if (typeof body === 'string' && body !== '') bodies.push(JSON.parse(body))
+                return new Response(JSON.stringify({ status: 'ok', payload }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+            })
+        )
+        return bodies
+    }
+
+    test('passes the Branch sent with a Game through to the caller', async () => {
+        const game = Value.Create(Game)
+        respondWith({ game, actions: [], unmergedBranch: { branch, actions: [] } })
+        const result = await new TabletopApi().getGame(game.id)
+        expect(result.unmergedBranch).toEqual({ branch, actions: [] })
+    })
+
+    test('sends the Branch position it is given and returns the host’s answer about it', async () => {
+        const bodies = respondWith({
+            status: 'inSync',
+            actions: [],
+            checksum: 11,
+            branchSync: { status: 'outOfSync', unmergedBranch: { branch, actions: [] } }
+        })
+        const result = await new TabletopApi().checkSync('game', 11, 3, {
+            actionCount: 1,
+            actionChecksum: 5
+        })
+        expect(bodies).toEqual([
+            {
+                gameId: 'game',
+                checksum: 11,
+                index: 3,
+                branchPosition: { actionCount: 1, actionChecksum: 5 }
+            }
+        ])
+        expect(result.branchSync).toEqual({
+            status: 'outOfSync',
+            unmergedBranch: { branch, actions: [] }
+        })
+    })
+
+    test('says nothing about a Branch when the host sends none', async () => {
+        const bodies = respondWith({ status: 'inSync', actions: [], checksum: 11 })
+        const result = await new TabletopApi().checkSync('game', 11, 3)
+        expect(bodies).toEqual([{ gameId: 'game', checksum: 11, index: 3 }])
+        expect(result.branchSync).toBeUndefined()
+    })
+})
+
 describe('publication version detection', () => {
     test.each([
         ['2.0.0', VersionChange.MajorUpgrade],

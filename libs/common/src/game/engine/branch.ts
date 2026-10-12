@@ -1,14 +1,14 @@
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import jsonpatch from 'fast-json-patch'
-import { assert } from '../../util/assertions.js'
+import { assert, assertExists } from '../../util/assertions.js'
 import { BaseError } from '../../util/errors.js'
 import { ActionSource, GameAction, Patch } from './gameAction.js'
 import { ENGINE_MAINTAINED_FIELDS } from './branchScope.js'
 import { withoutActionPositions } from './commutation.js'
-import { sameHistoryPosition, spanAwaitingBranch } from './parallelSpan.js'
+import { sameHistoryPosition, spanAwaitingBranch, unmergedPlayerIds } from './parallelSpan.js'
 import { createPatch } from './statePatch.js'
-import { BranchPoint, type GameState } from '../model/gameState.js'
+import { BranchPoint, type GameState, type ParallelSpanState } from '../model/gameState.js'
 
 export type Branch = Type.Static<typeof Branch>
 export const Branch = Type.Object({
@@ -68,10 +68,13 @@ export function unopenedBranchView<T extends GameState>(state: T, playerId: stri
     return { ...structuredClone(state), actionCount: 0, actionChecksum: 0 }
 }
 
-export function branchView<T extends GameState>(state: T, branch: Branch): T {
-    const span = spanAwaitingBranch(state, branch.playerId)
+export function belongsToSpan(branch: Branch, span: ParallelSpanState): boolean {
+    return sameHistoryPosition(branch.branchPoint, span.branchPoint)
+}
+
+function viewOver<T extends GameState>(state: T, span: ParallelSpanState, branch: Branch): T {
     assert(
-        sameHistoryPosition(span.branchPoint, branch.branchPoint),
+        belongsToSpan(branch, span),
         `The Branch of ${branch.playerId} belongs to another Parallel Span`
     )
     const changed = jsonpatch.applyPatch(
@@ -92,6 +95,21 @@ export function branchView<T extends GameState>(state: T, branch: Branch): T {
             ...(branch.closed ? {} : { branchPlayerId: branch.playerId })
         }
     }
+}
+
+export function branchView<T extends GameState>(state: T, branch: Branch): T {
+    return viewOver(state, spanAwaitingBranch(state, branch.playerId), branch)
+}
+
+export function branchViewDuringMerge<T extends GameState>(state: T, branch: Branch): T {
+    const span = state.parallelSpan
+    assertExists(span, 'No Parallel Span is in progress')
+    assert(
+        unmergedPlayerIds(span).includes(branch.playerId) &&
+            span.branchPlayerId !== branch.playerId,
+        `The Branch of ${branch.playerId} is already on the Main Line`
+    )
+    return viewOver(state, span, branch)
 }
 
 export function branchFromView(state: GameState, view: GameState, playerId: string): Branch {

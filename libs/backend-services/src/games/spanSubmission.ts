@@ -4,6 +4,9 @@ import {
     GameStatus,
     BranchUndoError,
     assertExists,
+    belongsToSpan,
+    createMissingBranches,
+    siteActivePlayerIds,
     isRestingInSpan,
     restingSpan,
     sameHistoryPosition,
@@ -45,27 +48,6 @@ export type BranchSubmission =
           readonly priorState: GameState
           readonly unmergedBranch?: UnmergedBranch
       }
-
-export function actsInBranch(state: GameState, playerId: string | undefined): boolean {
-    return (
-        playerId !== undefined &&
-        isRestingInSpan(state) &&
-        unmergedPlayerIds(restingSpan(state)).includes(playerId)
-    )
-}
-
-export function belongsToSpan(branch: Branch, span: ParallelSpanState): boolean {
-    return sameHistoryPosition(branch.branchPoint, span.branchPoint)
-}
-
-export function siteActivePlayerIds(state: GameState, branches: readonly Branch[]): string[] {
-    if (!isRestingInSpan(state)) return state.activePlayerIds
-    const span = restingSpan(state)
-    const closedPlayerIds = branches
-        .filter((branch) => branch.closed && belongsToSpan(branch, span))
-        .map((branch) => branch.playerId)
-    return unmergedPlayerIds(span).filter((playerId) => !closedPlayerIds.includes(playerId))
-}
 
 export function freshBranchWrite({ branch, actions }: UnmergedBranch): UnmergedBranchWrite {
     return { branch, addedActions: actions, removedActions: [] }
@@ -228,15 +210,8 @@ export async function submitBranchAction({
         unmergedBranches: [...others, mine],
         held: game.spanHold !== undefined
     })
-    const assertOthersUnmoved = (found: readonly Branch[]) => {
-        for (const otherPlayerId of otherPlayerIds) {
-            assertBranchUnmoved(
-                gameId,
-                found.find((candidate) => candidate.playerId === otherPlayerId),
-                others.find((record) => record.branch.playerId === otherPlayerId)?.branch
-            )
-        }
-    }
+    const assertOthersUnmoved = (found: readonly Branch[]) =>
+        assertBranchesUnmoved(gameId, otherPlayerIds, found, others)
 
     if (settlement.processedActions.length === 0) {
         const { updatedGame } = await gameStore.writeUnmergedBranch({
@@ -320,6 +295,44 @@ export async function submitBranchAction({
         unmergedBranch: mineMerged
             ? settlement.createdBranches.find((record) => record.branch.playerId === playerId)
             : sent
+    }
+}
+
+export function assertBranchesUnmoved(
+    gameId: string,
+    playerIds: readonly string[],
+    stored: readonly Branch[],
+    expected: readonly UnmergedBranch[]
+): void {
+    for (const playerId of playerIds) {
+        assertBranchUnmoved(
+            gameId,
+            stored.find((candidate) => candidate.playerId === playerId),
+            expected.find((record) => record.branch.playerId === playerId)?.branch
+        )
+    }
+}
+
+export async function branchesAfterReversal({
+    gameStore,
+    engine,
+    game,
+    state,
+    leavesSpan
+}: {
+    gameStore: GameStore
+    engine: GameEngine
+    game: Game
+    state: GameState
+    leavesSpan: boolean
+}): Promise<{ watchedPlayerIds: string[]; kept: UnmergedBranch[]; fresh: UnmergedBranch[] }> {
+    const watchedPlayerIds =
+        leavesSpan || !isRestingInSpan(state) ? [] : unmergedPlayerIds(restingSpan(state))
+    const kept = await gameStore.findUnmergedBranches(game.id, watchedPlayerIds)
+    return {
+        watchedPlayerIds,
+        kept,
+        fresh: createMissingBranches({ engine, game, state, unmergedBranches: kept })
     }
 }
 

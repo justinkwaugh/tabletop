@@ -1,7 +1,9 @@
 import {
     GameSyncStatus,
     Visibility,
+    actsInBranch,
     assertExists,
+    belongsToSpan,
     findPlayerForUserId,
     restingSpan,
     sameHistoryPosition,
@@ -17,7 +19,6 @@ import {
 import type { GameStore } from '../persistence/stores/gameStore.js'
 import { GameNotFoundError } from './errors.js'
 import { withUnmergedBranch, type BranchSyncRepresentation } from './gameRepresentation.js'
-import { actsInBranch, belongsToSpan } from './spanSubmission.js'
 
 const COHERENT_READ_ATTEMPTS = 3
 

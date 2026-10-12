@@ -1,6 +1,7 @@
 import jsonpatch from 'fast-json-patch'
 import { ActionSource, type GameAction } from '../engine/gameAction.js'
 import { createPatch } from '../engine/statePatch.js'
+import { branchFromView, branchView, type Branch, type UnmergedBranch } from '../engine/branch.js'
 import type {
     ActionCascadeResult,
     ActionResult,
@@ -75,6 +76,39 @@ export interface ActionHistoryProjectionOptions<
     readonly startIndex?: number
     readonly currentState: State
     readonly actions: readonly GameAction[]
+}
+
+export function projectUnmergedBranch<State extends GameState>({
+    game,
+    state,
+    branch,
+    actions,
+    visibility
+}: {
+    game: Pick<Game, 'config'>
+    state: State
+    branch: Branch
+    actions: readonly GameAction[]
+    visibility: GameVisibility<State>
+}): UnmergedBranch {
+    const perspective: Perspective = { kind: 'player', playerId: branch.playerId }
+    const history = projectActionHistory({
+        game,
+        currentState: branchView(state, branch),
+        startIndex: branch.actionCount - actions.length,
+        actions,
+        visibility,
+        perspective
+    })
+    const projectedMainLine = visibility.state.project(
+        state,
+        perspective,
+        projectionContext({ game })
+    )
+    return {
+        branch: branchFromView(projectedMainLine, history.currentState, branch.playerId),
+        actions: [...history.actions]
+    }
 }
 
 export function projectActionCascade<State extends GameState, ProjectedState extends GameState>(

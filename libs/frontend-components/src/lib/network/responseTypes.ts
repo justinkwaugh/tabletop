@@ -9,6 +9,7 @@ import {
     GameChat,
     GameChatMessage,
     GameSyncStatus,
+    UnmergedBranch,
     User,
     Visibility
 } from '@tabletop/common'
@@ -79,7 +80,8 @@ export const GameWithActionsResponse = Type.Evaluate(
                 game: Game,
                 actions: Type.Array(GameAction),
                 historyComplete: Type.Optional(Type.Boolean()),
-                perspective: Type.Optional(Visibility.Perspective)
+                perspective: Type.Optional(Visibility.Perspective),
+                unmergedBranch: Type.Optional(UnmergedBranch)
             })
         })
     ])
@@ -124,7 +126,8 @@ export const ApplyActionResponse = Type.Evaluate(
                 actions: Type.Array(GameAction),
                 game: Game,
                 missingActions: Type.Optional(Type.Array(GameAction)),
-                perspective: Type.Optional(Visibility.Perspective)
+                perspective: Type.Optional(Visibility.Perspective),
+                unmergedBranch: Type.Optional(UnmergedBranch)
             })
         })
     ])
@@ -197,7 +200,13 @@ export const CheckSyncResponse = Type.Evaluate(
             payload: Type.Object({
                 status: Type.Enum(GameSyncStatus),
                 actions: Type.Array(GameAction),
-                checksum: Type.Number()
+                checksum: Type.Number(),
+                branchSync: Type.Optional(
+                    Type.Object({
+                        status: Type.Enum(GameSyncStatus),
+                        unmergedBranch: Type.Optional(UnmergedBranch)
+                    })
+                )
             })
         })
     ])
@@ -216,7 +225,8 @@ export const UndoActionResponse = Type.Evaluate(
                 actionReplay: Type.Optional(ProcessedActionReplay),
                 canonicalReplay: CanonicalActionReplay,
                 checksum: Type.Number(),
-                perspective: Type.Optional(Visibility.Perspective)
+                perspective: Type.Optional(Visibility.Perspective),
+                unmergedBranch: Type.Optional(UnmergedBranch)
             })
         })
     ])

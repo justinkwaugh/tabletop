@@ -10,8 +10,10 @@ import {
     type GameCreationOptions,
     type GameCatalogEntry,
     type AdminAssignableRole,
+    type ActionHistoryPosition,
     assertExists,
     Bookmark,
+    Branch,
     type BugReportRequest,
     CanonicalActionReplay,
     ProcessedActionReplay,
@@ -25,6 +27,7 @@ import {
     GameValidator,
     GameHistoryPage,
     UserGameStats,
+    type UnmergedBranch,
     User,
     UserPreferences,
     Visibility,
@@ -72,7 +75,10 @@ export type GameLoadResult = {
     game?: Game
     actions: GameAction[]
     historyComplete?: boolean
+    unmergedBranch?: UnmergedBranch
 }
+
+export type BranchSyncResult = NonNullable<CheckSyncResponse['payload']['branchSync']>
 
 export type GetGameOptions = {
     includeActions?: boolean
@@ -125,11 +131,13 @@ export class TabletopApi {
             .options({ credentials: 'include' })
     }
 
-    getTitlePreferences?: (titleId: string, userId: string) => Promise<PreferenceResponse> =
-        async (titleId, userId) => {
-            const response = await this.wretch.get(this.preferenceUrl(titleId, userId)).res()
-            return this.preferenceResponse(response)
-        }
+    getTitlePreferences?: (titleId: string, userId: string) => Promise<PreferenceResponse> = async (
+        titleId,
+        userId
+    ) => {
+        const response = await this.wretch.get(this.preferenceUrl(titleId, userId)).res()
+        return this.preferenceResponse(response)
+    }
 
     updateTitlePreferences?: (
         titleId: string,
@@ -525,7 +533,12 @@ export class TabletopApi {
         const game = this.validateGame(response.payload.game)
         const actions = this.convertGameActions(response.payload.actions)
 
-        return { game: game, actions, historyComplete: response.payload.historyComplete }
+        return {
+            game: game,
+            actions,
+            historyComplete: response.payload.historyComplete,
+            unmergedBranch: this.convertUnmergedBranch(response.payload.unmergedBranch)
+        }
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {
@@ -630,7 +643,12 @@ export class TabletopApi {
     async applyAction(
         game: Game,
         action: GameAction
-    ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
+    ): Promise<{
+        actions: GameAction[]
+        game: Game
+        missingActions?: GameAction[]
+        unmergedBranch?: UnmergedBranch
+    }> {
         const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
             .unauthorized(this.on401)
@@ -646,7 +664,8 @@ export class TabletopApi {
         return {
             actions,
             game: responseGame,
-            missingActions
+            missingActions,
+            unmergedBranch: this.convertUnmergedBranch(response.payload.unmergedBranch)
         }
     }
 
@@ -661,6 +680,7 @@ export class TabletopApi {
         undoneActions?: GameAction[]
         redoneActions?: GameAction[]
         perspective?: Visibility.Perspective
+        unmergedBranch?: UnmergedBranch
     }> {
         const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
@@ -699,7 +719,8 @@ export class TabletopApi {
             checksum: response.payload.checksum,
             undoneActions,
             redoneActions,
-            perspective
+            perspective,
+            unmergedBranch: this.convertUnmergedBranch(response.payload.unmergedBranch)
         }
     }
 
@@ -757,17 +778,32 @@ export class TabletopApi {
     async checkSync(
         gameId: string,
         checksum: number,
-        index: number
-    ): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        index: number,
+        branchPosition?: ActionHistoryPosition
+    ): Promise<{
+        status: GameSyncStatus
+        actions: GameAction[]
+        checksum: number
+        branchSync?: BranchSyncResult
+    }> {
         const response = await this.wretch
-            .post({ gameId, checksum, index }, `/game/checkSync`)
+            .post({ gameId, checksum, index, branchPosition }, `/game/checkSync`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<CheckSyncResponse>()
 
         const actions = this.convertGameActions(response.payload.actions)
+        const branchSync = response.payload.branchSync
 
-        return { status: response.payload.status, actions, checksum: response.payload.checksum }
+        return {
+            status: response.payload.status,
+            actions,
+            checksum: response.payload.checksum,
+            branchSync: branchSync && {
+                status: branchSync.status,
+                unmergedBranch: this.convertUnmergedBranch(branchSync.unmergedBranch)
+            }
+        }
     }
 
     async getGameChat(gameId: string): Promise<GameChat> {
@@ -983,8 +1019,7 @@ export class TabletopApi {
             })
             if (apiError.name === 'GameVersionMismatch') {
                 const metadata = apiError.metadata as
-                    | { requestedVersion?: string; serverVersion?: string }
-                    | undefined
+                    { requestedVersion?: string; serverVersion?: string } | undefined
                 const requestedVersion = metadata?.requestedVersion
                 const serverVersion = metadata?.serverVersion
                 if (requestedVersion && serverVersion) {
@@ -1019,6 +1054,15 @@ export class TabletopApi {
             })
         }
         return validGame
+    }
+
+    private convertUnmergedBranch(unmergedBranch?: UnmergedBranch): UnmergedBranch | undefined {
+        if (unmergedBranch === undefined) return undefined
+        Value.Assert(Branch, unmergedBranch.branch)
+        return {
+            branch: unmergedBranch.branch,
+            actions: this.convertGameActions(unmergedBranch.actions)
+        }
     }
 
     private convertGameActions(actions: GameAction[]): GameAction[] {

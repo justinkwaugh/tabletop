@@ -9,6 +9,8 @@ import {
     type GameState,
     type HydratedGameState,
     type ProcessedActionReplay,
+    type ActionHistoryPosition,
+    type UnmergedBranch,
     Visibility
 } from '@tabletop/common'
 import type { RemoteApiService } from '../services/remoteApiService.js'
@@ -38,16 +40,30 @@ export type ReconciliationUpdate =
           checksum: number
           game: Game
       }
+    | {
+          kind: 'branch'
+          unmergedBranch: UnmergedBranch
+          game: Game
+          perspective: Visibility.Perspective
+      }
     | { kind: 'synchronize' }
 
 export interface ReconciliationRemote<T extends GameState, U extends HydratedGameState<T> & T> {
     checkSync: RemoteApiService['checkSync']
-    reload(): Promise<GameContext<T, U>>
+    reload(): Promise<LoadedGame<T, U>>
+    branchPosition(): ActionHistoryPosition | undefined
+    adoptBranch(unmergedBranch: UnmergedBranch | undefined): void
+    followBranch(unmergedBranch: UnmergedBranch): boolean
     isPaused(): boolean
     recover(): Promise<void>
     acceptsPerspective(perspective: Visibility.Perspective): boolean
     beforeSynchronizationUpdate?(): void
-    present(request: TransitionRequest, write: () => void): void
+    present(request: TransitionRequest<T>, write: () => void): void
+}
+
+export interface LoadedGame<T extends GameState, U extends HydratedGameState<T> & T> {
+    context: GameContext<T, U>
+    unmergedBranch?: UnmergedBranch
 }
 
 export interface OptimisticSubmission<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -61,7 +77,11 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
 
     constructor(
         private readonly context: GameContext<T, U>,
-        private readonly remote?: ReconciliationRemote<T, U>
+        private readonly remote?: ReconciliationRemote<T, U>,
+        private readonly presentWithoutRemote?: (
+            request: TransitionRequest<T>,
+            write: () => void
+        ) => void
     ) {}
 
     async enqueue(update: ReconciliationUpdate): Promise<void> {
@@ -106,6 +126,14 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                         ) {
                             this.replace(update.replay, update.checksum, update.game)
                         }
+                    } else if (update.kind === 'branch') {
+                        if (
+                            update.game.id === this.context.game.id &&
+                            remote.acceptsPerspective(update.perspective) &&
+                            !remote.followBranch(update.unmergedBranch)
+                        ) {
+                            await remote.recover()
+                        }
                     } else if (update.kind === 'manifest') {
                         if (update.game.id === this.context.game.id) {
                             this.replaceFromManifest(
@@ -135,10 +163,11 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         assertExists(remote, 'Synchronization requires a remote host')
         const prior = this.context.clone()
         try {
-            const { status, actions, checksum } = await remote.checkSync(
+            const { status, actions, checksum, branchSync } = await remote.checkSync(
                 this.context.game.id,
                 this.context.state.actionChecksum,
-                this.context.state.actionCount - 1
+                this.context.state.actionCount - 1,
+                remote.branchPosition()
             )
             if (!isCurrent()) {
                 return 'stale'
@@ -156,6 +185,10 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 needsResync = this.context.state.actionChecksum !== checksum
             }
             if (!needsResync || this.tryResync(actions, checksum)) {
+                if (branchSync?.status === GameSyncStatus.OutOfSync) {
+                    remote.beforeSynchronizationUpdate?.()
+                    remote.adoptBranch(branchSync.unmergedBranch)
+                }
                 return 'current'
             }
         } catch (error) {
@@ -180,9 +213,10 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (!isCurrent()) {
             return 'stale'
         }
-        this.present({ kind: 'reconciliation', intent: 'actions' }, () =>
-            this.context.restoreFrom(replacement)
-        )
+        this.present({ kind: 'reconciliation', intent: 'actions' }, () => {
+            this.context.restoreFrom(replacement.context)
+            remote.adoptBranch(replacement.unmergedBranch)
+        })
         return 'current'
     }
 
@@ -247,6 +281,10 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         this.context.verifyFullChecksum()
     }
 
+    applyProcessed(actions: readonly GameAction[]): void {
+        this.apply(actions, ServerActionHandling.ApplyProcessed)
+    }
+
     private apply(
         actions: readonly GameAction[],
         handling: ServerActionHandling,
@@ -295,9 +333,10 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         })
     }
 
-    private present(request: TransitionRequest, write: () => void): void {
+    private present(request: TransitionRequest<T>, write: () => void): void {
         const remote = this.remote
         if (remote) remote.present(request, write)
+        else if (this.presentWithoutRemote) this.presentWithoutRemote(request, write)
         else write()
     }
 

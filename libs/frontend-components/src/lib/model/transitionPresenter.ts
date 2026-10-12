@@ -21,7 +21,21 @@ export type TransitionKind =
 
 export type TransitionIntent = 'actions' | 'state' | 'silent'
 
-export type TransitionRequest = { kind: TransitionKind; intent?: TransitionIntent }
+/** A Game State to show on the way to the presented one, with the Action that produced it. */
+export type TransitionScriptStep<T extends GameState> = {
+    readonly action: GameAction
+    readonly state: T
+}
+
+export type TransitionRequest<T extends GameState = GameState> = {
+    kind: TransitionKind
+    intent?: TransitionIntent
+    /**
+     * The States to show one at a time when they cannot be read from the context's Action
+     * History, such as other Players' Actions merged onto the Main Line behind an open Branch.
+     */
+    steps?: readonly TransitionScriptStep<T>[]
+}
 
 export type PresentedTransition = { kind: TransitionKind; actions: readonly GameAction[] }
 
@@ -69,6 +83,7 @@ type PendingChange<T extends GameState, U extends HydratedGameState<T> & T> = {
     state: T
     kind: TransitionKind
     intent: TransitionIntent
+    steps?: readonly TransitionScriptStep<T>[]
 }
 
 const DEFAULT_INTENT: Record<TransitionKind, TransitionIntent> = {
@@ -117,7 +132,7 @@ export class TransitionPresenter<
         this.queue(context, state, { kind: 'initial' })
     }
 
-    present(request: TransitionRequest, write: () => void): void {
+    present(request: TransitionRequest<T>, write: () => void): void {
         const before = this.observe()
         try {
             write()
@@ -149,14 +164,15 @@ export class TransitionPresenter<
         return { context, state: context.state }
     }
 
-    private queue(context: PresentableContext<T, U>, state: T, request: TransitionRequest) {
+    private queue(context: PresentableContext<T, U>, state: T, request: TransitionRequest<T>) {
         const intent = request.intent ?? DEFAULT_INTENT[request.kind]
         const earlier = this.pending
         this.pending = {
             context,
             state,
             kind: request.kind,
-            intent: earlier ? this.quietest(earlier.intent, intent) : intent
+            intent: earlier ? this.quietest(earlier.intent, intent) : intent,
+            steps: this.joinedSteps(earlier?.steps, request.steps)
         }
         this.deps.output.setPending(true)
         if (!this.running) {
@@ -168,7 +184,7 @@ export class TransitionPresenter<
     private async drain() {
         try {
             while (this.pending) {
-                const { context, state, kind, intent } = this.pending
+                const { context, state, kind, intent, steps } = this.pending
                 this.pending = undefined
                 const from = this.displayed
                 if (
@@ -183,7 +199,8 @@ export class TransitionPresenter<
                     from,
                     context.runtime.hydrator.hydrateState(state),
                     kind,
-                    intent
+                    intent,
+                    steps
                 )
             }
         } finally {
@@ -200,11 +217,12 @@ export class TransitionPresenter<
         from: U | undefined,
         to: U,
         kind: TransitionKind,
-        intent: TransitionIntent
+        intent: TransitionIntent,
+        steps?: readonly TransitionScriptStep<T>[]
     ) {
         this.incomingState = to
         try {
-            const actions = await this.animate(context, from, to, kind, intent)
+            const actions = await this.animate(context, from, to, kind, intent, steps)
             if (this.displayed === from) this.show(context, to, { kind, actions })
         } catch (error) {
             this.deps.onError(error)
@@ -218,9 +236,18 @@ export class TransitionPresenter<
         from: U | undefined,
         to: U,
         kind: TransitionKind,
-        intent: TransitionIntent
+        intent: TransitionIntent,
+        steps?: readonly TransitionScriptStep<T>[]
     ): Promise<GameAction[]> {
         if (intent === 'silent') return []
+        if (steps !== undefined && from !== undefined) {
+            try {
+                await this.replaySteps(context, from, steps, kind)
+            } catch (error) {
+                this.deps.onError(error)
+            }
+            return steps.map((step) => step.action)
+        }
         const actions = intent === 'actions' ? this.actionsBetween(context, from, to) : []
         try {
             if (from === undefined || actions.length === 0) {
@@ -253,6 +280,20 @@ export class TransitionPresenter<
         }
     }
 
+    private async replaySteps(
+        context: PresentableContext<T, U>,
+        from: U,
+        steps: readonly TransitionScriptStep<T>[],
+        kind: TransitionKind
+    ) {
+        let prior = from
+        for (const step of steps) {
+            const next = context.runtime.hydrator.hydrateState(step.state)
+            await this.step({ kind, to: next, from: prior, action: step.action })
+            prior = next
+        }
+    }
+
     private async step(step: { kind: TransitionKind; to: U; from?: U; action?: GameAction }) {
         const animationContext = this.deps.createAnimationContext()
         await Promise.all(
@@ -280,6 +321,15 @@ export class TransitionPresenter<
                 action.index >= from.actionCount &&
                 action.index < to.actionCount
         )
+    }
+
+    private joinedSteps(
+        earlier: readonly TransitionScriptStep<T>[] | undefined,
+        later: readonly TransitionScriptStep<T>[] | undefined
+    ): readonly TransitionScriptStep<T>[] | undefined {
+        if (earlier === undefined) return later
+        if (later === undefined) return earlier
+        return [...earlier, ...later]
     }
 
     private quietest(left: TransitionIntent, right: TransitionIntent): TransitionIntent {

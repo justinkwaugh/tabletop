@@ -2,8 +2,6 @@ import {
     ActionSource,
     assert,
     assertExists,
-    branchFromView,
-    branchView,
     findPlayerForUserId,
     type ActionHistoryPosition,
     type Branch,
@@ -119,19 +117,7 @@ export function createBranchRepresentation({
     if (perspective.kind !== 'player' || perspective.playerId !== branch.playerId) {
         return undefined
     }
-    const history = Visibility.projectActionHistory({
-        game,
-        currentState: branchView(state, branch),
-        startIndex: branch.actionCount - actions.length,
-        actions,
-        visibility,
-        perspective
-    })
-    const projectedMainLine = visibility.state.project(state, perspective, { config: game.config })
-    return {
-        branch: branchFromView(projectedMainLine, history.currentState, branch.playerId),
-        actions: [...history.actions]
-    }
+    return Visibility.projectUnmergedBranch({ game, state, branch, actions, visibility })
 }
 
 export function withUnmergedBranch<Representation extends object>(

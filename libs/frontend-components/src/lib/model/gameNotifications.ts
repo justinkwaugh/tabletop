@@ -1,4 +1,5 @@
 import {
+    Branch,
     CanonicalActionReplayManifest,
     Game,
     GameAction,
@@ -123,6 +124,21 @@ export class GameNotifications {
                 })
                 break
             }
+            case GameNotificationAction.UpdateBranch: {
+                if (!this.delivery.acceptsPerspective(notification.data.perspective)) return
+                const unmergedBranch = notification.data.unmergedBranch
+                Value.Assert(Branch, unmergedBranch.branch)
+                await this.delivery.enqueue({
+                    kind: 'branch',
+                    unmergedBranch: {
+                        branch: unmergedBranch.branch,
+                        actions: this.convertActions(unmergedBranch.actions)
+                    },
+                    game: this.convertGame(notification.data.game),
+                    perspective: notification.data.perspective
+                })
+                break
+            }
             case GameNotificationAction.UndoAction: {
                 const manifest = Value.Convert(
                     CanonicalActionReplayManifest,
@@ -179,6 +195,7 @@ export class GameNotifications {
                 notification.action === GameNotificationAction.AddProjectedActions ||
                 notification.action === GameNotificationAction.ReplaceProjectedActions ||
                 notification.action === GameNotificationAction.UndoAction ||
+                notification.action === GameNotificationAction.UpdateBranch ||
                 notification.action === GameNotificationAction.Delete)
         )
     }
