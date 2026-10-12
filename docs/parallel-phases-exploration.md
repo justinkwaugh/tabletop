@@ -2,6 +2,8 @@
 
 **Status:** exploration, 2026-10-10. Nothing here is decided and no engine work has started. The terms marked _provisional_ are working names, not glossary terms.
 
+**Superseded in part, 2026-10-12.** [Parallel Spans: working design](./parallel-spans.md) records the current design and its terms, and lists what in this note no longer holds. Read this note for the reasoning behind the direction.
+
 ## Current direction in brief
 
 Later sections were written in the order the ideas were worked out, and some revise earlier ones. This is where it stands.
