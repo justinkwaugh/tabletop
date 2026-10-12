@@ -1,5 +1,10 @@
 import { TabletopApi, type AppContext, VisibilityService } from '@tabletop/frontend-components'
-import { PUBLIC_API_HOST, PUBLIC_SSE_HOST, PUBLIC_ENABLE_ABLY_REALTIME } from '$env/static/public'
+import {
+    PUBLIC_API_HOST,
+    PUBLIC_SSE_HOST,
+    PUBLIC_ENABLE_ABLY_REALTIME,
+    PUBLIC_GAME_UI_BASE_URL
+} from '$env/static/public'
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
@@ -16,7 +21,7 @@ const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION, 
 console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)
 api.setGameVersionProvider(manifestService)
-const libraryService = new LibraryService(manifestService)
+const libraryService = new LibraryService(manifestService, PUBLIC_GAME_UI_BASE_URL)
 const authorizationService = new AuthorizationService(
     api,
     () => {
