@@ -4,7 +4,12 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { askQuestion, currentQuestion, resumeStateAfterQuestions } from './questions.js'
-import { forfeitFreeActions, nextActionIndex, SECOND_WIND_ID } from './freeActions.js'
+import {
+    forfeitFreeActions,
+    nextActionIndex,
+    passFreeCampaignToNextAction,
+    SECOND_WIND_ID
+} from './freeActions.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 export type FreeActionOutOfTurn = ActionType.Travel | ActionType.Campaign
@@ -119,6 +124,35 @@ export function endStepOutOfTurn(state: HydratedOathGameState, playerId: string)
     const resume = resumeHeldTurn(state)
     assertExists(resume, 'the held turn names where it resumes')
     return resume
+}
+
+/**
+ * Second Wind out of turn — a Travel out of a Shrouded Wood an enemy rules lands when the ruler's pick, and any
+ * toll asked with it, is settled. Until then its questions end where the held turn resumes, and the free
+ * Campaign waits to be judged from where the pawn lands (`endTravelOutOfTurn`).
+ */
+export function holdTravelOutOfTurnUntilItLands(state: HydratedOathGameState): MachineState {
+    const held = state.heldTurn
+    assertExists(held, 'a step out of turn holds the turn')
+    const pending = state.pendingQuestions
+    assertExists(pending, "the Shrouded Wood's ruler was just asked")
+    pending.resumeMachineState = held.resumeMachineState
+    return held.resumeMachineState
+}
+
+/**
+ * The Travel from a Shrouded Wood has landed, or its toll was refused and the pawn stays. A Travel is taken while
+ * a turn is held only as Second Wind's out of turn, so with a held turn the step ends here: the free Campaign is
+ * judged from the site the pawn is at now.
+ */
+export function endTravelOutOfTurn(
+    state: HydratedOathGameState,
+    travelerId: string
+): { resumeMachineState?: MachineState } {
+    if (state.heldTurn === undefined) return {}
+    // It lands in an answer, the ruler's pick or the toll's.
+    passFreeCampaignToNextAction(state, travelerId)
+    return { resumeMachineState: endStepOutOfTurn(state, travelerId) }
 }
 
 /**

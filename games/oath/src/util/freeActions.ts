@@ -65,6 +65,17 @@ export function freeActionTypesNow(state: HydratedOathGameState, playerId: strin
     return types
 }
 
+/**
+ * An answer is not the free Campaign, so a grant due now passes to the next action, as `carryFreeActions`
+ * passes it once the answer is taken; the step it ends can then ask for it.
+ */
+export function passFreeCampaignToNextAction(state: HydratedOathGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    if (player.freeCampaignAtAction === state.actionCount) {
+        player.freeCampaignAtAction = nextActionIndex(state)
+    }
+}
+
 /** R-10.2 — while a free action is due, only it (or giving it up) may come next. */
 export function reasonFreeActionComesFirst(
     state: HydratedOathGameState,

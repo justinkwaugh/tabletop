@@ -51,7 +51,11 @@ import { payToll } from './tolls.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { forgoFreeActionNow } from './freeActions.js'
-import { endStepOutOfTurn, holdTurnForSkippedFreeAction } from './sneakAttack.js'
+import {
+    endStepOutOfTurn,
+    endTravelOutOfTurn,
+    holdTurnForSkippedFreeAction
+} from './sneakAttack.js'
 import { ActionType } from '../definition/actions.js'
 
 function listOf(id: string | undefined): string[] {
@@ -345,9 +349,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 )
                 const notes = pick.notes ?? []
                 const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
+                // Second Wind out of turn — the pawn has landed, so the free Campaign is judged from here.
+                const landed = endTravelOutOfTurn(state, travelerPlayerId)
                 return revealed
-                    ? { summary, woodPick: pick, disclosed: true }
-                    : { summary, woodPick: pick }
+                    ? { summary, woodPick: pick, disclosed: true, ...landed }
+                    : { summary, woodPick: pick, ...landed }
             }
             if (toll) {
                 const move = {
@@ -584,7 +590,9 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 return {
                     summary: `refused ${question.cardId} and stayed at ${question.fromSiteId}`,
                     tollMove,
-                    ...settleBanishedVictory(state)
+                    ...settleBanishedVictory(state),
+                    // A Travel out of turn whose toll is refused ends at the Wood, where the pawn stays.
+                    ...(question.travel ? endTravelOutOfTurn(state, question.askedPlayerId) : {})
                 }
             }
             if (!question.travel)
@@ -603,7 +611,8 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return {
                 summary: `${paid}, paying ${pick.supplySpent} Supply`,
                 tollMove,
-                woodPick: pick
+                woodPick: pick,
+                ...endTravelOutOfTurn(state, question.askedPlayerId)
             }
         }
     },

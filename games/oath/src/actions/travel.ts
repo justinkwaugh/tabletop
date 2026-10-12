@@ -19,6 +19,7 @@ import { nextActionIndex } from '../util/freeActions.js'
 import {
     endStepOutOfTurn,
     freeActionOutOfTurnOfferedTo,
+    holdTravelOutOfTurnUntilItLands,
     holdTurnForFreeActionOutOfTurn
 } from '../util/sneakAttack.js'
 import { MachineState } from '../definition/states.js'
@@ -210,7 +211,13 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             paysAtPick: paysAtPick || undefined,
             supplySpent: cost,
             supplyRemaining: player.supply,
-            ...HydratedTravel.afterStepOutOfTurn(state, this.playerId, outOfTurnBy)
+            // Second Wind out of turn — the free Campaign is judged once the pick lands the pawn.
+            ...(outOfTurnBy === undefined
+                ? {}
+                : {
+                      freeActionOf: outOfTurnBy,
+                      resumeMachineState: holdTravelOutOfTurnUntilItLands(state)
+                  })
         }
     }
 
