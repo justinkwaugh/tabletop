@@ -12,7 +12,7 @@ import {
     SearchSource
 } from '@tabletop/oath'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { describeAction, type HistoryNames } from './actionDescription.js'
+import { describeAction, phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
 import { seatsById } from './names.js'
 import { tokenParts } from './tokenText.js'
 
@@ -235,12 +235,52 @@ describe('the History words: each row as the record says it, older records too',
         expect(row(split)).toBe('sacrificed 2 warbands on their board and 1 at Plains and won the battle')
         expect(drawn(split, 'p3')).toBe('sacrificed 2[warband] on their board and 1 at Plains and won the battle')
         expect(row(sacrificed([{ at: board, owner: 'p1', count: 3 }]))).toBe('sacrificed 3 warbands and won the battle')
-        expect(
-            row(sacrificed([
-                { at: board, owner: 'p1', count: 2 },
-                { at: board, owner: 'imperial', count: 1 }
-            ]))
-        ).toBe('sacrificed 3 warbands and won the battle')
+    })
+
+    it('393 a sacrifice from a force of two owners (before revision 5) keeps each owner’s count apart, each piece in its owner’s colour', () => {
+        const board = { kind: 'board', playerId: 'p1' }
+        const plains = { kind: 'site', siteId: 'slot.provinces.0' }
+        const sacrificed = (sacrificeKills: { at: unknown; owner: string; count: number }[]) =>
+            action({
+                type: ActionType.CampaignSacrifice,
+                playerId: 'p1',
+                sacrifice: 3,
+                sacrificeKills,
+                metadata: { attack: 6, defense: 5, sacrificed: 3, attackerVictorious: true }
+            })
+        // Each counted phrase's owner, as the History colours its pieces: Dana's own are hers.
+        const pieces = (sacrifice: GameAction) =>
+            tokenParts(describeAction(sacrifice, names), { warbands: true }).flatMap((part) =>
+                part.kind === 'warband'
+                    ? [[part.count, phraseWarbandOwner(part.whose, sacrifice, { names, viewerId: undefined }, (id) => id)]]
+                    : []
+            )
+
+        const imperialOnTheBoard = sacrificed([
+            { at: plains, owner: 'p1', count: 1 },
+            { at: board, owner: 'imperial', count: 2 }
+        ])
+        expect(describeAction(imperialOnTheBoard, names)).toBe(
+            'sacrificed 2 Imperial warbands on their board and 1 warband at Plains and won the battle'
+        )
+        expect(pieces(imperialOnTheBoard)).toEqual([[2, 'imperial'], [1, 'p1']])
+
+        const bothOnTheBoard = sacrificed([
+            { at: board, owner: 'p1', count: 2 },
+            { at: plains, owner: 'imperial', count: 1 },
+            { at: board, owner: 'imperial', count: 1 }
+        ])
+        expect(describeAction(bothOnTheBoard, names)).toBe(
+            'sacrificed 2 warbands on their board and 1 Imperial warband on their board and 1 Imperial warband at Plains and won the battle'
+        )
+        expect(pieces(bothOnTheBoard)).toEqual([[2, 'p1'], [1, 'imperial'], [1, 'imperial']])
+
+        const onePlace = sacrificed([
+            { at: board, owner: 'p1', count: 2 },
+            { at: board, owner: 'imperial', count: 1 }
+        ])
+        expect(describeAction(onePlace, names)).toBe('sacrificed 2 warbands and 1 Imperial warband and won the battle')
+        expect(pieces(onePlace)).toEqual([[2, 'p1'], [1, 'imperial']])
     })
 
     it('394 the losses: "picked the defense’s losses:"', () => {

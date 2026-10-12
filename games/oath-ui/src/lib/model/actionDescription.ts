@@ -416,28 +416,42 @@ function whenPlayedClause(
 /**
  * R-5.5.5, R-10.22 — where a sacrifice from a force in two places or more came from ("2 warbands
  * on their board and 1 at Plains"): a board's first, then the sites in the record's order. One
- * place, or a record from before the warbands were named, says only how many.
+ * place, or a record from before the warbands were named, says only how many. A force of two
+ * owners (a game from before revision 5) keeps each owner's count apart, in its owner's words as
+ * the spoils' placements are, so each count is drawn in its owner's colour.
  */
 function sacrificePlaces(
     kills: readonly WarbandGroup[],
     actorId: string,
     names: HistoryNames
 ): string | undefined {
-    const places = new Map<string, number>()
+    const counted: { place: string; owner: WarbandOwner; count: number }[] = []
     for (const group of [...kills].sort((a, b) => placeOrder(a) - placeOrder(b))) {
+        if (group.count <= 0) continue
         const place =
             group.at.kind === 'site'
                 ? `at ${names.site(group.at.siteId)}`
                 : group.at.playerId === actorId
                   ? 'on their board'
                   : `on ${names.player(group.at.playerId)}'s board`
-        places.set(place, (places.get(place) ?? 0) + group.count)
+        const same = counted.find((c) => c.place === place && c.owner === group.owner)
+        if (same) same.count += group.count
+        else counted.push({ place, owner: group.owner, count: group.count })
     }
-    const counted = [...places].filter(([, count]) => count > 0)
-    if (counted.length < 2) return undefined
+    const named = new Set(counted.map((c) => c.place)).size > 1
+    if (new Set(counted.map((c) => c.owner)).size > 1) {
+        return counted
+            .map(
+                ({ place, owner, count }) =>
+                    `${warbandsOf(count, owner, names.player, actorId)}${named ? ` ${place}` : ''}`
+            )
+            .join(' and ')
+    }
+    if (!named) return undefined
     return counted
         .map(
-            ([place, count], index) => `${index === 0 ? plural(count, 'warband') : count} ${place}`
+            ({ place, count }, index) =>
+                `${index === 0 ? plural(count, 'warband') : count} ${place}`
         )
         .join(' and ')
 }
