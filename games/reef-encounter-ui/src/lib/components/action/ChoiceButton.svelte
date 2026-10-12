@@ -4,14 +4,23 @@
     let {
         label,
         selected = false,
+        tile = false,
         onclick,
         children
-    }: { label: string; selected?: boolean; onclick: () => void; children: Snippet } = $props()
+    }: {
+        label: string
+        selected?: boolean
+        // The content is a component tile that is itself the button, with no pebble around it.
+        tile?: boolean
+        onclick: () => void
+        children: Snippet
+    } = $props()
 </script>
 
 <button
     type="button"
     class="choice"
+    class:tile
     class:selected
     aria-label={label}
     aria-pressed={selected}
@@ -60,6 +69,24 @@
             0 0 0 3px rgb(239 143 46 / 0.25);
     }
 
+    .choice.tile {
+        min-width: 0;
+        min-height: 0;
+        padding: 0;
+        border-radius: 4px;
+        background: none;
+        overflow: hidden;
+        box-shadow:
+            0 0 0 1px rgb(0 0 0 / 0.3),
+            0 2px 4px rgb(4 30 26 / 0.25);
+    }
+
+    .choice.tile:hover {
+        box-shadow:
+            0 0 0 2px var(--reef-teal),
+            0 5px 8px -2px rgb(4 30 26 / 0.35);
+    }
+
     .choice:focus-visible {
         outline: 2px solid var(--reef-accent);
         outline-offset: 2px;
@@ -75,7 +102,7 @@
     }
 
     @media (max-width: 639px) {
-        .choice {
+        .choice:not(.tile) {
             min-width: 44px;
             min-height: 44px;
             padding: 2px;

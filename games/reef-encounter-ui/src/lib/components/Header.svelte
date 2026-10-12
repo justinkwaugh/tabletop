@@ -20,7 +20,7 @@
 </script>
 
 <div class="header">
-    <div class="tag reef-title" style:--tag={tagPaint} style:--tag-ink={tagInk}>
+    <div class="tag reef-display" style:--tag={tagPaint} style:--tag-ink={tagInk}>
         {#if gameSession.isViewingHistory}
             History
         {:else if gameSession.gameState.result}

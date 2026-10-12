@@ -12,10 +12,11 @@
 <div class="choices">
     {#each gameSession.feedableColors as color (color)}
         <ChoiceButton
+            tile
             label="Feed {withArticle(color)} polyp"
             onclick={() => gameSession.feedParrotfish(color)}
         >
-            <img src={polypFaceUrl(color, 'choice')} alt="" width="44" height="44" />
+            <img src={polypFaceUrl(color, 'choice')} alt="" width="52" height="52" />
         </ChoiceButton>
     {/each}
 </div>
@@ -24,11 +25,11 @@
     .choices {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
+        gap: 10px;
+        margin-top: 10px;
     }
 
     img {
-        border-radius: 4px;
+        display: block;
     }
 </style>
