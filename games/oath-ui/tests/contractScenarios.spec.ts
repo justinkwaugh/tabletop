@@ -2234,6 +2234,11 @@ test.describe('scenario 67: a power’s picks as chips and pieces', () => {
         await openPower(page, 'pickerPact')
         const row = powerRow(page, 'denizen.arcane.blood-pact')
         await expect(row.getByText('Sacrifice:', { exact: true })).toBeVisible()
+        // The card names its board, so the pairs stand beside its words with no place named.
+        await expect(row.getByText(/on your board/)).toHaveCount(0)
+        const [words, firstPair] = [await boxOf(row.getByText('Sacrifice:', { exact: true })), await boxOf(pieces(page).first())]
+        expect(firstPair.x).toBeGreaterThan(words.x + words.width)
+        expect(firstPair.y).toBeLessThan(words.y + words.height)
         await expect(pieces(page)).toHaveCount(2)
         await expect(pieces(page).nth(0).locator('img')).toHaveCount(2)
         await expect(row.locator('[data-leftover-piece] img')).toHaveCount(1)

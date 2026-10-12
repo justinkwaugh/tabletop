@@ -178,11 +178,15 @@
         <div class="mb-1 text-xs">
             {#if grid}
                 {@const counts = gridCounts(grid, picks)}
-                <div class="mb-1">
-                    {words.warbands?.(grid.total) ?? `${legal.spec.what ?? 'warbands'}:`}
-                </div>
+                {@const heading =
+                    words.warbands?.(grid.total) ?? `${legal.spec.what ?? 'warbands'}:`}
+                {@const ownPlace = words.ownPlace === true && grid.groups.length === 1}
+                {#if !ownPlace}
+                    <div class="mb-1">{heading}</div>
+                {/if}
                 <!-- A spec taking several groups offers where they go (the Cage's boards). -->
                 <WarbandGroupRows
+                    lead={ownPlace ? heading : undefined}
                     groups={grid.groups}
                     {counts}
                     ceilingAt={(row) => gridCeilingAt(grid, counts, row)}
