@@ -2,7 +2,6 @@
     import { W, H } from '$lib/utils/boardGeometry.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    const MOOD_EASE_SECONDS = 4
     const SUNLIGHT = 0.45
 
     const session = getGameSession()
@@ -16,19 +15,19 @@
     class="light lush"
     aria-hidden="true"
     style={layerStyle}
-    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.lush * SUNLIGHT }))}
+    {@attach moodLight.ambient((mood) => ({ opacity: mood.lush * SUNLIGHT }))}
 ></div>
 <div
     class="light bleach"
     aria-hidden="true"
     style={layerStyle}
-    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.drought * 0.35 }))}
+    {@attach moodLight.ambient((mood) => ({ opacity: mood.drought * 0.35 }))}
 ></div>
 <div
     class="light glare"
     aria-hidden="true"
     style={layerStyle}
-    {@attach moodLight.ambient(MOOD_EASE_SECONDS, (mood) => ({ opacity: mood.drought * SUNLIGHT }))}
+    {@attach moodLight.ambient((mood) => ({ opacity: mood.drought * SUNLIGHT }))}
 ></div>
 
 <style>

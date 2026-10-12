@@ -4,7 +4,6 @@
     import type { LandMood } from '$lib/model/landMood.js'
 
     const MAX_MOTES = 24
-    const MOTE_FADE_SECONDS = 2.5
 
     const session = getGameSession()
     const moodLight = session.landMoodAnimator
@@ -36,7 +35,7 @@
 <div class="dust" aria-hidden="true" style="left: 10px; top: 10px; width: {W}px; height: {H}px">
     {#each { length: MAX_MOTES } as _, index (index)}
         <!-- The fade sits on its own wrapper because each mote's drift already owns its opacity. -->
-        <div {@attach moodLight.ambient(MOTE_FADE_SECONDS, moteShown(index))}>
+        <div {@attach moodLight.ambient(moteShown(index))}>
             <div class="drift" style={moteStyle(index)}>
                 <div class="mote" style="animation-duration: {3 + (index % 5) * 0.7}s"></div>
             </div>

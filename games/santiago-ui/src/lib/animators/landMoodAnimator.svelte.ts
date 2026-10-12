@@ -3,9 +3,10 @@ import { untrack } from 'svelte'
 import { landMood, type LandMood } from '$lib/model/landMood.js'
 import { StateAnimator, type StateChange } from './stateAnimator.js'
 
+const MOOD_EASE_SECONDS = 0.8
+
 type Ambient = {
     element: HTMLElement
-    seconds: number
     shown(mood: LandMood): Record<string, number | string>
 }
 
@@ -14,18 +15,16 @@ function sameMood(a: LandMood, b: LandMood) {
 }
 
 // Owns the land's light and dust motes. After a played move they ease toward the mood the move
-// leaves, over seconds, starting once the move's own motion is done; the tween runs beside the
-// shared timeline rather than on it, since a timeline that long would hold up play. Any other
-// change of the shown mood, from undo, a step through history or a silent restoration, is
-// applied at once when the state publishes. See the visual contract's "The land's mood".
+// leaves, on the final timeline once the move's own motion is done. Any other change of the
+// shown mood, from undo, a step through history or a silent restoration, is applied at once when
+// the state publishes. See the visual contract's "The land's mood".
 export class LandMoodAnimator extends StateAnimator {
     private readonly ambients = new Set<Ambient>()
-    private easingTo: LandMood | undefined
 
     // Registers an element whose style follows the mood, starting at the mood shown now.
-    ambient(seconds: number, shown: Ambient['shown']) {
+    ambient(shown: Ambient['shown']) {
         return (element: HTMLElement) => {
-            const ambient: Ambient = { element, seconds, shown }
+            const ambient: Ambient = { element, shown }
             this.ambients.add(ambient)
             gsap.set(element, shown(untrack(() => this.gameSession.landMood)))
             return () => {
@@ -35,11 +34,8 @@ export class LandMoodAnimator extends StateAnimator {
         }
     }
 
-    // Brings every ambient element to the shown mood at once, unless a played move's ease is
-    // already heading there.
+    // Brings every ambient element to the shown mood at once.
     settle(mood: LandMood) {
-        if (this.easingTo && sameMood(this.easingTo, mood)) return
-        this.easingTo = undefined
         for (const { element, shown } of this.ambients) {
             gsap.killTweensOf(element)
             gsap.set(element, shown(mood))
@@ -54,14 +50,12 @@ export class LandMoodAnimator extends StateAnimator {
         if (sameMood(target, this.gameSession.landMood)) return
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-        animationContext.finalTimeline.call(() => this.easeTo(target), [], 0)
-    }
-
-    private easeTo(target: LandMood) {
-        this.easingTo = target
-        for (const { element, seconds, shown } of this.ambients) {
-            gsap.killTweensOf(element)
-            gsap.to(element, { ...shown(target), duration: seconds, ease: 'power1.inOut' })
+        for (const { element, shown } of this.ambients) {
+            animationContext.finalTimeline.to(
+                element,
+                { ...shown(target), duration: MOOD_EASE_SECONDS, ease: 'power1.inOut' },
+                0
+            )
         }
     }
 }
