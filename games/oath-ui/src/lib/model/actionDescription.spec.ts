@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     AnswerQuestion,
+    CampaignTargetKind,
     ExileCitizen,
     HydratedAnswerQuestion,
     HydratedExileCitizen,
@@ -67,6 +68,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.UseRestPower]: { cardId: CARD, powerIndex: 0 },
     [ActionType.CampaignSacrifice]: { sacrifice: 0 },
     [ActionType.CampaignDefeatKills]: { kills: [] },
+    [ActionType.CampaignSkullLosses]: { kills: [] },
     [ActionType.CampaignResolveVictory]: { placements: [], burnFavor: false },
     [ActionType.PlayFacedownAdviser]: { cardId: CARD, play: 'adviser' },
     [ActionType.UseActionPower]: { cardId: CARD },
@@ -127,10 +129,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 32 action types, and reaches no fallback', () => {
+    it('has a sentence for all 33 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(32)
+        expect(types).toHaveLength(33)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -139,6 +141,16 @@ describe('the history tab describes every action', () => {
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
         }
+    })
+
+    it('R-5.5.5 — the skulls’ losses name where they fell, one place or each place', () => {
+        const names = { ...nameOf, site: (slotId: string) => ({ 'slot.cradle.0': 'Plains', 'slot.cradle.1': 'River' })[slotId] ?? slotId }
+        const board = { at: { kind: 'board', playerId: 'p1' }, owner: 'p1' }
+        const at = (siteId: string) => ({ at: { kind: 'site', siteId }, owner: 'p1' })
+        const losses = (killed: Array<Record<string, unknown>>) =>
+            describeAction(action({ type: ActionType.CampaignSkullLosses, playerId: 'p1', kills: killed, metadata: { killed } }), names)
+        expect(losses([{ ...board, count: 2 }])).toBe('lost 2 to skulls, on their board')
+        expect(losses([{ ...board, count: 1 }, { ...at('slot.cradle.0'), count: 1 }, { ...at('slot.cradle.1'), count: 1 }])).toBe('lost 3 to skulls: 1 on their board, 1 at Plains, 1 at River')
     })
 
     it('R-10.2 — names the free action given up', () => {
@@ -310,6 +322,14 @@ describe('the history tab describes every action', () => {
                 actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
                 target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
                 third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets'
+            },
+            {
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: with p2, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with p3, gave 0 secrets for 0 favor and 2 favor for 1 secrets",
+                actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with Cass, gave 0 secrets for 0 favor and 2 favor for 1 secrets',
+                third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with you, gave 0 secrets for 0 favor and 2 favor for 1 secrets'
             },
             {
                 card: 'denizen.discord.relic-thief',
@@ -642,6 +662,32 @@ describe('the history tab describes every action', () => {
         ).toBe(
             'travelled to Cradle 2, spending 1 Supply — revealing Mine and 1 facedown relic'
         )
+    })
+
+    it('Second Wind out of turn — the free Travel and Campaign end "(free, Second Wind)"', () => {
+        const SECOND_WIND = 'denizen.discord.second-wind'
+        const travelled = describeAction(
+            action({
+                type: ActionType.Travel,
+                playerId: 'p1',
+                siteId: 'slot.cradle.1',
+                metadata: { supplySpent: 0, supplyRemaining: 0, freeActionOf: SECOND_WIND }
+            }),
+            nameOf
+        )
+        expect(travelled).toBe('travelled to Cradle 2 (free, Second Wind)')
+        const campaigned = describeAction(
+            action({
+                type: ActionType.Campaign,
+                playerId: 'p1',
+                defender: { kind: 'player', playerId: 'p2' },
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackDice: 0,
+                metadata: { supplySpent: 0, freeActionOf: SECOND_WIND, awaitingAllies: true }
+            }),
+            nameOf
+        )
+        expect(campaigned).toMatch(/^campaigned against Bob for .+ \(free, Second Wind\) — /)
     })
 
     describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
@@ -1030,6 +1076,33 @@ describe('the history tab describes every action', () => {
             expect(line).not.toContain('denizen.beast.wolves')
             expect(line).not.toContain('denizen.nomad.tents')
         })
+    })
+})
+
+describe('Dragonskin Drum on a power’s move — the answer’s own row, after the move’s', () => {
+    const DRUM = 'relic.dragonskin-drum'
+    const drum = (gain: boolean, warbandGain?: { owner: string; count: number }) =>
+        action({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.DragonskinDrum, gain }, metadata: { cardId: DRUM, kind: PowerQuestionKind.DragonskinDrum, summary: gain ? 'gained 1 warband' : 'skipped', resumeMachineState: MachineState.ActPhase, last: true, ...(warbandGain ? { warbandGain } : {}) } })
+
+    it('Gain reads "+1 warband (Dragonskin Drum)", the warband its token in the History', () => {
+        const line = describeAction(drum(true, { owner: 'p2', count: 1 }), nameOf, 'p1')
+        expect(line).toBe('+1 warband (Dragonskin Drum)')
+        expect(tokenParts(line, { warbands: true })).toEqual([
+            { kind: 'text', text: '+' },
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            { kind: 'text', text: ' (Dragonskin Drum)' }
+        ])
+    })
+
+    it('Skip adds nothing to the move: its row says only that it was skipped', () => {
+        expect(describeAction(drum(false), nameOf, 'p1')).toBe('skipped the Dragonskin Drum')
+    })
+
+    it('the warband is the owner the answer recorded: a Citizen’s, the Empire’s', () => {
+        const own = (playerId: string) => playerId
+        expect(rowWarbandOwner(drum(true, { owner: IMPERIAL_WARBANDS, count: 1 }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(drum(true, { owner: 'p2', count: 1 }), own)).toBe('p2')
+        expect(rowWarbandOwner(drum(false), own)).toBe('p2')
     })
 })
 

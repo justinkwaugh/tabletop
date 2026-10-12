@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
 import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
 import { WarbandOwner } from './warbandCounts.js'
@@ -153,7 +154,17 @@ export enum PowerQuestionKind {
     /** Law Glossary "Discard" — the order several cards go onto one pile. */
     OrderDiscards = 'orderDiscards',
     /** Toll Roads — a power moves the asked player into its ruler's site: give the favor, or refuse and stay. */
-    PayTravelToll = 'payTravelToll'
+    PayTravelToll = 'payTravelToll',
+    /**
+     * Second Wind out of turn (revision 7) — the holder's free Travel, then free Campaign, before the
+     * held turn resumes: answered by the action itself, or skipped.
+     */
+    FreeActionOutOfTurn = 'freeActionOutOfTurn',
+    /**
+     * Dragonskin Drum (revision 7) — a power moved its holder, who "after traveling" may gain one
+     * warband, as its Q&A rules a forced travel does: gain it, or skip.
+     */
+    DragonskinDrum = 'dragonskinDrum'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -209,6 +220,13 @@ export const ShroudedWoodPick = Type.Object({
     notes: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
     /** R-10.13 — whose warband Tyrant killed. */
     warbandOwner: Type.Optional(WarbandOwner)
+})
+
+/** Dragonskin Drum — the warbands an answer put on its player's board, and whose they are (R-10.13). */
+export type WarbandGain = Type.Static<typeof WarbandGain>
+export const WarbandGain = Type.Object({
+    owner: WarbandOwner,
+    count: Type.Number()
 })
 
 export type PowerQuestion = Type.Static<typeof PowerQuestion>
@@ -379,6 +397,18 @@ export const PowerQuestion = Type.Union([
         burnFavor: Type.Optional(Type.Boolean()),
         /** R-11.7 — the traveller's own Travel out of the Shrouded Wood, which pays its Supply once the toll is paid. */
         travel: Type.Optional(ShroudedWoodTravel)
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** "you may travel and then may campaign" — the one asked now. */
+        action: Type.Union([Type.Literal(ActionType.Travel), Type.Literal(ActionType.Campaign)])
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DragonskinDrum),
+        cardId: Type.String(),
+        askedPlayerId: Type.String()
     })
 ])
 
@@ -454,7 +484,13 @@ export const QuestionAnswer = Type.Union([
         kind: Type.Literal(PowerQuestionKind.OrderDiscards),
         order: Type.Array(Type.Number(), { maxItems: 16 })
     }),
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.PayTravelToll), pay: Type.Boolean() })
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.PayTravelToll), pay: Type.Boolean() }),
+    /** The skip; the Travel or Campaign itself is the other answer. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
+        take: Type.Literal(false)
+    }),
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

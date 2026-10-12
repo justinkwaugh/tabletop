@@ -51,9 +51,86 @@
     let travelOnMap = $derived(chosen === ActionType.Travel && gameSession.travelRows.length > 0)
     let travelWaysOpen = $derived(travelOnMap ? gameSession.travelWaysOpen : undefined)
 
+    // R-5.5.5 to R-5.5.7 — the attacker's steps after the roll, and the defending side's losses.
+    const BATTLE_STEPS: ReadonlySet<string> = new Set([
+        MachineState.CampaignSkullLosses,
+        MachineState.CampaignSacrifice,
+        MachineState.CampaignDefeat,
+        MachineState.CampaignVictory
+    ])
+
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
 </script>
+
+{#snippet chosenAction(action: ActionType)}
+    {#if travelWaysOpen}
+        <div class="mb-2">
+            <TravelWays row={travelWaysOpen} upright={layout.upright} />
+        </div>
+    {:else}
+        <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
+            <span class="text-sm"
+                >{travelOnMap ? TRAVEL_ON_THE_MAP_PROMPT : actionName(action)}</span
+            >
+        </div>
+    {/if}
+
+    {#if MODIFIABLE_ACTIONS.has(action)}
+        <ModifierPicker {action} />
+    {/if}
+
+    {#if MINOR_TARGETED_ACTIONS.has(action)}
+        <div class="mb-2">
+            <MinorActionPanel {action} />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Travel && gameSession.shroudedWoodChooser}
+        <div class="mb-2">
+            <WoodTravelPanel
+                rulerId={gameSession.shroudedWoodChooser}
+                regions={gameSession.woodRegions}
+            />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Recover && !gameSession.stagedBanner}
+        <div class="mb-2">
+            <RecoverMenu />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Recover && gameSession.stagedBanner}
+        <div class="mb-2">
+            <BannerRecoverPanel />
+        </div>
+    {/if}
+
+    {#if action === ActionType.UseActionPower}
+        <div class="mb-2">
+            <PowerPanel />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Search}
+        <div class="mb-2">
+            <SearchMenu />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Muster}
+        <div class="mb-2">
+            <MusterMenu />
+        </div>
+    {/if}
+
+    {#if action === ActionType.Trade}
+        <div class="mb-2">
+            <TradeMenu />
+        </div>
+    {/if}
+{/snippet}
 
 <div class="panel rounded-lg bg-oath-surface border border-oath-frame px-3 py-2 text-oath-text">
     <ActorOnlyNotice />
@@ -65,6 +142,8 @@
         <div class="mb-2">
             <CampaignPanel />
         </div>
+    {:else if gameSession.travelOutOfTurnOpen}
+        {@render chosenAction(ActionType.Travel)}
     {:else if gameState.machineState === MachineState.ConsentRequest}
         <ConsentPanel />
     {:else if gameState.machineState === MachineState.PowerQuestion}
@@ -81,7 +160,7 @@
         <EndOfRoundPanel />
     {:else if !isMyTurn}
         <WaitingOn />
-    {:else if gameState.machineState === MachineState.CampaignSacrifice || gameState.machineState === MachineState.CampaignDefeat || gameState.machineState === MachineState.CampaignVictory}
+    {:else if BATTLE_STEPS.has(gameState.machineState)}
         <CampaignBattlePanel />
     {:else if gameState.machineState === MachineState.Searching}
         <SearchPanel />
@@ -106,72 +185,7 @@
                 <CitizenshipPanel />
             </div>
         {:else if chosen}
-            {#if travelWaysOpen}
-                <div class="mb-2">
-                    <TravelWays row={travelWaysOpen} upright={layout.upright} />
-                </div>
-            {:else}
-                <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
-                    <span class="text-sm"
-                        >{travelOnMap ? TRAVEL_ON_THE_MAP_PROMPT : actionName(chosen)}</span
-                    >
-                </div>
-            {/if}
-
-            {#if MODIFIABLE_ACTIONS.has(chosen)}
-                <ModifierPicker action={chosen} />
-            {/if}
-
-            {#if MINOR_TARGETED_ACTIONS.has(chosen)}
-                <div class="mb-2">
-                    <MinorActionPanel action={chosen} />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Travel && gameSession.shroudedWoodChooser}
-                <div class="mb-2">
-                    <WoodTravelPanel
-                        rulerId={gameSession.shroudedWoodChooser}
-                        regions={gameSession.woodRegions}
-                    />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Recover && !gameSession.stagedBanner}
-                <div class="mb-2">
-                    <RecoverMenu />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Recover && gameSession.stagedBanner}
-                <div class="mb-2">
-                    <BannerRecoverPanel />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.UseActionPower}
-                <div class="mb-2">
-                    <PowerPanel />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Search}
-                <div class="mb-2">
-                    <SearchMenu />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Muster}
-                <div class="mb-2">
-                    <MusterMenu />
-                </div>
-            {/if}
-
-            {#if chosen === ActionType.Trade}
-                <div class="mb-2">
-                    <TradeMenu />
-                </div>
-            {/if}
+            {@render chosenAction(chosen)}
         {/if}
 
         {#if !chosen}

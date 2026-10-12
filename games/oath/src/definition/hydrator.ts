@@ -10,6 +10,10 @@ import { HydratedRecover, isRecover } from '../actions/recover.js'
 import { HydratedCampaign, isCampaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, isCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import {
+    HydratedCampaignSkullLosses,
+    isCampaignSkullLosses
+} from '../actions/campaignSkullLosses.js'
+import {
     HydratedCampaignDefeatKills,
     isCampaignDefeatKills
 } from '../actions/campaignDefeatKills.js'
@@ -83,6 +87,9 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isCampaignDefend(data): {
                 return new HydratedCampaignDefend(data)
+            }
+            case isCampaignSkullLosses(data): {
+                return new HydratedCampaignSkullLosses(data)
             }
             case isCampaignSacrifice(data): {
                 return new HydratedCampaignSacrifice(data)

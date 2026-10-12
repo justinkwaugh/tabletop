@@ -48,7 +48,15 @@ import {
     settlePowerMoveToll
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
+import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
+import { forgoFreeActionNow } from './freeActions.js'
+import {
+    endStepOutOfTurn,
+    endTravelOutOfTurn,
+    holdTurnForSkippedFreeAction
+} from './sneakAttack.js'
+import { ActionType } from '../definition/actions.js'
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
@@ -341,9 +349,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 )
                 const notes = pick.notes ?? []
                 const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
+                // Second Wind out of turn — the pawn has landed, so the free Campaign is judged from here.
+                const landed = endTravelOutOfTurn(state, travelerPlayerId)
                 return revealed
-                    ? { summary, woodPick: pick, disclosed: true }
-                    : { summary, woodPick: pick }
+                    ? { summary, woodPick: pick, disclosed: true, ...landed }
+                    : { summary, woodPick: pick, ...landed }
             }
             if (toll) {
                 const move = {
@@ -359,7 +369,10 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                     ? { summary, tollMove }
                     : { summary, tollMove, ...settleBanishedVictory(state) }
             }
-            const { notes, revealed } = travelByPower(state, travelerPlayerId, siteId)
+            const { notes, revealed } = travelByPower(state, travelerPlayerId, siteId, {
+                playerId: askingPlayerId,
+                next: true
+            })
             const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
             // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the move.
             return {
@@ -380,12 +393,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             return reasonCannotTravelByPower(state, playerId, siteId)
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const siteId = matched.answer.siteId
             // Toll Roads — Brass Horse's user travels, so they pay as they go.
             const toll = powerMoveToll(state, playerId, siteId)
             if (toll) payToll(state, playerId, toll)
-            const { notes } = travelByPower(state, playerId, siteId)
+            const { notes } = travelByPower(state, playerId, siteId, {
+                playerId: askingPlayerId,
+                next: true
+            })
             const after = notes.length ? ` (${notes.join('; ')})` : ''
             if (!toll) return `travelled to ${siteId} for no Supply${after}`
             // The History's form for a toll inside a row: what was paid, then the card.
@@ -532,6 +548,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         apply: (_state, _playerId, matched) =>
             `passed on a Sneak Attack against ${matched.question.defenderPlayerId}`
     },
+    // Second Wind — "you may travel and then may campaign": skipping the Travel leaves the Campaign.
+    [PowerQuestionKind.FreeActionOutOfTurn]: {
+        reasonCannotAnswer: () => undefined,
+        apply: (state, playerId) => {
+            const skipped = forgoFreeActionNow(state, playerId)
+            holdTurnForSkippedFreeAction(state)
+            endStepOutOfTurn(state, playerId)
+            return `skipped the free ${skipped === ActionType.Travel ? 'Travel' : 'Campaign'}`
+        }
+    },
     [PowerQuestionKind.OrderDiscards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {
             return isPermutationOf(matched.answer.order, matched.question.cardIds.length)
@@ -564,7 +590,9 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 return {
                     summary: `refused ${question.cardId} and stayed at ${question.fromSiteId}`,
                     tollMove,
-                    ...settleBanishedVictory(state)
+                    ...settleBanishedVictory(state),
+                    // A Travel out of turn whose toll is refused ends at the Wood, where the pawn stays.
+                    ...(question.travel ? endTravelOutOfTurn(state, question.askedPlayerId) : {})
                 }
             }
             if (!question.travel)
@@ -583,9 +611,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return {
                 summary: `${paid}, paying ${pick.supplySpent} Supply`,
                 tollMove,
-                woodPick: pick
+                woodPick: pick,
+                ...endTravelOutOfTurn(state, question.askedPlayerId)
             }
         }
+    },
+    [PowerQuestionKind.DragonskinDrum]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            matched.answer.gain ? reasonDrumBankEmpty(state, playerId) : undefined,
+        apply: (state, playerId, matched) =>
+            matched.answer.gain ? gainFromDrum(state, playerId) : 'skipped'
     },
     [PowerQuestionKind.OrderDrawnCards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {

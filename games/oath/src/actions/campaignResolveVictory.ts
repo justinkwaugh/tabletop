@@ -256,7 +256,10 @@ export class HydratedCampaignResolveVictory
             tollMove = askPowerMoveToll(state, move, toll, campaign.attackerPlayerId)
         } else if (this.banishToSiteId) {
             // R-5.6.2 via R-5.5.7.III; Grasping Vines, Boiling Lake.
-            const moved = travelByPower(state, defender.playerId, this.banishToSiteId)
+            const moved = travelByPower(state, defender.playerId, this.banishToSiteId, {
+                playerId: campaign.attackerPlayerId,
+                next: false
+            })
             revealed = moved.revealed
             if (revealed) this.revealsInfo = true
             banishNotes = moved.notes

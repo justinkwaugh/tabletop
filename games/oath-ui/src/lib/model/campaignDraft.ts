@@ -3,7 +3,9 @@ import {
     BattlePlanSide,
     CampaignTargetKind,
     HydratedCampaign,
+    OathRevision,
     attackingForceSources,
+    isAtLeastOathRevision,
     campaignTargetOptions,
     forceSitesOf,
     reasonCannotDeclareTargets,
@@ -346,12 +348,17 @@ export class CampaignDraft implements PanelDraft {
         this.keepingLossOrder(() => this.flow.set('dice', this.clampDice(count)))
     }
 
-    /** R-5.5.5, R-10.22 — where the skulls' kills come from, asked when the force holds more than one kind. */
+    /**
+     * R-5.5.5, R-10.22 — where the skulls' kills come from, asked when the force holds more than one kind.
+     * From revision 7 they are picked after the roll instead (R-X.4).
+     */
     get lossSources(): LossSource[] {
         const playerId = this.playerId
         const defender = this.defender
-        if (!playerId || !defender) return []
         const state = this.session.gameState
+        if (!playerId || !defender || isAtLeastOathRevision(state, OathRevision.EngineFixes3)) {
+            return []
+        }
         return attackingForceSources(
             state,
             partiesOf(state, playerId, defender, []),

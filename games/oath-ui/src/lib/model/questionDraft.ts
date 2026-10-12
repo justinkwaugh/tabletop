@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type Color } from '@tabletop/common'
 import {
     ActionType,
     HydratedAnswerQuestion,
@@ -14,6 +14,7 @@ import {
     powerMoveToll,
     shroudedWoodDestinations,
     usableFavor,
+    warbandOwnerGainedByPower,
     type ConspiracyPlay,
     type ExchangeTerms,
     PowerQuestionValidator,
@@ -301,6 +302,9 @@ export class QuestionDraft implements PanelDraft {
                 return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
                 return this.floorProposed
+            // Second Wind out of turn — a free action the engine does not open is not offered.
+            case PowerQuestionKind.FreeActionOutOfTurn:
+                return this.session.validActionTypes.includes(question.action)
             default:
                 return true
         }
@@ -316,6 +320,7 @@ export class QuestionDraft implements PanelDraft {
                 ? undefined
                 : 'a Campaign is not open to you now'
         }
+        if (question.kind === PowerQuestionKind.FreeActionOutOfTurn) return undefined
         return this.reasonCannot(this.answer(question, true))
     }
 
@@ -345,7 +350,9 @@ export class QuestionDraft implements PanelDraft {
         const question = this.mine
         assertExists(question, 'A question is answered only by the seat it is put to')
         if (question.kind === PowerQuestionKind.SneakAttack) this.session.startSneakAttack()
-        else await this.send(this.answer(question, true))
+        else if (question.kind === PowerQuestionKind.FreeActionOutOfTurn) {
+            this.session.chooseAction(question.action)
+        } else await this.send(this.answer(question, true))
     }
 
     async decline(): Promise<void> {
@@ -385,6 +392,15 @@ export class QuestionDraft implements PanelDraft {
         return (
             question?.kind === PowerQuestionKind.ShroudedWoodDestination &&
             powerMoveToll(this.session.gameState, question.travelerPlayerId, siteId) !== undefined
+        )
+    }
+
+    /** Dragonskin Drum — the warband it would gain, in its owner's colour: the Empire's for a Citizen (R-10.13). */
+    get drumWarbandColor(): Color {
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
+        return this.session.warbandColor(
+            warbandOwnerGainedByPower(this.session.gameState, question.askedPlayerId)
         )
     }
 
@@ -496,9 +512,14 @@ export class QuestionDraft implements PanelDraft {
             }
             case PowerQuestionKind.PayTravelToll:
                 return { kind: question.kind, pay: yes }
+            case PowerQuestionKind.DragonskinDrum:
+                return { kind: question.kind, gain: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }
+            case PowerQuestionKind.FreeActionOutOfTurn:
+                assert(!yes, 'A free action out of turn is taken by the action itself')
+                return { kind: question.kind, take: false }
             default:
                 throw Error(`A ${question.kind} question is not answered yes or no`)
         }

@@ -6,6 +6,7 @@ import {
     AnswerQuestion,
     Campaign,
     CampaignDefeatKills,
+    CampaignSkullLosses,
     CampaignAttackPlans,
     CampaignDefend,
     CampaignResolveVictory,
@@ -90,6 +91,7 @@ import {
     AttackerLossesDraft,
     DefeatDraft,
     DefenceDraft,
+    SkullLossesDraft,
     VictoryDraft
 } from './battleDrafts.js'
 import {
@@ -174,6 +176,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly defence = new DefenceDraft(this)
     readonly attackPlans = new AttackPlansDraft(this)
     readonly defeat = new DefeatDraft(this)
+    readonly skullLosses = new SkullLossesDraft(this)
     readonly attackerLosses = new AttackerLossesDraft(this)
     readonly wake = new WakeDraft(this)
     readonly rest = new RestDraft(this)
@@ -207,6 +210,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.search,
             this.question,
             this.victory,
+            this.skullLosses,
             this.attackerLosses,
             this.attackPlans,
             this.defence,
@@ -408,6 +412,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return sneakAttackOfferedTo(this.gameState, playerId)?.defenderPlayerId
     }
 
+    /** Second Wind out of turn — the asked holder chose to take the free Travel now. */
+    get travelOutOfTurnOpen(): boolean {
+        return (
+            this.liveSeatId !== undefined &&
+            this.gameState.machineState === MachineState.PowerQuestion &&
+            this.selection.action === ActionType.Travel &&
+            this.validActionTypes.includes(ActionType.Travel)
+        )
+    }
+
     startSneakAttack(): void {
         if (this.sneakAttackDefenderId === undefined) return
         this.chooseAction(ActionType.Campaign)
@@ -455,6 +469,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 sacrifice,
                 ...(sacrificeKills ? { sacrificeKills } : {}),
                 defeatKills
+            })
+        )
+    }
+
+    async chooseSkullLosses(kills: WarbandGroup[]): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(CampaignSkullLosses, {
+                type: ActionType.CampaignSkullLosses,
+                kills
             })
         )
     }

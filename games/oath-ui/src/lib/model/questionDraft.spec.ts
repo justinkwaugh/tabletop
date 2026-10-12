@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
+    ActionType,
     MachineState,
     PowerQuestionKind,
     Region,
@@ -23,8 +24,14 @@ const ME = 'me'
 const DRAWN = ['denizen.order.longbows', 'denizen.hearth.wayside-inn', 'denizen.beast.wolves']
 
 type Seat = Partial<Parameters<typeof testPlayer>[0]>
+type WarbandsBySite = NonNullable<Parameters<typeof testState>[1]>['warbandsBySite']
 
-function asked(question: PowerQuestion, relicIds: string[] = [], seats: { me?: Seat; ann?: Seat } = {}) {
+function asked(
+    question: PowerQuestion,
+    relicIds: string[] = [],
+    seats: { me?: Seat; ann?: Seat } = {},
+    warbandsBySite: WarbandsBySite = {}
+) {
     const state = testState(
         [
             testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, relicIds, ...seats.me }),
@@ -33,6 +40,7 @@ function asked(question: PowerQuestion, relicIds: string[] = [], seats: { me?: S
         ],
         {
             machineState: MachineState.PowerQuestion,
+            warbandsBySite,
             pendingQuestions: {
                 queue: [question],
                 askingPlayerId: ME,
@@ -350,5 +358,51 @@ describe('Law Glossary "Discard" — ordering cards that leave play for one pile
         draft.tapStack(DRAWN[0])
         await draft.stack()
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.OrderDiscards, order: [2, 0, 1] })
+    })
+})
+
+/** Second Wind out of turn (revision 7) — "Travel now? Free." then "Campaign now? Free.", each taken by the action. */
+describe('a free action out of turn', () => {
+    const SECOND_WIND = 'denizen.discord.second-wind'
+    const VOW_OF_UNION = 'denizen.beast.vow-of-union'
+    const freeAction = (action: ActionType.Travel | ActionType.Campaign): PowerQuestion => ({
+        kind: PowerQuestionKind.FreeActionOutOfTurn,
+        cardId: SECOND_WIND,
+        askedPlayerId: ME,
+        action
+    })
+
+    it('the yes opens the Travel menu for the holder; Undo goes back to the question; Skip sends the skip', async () => {
+        const { session, draft, sent } = asked(freeAction(ActionType.Travel), [], { me: { supply: 7 } })
+        expect(draft.acceptComplete).toBe(true)
+        expect(draft.acceptRefusedBecause).toBeUndefined()
+        await draft.accept()
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.selection.action).toBe(ActionType.Travel)
+        expect(session.travelOutOfTurnOpen).toBe(true)
+        expect(session.travelRows.length).toBeGreaterThan(0)
+
+        await session.undo()
+        expect(session.travelOutOfTurnOpen).toBe(false)
+        await draft.decline()
+        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.FreeActionOutOfTurn, take: false })
+    })
+
+    it('the yes opens the declare for the holder', async () => {
+        const { session, draft } = asked(freeAction(ActionType.Campaign), [], { me: { supply: 7 } })
+        await draft.accept()
+        expect(session.selection.action).toBe(ActionType.Campaign)
+        expect(session.campaign.open).toBe(true)
+    })
+
+    it('an action the engine does not open is not offered, and no red line takes its place', () => {
+        const { draft } = asked(
+            freeAction(ActionType.Travel),
+            [],
+            { me: { supply: 7, advisers: [{ cardId: VOW_OF_UNION, faceUp: true }], warbandsOnBoard: { [ME]: 2 } } },
+            { c1: { [ME]: 1 } }
+        )
+        expect(draft.acceptComplete).toBe(false)
+        expect(draft.acceptRefusedBecause).toBeUndefined()
     })
 })

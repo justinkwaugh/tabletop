@@ -5,7 +5,12 @@
     import CountPicker from '$lib/components/CountPicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
-    import { PowerQuestionKind, RerolledRollKind, type RerolledRoll } from '@tabletop/oath'
+    import {
+        ActionType,
+        PowerQuestionKind,
+        RerolledRollKind,
+        type RerolledRoll
+    } from '@tabletop/oath'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
     import QuestionForm from '$lib/components/QuestionForm.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
@@ -251,6 +256,12 @@
             {#snippet line()}Campaign against <PlayerName playerId={mine.defenderPlayerId} /> now? Free.{/snippet}
             <QuestionYesNo yes="Campaign" no="Pass" />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.FreeActionOutOfTurn}
+        {@const action = mine.action === ActionType.Travel ? 'Travel' : 'Campaign'}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}{action} now? Free.{/snippet}
+            <QuestionYesNo yes={action} no="Skip" />
+        </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.OrderDrawnCards || mine.kind === PowerQuestionKind.OrderDiscards}
         <QuestionStackOrder />
     {:else if mine.kind === PowerQuestionKind.GatheringFloor}
@@ -260,5 +271,13 @@
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PayTravelToll}
         <QuestionToll question={mine} />
+    {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Gain <TokenText
+                    text="1 warband"
+                    warbandColor={() => draft.drumWarbandColor}
+                />?{/snippet}
+            <QuestionYesNo yes="Gain" no="Skip" />
+        </QuestionForm>
     {/if}
 </div>

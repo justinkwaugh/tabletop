@@ -65,6 +65,17 @@ export function freeActionTypesNow(state: HydratedOathGameState, playerId: strin
     return types
 }
 
+/**
+ * An answer is not the free Campaign, so a grant due now passes to the next action, as `carryFreeActions`
+ * passes it once the answer is taken; the step it ends can then ask for it.
+ */
+export function passFreeCampaignToNextAction(state: HydratedOathGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    if (player.freeCampaignAtAction === state.actionCount) {
+        player.freeCampaignAtAction = nextActionIndex(state)
+    }
+}
+
 /** R-10.2 — while a free action is due, only it (or giving it up) may come next. */
 export function reasonFreeActionComesFirst(
     state: HydratedOathGameState,
@@ -75,6 +86,23 @@ export function reasonFreeActionComesFirst(
     if (due.length === 0 || due.includes(type)) return undefined
     const names = due.map((due) => (due === ActionType.Travel ? 'Travel' : 'Campaign'))
     return `your free ${names.join(' or ')} comes first: take it or give it up`
+}
+
+/** A free action due next that its player cannot take is given up unasked; one granted with it stays due next. */
+export function forgoFreeActionNext(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType.Travel | ActionType.Campaign
+): void {
+    const player = state.getPlayerState(playerId)
+    const next = nextActionIndex(state)
+    if (action === ActionType.Travel) {
+        assert(player.freeTravelAtAction === next, `${playerId} has no free Travel due next`)
+        delete player.freeTravelAtAction
+    } else {
+        assert(player.freeCampaignAtAction === next, `${playerId} has no free Campaign due next`)
+        delete player.freeCampaignAtAction
+    }
 }
 
 /** Giving up the free Travel leaves a free Campaign granted with it due next. */

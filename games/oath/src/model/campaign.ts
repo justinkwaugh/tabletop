@@ -156,6 +156,8 @@ export const CampaignState = Type.Object({
     pendingSkullKills: Type.Optional(
         Type.Object({ skulls: Type.Number(), order: Type.Array(LossSource, { maxItems: 16 }) })
     ),
+    /** R-5.5.5 — from revision 7, the skulls' kills wait for the attacker to pick where they fall. */
+    pendingSkullLosses: Type.Optional(Type.Object({ skulls: Type.Number() })),
     /** R-5.5.6 — how many the defeated side lost; Cursed Cauldron's count before revision 4. */
     defeatKilled: Type.Optional(Type.Number()),
     /** Cursed Cauldron, R-10.22 — the enemy warbands each side has killed so far: skulls, sacrifices, plans and R-5.5.6, not those Hospital saves. Absent until one is killed. */

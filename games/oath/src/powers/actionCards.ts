@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import { Suit } from '../model/oathEnums.js'
+import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
@@ -41,6 +41,9 @@ import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
+import { MAX_SITE_CAPACITY } from '../data/sites.js'
+import { SEIZE_MINIMUM } from '../util/seize.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -167,12 +170,19 @@ registerEffect(
 )
 
 // "Action: Place [secret] from the shared bank on the Darkest Secret, or burn
-// [secret] from the Darkest Secret."
+// [secret] from the Darkest Secret (not last [secret])."
 registerEffect(
     'denizen.arcane.forgotten-vault',
     powerIndexOf('denizen.arcane.forgotten-vault', PowerTiming.Action),
     {
         choices: [optional(PowerChoiceKind.Yes, { what: 'burning instead of placing' })],
+        // "Not last": at its last secret the burn has nothing to do (R-2.5.3's floor), so it is no choice.
+        reasonCannotResolve: (ctx) =>
+            chosen(ctx, PowerChoiceKind.Yes).length > 0 &&
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4) &&
+            ctx.state.banners[Banner.DarkestSecret].value <= SEIZE_MINIMUM
+                ? 'the Darkest Secret holds only its last secret, which cannot be burned'
+                : undefined,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length > 0) {
                 const burned = burnSecretsFromDarkestSecret(ctx.state, 1)
@@ -426,12 +436,18 @@ registerEffect(
     }
 )
 
+/**
+ * One favor per pick, as many picks as X can reach: every card the map holds (R-2.1.1's slots, each
+ * holding no more than the largest capacity a site prints, R-2.8.1).
+ */
+const MEMORY_OF_NATURE_PICKS = TOTAL_MAP_SLOTS * MAX_SITE_CAPACITY
+
 // "Action: Move a total of X[favor] from any favor banks to the [suit:beast] bank. X is the number of [suit:beast] cards on the map."
 registerEffect(
     'denizen.beast.memory-of-nature',
     powerIndexOf('denizen.beast.memory-of-nature', PowerTiming.Action),
     {
-        choices: Array.from({ length: 8 }, () =>
+        choices: Array.from({ length: MEMORY_OF_NATURE_PICKS }, () =>
             optional(PowerChoiceKind.FavorBank, { what: 'a source bank' })
         ),
         reasonCannotResolve: (ctx) => {

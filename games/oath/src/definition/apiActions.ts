@@ -10,6 +10,7 @@ import { Campaign } from '../actions/campaign.js'
 import { CampaignDefend } from '../actions/campaignDefend.js'
 import { CampaignAttackPlans } from '../actions/campaignAttackPlans.js'
 import { UseRestPower } from '../actions/useRestPower.js'
+import { CampaignSkullLosses } from '../actions/campaignSkullLosses.js'
 import { CampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { CampaignDefeatKills } from '../actions/campaignDefeatKills.js'
 import { CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
@@ -58,6 +59,7 @@ export const OathApiActions = {
     [ActionType.CampaignAttackPlans]: CampaignAttackPlans,
     [ActionType.CampaignDefend]: CampaignDefend,
     [ActionType.UseRestPower]: UseRestPower,
+    [ActionType.CampaignSkullLosses]: CampaignSkullLosses,
     [ActionType.CampaignSacrifice]: CampaignSacrifice,
     [ActionType.CampaignDefeatKills]: CampaignDefeatKills,
     [ActionType.CampaignResolveVictory]: CampaignResolveVictory,

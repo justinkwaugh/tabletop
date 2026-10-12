@@ -2,6 +2,7 @@ import {
     ActionType,
     ConsentRequestKind,
     LetPeekSubjectKind,
+    PowerQuestionKind,
     RecoverTargetKind,
     SearchPlay,
     SearchSource,
@@ -14,6 +15,7 @@ import {
     isCampaignDefend,
     isCampaignResolveVictory,
     isCampaignSacrifice,
+    isCampaignSkullLosses,
     isCompleteRest,
     isEndActPhase,
     isForgoFreeAction,
@@ -46,10 +48,12 @@ import {
     type CampaignBattleMetadata,
     type CampaignPlacement,
     type CampaignTarget,
+    type WarbandGroup,
     Suit,
     type LetPeek,
     type PaidToll,
     type ShroudedWoodPick,
+    type WarbandGain,
     type Search,
     type UseActionPower,
     type ResolveWake,
@@ -190,8 +194,17 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
     }
     if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
-    if (isAnswerQuestion(action)) return action.metadata?.woodPick?.warbandOwner
+    if (isAnswerQuestion(action)) {
+        return action.metadata?.woodPick?.warbandOwner ?? action.metadata?.warbandGain?.owner
+    }
     return undefined
+}
+
+/** Dragonskin Drum on a power's move — what it added, then its name; a skip adds nothing to the move. */
+function drumText(cardId: string, gain: WarbandGain | undefined): string {
+    return gain && gain.count > 0
+        ? `+${plural(gain.count, 'warband')} (${cardName(cardId)})`
+        : `skipped the ${cardName(cardId)}`
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
@@ -323,6 +336,11 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
+/** Second Wind out of turn — the card whose free action this was, in brackets. */
+function freeActionClause(cardId: string | undefined): string {
+    return cardId ? ` (free, ${cardName(cardId)})` : ''
+}
+
 const TOLL_GIVEN = /^(.+): gave a favor to (.+)$/
 const TOLL_BURNED = /^(.+): burned a favor for the bandits$/
 
@@ -368,10 +386,12 @@ function describeActionCited(
         if (action.siteId === undefined) {
             const chooser = meta?.destinationChooser
             const ruler = chooser ? nameOf(chooser) : 'its ruler'
-            if (meta?.paysAtPick) return `set out from the Shrouded Wood; ${ruler} picks where`
+            if (meta?.paysAtPick) {
+                return `set out from the Shrouded Wood${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
+            }
             return `left the Shrouded Wood${supply(meta?.supplySpent)} — ${ruler} chooses where`
         }
-        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}`
+        return `travelled to ${names.site(action.siteId)}${supply(meta?.supplySpent)}${tollClauses(meta?.tollsPaid, nameOf)}${meta?.secretFlipped ? '; flipped 1 secret' : ''}${revealed}${freeActionClause(meta?.freeActionOf)}`
     }
     if (isMuster(action)) {
         const meta = action.metadata
@@ -420,7 +440,7 @@ function describeActionCited(
         const targets = action.targets
             .map((target) => describeTarget(target, names.site))
             .join(', ')
-        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}`
+        const declared = `campaigned against ${against}${targets ? ` for ${targets}` : ''}${freeActionClause(action.metadata?.freeActionOf)}`
         // R-5.5.2.a — nothing is rolled until the Citizens asked have answered.
         if (action.metadata?.awaitingAllies)
             return `${declared} — Citizens are asked to join the defence`
@@ -449,6 +469,9 @@ function describeActionCited(
             (action.metadata?.attackerVictorious ? 'won the battle' : 'lost the battle') +
             (chooser ? ` — ${nameOf(chooser)} chooses the defending side's losses` : '')
         )
+    }
+    if (isCampaignSkullLosses(action)) {
+        return describeSkullLosses(action.metadata?.killed ?? action.kills, names.site)
     }
     if (isCampaignDefeatKills(action)) {
         return `chose the defending side's losses, ${plural(action.metadata?.defeatKilled ?? 0, 'warband')} killed`
@@ -538,6 +561,8 @@ function describeActionCited(
             return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
         }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
+        if (meta?.kind === PowerQuestionKind.DragonskinDrum)
+            return drumText(meta.cardId, meta.warbandGain)
         return meta
             ? `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
             : 'answered a question'
@@ -749,6 +774,21 @@ function describePlay(play: SearchPlay): string {
 
 function describeTarget(target: CampaignTarget, site: HistoryNames['site']): string {
     return campaignTargetText(target, { site, relicSlot: () => 'a site' })
+}
+
+/** R-5.5.5 — where the skulls killed, as the attacker picked: the board is always their own. */
+function describeSkullLosses(killed: readonly WarbandGroup[], site: HistoryNames['site']): string {
+    const places = killed
+        .filter((group) => group.count > 0)
+        .map((group) => ({
+            count: group.count,
+            where: group.at.kind === 'board' ? 'on their board' : `at ${site(group.at.siteId)}`
+        }))
+    const total = places.reduce((sum, place) => sum + place.count, 0)
+    const [only, ...more] = places
+    if (!only) return `lost ${total} to skulls`
+    if (more.length === 0) return `lost ${total} to skulls, ${only.where}`
+    return `lost ${total} to skulls: ${places.map(({ count, where }) => `${count} ${where}`).join(', ')}`
 }
 
 function describeBattle(battle: CampaignBattleMetadata | undefined): string {

@@ -32,7 +32,8 @@ import {
     forceTotal,
     killWarbands,
     removeWarbandsFrom,
-    boardOwnersOwnFirst
+    boardOwnersOwnFirst,
+    selectionExceedsForce
 } from './force.js'
 import { rulesSite, warbandsAt } from './rule.js'
 import { isInPlay } from './discard.js'
@@ -41,7 +42,7 @@ import { BANDITS_PLAN_USER, plansUsedBy, sideOf, type ActiveBattlePlan } from '.
 import type { BattlePlanContext, PlayerPlanContext } from '../powers/registry.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import { countOf } from './warbands.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
@@ -95,7 +96,7 @@ export function rollCampaign(
         campaign.pendingSkullKills = { skulls, order: [...(skullLossOrder ?? [])] }
         return []
     }
-    return campaign.ignoreSkulls ? [] : killForSkulls(state, campaign, skulls, skullLossOrder)
+    return killOrHoldForSkulls(state, campaign, skulls, skullLossOrder)
 }
 
 /** R-5.5.4 */
@@ -163,7 +164,92 @@ export function settleSkullKills(state: HydratedOathGameState): void {
     const { order } = campaign.pendingSkullKills
     const { skulls } = countedAttack(campaign, campaign.attackRoll)
     campaign.pendingSkullKills = undefined
-    if (!campaign.ignoreSkulls) killForSkulls(state, campaign, skulls, order)
+    killOrHoldForSkulls(state, campaign, skulls, order)
+}
+
+/** R-5.5.5 — Outriders ignores them; from revision 7 the attacker picks where they kill when that is a choice. */
+function killOrHoldForSkulls(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    skulls: number,
+    skullLossOrder?: readonly LossSource[]
+): WarbandGroup[] {
+    if (campaign.ignoreSkulls) return []
+    if (skullLossesToPick(state, campaign, skulls)) {
+        campaign.pendingSkullLosses = { skulls }
+        return []
+    }
+    return killForSkulls(state, campaign, skulls, skullLossOrder)
+}
+
+/**
+ * R-5.5.5 — "For each skull attacker immediately kills one warband in their force". From revision 7 the
+ * attacker picks where, after the roll, when the force stands in more than one place (Captains, Wild Allies,
+ * Vow of Union) and the skulls leave some of it alive; otherwise there is nothing to pick.
+ */
+export function skullLossesToPick(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    skulls: number
+): boolean {
+    if (skulls <= 0 || !isAtLeastOathRevision(state, OathRevision.EngineFixes3)) return false
+    const groups = skullLossGroups(state, campaign)
+    const places = new Set(groups.map(({ at }) => placeKey(at)))
+    return places.size > 1 && skulls < forceTotal(groups)
+}
+
+function placeKey(at: WarbandLocation): string {
+    return at.kind === 'board' ? `board:${at.playerId}` : `site:${at.siteId}`
+}
+
+function warbandsHeldAt(state: HydratedOathGameState, at: WarbandLocation): WarbandCounts {
+    return at.kind === 'board'
+        ? state.getPlayerState(at.playerId).warbandsOnBoard
+        : warbandsAt(state, at.siteId)
+}
+
+/** R-5.5.5, R-10.22 — what the skulls can kill: each place and owner in the attacking force, with its count. */
+export function skullLossGroups(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): WarbandGroup[] {
+    return attackingForceSources(state, partiesOf(state, campaign), campaign.forceSiteIds).map(
+        ({ at, owner }) => ({ at, owner, count: countOf(warbandsHeldAt(state, at), owner) })
+    )
+}
+
+/** R-5.5.5 — the attacker's pick: exactly the skulls, all from the attacking force. */
+export function reasonSkullLossesInvalid(
+    state: HydratedOathGameState,
+    playerId: string,
+    kills: readonly WarbandGroup[]
+): string | undefined {
+    const campaign = state.campaign
+    const pending = campaign?.pendingSkullLosses
+    if (!campaign || !pending) return 'no skulls are waiting for their losses'
+    if (playerId !== campaign.attackerPlayerId) {
+        return 'only the attacker picks where their skulls kill (R-5.5.5)'
+    }
+    const total = forceTotal(kills)
+    if (total !== pending.skulls) return `must kill exactly ${pending.skulls}, not ${total}`
+    return selectionExceedsForce(kills, skullLossGroups(state, campaign))
+}
+
+/** R-5.5.5 — the pick, one group per place and owner in the force's order; Hospital may still save them. */
+export function killPickedSkullLosses(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    kills: readonly WarbandGroup[]
+): WarbandGroup[] {
+    const picked = skullLossGroups(state, campaign).flatMap(({ at, owner }): WarbandGroup[] => {
+        const count = forceTotal(kills.filter((kill) => sameLossSource(kill, { at, owner })))
+        return count > 0 ? [{ at, owner, count }] : []
+    })
+    campaign.pendingSkullLosses = undefined
+    for (const { at, owner, count } of picked) {
+        killOrRedirect(state, campaign, BattlePlanSide.Attacker, at, owner, count)
+    }
+    return picked
 }
 
 /** R-5.5.5 */
@@ -236,11 +322,7 @@ export function killFromAttackingForce(
     let remaining = count
     for (const { at, owner } of order) {
         if (remaining === 0) break
-        const here =
-            at.kind === 'board'
-                ? state.getPlayerState(at.playerId).warbandsOnBoard
-                : warbandsAt(state, at.siteId)
-        const dying = Math.min(countOf(here, owner), remaining)
+        const dying = Math.min(countOf(warbandsHeldAt(state, at), owner), remaining)
         if (dying > 0) {
             killOrRedirect(state, campaign, BattlePlanSide.Attacker, at, owner, dying)
             killed.push({ at, owner, count: dying })

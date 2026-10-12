@@ -4,7 +4,12 @@ import { GameAction, HydratableAction, MachineContext, Visibility } from '@table
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { PowerQuestionKind, QuestionAnswer, ShroudedWoodPick } from '../model/question.js'
+import {
+    PowerQuestionKind,
+    QuestionAnswer,
+    ShroudedWoodPick,
+    WarbandGain
+} from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
@@ -37,7 +42,9 @@ export const AnswerQuestionMetadata = Type.Object({
     // Toll Roads on a power's move
     tollMove: Type.Optional(PowerMoveToll),
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
-    triggered: Type.Optional(Type.Array(Type.String()))
+    triggered: Type.Optional(Type.Array(Type.String())),
+    // Dragonskin Drum on a power's move
+    warbandGain: Type.Optional(WarbandGain)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -103,7 +110,8 @@ export class HydratedAnswerQuestion
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
             woodPick: outcome.woodPick,
             tollMove: outcome.tollMove,
-            triggered: outcome.triggered
+            triggered: outcome.triggered,
+            warbandGain: outcome.warbandGain
         }
         commitHiddenOutputs(this, state, witnesses)
     }

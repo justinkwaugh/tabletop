@@ -16,6 +16,19 @@ export function playerChoicesAtYourSite(
     }))
 }
 
+/** Witch's Bargain — each player at your site, with nothing yet exchanged. */
+export function bargainChoicesAtYourSite(
+    state: HydratedOathGameState,
+    playerId: string
+): PowerChoice[] {
+    return otherPlayersAtYourSite(state, playerId).map((id) => ({
+        kind: PowerChoiceKind.Bargain,
+        playerId: id,
+        secretsGiven: 0,
+        pairsGiven: 0
+    }))
+}
+
 export function cardChoicesAtYourSite(
     state: HydratedOathGameState,
     playerId: string

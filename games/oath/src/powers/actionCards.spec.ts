@@ -17,8 +17,17 @@ import { answerQuestion } from '../testing/steps.js'
 import { actionPowerUse, bank, boardWarbands, card, player, site, siteWarbands } from '../testing/choices.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { spectator } from '../testing/projection.js'
+import { OathRevision } from '../util/revision.js'
 
 const JINX = 'denizen.arcane.jinx'
+const MEMORY_OF_NATURE = 'denizen.beast.memory-of-nature'
+const FORGOTTEN_VAULT = 'denizen.arcane.forgotten-vault'
+
+/** Powerless beast denizens, enough to fill every map slot beside Memory of Nature. */
+const TEST_BEASTS = Array.from({ length: 23 }, (_, i) => `denizen.test.beast-${i + 1}`)
+registerCards(
+    TEST_BEASTS.map((id, i) => ({ id, name: `Test beast ${i + 1}`, kind: CardKind.Denizen, suit: Suit.Beast }))
+)
 
 /** An Action power with a cost and no effect, so the doorway's last refusal is reached. */
 const UNBUILT = 'denizen.test.unbuilt'
@@ -163,7 +172,7 @@ describe('Arcane', () => {
         expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.RestPhase)
     })
 
-    it('Forgotten Vault — places by default, burns on a yes, never below the floor', () => {
+    it('Forgotten Vault — in a game created before revision 8: places by default, burns on a yes, a burn at the last secret burns nothing', () => {
         const place = board(['denizen.arcane.forgotten-vault'])
         actionPowerUse('ruler', 'denizen.arcane.forgotten-vault').apply(place)
         expect(place.banners[Banner.DarkestSecret].value).toBe(2)
@@ -174,10 +183,34 @@ describe('Arcane', () => {
         expect(burn.banners[Banner.DarkestSecret].value).toBe(2)
 
         const floor = board(['denizen.arcane.forgotten-vault'])
+        floor.oathRevision = OathRevision.EngineFixes3
         const a = actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [{ kind: PowerChoiceKind.Yes }])
         a.apply(floor)
         expect(floor.banners[Banner.DarkestSecret].value).toBe(1)
         expect(a.metadata?.summary).toMatch(/burned 0/)
+    })
+
+    it('Forgotten Vault — from revision 8, a burn at the last secret is refused ("not last"); a place there and a burn above it are not', () => {
+        const atRevision = (value: number) => {
+            const s = board([FORGOTTEN_VAULT])
+            s.oathRevision = OathRevision.EngineFixes4
+            s.banners[Banner.DarkestSecret].value = value
+            return s
+        }
+        const burnAt = atRevision(1)
+        const before = burnAt.dehydrate()
+        expect(() => actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burnAt)).toThrow(
+            /only its last secret, which cannot be burned/
+        )
+        expect(burnAt.dehydrate()).toEqual(before)
+
+        const burn = atRevision(2)
+        actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burn)
+        expect(burn.banners[Banner.DarkestSecret].value).toBe(1)
+
+        const place = atRevision(1)
+        actionPowerUse('ruler', FORGOTTEN_VAULT).apply(place)
+        expect(place.banners[Banner.DarkestSecret].value).toBe(2)
     })
 })
 
@@ -490,6 +523,45 @@ describe('Slice 2 — the two deferred Action powers', () => {
         expect(() => actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Nomad)]).apply(four)).toThrow(
             /yield 1, and 2 can be moved/
         )
+    })
+
+    it('Memory of Nature — X of 9: nine favor named, one per pick, all moved; eight fall short', () => {
+        const nine = () => {
+            const s = board([MEMORY_OF_NATURE, TEST_BEASTS[0], TEST_BEASTS[1]])
+            s.denizensBySite['c2'] = TEST_BEASTS.slice(2, 5)
+            s.denizensBySite['h1'] = TEST_BEASTS.slice(5, 8)
+            return s
+        }
+        const picks = [Suit.Nomad, Suit.Order, Suit.Hearth].flatMap((suit) => [bank(suit), bank(suit), bank(suit)])
+
+        const s = nine()
+        actionPowerUse('ruler', MEMORY_OF_NATURE, picks).apply(s)
+        expect(s.favorBank[Suit.Beast]).toBe(12)
+        expect(s.favorBank[Suit.Nomad]).toBe(0)
+        expect(s.favorBank[Suit.Order]).toBe(0)
+        expect(s.favorBank[Suit.Hearth]).toBe(0)
+
+        // R-7.1.3 — nine can be moved, so naming eight falls one short.
+        expect(() => actionPowerUse('ruler', MEMORY_OF_NATURE, picks.slice(0, 8)).apply(nine())).toThrow(
+            /yield 8, and 9 can be moved/
+        )
+    })
+
+    it('Memory of Nature — every map slot holding the most cards a site prints: X favor named and moved', () => {
+        // R-2.1.1, R-2.8.1 — eight slots, none holding more than the largest printed capacity, 3.
+        const s = board([MEMORY_OF_NATURE, TEST_BEASTS[0], TEST_BEASTS[1]])
+        const slots = ['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3']
+        slots.forEach((slot, i) => (s.denizensBySite[slot] = TEST_BEASTS.slice(2 + 3 * i, 5 + 3 * i)))
+        const others = [Suit.Nomad, Suit.Order, Suit.Hearth, Suit.Arcane, Suit.Discord]
+        for (const suit of others) s.favorBank[suit] = 5
+
+        const power = cardPowers(MEMORY_OF_NATURE)[powerIndexOf(MEMORY_OF_NATURE, PowerTiming.Action)]
+        expect(legalChoices(s, 'ruler', power)).toHaveLength(24)
+
+        const picks = others.flatMap((suit) => Array.from({ length: 5 }, () => bank(suit))).slice(0, 24)
+        actionPowerUse('ruler', MEMORY_OF_NATURE, picks).apply(s)
+        expect(s.favorBank[Suit.Beast]).toBe(27)
+        expect(others.reduce((n, suit) => n + s.favorBank[suit], 0)).toBe(1)
     })
 
     it('Messenger — moves warbands board ⇄ ruled sites, never the last one from a site', () => {

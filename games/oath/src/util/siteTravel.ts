@@ -1,7 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { Region } from '../model/oathEnums.js'
 import { categoryAt } from './sitePowers.js'
-import { attackingSiteOf, sitesWithTargets, targetedSiteIds } from './campaignSite.js'
+import { sitesWithTargets, targetedSiteIds } from './campaignSite.js'
 import { areEnemies, isImperialPlayer, rulersOfSite, rulesSite } from './rule.js'
 import { pawnSiteId } from './pawn.js'
 import type { CampaignParties } from './campaign.js'
@@ -152,7 +152,7 @@ export function reasonSitesForbidTargets(
     if (flip) return flip
     if (hidden && !flipSecret)
         return 'The Hidden Place: you cannot declare targets here unless you flip a secret facedown'
-    const myRegion = state.regionOf(attackingSiteOf(state, parties.attackerPlayerId))
+    const myRegion = state.regionOf(parties.attackerSiteId)
     for (const region of new Set(sites.map((siteId) => state.regionOf(siteId)))) {
         if (region === myRegion) continue
         const pass = narrowPassIn(state, region)

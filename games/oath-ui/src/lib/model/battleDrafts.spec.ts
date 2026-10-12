@@ -452,6 +452,110 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
     })
 })
 
+/** R-5.5.6 — with one owner, every survivor reaches the same board, so the half that dies is not a pick. */
+describe('R-5.5.6 — the attacker’s defeat rows only when the pick matters', () => {
+    function inTwoPlaces(onBoard: Record<string, number>) {
+        const session = battle(
+            MachineState.CampaignSacrifice,
+            { swords: 1, defense: 2, sacrificeWorth: 1, forceSiteIds: ['c2'] },
+            ME
+        )
+        session.gameState.getPlayerState(ME).warbandsOnBoard = onBoard
+        session.gameState.warbandsBySite = { c1: { [FOE]: 3 }, c2: { [ME]: 2 } }
+        const sent = vi.spyOn(session, 'resolveCampaignSacrifice').mockResolvedValue()
+        return { losses: session.attackerLosses, sent }
+    }
+
+    it('a force of one owner on the board and at a site: the sacrifice is picked, the defeat is not', async () => {
+        const { losses, sent } = inTwoPlaces({ [ME]: 4 })
+        expect(losses.force).toHaveLength(2)
+        expect(losses.choosesSacrifice).toBe(true)
+        expect(losses.choosesDefeat).toBe(false)
+        expect(losses.loseComplete).toBe(true)
+        await losses.lose()
+        expect(sent).toHaveBeenCalledWith(0, undefined, expect.any(Array))
+    })
+
+    it('a force that mixes owners (before revision 5) still picks the half that dies', () => {
+        const { losses } = inTwoPlaces({ [ME]: 4, [IMPERIAL_WARBANDS]: 1 })
+        expect(losses.choosesDefeat).toBe(true)
+        expect(losses.loseComplete).toBe(false)
+    })
+})
+
+/** R-5.5.5 — from revision 7 the attacker picks where the skulls kill, after the roll. */
+describe('the skull losses draft', () => {
+    function skulls(count: number) {
+        const session = battle(
+            MachineState.CampaignSkullLosses,
+            { forceSiteIds: ['c2'], pendingSkullLosses: { skulls: count } },
+            ME
+        )
+        session.gameState.warbandsBySite = { c1: { [FOE]: 3 }, c2: { [ME]: 2 } }
+        const sent = vi.spyOn(session, 'chooseSkullLosses').mockResolvedValue()
+        return { draft: session.skullLosses, sent }
+    }
+    const onBoard = { kind: 'board', playerId: ME } as const
+    const atC2 = { kind: 'site', siteId: 'c2' } as const
+
+    it('offers each place in the force, with nothing picked', () => {
+        const { draft } = skulls(2)
+        expect(draft.required).toBe(2)
+        expect(draft.groups).toEqual([
+            { at: onBoard, owner: ME, count: 4 },
+            { at: atC2, owner: ME, count: 2 }
+        ])
+        expect(draft.picked).toEqual([0, 0])
+        expect(draft.complete).toBe(false)
+    })
+
+    it('a tap on the Nth warband kills N there; a tap on the warband at the count kills none there', () => {
+        const { draft } = skulls(2)
+        draft.tap(0, 2)
+        expect(draft.picked).toEqual([2, 0])
+        draft.tap(0, 2)
+        expect(draft.picked).toEqual([0, 0])
+        draft.tap(0, 3)
+        draft.tap(0, 1)
+        expect(draft.picked).toEqual([1, 0])
+    })
+
+    it('Kill waits for exactly the skulls, and sends the warbands picked by place', async () => {
+        const { draft, sent } = skulls(2)
+        draft.tap(0, 1)
+        expect(draft.complete).toBe(false)
+        await draft.kill()
+        expect(sent).not.toHaveBeenCalled()
+        draft.tap(1, 2)
+        expect(draft.pickedTotal).toBe(3)
+        expect(draft.complete).toBe(false)
+        draft.tap(1, 1)
+        expect(draft.complete).toBe(true)
+        expect(draft.refusedBecause).toBeUndefined()
+        await draft.kill()
+        expect(sent).toHaveBeenCalledWith([
+            { at: onBoard, owner: ME, count: 1 },
+            { at: atC2, owner: ME, count: 1 }
+        ])
+    })
+
+    it('Undo clears the picks', () => {
+        const { draft } = skulls(2)
+        draft.tap(1, 2)
+        expect(draft.back()).toBe(true)
+        expect(draft.picked).toEqual([0, 0])
+    })
+
+    it('is empty for the defender', () => {
+        const session = battle(
+            MachineState.CampaignSkullLosses,
+            { forceSiteIds: ['c2'], pendingSkullLosses: { skulls: 2 } },
+            FOE
+        )
+        expect(session.skullLosses.groups).toEqual([])
+    })
+})
+
 /** With nothing to sacrifice, the outcome is all the step says. */
 describe('R-5.5.5 — a battle that needs no sacrifice', () => {
     it('is won when the swords beat the defense', () => {
