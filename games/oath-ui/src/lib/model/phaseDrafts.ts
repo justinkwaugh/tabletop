@@ -73,7 +73,6 @@ import {
     moveChoices,
     powerMoves,
     powerMovesComplete,
-    withoutLastPick,
     type MovePick,
     type PowerMoves
 } from './powerMoves.js'
@@ -448,9 +447,6 @@ type PicksByPower = Record<string, PowerChoicePicks>
  * each tap, so Undo takes back one pick at a time.
  */
 export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
-    // The power whose moves were picked last: Undo takes its picks back one at a time.
-    private movesPicked: string | undefined
-
     private get playerId(): string | undefined {
         return this.session.selection.action === ActionType.UseActionPower
             ? this.session.liveTurnSeatId
@@ -500,7 +496,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         if (!this.powers.some((p) => samePowerUse(p, use))) {
             return
         }
-        this.movesPicked = undefined
         this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks })
     }
 
@@ -508,11 +503,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
     private tap(next: PicksByPower): void {
         if (JSON.stringify(this.current ?? {}) === JSON.stringify(next)) return
         this.store([...(this.stored ?? []), next])
-    }
-
-    // A move pick changes the last tap's picks: Messenger's moves keep their own Undo.
-    private amend(next: PicksByPower): void {
-        this.store([...(this.stored ?? []).slice(0, -1), next])
     }
 
     /** The row a power's site spec draws, when it is picked on the map. */
@@ -558,7 +548,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
             const after = withMapTap(power, rows, before, siteId)
             if (after !== before) next[powerKey(power.cardId, power.powerIndex)] = after
         }
-        this.movesPicked = undefined
         this.tap(next)
     }
 
@@ -570,16 +559,9 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         return powerMoves(this.session.gameState, playerId, printed, this.picksOf(power).moves)
     }
 
-    // Messenger's moves keep their own Undo, one part of a move at a time.
+    // A move's From, count or To is a tap like any other pick, so Undo takes it back as one.
     setMoves(use: PowerUseKey, moves: MovePick[]): void {
-        if (!this.powers.some((p) => samePowerUse(p, use))) {
-            return
-        }
-        this.amend({
-            ...this.current,
-            [powerKey(use.cardId, use.powerIndex)]: { ...this.storedOf(use), moves }
-        })
-        this.movesPicked = powerKey(use.cardId, use.powerIndex)
+        this.setPicks(use, { ...this.storedOf(use), moves })
     }
 
     /** "Use" waits until every choice the power opens has its picks. */
@@ -632,23 +614,10 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
     }
 
     /**
-     * Undo takes back the last move pick when moves were picked last; otherwise the last tap, a
-     * pick or a site on the map, and the picks are as they were before it.
+     * Undo takes back the last tap, of any power in the panel: a pick, a move's From, count or To,
+     * or a site on the map, and the picks are as they were before it.
      */
     override back(): boolean {
-        const key = this.movesPicked
-        const picks = key === undefined ? undefined : this.current?.[key]
-        if (key === undefined || picks === undefined || picks.moves.length === 0) {
-            return this.backOneTap()
-        }
-        const moves = withoutLastPick(picks.moves)
-        const rest = { ...this.current, [key]: { ...picks, moves } }
-        if (Object.values(rest).some(hasPicks)) this.amend(rest)
-        else this.reset()
-        return true
-    }
-
-    private backOneTap(): boolean {
         const history = this.stored
         const before = history?.at(-2)
         if (history === undefined || before === undefined || !Object.values(before).some(hasPicks)) {
@@ -656,11 +625,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         }
         this.store(history.slice(0, -1))
         return true
-    }
-
-    override reset(): void {
-        this.movesPicked = undefined
-        super.reset()
     }
 }
 

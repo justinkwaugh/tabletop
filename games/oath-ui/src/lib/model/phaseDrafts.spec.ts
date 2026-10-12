@@ -23,7 +23,7 @@ import {
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
-import { withCount, withFrom } from './powerMoves.js'
+import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -685,7 +685,14 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
 
     it('Undo takes back one pick (To, then How many, then From), then the move before', () => {
         const { draft, moves } = using()
-        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 2 }])
+        // Each part is its own tap, as the panel sends it.
+        const tap = (pick: (picks: MovePick[]) => MovePick[]) => draft.setMoves(USE, pick(draft.picksOf(USE).moves))
+        tap((picks) => withFrom(picks, 0, at('c1')))
+        tap((picks) => withCount(picks, 0, moves().open?.count, 2))
+        tap((picks) => withTo(picks, 0, toBoard))
+        tap((picks) => withFrom(picks, 1, board))
+        tap((picks) => withCount(picks, 1, moves().open?.count, 2))
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 2 }])
         expect(draft.back()).toBe(true)
         expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board }])
         expect(moves().open?.count).toBeUndefined()
@@ -750,6 +757,42 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
         expect(draft.picksComplete(power)).toBe(true)
         expect(draft.choicesFor(power)).toHaveLength(32)
         expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+
+    it('Undo takes back the last tap, across powers: a count changed after another power’s pick comes back as it was', () => {
+        const WHISTLE = { cardId: 'relic.whistle', powerIndex: 0 }
+        const session = opened(
+            table(
+                MachineState.ActPhase,
+                { warbandsOnBoard: {}, relicIds: [WHISTLE.cardId], advisers: [{ cardId: MESSENGER, faceUp: true }] },
+                { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } } }
+            )
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const messenger = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        expect(draft.powers.some((p) => p.cardId === WHISTLE.cardId)).toBe(true)
+        const count = (n: number) =>
+            draft.setMoves(USE, withCount(draft.picksOf(USE).moves, 0, draft.movesOf(messenger)?.open?.count, n))
+        const whistled = { ...emptyPicks(), option: { 0: 0 } }
+
+        draft.setMoves(USE, withFrom(draft.picksOf(USE).moves, 0, at('c1')))
+        count(2)
+        draft.setPicks(WHISTLE, whistled)
+        count(3)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(draft.picksOf(WHISTLE)).toEqual(whistled)
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(draft.picksOf(WHISTLE)).toEqual(emptyPicks())
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1') }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
     })
 })
 
