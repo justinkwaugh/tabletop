@@ -476,6 +476,35 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(await store.findBranch(game.id, 'p1')).toBeDefined()
         })
 
+        it('writes the Branches a Main Line Undo asks for, in place of any it removes', async () => {
+            const action = mainLineAction(0)
+            await store.addActionsToGame({
+                game,
+                actions: [action],
+                state: { ...state, actionCount: 1, actionChecksum: 7 },
+                unmergedBranchWrites: {
+                    set: [freshBranch('p1'), freshBranch('p2')],
+                    removeBranchesOf: []
+                },
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            expect(await readAndCache('p1')).toBeDefined()
+            const replacement = freshBranch('p1')
+            await store.undoActionsFromGame({
+                gameId: game.id,
+                actions: [action],
+                redoneActions: [],
+                state,
+                removeUnmergedBranches: true,
+                setUnmergedBranches: [replacement, freshBranch('p3')],
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            const kept = await store.findUnmergedBranches(game.id, ['p1', 'p2', 'p3'])
+            expect(kept.map(({ branch }) => branch.playerId).toSorted()).toEqual(['p1', 'p3'])
+            expect(await store.findBranch(game.id, 'p1')).toEqual(replacement.branch)
+            expect(await chunkCount('p2')).toBe(0)
+        })
+
         it('removes every Branch when the Game State is replaced', async () => {
             await write(freshBranch('p1'))
             expect(await readAndCache('p1')).toBeDefined()

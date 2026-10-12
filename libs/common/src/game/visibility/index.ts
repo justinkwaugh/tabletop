@@ -25,7 +25,8 @@ export {
     getGameVisibility,
     projectActionCascade,
     projectActionHistory,
-    projectActionResult
+    projectActionResult,
+    projectUnmergedBranch
 } from './gameVisibility.js'
 
 export type {

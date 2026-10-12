@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionSource, type GameAction } from './gameAction.js'
-import { branchView } from './branch.js'
+import { branchView, branchViewDuringMerge } from './branch.js'
 import {
     createSpanGame,
     spanAction,
@@ -487,6 +487,23 @@ describe('Unmerged Branch', () => {
             action: spanAction('w4', 'work', 'p2')
         })
         expect(playerOf(next.view, 'p2').work).toBe(2)
+    })
+
+    it('can be viewed while another Player’s Branch is part-way onto the Main Line', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const mine = playPrivately(spanGame, state, 'p2', [spanAction('w2', 'work', 'p2')])
+        const theirs = playPrivately(spanGame, state, 'p3', [])
+        const midway = playLocally(spanGame, state, [spanAction('w3', 'work', 'p3')]).state
+        expect(midway.parallelSpan?.branchPlayerId).toBe('p3')
+        expect(() => branchView(midway, mine.branch)).toThrow()
+
+        const view = branchViewDuringMerge(midway, mine.branch)
+        expect(playerOf(view, 'p3').work).toBe(1)
+        expect(playerOf(view, 'p2').work).toBe(1)
+        expect(view.actionCount).toBe(mine.branch.actionCount)
+        expect(view.parallelSpan?.branchPlayerId).toBe('p2')
+        expect(() => branchViewDuringMerge(midway, theirs.branch)).toThrow()
     })
 
     it('refuses a Branch for a Player whose Branch is already on the Main Line', () => {

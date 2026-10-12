@@ -1,32 +1,9 @@
-import {
-    assert,
-    assertExists,
-    GameStorage,
-    type GameState,
-    type HydratedGameState
-} from '@tabletop/common'
-import {
-    createSpanGame,
-    spanAction,
-    spanGameInfo,
-    summary,
-    type SpanActionType
-} from '@tabletop/common/test-fixtures/span-game'
+import { assert, GameStorage } from '@tabletop/common'
+import { createSpanGame, spanGameInfo, summary } from '@tabletop/common/test-fixtures/span-game'
 import { createHarnessAppContext } from '../../harness/harnessContext.js'
 import { HarnessSessions } from '../../harness/harnessSessions.svelte.js'
-import { GameSession } from '../gameSession.svelte.js'
-import { settle, uiRuntime } from './privateHandSession.fixture.js'
-
-class SpanSession extends GameSession<GameState, HydratedGameState> {
-    async act(type: SpanActionType, id: string) {
-        assertExists(this.myPlayer, 'Nobody is acting')
-        await this.applyAction({
-            ...spanAction(id, type, this.myPlayer.id),
-            gameId: this.game.id
-        })
-        await settle(this)
-    }
-}
+import { settle } from './privateHandSession.fixture.js'
+import { SpanSession, spanUiRuntime } from './spanSession.js'
 
 async function setup() {
     const spanGame = createSpanGame()
@@ -39,7 +16,7 @@ async function setup() {
         storage: GameStorage.Local,
         players: spanGame.game.players.map((player) => ({ ...player, userId: 'harness-user' }))
     }
-    const runtime = { ...uiRuntime, ...spanGame.runtime, sessionClass: SpanSession }
+    const runtime = spanUiRuntime(spanGame.runtime)
     const definition = {
         info: { ...spanGameInfo, thumbnailUrl: '' },
         runtime: async () => runtime

@@ -18,9 +18,8 @@ export const load: PageLoad = async ({ params, url }) => {
     const { id } = params
 
     try {
-        let { game, actions, historyComplete } = await appContext.gameService.loadGame(id, {
-            includeActions: false
-        })
+        let { game, actions, historyComplete, unmergedBranch } =
+            await appContext.gameService.loadGame(id, { includeActions: false })
         if (!game) {
             error(404, 'The specified game was not found')
         }
@@ -42,6 +41,7 @@ export const load: PageLoad = async ({ params, url }) => {
             game = complete.game
             actions = complete.actions
             historyComplete = complete.historyComplete
+            unmergedBranch = complete.unmergedBranch
             if (!game?.state) error(409, 'The specified game is no longer available')
         }
 
@@ -63,7 +63,8 @@ export const load: PageLoad = async ({ params, url }) => {
                 game,
                 state: game.state,
                 actions,
-                historyComplete
+                historyComplete,
+                unmergedBranch
             })
         }
     } catch (e) {

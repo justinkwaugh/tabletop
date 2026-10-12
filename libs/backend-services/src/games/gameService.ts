@@ -47,14 +47,15 @@ import {
     WasInvitedNotification,
     Visibility,
     assertExists,
+    actsInBranch,
     combineCascades,
+    createMissingBranches,
+    siteActivePlayerIds,
     isRestingInSpan,
-    restingSpan,
     sameHistoryPosition,
     reverseToBranchStart,
     settleSpan,
     unmergedPlayerIds,
-    omitGameState,
     type ActionCascadeResult,
     type ActionHistoryPosition,
     type SpanHold,
@@ -116,6 +117,7 @@ import {
 import {
     createGameNotification,
     publishActionResults,
+    publishBranchUpdate,
     publishUndoResults
 } from './gameNotifications.js'
 
@@ -135,11 +137,11 @@ import {
     spanVisibility
 } from './spanReads.js'
 import {
-    actsInBranch,
+    assertBranchesUnmoved,
     assertGameUnmoved,
+    branchesAfterReversal,
     fillGameUpdatesAfterActions,
     freshBranchWrite,
-    siteActivePlayerIds,
     submitBranchAction,
     undoBranchAction
 } from './spanSubmission.js'
@@ -377,6 +379,18 @@ export class GameService {
             fork.state,
             fork.actions
         )
+        for (const fresh of createMissingBranches({
+            engine: new GameEngine(definition.runtime),
+            game: storedGame,
+            state: fork.state,
+            unmergedBranches: []
+        })) {
+            await this.gameStore.writeUnmergedBranch({
+                gameId: storedGame.id,
+                write: freshBranchWrite(fresh),
+                validator: async () => UpdateValidationResult.Proceed
+            })
+        }
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
         return storedGame
     }
@@ -1304,10 +1318,15 @@ export class GameService {
             visibility,
             user
         })
+        await publishBranchUpdate({
+            game: submission.game,
+            state: submission.state,
+            unmergedBranch: submission.unmergedBranch,
+            visibility,
+            notificationService: this.notificationService
+        })
         if (submission.unmergedBranch.branch.closed) {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: results.game })
-        } else {
-            await this.notifyBranchOwner(submission.game, submission.unmergedBranch.branch.playerId)
         }
         return results
     }
@@ -1502,7 +1521,7 @@ export class GameService {
         if (outcome.kind === 'invalid') throw disallowed(outcome.reason)
         await this.persistReversal({
             definition,
-            gameId: game.id,
+            game,
             user,
             actionToUndo: window[0],
             startIndex: undoWindow.startIndex,
@@ -1705,7 +1724,7 @@ export class GameService {
 
         return this.persistReversal({
             definition,
-            gameId,
+            game,
             user,
             actionToUndo,
             startIndex: undoWindow.startIndex - landed.reversed.length,
@@ -1769,27 +1788,26 @@ export class GameService {
             asAdministrator
         })
         if (undone === undefined) return undefined
-        await this.notifyBranchOwner(game, undone.unmergedBranch.branch.playerId)
+        const visibility = spanVisibility(definition, game)
+        await publishBranchUpdate({
+            game,
+            state: undone.state,
+            unmergedBranch: undone.unmergedBranch,
+            visibility,
+            notificationService: this.notificationService
+        })
         return createBranchUndoRepresentation({
             game,
             state: undone.state,
             ...undone.unmergedBranch,
-            visibility: spanVisibility(definition, game),
+            visibility,
             user
         })
     }
 
-    private async notifyBranchOwner(game: Game, playerId: string): Promise<void> {
-        const userId = this.findPlayerByPlayerId(game, playerId)?.userId
-        if (userId === undefined) return
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: omitGameState(game) }, [
-            userId
-        ])
-    }
-
     private async persistReversal({
         definition,
-        gameId,
+        game,
         user,
         actionToUndo,
         startIndex,
@@ -1802,7 +1820,7 @@ export class GameService {
         leavesSpan = false
     }: {
         definition: GameDefinition
-        gameId: string
+        game: Game
         user: User
         actionToUndo: GameAction
         startIndex: number
@@ -1816,7 +1834,14 @@ export class GameService {
     }): Promise<UndoResultsRepresentation> {
         const gameEngine = new GameEngine(definition.runtime)
         measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
-        const staysInSpan = !leavesSpan && isRestingInSpan(updatedState)
+        const gameId = game.id
+        const branches = await branchesAfterReversal({
+            gameStore: this.gameStore,
+            engine: gameEngine,
+            game,
+            state: updatedState,
+            leavesSpan
+        })
         const {
             undoneActions,
             updatedGame,
@@ -1827,7 +1852,8 @@ export class GameService {
             redoneActions,
             state: updatedState,
             removeUnmergedBranches: leavesSpan,
-            watchBranchesOf: staysInSpan ? unmergedPlayerIds(restingSpan(updatedState)) : [],
+            setUnmergedBranches: branches.fresh.map(freshBranchWrite),
+            watchBranchesOf: branches.watchedPlayerIds,
             validator: async (
                 existingGame,
                 existingState,
@@ -1866,6 +1892,12 @@ export class GameService {
                     throw new GameUpdateCollisionError({ id: gameId })
                 }
 
+                assertBranchesUnmoved(
+                    gameId,
+                    branches.watchedPlayerIds,
+                    existingBranches,
+                    branches.kept
+                )
                 gameUpdates.activePlayerIds = siteActivePlayerIds(newState, existingBranches)
                 if (leavesSpan) gameUpdates.spanHold = undefined
                 return UpdateValidationResult.Proceed
@@ -2070,13 +2102,12 @@ export class GameService {
     @Timed('game.notifyGamePlayers')
     private async notifyGamePlayers(
         action: GameNotificationAction,
-        data: GameNotificationData,
-        userIds: readonly string[] = gameUserIds(data.game)
+        data: GameNotificationData
     ): Promise<void> {
         const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
-            topics: userIds.map((userId) => `user-${userId}`),
+            topics: gameUserIds(data.game).map((userId) => `user-${userId}`),
             channels: [NotificationDistributionMethod.Topical]
         })
     }

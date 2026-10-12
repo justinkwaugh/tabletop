@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game, GameWithoutState } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
+import { UnmergedBranch } from '../../game/engine/branch.js'
 import {
     CanonicalActionReplayManifest,
     ProcessedActionReplay
@@ -17,6 +18,7 @@ export enum GameNotificationAction {
     AddProjectedActions = 'addProjectedActions',
     ReplaceProjectedActions = 'replaceProjectedActions',
     UndoAction = 'undoAction',
+    UpdateBranch = 'updateBranch',
     Chat = 'chat'
 }
 
@@ -69,6 +71,13 @@ export const GameNotificationUndoActionData = Type.Object({
     // Compatibility for clients deployed before the compact replay manifest.
     action: GameAction,
     undoneActionId: Type.String()
+})
+
+export type GameNotificationUpdateBranchData = Type.Static<typeof GameNotificationUpdateBranchData>
+export const GameNotificationUpdateBranchData = Type.Object({
+    game: GameWithoutState,
+    unmergedBranch: UnmergedBranch,
+    perspective: Perspective
 })
 
 export type GameNotificationChatData = Type.Static<typeof GameNotificationChatData>
@@ -166,6 +175,18 @@ export const GameUndoActionNotification = Type.Evaluate(
     ])
 )
 
+export type GameUpdateBranchNotification = Type.Static<typeof GameUpdateBranchNotification>
+export const GameUpdateBranchNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.UpdateBranch),
+            data: GameNotificationUpdateBranchData
+        })
+    ])
+)
+
 export type GameChatNotification = Type.Static<typeof GameChatNotification>
 export const GameChatNotification = Type.Evaluate(
     Type.Intersect([
@@ -186,6 +207,7 @@ export type GameNotificationData =
     | GameNotificationAddProjectedActionsData
     | GameNotificationReplaceProjectedActionsData
     | GameNotificationUndoActionData
+    | GameNotificationUpdateBranchData
     | GameNotificationChatData
 
 export type GameNotification =
@@ -196,4 +218,5 @@ export type GameNotification =
     | GameAddProjectedActionsNotification
     | GameReplaceProjectedActionsNotification
     | GameUndoActionNotification
+    | GameUpdateBranchNotification
     | GameChatNotification
