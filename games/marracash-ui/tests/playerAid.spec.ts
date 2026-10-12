@@ -49,29 +49,34 @@ test('the aid leaves out the antiques card when Antique Cards is off', async ({ 
     await expect(aid(page).getByRole('region', { name: 'Antiques' })).toHaveCount(0)
 })
 
-test('an auction dims the board but keeps fountains and shop signs above the overlay', async ({
+test('an auction dims the board and its fountains, keeping visitors and shop signs above the overlay', async ({
     page
 }) => {
     await createGame(page)
     await playOpeningRound(page)
     await auctionFirstShop(page)
-    const raised = await page.evaluate(() => {
-        const overlay = document.querySelector('[aria-label="MarraCash market"] g[opacity="0.25"]')
-        const follows = (selector: string) =>
+    const layers = await page.evaluate(() => {
+        const overlay = document.querySelector('[aria-label="MarraCash market"] g[opacity="0.4"]')
+        const shownAbove = (selector: string) =>
             [...document.querySelectorAll(`[aria-label="MarraCash market"] ${selector}`)].filter(
                 (element) =>
                     overlay !== null &&
-                    overlay.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING
-            ).length
+                    overlay.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING &&
+                    element.checkVisibility({ visibilityProperty: true })
+            )
+        const signs = shownAbove('g.pointer-events-none[aria-hidden="true"]')
         return {
             overlay: overlay !== null,
-            fountainsAbove: follows('path[fill*="fountain-water-shade"]'),
-            signsAbove: follows('g.pointer-events-none[aria-hidden="true"]')
+            basinsAbove: shownAbove('path[fill*="fountain-water-shade"]').length,
+            signsAbove: signs.length,
+            signFilter: signs[0]?.parentElement?.style.filter
         }
     })
-    expect(raised.overlay).toBe(true)
-    expect(raised.fountainsAbove).toBeGreaterThan(0)
-    expect(raised.signsAbove).toBeGreaterThan(0)
+    expect(layers.overlay).toBe(true)
+    expect(layers.basinsAbove).toBe(0)
+    expect(layers.signsAbove).toBeGreaterThan(0)
+    // Shop signs dim half as much as the board beneath them.
+    expect(layers.signFilter).toBe('brightness(0.8)')
 })
 
 test.describe('on a phone', () => {
