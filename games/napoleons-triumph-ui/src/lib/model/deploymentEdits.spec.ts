@@ -4,6 +4,7 @@ import {
     DETACHMENT_REACH,
     MAX_FRENCH_DETACHMENTS,
     Side,
+    approachTowardsEnemy,
     suggestedDeployment,
     type Deployment,
     type HydratedNapoleonsTriumphGameState
@@ -11,16 +12,19 @@ import {
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import {
     detachmentTargets,
+    fixedBatteryTargets,
     previewDeployment,
     settleFixedBattery,
     setupLocaleOf,
+    unitTargets,
     withBatteryFixed,
     withCorpsOffMapToggled,
     withDetachmentRecalled,
     stanceTargets,
     withCorpsStance,
     withUnitAssigned,
-    withUnitDetached
+    withUnitDetached,
+    withUnitSentTo
 } from './deploymentEdits.js'
 import { TargetKind } from './targets.js'
 
@@ -106,6 +110,96 @@ describe('the fixed battery of a set-up', () => {
             fixedBattery: undefined
         })
         expect(settled.fixedBattery).toEqual({ unitId: LANNES_GUNS, approach: undefined })
+    })
+
+    it('looks towards the nearest enemy until the player aims it', () => {
+        const { state, playerId, deployment } = frenchSetup()
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const settled = settleFixedBattery(state, Side.French, {
+            ...deployment,
+            fixedBattery: undefined
+        })
+        expect(settled.fixedBattery?.approach).toBe(approachTowardsEnemy(state, playerId, home).id)
+    })
+
+    it('stands on the approach of its locale the player sends it to, using no detachment', () => {
+        const { state, playerId, deployment } = frenchSetup()
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const suggested = deployment.fixedBattery?.approach
+        const other = approachesAround(state, 'lannes').find((approach) => approach !== suggested)
+        assertExists(other, 'Lannes sets up in a locale with more than one approach')
+        const edited = settleFixedBattery(
+            state,
+            Side.French,
+            withUnitSentTo(state.map, deployment, LANNES_GUNS, { locale: home, approach: other })
+        )
+        expect(edited.detachments).toEqual([])
+        const preview = previewDeployment(state, playerId, edited)
+        expect(preview.state?.unit(LANNES_GUNS).position).toEqual({ locale: home, approach: other })
+        expect(preview.state?.unit(LANNES_GUNS).fixed).toBe(true)
+    })
+
+    it('stands where the player detaches it to, whatever approach was named for it before', () => {
+        const { state, playerId, deployment } = frenchSetup()
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const suggested = deployment.fixedBattery?.approach
+        const other = approachesAround(state, 'lannes').find((approach) => approach !== suggested)
+        assertExists(other, 'Lannes sets up in a locale with more than one approach')
+        const edited = settleFixedBattery(
+            state,
+            Side.French,
+            withUnitDetached(deployment, LANNES_GUNS, { locale: home, approach: other })
+        )
+        const preview = previewDeployment(state, playerId, edited)
+        expect(preview.state?.unit(LANNES_GUNS).position).toEqual({ locale: home, approach: other })
+    })
+
+    it('is offered every other approach of its own locale, and posts only in other locales', () => {
+        const { state, playerId, deployment } = frenchSetup()
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const suggested = deployment.fixedBattery?.approach
+        const offered = unitTargets(state, playerId, deployment, LANNES_GUNS)
+        const atHome = offered.filter((target) => target.position.locale === home)
+        expect(
+            atHome
+                .flatMap((target) =>
+                    target.kind === TargetKind.Approach ? [target.position.approach] : []
+                )
+                .toSorted()
+        ).toEqual(
+            approachesAround(state, 'lannes')
+                .filter((approach) => approach !== suggested)
+                .toSorted()
+        )
+        expect(atHome.every((target) => target.kind === TargetKind.Approach)).toBe(true)
+        expect(offered.some((target) => target.position.locale !== home)).toBe(true)
+        expect(fixedBatteryTargets(state, playerId, deployment)).toEqual(atHome)
+    })
+
+    it('is aimed within the locale it was detached to, keeping the one detachment', () => {
+        const { state, playerId, deployment } = frenchSetup()
+        const [away] = detachmentTargets(state, playerId, deployment, LANNES_GUNS).filter(
+            (target) =>
+                target.kind === TargetKind.Reserve &&
+                target.position.locale !== setupLocaleOf(state.map, 'lannes').id
+        )
+        assertExists(away, 'The guns of Lannes can be detached to another locale')
+        const posted = settleFixedBattery(
+            state,
+            Side.French,
+            withUnitSentTo(state.map, deployment, LANNES_GUNS, away.position)
+        )
+        const [aim] = fixedBatteryTargets(state, playerId, posted)
+        assertExists(aim, 'A battery posted in another locale can be aimed there')
+        const aimed = settleFixedBattery(
+            state,
+            Side.French,
+            withUnitSentTo(state.map, posted, LANNES_GUNS, aim.position)
+        )
+        expect(aimed.detachments).toEqual([{ unitId: LANNES_GUNS, position: aim.position }])
+        expect(previewDeployment(state, playerId, aimed).state?.unit(LANNES_GUNS).position).toEqual(
+            aim.position
+        )
     })
 
     it('passes to other guns when the ones named leave the map, and to none when no guns are left on it', () => {

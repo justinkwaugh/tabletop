@@ -107,16 +107,16 @@ import {
     type CommandSelection
 } from './commandSelection.js'
 import {
-    detachmentTargets,
     previewDeployment,
     settleFixedBattery,
+    unitTargets,
     withBatteryFixed,
     withCorpsOffMapToggled,
     withDetachmentRecalled,
     stanceTargets,
     withCorpsStance,
     withUnitAssigned,
-    withUnitDetached,
+    withUnitSentTo,
     type DeploymentPreview
 } from './deploymentEdits.js'
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
@@ -398,7 +398,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (corpsId) {
             return stanceTargets(this.gameState.map, deployment, corpsId)
         }
-        return unitId ? detachmentTargets(this.gameState, playerId, deployment, unitId) : []
+        return unitId ? unitTargets(this.gameState, playerId, deployment, unitId) : []
     })
 
     targets: MoveTarget[] = $derived.by(() => {
@@ -579,7 +579,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
             }
             const unitId = this.setupUnitId
             assertExists(unitId, 'Detachment targets are offered for a unit picked in the roster')
-            this.editSetup((deployment) => withUnitDetached(deployment, unitId, target.position))
+            this.editSetup((deployment) =>
+                withUnitSentTo(this.gameState.map, deployment, unitId, target.position)
+            )
             return
         }
         if (target.kind === TargetKind.Retreat) {

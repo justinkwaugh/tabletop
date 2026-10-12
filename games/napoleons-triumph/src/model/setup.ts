@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { SANTON_LOCALE } from '../components/austerlitz.js'
-import type { LocaleDefinition, LocaleId } from '../components/battleMap.js'
+import type { ApproachDefinition, LocaleDefinition, LocaleId } from '../components/battleMap.js'
 import {
     MAX_CORPS_UNITS,
     Side,
@@ -304,6 +304,33 @@ function firstWith(
     return pool.find(match) ?? pool[0]
 }
 
+/** Rule 6, step 9 leaves the approach to the French player; until they choose one, the battery looks towards the nearest enemy. */
+export function approachTowardsEnemy(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    localeId: LocaleId
+): ApproachDefinition {
+    const enemyLocales = new Set(
+        state.units.flatMap((unit) =>
+            unit.playerId !== playerId && unit.position ? [unit.position.locale] : []
+        )
+    )
+    const stepsToEnemy = (approach: ApproachDefinition): number =>
+        Math.min(
+            Infinity,
+            ...[...enemyLocales].map(
+                (held) => state.map.distance(approach.neighbour, held) ?? Infinity
+            )
+        )
+    const [first, ...others] = state.map.passableApproachesOf(localeId)
+    assertExists(first, `Locale ${localeId} has no approach a battery can block`)
+    return others.reduce(
+        (nearest, approach) =>
+            stepsToEnemy(approach) < stepsToEnemy(nearest) ? approach : nearest,
+        first
+    )
+}
+
 export function suggestedDeployment(
     state: HydratedNapoleonsTriumphGameState,
     side: Side
@@ -375,7 +402,7 @@ export function suggestedDeployment(
         const onSanton = state.santon && locale.id === SANTON_LOCALE
         deployment.fixedBattery = onSanton
             ? { unitId: battery }
-            : { unitId: battery, approach: state.map.passableApproachesOf(locale.id)[0].id }
+            : { unitId: battery, approach: approachTowardsEnemy(state, playerId, locale.id).id }
         break
     }
     return deployment

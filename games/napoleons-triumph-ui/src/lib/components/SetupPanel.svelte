@@ -41,6 +41,16 @@
         return `at ${place}, facing ${game.map.label(game.map.approach(corps.approach).neighbour)}`
     }
 
+    const batteryAim = $derived.by(() => {
+        const battery = deployment?.fixedBattery?.unitId
+        const approach = battery
+            ? gameSession.setupPreview.state?.unit(battery).position?.approach
+            : undefined
+        return approach === undefined
+            ? undefined
+            : game.map.label(game.map.approach(approach).neighbour)
+    })
+
     function marker(unitId: string): string | undefined {
         if (deployment?.fixedBattery?.unitId === unitId) {
             return 'fixed battery'
@@ -56,6 +66,11 @@
                 ? `, or a place on the map to detach it there (${deployment.detachments.length} of ${MAX_FRENCH_DETACHMENTS} detached)`
                 : ''}. To change where a corps stands, tap it on the map and then an approach of its
             locale, or the locale to hold it in reserve.
+            {#if side === Side.French && deployment.fixedBattery}
+                One battery is your fixed battery: it blocks an approach and never moves again. Pick
+                it to aim it at another approach of its locale, or pick other guns to name them
+                instead.
+            {/if}
         </div>
         <div class="nt-setup-corps">
             {#each deployment.corps as corps (corps.commanderId)}
@@ -113,6 +128,12 @@
                         class="nt-plain-button"
                         onclick={() => gameSession.recallDetachment(picked)}
                         >Return it to its corps</button
+                    >
+                {/if}
+                {#if deployment.fixedBattery?.unitId === picked && batteryAim}
+                    <span class="nt-setup-hint"
+                        >The fixed battery faces {batteryAim}. Tap another approach of its locale to
+                        turn it there.</span
                     >
                 {/if}
                 {#if pickedIsArtillery && pickedOnMap && side === Side.French && deployment.fixedBattery?.unitId !== picked}
@@ -222,5 +243,9 @@
 
     .nt-setup-problem {
         color: var(--nt-warn);
+    }
+
+    .nt-setup-hint {
+        opacity: 0.75;
     }
 </style>
