@@ -1,14 +1,15 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { ActionType } from '@tabletop/oath'
-    import CountPicker from '$lib/components/CountPicker.svelte'
-    import { range } from '@tabletop/common'
+    import TokenRow from '$lib/components/TokenRow.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
+    import { favorToken } from '$lib/images/tileImages.js'
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
+    import { tappedCount } from '$lib/model/exchangeTerms.js'
     import { cardName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -31,18 +32,23 @@
     {#if choosing && gameSession.setup.siteFavor && !ordering}
         {@const split = gameSession.setup.siteFavor}
         {@const pending = gameSession.setup.pendingSiteFavor}
-        <!-- R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it". -->
+        <!-- R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it": a row
+             of the favor each site prints, filled in map order; a site takes no more than the bank
+             leaves it, the rest keeping their place untappable. -->
         <div class="mb-2 border-t border-oath-divider pt-1.5 text-sm">
             <p class="mb-1"><TokenText text="Place {gameState.favorSupply} favor:" /></p>
             <div class="mb-1 grid grid-cols-[max-content_auto] items-center gap-x-2.5 gap-y-1">
                 {#each split as { siteCardId, favor }, index (siteCardId)}
                     <span>{cardName(siteCardId)}</span>
-                    <CountPicker
-                        values={range(0, pending[index].wanted + 1)}
+                    <TokenRow
+                        image={favorToken()}
+                        held={pending[index].wanted}
+                        addable={gameSession.setup.siteFavorCeiling(siteCardId)}
                         picked={favor}
                         label={(n) => `place ${n} favor on ${cardName(siteCardId)}`}
-                        onpick={(n) => gameSession.setup.setSiteFavor(siteCardId, n)}
-                        disabled={busy}
+                        ontap={(n) =>
+                            gameSession.setup.setSiteFavor(siteCardId, tappedCount(favor, n))}
+                        {busy}
                     />
                 {/each}
             </div>

@@ -9,10 +9,10 @@ const components = import.meta.glob<string>('./*.svelte', {
 const FREE_COUNT = /type="(?:range|number)"/g
 
 /**
- * The counts still drawn as number buttons: the Chancellor's split of a short setup bank, and a
- * power's counts in its picker. Every other count is a row of the pieces themselves.
+ * The one count still drawn as number buttons: a power's open count in its picker (Witch's
+ * Bargain's). Every other count is a row of the pieces themselves.
  */
-const NUMBER_BUTTON_COUNTS = ['./SetupPanel.svelte', './PowerChoicePicker.svelte']
+const NUMBER_BUTTON_COUNTS = ['./PowerChoicePicker.svelte']
 
 /**
  * Contract, "Choose a count": every count of warbands, favor or secrets is a row of the pieces
@@ -33,5 +33,11 @@ describe('count controls', () => {
             .map(([path]) => path)
             .sort()
         expect(numberButtons).toEqual([...NUMBER_BUTTON_COUNTS].sort())
+    })
+
+    it('a power’s picker draws number buttons for its open count alone, its warbands as pieces', () => {
+        const picker = components['./PowerChoicePicker.svelte'] ?? ''
+        expect(picker.match(/<CountPicker/g)).toHaveLength(1)
+        expect(picker).toContain('<WarbandGroupRows')
     })
 })

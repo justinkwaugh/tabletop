@@ -16,6 +16,7 @@
     import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
     import CardLine from '$lib/components/CardLine.svelte'
     import {
@@ -198,6 +199,7 @@
                                     () => draft.picksOf(p), (picks) => draft.setPicks(p, picks)
                                 }
                                 tollAt={draft.moveTollAt(p)}
+                                words={pickerWords(p.cardId)}
                             />
                         </div>
                     {/if}

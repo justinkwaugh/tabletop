@@ -2123,6 +2123,226 @@ test.describe('scenario 66: counts as pieces', () => {
     }
 })
 
+/** Scenario 67: a power's players are chips, its warbands and the short bank's favor are pieces. */
+test.describe('scenario 67: a power’s picks as chips and pieces', () => {
+    const powerRow = (page: Page, cardId: string) => grid(page).locator(`[data-action-power="${cardId}"]`)
+    const chips = (page: Page, cardId: string) =>
+        powerRow(page, cardId).locator('button[aria-pressed]:not(.magnifier)')
+    const chip = (page: Page, cardId: string, name: RegExp) => powerRow(page, cardId).getByRole('button', { name })
+    const use = (page: Page) => grid(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true })
+    const piece = (page: Page, n: number, where: RegExp) =>
+        grid(page).getByRole('button', { name: new RegExp(`^${n} of the warbands ${where.source}$`, 'i') })
+    const pieces = (page: Page) => grid(page).getByRole('button', { name: /^\d+ of the warbands / })
+
+    async function openPower(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await usePower(page).click()
+    }
+
+    test('the Whistle: “Call:” and a chip per pawn at another site, one width, nothing picked; a tap picks and Use shows', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerWhistle')
+        const row = powerRow(page, 'relic.whistle')
+        await expect(row.getByText('Call:', { exact: true })).toBeVisible()
+        await expect(row.locator('select')).toHaveCount(0)
+        await expect(chips(page, 'relic.whistle')).toHaveCount(2)
+        for (const each of await chips(page, 'relic.whistle').all()) {
+            await expect(each).toHaveAttribute('aria-pressed', 'false')
+        }
+        await expectOneWidth(chips(page, 'relic.whistle'))
+        await expect(use(page)).toHaveCount(0)
+        await expect(row.locator('[title]')).toHaveCount(0)
+
+        await chip(page, 'relic.whistle', /^rhys$/i).click()
+        await expect(chip(page, 'relic.whistle', /^rhys$/i)).toHaveAttribute('aria-pressed', 'true')
+        await expect(chip(page, 'relic.whistle', /^ann$/i)).toHaveAttribute('aria-pressed', 'false')
+        await expect(use(page)).toBeVisible()
+        // A required pick stays made: a second tap keeps it.
+        await chip(page, 'relic.whistle', /^rhys$/i).click()
+        await expect(chip(page, 'relic.whistle', /^rhys$/i)).toHaveAttribute('aria-pressed', 'true')
+        await use(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.rhys).toBe('slot.cradle.0')
+    })
+
+    test('the Whistle with one pawn elsewhere: its chip starts picked and Use shows', async ({ page }) => {
+        await openPower(page, 'usePower')
+        await expect(chips(page, 'relic.whistle')).toHaveCount(1)
+        await expect(chips(page, 'relic.whistle')).toHaveAttribute('aria-pressed', 'true')
+        await expect(use(page)).toBeVisible()
+    })
+
+    test('Terror Spells: “Kill 2:” over a row per place in the region, your board and another’s among them, nothing picked', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerTerror')
+        const row = powerRow(page, 'denizen.arcane.terror-spells')
+        await expect(row.getByText('Kill 2:', { exact: true })).toBeVisible()
+        await expect(row.locator('select')).toHaveCount(0)
+        await expect(pieces(page)).toHaveCount(10)
+        await expect(pieces(page).locator('img')).toHaveCount(10)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(piece(page, 3, /at Mountain/)).toBeVisible()
+        await expect(piece(page, 2, /at Marshes/)).toBeVisible()
+        await expect(piece(page, 3, /on your board/)).toBeVisible()
+        await expect(piece(page, 2, /on rhys's board/)).toBeVisible()
+        // Ann's board is in another region: no row.
+        await expect(row).not.toContainText(/ann/i)
+        await expect(use(page)).toHaveCount(0)
+    })
+
+    test('Terror Spells: a tap on the 2nd at the Mountain kills 2 there, rose; every other piece keeps its place, untappable', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerTerror')
+        await piece(page, 2, /at Mountain/).click()
+        await expect(piece(page, 1, /at Mountain/)).toHaveAttribute('aria-pressed', 'true')
+        await expect(piece(page, 2, /at Mountain/)).toHaveAttribute('aria-pressed', 'true')
+        await expect(piece(page, 2, /at Mountain/)).toHaveClass(/ring-oath-danger/)
+        await expect(piece(page, 3, /at Mountain/)).toBeDisabled()
+        for (const where of [/at Marshes/, /on your board/, /on rhys's board/]) {
+            await expect(piece(page, 1, where)).toBeDisabled()
+        }
+        await expect(pieces(page)).toHaveCount(10)
+        await expect(use(page)).toBeVisible()
+        await use(page).click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).warbandsAt['slot.provinces.0'])
+            .toEqual({ rhys: 1 })
+    })
+
+    test('Terror Spells: one on your own board and one on another’s; one alone waits, and a second tap clears it', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerTerror')
+        await piece(page, 1, /on your board/).click()
+        await expect(use(page)).toHaveCount(0)
+        await expect(piece(page, 2, /on your board/)).toBeEnabled()
+        await piece(page, 1, /on your board/).click()
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await piece(page, 1, /on your board/).click()
+        await piece(page, 1, /on rhys's board/).click()
+        await expect(use(page)).toBeVisible()
+        await use(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.dana).toEqual({ dana: 2 })
+        expect((await call(page, 'tableFacts')).boardOf.rhys).toEqual({ rhys: 1 })
+    })
+
+    test('Blood Pact: “Sacrifice:” and a button per pair, the fifth warband alone untappable; two pairs sacrifice four', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerPact')
+        const row = powerRow(page, 'denizen.arcane.blood-pact')
+        await expect(row.getByText('Sacrifice:', { exact: true })).toBeVisible()
+        await expect(pieces(page)).toHaveCount(2)
+        await expect(pieces(page).nth(0).locator('img')).toHaveCount(2)
+        await expect(row.locator('[data-leftover-piece] img')).toHaveCount(1)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(use(page)).toHaveCount(0)
+
+        await piece(page, 4, /on your board/).click()
+        await expect(piece(page, 2, /on your board/)).toHaveAttribute('aria-pressed', 'true')
+        await expect(piece(page, 4, /on your board/)).toHaveClass(/ring-oath-danger/)
+        await expect(use(page)).toBeVisible()
+        await use(page).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.dana).toEqual({ dana: 1 })
+    })
+
+    test('the Obsidian Cage: a row per board its warbands may go to, gold, each colour held to what the Cage holds', async ({
+        page
+    }) => {
+        await openPower(page, 'pickerCage')
+        const useFree = grid(page).getByRole('button', { name: 'Use', exact: true })
+        await expect(pieces(page)).toHaveCount(7)
+        await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(0)
+        await expect(useFree).toHaveCount(0)
+        await piece(page, 1, /to your board/).click()
+        await expect(piece(page, 1, /to your board/)).toHaveClass(/ring-oath-accent/)
+        await expect(piece(page, 1, /to ann's board/)).toBeEnabled()
+        await expect(piece(page, 2, /to ann's board/)).toBeDisabled()
+        await expect(piece(page, 3, /to rhys's board/)).toBeEnabled()
+        await piece(page, 1, /to ann's board/).click()
+        await expect(piece(page, 2, /to your board/)).toBeDisabled()
+        await useFree.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.ann).toEqual({ imperial: 1 })
+    })
+
+    test('setup’s short bank: favor tokens, filled in map order; the Mine’s third waits until the Salt Flats give one up', async ({
+        page
+    }) => {
+        await openTable(page, 'shortBank')
+        await expect(favorOn(page, 2, 'Salt Flats')).toHaveAttribute('aria-pressed', 'true')
+        await expect(favorOn(page, 2, 'Mine')).toHaveAttribute('aria-pressed', 'true')
+        await expect(favorOn(page, 2, 'Mine')).toHaveClass(/ring-oath-accent/)
+        await expect(favorOn(page, 2, 'Mine').locator('img')).toHaveCount(1)
+        await expect(favorOn(page, 3, 'Mine')).toHaveAttribute('aria-pressed', 'false')
+        await expect(favorOn(page, 3, 'Mine')).toBeDisabled()
+        await expect(grid(page)).not.toContainText('placed.')
+
+        await favorOn(page, 1, 'Salt Flats').click()
+        await expect(grid(page).getByText('3 of 4 placed.')).toBeVisible()
+        await expect(favorOn(page, 3, 'Mine')).toBeEnabled()
+        await favorOn(page, 3, 'Mine').click()
+        await expect(favorOn(page, 3, 'Mine')).toHaveAttribute('aria-pressed', 'true')
+        await expect(favorOn(page, 2, 'Salt Flats')).toBeDisabled()
+        await expect(grid(page)).not.toContainText('placed.')
+    })
+
+    for (const viewport of [
+        { width: 375, height: 812 },
+        { width: 402, height: 874 }
+    ]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            /** Each control laid out at least 44 px tall (and wide, where it is a piece), inside the panel. */
+            async function controlsFit(page: Page, controls: Locator, count: number, square: boolean) {
+                await expect(controls).toHaveCount(count)
+                const panel = await boxOf(grid(page))
+                for (const box of await boxesOf(controls)) expect(inside(box, panel)).toBe(true)
+                const sizes = await controls.evaluateAll((buttons) =>
+                    buttons.map((button) =>
+                        button instanceof HTMLElement ? [button.offsetWidth, button.offsetHeight] : [0, 0]
+                    )
+                )
+                for (const [width, height] of sizes) {
+                    if (square) expect(width).toBeGreaterThanOrEqual(44)
+                    expect(height).toBeGreaterThanOrEqual(44)
+                }
+                expect(await clippedLabels(page)).toEqual([])
+            }
+
+            test('the Whistle’s chips, and Use', async ({ page }) => {
+                await openPower(page, 'pickerWhistle')
+                await controlsFit(page, chips(page, 'relic.whistle'), 2, false)
+                await chip(page, 'relic.whistle', /^ann$/i).click()
+                await controlsFit(page, use(page), 1, false)
+            })
+
+            test('Terror Spells’ pieces', async ({ page }) => {
+                await openPower(page, 'pickerTerror')
+                await controlsFit(page, pieces(page), 10, true)
+            })
+
+            test('Blood Pact’s pairs, 66 by 44', async ({ page }) => {
+                await openPower(page, 'pickerPact')
+                await controlsFit(page, pieces(page), 2, true)
+                expect(await layoutSizeOf(pieces(page).first())).toEqual({ width: 66, height: 44 })
+            })
+
+            test('the Obsidian Cage’s pieces', async ({ page }) => {
+                await openPower(page, 'pickerCage')
+                await controlsFit(page, pieces(page), 7, true)
+            })
+
+            test('the short bank’s favor', async ({ page }) => {
+                await openTable(page, 'shortBank')
+                await controlsFit(page, grid(page).getByRole('button', { name: /^place \d favor on / }), 5, true)
+            })
+        })
+    }
+})
+
 /** Scenario 32: every panel waits while a send is in flight or a new state is being shown. */
 test.describe('scenario 32: waiting on a send', () => {
     test('while a Travel is in flight nothing is offered; refused or accepted, the send ends the draft', async ({
@@ -3630,9 +3850,9 @@ test.describe('Messenger’s moves', () => {
     })
 
     test('a power’s pick from a list is as wide as its longest option, not the panel', async ({ page }) => {
-        await openTable(page, 'usePower')
+        await openTable(page, 'pickerWhistle')
         await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
-        const select = grid(page).locator('[data-action-power="relic.whistle"] select')
+        const select = grid(page).locator('[data-action-power="denizen.order.siege-engines"] select')
         const { drawn, longest } = await select.evaluate((element) => {
             if (!(element instanceof HTMLElement)) throw Error('a select')
             const drawn = element.offsetWidth
@@ -4246,7 +4466,7 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
     await expect(grid(page)).not.toContainText('Pick a start site')
     await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 
-    await panelCards(page).filter({ hasNotText: /^\d$/ }).first().click()
+    await grid(page).locator('button:not(.magnifier):not([aria-label^="place "])').first().click()
     await expect(favorOn(page, 2, 'Salt Flats')).toBeVisible()
     await expect(grid(page)).toContainText('Place all 4')
     await expect(count).toBeVisible()
@@ -6559,7 +6779,7 @@ test.describe('card power text: none in a panel; every panel card has its magnif
                 grid(page).getByRole('button', { name: 'Search with Mushrooms', exact: true }),
                 grid(page).getByRole('button', { name: 'Travel with Tents', exact: true }),
                 grid(page).getByRole('button', { name: 'Use, paying 1 secret', exact: true }),
-                grid(page).locator('[data-action-power="relic.whistle"] select')
+                grid(page).locator('[data-action-power="relic.whistle"] button[aria-pressed]')
             ]
             for (const control of controls) {
                 await expect(control).toBeVisible()

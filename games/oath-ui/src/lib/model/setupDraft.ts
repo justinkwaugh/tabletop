@@ -82,16 +82,29 @@ export class SetupDraft implements PanelDraft {
         )
     }
 
+    /**
+     * R-1.16, R-2.8.2 — the most a site may take with the other sites as they are: what it prints,
+     * and what the bank leaves them.
+     */
+    siteFavorCeiling(siteCardId: string): number {
+        const site = this.pendingSiteFavor.find((p) => p.siteCardId === siteCardId)
+        if (!site) return 0
+        const elsewhere = (this.siteFavor ?? [])
+            .filter((s) => s.siteCardId !== siteCardId)
+            .reduce((n, s) => n + s.favor, 0)
+        return Math.max(0, Math.min(site.wanted, this.session.gameState.favorSupply - elsewhere))
+    }
+
     // The split comes before the card in the flow, so a card kept while it was short is set again.
     setSiteFavor(siteCardId: string, favor: number): void {
-        const site = this.pendingSiteFavor.find((p) => p.siteCardId === siteCardId)
         const split = this.siteFavor
-        if (!site || !split) return
+        if (!split || !this.pendingSiteFavor.some((p) => p.siteCardId === siteCardId)) return
         const kept = this.adviserCardId
+        const ceiling = this.siteFavorCeiling(siteCardId)
         this.session.selection.autoSelect('action', ActionType.SetupChoice)
         this.session.selection.set('siteFavor', {
             ...Object.fromEntries(split.map((s) => [s.siteCardId, s.favor])),
-            [siteCardId]: Math.max(0, Math.min(favor, site.wanted))
+            [siteCardId]: Math.max(0, Math.min(favor, ceiling))
         })
         if (kept !== undefined) this.session.selection.set('card', kept)
     }

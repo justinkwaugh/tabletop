@@ -1,13 +1,12 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists, range } from '@tabletop/common'
     import { MachineState, type WarbandGroup } from '@tabletop/oath'
     import SpoilsSteps from '$lib/components/SpoilsSteps.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
+    import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { warbandFigure } from '$lib/images/pieceImages.js'
-    import { tappedCount } from '$lib/model/exchangeTerms.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownForcePlaceName, siteName } from '$lib/model/names.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
@@ -50,30 +49,12 @@
     let chooserId = $derived(campaign.pendingDefeatKills?.chooserPlayerId)
     let iChooseLosses = $derived(!!chooserId && gameSession.myPlayer?.id === chooserId)
 
-    /** The viewer's own board is "your board"; another's is named by its owner. */
-    function isMine(playerId: string): boolean {
-        return gameSession.myPlayer?.id === playerId
-    }
-
-    /** For a piece's screen-reader name; the row shows another player's board as their chip. */
-    function whereText(group: WarbandGroup): string {
-        if (group.at.kind === 'site') return `at ${siteName(gameState, group.at.siteId)}`
-        return isMine(group.at.playerId)
-            ? 'on your board'
-            : `on ${gameSession.getPlayerName(group.at.playerId)}'s board`
-    }
-
-    /** From revision 5 a force has one owner, so a row names only where; two owners keep the word. */
-    function mixesOwners(groups: readonly WarbandGroup[]): boolean {
-        return new Set(groups.map((group) => group.owner)).size > 1
-    }
-
-    /** The rows in the force's order, a board's before the sites', each with its index in the force. */
-    function boardFirst(groups: readonly WarbandGroup[]): { group: WarbandGroup; index: number }[] {
-        const rows = groups.map((group, index) => ({ group, index }))
+    /** The force's groups by their index in it, a board's before the sites'. */
+    function boardFirst(groups: readonly WarbandGroup[]): number[] {
+        const indices = groups.map((_, index) => index)
         return [
-            ...rows.filter((row) => row.group.at.kind === 'board'),
-            ...rows.filter((row) => row.group.at.kind !== 'board')
+            ...indices.filter((index) => groups[index].at.kind === 'board'),
+            ...indices.filter((index) => groups[index].at.kind !== 'board')
         ]
     }
 
@@ -86,42 +67,23 @@
     const battleWidth = new ChoiceWidth()
 </script>
 
-<!-- "on your board", "at <Site>", or another player's board by their chip. -->
-{#snippet groupName(group: WarbandGroup, owner: string)}
-    {#if group.at.kind === 'board' && !isMine(group.at.playerId)}
-        {owner}on <PlayerName playerId={group.at.playerId} possessive /> board
-    {:else}
-        {owner}{whereText(group)}
-    {/if}
-{/snippet}
-
-<!-- R-10.22 — a row of the warbands per place, each label beside its pieces in one column at the
-     widest label's width; the picked warbands die, so they are ringed rose. A tap on the Nth sets
-     N, a tap on the count sets 0; no group gives more than the count owed leaves it. -->
+<!-- R-10.22 — a row of the warbands per place, the board first; the picked warbands die, so they
+     are ringed rose. No group gives more than the count owed leaves it. From revision 5 a force
+     has one owner, so a row names only where; two owners keep the owner's word. -->
 {#snippet countRows(
     groups: readonly WarbandGroup[],
     picked: readonly number[],
     ceilingAt: (index: number) => number,
     onpick: (index: number, n: number) => void
 )}
-    {@const ownerWord = mixesOwners(groups)}
-    <div class="mb-1 grid grid-cols-[max-content_auto] items-center gap-x-2.5 gap-y-1">
-        {#each boardFirst(groups) as { group, index } (JSON.stringify(group.at) + group.owner)}
-            {@const count = picked[index] ?? 0}
-            {@const owner = ownerWord ? `${gameSession.warbandOwnerName(group.owner)} ` : ''}
-            <span>{@render groupName(group, owner)}</span>
-            <TokenRow
-                image={warbandFigure(gameSession.warbandColor(group.owner))}
-                held={group.count}
-                addable={ceilingAt(index)}
-                picked={count}
-                label={(n) => `${n} of the ${owner}warbands ${whereText(group)}`}
-                ontap={(n) => onpick(index, tappedCount(count, n))}
-                tone="rose"
-                {busy}
-            />
-        {/each}
-    </div>
+    <WarbandGroupRows
+        {groups}
+        order={boardFirst(groups)}
+        counts={picked}
+        {ceilingAt}
+        {onpick}
+        tone="rose"
+    />
 {/snippet}
 
 <div>

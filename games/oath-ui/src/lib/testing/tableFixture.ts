@@ -206,6 +206,7 @@ export type TableName =
     | 'messenger'
     | 'messengerTwoOwners'
     | 'warningSignals'
+    | PickerScene
     | 'historyAct'
     | 'historyCampaign'
     | 'historyDeals'
@@ -2290,6 +2291,96 @@ function warningSignalsTable(): PlayedTable {
     return tableOf(state)
 }
 
+type PickerScene = 'pickerWhistle' | 'pickerTerror' | 'pickerPact' | 'pickerCage'
+
+/**
+ * Use a power's picks as chips and pieces; Dana's turn.
+ * - `pickerWhistle`: Dana, an Exile at the Ancient City, holds the Whistle and Siege Engines (its
+ *   site still a list); Rhys stands at the Mountain and Ann, the Chancellor, at the Marshes, both
+ *   at another site.
+ * - `pickerTerror`: Dana, an Exile at the Mountain (Provinces), holds the Darkest Secret and Terror
+ *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on his board; Dana has 2
+ *   at the Marshes and 3 on her board; Ann's pawn is at the Ancient City (Cradle), 2 on her board.
+ * - `pickerPact`: Dana, an Exile, holds Blood Pact with 5 warbands on her board.
+ * - `pickerCage`: Dana, the Chancellor, holds the Obsidian Cage, which holds 3 of Rhys's warbands
+ *   and 2 Imperial; Ann is a Citizen, so the Imperial ones may go to Dana's board or Ann's.
+ */
+function powerPickerTable(scene: PickerScene): PlayedTable {
+    const [city, steppe] = mapSlotsFor(Region.Cradle)
+    const [mountain, marshes] = mapSlotsFor(Region.Provinces)
+    const cage = scene === 'pickerCage'
+    const terror = scene === 'pickerTerror'
+    const dana: Record<PickerScene, Partial<OathPlayerState>> = {
+        pickerWhistle: {
+            siteId: city,
+            relicIds: ['relic.whistle'],
+            advisers: [faceup('denizen.order.siege-engines')]
+        },
+        pickerTerror: {
+            siteId: mountain,
+            warbandsOnBoard: { dana: 3 },
+            advisers: [faceup('denizen.arcane.terror-spells')]
+        },
+        pickerPact: {
+            siteId: city,
+            warbandsOnBoard: { dana: 5 },
+            advisers: [faceup('denizen.arcane.blood-pact')]
+        },
+        pickerCage: {
+            siteId: city,
+            status: PlayerStatus.Chancellor,
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 14 },
+            relicIds: ['relic.obsidian-cage']
+        }
+    }
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: cage ? Color.Purple : Color.Red,
+                supply: 7,
+                favor: 2,
+                secrets: 3,
+                ...dana[scene]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: terror ? marshes : mountain,
+                warbandsOnBoard: terror ? { rhys: 2 } : {},
+                warbandsInPersonalBank: { rhys: 10 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: cage ? Color.Yellow : Color.Purple,
+                status: cage ? PlayerStatus.Citizen : PlayerStatus.Chancellor,
+                siteId: terror ? city : marshes,
+                warbandsOnBoard: terror ? { [IMPERIAL_WARBANDS]: 2 } : {}
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: cage ? 'dana' : 'ann',
+            map: allMapSlots(),
+            siteCards: {
+                [city]: 'site.ancient-city',
+                [steppe]: 'site.steppe',
+                [mountain]: 'site.mountain',
+                [marshes]: 'site.marshes'
+            },
+            denizensBySite: { [city]: [], [steppe]: [], [mountain]: [], [marshes]: [] },
+            warbandsBySite: terror ? { [mountain]: { rhys: 3 }, [marshes]: { dana: 2 } } : {},
+            warbandsOnCards: cage
+                ? { 'relic.obsidian-cage': { rhys: 3, [IMPERIAL_WARBANDS]: 2 } }
+                : {},
+            banners: testBanners(terror ? { [Banner.DarkestSecret]: 'dana' } : {})
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
 /** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
 function travelCardsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -4032,6 +4123,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     messenger: messengerTable,
     messengerTwoOwners: messengerTwoOwnersTable,
     warningSignals: warningSignalsTable,
+    pickerWhistle: () => powerPickerTable('pickerWhistle'),
+    pickerTerror: () => powerPickerTable('pickerTerror'),
+    pickerPact: () => powerPickerTable('pickerPact'),
+    pickerCage: () => powerPickerTable('pickerCage'),
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
     historyDeals: () => historyWordsTable('deals')

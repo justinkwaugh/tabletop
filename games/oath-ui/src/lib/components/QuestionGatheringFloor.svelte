@@ -2,7 +2,7 @@
     import { GATHERING_ALLOWS } from '@tabletop/oath'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
-    import WithChips from '$lib/components/WithChips.svelte'
+    import PlayerChips from '$lib/components/PlayerChips.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -12,7 +12,8 @@
 </script>
 
 <div class="mb-2">
-    <WithChips
+    <PlayerChips
+        label="With:"
         playerIds={draft.floorCandidates}
         picked={draft.floorWith}
         onpick={(id) => draft.chooseFloorWith(id)}
