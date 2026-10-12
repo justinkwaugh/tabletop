@@ -1,5 +1,10 @@
 import { assert, assertExists } from '../../util/assertions.js'
-import type { GameState, ParallelSpanState } from '../model/gameState.js'
+import * as Value from 'typebox/value'
+import type { BranchPoint, GameState, ParallelSpanState } from '../model/gameState.js'
+
+export function sameBranchPoint(first: BranchPoint, second: BranchPoint): boolean {
+    return Value.Equal(first, second)
+}
 
 export function isRestingInSpan(state: GameState): boolean {
     const span = state.parallelSpan

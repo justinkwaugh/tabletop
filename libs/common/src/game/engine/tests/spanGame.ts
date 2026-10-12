@@ -15,7 +15,8 @@ import {
     type Game,
     type GameRuntime,
     type MachineContext,
-    type UninitializedGameState
+    type UninitializedGameState,
+    Visibility
 } from '../../../index.js'
 
 export const SPAN_GAME_MASTER_SEED = '000102030405060708090a0b0c0d0e0f'
@@ -42,6 +43,7 @@ const SpanGameSchema = Type.Object({
     ]),
     players: Type.Array(SpanPlayerState),
     pot: Type.Number(),
+    spansCompleted: Type.Number(),
     items: Type.Record(Type.String(), SpanItem),
     line: Type.Array(SpanItem),
     flag: SpanFlag,
@@ -56,6 +58,7 @@ export class HydratedSpanGameState
 {
     declare machineState: SpanGameState['machineState']
     declare pot: number
+    declare spansCompleted: number
     declare items: Record<string, Type.Static<typeof SpanItem>>
     declare line: Type.Static<typeof SpanItem>[]
     declare flag: Type.Static<typeof SpanFlag>
@@ -96,6 +99,7 @@ const Shout = userAction('shout', { outOfTurn: Type.Literal(true) })
 const OpenBranch = systemAction('openBranch', { playerId: Type.String() })
 const IdleSkip = systemAction('idleSkip', { playerId: Type.String() })
 const Noise = systemAction('noise', {})
+const NextSpan = systemAction('nextSpan', {})
 const Complete = systemAction('complete', {})
 
 const BeginValidator = Compile(Begin)
@@ -111,6 +115,7 @@ const PokeValidator = Compile(Poke)
 const CutInValidator = Compile(CutIn)
 const ClaimValidator = Compile(Claim)
 const NoiseValidator = Compile(Noise)
+const NextSpanValidator = Compile(NextSpan)
 const FinishValidator = Compile(Finish)
 const ShoutValidator = Compile(Shout)
 const OpenBranchValidator = Compile(OpenBranch)
@@ -276,11 +281,19 @@ class HydratedIdleSkip extends HydratableAction<typeof IdleSkip> {
     apply(): void {}
 }
 
+class HydratedNextSpan extends HydratableAction<typeof NextSpan> {
+    constructor(data: Type.Static<typeof NextSpan>) {
+        super(data, NextSpanValidator)
+    }
+    apply(): void {}
+}
+
 class HydratedComplete extends HydratableAction<typeof Complete> {
     constructor(data: Type.Static<typeof Complete>) {
         super(data, CompleteValidator)
     }
     apply(state: HydratedSpanGameState): void {
+        state.spansCompleted += 1
         for (const playerId of mergeOrder(state)) {
             const player = state.getPlayerState(playerId)
             state.pot += player.queued
@@ -298,6 +311,9 @@ export interface SpanGameOptions {
     readonly branchingEntry?: 'quiet' | 'writesSharedState' | 'queuesWhenBranchReturns'
     readonly merge?: 'barrier' | 'ordered'
     readonly startsInSpan?: boolean
+    readonly sitsOut?: readonly string[]
+    readonly mergeOrderOmits?: readonly string[]
+    readonly spans?: number
 }
 
 class Initializer extends BaseGameInitializer<SpanGameState, HydratedSpanGameState> {
@@ -312,6 +328,7 @@ class Initializer extends BaseGameInitializer<SpanGameState, HydratedSpanGameSta
             activePlayerIds: [playerIds[0]],
             machineState: this.options.startsInSpan ? 'branching' : 'setup',
             pot: 0,
+            spansCompleted: 0,
             items: {},
             line: playerIds.map((playerId) => ({ playerId, label: 'waiting' })),
             flag: { label: 'unclaimed' },
@@ -348,6 +365,18 @@ const UserActions = {
     claim: Claim,
     finish: Finish,
     shout: Shout
+}
+
+const spanGameVisibility = {
+    state: Visibility.createProjector(SpanGameSchema),
+    actions: Visibility.createActionProjector({
+        ...UserActions,
+        openBranch: OpenBranch,
+        idleSkip: IdleSkip,
+        noise: Noise,
+        nextSpan: NextSpan,
+        complete: Complete
+    })
 }
 
 const WorkingValidators = [
@@ -393,6 +422,7 @@ export function spanGameRuntime(
                 if (OpenBranchValidator.Check(action)) return new HydratedOpenBranch(action)
                 if (IdleSkipValidator.Check(action)) return new HydratedIdleSkip(action)
                 if (NoiseValidator.Check(action)) return new HydratedNoise(action)
+                if (NextSpanValidator.Check(action)) return new HydratedNextSpan(action)
                 if (CompleteValidator.Check(action)) return new HydratedComplete(action)
                 throw Error(`Unknown action ${action.type}`)
             }
@@ -400,9 +430,13 @@ export function spanGameRuntime(
         canonicalStateValidator: Validator,
         playerColors: [Color.Red, Color.Blue, Color.Green],
         apiActions: UserActions,
+        visibility: spanGameVisibility,
         parallelSpans: {
             branching: {
-                mergeOrder,
+                mergeOrder: (state) =>
+                    mergeOrder(state).filter(
+                        (playerId) => !options.mergeOrderOmits?.includes(playerId)
+                    ),
                 merge: options.merge ?? 'ordered',
                 branchStart: OpenBranch,
                 spanCompletion: Complete
@@ -419,6 +453,9 @@ export function spanGameRuntime(
             branching: {
                 enter(context: MachineContext<HydratedSpanGameState>) {
                     const state = context.gameState
+                    state.activePlayerIds = state.players
+                        .map((player) => player.playerId)
+                        .filter((playerId) => !options.sitsOut?.includes(playerId))
                     if (options.branchingEntry === 'writesSharedState') state.log.push('entered')
                     if (
                         options.branchingEntry === 'queuesWhenBranchReturns' &&
@@ -458,13 +495,20 @@ export function spanGameRuntime(
             scoring: {
                 enter(context: MachineContext<HydratedSpanGameState>) {
                     context.gameState.activePlayerIds = []
+                    if (context.gameState.spansCompleted < (options.spans ?? 1)) {
+                        context.addSystemAction(NextSpan)
+                    }
                 },
                 validActionsForPlayer: () => [],
-                isValidAction: () => false,
-                onAction: () => 'scoring'
+                isValidAction: (action) => NextSpanValidator.Check(action),
+                onAction: () => 'branching'
             }
         }
     }
+}
+
+export function spanGameDefinition(options: SpanGameOptions = {}) {
+    return { info: spanGameInfo, runtime: spanGameRuntime(options) }
 }
 
 export const spanGameInfo = {
@@ -531,4 +575,8 @@ export function spanAction<Name extends SpanActionType>(
         ...(type === 'shout' ? { outOfTurn: true } : {}),
         ...fields
     }
+}
+
+export function summary(actions: readonly GameAction[]): string[] {
+    return actions.map((action) => `${action.type}:${action.playerId ?? ''}`)
 }

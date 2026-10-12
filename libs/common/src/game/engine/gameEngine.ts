@@ -100,6 +100,21 @@ interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly transitions: readonly CanonicalActionTransition<T>[]
 }
 
+export function combineCascades<T extends GameState>(
+    before: T,
+    steps: readonly ActionCascadeResult<T>[]
+): ActionCascadeResult<T> {
+    return {
+        processedActions: steps.flatMap((step) => step.processedActions),
+        updatedState: steps.at(-1)?.updatedState ?? before,
+        indexOffset: 0,
+        actionCascade: {
+            before,
+            transitions: steps.flatMap((step) => step.actionCascade.transitions)
+        }
+    }
+}
+
 export class GameEngine<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
@@ -248,7 +263,7 @@ export class GameEngine<
             steps.push(step)
             current = step.updatedState
         }
-        return steps.length === 0 ? undefined : this.joinedCascade(state, steps)
+        return steps.length === 0 ? undefined : combineCascades(state, steps)
     }
 
     startBranch({
@@ -404,7 +419,7 @@ export class GameEngine<
                 playerId,
                 'it reached a different Game State on the Main Line'
             )
-        return this.joinedCascade(state, steps)
+        return combineCascades(state, steps)
     }
 
     executeAction(input: {
@@ -652,10 +667,10 @@ export class GameEngine<
         const handler = this.getStateHandler(state)
         const span = state.parallelSpan
         if (span === undefined) {
-            const definition = this.runtime.parallelSpans?.[state.machineState]
-            if (definition !== undefined) state.parallelSpan = this.newSpan(state, definition)
             handler.enter(context)
-            if (state.parallelSpan !== undefined) {
+            const definition = this.runtime.parallelSpans?.[state.machineState]
+            if (definition !== undefined) {
+                state.parallelSpan = this.newSpan(state, definition)
                 state.activePlayerIds = [...state.parallelSpan.playerIds]
             }
             return
@@ -692,7 +707,12 @@ export class GameEngine<
 
     private newSpan(state: U, definition: ParallelSpanDefinition<U>): ParallelSpanState {
         const identity = new Prng(state.prng)
-        const playerIds = [...definition.mergeOrder(state)]
+        const mergeOrder = definition.mergeOrder(state)
+        assert(
+            state.activePlayerIds.every((playerId) => mergeOrder.includes(playerId)),
+            'Merge Order must place every Active Player'
+        )
+        const playerIds = mergeOrder.filter((playerId) => state.isActivePlayer(playerId))
         return {
             machineState: state.machineState,
             branchPoint: {
@@ -739,23 +759,6 @@ export class GameEngine<
         })
         assert(Value.Check(GameAction, action), 'A span Action must be a Game Action')
         return action
-    }
-
-    private joinedCascade(
-        before: T,
-        steps: readonly ActionCascadeResult<T>[]
-    ): ActionCascadeResult<T> {
-        const last = steps.at(-1)
-        assertExists(last, 'A joined cascade needs at least one step')
-        return {
-            processedActions: steps.flatMap((step) => step.processedActions),
-            updatedState: last.updatedState,
-            indexOffset: 0,
-            actionCascade: {
-                before,
-                transitions: steps.flatMap((step) => step.actionCascade.transitions)
-            }
-        }
     }
 
     private replayOnMainLine({

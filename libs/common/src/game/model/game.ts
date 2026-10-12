@@ -54,6 +54,12 @@ export enum GameCategory {
     Exploration = 'exploration'
 }
 
+export type SpanHold = Type.Static<typeof SpanHold>
+export const SpanHold = Type.Object({
+    playerId: Type.String(),
+    reason: Type.String()
+})
+
 export type Game = Type.Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),
@@ -83,6 +89,7 @@ export const Game = Type.Object({
     winningPlayerIds: Type.Array(Type.String()),
     finalScores: Type.Optional(Type.Record(Type.String(), Type.Number())),
     everFinished: Type.Optional(Type.Literal(true)),
+    spanHold: Type.Optional(SpanHold),
     seed: Type.Optional(Type.Number()),
     storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
     parentId: Type.Optional(Type.String()),
