@@ -2,7 +2,13 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
-    import { cardPower, powerKey, type LegalPowerUse, type PowerUseKey } from '@tabletop/oath'
+    import {
+        IMPERIAL_WARBANDS,
+        cardPower,
+        powerKey,
+        type LegalPowerUse,
+        type PowerUseKey
+    } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
@@ -11,7 +17,15 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
-    import { answerCostText, cardCostLine, type ActionCard } from '$lib/model/actionCards.js'
+    import CardLine from '$lib/components/CardLine.svelte'
+    import {
+        actionCardKey,
+        actionCardLine,
+        actionCardUses,
+        answerCostText,
+        cardCostLine,
+        type ActionCard
+    } from '$lib/model/actionCards.js'
 
     // R-6.2, R-7.3.2 — "Action:" powers, each with the choices its text opens.
     let gameSession = getGameSession()
@@ -46,6 +60,22 @@
         assertExists(entry, `${card.action} is not a major action`)
         return entry.label
     }
+    // A pair's entry names both cards and pays both costs; "free" when neither costs anything.
+    function entryCost(card: ActionCard): string {
+        const costs = actionCardUses(card)
+            .map((use) => cardCostLine(powerOf(use).cost))
+            .filter((cost) => cost !== 'free')
+        return costs.length > 0 ? costs.join(' · ') : 'free'
+    }
+    function entryLine(card: ActionCard): string {
+        return actionCardUses(card)
+            .map((use) => actionCardLine(use.cardId))
+            .filter((line) => line !== '')
+            .join(' · ')
+    }
+    let owner = $derived(gameSession.musterWarbandOwner ?? IMPERIAL_WARBANDS)
+    const warbandColor = () => gameSession.warbandColor(owner)
+
     // R-7.1.2 — what the press pays, in gold after "Use", as a question's yes shows it.
     function useCost(p: PowerUseKey): string | undefined {
         return answerCostText(powerOf(p).cost)
@@ -83,40 +113,44 @@
     {/if}
     {#each groups as group (group.heading)}
         <h4 class="group-heading">{group.heading}</h4>
-        {#each group.cards as card (powerKey(card.cardId, card.powerIndex))}
+        {#each group.cards as card (actionCardKey(card))}
             {@const action = actionName(card)}
-            {@const name = cardName(card.cardId)}
+            {@const uses = actionCardUses(card)}
+            {@const name = uses.map((use) => cardName(use.cardId)).join(' + ')}
             <div
                 class="border-t border-oath-divider pt-1.5 flex gap-2 items-start"
-                data-action-card={card.cardId}
+                data-action-card={uses.map((use) => use.cardId).join(' ')}
             >
-                <span class="relative inline-flex shrink-0">
-                    <CardImage cardId={card.cardId} width={64} label={name} inspect />
-                    <Magnifier
-                        preview={{ cardId: card.cardId, label: name }}
-                        label={name}
-                        size="medium"
-                    />
-                </span>
+                {#each uses as use (use.cardId)}
+                    {@const cardLabel = cardName(use.cardId)}
+                    <span class="relative inline-flex shrink-0">
+                        <CardImage cardId={use.cardId} width={64} label={cardLabel} inspect />
+                        <Magnifier
+                            preview={{ cardId: use.cardId, label: cardLabel }}
+                            label={cardLabel}
+                            size="medium"
+                        />
+                    </span>
+                {/each}
                 <div class="grow min-w-0">
                     <div class="text-sm">
                         <span class="font-semibold">{name}</span>
                         <span class="text-oath-text-muted text-xs">— {action}</span>
                     </div>
                     <p class="text-xs">
-                        <span class="text-oath-accent"
-                            ><TokenText text={cardCostLine(powerOf(card).cost)} /></span
-                        >
-                        {#if card.consequence}
-                            <span class="font-semibold text-oath-danger">· {card.consequence}</span>
-                        {/if}
+                        <CardLine
+                            gives={entryLine(card)}
+                            cost={entryCost(card)}
+                            consequence={card.consequence}
+                            {warbandColor}
+                        />
                     </p>
                     <button
                         class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11"
                         disabled={busy}
                         onclick={() => gameSession.openActionWithCard(card)}
                     >
-                        {action} with {name}
+                        {action} with {card.with ? 'both' : name}
                     </button>
                 </div>
             </div>

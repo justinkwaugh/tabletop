@@ -340,3 +340,56 @@ describe('the History words: each row as the record says it, older records too',
         })
     })
 })
+
+describe('R-7.4 — what each card in use did, after the gain it changed', () => {
+    const ROWDY_PUB = 'denizen.hearth.rowdy-pub'
+    const OLD_OAK = 'denizen.beast.the-old-oak'
+    const muster = (metadata: Record<string, unknown>) => row({ type: ActionType.Muster, cardId: ROWDY_PUB, metadata })
+    const trade = (cardId: string, option: string, metadata: Record<string, unknown>) =>
+        row({ type: ActionType.Trade, cardId, option, metadata: { supplySpent: 1, matchingAdvisers: 0, favorGained: 0, secretsGained: 0, ...metadata } })
+
+    it('Rowdy Pub and Downtrodden follow the warbands they added, before the cost', () => {
+        expect(muster({ warbandsGained: 3, supplySpent: 1, warbandOwner: 'p1', modifiers: [ROWDY_PUB] })).toBe(
+            'mustered 3 warbands (Rowdy Pub) at Rowdy Pub, spending 1 Supply'
+        )
+        expect(muster({ warbandsGained: 6, supplySpent: 0, warbandOwner: 'p1', modifiers: [ROWDY_PUB, 'denizen.discord.downtrodden', 'denizen.beast.animal-playmates'] })).toBe(
+            'mustered 6 warbands (Rowdy Pub, Downtrodden) at Rowdy Pub, spending 0 Supply (Animal Playmates)'
+        )
+        expect(muster({ warbandsGained: 4, supplySpent: 1, warbandOwner: 'p1', modifiers: [ROWDY_PUB, 'denizen.beast.vow-of-beastkin (must)'] })).toBe(
+            'mustered 4 warbands (Rowdy Pub, Vow of Beastkin) at Rowdy Pub, spending 1 Supply'
+        )
+    })
+
+    it('an older Muster record, with no warband owner, reads the same', () => {
+        expect(muster({ warbandsGained: 3, supplySpent: 1, modifiers: [ROWDY_PUB] })).toBe(
+            'mustered 3 warbands (Rowdy Pub) at Rowdy Pub, spending 1 Supply'
+        )
+    })
+
+    it('Secret Signal, Careless and The Old Oak follow the token they added; Birdsong the Supply it waived', () => {
+        expect(trade(TAVERN_SONGS, 'forFavor', { favorGained: 2, modifiers: ['denizen.arcane.secret-signal'] })).toBe(
+            'traded at Tavern Songs for 2 favor (Secret Signal), spending 1 Supply'
+        )
+        expect(trade(TAVERN_SONGS, 'forFavor', { favorGained: 2, modifiers: [`${CARELESS} (must)`] })).toBe(
+            'traded at Tavern Songs for 2 favor (Careless), spending 1 Supply'
+        )
+        expect(trade(OLD_OAK, 'forSecrets', { secretsGained: 2, modifiers: [OLD_OAK] })).toBe(
+            'traded at The Old Oak for 2 secrets (The Old Oak), spending 1 Supply'
+        )
+        expect(trade('denizen.beast.wolves', 'forFavor', { favorGained: 1, supplySpent: 0, modifiers: ['denizen.beast.birdsong'] })).toBe(
+            'traded at Wolves for 1 favor, spending 0 Supply (Birdsong)'
+        )
+    })
+
+    it('Secret Signal on a Trade for secrets keeps its note, which names it once', () => {
+        expect(trade(TAVERN_SONGS, 'forSecrets', { secretsGained: 1, modifiers: ['denizen.arcane.secret-signal'], modifierNotes: ['Secret Signal: gained 1 more favor'] })).toBe(
+            'traded at Tavern Songs for 1 secret, spending 1 Supply; gained 1 more favor (Secret Signal)'
+        )
+    })
+
+    it('the Drum keeps the clause its note gives', () => {
+        expect(row({ type: ActionType.Travel, siteId: 'slot.cradle.0', metadata: { supplySpent: 2, modifiers: [DRUM], modifierNotes: ['Dragonskin Drum: gained 1 warband'] } })).toBe(
+            'traveled to Great Slum, spending 2 Supply; gained 1 warband (Dragonskin Drum)'
+        )
+    })
+})

@@ -87,8 +87,8 @@ describe('the trades at your site (R-5.3.2)', () => {
         const assassin = tradeRows(site(), 'p1', []).find((row) => row.cardId === ASSASSIN)
         // R-9.3 — an empty bank gives what it holds; no faceup Discord adviser gives no secret. Both are legal.
         expect(assassin?.choices).toEqual([
-            { option: TradeOption.ForFavor, pay: 1, gain: 0, sideFavor: 0 },
-            { option: TradeOption.ForSecrets, pay: 2, gain: 0, sideFavor: 0 }
+            { option: TradeOption.ForFavor, pay: 1, gain: 0, sideFavor: 0, modifiers: [] },
+            { option: TradeOption.ForSecrets, pay: 2, gain: 0, sideFavor: 0, modifiers: [] }
         ])
     })
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { ActionType, CardKind, HydratedMuster, HydratedSearch, HydratedTravel, MachineState, PowerTiming, cardIdsOfKind, legalChoices, powersWithTiming } from '@tabletop/oath'
+import { ActionType, CardKind, HydratedMuster, HydratedSearch, HydratedTravel, MachineState, PowerChoiceKind, PowerTiming, Suit, cardIdsOfKind, legalChoices, powersWithTiming } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { allowsSeveral } from './powerChoices.js'
-import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenuRows, answerCostText, cardCostLine, cardsMakingPossible, soleDeclarations, type ActionCard } from './actionCards.js'
+import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenu, actionMenuRows, answerCostText, cardCostLine, cardsMakingPossible, soleDeclarations, type ActionCard } from './actionCards.js'
 
 const MUSHROOMS = 'denizen.beast.mushrooms'
 const TENTS = 'denizen.nomad.tents'
@@ -86,11 +86,19 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
         expect(listed(s)).toEqual([])
     })
 
-    it('leaves out a card that only adds something after the action, though its condition narrows the menu', () => {
+    it('leaves out a card that only adds something after the action, though its condition narrows where it fits', () => {
         const hospitality = table({ supply: 3, advisers: advisers(HOSPITALITY) }, { denizensBySite: { c1: [WAYSIDE_INN], c2: [TENTS] } })
         const [power] = powersWithTiming(HOSPITALITY, PowerTiming.Modifier)
-        const withIt = actionMenuRows(hospitality, 'me', ActionType.Travel, soleDeclarations(hospitality, 'me', power).slice(0, 1))
-        expect(withIt.length).toBeLessThan(actionMenuRows(hospitality, 'me', ActionType.Travel, []).length)
+        const declared = soleDeclarations(hospitality, 'me', power).filter((use) =>
+            (use.choices ?? []).some((c) => c.kind === PowerChoiceKind.FavorBank && c.suit === Suit.Nomad)
+        )
+        expect(declared).toHaveLength(1)
+        // R-7.4 — it fits some destinations only; the others are listed and sent without it.
+        const menu = actionMenu(hospitality, 'me', ActionType.Travel, declared)
+        const fitted = menu.filter((row) => row.modifiers.length > 0)
+        expect(fitted.length).toBeGreaterThan(0)
+        expect(fitted.length).toBeLessThan(menu.length)
+        expect(menu.map((row) => row.key)).toEqual(actionMenuRows(hospitality, 'me', ActionType.Travel, []))
         expect(listed(hospitality)).toEqual([])
 
         const huntingParty = table({ supply: 3, advisers: advisers(HUNTING_PARTY) })

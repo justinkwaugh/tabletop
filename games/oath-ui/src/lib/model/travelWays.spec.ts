@@ -76,12 +76,15 @@ describe('R-7.4 — a declared modifier lights the Muster and Search targets it 
         return session
     }
 
-    it('Animal Playmates lights a beast card to muster on at 0 Supply', () => {
+    it('Animal Playmates lights a beast card to muster on at 0 Supply: a free gain, it starts in use and stays', () => {
         const PLAYMATES = 'denizen.beast.animal-playmates'
         const WOLVES = 'denizen.beast.wolves'
+        const playmates = { cardId: PLAYMATES, powerIndex: powerIndexOf(PLAYMATES, PowerTiming.Modifier) }
         const session = actingAt0Supply({ advisers: [{ cardId: PLAYMATES, faceUp: true }] }, { c1: [WOLVES] }, ActionType.Muster)
-        expect(session.selectableCards).not.toContain(WOLVES)
-        session.modifiers.declare({ cardId: PLAYMATES, powerIndex: powerIndexOf(PLAYMATES, PowerTiming.Modifier) }, true)
+        expect(session.selectableCards).toContain(WOLVES)
+        // The Muster is possible only with it, so a tap does not put it down (R-7.4).
+        session.modifiers.declare(playmates, false)
+        expect(session.modifiers.isDeclared(playmates)).toBe(true)
         expect(session.selectableCards).toContain(WOLVES)
     })
 

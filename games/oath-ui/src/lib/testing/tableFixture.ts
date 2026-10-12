@@ -148,6 +148,7 @@ export type TableName =
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'battleDefenderPlans'
+    | 'battlePlanCosts'
     | 'attackerPlans'
     | 'sacrifice'
     | 'sacrificeMixed'
@@ -164,6 +165,7 @@ export type TableName =
     | 'show'
     | 'harpSearch'
     | 'usePower'
+    | ModifierScene
     | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
@@ -1435,7 +1437,10 @@ const HORSE_ARCHERS = 'denizen.nomad.horse-archers'
  * the top Provinces site, which 'def' rules: the defender's plans, the attacker's plans after the
  * Citizens answered, the sacrifice (one group, two, or none needed) and the spoils.
  */
-function battleState(step: BattleStep): HydratedOathGameState {
+function battleState(
+    step: BattleStep,
+    defenderAdvisers: string[] = [WILD_MOUNTS]
+): HydratedOathGameState {
     const site = mapSlotId(Region.Provinces, 0)
     const mixed = step === 'sacrificeMixed'
     const rolled = {
@@ -1472,7 +1477,7 @@ function battleState(step: BattleStep): HydratedOathGameState {
                 favor: 4,
                 warbandsOnBoard: { def: 2 },
                 warbandsInPersonalBank: { def: 10 },
-                advisers: [{ cardId: WILD_MOUNTS, faceUp: true }]
+                advisers: defenderAdvisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({
                 playerId: 'ann',
@@ -2294,6 +2299,95 @@ function travelCardsTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-7.4 — the scenes for the cards each action's menu offers, as rows. */
+type ModifierScene =
+    'modifierTravel' | 'modifierMuster' | 'modifierTrade' | 'modifierSearch' | 'modifierPair'
+
+/**
+ * R-7.4 — the seat's cards for each action's menu: the Dragonskin Drum with Tents and Special
+ * Envoy (Travel); Rowdy Pub at its site with two other cards (Muster); Birdsong, Awaited Return and
+ * Master of Disguise beside an Order, an Order and a Nomad card (Trade); Wild Cry and Welcoming
+ * Party (Search); and, at 0 Supply with no Beast or Nomad card at its site, Birdsong and Small
+ * Friends, which only together make a Trade possible, with Wolves at a Provinces site.
+ */
+function modifierTable(scene: ModifierScene): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const adviser = (cardId: string) => ({ cardId, faceUp: true })
+    const seats: Record<ModifierScene, Partial<OathPlayerState>> = {
+        modifierTravel: {
+            supply: 4,
+            favor: 2,
+            relicIds: ['relic.dragonskin-drum'],
+            advisers: [adviser('denizen.nomad.tents'), adviser('denizen.nomad.special-envoy')]
+        },
+        modifierMuster: { supply: 3, favor: 3 },
+        modifierTrade: {
+            supply: 3,
+            favor: 3,
+            secrets: 2,
+            warbandsOnBoard: { me: 3 },
+            advisers: [
+                adviser('denizen.beast.birdsong'),
+                adviser('denizen.hearth.awaited-return'),
+                adviser('denizen.arcane.master-of-disguise')
+            ]
+        },
+        modifierSearch: {
+            supply: 3,
+            advisers: [adviser('denizen.beast.wild-cry'), adviser('denizen.hearth.welcoming-party')]
+        },
+        modifierPair: {
+            supply: 0,
+            favor: 2,
+            secrets: 1,
+            advisers: [adviser('denizen.beast.birdsong'), adviser('denizen.beast.small-friends')]
+        }
+    }
+    const here: Record<ModifierScene, string[]> = {
+        modifierTravel: [],
+        modifierMuster: [
+            'denizen.hearth.rowdy-pub',
+            'denizen.order.forced-labor',
+            'denizen.nomad.oracle'
+        ],
+        modifierTrade: [
+            'denizen.order.toll-roads',
+            'denizen.order.forced-labor',
+            'denizen.nomad.oracle'
+        ],
+        modifierSearch: [],
+        modifierPair: ['denizen.order.toll-roads']
+    }
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, ...seats[scene] }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: here[scene],
+                [mapSlotId(Region.Provinces, 0)]: ['denizen.beast.wolves']
+            },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
         }
     )
     openTurn(state, 'me')
@@ -3750,6 +3844,11 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
+    modifierTravel: () => modifierTable('modifierTravel'),
+    modifierMuster: () => modifierTable('modifierMuster'),
+    modifierTrade: () => modifierTable('modifierTrade'),
+    modifierSearch: () => modifierTable('modifierSearch'),
+    modifierPair: () => modifierTable('modifierPair'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
@@ -3811,6 +3910,15 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     battleDefenderPlans: () => battleTable('defenderPlans'),
+    // R-7.1.2 — plans that cost favor beside a free one: Shield Wall 1, Hearts and Minds 3.
+    battlePlanCosts: () =>
+        tableOf(
+            battleState('defenderPlans', [
+                WILD_MOUNTS,
+                'denizen.order.shield-wall',
+                'denizen.hearth.hearts-and-minds'
+            ])
+        ),
     attackerPlans: () => battleTable('attackerPlans'),
     sacrifice: () => battleTable('sacrifice'),
     sacrificeMixed: () => battleTable('sacrificeMixed'),

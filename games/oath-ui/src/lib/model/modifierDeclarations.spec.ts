@@ -147,7 +147,8 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         const { session } = withMushrooms(2)
         expect(session.actionCards[0]).toMatchObject({ cardId: MUSHROOMS, kind: 'changes' })
         session.openActionWithCard(session.actionCards[0])
-        expect(rows(session)).toEqual([[SearchSource.Discard, 0, 1]])
+        // Mushrooms fits the discard pile alone; the world deck is listed and sent without it.
+        expect(rows(session)).toEqual([[SearchSource.WorldDeck, 2, 3], [SearchSource.Discard, 0, 1]])
 
         session.modifiers.declare(use(MUSHROOMS), false)
         expect(session.modifiers.isDeclared(use(MUSHROOMS))).toBe(false)

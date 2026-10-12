@@ -14,9 +14,8 @@
     import { pawnImage } from '$lib/images/pieceImages.js'
     import { bannerImage } from '$lib/images/tileImages.js'
     import AttackDiceRow from '$lib/components/AttackDiceRow.svelte'
-    import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
-    import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { powerUseKey } from '$lib/model/powerUse.js'
     import {
@@ -234,22 +233,14 @@
                 Battle plans
             </h4>
             <div class="mb-2 text-xs">
-                <CardChoiceRow
-                    choices={powerUseCards(draft.planOptions)}
-                    picked={draft.planOptions
-                        .filter((power) => draft.isPlanDeclared(powerUseKey(power)))
-                        .map((power) => powerKey(power.cardId, power.powerIndex))}
-                    onpick={(key) => {
-                        const power = draft.planOptions.find(
-                            (p) => powerKey(p.cardId, p.powerIndex) === key
-                        )
-                        if (power) {
-                            const use = powerUseKey(power)
-                            draft.declarePlan(use, !draft.isPlanDeclared(use))
-                        }
+                <PlanRows
+                    plans={draft.planOptions}
+                    isOn={(power) => draft.isPlanDeclared(powerUseKey(power))}
+                    toggle={(power) => {
+                        const use = powerUseKey(power)
+                        draft.declarePlan(use, !draft.isPlanDeclared(use))
                     }}
                     {busy}
-                    height={90}
                 />
                 {#each draft.planOptions as power (powerKey(power.cardId, power.powerIndex))}
                     {@const use = powerUseKey(power)}

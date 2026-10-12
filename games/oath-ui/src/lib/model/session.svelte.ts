@@ -20,7 +20,6 @@ import {
     HydratedResolveWake,
     HydratedMuster,
     HydratedPlayFacedownAdviser,
-    HydratedTrade,
     HydratedTravel,
     MachineState,
     MoveWarbands,
@@ -68,6 +67,7 @@ import {
     type LetPeekSubject,
     type ConspiracyPlay,
     type LegalChoice,
+    type ModifierUse,
     type PowerChoice,
     type QuestionAnswer,
     type SearchResolveChoice,
@@ -130,25 +130,26 @@ import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
     dimsTheMap,
     reasonCannotRecoverBanner,
-    recoverableBanners,
-    recoverableRelicSlots,
     travelCost,
     travelWays,
     type TravelWay,
     type SiteFavor,
-    type BannerBid,
     type MapPick,
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
-import { musterRows, type MusterRow } from './musterRows.js'
-import { recoverRows, type RecoverRelicRow } from './recoverRows.js'
-import { searchRows, type SearchRow } from './searchRows.js'
-import { tradeRows, type TradeRow } from './tradeRows.js'
-import { travelRows, type TravelRow } from './travelRows.js'
+import { musterModifiers, musterRows, type MusterRow } from './musterRows.js'
+import {
+    recoverModifiers,
+    recoverRows,
+    type RecoverBannerRow,
+    type RecoverRelicRow
+} from './recoverRows.js'
+import { searchModifiers, searchRows, type SearchRow } from './searchRows.js'
+import { tradeModifiers, tradeRows, type TradeRow } from './tradeRows.js'
+import { travelModifiers, travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
-import { actionCards, type ActionCard } from './actionCards.js'
-import { powerUseKey } from './powerUse.js'
+import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
 import {
@@ -926,7 +927,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
         if (this.selection.action !== ActionType.Travel) return []
         // A destination whose ways are open stays lit with the rest: a tap on another moves the pick.
-        return HydratedTravel.legalDestinations(this.gameState, playerId, this.modifiers.declared)
+        return this.travelRows.map((row) => row.slotId)
     }
 
     get siteOffers(): SiteOffer[] {
@@ -1024,26 +1025,28 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         if (this.selection.action === ActionType.Trade) {
-            return HydratedTrade.legalCards(this.gameState, playerId, this.modifiers.declared)
+            return this.tradeRows.map((row) => row.cardId)
         }
         if (this.selection.value('card') !== undefined) return []
         if (this.selection.action === ActionType.Muster) {
-            return HydratedMuster.legalCards(this.gameState, playerId, this.modifiers.declared)
+            return this.musterRows.map((row) => row.cardId)
         }
         return []
     }
 
-    // R-5.3.2, R-7.4 — every trade at the site, priced with the declared modifiers.
+    // R-5.3.2, R-7.4 — every trade at the site, each priced with the cards in use that fit it.
     get tradeRows(): TradeRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Trade) return []
+        if (this.modifiers.picksPending) return []
         return tradeRows(this.gameState, playerId, this.modifiers.declared)
     }
 
-    // R-5.2, R-7.4 — every Muster at the site, with the declared modifiers.
+    // R-5.2, R-7.4 — every Muster at the site, each with the cards in use that fit it.
     get musterRows(): MusterRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Muster) return []
+        if (this.modifiers.picksPending) return []
         return musterRows(this.gameState, playerId, this.modifiers.declared)
     }
 
@@ -1061,22 +1064,34 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.value('relicSlot') !== undefined) return []
         if (this.selection.action === ActionType.Peek) return this.peekSlots
         if (this.selection.action !== ActionType.Recover) return []
-        return recoverableRelicSlots(this.gameState, playerId, this.modifiers.declared)
+        return this.recoverTargets.relics.map((row) => row.slotId)
     }
 
-    get recoverableBanners(): BannerBid[] {
+    get recoverableBanners(): RecoverBannerRow[] {
+        return this.recoverTargets.banners
+    }
+
+    // R-5.4, R-7.4 — every relic and banner to recover, each with the cards in use that fit it.
+    private get recoverTargets(): { relics: RecoverRelicRow[]; banners: RecoverBannerRow[] } {
         const playerId = this.liveTurnSeatId
-        if (!playerId || this.selection.action !== ActionType.Recover) return []
-        return recoverableBanners(this.gameState, playerId, this.modifiers.declared)
+        if (!playerId || this.selection.action !== ActionType.Recover) {
+            return { relics: [], banners: [] }
+        }
+        if (this.modifiers.picksPending) return { relics: [], banners: [] }
+        return recoverRows(this.gameState, playerId, this.modifiers.declared)
     }
 
     // R-5.4 — every relic and banner to recover, until a banner is picked and its price asked.
-    get recoverRows(): { relics: RecoverRelicRow[]; banners: BannerBid[] } {
+    get recoverRows(): { relics: RecoverRelicRow[]; banners: RecoverBannerRow[] } {
+        if (this.stagedBanner) return { relics: [], banners: [] }
+        return this.recoverTargets
+    }
+
+    /** R-7.4 — the cards in use a Recover of this banner, or of a relic, is sent with. */
+    private recoverModifiersFor(banner: Banner | undefined): ModifierUse[] {
         const playerId = this.liveTurnSeatId
-        if (!playerId || this.selection.action !== ActionType.Recover || this.stagedBanner) {
-            return { relics: [], banners: [] }
-        }
-        return recoverRows(this.gameState, playerId, this.modifiers.declared)
+        if (!playerId) return []
+        return recoverModifiers(this.gameState, playerId, banner, this.modifiers.declared)
     }
 
     /** The lowest bid a Recover may pay for this banner, while it is one the seat may take. */
@@ -1129,7 +1144,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** The bid and, for the People's Favor, the bank its old favor starts returning to. */
     get bannerPicksComplete(): boolean {
         return (
-            this.bannerAmount !== undefined && (!this.needsFavorStart || this.favorStart !== undefined)
+            this.bannerAmount !== undefined &&
+            (!this.needsFavorStart || this.favorStart !== undefined)
         )
     }
 
@@ -1141,7 +1157,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return reasonCannotRecoverBanner(
             this.gameState,
             playerId,
-            this.modifiers.declared,
+            this.recoverModifiersFor(banner),
             banner,
             amount,
             this.favorStart
@@ -1152,6 +1168,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get searchRows(): SearchRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Search) return []
+        if (this.modifiers.picksPending) return []
         return searchRows(
             this.gameState,
             playerId,
@@ -1220,6 +1237,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action !== type) this.clearActionDrafts()
         this.selection.set('action', type)
         if (type === ActionType.Campaign) this.campaign.begin()
+        // R-7.4 — the action's free gains start in use; a tap puts one down.
+        this.modifiers.seed()
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */
@@ -1228,10 +1247,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return playerId ? actionCards(this.gameState, playerId) : []
     }
 
-    /** Opens the card's action with the card in use; nothing is sent. */
+    /** Opens the card's action with the card, or a pair's two cards, in use; nothing is sent. */
     openActionWithCard(card: ActionCard): void {
         this.chooseAction(card.action)
-        this.modifiers.open(powerUseKey(card))
+        this.modifiers.open(actionCardUses(card))
     }
 
     async chooseCard(cardId: string): Promise<void> {
@@ -1252,7 +1271,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.createPlayerAction(Recover, {
                 type: ActionType.Recover,
                 target: { kind: RecoverTargetKind.Relic, slotId },
-                modifiers: this.modifiers.declared
+                modifiers: this.recoverModifiersFor(undefined)
             })
         )
     }
@@ -1267,7 +1286,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 target: { kind: RecoverTargetKind.Banner, banner },
                 amountPaid: amount,
                 ...(this.favorStart ? { redistributeFrom: this.favorStart } : {}),
-                modifiers: this.modifiers.declared
+                modifiers: this.recoverModifiersFor(banner)
             })
         )
     }
@@ -1282,7 +1301,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 type: ActionType.Search,
                 drawFrom: source,
                 revealsInfo: true,
-                modifiers: this.modifiers.declared,
+                modifiers: searchModifiers(
+                    this.gameState,
+                    playerId,
+                    source,
+                    this.modifiers.declared
+                ),
                 ...(tolls.length > 0 ? { tolls } : {})
             })
         )
@@ -1305,8 +1329,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     private travelWaysTo(siteId: string): TravelWay[] {
         const playerId = this.liveTurnSeatId
+        if (!playerId || this.modifiers.picksPending) return []
+        return travelWays(this.gameState, playerId, siteId, this.travelModifiersTo(siteId))
+    }
+
+    /** R-7.4 — the cards in use a Travel to this site is sent with. */
+    private travelModifiersTo(siteId: string): ModifierUse[] {
+        const playerId = this.liveTurnSeatId
         if (!playerId) return []
-        return travelWays(this.gameState, playerId, siteId, this.modifiers.declared)
+        return travelModifiers(this.gameState, playerId, siteId, this.modifiers.declared)
     }
 
     /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
@@ -1360,7 +1391,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get travelRows(): TravelRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return []
-        if (this.shroudedWoodChooser) return []
+        if (this.shroudedWoodChooser || this.modifiers.picksPending) return []
         return travelRows(this.gameState, playerId, this.modifiers.declared)
     }
 
@@ -1402,7 +1433,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.createPlayerAction(Travel, {
                 type: ActionType.Travel,
                 siteId,
-                modifiers: this.modifiers.declared,
+                modifiers: this.travelModifiersTo(siteId),
                 ...(tolls.length > 0 ? { tolls } : {}),
                 ...(flipSecret ? { flipSecret } : {})
             })
@@ -1410,11 +1441,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     private async muster(cardId: string): Promise<void> {
+        const playerId = this.liveTurnSeatId
+        assertExists(playerId, 'A Muster is offered only to the live seat')
         await this.commit(
             this.createPlayerAction(Muster, {
                 type: ActionType.Muster,
                 cardId,
-                modifiers: this.modifiers.declared
+                modifiers: musterModifiers(
+                    this.gameState,
+                    playerId,
+                    cardId,
+                    this.modifiers.declared
+                )
             })
         )
     }
@@ -1428,7 +1466,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 type: ActionType.Trade,
                 cardId,
                 option,
-                modifiers: this.modifiers.declared,
+                modifiers: tradeModifiers(
+                    this.gameState,
+                    playerId,
+                    cardId,
+                    option,
+                    this.modifiers.declared
+                ),
                 ...(tolls.length > 0 ? { tolls } : {})
             })
         )

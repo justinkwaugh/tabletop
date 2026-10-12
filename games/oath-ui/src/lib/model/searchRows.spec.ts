@@ -67,8 +67,12 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
         const variants = [Region.Cradle, Region.Provinces, Region.Hinterland].map((region) => ({
             modifiers: [observatory(region)]
         }))
-        expect(read(searchRows(s, 'p1', [observatory(Region.Cradle)], variants))).toEqual([
+        // The world deck is no pile Observatory names, so it is listed and sent without it (R-7.4).
+        const rows = searchRows(s, 'p1', [observatory(Region.Cradle)], variants)
+        expect(read(rows)).toEqual([
+            [SearchSource.WorldDeck, undefined, 2, 3, undefined],
             [SearchSource.Discard, Region.Provinces, 2, 3, 1]
         ])
+        expect(rows.map((row) => row.modifiers)).toEqual([[], [observatory(Region.Provinces)]])
     })
 })

@@ -34,7 +34,7 @@ const ONE = new Set(['a', 'an', 'one'])
 // unless it names the suit's bank or its cards.
 const ALTERNATIVES = [
     String.raw`\b(?:the )?(?<bankSuit>${SUIT_ALTERNATIVES}) bank\b`,
-    String.raw`\b(?<cardSuit>${SUIT_ALTERNATIVES})(?= (?:advisers?|cards?|denizens?)\b)`,
+    String.raw`\b(?<cardSuit>${SUIT_ALTERNATIVES})(?= (?:advisers?|cards?|denizens?|sites?)\b)`,
     String.raw`(?<!people['’]s )\b(?:(?<favorCount>\d+|an?|one) )?favor\b`,
     String.raw`(?<!darkest )\b(?:(?<secretCount>\d+|an?|one) )?secrets?\b`
 ]

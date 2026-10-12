@@ -19,10 +19,12 @@
         image: string
         /** Printed words, or a snippet for a name that is a player's colour chip. */
         name: string | Snippet
-        detail?: string
+        /** A line under the name: words, or a snippet with a cost in gold and a consequence in rose. */
+        detail?: string | Snippet
         /** Shown while on; a row with none says it is on by its ring alone. */
         tag?: string
-        shape?: 'wide' | 'relic' | 'piece'
+        /** `card`: a denizen's small card, 40 px tall; `relic`: a relic's, 40 px square. */
+        shape?: 'wide' | 'card' | 'relic' | 'piece'
         on: boolean
         disabled: boolean
         points?: MenuPointerTarget
@@ -35,6 +37,7 @@
 
     const SHAPES = {
         wide: 'h-8 w-11 rounded object-cover',
+        card: 'h-10 w-[26px] rounded-[3px] object-cover',
         relic: 'h-10 w-10 rounded',
         piece: 'h-8 w-8 object-contain'
     }
@@ -59,7 +62,9 @@
             <span class="text-[15px] font-bold"
                 >{#if typeof name === 'string'}{name}{:else}{@render name()}{/if}</span
             >
-            {#if detail}<span class="text-xs text-oath-text-muted">{detail}</span>{/if}
+            {#if typeof detail === 'string'}<span class="text-xs text-oath-text-muted"
+                    >{detail}</span
+                >{:else if detail}<span class="text-xs">{@render detail()}</span>{/if}
         </span>
         <!-- The tag keeps its room when off, so a row keeps its width when tapped. -->
         {#if tag}

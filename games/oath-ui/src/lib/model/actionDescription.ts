@@ -364,6 +364,37 @@ function cardsInBrackets(
     return cards.length > 0 ? ` (${cards.join(', ')})` : ''
 }
 
+/**
+ * R-7.4 — the cards whose part of a row is its count: each is named once, after the gain it
+ * changed ("mustered 3 warbands (Rowdy Pub) at Rowdy Pub"), not after the cost. Read from the
+ * row's recorded `modifiers`, so an older record reads them too.
+ */
+const MUSTER_GAIN_CARDS: ReadonlySet<string> = new Set([
+    'denizen.hearth.rowdy-pub',
+    'denizen.discord.downtrodden',
+    'denizen.beast.vow-of-beastkin'
+])
+const TRADE_GAIN_CARDS: Readonly<Record<TradeOption, ReadonlySet<string>>> = {
+    [TradeOption.ForFavor]: new Set(['denizen.arcane.secret-signal', 'reliquary.careless']),
+    [TradeOption.ForSecrets]: new Set(['denizen.beast.the-old-oak'])
+}
+
+/** The names of the row's cards that changed its gain, those not already named by a note. */
+function gainCards(
+    modifiers: readonly string[] | undefined,
+    changers: ReadonlySet<string>,
+    named: ReadonlySet<string>
+): string[] {
+    const ids = (modifiers ?? []).map((modifier) => modifier.replace(/ \(must\)$/, ''))
+    return [...new Set(ids.filter((id) => changers.has(id)).map((id) => cardName(id)))].filter(
+        (card) => !named.has(card)
+    )
+}
+
+function inBrackets(cards: readonly string[]): string {
+    return cards.length > 0 ? ` (${cards.join(', ')})` : ''
+}
+
 /** The Supply a row spent, and the cards that changed it; "spending 0 Supply (Special Envoy)". */
 function costWith(spent: number | undefined, cards: string): string {
     return cards ? `, spending ${spent ?? 0} Supply${cards}` : supply(spent)
@@ -526,9 +557,13 @@ function describeActionCited(
     }
     if (isMuster(action)) {
         const meta = action.metadata
+        const gainedBy = gainCards(meta?.modifiers, MUSTER_GAIN_CARDS, named)
         return (
-            `mustered ${meta ? `${plural(meta.warbandsGained, 'warband')} ` : ''}at ${cardName(action.cardId)}` +
-            costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, named))
+            `mustered ${meta ? `${plural(meta.warbandsGained, 'warband')}${inBrackets(gainedBy)} ` : ''}at ${cardName(action.cardId)}` +
+            costWith(
+                meta?.supplySpent,
+                cardsInBrackets(meta?.modifiers, new Set([...named, ...gainedBy]))
+            )
         )
     }
     if (isTrade(action)) {
@@ -538,9 +573,13 @@ function describeActionCited(
             action.option === TradeOption.ForFavor
                 ? `${meta?.favorGained ?? 0} favor`
                 : plural(meta?.secretsGained ?? 0, 'secret')
+        const gainedBy = gainCards(meta?.modifiers, TRADE_GAIN_CARDS[action.option], named)
         return (
-            `traded at ${cardName(action.cardId)} for ${gained}` +
-            costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, named)) +
+            `traded at ${cardName(action.cardId)} for ${gained}${inBrackets(gainedBy)}` +
+            costWith(
+                meta?.supplySpent,
+                cardsInBrackets(meta?.modifiers, new Set([...named, ...gainedBy]))
+            ) +
             tollClauses(meta?.tollsPaid, nameOf)
         )
     }

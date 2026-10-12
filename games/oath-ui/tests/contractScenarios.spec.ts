@@ -2194,8 +2194,12 @@ test.describe('palette: every cost in the action panel is accent', () => {
     test('Use a power: what the card costs is accent', async ({ page }) => {
         await openTable(page, 'cardOpensSearch')
         await usePower(page).click()
-        const cost = actionCard(page, 'denizen.beast.mushrooms').locator('p')
-        expect(await tokenRuns(cost)).toEqual([['put 1 on it', 'accent']])
+        const line = actionCard(page, 'denizen.beast.mushrooms').locator('p')
+        expect(await tokenRuns(line)).toEqual([
+            ['0 Supply · draw 1 from the bottom', 'text'],
+            ['·', 'text-muted'],
+            ['put 1 on it', 'accent']
+        ])
     })
 })
 
@@ -3459,8 +3463,7 @@ test.describe('Warning Signals’ moves', () => {
     const pieces = (page: Page) => picks(page).getByRole('button', { name: /^How many: \d+$/ })
     const piece = (page: Page, n: number) => picks(page).getByRole('button', { name: `How many: ${n}`, exact: true })
     const moves = (page: Page) => picks(page).locator('[data-move]')
-    const card = (page: Page) =>
-        grid(page).locator('button[aria-pressed]').filter({ has: page.getByRole('img', { name: 'Warning Signals', exact: true }) })
+    const card = (page: Page) => cardToggle(page, 'denizen.nomad.warning-signals')
 
     async function openWarningSignals(page: Page) {
         await openTable(page, 'warningSignals')
@@ -4339,7 +4342,7 @@ test('scenario 48: History View offers no choice; a click enlarges, the seat, th
     await expect(cradle).toHaveAttribute('aria-pressed', 'true')
 })
 
-test('scenario 49: with Observatory declared every non-empty pile is listed and ringed and the world deck is not; a pile’s button searches it', async ({
+test('scenario 49: with Observatory declared every non-empty pile is listed and ringed, the world deck beside them without it; a pile’s button searches it', async ({
     page
 }) => {
     await openTable(page, 'observatory')
@@ -4349,11 +4352,12 @@ test('scenario 49: with Observatory declared every non-empty pile is listed and 
     const provinces = grid(page).getByRole('button', { name: /^Search the Provinces discard pile/ })
     await expect(provinces).toBeVisible()
     await expect(grid(page).getByRole('button', { name: /^Search the Hinterland discard pile/ })).toBeVisible()
-    await expect(grid(page).getByRole('button', { name: /^Search the world deck/ })).toHaveCount(0)
+    // R-7.4 — Observatory names no draw from the world deck, so that row is listed and sent without it.
+    await expect(grid(page).getByRole('button', { name: /^Search the world deck/ })).toBeVisible()
     await expect(grid(page).getByRole('button', { name: /^Search the Cradle discard pile/ })).toHaveCount(0)
     await expect(page.locator('.discard.pickable')).toHaveCount(2)
     await expect(page.locator('.discard.empty.pickable')).toHaveCount(0)
-    await expect(page.locator('.deck--laid.pickable')).toHaveCount(0)
+    await expect(page.locator('.deck--laid.pickable')).toHaveCount(1)
     const piles = page.locator('.discard')
     await expect(piles.nth(1)).toContainText('3')
     await provinces.click()
@@ -4802,6 +4806,18 @@ test.describe('the Conspiracy with no one to take from, on a phone', () => {
 
 const usePower = (page: Page) => grid(page).getByRole('button', { name: 'Use a power', exact: true })
 const actionCard = (page: Page, cardId: string) => grid(page).locator(`[data-action-card="${cardId}"]`)
+/** A card offered as a row (a modifier in a menu, a battle plan): the row, and its toggle. */
+const cardRow = (page: Page, cardId: string) => grid(page).locator(`[data-card-row="${cardId}"]`)
+const cardToggle = (page: Page, cardId: string) => cardRow(page, cardId).locator('button[aria-pressed]')
+
+/** Each of the rows laid out at one width, the widest's, give or take a pixel. */
+async function expectOneWidth(rows: Locator) {
+    const widths = await rows.evaluateAll((buttons) =>
+        buttons.map((button) => (button instanceof HTMLElement ? button.offsetWidth : 0))
+    )
+    expect(widths.length).toBeGreaterThan(1)
+    expect(Math.max(...widths) - Math.min(...widths), `one width: ${widths.join(', ')}`).toBeLessThanOrEqual(1)
+}
 const picked = (page: Page) => grid(page).locator('button[aria-pressed="true"]')
 // The ring on Use a power ties it to the reason it answers.
 const ringedBy = (page: Page) => grid(page).locator('.minors button[aria-describedby]')
@@ -4952,7 +4968,9 @@ test('scenario 57: with the Search open, the card is found with the powers and i
     const paid = grid(page).getByRole('button', { name: 'Search the Cradle discard pile: spend 2 Supply, draw 3' })
     const deck = grid(page).getByRole('button', { name: 'Search the world deck: spend 2 Supply, draw 3' })
     await expect(free).toBeVisible()
-    await expect(deck).toHaveCount(0)
+    // R-7.4 — Mushrooms fits the discard pile alone; the world deck is listed and sent without it.
+    await expect(deck).toBeVisible()
+    await expect(paid).toHaveCount(0)
 
     await picked(page).click()
     await expect(picked(page)).toHaveCount(0)
@@ -4966,7 +4984,7 @@ test('scenario 57: with the Search open, the card is found with the powers and i
     await grid(page).getByRole('button', { name: /^Mushrooms/ }).click()
     await expect(free).toBeVisible()
     await expect(free).not.toContainText('Mushrooms')
-    await expect(deck).toHaveCount(0)
+    await expect(deck).toBeVisible()
 })
 
 test('scenario 58: a Vision drawn and the title changing hands are framed History rows; the drawer sees the Vision, another seat its back', async ({ page }) => {
@@ -6156,10 +6174,6 @@ test.describe('the Show menu', () => {
  * spoken name are the card's name alone, with no hover title.
  */
 test.describe('card power text: none in a panel; every panel card has its magnifier', () => {
-    /** A picture-row card (CardChoiceRow) by its picture's name, and the cell around it. */
-    const rowCard = (page: Page, name: string) =>
-        grid(page).locator('button[aria-pressed]').filter({ has: page.getByRole('img', { name, exact: true }) })
-    const rowCell = (page: Page, name: string) => rowCard(page, name).locator('xpath=..')
     const enlarge = (scope: Locator, name: string) =>
         scope.getByRole('button', { name: `Enlarge ${name}`, exact: true })
     /** Marks only a raw printed text carries: emphasis, token codes, an "Action:" lead. */
@@ -6175,18 +6189,18 @@ test.describe('card power text: none in a panel; every panel card has its magnif
         for (const mark of RAW_MARKS) expect(text, `the panel prints "${mark}"`).not.toContain(mark)
     }
 
-    /** Each offered card in the panel's picture rows: its picture's name (the button's), its title, its cell's text and magnifiers. */
-    async function offeredCards(page: Page) {
+    /** Each card row in the panel: its name, its title, the toggle's text and the magnifiers beside it. */
+    async function offeredRows(page: Page) {
         return grid(page)
-            .locator('button[aria-pressed]:has(> img[alt]:not([alt=""]))')
-            .evaluateAll((buttons) =>
-                buttons.map((button) => {
-                    const cell = button.parentElement
+            .locator('[data-card-row]')
+            .evaluateAll((rows) =>
+                rows.map((row) => {
+                    const toggle = row.querySelector('button[aria-pressed]')
                     return {
-                        title: button.getAttribute('title'),
-                        alt: button.querySelector('img')?.getAttribute('alt') ?? '',
-                        text: cell?.innerText.trim() ?? '',
-                        magnifiers: [...(cell?.querySelectorAll('button.magnifier') ?? [])].map(
+                        name: toggle?.querySelector('.font-bold')?.textContent?.trim() ?? '',
+                        title: toggle?.getAttribute('title') ?? null,
+                        text: toggle instanceof HTMLElement ? toggle.innerText : '',
+                        magnifiers: [...row.querySelectorAll('button.magnifier')].map(
                             (magnifier) => magnifier.getAttribute('aria-label') ?? ''
                         )
                     }
@@ -6194,15 +6208,17 @@ test.describe('card power text: none in a panel; every panel card has its magnif
             )
     }
 
-    async function expectNamedCardsWithoutText(page: Page) {
-        const cards = await offeredCards(page)
-        expect(cards.length, 'cards offered').toBeGreaterThan(0)
-        for (const card of cards) {
-            expect(card.alt, `${card.alt}: named by its card alone`).not.toContain('—')
-            expect(card.title, `${card.alt}: no hover title`).toBeNull()
-            expect(card.text, `${card.alt}: no text under the card`).toBe('')
-            expect(card.magnifiers, `${card.alt}: one magnifier, named for the card`).toEqual([`Enlarge ${card.alt}`])
+    /** Each card a row: its name alone, no hover title, a magnifier named for the card beside it. */
+    async function expectCardRows(page: Page) {
+        const rows = await offeredRows(page)
+        expect(rows.length, 'cards offered').toBeGreaterThan(0)
+        for (const row of rows) {
+            expect(row.name, 'named by its card').not.toBe('')
+            expect(row.name, `${row.name}: named by its card alone`).not.toContain('—')
+            expect(row.title, `${row.name}: no hover title`).toBeNull()
+            expect(row.magnifiers, `${row.name}: one magnifier, named for the card`).toEqual([`Enlarge ${row.name}`])
         }
+        return rows
     }
 
     /** The magnifier on a card picture, by the card's name: its laid-out size, and its box and the picture's on screen. */
@@ -6214,29 +6230,50 @@ test.describe('card power text: none in a panel; every panel card has its magnif
         return { glass, size: (await layoutSize(glass)).width, glassBox: await boxOf(glass), cardBox: await boxOf(card) }
     }
 
-    test('a modifier in an action’s menu: Truthful Harp is its picture and magnifier, with no text and its name alone', async ({ page }) => {
+    test('a modifier in an action’s menu: Truthful Harp is a row, its name over its line, no printed text', async ({ page }) => {
         await openTable(page, 'harpSearch')
         await tile(page, 'Search').click()
-        await expect(rowCard(page, 'Truthful Harp')).toBeVisible()
-        await expect(rowCell(page, 'Truthful Harp')).toHaveText('')
-        await expect(enlarge(rowCell(page, 'Truthful Harp'), 'Truthful Harp')).toBeVisible()
-        await expectNamedCardsWithoutText(page)
+        const harp = cardToggle(page, 'relic.truthful-harp')
+        await expect(harp).toBeVisible()
+        await expect(harp).toHaveAttribute('aria-pressed', 'false')
+        const [row] = await expectCardRows(page)
+        expect(row.text.replace(/\s+/g, ' ').trim()).toBe('Truthful Harp draw +2 · reveal them')
         await expectNoRawText(page)
-        await expect(grid(page)).not.toContainText('reveal')
+        await expect(grid(page)).not.toContainText('Draw two more')
+        expect(await tokenRuns(harp.locator('.text-xs'))).toEqual([
+            ['draw +2', 'text'],
+            ['·', 'text-muted'],
+            ['reveal them', 'danger']
+        ])
 
-        await enlarge(rowCell(page, 'Truthful Harp'), 'Truthful Harp').click()
+        await enlarge(cardRow(page, 'relic.truthful-harp'), 'Truthful Harp').click()
         await expect(preview(page)).toBeVisible()
-        await expect(rowCard(page, 'Truthful Harp')).toHaveAttribute('aria-pressed', 'false')
+        await expect(harp).toHaveAttribute('aria-pressed', 'false')
     })
 
     for (const name of ['battleDefenderPlans', 'attackerPlans'] as const) {
-        test(`battle plans (${name}): each plan its picture and magnifier, with no text and its name alone`, async ({ page }) => {
+        test(`battle plans (${name}): each plan a row, its name, its magnifier, no printed text`, async ({ page }) => {
             await openTable(page, name)
-            await expect(grid(page).locator('button[aria-pressed]').first()).toBeVisible()
-            await expectNamedCardsWithoutText(page)
+            await expect(grid(page).locator('[data-card-row] button[aria-pressed]').first()).toBeVisible()
+            await expectCardRows(page)
             await expectNoRawText(page)
         })
     }
+
+    test('battle plans: each row its name and, in gold, what it costs; "in use" once tapped; one width', async ({ page }) => {
+        await openTable(page, 'battlePlanCosts')
+        const rows = await expectCardRows(page)
+        expect(rows.map((row) => row.text.replace(/\s+/g, ' ').trim())).toEqual(['Wild Mounts', 'Shield Wall 1', 'Hearts and Minds 3'])
+        const shieldWall = cardToggle(page, 'denizen.order.shield-wall')
+        expect(await tokenRuns(shieldWall.locator('.text-xs'))).toEqual([['1', 'accent']])
+        await expect(shieldWall.locator('.text-xs').getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect(shieldWall.getByText('in use', { exact: true })).toBeHidden()
+        await shieldWall.click()
+        await expect(shieldWall).toHaveAttribute('aria-pressed', 'true')
+        await expect(shieldWall.getByText('in use', { exact: true })).toBeVisible()
+        await expectOneWidth(grid(page).locator('[data-card-row] button[aria-pressed]'))
+        await expect(grid(page).locator('[title]')).toHaveCount(0)
+    })
 
     test('Use a power: each card its magnifier, the name and action with no text, the Whistle’s cost on Use in gold', async ({ page }) => {
         await openTable(page, 'usePower')
@@ -7179,4 +7216,162 @@ test.describe('no hover titles in Oath’s own areas', () => {
         await expect(grid(page).getByRole('button', { name: /bank, \d+ favor$/ }).first()).toBeVisible()
         await expectNoHoverTitles(page, 'the older Rest panel with a refused power')
     })
+})
+
+/**
+ * docs/ui-interaction-visual-contract.md, "A card that changes an action" and the menus: an
+ * action's optional cards are framed rows under "Cards", the free gains start in use, a card in use
+ * applies to the rows it fits, and two cards that only together make an action possible are one
+ * entry in Use a power.
+ */
+test.describe('the cards in every action’s menu', () => {
+    const cards = (page: Page) => grid(page).locator('[data-card-row] button[aria-pressed]')
+    const tag = (toggle: Locator) => toggle.getByText('in use', { exact: true })
+    const lineOf = (page: Page, cardId: string) => cardToggle(page, cardId).locator('.text-xs')
+
+    test('Travel: under "Cards", the Drum starts in use; Tents and Special Envoy are off, each with its line', async ({ page }) => {
+        await openTable(page, 'modifierTravel')
+        await tile(page, 'Travel').click()
+        await expect(grid(page).getByRole('heading', { name: 'Cards', exact: true })).toBeVisible()
+        await expect(grid(page)).not.toContainText('Tap a card to use it')
+        const drum = cardToggle(page, 'relic.dragonskin-drum')
+        await expect(drum).toHaveAttribute('aria-pressed', 'true')
+        await expect(tag(drum)).toBeVisible()
+        for (const cardId of ['denizen.nomad.tents', 'denizen.nomad.special-envoy']) {
+            await expect(cardToggle(page, cardId)).toHaveAttribute('aria-pressed', 'false')
+            await expect(tag(cardToggle(page, cardId))).toBeHidden()
+        }
+        expect(await tokenRuns(lineOf(page, 'relic.dragonskin-drum'))).toEqual([['+ 1', 'text']])
+        await expect(lineOf(page, 'relic.dragonskin-drum').getByRole('img', { name: 'warband' })).toBeVisible()
+        expect(await tokenRuns(lineOf(page, 'denizen.nomad.tents'))).toEqual([
+            ['0 Supply', 'text'],
+            ['·', 'text-muted'],
+            ['1', 'accent']
+        ])
+        expect(await tokenRuns(lineOf(page, 'denizen.nomad.special-envoy'))).toEqual([
+            ['0 Supply', 'text'],
+            ['·', 'text-muted'],
+            ['ends your Act Phase', 'danger']
+        ])
+        await expectOneWidth(cards(page))
+        await expect(grid(page).locator('[title]')).toHaveCount(0)
+        await expect(cardRow(page, 'relic.dragonskin-drum').getByRole('button', { name: 'Enlarge Dragonskin Drum', exact: true })).toBeVisible()
+    })
+
+    test('Travel: a lit site’s tap travels with the Drum in use; a tap puts it down; Undo brings it back', async ({ page }) => {
+        await openTable(page, 'modifierTravel')
+        await tile(page, 'Travel').click()
+        const drum = cardToggle(page, 'relic.dragonskin-drum')
+        await drum.click()
+        await expect(drum).toHaveAttribute('aria-pressed', 'false')
+        await expect(tag(drum)).toBeHidden()
+        await undoButton(page).click()
+        await expect(drum).toHaveAttribute('aria-pressed', 'true')
+        await expect.poll(async () => (await call(page, 'tableFacts')).staged).toBe('travel')
+
+        const [slot] = await litSlots(page)
+        if (slot === undefined) throw Error('A site is lit')
+        await siteCard(page, slot).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe(slot)
+        expect((await call(page, 'tableFacts')).boardOf.me.me ?? 0).toBe(1)
+    })
+
+    test('Muster: Rowdy Pub in use applies to its own row; the other Musters stay listed without it', async ({ page }) => {
+        await openTable(page, 'modifierMuster')
+        await tile(page, 'Muster').click()
+        await expect(cardToggle(page, 'denizen.hearth.rowdy-pub')).toHaveAttribute('aria-pressed', 'true')
+        const muster = (name: string) => grid(page).getByRole('button', { name: new RegExp(`^Muster at ${name}:`) })
+        await expect(muster('Rowdy Pub')).toHaveAccessibleName('Muster at Rowdy Pub: place 1 favor, get 3 warbands')
+        await expect(muster('Forced Labor')).toHaveAccessibleName('Muster at Forced Labor: place 1 favor, get 2 warbands')
+        await expect(muster('Oracle')).toHaveAccessibleName('Muster at Oracle: place 1 favor, get 2 warbands')
+
+        await muster('Forced Labor').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.me.me ?? 0).toBe(2)
+    })
+
+    test('Trade: Birdsong starts in use; Awaited Return’s consequence in rose; Master of Disguise’s cost in gold', async ({ page }) => {
+        await openTable(page, 'modifierTrade')
+        await tile(page, 'Trade').click()
+        await expect(cardToggle(page, 'denizen.beast.birdsong')).toHaveAttribute('aria-pressed', 'true')
+        await expect(cardToggle(page, 'denizen.hearth.awaited-return')).toHaveAttribute('aria-pressed', 'false')
+        await expect(cardToggle(page, 'denizen.arcane.master-of-disguise')).toHaveAttribute('aria-pressed', 'false')
+        expect(await tokenRuns(lineOf(page, 'denizen.hearth.awaited-return'))).toEqual([
+            ['0 Supply', 'text'],
+            ['·', 'text-muted'],
+            ['sacrifice 1', 'danger']
+        ])
+        expect(await tokenRuns(lineOf(page, 'denizen.arcane.master-of-disguise'))).toEqual([
+            ['another player’s advisers', 'text'],
+            ['·', 'text-muted'],
+            ['1', 'accent']
+        ])
+        await expectOneWidth(cards(page))
+    })
+
+    test('Search: Wild Cry and Welcoming Party start in use', async ({ page }) => {
+        await openTable(page, 'modifierSearch')
+        await tile(page, 'Search').click()
+        for (const cardId of ['denizen.beast.wild-cry', 'denizen.hearth.welcoming-party']) {
+            await expect(cardToggle(page, cardId)).toHaveAttribute('aria-pressed', 'true')
+        }
+        expect(await tokenRuns(lineOf(page, 'denizen.beast.wild-cry'))).toEqual([['+1 Supply + 2', 'text']])
+    })
+
+    test('a pair: the ring lights for a Trade only Birdsong and Small Friends make possible; one entry, "Trade with both", both stay in use', async ({ page }) => {
+        await openTable(page, 'modifierPair')
+        await tile(page, 'Trade').click({ force: true })
+        await expect(ringedBy(page)).toHaveCount(1)
+        await usePower(page).click()
+        const entry = grid(page).locator('[data-action-card="denizen.beast.birdsong denizen.beast.small-friends"]')
+        await expect(entry).toBeVisible()
+        await expect(entry.locator('.text-sm')).toHaveText(/^\s*Birdsong \+ Small Friends\s*— Trade\s*$/)
+        await expect(entry.locator('p')).toContainText('free')
+        for (const name of ['Birdsong', 'Small Friends']) {
+            await expect(entry.getByRole('button', { name: `Enlarge ${name}`, exact: true })).toBeVisible()
+        }
+        await entry.getByRole('button', { name: 'Trade with both', exact: true }).click()
+        for (const cardId of ['denizen.beast.birdsong', 'denizen.beast.small-friends']) {
+            await expect(cardToggle(page, cardId)).toHaveAttribute('aria-pressed', 'true')
+        }
+        await cardToggle(page, 'denizen.beast.birdsong').click()
+        await expect(cardToggle(page, 'denizen.beast.birdsong')).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page).getByRole('button', { name: /^Trade with Wolves:/ })).toHaveCount(2)
+        await undoButton(page).click()
+        await expect(entry).toBeVisible()
+    })
+
+    test('Use a power: each card’s entry gives the line its menu row gives, before its cost', async ({ page }) => {
+        await openTable(page, 'usePower')
+        await usePower(page).click()
+        expect(await tokenRuns(actionCard(page, 'denizen.nomad.tents').locator('p'))).toEqual([
+            ['0 Supply', 'text'],
+            ['·', 'text-muted'],
+            ['put 1 on it', 'accent']
+        ])
+    })
+
+    for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
+        test.describe(`on a ${viewport.width} px phone`, () => {
+            test.use({ viewport })
+
+            test('each card row is 44 px tall at least, inside the panel, one width; no hover title', async ({ page }) => {
+                for (const [scene, action] of [['modifierTravel', 'Travel'], ['modifierTrade', 'Trade']] as const) {
+                    await openTable(page, scene)
+                    await tile(page, action).click()
+                    const rows = cards(page)
+                    await expect(rows.first()).toBeVisible()
+                    const panel = await boxOf(grid(page))
+                    for (const row of await rows.all()) {
+                        // Laid out at 44 px, whatever the fitted panel's scale draws it at.
+                        const height = await row.evaluate((element) => (element instanceof HTMLElement ? element.offsetHeight : 0))
+                        expect(height, `${await row.textContent()}: 44 tall`).toBeGreaterThanOrEqual(44)
+                        expect(inside(await boxOf(row), panel), `${await row.textContent()}: inside the panel`).toBe(true)
+                    }
+                    await expectOneWidth(rows)
+                    await expect(grid(page).locator('[title]')).toHaveCount(0)
+                    expect(await clippedLabels(page)).toEqual([])
+                }
+            })
+        })
+    }
 })

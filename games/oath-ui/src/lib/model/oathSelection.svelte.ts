@@ -12,9 +12,17 @@ import type { ConspiracyPick } from './conspiracyTake.js'
 
 /**
  * R-7.4 — a modifier declared on the staged action, with the choices its text opens. `opened`
- * marks the card the powers list opened the action with.
+ * marks the card the powers list opened the action with. `seeded` marks a free gain the action
+ * started with in use (Dragonskin Drum, Rowdy Pub …); `down` marks one a tap put down, kept so
+ * Undo can bring it back.
  */
-export type ModifierDeclaration = { use: PowerUseKey; picks?: PowerChoicePicks; opened?: true }
+export type ModifierDeclaration = {
+    use: PowerUseKey
+    picks?: PowerChoicePicks
+    opened?: true
+    seeded?: true
+    down?: true
+}
 
 // A `type`, not an `interface`: the shared helpers are generic over `Record<string, unknown>`.
 export type OathValueByStage = {
@@ -78,20 +86,36 @@ export class OathSelection extends StagedFlow<OathValueByStage> {
         return this.value('modifiers') ?? []
     }
 
-    // Undo takes the last modifier declared, one at a time, before the action under it.
+    /**
+     * Undo takes the last card tapped into use, one at a time, then brings back the free gains a
+     * tap put down, before the action under them. The free gains an action starts with are its
+     * own (an auto entry), so Undo never takes them alone.
+     */
     back(): OathStage | undefined {
         const modifiers = this.modifiers
         if (this.highestManualStage() === 'modifiers') {
-            if (modifiers.length > 1) {
-                this.set('modifiers', modifiers.slice(0, -1))
+            const tapped = modifiers.filter((m) => !m.seeded)
+            const last = tapped.at(-1)
+            if (last && !last.opened) {
+                this.setModifiers(modifiers.filter((m) => m !== last))
                 return 'modifiers'
             }
             // The action's own tile may be dimmed, so its last card returns to the powers list.
-            if (modifiers[0]?.opened) {
+            if (modifiers.some((m) => m.opened && !m.down)) {
                 this.set('action', ActionType.UseActionPower)
+                return 'modifiers'
+            }
+            if (modifiers.some((m) => m.down)) {
+                this.setModifiers(modifiers.map(({ use }) => ({ use, seeded: true })))
                 return 'modifiers'
             }
         }
         return super.back()
+    }
+
+    /** The cards in use: an auto entry while they are the free gains the action started with. */
+    setModifiers(modifiers: ModifierDeclaration[]): void {
+        const asStarted = modifiers.every((m) => m.seeded && !m.down && !m.opened)
+        this.set('modifiers', modifiers, asStarted ? 'auto' : 'manual')
     }
 }

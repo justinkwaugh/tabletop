@@ -1,11 +1,10 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
-    import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
-    import { powerUseCards } from '$lib/model/cardChoice.js'
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -56,17 +55,11 @@
             <p class="text-sm mb-2">Tap the plans to use.</p>
         {/if}
         <div class="mb-1">
-            <CardChoiceRow
-                choices={powerUseCards(usable)}
-                picked={usable
-                    .filter((power) => defence.isDeclared(power))
-                    .map((power) => powerKey(power.cardId, power.powerIndex))}
-                onpick={(key) => {
-                    const power = usable.find((p) => powerKey(p.cardId, p.powerIndex) === key)
-                    if (power) defence.setPlan(power, !defence.isDeclared(power))
-                }}
+            <PlanRows
+                plans={usable}
+                isOn={(power) => defence.isDeclared(power)}
+                toggle={(power) => defence.setPlan(power, !defence.isDeclared(power))}
                 {busy}
-                height={90}
             />
         </div>
         {#each usable as power (powerKey(power.cardId, power.powerIndex))}
