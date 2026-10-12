@@ -418,6 +418,8 @@ export function registerBattlePlan(
     definition: {
         hooks: BattlePlanHooks
         choices?: ChoiceSpec[]
+        /** Warning Signals — the state its `sequential` choices are read on. */
+        stateAfter?: EffectDefinition['stateAfter']
     }
 ): void {
     registerEffect(cardId, index, {
@@ -427,6 +429,7 @@ export function registerBattlePlan(
                 `${cardId} is a battle plan: it is used in a Campaign's battle-plan step (R-5.5.3), not on its own`
             )
         },
+        stateAfter: definition.stateAfter,
         battlePlan: definition.hooks
     })
 }
