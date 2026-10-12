@@ -14,6 +14,19 @@ export function withTransfer(
     return { ...terms, [side]: { ...transferOf(terms, side), ...patch } }
 }
 
+/** Whether the terms move anything at all, from either side. */
+export function namesAnything(terms: ExchangeTerms): boolean {
+    return [terms.fromProposer, terms.fromCounterparty].some(
+        (transfer) =>
+            transfer !== undefined &&
+            ((transfer.favor ?? 0) > 0 ||
+                (transfer.secrets ?? 0) > 0 ||
+                (transfer.relicCardIds?.length ?? 0) > 0 ||
+                (transfer.sites?.length ?? 0) > 0 ||
+                (transfer.adviserRows?.length ?? 0) > 0)
+    )
+}
+
 export function toggled<T>(list: readonly T[] | undefined, item: T, on: boolean): T[] {
     const set = new Set(list)
     if (on) set.add(item)

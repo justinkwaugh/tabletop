@@ -31,6 +31,11 @@ export function siteName(gameState: HydratedOathGameState, slotId: string): stri
     return `a facedown site in the ${regionName(gameState.regionOf(slotId))}`
 }
 
+/** A site inside a History sentence: "the Great Slum", but a name that prints its own article as printed. */
+export function siteInLine(name: string): string {
+    return name.startsWith('a ') || name.startsWith('The ') ? name : `the ${name}`
+}
+
 export function relicSiteName(gameState: HydratedOathGameState, slotId: string): string {
     const found = gameState.findRelicSlot(slotId)
     assertExists(found, `${slotId} is not a relic slot at a site`)
@@ -145,11 +150,49 @@ export function humanizeReason(
     return nameSeats(nameIds(stripRules(reason), slotLabel), seats, viewerId)
 }
 
+export type ReasonPart =
+    { kind: 'text'; text: string } | { kind: 'seat'; playerId: string; possessive: boolean }
+
+/** An engine refusal as `humanizeReason` reads it, with every other seat apart for its colour chip. */
+export function reasonParts(
+    reason: string,
+    seats: readonly string[],
+    viewerId: string | undefined
+): ReasonPart[] {
+    const text = nameSeats(
+        nameIds(stripRules(reason), slotLabel),
+        { player: (id) => id, seats },
+        viewerId
+    )
+    const others = seats.filter((playerId) => playerId !== viewerId)
+    if (others.length === 0) return [{ kind: 'text', text }]
+    const seat = new RegExp(
+        `(?<![\\w-])(${others.map(escapeRegExp).join('|')})(['’]s)?(?![\\w-])`,
+        'g'
+    )
+    const parts: ReasonPart[] = []
+    let from = 0
+    for (const match of text.matchAll(seat)) {
+        if (match.index > from) parts.push({ kind: 'text', text: text.slice(from, match.index) })
+        parts.push({ kind: 'seat', playerId: match[1], possessive: match[2] !== undefined })
+        from = match.index + match[0].length
+    }
+    if (from < text.length) parts.push({ kind: 'text', text: text.slice(from) })
+    return parts
+}
+
 export type NameOf = (playerId: string) => string
 
 export type Seats = {
     player: NameOf
     seats: readonly string[]
+    /** Each seat will be its `PlayerName` chip, which reads "you" for the viewer: name the viewer by `player` too. */
+    viewerByChip?: boolean
+}
+
+/** Every seat by its id, the viewer's too, for `seatParts` to make each its chip. */
+export function seatsById<T extends Seats>(names: T): T {
+    return { ...names, player: (playerId: string) => playerId, viewerByChip: true }
 }
 
 /** Every seat named and the viewer "you"; an actor named alone owns "their own". */
@@ -162,40 +205,88 @@ export function nameSeats(
     const actorAlone = !seats.seats.some(
         (playerId) => playerId !== actorId && seatPattern(playerId).test(text)
     )
-    const reader = { actorId, actorAlone, viewerId }
+    const reader = { actorId, actorAlone, viewerId, viewerByChip: seats.viewerByChip === true }
     return seats.seats.reduce(
         (sentence, playerId) => nameSeat(sentence, playerId, reader, seats.player),
         text
     )
 }
 
+/** A run of text naming seats: words, or a seat for its `PlayerName` chip. */
+export type SeatPart =
+    | { kind: 'text'; text: string }
+    | { kind: 'seat'; playerId: string; possessive: boolean }
+
+/** Text naming seats by id (`seatsById`), each seat apart for its chip; a verb after the viewer's agrees with "you". */
+export function seatParts(
+    text: string,
+    seats: readonly string[],
+    viewerId: string | undefined
+): SeatPart[] {
+    const agreed = viewerId === undefined ? text : agreeWithViewer(text, viewerId, viewerId)
+    if (seats.length === 0) return [{ kind: 'text', text: agreed }]
+    const seat = wholeIdPattern(`(${seats.map(escapeRegExp).join('|')})`, "(['’]s)?", 'g')
+    const parts: SeatPart[] = []
+    let from = 0
+    for (const match of agreed.matchAll(seat)) {
+        if (match.index > from) parts.push({ kind: 'text', text: agreed.slice(from, match.index) })
+        parts.push({ kind: 'seat', playerId: match[1], possessive: match[2] !== undefined })
+        from = match.index + match[0].length
+    }
+    if (from < agreed.length) parts.push({ kind: 'text', text: agreed.slice(from) })
+    return parts
+}
+
 // Whole ids only: nanoids may begin or end with `-` or `_`, which `\b` does not treat as word characters.
+function wholeIdPattern(id: string, after: string, flags: string): RegExp {
+    return new RegExp(`(?<![\\w-])${id}${after}(?![\\w-])`, flags)
+}
+
 function seatPattern(playerId: string, after = '', flags = ''): RegExp {
-    return new RegExp(`(?<![\\w-])${escapeRegExp(playerId)}${after}(?![\\w-])`, flags)
+    return wholeIdPattern(escapeRegExp(playerId), after, flags)
+}
+
+// The viewer reads "you", so the verb after their seat agrees with it.
+const VIEWER_VERBS: readonly (readonly [string, string])[] = [
+    [' is', ' are'],
+    [' has', ' have'],
+    [' chooses', ' choose']
+]
+
+function agreeWithViewer(text: string, viewerId: string, subject: string): string {
+    return VIEWER_VERBS.reduce(
+        (agreed, [verb, withYou]) =>
+            agreed.replace(seatPattern(viewerId, verb, 'g'), () => `${subject}${withYou}`),
+        text
+    )
 }
 
 function nameSeat(
     text: string,
     playerId: string,
-    reader: { actorId: string | undefined; actorAlone: boolean; viewerId: string | undefined },
+    reader: {
+        actorId: string | undefined
+        actorAlone: boolean
+        viewerId: string | undefined
+        viewerByChip: boolean
+    },
     nameOf: NameOf
 ): string {
     const own = playerId === reader.actorId
     const isViewer = playerId === reader.viewerId
+    // A chip reads "you" and "your" itself, and `seatParts` makes the verb after it agree.
+    const inWords = isViewer && !reader.viewerByChip
+    const seat = inWords ? 'you' : nameOf(playerId)
+    const your = inWords ? 'your' : `${seat}'s`
     const whose = isViewer
         ? own
-            ? 'your own'
-            : 'your'
+            ? `${your} own`
+            : your
         : own && reader.actorAlone
           ? 'their own'
-          : `${nameOf(playerId)}'s`
-    const seat = isViewer ? 'you' : nameOf(playerId)
+          : your
     const named = text.replace(seatPattern(playerId, "['’]s", 'g'), () => whose)
-    const agreed = isViewer
-        ? named
-              .replace(seatPattern(playerId, ' is', 'g'), () => 'you are')
-              .replace(seatPattern(playerId, ' has', 'g'), () => 'you have')
-        : named
+    const agreed = inWords ? agreeWithViewer(named, playerId, seat) : named
     return agreed.replace(seatPattern(playerId, '', 'g'), () => seat)
 }
 
@@ -211,6 +302,13 @@ export function nameIds(text: string, siteOf: (slotId: string) => string): strin
 
 export function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Names in a sentence: "A", "A and B", "A, B and C". */
+export function listed(names: readonly string[]): string {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+        : names.join('')
 }
 
 export function plural(count: number, noun: string): string {

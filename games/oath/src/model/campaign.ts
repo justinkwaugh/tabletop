@@ -179,7 +179,13 @@ export const CampaignState = Type.Object({
     /** Specialist, Code of Honor — the defending side may use no (more) battle plans. */
     defenderPlansLocked: Type.Optional(Type.Boolean()),
     /** Martial Culture — the attacker's Act Phase ends once the Campaign is resolved. */
-    endsActPhaseAfter: Type.Optional(Type.Boolean())
+    endsActPhaseAfter: Type.Optional(Type.Boolean()),
+    /**
+     * R-5.5.7.III, R-5.5.8 — the spoils are taken and the banish waits on an answer (Toll Roads, or
+     * the Shrouded Wood's ruler from `UiBatch1`): its burn, the "if you're victorious" plans and the
+     * end follow it. `burnFavor` is the burn kept here; a Toll Roads question carries its own.
+     */
+    banishPending: Type.Optional(Type.Object({ burnFavor: Type.Optional(Type.Literal(true)) }))
 })
 
 export function campaignTargetKey(target: CampaignTarget): string {

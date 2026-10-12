@@ -17,6 +17,9 @@ const SERVING_BODY: Partial<Record<Color, string>> = {
     [Color.White]: '#eee9dd',
     [Color.Yellow]: '#f4c857'
 }
+// R-6.6.3 — the Crown's Q&A: "As the Chancellor or a Citizen, they are purple warbands", the body
+// of pieces/warband.purple.svg; SERVING_BODY's purple stays for older games' Chancellor holders.
+const IMPERIAL_BODY = '#943c80'
 
 function figureUrl(body: string): string {
     const svg =
@@ -27,6 +30,7 @@ function figureUrl(body: string): string {
 }
 
 const unservedUrl = figureUrl(UNSERVED_BODY)
+const imperialUrl = figureUrl(IMPERIAL_BODY)
 const servingUrls = new Map(
     Object.entries(SERVING_BODY).map(([color, body]) => [color, figureUrl(body)])
 )
@@ -38,4 +42,20 @@ export function banditWarbandImage(servingColor?: Color): string {
     const url = servingUrls.get(servingColor)
     assertExists(url, `The bandits never serve ${servingColor}`)
     return url
+}
+
+// R-7.6.5 with R-6.6.3 — the bandits serving an Imperial holder are the Empire's warbands.
+export function imperialBanditWarbandImage(): string {
+    return imperialUrl
+}
+
+// One figure for a site's bandits on the map and on the enlarged site: green where they rule, the
+// holder's colour where they serve, the Empire's purple where they serve as Imperial warbands.
+export function siteBanditsImage(
+    rule: { banditsHolderId?: string; banditsImperial: boolean },
+    colorOf: (playerId: string) => Color
+): string {
+    if (rule.banditsImperial) return imperialUrl
+    if (rule.banditsHolderId === undefined) return unservedUrl
+    return banditWarbandImage(colorOf(rule.banditsHolderId))
 }

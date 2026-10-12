@@ -38,8 +38,16 @@
 
     let {
         choices,
-        picks = $bindable(emptyPicks())
-    }: { choices: LegalChoice[]; picks?: PowerChoicePicks } = $props()
+        picks = $bindable(emptyPicks()),
+        tallOnPhone = false,
+        tollAt = () => false
+    }: {
+        choices: LegalChoice[]
+        picks?: PowerChoicePicks
+        /** Its list is 44 px tall on a phone, as Use a power draws its pick beside its buttons. */
+        tallOnPhone?: boolean
+        tollAt?: (siteId: string) => boolean
+    } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
@@ -99,7 +107,10 @@
             case PowerChoiceKind.Card:
                 return cardName(option.cardId)
             case PowerChoiceKind.Site:
-                return siteName(gameSession.gameState, option.siteId)
+                return (
+                    siteName(gameSession.gameState, option.siteId) +
+                    (tollAt(option.siteId) ? ' · toll 1 favor' : '')
+                )
             case PowerChoiceKind.Warbands:
                 return `${option.group.count} ${ownerName(option.group.owner)} at ${
                     option.group.at.kind === 'site'
@@ -238,12 +249,16 @@
                     <span class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</span>
                     <select
                         disabled={busy}
-                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
+                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow {tallOnPhone
+                            ? 'max-sm:min-h-11'
+                            : ''}"
                         value={pick}
                         onchange={(event) => setOption(legal, i, Number(event.currentTarget.value))}
                     >
                         {#if legal.spec.min === 0}
                             <option value={NO_OPTION}>none</option>
+                        {:else if pick === NO_OPTION}
+                            <option value={NO_OPTION} disabled></option>
                         {/if}
                         {#each legal.options as choice, j (j)}
                             <option value={j}>{label(choice)}</option>

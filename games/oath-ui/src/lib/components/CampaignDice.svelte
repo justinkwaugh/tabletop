@@ -31,10 +31,12 @@
     </div>
     <div class="dice">
         {#if unrolled}
+            <!-- No totals until the roll; each slot keeps a total's room, so the row does not move. -->
             {@render unrolledDice(campaign.attackPool, 'attack')}
+            <span class="dice__total dice__total--unrolled"></span>
             <span class="dice__sep"></span>
             {@render unrolledDice(campaign.defensePool, 'defense')}
-            <span class="dice__total">waiting on the defender</span>
+            <span class="dice__total dice__total--unrolled"></span>
         {:else}
             {#each campaign.attackRoll as face, index (index)}
                 <span
@@ -106,5 +108,9 @@
         font-size: 13px;
         color: var(--oath-text-muted);
         white-space: nowrap;
+    }
+    .dice__total--unrolled {
+        min-width: 4.5em;
+        min-height: 1.5em;
     }
 </style>

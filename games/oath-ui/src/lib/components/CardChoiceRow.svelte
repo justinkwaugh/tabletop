@@ -11,6 +11,7 @@
         onpick,
         busy = false,
         height = 90,
+        discard = false,
         under
     }: {
         choices: readonly CardChoice[]
@@ -18,6 +19,8 @@
         onpick: (key: string) => void
         busy?: boolean
         height?: number
+        /** The picked card is discarded, so it rings red, as a Search's displaced adviser does. */
+        discard?: boolean
         under?: Snippet<[CardChoice]>
     } = $props()
 </script>
@@ -29,7 +32,7 @@
             <button
                 type="button"
                 class="rounded-[5px] {on
-                    ? 'ring-2 ring-oath-accent'
+                    ? `ring-2 ${discard ? 'ring-oath-danger' : 'ring-oath-accent'}`
                     : 'ring-1 ring-oath-control-hover hover:ring-oath-accent'}"
                 aria-pressed={on}
                 title={choice.label}

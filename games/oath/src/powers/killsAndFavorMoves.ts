@@ -16,6 +16,7 @@ import {
     discardDenizensAtSites,
     gainFavorFromBank,
     gainSecrets,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     killWarbandGroup,
     killWarbandsAtSite,
@@ -180,8 +181,9 @@ registerEffect(
                     targetPlayerId: target.playerId
                 }
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+            const words = gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ?? gained
             return {
-                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`,
+                summary: `killed a warband on ${target.playerId}'s board and gained ${words}`,
                 targetPlayerId: target.playerId,
                 warbandOwner: owner
             }
@@ -274,15 +276,16 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
             killWarbandsAtSite(ctx.state, site, Number.MAX_SAFE_INTEGER)
         ).reduce((n, k) => n + k, 0)
         const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+        const words = gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? gained
         if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
             return {
-                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — ${ctx.playerId} cannot place warbands at sites`
+                summary: `Key to the City: killed ${killed} at ${site}, gained ${words}; placed none — ${ctx.playerId} cannot place warbands at sites`
             }
         }
         const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
         const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, site, gained)
         return {
-            summary: `Key to the City: killed ${killed} at ${site}, gained ${gained} and placed ${placed} there`
+            summary: `Key to the City: killed ${killed} at ${site}, gained ${words} and placed ${placed} there`
         }
     }
 })

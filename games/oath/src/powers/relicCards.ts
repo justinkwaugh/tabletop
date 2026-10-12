@@ -26,6 +26,7 @@ import {
     type PlayerPlanContext
 } from './registry.js'
 import {
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     pawnSiteId,
     swapPlayedCardWithSiteCard,
@@ -36,9 +37,11 @@ import { ignoresKillAll, opposingLeadId } from '../util/battlePlans.js'
 import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { releaseRelic } from '../util/relics.js'
-import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { askPowerMoveToll, giveWhistleSecret, powerMoveToll } from '../util/powerMoveTolls.js'
+import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
+import { WHISTLE_ID } from '../data/relics.js'
 import { seeWorldDeckTop } from '../util/knowledge.js'
 
 // "Action: Put this relic on the bottom of the relic deck to gain 4 Supply."
@@ -60,9 +63,12 @@ registerModifier(
     powerIndexOf('relic.dragonskin-drum', PowerTiming.Modifier),
     {
         hooks: {
-            after: (ctx) => ({
-                summary: `Dragonskin Drum: gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 1)} warband`
-            })
+            after: (ctx) => {
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warband`
+                return { summary: `Dragonskin Drum: gained ${words}` }
+            }
         }
     }
 )
@@ -161,7 +167,7 @@ registerEffect(ORACULAR_PIG, powerIndexOf(ORACULAR_PIG, PowerTiming.Action), {
 
 // "Action: Choose a pawn at another site. They must travel to your site if able, spending no Supply.
 //  If they do, give them the [secret] here." Cost: place 1 secret.
-const WHISTLE = 'relic.whistle'
+const WHISTLE = WHISTLE_ID
 const pawnsElsewhere: ChoiceDomain = (state, playerId) => {
     const here = pawnSiteId(state, playerId)
     return state.players
@@ -178,7 +184,6 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
     resolve: (ctx) => {
         const [them] = chosen(ctx, PowerChoiceKind.Player)
         const here = pawnSiteId(ctx.state, ctx.playerId)
-        const other = ctx.state.getPlayerState(them.playerId)
         // "If able" — its Q&A: the Travel rules bind (Narrow Pass, The Hidden Place, Vow of Union); unable, nothing happens.
         const unable = reasonCannotTravelByPower(ctx.state, them.playerId, here)
         if (unable) {
@@ -187,12 +192,28 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
                 targetPlayerId: them.playerId
             }
         }
+        // Toll Roads — the pulled player gives the favor or refuses, and a refusal leaves them where they are.
+        const toll = powerMoveToll(ctx.state, them.playerId, here)
+        if (toll) {
+            const move = {
+                move: PowerMoveKind.Whistle,
+                powerCardId: WHISTLE,
+                moverPlayerId: ctx.playerId,
+                movedPlayerId: them.playerId,
+                toSiteId: here
+            }
+            const tollMove = askPowerMoveToll(ctx.state, move, toll, ctx.playerId)
+            return {
+                summary:
+                    tollMove.outcome === PowerMoveTollOutcome.Asked
+                        ? `Whistle: ${them.playerId} is asked for ${toll.cardId}'s favor`
+                        : `Whistle: ${them.playerId} had no favor for ${toll.cardId} and stayed`,
+                targetPlayerId: them.playerId,
+                tollMove
+            }
+        }
         const { notes } = travelByPower(ctx.state, them.playerId, here)
-        // Vow of Silence — "cannot give anyone secrets": the pull still happens.
-        const silenced = reasonPersistentForbidsGivingSecrets(ctx.state, ctx.playerId)
-        const given = silenced ? 0 : Math.min(1, ctx.state.tokensOn(WHISTLE).secrets)
-        ctx.state.addTokensOn(WHISTLE, { secrets: -given })
-        other.secrets += given
+        const given = giveWhistleSecret(ctx.state, ctx.playerId, them.playerId)
         return {
             summary: `Whistle: ${them.playerId} travelled to ${here}, gaining ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
             targetPlayerId: them.playerId
@@ -327,7 +348,10 @@ registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.Ba
                 ? enemyWarbandsKilledFor(ctx.state, campaign, ctx.campaign.side)
                 : (campaign.defeatKilled ?? 0)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, killed)
-            return `Cursed Cauldron: gained ${gained} warbands, one per enemy warband killed`
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
+                `${gained} warbands`
+            return `Cursed Cauldron: gained ${words}, one per enemy warband killed`
         }
     }
 })

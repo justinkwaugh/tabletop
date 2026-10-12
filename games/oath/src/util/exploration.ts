@@ -264,7 +264,8 @@ function namedWorldCards(
             for (const cardId of question.cardIds) named.add(cardId)
         if (question.kind === PowerQuestionKind.PlayOrDiscardVision)
             named.add(question.visionCardId)
-        // Inquisitor — the favor it kept named the Conspiracy in the row everyone saw chosen.
+        // Inquisitor — the favor it kept named the Conspiracy in the row everyone saw chosen;
+        // played facedown, the finder's seen row names it above.
         if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) named.add(CONSPIRACY_ID)
         if (question.kind === PowerQuestionKind.OrderDrawnCards)
             for (const cardId of question.cardIds ?? question.among ?? []) named.add(cardId)
@@ -564,7 +565,7 @@ function dealWorldCards(
     return { worldDeck, discardPiles, hands, advisers, drawnForQuestions, dispossessed }
 }
 
-/** Inquisitor — the row everyone saw the Conspiracy question name. */
+/** Inquisitor — the row everyone saw the Conspiracy question name, until it is answered. */
 function conspiracyRow(
     questions: readonly ProjectedQuestion[],
     playerId: string,

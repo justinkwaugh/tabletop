@@ -1,21 +1,33 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import TokenText from '$lib/components/TokenText.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName } from '$lib/model/names.js'
-    import { cardsThatCan } from '$lib/model/actionCards.js'
+    import { type ReasonPart } from '$lib/model/names.js'
+    import { cardsMakingPossible } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
         UNTARGETED_ACTIONS,
-        type ActionEntry
+        type ActionEntry,
+        type MajorEntry
     } from '$lib/model/actionCatalogue.js'
-    import { freeActionDueLine, reasonActionUnavailable } from '$lib/model/actionAvailability.js'
+    import {
+        freeActionDueLine,
+        gridRefusal,
+        refusalWords,
+        tileCost
+    } from '$lib/model/actionAvailability.js'
     import { actionImage } from '$lib/images/actionImages.js'
     import { unseenPeekSlots } from '$lib/model/relicKnowledge.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { BESIDE_GAP, CHIP_GAP, sidewaysChips, uprightChips } from '$lib/model/minorChips.js'
 
-    // R-4.2 — every action is listed, the unavailable ones dimmed with the engine's reason.
+    // R-4.2 — the six majors are always listed, an unavailable one dimmed with why on a tap; a minor
+    // is listed only when it can be taken.
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
     let valid = $derived(new Set(gameSession.validActionTypes))
@@ -26,12 +38,6 @@
         assertExists(seat, 'The Act Phase grid is shown to the seat whose turn it is')
         return seat
     })
-
-    // R-4.2.a — a Campaign right after Knights Errant or Hunting Party costs nothing.
-    function costLabel(entry: ActionEntry): string {
-        if (entry.type !== ActionType.Campaign) return entry.cost
-        return gameSession.campaignSupplyCost === 0 ? 'no Supply' : entry.cost
-    }
 
     // R-7.4 — the cards that change an action are found with the powers.
     let cards = $derived(gameSession.actionCards)
@@ -46,15 +52,73 @@
         return true
     }
 
-    function blockedBecause(entry: ActionEntry): string | undefined {
-        return gameSession.humanizeReason(
-            reasonActionUnavailable(gameState, seat.playerId, entry.type)
-        )
+    let minors = $derived(MINOR_ACTIONS.filter(available))
+
+    // The minors share one width: on a desktop the widest label's; on a phone as `minorChips`
+    // sets them from the labels shown and the panel's width.
+    const CHIP = 'rounded border bg-oath-surface-raised px-2 py-1 text-[11px] font-medium'
+    const labelWidth = new ChoiceWidth()
+    const wordWidth = new ChoiceWidth()
+    const layout = new PhoneLayout()
+    let row = $state(0)
+    let majorsWidth = $state(0)
+
+    // A transform leaves layout alone, so the widths are read unscaled.
+    const measureRow: Attachment<HTMLElement> = (node) => {
+        const read = () => {
+            row = node.clientWidth
+        }
+        const observer = new ResizeObserver(read)
+        observer.observe(node)
+        read()
+        return () => observer.disconnect()
+    }
+    const measureMajors: Attachment<HTMLElement> = (node) => {
+        const read = () => {
+            majorsWidth = node.offsetWidth
+        }
+        const observer = new ResizeObserver(read)
+        observer.observe(node)
+        read()
+        return () => observer.disconnect()
     }
 
-    // A dimmed tile answers "why not" on tap, where there is no hover; the reason is the
-    // engine's for the state and seat it was tapped in, and a hover on another tile replaces it.
-    let tap = $state.raw<{ entry: ActionEntry; seatId: string; actionCount: number } | undefined>(
+    let chips = $derived.by(() => {
+        const sizes = {
+            row,
+            majors: majorsWidth,
+            label: labelWidth.widest,
+            word: wordWidth.widest
+        }
+        if (layout.upright) return uprightChips(sizes, minors.length)
+        if (layout.sideways) return sidewaysChips(sizes, minors.length)
+        return undefined
+    })
+    let chipWidth = $derived(chips?.width ?? labelWidth.widest)
+
+    // R-7.4 — where a card would make the action possible, Use a power is ringed while the reason
+    // shows; the card is named only behind it.
+    function refusalOf(entry: MajorEntry) {
+        const refusal = gridRefusal(gameState, seat.playerId, entry.type)
+        if (!refusal) return undefined
+        const why: { parts: ReasonPart[]; text: string } =
+            refusal.cause === 'engine'
+                ? {
+                      parts: gameSession.reasonParts(refusal.reason),
+                      text: `${gameSession.humanizeReason(refusal.reason)}`
+                  }
+                : shortWhy(refusalWords(refusal))
+        return { ...why, cardHelps: cardsMakingPossible(cards, entry.type).length > 0 }
+    }
+
+    function shortWhy(words: string): { parts: ReasonPart[]; text: string } {
+        return { parts: [{ kind: 'text', text: words }], text: words }
+    }
+
+    // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
+    // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
+    // replaces it, except on the Use a power chip it rings, which answers it.
+    let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
         undefined
     )
     let tapped = $derived(
@@ -62,67 +126,55 @@
             ? tap.entry
             : undefined
     )
-    let tappedReason = $derived(tapped && !available(tapped) ? blockedBecause(tapped) : undefined)
-    let tappedCards = $derived(
-        tapped && !available(tapped) ? cardsThatCan(cards, tapped.type, cardName) : undefined
-    )
-
-    function refusal(entry: ActionEntry): string | undefined {
-        const why = blockedBecause(entry)
-        const can = cardsThatCan(cards, entry.type, cardName)
-        return why && can ? `${why}. ${can}` : why
-    }
-
     let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
+    let pointedMajor = $derived(tapped ?? MAJOR_ACTIONS.find((entry) => entry === hoveredEntry))
+    let shownRefusal = $derived(
+        pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
+    )
+    // The ring is read with the reason it answers.
+    const reasonId = $props.id()
+    function ringed(entry: ActionEntry): boolean {
+        return entry.type === ActionType.UseActionPower && shownRefusal?.cardHelps === true
+    }
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
 
     function send(type: ActionType) {
         if (type === ActionType.EndActPhase) void gameSession.endActPhase()
-        else if (type === ActionType.SelfExile) void gameSession.selfExile()
     }
 
     // A pressed tile gives way to its panel without a pointer leave, so the line clears here.
-    function press(entry: ActionEntry, ok: boolean) {
-        tap = ok ? undefined : { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
-        if (!ok) return
+    function take(entry: ActionEntry) {
+        tap = undefined
         hoveredEntry = undefined
         if (UNTARGETED_ACTIONS.has(entry.type)) send(entry.type)
         else gameSession.chooseAction(entry.type)
     }
 
+    function pressMajor(entry: MajorEntry, ok: boolean) {
+        if (ok) take(entry)
+        else tap = { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
+    }
+
     function hover(entry: ActionEntry, on: boolean) {
-        if (on && tapped !== entry) tap = undefined
+        if (on && tapped !== entry && !ringed(entry)) tap = undefined
         if (on) hoveredEntry = entry
         else if (hoveredEntry === entry) hoveredEntry = undefined
     }
 
-    // What a major tile and a minor chip share; they differ in look and in the cost they print.
-    function tile(entry: ActionEntry, describe: string) {
-        const ok = available(entry)
+    function pointing(entry: ActionEntry) {
         return {
-            ok,
-            attrs: {
-                disabled: busy,
-                'aria-disabled': !ok,
-                title: ok ? describe : (refusal(entry) ?? describe),
-                onpointerenter: () => hover(entry, true),
-                onpointerleave: () => hover(entry, false),
-                onfocus: () => hover(entry, true),
-                onblur: () => hover(entry, false),
-                onclick: () => press(entry, ok)
-            }
+            disabled: busy,
+            onpointerenter: () => hover(entry, true),
+            onpointerleave: () => hover(entry, false),
+            onfocus: () => hover(entry, true),
+            onblur: () => hover(entry, false)
         }
     }
 </script>
 
 <div class="head flex items-center justify-between gap-2 mb-2">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">
-        Act Phase
-        <span class="ml-2 normal-case tracking-normal text-oath-text-muted"
-            >Supply {seat.supply}</span
-        >
-    </h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">Supply {seat.supply}</h3>
     {#if valid.has(ActionType.EndActPhase)}
         <!-- R-4.2 — the phase may end after zero actions. -->
         <button
@@ -131,7 +183,7 @@
             disabled={busy}
             onclick={() => send(ActionType.EndActPhase)}
         >
-            End the Act Phase
+            End Act Phase
         </button>
     {/if}
 </div>
@@ -147,106 +199,159 @@
                 disabled={busy}
                 onclick={() => void gameSession.forgoFreeAction()}
             >
-                Give it up
+                Skip
             </button>
         {/if}
     </div>
 {/if}
 
-<div class="actions">
-    <div class="majors flex flex-wrap gap-1.5">
+<!-- The panel's inner width, unscaled, so fitting the panel never changes the minors' layout. -->
+<div class="row" aria-hidden="true" {@attach measureRow}></div>
+
+<div class="actions" class:actions--beside={chips?.beside} style:--beside-gap="{BESIDE_GAP}px">
+    <div class="majors flex flex-wrap gap-1.5" {@attach measureMajors}>
         {#each MAJOR_ACTIONS as entry (entry.type)}
-            {@const t = tile(entry, `${entry.label} — ${costLabel(entry)}. ${entry.summary}`)}
+            {@const ok = available(entry)}
+            {@const cost = tileCost(gameState, seat.playerId, entry)}
+            {@const describe = `${entry.label} — ${cost}. ${entry.summary}`}
             <button
                 class="group flex w-[92px] flex-col items-center gap-1 rounded border px-1
                        py-1.5 text-center transition-colors
-                       {t.ok
+                       {ok
                     ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent hover:bg-oath-surface-raised cursor-pointer'
                     : 'border-oath-divider bg-oath-surface opacity-55 cursor-not-allowed'}"
-                {...t.attrs}
+                {...pointing(entry)}
+                aria-disabled={!ok}
+                title={ok ? describe : (refusalOf(entry)?.text ?? describe)}
+                onclick={() => pressMajor(entry, ok)}
             >
-                <img
-                    src={actionImage(entry.type)}
-                    alt=""
-                    class="h-9 w-9 {t.ok ? '' : 'grayscale'}"
-                />
+                <img src={actionImage(entry.type)} alt="" class="h-9 w-9 {ok ? '' : 'grayscale'}" />
                 <span class="text-[11px] font-semibold leading-none">{entry.label}</span>
-                <span class="text-[10px] leading-none text-oath-accent">{costLabel(entry)}</span>
+                <span class="text-[10px] leading-none text-oath-accent">{cost}</span>
             </button>
         {/each}
     </div>
 
-    <div class="minors mt-1.5 flex flex-wrap gap-1.5">
-        {#each MINOR_ACTIONS as entry (entry.type)}
-            {@const t = tile(entry, `${entry.label}. ${entry.summary}`)}
-            <button
-                class="rounded border px-2 py-1 text-[11px] font-medium transition-colors
-                       {t.ok
-                    ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent cursor-pointer'
-                    : 'border-oath-divider bg-oath-surface text-oath-text-muted opacity-70 cursor-not-allowed'}"
-                {...t.attrs}
-            >
-                {entry.label}
-            </button>
-        {/each}
-    </div>
+    {#if minors.length > 0}
+        <div
+            class="minors flex flex-wrap"
+            style:--chip-gap="{CHIP_GAP}px"
+            style:--columns={chips?.columns}
+        >
+            {#each minors as entry (entry.type)}
+                {@const ring = ringed(entry)}
+                <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
+                <button
+                    class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
+                           {ring
+                        ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
+                        : 'border-oath-frame'}"
+                    {...pointing(entry)}
+                    aria-describedby={ring ? reasonId : undefined}
+                    style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
+                    title={`${entry.label}. ${entry.summary}`}
+                    onclick={() => take(entry)}
+                >
+                    {entry.label}
+                </button>
+            {/each}
+        </div>
+        <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
+        <div class="ruler" aria-hidden="true">
+            {#each minors as entry (entry.type)}
+                <span class="chip {CHIP}"
+                    ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
+                    ></span
+                >
+                <span class="chip {CHIP}"
+                    ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
+                    ></span
+                >
+            {/each}
+        </div>
+    {/if}
 </div>
 
-<!-- One fixed line: what the hovered action does, or why the tapped one is refused. -->
+<!-- One fixed line: why the pointed or tapped major is refused, or what the hovered action does. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
-    {#if tappedReason}
-        <span class="text-oath-danger"
-            ><TokenText text={tappedReason} />{tappedCards ? '.' : ''}</span
+    {#if shownRefusal}
+        <span id={reasonId} class="text-oath-danger"
+            >{#each shownRefusal.parts as part, i (i)}{#if part.kind === 'text'}<TokenText
+                        text={part.text}
+                    />{:else}<PlayerName
+                        playerId={part.playerId}
+                        possessive={part.possessive}
+                    />{/if}{/each}</span
         >
-        {#if tappedCards}
-            <span class="text-oath-text">{tappedCards}</span>
-        {/if}
     {:else if hoveredEntry}
-        <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
-        <span class="text-oath-accent">{hoveredEntry.cost}</span>
-        <span class="text-oath-text-muted">— <TokenText text={hoveredEntry.summary} /></span>
+        <span class="text-oath-text-muted"><TokenText text={hoveredEntry.summary} /></span>
     {/if}
 </div>
 
 <style>
+    /* 100cqw is the width of FitBox's unscaled box; 26px is the action panel's padding and border. */
+    .row {
+        width: calc(100cqw - 26px);
+        height: 0;
+    }
+    .minors {
+        margin-top: var(--chip-gap);
+        gap: var(--chip-gap);
+    }
+    .ruler {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+    }
+    .ruler .chip {
+        display: block;
+    }
+
+    @media (max-width: 640px) and (orientation: portrait),
+        (max-height: 520px) and (orientation: landscape) {
+        .minors {
+            display: grid;
+            grid-template-columns: repeat(var(--columns, 1), max-content);
+            justify-content: start;
+        }
+        .chip {
+            min-height: 44px;
+            padding: 0 10px;
+            font-size: 12px;
+            line-height: 1.15;
+            white-space: normal;
+            overflow-wrap: normal;
+            hyphens: manual;
+            text-align: center;
+        }
+    }
+
     @media (max-width: 640px) and (orientation: portrait) {
-        .actions {
+        .actions--beside {
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
-            column-gap: 8px;
+            column-gap: var(--beside-gap);
             align-items: start;
-            overflow: hidden;
+        }
+        .actions--beside .minors {
+            margin-top: 0;
         }
         .majors {
             display: grid;
             grid-template-columns: repeat(3, 64px);
             gap: 5px;
+            width: max-content;
         }
         .majors :global(button) {
             width: 64px;
             padding-left: 2px;
             padding-right: 2px;
         }
-        /* `min-width: 0`: a flex container in a grid track otherwise sizes to
-           its longest chip and runs past the panel's edge. */
-        .minors {
-            margin-top: 0;
-            min-width: 0;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 5px;
-        }
-        .minors :global(button) {
-            min-height: 36px;
-            padding: 4px 6px;
-            font-size: 11px;
-            line-height: 1.15;
-            white-space: normal;
-            text-align: center;
-        }
     }
 
-    /* A phone held sideways: one row each for tiles and chips, and the strip in the header. */
+    /* A phone held sideways: one row of tiles, and the strip in the header. */
     @media (max-height: 520px) and (orientation: landscape) {
         .head {
             margin-bottom: 4px;
@@ -263,9 +368,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .actions {
-            display: block;
         }
         .majors {
             display: grid;
@@ -286,20 +388,6 @@
         }
         .majors :global(button span:last-of-type) {
             font-size: 9px;
-        }
-        .minors {
-            margin-top: 4px;
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 4px;
-        }
-        .minors :global(button) {
-            min-height: 34px;
-            padding: 2px 3px;
-            font-size: 9.5px;
-            line-height: 1.1;
-            white-space: normal;
-            text-align: center;
         }
     }
 </style>

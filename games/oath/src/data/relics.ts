@@ -20,6 +20,8 @@ export const RELIC_RECORDS: readonly RelicRecord[] = relics
 /** R-1.8, R-6.4, R-3.3.1 */
 export const GRAND_SCEPTER_ID = 'relic.grand-scepter'
 
+export const WHISTLE_ID = 'relic.whistle'
+
 /** R-1.17, R-2.3 */
 export const RELIQUARY_SIZE = 4
 

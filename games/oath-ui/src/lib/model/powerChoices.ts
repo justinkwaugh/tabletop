@@ -68,11 +68,11 @@ function boundedCount(option: PowerChoice | undefined, count: number): number {
         : Math.max(0, count)
 }
 
-// A required spec defaults to its first legal value; an optional one to none.
+// No default where the player has a choice: a required spec with one legal value starts on it.
 export function optionIndexOf(legal: LegalChoice, index: number, picks: PowerChoicePicks): number {
     const picked = picks.option[index]
     if (picked !== undefined) return picked
-    return legal.spec.min > 0 && legal.options.length > 0 ? 0 : NO_OPTION
+    return legal.spec.min > 0 && legal.options.length === 1 ? 0 : NO_OPTION
 }
 
 export function withOptionPick(
@@ -118,6 +118,22 @@ export function withSeveralCount(
             [severalCountKey(index, optionIndex)]: boundedCount(option, count)
         }
     }
+}
+
+/**
+ * A confirm waits until every spec has at least its least picks. A required single pick
+ * counts the option the picker shows picked, as `powerChoicesFrom` sends it.
+ */
+export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
+    return choices.every((legal, index) => {
+        const picked = allowsSeveral(legal)
+            ? (picks.several[index] ?? []).filter((option) => legal.options[option] !== undefined)
+                  .length
+            : legal.options[optionIndexOf(legal, index, picks)] === undefined
+              ? 0
+              : 1
+        return picked >= legal.spec.min
+    })
 }
 
 export function powerChoicesFrom(

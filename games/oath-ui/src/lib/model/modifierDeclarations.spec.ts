@@ -54,9 +54,11 @@ function pickRegion(session: OathGameSession, cardId: string, region: Region) {
 }
 
 describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
-    it('lists the pawn’s pile once when the only region named is where the discards go (Bracken)', () => {
+    it('lists no source until Bracken’s region is picked, then the pawn’s pile once (Bracken names where the discards go)', () => {
         const { session } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
+        expect(session.searchRows).toEqual([])
+        pickRegion(session, BRACKEN, Region.Hinterland)
         expect(piles(session)).toEqual([Region.Cradle])
     })
 
@@ -127,17 +129,17 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(action.modifiers).toEqual([use(MUSHROOMS)])
     })
 
-    it('keeps the card in use while nothing else makes the menu possible, and Back returns to the powers', () => {
+    it('keeps the card in use while nothing else makes the menu possible, and Undo returns to the powers', async () => {
         const { session } = withMushrooms(1)
         session.openActionWithCard(session.actionCards[0])
 
         session.modifiers.declare(use(MUSHROOMS), false)
         expect(session.modifiers.isDeclared(use(MUSHROOMS))).toBe(true)
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
         expect(session.selection.modifiers).toEqual([])
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBeUndefined()
     })
 
@@ -174,7 +176,7 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(piles(session)).toEqual([Region.Hinterland])
     })
 
-    it('Back takes a card added in the menu first, then returns the opened one to the powers', () => {
+    it('Undo takes a card added in the menu first, then returns the opened one to the powers', async () => {
         const state = testState(
             [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 0, secrets: 1, supply: 1, advisers: [{ cardId: BRACKEN, faceUp: true }] })],
             {
@@ -189,14 +191,14 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         session.modifiers.declare(use(BRACKEN), true)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([MUSHROOMS, BRACKEN])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.Search)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([MUSHROOMS])
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 
-    it('with two cards that each make the Travel possible, either may be put down but not both, and Back still returns to the powers', () => {
+    it('with two cards that each make the Travel possible, either may be put down but not both, and Undo still returns to the powers', async () => {
         const TENTS = 'denizen.nomad.tents'
         const SPECIAL_ENVOY = 'denizen.nomad.special-envoy'
         const state = testState(
@@ -214,19 +216,19 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         session.modifiers.declare(use(SPECIAL_ENVOY), false)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([SPECIAL_ENVOY])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 
-    it('Back returns to the powers after the opened card gives way to another that names the pile', () => {
+    it('Undo returns to the powers after the opened card gives way to another that names the pile', async () => {
         const { session } = searching([ERRAND_BOY])
-        session.back()
+        await session.undo()
         const errandBoy = required(session.actionCards.find((card) => card.cardId === ERRAND_BOY), 'Errand Boy changes the Search')
         session.openActionWithCard(errandBoy)
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([OBSERVATORY])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 })

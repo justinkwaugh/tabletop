@@ -78,7 +78,7 @@ export class OathSelection extends StagedFlow<OathValueByStage> {
         return this.value('modifiers') ?? []
     }
 
-    // Back takes the last modifier declared, one at a time, before the action under it.
+    // Undo takes the last modifier declared, one at a time, before the action under it.
     back(): OathStage | undefined {
         const modifiers = this.modifiers
         if (this.highestManualStage() === 'modifiers') {

@@ -185,7 +185,7 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
         if (question.kind === PowerQuestionKind.OrderDiscards) shown.push(...question.cardIds)
         if (question.kind === PowerQuestionKind.PlayOrDiscardVision)
             shown.push(question.visionCardId)
-        // Inquisitor — the favor it keeps names the Conspiracy it found.
+        // Inquisitor — the favor it keeps names the Conspiracy it found (played facedown, a seen row).
         if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) shown.push(CONSPIRACY_ID)
     }
     const sets = new Set<string>()

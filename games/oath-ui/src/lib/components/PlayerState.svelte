@@ -243,10 +243,10 @@
                 aria-expanded={gameSession.letPeekOpen}
                 onclick={() => gameSession.toggleLetPeek()}
             >
-                {gameSession.letPeekOpen ? 'Cancel' : 'Let another peek'}
+                Let another peek
             </button>
             {#if gameSession.letPeekOpen && !gameSession.letPeekIsStaged}
-                <div class="mt-1"><LetPeekPicker /></div>
+                <div class="mt-1"><LetPeekPicker seat /></div>
             {/if}
         </div>
     {/if}

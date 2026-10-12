@@ -26,6 +26,8 @@ import { siteHolding } from '../util/access.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { askPowerMoveToll, powerMoveToll } from '../util/powerMoveTolls.js'
+import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -378,6 +380,8 @@ registerModifier(
     }
 )
 
+const PALANQUIN = 'denizen.order.palanquin'
+
 // "Action: Choose a player whose pawn is at your site. Put your pawn on a site that they can travel to. Make them travel to that site, spending no Supply."
 // R-5.6.2 — a facedown site is revealed from the vault as they arrive.
 const otherSites: ChoiceDomain = (state, playerId) => {
@@ -419,6 +423,29 @@ registerEffect(
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [site] = chosen(ctx, PowerChoiceKind.Site)
             const chooser = shroudedWoodChooser(ctx.state, target.playerId)
+            // Toll Roads — a refusal blocks the move, so neither pawn goes; the card's cost stays paid.
+            const toll =
+                chooser === undefined
+                    ? powerMoveToll(ctx.state, target.playerId, site.siteId)
+                    : undefined
+            if (toll) {
+                const move = {
+                    move: PowerMoveKind.Palanquin,
+                    powerCardId: PALANQUIN,
+                    moverPlayerId: ctx.playerId,
+                    movedPlayerId: target.playerId,
+                    toSiteId: site.siteId
+                }
+                const tollMove = askPowerMoveToll(ctx.state, move, toll, ctx.playerId)
+                return {
+                    summary:
+                        tollMove.outcome === PowerMoveTollOutcome.Asked
+                            ? `Palanquin: ${target.playerId} is asked for ${toll.cardId}'s favor`
+                            : `Palanquin: ${target.playerId} had no favor for ${toll.cardId}, and neither moved`,
+                    targetPlayerId: target.playerId,
+                    tollMove
+                }
+            }
             // "Put your pawn" is no travel; "make them travel" is, so its after-travel powers fire.
             ctx.state.getPlayerState(ctx.playerId).siteId = site.siteId
             // R-11.7 — leaving an enemy's Shrouded Wood, its ruler chooses where they travel.

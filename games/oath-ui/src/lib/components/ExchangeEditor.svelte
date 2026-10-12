@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import CountPicker from '$lib/components/CountPicker.svelte'
     import { range } from '@tabletop/common'
@@ -43,6 +44,7 @@
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
     let gameState = $derived(gameSession.gameState)
+    let myId = $derived(gameSession.myPlayer?.id)
 
     function side(key: ExchangeSide): ExchangeTransfer {
         return transferOf(value, key)
@@ -63,7 +65,9 @@
         {@const player = gameState.getPlayerState(giver)}
         {@const favor = usableFavor(gameState, giver)}
         <div class="border-t border-oath-divider pt-1.5">
-            <div class="text-oath-text-muted mb-1">{gameSession.getPlayerName(giver)} gives</div>
+            <div class="text-oath-text-muted mb-1">
+                {#if giver === myId}You give{:else}<PlayerName playerId={giver} /> gives{/if}
+            </div>
             <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="w-14"><TokenText text="favor" /></span>
                 <CountPicker
@@ -125,7 +129,11 @@
                     </label>
                     {#if on}
                         <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5">
-                            <span>{gameSession.getPlayerName(receiver)} moves in</span>
+                            <span>
+                                {#if receiver === myId}You move in{:else}<PlayerName
+                                        playerId={receiver}
+                                    /> moves in{/if}
+                            </span>
                             <CountPicker
                                 values={range(1, warbandsOnBoardOf(gameState, receiver))}
                                 picked={siteWarbandsIn(side(key), siteId)}

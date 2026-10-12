@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { burnFavor } from './burn.js'
 import { gainFavorFromBank, giveFavor, spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
@@ -19,7 +19,6 @@ import {
 import { discardCards, isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { rulesCard } from './access.js'
-import { reasonPersistentForbidsTravel } from './persistent.js'
 import { applyAttackRoll, applyDefenseRoll } from './campaignRoll.js'
 import { rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import {
@@ -40,29 +39,24 @@ import {
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
+import { settleBanishedVictory } from './campaignVictory.js'
+import {
+    askPowerMoveToll,
+    canPayPowerMoveToll,
+    powerMoveToll,
+    settlePowerMoveToll
+} from './powerMoveTolls.js'
+import { payToll } from './tolls.js'
+import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
 }
 
-/** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
 /** Fae Merchant — "any relic you hold except the Grand Scepter", besides the one drawn. */
 export function heldRelicsToBottom(state: HydratedOathGameState, playerId: string): string[] {
     return state.getPlayerState(playerId).relicIds.filter((id) => id !== GRAND_SCEPTER_ID)
-}
-
-export function shroudedWoodDestinations(
-    state: HydratedOathGameState,
-    travelerId: string,
-    fromSiteId: string
-): string[] {
-    return state
-        .allSiteIds()
-        .filter(
-            (siteId) =>
-                siteId !== fromSiteId &&
-                reasonPersistentForbidsTravel(state, travelerId, fromSiteId, siteId) === undefined
-        )
 }
 
 function isPermutationOf(order: readonly number[], count: number): boolean {
@@ -248,16 +242,52 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.PlayOrDiscardConspiracy]: {
         reasonCannotAnswer: (state, playerId, matched) => {
-            if (!matched.answer.play) return undefined
+            const { play, conspiracy, facedown, discardedAdviserCardId } = matched.answer
+            if (facedown) {
+                if (!play) return 'played facedown, the Conspiracy is played, not discarded'
+                if (conspiracy)
+                    return 'the take comes only with the Conspiracy played faceup (R-5.1.4.IV)'
+                // R-5.1.4-H1 — a facedown adviser, judged as a Search's kept card would be.
+                return reasonCannotPlayCard(state, playerId, CONSPIRACY_ID, SearchPlay.Adviser, {
+                    faceUp: false,
+                    discardedAdviserCardIds: listOf(discardedAdviserCardId)
+                })
+            }
+            if (discardedAdviserCardId !== undefined)
+                return 'an adviser is discarded only to play the Conspiracy facedown'
+            if (!play) return undefined
             return reasonCannotPlayConspiracy(state, playerId, {
                 keptCardId: CONSPIRACY_ID,
-                conspiracy: matched.answer.conspiracy
+                conspiracy
             })
         },
         apply: (state, playerId, matched) => {
-            const { play, conspiracy } = matched.answer
+            const { play, conspiracy, facedown, discardedAdviserCardId } = matched.answer
             const holder = state.getPlayerState(matched.question.holderPlayerId)
             holder.removeAdviser(CONSPIRACY_ID)
+            if (facedown) {
+                // R-5.1.4-H1 — to the finder's advisers, facedown; the table saw which card it is.
+                const region = regionOfPawn(state, playerId)
+                const played = playCard(
+                    state,
+                    playerId,
+                    CONSPIRACY_ID,
+                    SearchPlay.Adviser,
+                    region,
+                    {
+                        faceUp: false,
+                        seen: true,
+                        discardedAdviserCardIds: listOf(discardedAdviserCardId)
+                    }
+                )
+                const summary = 'played the Conspiracy as an adviser, facedown'
+                if (played.discarded.length === 0) return summary
+                return {
+                    summary,
+                    discardedCardIds: played.discarded,
+                    discardPileRegion: discardRegionFor(region)
+                }
+            }
             if (play) {
                 // R-5.1.4.IV — played faceup by the finder, then to the box.
                 playConspiracy(state, playerId, CONSPIRACY_ID, conspiracy)
@@ -274,19 +304,69 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.ShroudedWoodDestination]: {
         reasonCannotAnswer: (state, _playerId, matched) => {
-            const { travelerPlayerId, fromSiteId } = matched.question
-            return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(
-                matched.answer.siteId
-            )
-                ? undefined
-                : `${matched.answer.siteId} is not a site ${travelerPlayerId} can be sent to`
-        },
-        apply: (state, _playerId, matched) => {
-            const { travelerPlayerId } = matched.question
+            const { travelerPlayerId, fromSiteId, travel } = matched.question
             const siteId = matched.answer.siteId
+            // R-11.7 — the traveller's own Travel goes only where they can pay.
+            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel.free)
+            return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(siteId)
+                ? undefined
+                : `${siteId} is not a site ${travelerPlayerId} can be sent to`
+        },
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
+            const { travelerPlayerId, travel } = matched.question
+            const siteId = matched.answer.siteId
+            const toll = powerMoveToll(state, travelerPlayerId, siteId)
+            if (travel && toll) {
+                // R-11.7, Toll Roads — the toll is asked before any Supply: paid, the Travel settles.
+                const move = {
+                    move: PowerMoveKind.ShroudedWood,
+                    moverPlayerId: playerId,
+                    movedPlayerId: travelerPlayerId,
+                    toSiteId: siteId,
+                    travel
+                }
+                const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
+                assert(
+                    tollMove.outcome === PowerMoveTollOutcome.Asked,
+                    'The ruler picks only a site whose toll the traveller can pay'
+                )
+                return { summary: `chose ${siteId} for ${travelerPlayerId}`, tollMove }
+            }
+            if (travel) {
+                const { pick, revealed } = settleWoodPick(
+                    state,
+                    travelerPlayerId,
+                    siteId,
+                    travel.free
+                )
+                const notes = pick.notes ?? []
+                const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
+                return revealed
+                    ? { summary, woodPick: pick, disclosed: true }
+                    : { summary, woodPick: pick }
+            }
+            if (toll) {
+                const move = {
+                    move: PowerMoveKind.ShroudedWood,
+                    moverPlayerId: playerId,
+                    movedPlayerId: travelerPlayerId,
+                    toSiteId: siteId
+                }
+                const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
+                const summary = `chose ${siteId} for ${travelerPlayerId}`
+                // A banish waits on the toll's answer; with no favor to ask for, it settles here.
+                return tollMove.outcome === PowerMoveTollOutcome.Asked
+                    ? { summary, tollMove }
+                    : { summary, tollMove, ...settleBanishedVictory(state) }
+            }
             const { notes, revealed } = travelByPower(state, travelerPlayerId, siteId)
             const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
-            return revealed ? { summary, disclosed: true } : summary
+            // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the move.
+            return {
+                summary,
+                disclosed: revealed ? true : undefined,
+                ...settleBanishedVictory(state)
+            }
         }
     },
     [PowerQuestionKind.TravelFreeTo]: {
@@ -295,12 +375,22 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.question.siteIds.includes(siteId)) {
                 return `${siteId} is not one of the sites the Brass Horse named`
             }
+            if (!canPayPowerMoveToll(state, playerId, siteId)) {
+                return `travelling to ${siteId} takes a favor for its toll and you have none`
+            }
             return reasonCannotTravelByPower(state, playerId, siteId)
         },
         apply: (state, playerId, matched) => {
             const siteId = matched.answer.siteId
+            // Toll Roads — Brass Horse's user travels, so they pay as they go.
+            const toll = powerMoveToll(state, playerId, siteId)
+            if (toll) payToll(state, playerId, toll)
             const { notes } = travelByPower(state, playerId, siteId)
-            return `travelled to ${siteId} for no Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
+            const after = notes.length ? ` (${notes.join('; ')})` : ''
+            if (!toll) return `travelled to ${siteId} for no Supply${after}`
+            // The History's form for a toll inside a row: what was paid, then the card.
+            const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
+            return `travelled to ${siteId} for no Supply; ${paid} 1 favor (${toll.cardId})${after}`
         }
     },
     [PowerQuestionKind.RerollDice]: {
@@ -455,6 +545,45 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return {
                 summary: `discarded ${ordered.join(', ')} in that order`,
                 pileDeposits
+            }
+        }
+    },
+    [PowerQuestionKind.PayTravelToll]: {
+        reasonCannotAnswer: (state, playerId, matched) => {
+            const usable = usableFavor(state, playerId)
+            return matched.answer.pay && usable < 1
+                ? `paying takes 1 favor and you have ${usable}`
+                : undefined
+        },
+        apply: (state, _playerId, matched) => {
+            const { question } = matched
+            const tollMove = settlePowerMoveToll(state, question, matched.answer.pay)
+            const paid = `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor and went to ${question.siteId}`
+            // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the answer, paid or refused.
+            if (!matched.answer.pay) {
+                return {
+                    summary: `refused ${question.cardId} and stayed at ${question.fromSiteId}`,
+                    tollMove,
+                    ...settleBanishedVictory(state)
+                }
+            }
+            if (!question.travel)
+                return { summary: paid, tollMove, ...settleBanishedVictory(state) }
+            // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site, then Tyrant and the site's powers.
+            const { pick, revealed } = settleWoodPick(
+                state,
+                question.askedPlayerId,
+                question.siteId,
+                question.travel.free
+            )
+            assert(
+                revealed === undefined,
+                'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'
+            )
+            return {
+                summary: `${paid}, paying ${pick.supplySpent} Supply`,
+                tollMove,
+                woodPick: pick
             }
         }
     },

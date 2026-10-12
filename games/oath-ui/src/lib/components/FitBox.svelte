@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
-    import { MediaQuery } from 'svelte/reactivity'
     import { fittedSize } from '$lib/model/fitBox.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
 
     let {
         fraction = 0.4,
@@ -19,11 +19,9 @@
     let naturalHeight = $state<number | undefined>(undefined)
     let columnHeight = $state(0)
 
-    const portrait = new MediaQuery('(max-width: 640px) and (orientation: portrait)')
+    const layout = new PhoneLayout()
 
-    let budget = $derived(
-        (basis ?? columnHeight) * (portrait.current ? portraitFraction : fraction)
-    )
+    let budget = $derived((basis ?? columnHeight) * (layout.upright ? portraitFraction : fraction))
     let fitted = $derived(
         naturalHeight === undefined ? undefined : fittedSize(naturalHeight, budget)
     )
@@ -98,10 +96,13 @@
 </div>
 
 <style>
-    /* Never clips: a read that ran short overlaps the board below until the next read. */
+    /* Never clips: a read that ran short overlaps the board below until the next read. A
+       container, so content sized in `cqw` takes the unscaled box's width and fitting never
+       changes its layout. */
     .fit {
         position: relative;
         z-index: 1;
+        container-type: inline-size;
     }
     .fit__inner {
         transform-origin: top left;

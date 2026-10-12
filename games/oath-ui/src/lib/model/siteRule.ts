@@ -1,5 +1,7 @@
 import {
     banditsRuleSite,
+    banditsServe,
+    isImperialSite,
     rulersOfSite,
     rulesCard,
     totalWarbandsAt,
@@ -7,24 +9,40 @@ import {
     warbandsAt,
     type HydratedOathGameState,
     type HydratedOathPlayerState,
+    type ImperialScope,
     type WarbandOwner
 } from '@tabletop/oath'
 
 export type SiteRule = {
     rulerIds: string[]
     banditsRule: boolean
-    banditsServeIds: string[]
+    // R-7.6.5 — the Bandit Crown's holder, at an empty site whose bandits act as their warbands.
+    banditsHolderId: string | undefined
+    // R-6.6.3 — the Crown's Q&A: an Imperial holder's bandits are the Empire's warbands there.
+    banditsImperial: boolean
 }
 
-// R-10.21, R-7.6.5 — an empty faceup site is the bandits', unless the Bandit
-// Crown's holder rules it through them.
+// R-5.5.1.a — from Declare to its end a Campaign may suspend a Citizen, and the board says who
+// rules for that Campaign.
+function campaignScope(state: HydratedOathGameState): ImperialScope | undefined {
+    const campaign = state.campaign
+    return campaign ? { nonImperialPlayerIds: campaign.nonImperialPlayerIds } : undefined
+}
+
+// R-10.21, R-7.6.5 — an empty faceup site is the bandits', unless the Bandit Crown's holder rules
+// it through them. Whether they serve as Imperial warbands is the engine's gated answer, so a
+// game created before it keeps the holder alone in the holder's colour.
 export function siteRuleOf(state: HydratedOathGameState, siteId: string): SiteRule {
-    const rulerIds = rulersOfSite(state, siteId)
+    const scope = campaignScope(state)
     const empty = state.isSiteFaceup(siteId) && totalWarbandsAt(state, siteId) === 0
+    const holder = empty
+        ? state.players.find((player) => banditsServe(state, player.playerId, siteId, scope))
+        : undefined
     return {
-        rulerIds,
+        rulerIds: rulersOfSite(state, siteId, scope),
         banditsRule: banditsRuleSite(state, siteId),
-        banditsServeIds: empty ? rulerIds : []
+        banditsHolderId: holder?.playerId,
+        banditsImperial: holder !== undefined && isImperialSite(state, siteId, scope)
     }
 }
 
@@ -48,6 +66,6 @@ export function sitePieces(state: HydratedOathGameState, slotId: string): SitePi
         warbands: warbandEntries(warbandsAt(state, slotId)).filter(([, count]) => count > 0),
         pawns: state.players.filter((player) => player.siteId === slotId),
         rule,
-        bandits: rule.banditsRule || rule.banditsServeIds.length > 0
+        bandits: rule.banditsRule || rule.banditsHolderId !== undefined
     }
 }

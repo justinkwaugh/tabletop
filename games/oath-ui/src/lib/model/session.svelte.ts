@@ -16,10 +16,7 @@ import {
     ForgoFreeAction,
     ExileCitizen,
     HydratedAnswerConsent,
-    HydratedCampaign,
-    HydratedResolveOathkeeper,
     HydratedResolveWake,
-    HydratedExileCitizen,
     HydratedMuster,
     HydratedPlayFacedownAdviser,
     HydratedTrade,
@@ -44,6 +41,9 @@ import {
     Search,
     SearchPlay,
     shroudedWoodChooser,
+    isFreeTravelNow,
+    payableWoodPicks,
+    woodTravelPaysAtPick,
     SearchResolve,
     SelfExile,
     SetupChoice,
@@ -83,6 +83,8 @@ import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
+import { woodRegions, type WoodRegion } from './woodTravel.js'
+import { gridRefusal, refusalWords } from './actionAvailability.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -95,14 +97,16 @@ import {
     CitizenshipDraft,
     ConsentDraft,
     RestDraft,
+    SeatCardPeekDraft,
     WakeDraft
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { VisionsSeen } from './visionsSeen.svelte.js'
-import { humanizeReason, siteName } from './names.js'
-import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
+import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
+import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
+import type { WarbandWhose } from './tokenText.js'
 import {
     endingRule,
     gameEndEvent,
@@ -112,6 +116,8 @@ import {
     type MajorEventContext
 } from './majorEvents.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
+import { letPeekKey } from './letPeekChoices.js'
+import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
 import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
@@ -120,6 +126,7 @@ import {
 } from './adviserPlacements.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
+    dimsTheMap,
     reasonCannotRecoverBanner,
     recoverableBanners,
     recoverableRelicSlots,
@@ -128,6 +135,7 @@ import {
     type TravelWay,
     type SiteFavor,
     type BannerBid,
+    type MapPick,
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
@@ -141,7 +149,12 @@ import { actionCards, type ActionCard } from './actionCards.js'
 import { powerUseKey } from './powerUse.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
-import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
+import {
+    emptyPicks,
+    picksComplete,
+    powerChoicesFrom,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { whenPlayedChoices } from './whenPlayed.js'
 import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
@@ -167,6 +180,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly actionPowers = new ActionPowersDraft(this)
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
+    readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
     readonly visionsSeen = new VisionsSeen(this)
@@ -186,9 +200,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.isMyTurn ? this.liveSeatId : undefined
     }
 
-    // At most one panel is on screen, so at most one of these holds picks.
+    // The seat card's picker opens over any panel, so Undo closes it first; at most one panel holds picks.
     private get panelDrafts(): PanelDraft[] {
         return [
+            this.seatCardPeek,
             this.search,
             this.question,
             this.victory,
@@ -201,7 +216,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.actionPowers,
             this.citizenship,
             this.consent,
-            this.campaign
+            this.campaign,
+            this.setup
         ]
     }
 
@@ -213,7 +229,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     resetAction(): void {
-        this.seatCardLetPeekOpen = false
         this.selection.reset()
         this.clearActionDrafts()
         for (const draft of this.panelDrafts) draft.reset()
@@ -223,22 +238,21 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         this.resetAction()
     }
 
-    // Back unwinds manual picks only: an auto pick stays when nothing manual is left.
-    back(): void {
+    // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
+    override async undo(): Promise<void> {
         if (this.busy) return
+        if (this.hasManualDraft) {
+            this.popHighestManualSelection()
+            return
+        }
+        await super.undo()
+    }
+
+    private popHighestManualSelection(): void {
         if (this.panelDrafts.some((draft) => draft.back())) return
         const action = this.selection.action
         if (this.selection.back() === undefined) return
         if (this.selection.action !== action) this.clearActionDrafts()
-    }
-
-    override async undo(): Promise<void> {
-        if (this.busy) return
-        if (this.hasManualDraft) {
-            this.back()
-            return
-        }
-        await super.undo()
     }
 
     private clearActionDrafts(): void {
@@ -291,6 +305,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return humanizeReason(reason, this.historyNames, this.myPlayer?.id)
     }
 
+    /** An engine refusal for a panel: as `humanizeReason`, with every other seat as its chip. */
+    reasonParts(reason: string): ReasonPart[] {
+        return reasonParts(reason, this.historyNames.seats, this.myPlayer?.id)
+    }
+
     async forgoFreeAction(): Promise<void> {
         await this.commit(
             this.createPlayerAction(ForgoFreeAction, { type: ActionType.ForgoFreeAction })
@@ -329,16 +348,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.gameState.machineState === MachineState.WakePhase &&
             playerId !== undefined &&
             !HydratedResolveWake.nothingToDecide(this.gameState, playerId)
-        )
-    }
-
-    reasonCannotChooseOathkeeper(candidateId: string): string | undefined {
-        const playerId = this.myPlayer?.id
-        assertExists(playerId, 'The Oathkeeper title is passed on from a seat')
-        return HydratedResolveOathkeeper.reasonCannotResolveOathkeeper(
-            this.gameState,
-            playerId,
-            candidateId
         )
     }
 
@@ -402,12 +411,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     startSneakAttack(): void {
         if (this.sneakAttackDefenderId === undefined) return
         this.chooseAction(ActionType.Campaign)
-    }
-
-    // R-5.5.1 — nothing right after Knights Errant or Hunting Party, or as a Sneak Attack.
-    get campaignSupplyCost(): number | undefined {
-        const playerId = this.myPlayer?.id
-        return playerId ? HydratedCampaign.supplyCostFor(this.gameState, playerId) : undefined
     }
 
     async declareCampaign(declaration: CampaignDeclaration): Promise<void> {
@@ -522,9 +525,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return unseenPeekSlots(this.gameState, playerId)
     }
 
-    // R-9.4 — at any time, from the seat card or the Act Phase grid.
-    private seatCardLetPeekOpen = $state(false)
-
     // Visual contract, "Coexistence": one let-peek picker; in this seat's Act Phase it is the staged action.
     get letPeekIsStaged(): boolean {
         return (
@@ -536,7 +536,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get letPeekOpen(): boolean {
         return this.letPeekIsStaged
             ? this.selection.action === ActionType.LetPeek
-            : this.seatCardLetPeekOpen
+            : this.seatCardPeek.open
     }
 
     get canLetPeek(): boolean {
@@ -549,10 +549,27 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return HydratedLetPeek.legalShows(this.gameState, playerId)
     }
 
+    /** R-6.1, R-9.4 — the card the Show menu shows: the one tapped, or the only one (`letPeekKey`). */
+    get letPeekPicked(): string | undefined {
+        if (!this.letPeekOpen) return undefined
+        const keys = this.letPeekShows.map((show) => letPeekKey(show.subject))
+        const manual = this.letPeekIsStaged
+            ? this.selection.value('option')
+            : this.seatCardPeek.subject
+        if (manual !== undefined && keys.includes(manual)) return manual
+        return keys.length === 1 ? keys[0] : undefined
+    }
+
+    pickLetPeekSubject(key: string): void {
+        if (!this.letPeekOpen) return
+        if (this.letPeekIsStaged) this.selection.set('option', key)
+        else this.seatCardPeek.pick(key)
+    }
+
     toggleLetPeek(): void {
         if (!this.canLetPeek) return
         if (!this.letPeekIsStaged) {
-            this.seatCardLetPeekOpen = !this.seatCardLetPeekOpen
+            this.seatCardPeek.toggle()
         } else if (this.letPeekOpen) {
             this.resetAction()
         } else {
@@ -560,10 +577,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
-    get exileTargets(): string[] {
+    /** R-6.7 — each Citizen this seat may exile, priced. */
+    get exileOffers(): { citizenPlayerId: string; favor: number }[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.ExileCitizen) return []
-        return HydratedExileCitizen.legalTargets(this.gameState, playerId)
+        return exileCitizenOffers(this.gameState, playerId)
+    }
+
+    /** R-6.8 — the staged self-exile's price and payee. */
+    get selfExileOffer(): { favor: number; holderId: string } | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.SelfExile) return undefined
+        return selfExileOffer(this.gameState, playerId)
     }
 
     chooseAdviser(cardId: string): void {
@@ -627,7 +652,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const option = this.selection.value('option')
         return this.facedownAdviserOptions
             .find((adviser) => adviser.cardId === this.adviserCardId)
-            ?.placements.find((p) => p.play === option && p.blockedBecause === undefined)
+            ?.placements.find((p) => p.play === option)
     }
 
     /** The placement waiting on its picks: discards over the limit, When Played choices, a take. */
@@ -705,6 +730,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     get adviserPlayPicks(): PowerChoicePicks {
         return this.selection.value('whenPlayed') ?? emptyPicks()
+    }
+
+    /** "Play" waits until every When Played choice has its picks. */
+    get adviserPlayComplete(): boolean {
+        return picksComplete(this.adviserPlayChoices, this.adviserPlayPicks)
     }
 
     setAdviserPlayPicks(picks: PowerChoicePicks): void {
@@ -862,16 +892,40 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             return ontoSite && siteId ? [siteId] : []
         }
         if (this.selection.action !== ActionType.Travel) return []
-        if (this.selection.value('site') !== undefined) return []
+        // A destination whose ways are open stays lit with the rest: a tap on another moves the pick.
         return HydratedTravel.legalDestinations(this.gameState, playerId, this.modifiers.declared)
     }
 
     get siteOffers(): SiteOffer[] {
+        // R-5.5.7.III — the spoils' pawn step, which a Sneak Attack may open off the seat's turn.
+        const banish = this.victory.mapSites
+        if (banish.length > 0) return banish.map((slotId) => ({ slotId, intent: 'banish' }))
+        // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel, asked off his turn.
+        const wood = this.question.woodRegions
+        if (wood.length > 0) {
+            return wood.flatMap(({ cost, foldedBy, siteIds }) =>
+                siteIds.map((slotId) => ({
+                    slotId,
+                    intent: 'wood',
+                    cost,
+                    foldedBy,
+                    toll: this.question.woodTollAt(slotId)
+                }))
+            )
+        }
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         const sites = this.selectableSites
         const pick = this.setup.boardPick
-        if (pick) return sites.map((slotId) => ({ slotId, intent: 'start', label: pick.label }))
+        if (pick) {
+            return sites.map((slotId) => ({
+                slotId,
+                intent: 'start',
+                label: pick.label,
+                picked: slotId === pick.picked,
+                pickable: pick.pickable && slotId !== pick.picked
+            }))
+        }
         switch (this.selection.action) {
             case ActionType.Campaign:
                 return sites.map((slotId) => ({
@@ -881,7 +935,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 }))
             case ActionType.MoveWarbands:
                 return sites.map((slotId) => ({ slotId, intent: 'moveWarbands' }))
-            case ActionType.Travel:
+            case ActionType.Travel: {
+                const open = this.selection.value('site')
                 return sites.map((slotId) => {
                     const ways = this.travelWaysTo(slotId)
                     return {
@@ -894,16 +949,40 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                             { kind: 'travel', toSiteId: slotId },
                             (id) => this.getPlayerName(id),
                             ways
-                        )
+                        ),
+                        ways,
+                        picked: slotId === open
                     }
                 })
+            }
             default:
                 return []
         }
     }
 
+    // Setup dims the map only while the start site is open to a pick, not for the pick alone.
     get mapDimmed(): boolean {
-        return this.siteOffers.some((offer) => offer.intent !== 'moveWarbands')
+        return dimsTheMap(this.siteOffers)
+    }
+
+    /**
+     * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
+     * sites, all of them until the send, so the frame and its chips hold while the discards are
+     * ordered; Travel's destinations; or where the spoils banish the defeated pawn.
+     */
+    get mapPick(): MapPick | undefined {
+        if (this.setup.boardPick) {
+            const sites = this.setup.sites
+            return { kind: 'start', sites, choosing: sites.length > 1 }
+        }
+        const banish = this.victory.mapSites
+        if (banish.length > 0) return { kind: 'banish', sites: banish, choosing: banish.length > 1 }
+        const destinations = this.siteOffers.flatMap((offer) =>
+            offer.intent === 'travel' ? [offer.slotId] : []
+        )
+        return destinations.length > 0
+            ? { kind: 'travel', sites: destinations, choosing: true }
+            : undefined
     }
 
     // R-5.3.2 — Trade's legality is per option, so a card is offered if either is legal;
@@ -1014,6 +1093,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.needsFavorStart) this.selection.set('favorStart', suit)
     }
 
+    /** The bid and, for the People's Favor, the bank its old favor starts returning to. */
+    get bannerPicksComplete(): boolean {
+        return (
+            this.bannerAmount !== undefined && (!this.needsFavorStart || this.favorStart !== undefined)
+        )
+    }
+
     get bannerRecoverReason(): string | undefined {
         const playerId = this.liveTurnSeatId
         const banner = this.stagedBanner
@@ -1080,13 +1166,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
-    /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */
-    historyWarbandColors(action: GameAction): { own: Color; imperial: Color } {
-        const imperial = this.warbandColor(IMPERIAL_WARBANDS)
-        const owner = rowWarbandOwner(action, (playerId) =>
-            ownWarbandOwner(this.gameState, playerId)
-        )
-        return { own: owner === undefined ? imperial : this.warbandColor(owner), imperial }
+    /** R-10.13 — each of a History row's warbands in its owner's colour, the Empire's in the Chancellor's. */
+    historyWarbandColor(action: GameAction): (whose: WarbandWhose) => Color {
+        const reader = { names: this.historyNames, viewerId: this.myPlayer?.id }
+        return (whose) => {
+            const owner = phraseWarbandOwner(whose, action, reader, (playerId) =>
+                ownWarbandOwner(this.gameState, playerId)
+            )
+            return this.warbandColor(owner ?? IMPERIAL_WARBANDS)
+        }
     }
 
     warbandOwnerName(owner: WarbandOwner): string {
@@ -1193,10 +1281,37 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return shroudedWoodChooser(this.gameState, playerId)
     }
 
+    /** R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick. */
+    get woodRegions(): WoodRegion[] | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || !this.shroudedWoodChooser || !woodTravelPaysAtPick(this.gameState)) {
+            return undefined
+        }
+        const picks = payableWoodPicks(this.gameState, playerId, this.woodTravelIsFree)
+        return woodRegions(this.gameState, picks)
+    }
+
+    /** Second Wind, Brass Horse */
+    get woodTravelIsFree(): boolean {
+        const playerId = this.liveTurnSeatId
+        return playerId !== undefined && isFreeTravelNow(this.gameState, playerId)
+    }
+
     get woodTravelReason(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId) return undefined
         return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {})
+    }
+
+    /** The red line under a Wood Travel nobody can pay, in the grid's words ("Needs 2 Supply; you have 1."). */
+    get woodTravelRefusal(): string | undefined {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.woodTravelReason === undefined) return undefined
+        const refusal = gridRefusal(this.gameState, playerId, ActionType.Travel)
+        if (!refusal) return undefined
+        return refusal.cause === 'engine'
+            ? this.humanizeReason(refusal.reason)
+            : refusalWords(refusal)
     }
 
     async travelFromShroudedWood(): Promise<void> {
@@ -1206,12 +1321,32 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    // R-5.6, R-7.1.4 — every destination with its ways to pay, unless one is already staged.
+    // R-5.6, R-7.1.4 — every destination with its ways to pay.
     get travelRows(): TravelRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return []
-        if (this.selection.value('site') !== undefined || this.shroudedWoodChooser) return []
+        if (this.shroudedWoodChooser) return []
         return travelRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /** R-11.12 — the destination a map pick opened, with its ways to pay, while it is still offered. */
+    get travelWaysOpen(): TravelRow | undefined {
+        const siteId = this.selection.value('site')
+        if (siteId === undefined) return undefined
+        return this.travelRows.find((row) => row.slotId === siteId)
+    }
+
+    /**
+     * A lit site tapped on the map, where Travel is picked: with one way to pay and no toll it
+     * travels at once; with more, or a toll, its ways open in the panel, so a toll's payee is on
+     * a button before anything is paid (R-7.1.4). Undo unwinds the open ways.
+     */
+    async pickTravelSite(siteId: string): Promise<void> {
+        if (!this.selectableSites.includes(siteId)) return
+        const ways = this.travelWaysTo(siteId)
+        const [only] = ways
+        if (ways.length === 1 && only && only.tolls.length === 0) await this.travelTo(siteId, only)
+        else if (ways.length > 0) this.selection.set('site', siteId)
     }
 
     async travelTo(siteId: string, way: TravelTerms): Promise<void> {

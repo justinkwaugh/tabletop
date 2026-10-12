@@ -1,33 +1,46 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import AnswerButton from '$lib/components/AnswerButton.svelte'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let { yes, no }: { yes: string; no: string } = $props()
+    let {
+        yes,
+        no,
+        cost
+    }: {
+        yes: string
+        no: string
+        /** What the yes pays, in gold after its word ("1 secret"). */
+        cost?: string
+    } = $props()
 
     let gameSession = getGameSession()
     let draft = $derived(gameSession.question)
     let busy = $derived(gameSession.busy)
-    let blockedBecause = $derived(draft.acceptBlockedBecause)
+    let refused = $derived(draft.acceptRefusedBecause)
+    const width = new ChoiceWidth()
 </script>
 
-{#if blockedBecause}
+<!-- The yes waits for its picks; a red line only when the engine refuses it as picked. -->
+{#if refused}
     <p class="mb-2 text-[11px] text-oath-danger">
-        <TokenText text={gameSession.humanizeReason(blockedBecause) ?? ''} />
+        <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
     </p>
 {/if}
-<div class="flex gap-2">
-    <button
-        class="grow rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
-        disabled={busy || !!blockedBecause}
-        onclick={() => draft.accept()}
-    >
-        <TokenText text={yes} />
-    </button>
-    <button
-        class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
-        disabled={busy}
-        onclick={() => draft.decline()}
-    >
-        <TokenText text={no} />
-    </button>
+<div class="flex flex-wrap gap-2">
+    {#if draft.acceptComplete && !refused}
+        <AnswerButton
+            primary
+            {width}
+            disabled={busy}
+            label={cost ? `${yes}, paying ${cost}` : undefined}
+            onclick={() => draft.accept()}
+        >
+            {yes}{#if cost}<span aria-hidden="true">·</span><span class="text-oath-accent"
+                    ><TokenText text={cost} /></span
+                >{/if}
+        </AnswerButton>
+    {/if}
+    <AnswerButton {width} disabled={busy} onclick={() => draft.decline()}>{no}</AnswerButton>
 </div>

@@ -7,9 +7,12 @@ import {
     type Answered,
     type AnswerOf,
     type QuestionAnswer,
-    type QuestionOf
+    type QuestionOf,
+    type ShroudedWoodPick
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { PowerMoveToll } from '../model/powerMoveToll.js'
+import type { MachineState } from '../definition/states.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { settleSkullKills } from './campaignRoll.js'
 import { askQuestion, currentQuestion, gatheringTurnOrder } from './questions.js'
@@ -44,6 +47,14 @@ export interface AnswerOutcome {
     relicTakenFromSlotId?: string
     /** R-X.3(c) */
     disclosed?: boolean
+    /** R-11.7 */
+    woodPick?: ShroudedWoodPick
+    /** Toll Roads on a power's move. */
+    tollMove?: PowerMoveToll
+    /** R-5.5.8 — a waiting banish settled: its burn, the "if you're victorious" plans and the end. */
+    triggered?: string[]
+    /** Where the turn resumes once a waiting banish has ended the Campaign. */
+    resumeMachineState?: MachineState
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {

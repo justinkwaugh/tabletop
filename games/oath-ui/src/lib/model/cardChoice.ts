@@ -5,7 +5,7 @@ import {
     type PowerChoice,
     type WarbandOwner
 } from '@tabletop/oath'
-import { cardName } from './names.js'
+import { cardName, reliquaryLabel } from './names.js'
 
 /**
  * One option of a card-valued choice: a card's face, or a back where the chooser may not see it
@@ -21,16 +21,36 @@ export function cardChoices(cardIds: readonly string[]): CardChoice[] {
     return cardIds.map((cardId) => ({ key: cardId, cardId, label: cardName(cardId) }))
 }
 
-/** A card's power offered for use (a modifier, a battle plan), keyed by card and power. */
+/**
+ * A card's power offered for use (a modifier, a battle plan), keyed by card and power. It is named
+ * by its card alone, with no printed text under it: the card is a magnifier press away.
+ */
 export function powerUseCards(
-    powers: readonly { cardId: string; powerIndex: number; text: string }[]
+    powers: readonly { cardId: string; powerIndex: number }[]
 ): CardChoice[] {
     return powers.map((power) => ({
         key: powerKey(power.cardId, power.powerIndex),
         cardId: power.cardId,
-        label: `${cardName(power.cardId)} — ${power.text}`,
-        caption: power.text
+        label: cardName(power.cardId)
     }))
+}
+
+/**
+ * R-6.4-H1 — the relic on a Reliquary space as a card: its face to a seat that knows it (the
+ * Scepter's holder knows every one), a back to anyone else. `knownRelicAt` is the seat's knowledge.
+ */
+export function reliquaryRelicChoice(
+    slotId: string,
+    knownRelicAt: (slotId: string) => string | undefined
+): CardChoice {
+    const known = knownRelicAt(slotId)
+    return known
+        ? { key: slotId, cardId: known, label: cardName(known) }
+        : {
+              key: slotId,
+              back: CardKind.Relic,
+              label: `Facedown relic on ${reliquaryLabel(slotId)}`
+          }
 }
 
 /** A tap picks the card; a tap on a picked card untaps it; a full multi-pick takes no more. */

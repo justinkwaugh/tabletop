@@ -112,7 +112,12 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     [PowerQuestionKind.SneakAttack]: (state, question) =>
         reasonCannotSneakAttack(state, question.askedPlayerId, question.defenderPlayerId),
     [PowerQuestionKind.OrderDiscards]: () => undefined,
-    [PowerQuestionKind.OrderDrawnCards]: () => undefined
+    [PowerQuestionKind.OrderDrawnCards]: () => undefined,
+    // Toll Roads — with no favor to give there is nothing to ask: the move is blocked.
+    [PowerQuestionKind.PayTravelToll]: (state, question) =>
+        usableFavor(state, question.askedPlayerId) < 1
+            ? `${question.askedPlayerId} has no favor for ${question.cardId}`
+            : undefined
 }
 
 function forcedOutcomeOf<K extends PowerQuestionKind>(

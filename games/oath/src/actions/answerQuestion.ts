@@ -4,10 +4,11 @@ import { GameAction, HydratableAction, MachineContext, Visibility } from '@table
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { PowerQuestionKind, QuestionAnswer } from '../model/question.js'
+import { PowerQuestionKind, QuestionAnswer, ShroudedWoodPick } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
+import { PowerMoveToll } from '../model/powerMoveToll.js'
 import { currentQuestion, resumeStateAfterQuestions } from '../util/questions.js'
 import { applyAnswer, reasonCannotAnswer } from '../util/questionAnswers.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
@@ -30,7 +31,13 @@ export const AnswerQuestionMetadata = Type.Object({
     discardPileRegion: Type.Optional(Type.Enum(Region)),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
     // Skeleton Key
-    relicTakenFromSlotId: Type.Optional(Type.String())
+    relicTakenFromSlotId: Type.Optional(Type.String()),
+    /** R-11.7 */
+    woodPick: Type.Optional(ShroudedWoodPick),
+    // Toll Roads on a power's move
+    tollMove: Type.Optional(PowerMoveToll),
+    /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
+    triggered: Type.Optional(Type.Array(Type.String()))
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -86,13 +93,17 @@ export class HydratedAnswerQuestion
             cardId: question.cardId,
             kind: question.kind,
             summary: outcome.summary,
-            resumeMachineState: resume,
+            // A banish's answer ends the Campaign, which decides where the turn resumes.
+            resumeMachineState: outcome.resumeMachineState ?? resume,
             last: false,
             relicToDeckBottom: outcome.relicToDeckBottom,
             discardedCardIds: outcome.discardedCardIds,
             discardPileRegion: outcome.discardPileRegion,
             pileDeposits: outcome.pileDeposits,
-            relicTakenFromSlotId: outcome.relicTakenFromSlotId
+            relicTakenFromSlotId: outcome.relicTakenFromSlotId,
+            woodPick: outcome.woodPick,
+            tollMove: outcome.tollMove,
+            triggered: outcome.triggered
         }
         commitHiddenOutputs(this, state, witnesses)
     }
