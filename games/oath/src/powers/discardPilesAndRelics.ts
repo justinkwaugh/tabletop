@@ -1,5 +1,5 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { Banner, PlayerStatus } from '../model/oathEnums.js'
+import { Banner } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import {
@@ -9,7 +9,8 @@ import {
     relicSlotChoicesAtYourSite,
     reliquarySlotChoices
 } from '../util/powerChoice.js'
-import { becomeCitizenByPower, visionDeposits } from '../util/citizenship.js'
+import { becomeCitizenByPower, exileRefusal, visionDeposits } from '../util/citizenship.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { giveBanner } from '../util/seize.js'
 import { registerEffect, registerModifier, type EffectContext, chosen } from './registry.js'
@@ -145,7 +146,7 @@ registerModifier(
     {
         choices: [
             one(PowerChoiceKind.Region, { what: 'the pile your discards go to' }),
-            optional(PowerChoiceKind.Yes, { what: 'under the pile rather than on top' })
+            optional(PowerChoiceKind.Yes, { what: 'under the pile rather than on top', or: true })
         ],
         hooks: {
             discardTo: (ctx) => {
@@ -218,18 +219,25 @@ function takeReliquaryRelic(
     return { relicCardId, notes: takeRelics(ctx.state, ctx.playerId, [relicCardId]) }
 }
 
+/** The card's own condition for its "may", after being an Exile. */
+type CitizenshipCondition = (state: HydratedOathGameState, playerId: string) => string | undefined
+
 function citizenshipWithRelic(
     cardId: string,
     name: string,
-    condition: (ctx: EffectContext) => string | undefined,
+    condition: CitizenshipCondition,
     extra?: (ctx: EffectContext) => void
 ) {
+    // The relic is part of the yes, so both are offered only when the yes may be taken.
+    const offered = (state: HydratedOathGameState, playerId: string) =>
+        exileRefusal(state, playerId) === undefined && condition(state, playerId) === undefined
     registerEffect(cardId, powerIndexOf(cardId, PowerTiming.WhenPlayed), {
         choices: [
-            optional(PowerChoiceKind.Yes, { what: 'becoming a Citizen' }),
+            optional(PowerChoiceKind.Yes, { what: 'becoming a Citizen', offered }),
             optional(PowerChoiceKind.RelicSlot, {
                 what: 'the Reliquary relic to take',
-                domain: reliquarySlotChoices
+                domain: reliquarySlotChoices,
+                offered
             })
         ],
         hidden: (ctx) => {
@@ -240,11 +248,11 @@ function citizenshipWithRelic(
         },
         reasonCannotResolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0) return undefined
-            if (ctx.state.getPlayerState(ctx.playerId).status !== PlayerStatus.Exile)
-                return 'only an Exile can become a Citizen'
+            const exile = exileRefusal(ctx.state, ctx.playerId)
+            if (exile) return exile
             if (chosen(ctx, PowerChoiceKind.RelicSlot).length === 0)
                 return `${name}: name the Reliquary relic to take`
-            return condition(ctx)
+            return condition(ctx.state, ctx.playerId)
         },
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
@@ -263,10 +271,10 @@ function citizenshipWithRelic(
 }
 
 // "When played, if you're an Exile and rule more sites than the Chancellor, you may become a Citizen — take any one Reliquary relic without peeking, …"
-citizenshipWithRelic('denizen.discord.royal-ambitions', 'Royal Ambitions', (ctx) => {
-    const chancellorId = ctx.state.chancellorId()
-    const mine = sitesRuledBy(ctx.state, ctx.playerId).length
-    const theirs = sitesRuledBy(ctx.state, chancellorId).length
+citizenshipWithRelic('denizen.discord.royal-ambitions', 'Royal Ambitions', (state, playerId) => {
+    const chancellorId = state.chancellorId()
+    const mine = sitesRuledBy(state, playerId).length
+    const theirs = sitesRuledBy(state, chancellorId).length
     return mine > theirs
         ? undefined
         : `you rule ${mine} sites, not more than the Chancellor's ${theirs}`
@@ -276,8 +284,8 @@ citizenshipWithRelic('denizen.discord.royal-ambitions', 'Royal Ambitions', (ctx)
 citizenshipWithRelic(
     'denizen.nomad.ancient-pact',
     'Ancient Pact',
-    (ctx) => {
-        return bannerHolder(ctx.state, Banner.DarkestSecret) === ctx.playerId
+    (state, playerId) => {
+        return bannerHolder(state, Banner.DarkestSecret) === playerId
             ? undefined
             : 'you do not hold the Darkest Secret'
     },

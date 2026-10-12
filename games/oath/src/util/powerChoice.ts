@@ -42,7 +42,27 @@ export interface ChoiceSpec {
     together?: number
     /** Warbands: the count goes in multiples of it (Blood Pact's "an even number"). */
     step?: number
+    /**
+     * Yes: the card's "or". No Yes is its first branch and a Yes its second, so neither is the
+     * default (R-7.1.3). Read only by `offeredChoices`' callers.
+     */
+    or?: true
+    /**
+     * Whether the spec's options are offered now: a "may" (and what only its yes asks for) as the
+     * card's own condition judges it, or a branch only while it would do anything ("not last").
+     * Read only by `offeredChoices`: a choice sent is judged by the domain and the effect, as
+     * without it.
+     */
+    offered?: (state: HydratedOathGameState, playerId: string) => boolean
+    /**
+     * FavorBank: each spec of the run names one favor; the run names `total` favor from
+     * `sources`, as the effect's own check (R-7.1.3) reads it. Read only by `offeredChoices`.
+     */
+    favorTotal?: (state: HydratedOathGameState, playerId: string) => FavorTotal
 }
+
+/** R-7.1.3 — the banks a run of favor picks may name, and the favor they come to. */
+export type FavorTotal = { sources: Suit[]; total: number }
 
 export function exchangeAllowanceOf(spec: ChoiceSpec): ExchangeAllowance {
     assertExists(spec.allows, `a ${spec.kind} choice declares no exchange allowance`)
@@ -165,6 +185,8 @@ function domainOf(spec: ChoiceSpec): ChoiceDomain {
 export interface LegalChoice {
     spec: ChoiceSpec
     options: PowerChoice[]
+    /** `offeredChoices` only: the favor a FavorBank run comes to (`ChoiceSpec.favorTotal`). */
+    total?: number
 }
 
 export type LegalPowerUse = PowerUseKey & { choices: LegalChoice[] }
@@ -209,6 +231,32 @@ export function legalChoices(
         spec,
         options: domainOf(spec)(readingFor(spec), playerId, power)
     }))
+}
+
+/**
+ * R-7.1.3 — the choices a menu offers: `legalChoices`, less a yes the card rules out now
+ * (`ChoiceSpec.offered`) and a bank a favor run cannot name (`ChoiceSpec.favorTotal`, with the
+ * run's total). It judges nothing: the doorway reads the domains alone.
+ */
+export function offeredChoices(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower
+): LegalChoice[] {
+    return legalChoices(state, playerId, power).map((legal) => {
+        const { offered, favorTotal } = legal.spec
+        if (offered && !offered(state, playerId)) return { ...legal, options: [] }
+        if (!favorTotal) return legal
+        const { sources, total } = favorTotal(state, playerId)
+        return {
+            ...legal,
+            options: legal.options.filter(
+                (option) =>
+                    option.kind === PowerChoiceKind.FavorBank && sources.includes(option.suit)
+            ),
+            total
+        }
+    })
 }
 
 function keyOf(choice: PowerChoice): string {

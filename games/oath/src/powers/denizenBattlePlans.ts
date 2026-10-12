@@ -443,7 +443,9 @@ registerBattlePlan(
     'denizen.nomad.mountain-giant',
     powerIndexOf('denizen.nomad.mountain-giant', PowerTiming.BattlePlan),
     {
-        choices: [optional(PowerChoiceKind.Yes, { what: '±3 instead of ±1, then discard it' })],
+        choices: [
+            optional(PowerChoiceKind.Yes, { what: '±3 instead of ±1, then discard it', or: true })
+        ],
         hooks: { dice: (ctx) => pm(ctx, choseThree(ctx) ? 3 : 1), discardAtEnd: choseThree }
     }
 )
