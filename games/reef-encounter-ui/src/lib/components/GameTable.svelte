@@ -24,7 +24,6 @@
     import Seascape from '$lib/components/Seascape.svelte'
     import FredokaMedium from '$lib/fonts/Fredoka-Medium-Latin.woff2'
     import FredokaSemiBold from '$lib/fonts/Fredoka-SemiBold-Latin.woff2'
-    import GlutenBold from '$lib/fonts/Gluten-Bold-Latin.woff2'
     import Nunito from '$lib/fonts/Nunito-Latin.woff2'
 
     let {
@@ -47,7 +46,6 @@
 
 <CustomFont fontFamily="Reef Fredoka" url={FredokaMedium} format="woff2" fontWeight="500" />
 <CustomFont fontFamily="Reef Fredoka" url={FredokaSemiBold} format="woff2" fontWeight="600" />
-<CustomFont fontFamily="Reef Gluten" url={GlutenBold} format="woff2" fontWeight="700" />
 <CustomFont fontFamily="Reef Nunito" url={Nunito} format="woff2" fontWeight="400 700" />
 
 {#snippet historyControls(shape: 'framed' | 'band')}
@@ -137,8 +135,6 @@
         --reef-water-top: #8cc6b3;
         --reef-water-mid: #4d8a79;
         --reef-water-bottom: #2a5d53;
-        --reef-silhouette: rgb(18 56 50 / 0.55);
-        --reef-silhouette-far: rgb(30 78 68 / 0.35);
         --reef-glass: rgb(14 52 46 / 0.5);
         --reef-glass-strong: rgb(12 46 41 / 0.66);
         --reef-line: rgb(255 255 255 / 0.85);
@@ -153,6 +149,16 @@
         --reef-accent: #ef8f2e;
         --reef-sun: #ffd98a;
         --reef-wobble: 15px 11px 16px 10px / 11px 16px 10px 15px;
+        /* Mother-of-pearl: the sheen inside a shell, for rims and highlights. */
+        --reef-pearl: conic-gradient(
+            from 200deg,
+            #ffe3ef,
+            #dff3ff,
+            #fff3d6,
+            #e2fff0,
+            #efe2ff,
+            #ffe3ef
+        );
         position: relative;
         isolation: isolate;
         font-family: 'Reef Nunito', 'Trebuchet MS', sans-serif;
@@ -184,22 +190,27 @@
         letter-spacing: 0.01em;
     }
 
-    /* Big headings take the soft, blobby letters of the box's coral title. */
-    .reef-table :global(.reef-title) {
-        font-family: 'Reef Gluten', 'Reef Fredoka', sans-serif;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-    }
-
-    /* Sea glass: frosted, with a hand-drawn wobble to its outline. */
+    /* Frosted sea glass with a mother-of-pearl rim. */
     .reef-table :global(.reef-glass) {
         background: var(--reef-glass);
         backdrop-filter: blur(4px) saturate(1.15);
-        border-radius: var(--reef-wobble);
-        box-shadow:
-            inset 0 0 0 1.5px var(--reef-edge),
-            inset 0 10px 18px -10px rgb(255 255 255 / 0.25),
-            0 6px 16px -6px rgb(4 30 26 / 0.45);
+        border-radius: 20px;
+        box-shadow: 0 10px 24px -14px rgb(4 30 26 / 0.7);
+    }
+
+    /* The rim is a ring of the pearl sheen, masked to the card's edge. */
+    .reef-table :global(.reef-glass::after) {
+        content: '';
+        position: absolute;
+        inset: 0;
+        padding: 1.5px;
+        border-radius: inherit;
+        background: var(--reef-pearl);
+        mask:
+            linear-gradient(#000 0 0) content-box exclude,
+            linear-gradient(#000 0 0);
+        opacity: 0.85;
+        pointer-events: none;
     }
 
     .history-controls {
@@ -265,14 +276,11 @@
 
     .reef-table :global(.reef-tab.reef-tab-active) {
         color: var(--reef-paper-ink);
-        background: radial-gradient(
-            ellipse 90% 120% at 50% 0,
-            #fffdf5,
-            var(--reef-paper) 60%,
-            #eadfc4
-        );
+        background:
+            linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0) 60%),
+            var(--reef-pearl);
         box-shadow:
-            inset 0 0 0 1.5px #fff,
+            inset 0 0 0 1px #fff,
             0 4px 10px -4px rgb(4 30 26 / 0.5);
     }
 

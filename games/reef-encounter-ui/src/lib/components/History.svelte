@@ -69,10 +69,10 @@
 <div class="history" bind:this={scrollContainer}>
     {#each entries as entry, index (entry.actions[0].id)}
         {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
-            <h4 class="divider reef-title">Setup</h4>
+            <h4 class="divider reef-display">Setup</h4>
         {/if}
         {#if finalTurns.has(entry) && (index === 0 || !finalTurns.has(entries[index - 1]))}
-            <h4 class="divider reef-title">Final turns</h4>
+            <h4 class="divider reef-display">Final turns</h4>
         {/if}
         {@const lastAt = entry.actions.at(-1)?.createdAt}
         {@const replaying = replay?.entryId === entry.actions[0].id}
@@ -138,13 +138,13 @@
         align-content: start;
     }
 
-    /* A heading between two lines of gentle waves. */
+    /* A heading on a fine thread that fades out either side. */
     .divider {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         margin: 6px 2px 0;
-        font-size: 16px;
+        font-size: 15px;
         color: var(--reef-ink);
         text-shadow: 0 1px 3px rgb(4 30 26 / 0.5);
     }
@@ -153,15 +153,12 @@
     .divider::after {
         content: '';
         flex: 1;
-        height: 6px;
-        background: radial-gradient(
-                circle at 50% 100%,
-                transparent 3.2px,
-                var(--reef-edge) 3.4px 4.6px,
-                transparent 4.8px
-            )
-            0 0 / 12px 6px repeat-x;
-        opacity: 0.8;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6));
+    }
+
+    .divider::after {
+        background: linear-gradient(90deg, rgb(255 255 255 / 0.6), transparent);
     }
 
     .entry {
@@ -177,10 +174,9 @@
         left: 4px;
         top: 9px;
         bottom: 9px;
-        width: 4px;
+        width: 3px;
         border-radius: 4px;
         background: var(--player);
-        box-shadow: 0 0 0 1px rgb(255 255 255 / 0.5);
     }
 
     .jumps {
@@ -214,7 +210,7 @@
         padding: 1px 10px;
         font-size: 12px;
         color: var(--reef-paper-ink);
-        background: radial-gradient(ellipse 90% 80% at 40% 20%, #fffdf7, #e9dfc6);
+        background: linear-gradient(180deg, #fff, rgb(255 255 255 / 0) 70%), var(--reef-pearl);
         box-shadow: 0 1px 3px rgb(4 30 26 / 0.35);
     }
 

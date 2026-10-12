@@ -94,7 +94,9 @@
 
     .pebble {
         color: var(--reef-ink);
-        background: var(--reef-glass-strong);
+        background:
+            linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 60%),
+            var(--reef-glass-strong);
         backdrop-filter: blur(4px);
         box-shadow:
             inset 0 0 0 1.5px var(--reef-edge),

@@ -30,7 +30,7 @@
 </button>
 
 <style>
-    /* A rock-pool pebble: pale sand that brightens under the pointer. */
+    /* A pearly button, lit along its top. */
     .choice {
         display: inline-flex;
         align-items: center;
@@ -39,13 +39,12 @@
         min-width: 52px;
         min-height: 52px;
         padding: 4px;
-        border-radius: 14px 11px 15px 10px / 11px 15px 10px 14px;
+        border-radius: 18px;
         color: var(--reef-paper-ink);
-        background: radial-gradient(ellipse 90% 80% at 40% 20%, #fffdf7, #efe6cf);
+        background: linear-gradient(180deg, #fff, rgb(255 255 255 / 0) 70%), var(--reef-pearl);
         box-shadow:
-            inset 0 0 0 1.5px rgb(29 71 63 / 0.28),
-            inset 0 -3px 0 rgb(150 125 80 / 0.22),
-            0 2px 4px rgb(4 30 26 / 0.18);
+            inset 0 0 0 1px rgb(255 255 255 / 0.9),
+            0 2px 6px rgb(4 30 26 / 0.18);
         transition:
             transform 0.12s,
             box-shadow 0.12s;
@@ -54,9 +53,8 @@
     .choice:hover {
         transform: translateY(-1px);
         box-shadow:
-            inset 0 0 0 2px var(--reef-teal),
-            inset 0 -3px 0 rgb(150 125 80 / 0.22),
-            0 5px 8px -2px rgb(4 30 26 / 0.3);
+            inset 0 0 0 1.5px var(--reef-teal),
+            0 5px 10px -3px rgb(4 30 26 / 0.3);
     }
 
     .choice:active {

@@ -163,22 +163,17 @@
 
     .panel.turn {
         box-shadow:
-            inset 0 0 0 2px var(--player),
-            inset 0 0 0 3.5px rgb(255 255 255 / 0.7),
             0 0 0 2px var(--player),
-            0 0 22px 2px color-mix(in srgb, var(--player) 55%, transparent);
+            0 0 20px -2px color-mix(in srgb, var(--player) 60%, transparent);
     }
 
-    /* The art fades into the glass along a wavy waterline. */
+    /* The art fades softly into the glass. */
     header {
         position: relative;
         height: 84px;
         background-size: cover;
         background-position: center;
-        mask:
-            linear-gradient(black, black) top / 100% calc(100% - 6px) no-repeat,
-            radial-gradient(circle at 50% 0, black 7px, transparent 7.5px) 0 100% / 22px 7px
-                repeat-x;
+        mask: linear-gradient(black 70%, transparent);
     }
 
     .plaque {
@@ -189,6 +184,7 @@
         border-radius: 999px;
         font-size: 18px;
         box-shadow:
+            inset 0 9px 8px -6px rgb(255 255 255 / 0.4),
             0 0 0 2px rgb(255 255 255 / 0.85),
             0 3px 6px rgb(4 30 26 / 0.45);
     }
@@ -271,7 +267,7 @@
 
     .row + .row {
         padding-top: 6px;
-        border-top: 1px dashed rgb(255 255 255 / 0.16);
+        border-top: 1px solid rgb(255 255 255 / 0.1);
     }
 
     dt {
@@ -303,7 +299,7 @@
         font-size: 14px;
     }
 
-    /* Points sit in a little sunlit bubble. */
+    /* Points sit in a little pearl. */
     .points {
         margin-left: auto;
         padding: 0 9px;
@@ -311,7 +307,8 @@
         font-size: 17px;
         font-variant-numeric: tabular-nums;
         color: var(--reef-paper-ink);
-        background: radial-gradient(circle at 35% 30%, #fffdf3, var(--reef-sun));
+        background:
+            linear-gradient(180deg, rgb(255 255 255 / 0.8), transparent 70%), var(--reef-pearl);
         box-shadow: 0 2px 4px rgb(4 30 26 / 0.3);
     }
 
