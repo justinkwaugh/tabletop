@@ -12,9 +12,10 @@
         /** The pick's few words before the chips ("With:", "Call:"). */
         label: string
         playerIds: readonly string[]
-        picked: string | undefined
-        /** The player tapped; undefined when the picked chip is tapped again. */
-        onpick: (playerId: string | undefined) => void
+        /** The players picked: one for most picks, several for Witch's Bargain. */
+        picked: readonly string[]
+        /** The player tapped, and whether their chip was picked before the tap. */
+        onpick: (playerId: string, wasPicked: boolean) => void
         busy: boolean
     } = $props()
 
@@ -22,19 +23,20 @@
 </script>
 
 <!-- A player is their chip, in a frame as wide as the widest beside it, 44 px tall on a phone: a
-     tap picks them, a second tap drops them. -->
+     tap picks them, a second tap drops them where the pick lets it. -->
 <div class="flex flex-wrap items-center gap-2 text-xs">
     <span class="text-oath-text-muted">{label}</span>
     {#each playerIds as id (id)}
+        {@const on = picked.includes(id)}
         <button
             type="button"
             class="inline-flex items-center justify-center rounded-md border p-[3px] text-sm
-                   disabled:opacity-40 max-sm:min-h-11 max-sm:px-1.5 {picked === id
+                   disabled:opacity-40 max-sm:min-h-11 max-sm:px-1.5 {on
                 ? 'border-oath-accent ring-2 ring-oath-accent'
                 : 'border-oath-frame bg-oath-surface'}"
-            aria-pressed={picked === id}
+            aria-pressed={on}
             disabled={busy}
-            onclick={() => onpick(picked === id ? undefined : id)}
+            onclick={() => onpick(id, on)}
         >
             <span class="flex justify-center" style:min-width="{width.widest}px">
                 <span class="w-max" {@attach width.measure}><PlayerName playerId={id} /></span>

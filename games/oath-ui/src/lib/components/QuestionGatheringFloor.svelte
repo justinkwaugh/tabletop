@@ -15,8 +15,8 @@
     <PlayerChips
         label="With:"
         playerIds={draft.floorCandidates}
-        picked={draft.floorWith}
-        onpick={(id) => draft.chooseFloorWith(id)}
+        picked={draft.floorWith ? [draft.floorWith] : []}
+        onpick={(id, wasPicked) => draft.chooseFloorWith(wasPicked ? undefined : id)}
         {busy}
     />
 </div>

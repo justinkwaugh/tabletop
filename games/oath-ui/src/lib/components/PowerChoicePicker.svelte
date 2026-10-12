@@ -423,14 +423,10 @@
                     label="With:"
                     playerIds={partners}
                     picked={option?.kind === PowerChoiceKind.Exchange
-                        ? option.withPlayerId
-                        : undefined}
-                    onpick={(playerId) =>
-                        setOption(
-                            legal,
-                            i,
-                            playerId === undefined ? NO_OPTION : partners.indexOf(playerId)
-                        )}
+                        ? [option.withPlayerId]
+                        : []}
+                    onpick={(playerId, wasPicked) =>
+                        setOption(legal, i, wasPicked ? NO_OPTION : partners.indexOf(playerId))}
                     {busy}
                 />
                 {#if option?.kind === PowerChoiceKind.Exchange && gameSession.myPlayer}
@@ -450,14 +446,8 @@
                 <PlayerChips
                     label={words.player ?? `${legal.spec.what ?? 'a player'}:`}
                     playerIds={players}
-                    picked={option?.kind === PowerChoiceKind.Player ? option.playerId : undefined}
-                    onpick={(playerId) =>
-                        tapOption(
-                            legal,
-                            i,
-                            pick,
-                            playerId === undefined ? pick : players.indexOf(playerId)
-                        )}
+                    picked={option?.kind === PowerChoiceKind.Player ? [option.playerId] : []}
+                    onpick={(playerId) => tapOption(legal, i, pick, players.indexOf(playerId))}
                     {busy}
                 />
             {:else if legal.spec.kind === PowerChoiceKind.Region && !allowsSeveral(legal)}
