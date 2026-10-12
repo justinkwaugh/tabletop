@@ -74,6 +74,12 @@ describe('a power’s warbands as rows of pieces — Terror Spells’ two kills'
         expect(hasPicks(emptyPicks())).toBe(false)
     })
 
+    it('a count tapped back to none is no pick', () => {
+        const grid = gridOf(terror())
+        expect(hasPicks(withGridCount(tapped(terror(), [1, 2]), grid, 1, 0))).toBe(false)
+        expect(hasPicks(withGridCount(tapped(terror(), [1, 2]), grid, 1, 1))).toBe(true)
+    })
+
     it('two at one place: every other piece goes untappable, and one choice is sent', () => {
         const grid = gridOf(terror())
         const picks = tapped(terror(), [1, 2])

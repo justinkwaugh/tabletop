@@ -29,18 +29,17 @@ export function emptyPicks(): PowerChoicePicks {
     return { option: {}, count: {}, terms: {}, several: {}, warbands: {}, bargain: {}, moves: [] }
 }
 
-/** Anything picked at all: Undo past the last pick leaves the picks. */
+/**
+ * Anything picked at all: Undo past the last pick leaves the picks. A row of pieces tapped back to
+ * none keeps its entry at 0, which is no pick.
+ */
 export function hasPicks(picks: PowerChoicePicks): boolean {
     return (
         picks.moves.length > 0 ||
-        [
-            picks.option,
-            picks.count,
-            picks.terms,
-            picks.several,
-            picks.warbands,
-            picks.bargain
-        ].some((record) => Object.keys(record).length > 0)
+        Object.values(picks.warbands).some((count) => count > 0) ||
+        [picks.option, picks.count, picks.terms, picks.several, picks.bargain].some(
+            (record) => Object.keys(record).length > 0
+        )
     )
 }
 

@@ -21,7 +21,7 @@ import {
     type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
-import { emptyPicks } from './powerChoices.js'
+import { emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
 import { withCount, withFrom } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
@@ -570,6 +570,35 @@ describe("Witch's Bargain's picks (revision 7)", () => {
 })
 
 /** Messenger: one move at a time, each read on the state the moves before it leave. */
+/** A count of pieces tapped back to none is no pick: Undo that lands there leaves the picks. */
+describe('a power’s count tapped back to none', () => {
+    const BLOOD_PACT = 'denizen.arcane.blood-pact'
+    const USE = { cardId: BLOOD_PACT, powerIndex: 0 }
+
+    it('Undo that lands on it clears the picks, and the next Undo leaves the step', () => {
+        const session = opened(
+            table(MachineState.ActPhase, {
+                warbandsOnBoard: { [ME]: 4 },
+                advisers: [{ cardId: BLOOD_PACT, faceUp: true }]
+            })
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const power = required(draft.powers.find((p) => p.cardId === BLOOD_PACT), 'Blood Pact is offered')
+        const [grid] = warbandGrids(power.choices)
+        const pact = required(grid, 'Blood Pact’s board is a row of pieces')
+        const tap = (count: number) => draft.setPicks(USE, withGridCount(draft.picksOf(USE), pact, 0, count))
+        tap(2)
+        tap(0)
+        tap(4)
+        // Back past the 4: the row stands at none, so nothing is picked and the picks are left.
+        expect(draft.back()).toBe(true)
+        expect(draft.picksComplete(power)).toBe(false)
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
+    })
+})
+
 describe('Messenger’s moves (docs/user-interactions.md)', () => {
     const MESSENGER = 'denizen.order.messenger'
     const USE = { cardId: MESSENGER, powerIndex: 0 }
