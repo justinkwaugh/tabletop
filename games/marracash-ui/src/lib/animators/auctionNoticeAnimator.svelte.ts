@@ -14,7 +14,7 @@ type GameStateChange = Parameters<GameStateChangeListener<HydratedMarracashGameS
 
 export type AuctionNoticeHost = Pick<
     MarracashGameSession,
-    'addGameStateChangeListener' | 'removeGameStateChangeListener' | 'myPlayer'
+    'addGameStateChangeListener' | 'removeGameStateChangeListener'
 >
 
 export type AuctionNoticePart = 'backdrop' | 'card' | 'placard'
@@ -22,7 +22,7 @@ export type AuctionNoticePart = 'backdrop' | 'card' | 'placard'
 export type ShownAuctionNotice = { shopId: ShopId; auctioneerId: string; color: MarketColor }
 
 const EnterSeconds = 0.35
-const HoldSeconds = 2.6
+const HoldSeconds = 1.5
 const FlightSeconds = 0.65
 const FadeSeconds = 0.3
 
@@ -39,7 +39,7 @@ type NoticeLook = {
     flight: number
 }
 
-// When another player starts an auction, a large placard announces it over the board, holds, then
+// When an auction starts, a large placard announces it to every player over the board, holds, then
 // flies down onto the auctioned stall, where the board's own placard takes over as it lands. Only
 // a live or fully replayed auction plays it; a reload, Undo or history step shows the board as is.
 // Under reduced motion only opacity changes.
@@ -82,7 +82,6 @@ export class AuctionNoticeAnimator {
 
     private async onGameStateChange({ to, action, animationContext }: GameStateChange) {
         if (!action || !isStartAuction(action) || !to.auction) return
-        if (action.playerId === this.gameSession.myPlayer?.id) return
 
         const shopId = to.auction.shopId
         const still = prefersReducedMotion.current

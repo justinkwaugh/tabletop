@@ -1,8 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
-import { auctionFirstShop, auctionableShops, board, createGame, finishBidding } from './helpers'
+import {
+    actionPanel,
+    auctionFirstShop,
+    auctionableShops,
+    board,
+    createGame,
+    finishBidding
+} from './helpers'
 
 function notice(page: Page) {
-    return page.getByRole('status').filter({ hasText: 'is auctioning a' })
+    return page.getByRole('status').filter({ hasText: /(is|are) auctioning a/ })
 }
 
 function stallPlacard(page: Page) {
@@ -13,13 +20,17 @@ function historyButton(page: Page, name: string) {
     return page.locator(`button[aria-label="${name}"]:visible`).first()
 }
 
-test('starting your own auction puts the placard on the stall without announcing it', async ({
+test('your own auction is announced to you, then its placard settles on the stall', async ({
     page
 }) => {
     await createGame(page)
     await auctionFirstShop(page)
+    await expect(notice(page)).toContainText(
+        /you are auctioning a\s+(red|blue|green|yellow|purple) shop/i
+    )
+    await expect(stallPlacard(page)).toBeHidden()
+    await expect(notice(page)).toHaveCount(0, { timeout: 8_000 })
     await expect(stallPlacard(page)).toBeVisible()
-    await expect(notice(page)).toHaveCount(0)
 })
 
 // The next player starts an auction while the board is watched from Amira's seat, then the
@@ -29,6 +40,7 @@ async function watchAnotherPlayersAuction(page: Page) {
     await auctionFirstShop(page)
     await finishBidding(page)
     await auctionableShops(page).first().click()
+    await expect(actionPanel(page).getByText('Sealed bid')).toBeVisible()
     await page.getByRole('button', { name: 'Options' }).click()
     await page.getByText('Protected mode', { exact: true }).click()
     await page.getByRole('button', { name: 'Options' }).click()
@@ -70,7 +82,7 @@ test('entering full screen during an announcement carries it on in full screen',
 }) => {
     await watchAnotherPlayersAuction(page)
     await replayAuctionStart(page)
-    await expect(notice(page)).toBeVisible()
+    await expect(page.locator('div.placard')).toHaveCSS('opacity', '1')
     await page.getByRole('button', { name: 'Enter full screen' }).click()
     const fullScreen = page.getByRole('dialog', { name: 'Full screen view' })
     // The notice remounted there shows the announcement as far as it has got, not from the start.
@@ -99,7 +111,7 @@ test.describe('with reduced motion', () => {
             })
         const still = ['translateY(0px)', 'translate(0px, 0px) scale(1)']
         expect(await transforms()).toEqual(still)
-        await page.waitForTimeout(3_200)
+        await page.waitForTimeout(2_100)
         expect(await transforms()).toEqual(still)
         await expect(notice(page)).toHaveCount(0, { timeout: 8_000 })
         await expect(stallPlacard(page)).toBeVisible()

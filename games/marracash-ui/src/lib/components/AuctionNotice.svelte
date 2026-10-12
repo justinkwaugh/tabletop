@@ -13,6 +13,7 @@
 
     let notice = $derived(animator.shown)
     let palette = $derived(notice ? gameSession.marketPalettes[notice.color] : undefined)
+    let verb = $derived(notice?.auctioneerId === gameSession.myPlayer?.id ? 'are' : 'is')
 
     const part =
         (name: AuctionNoticePart): Attachment<HTMLElement> =>
@@ -36,7 +37,8 @@
                 </div>
             </div>
             <p class="card marracash-display" role="status" {@attach part('card')}>
-                <PlayerName playerId={notice.auctioneerId} /> is auctioning a
+                <PlayerName playerId={notice.auctioneerId} />
+                {verb} auctioning a
                 <span class="market">
                     <span
                         class="swatch"
