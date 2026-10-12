@@ -4,7 +4,7 @@
 
 ### Ships on the star map
 
-- **Display:** each ship is a pip in its faction's colour: a rounded square with the CV's size above three fixed slots that mark whether it has exploration (blue circle), cargo (orange hexagon) and combat (red triangle) values, with an empty slot where it has none, or a smaller diamond for an RE, showing its exploration value in a blue circle. A ship still on its way is drawn as a faction-coloured outline on a dark fill, with a gold badge giving the turns until it arrives. A red border just outside the pip marks damage (thicker when crippled) and a white dot marks cargo.
+- **Display:** each ship is a pip in its faction's colour: a rounded square with the CV's size above three fixed slots that mark whether it has exploration (blue circle), cargo (orange hexagon) and combat (red triangle) values, with an empty slot where it has none, or a smaller diamond for an RE, showing its exploration value in a blue circle. A ship still on its way is drawn as a faction-coloured outline on a dark fill, with a gold badge giving the turns until it arrives. A red border just outside the pip marks damage (thicker when crippled). A white dot on the pip's top left corner marks cargo, the same size and the same distance in from the corner as the arrival badge on the top right.
 - **Placement:** each faction's ships at a system form one honeycomb clump. Clumps are threaded clockwise along the orbit among the worlds, in faction order, and never cover a world, a base tab, the exploration marker or the tile's printed text. Pips are as large as the system allows and shrink only when needed to fit; in extreme crowds a faction's clump splits into adjacent smaller clumps rather than hiding a ship.
 
 ### Bases on the star map
@@ -22,7 +22,7 @@
 ### Zooming into a system
 
 - **Trigger:** clicking a system's printed name on the star map (cursor shows zoom-in and the name area highlights on hover).
-- **Emphasis:** in one motion, the star map's camera moves from the current view until that system's hex fills the part of the map the panel leaves clear, a panel slides in over the map's right edge (from the bottom, as a sheet, on narrow screens), and the other systems dim. The panel lists every faction present: its settlements there against the goal, and its ships as the same counters and, under a ship still on its way, only its turns until arrival. The panel leaves out what the tile already shows, such as worlds, habitability and exploration markers. Neighbouring systems remain faintly visible and the map can still be panned and zoomed; clicking a visible neighbour's name moves the camera over to it the same way.
+- **Emphasis:** in one motion, the star map's camera moves from the current view until that system's hex fills the part of the map the panel leaves clear, a panel slides in over the map's right edge (from the bottom, as a sheet, on narrow screens), and the other systems dim. The panel lists every faction present: its settlements there against the goal, and its ships as the same counters and, under a ship still on its way, only its turns until arrival. The panel leaves out what the tile already shows, such as worlds, habitability and exploration markers. The system's name and Back to map stay fixed at the top of the panel while the factions scroll beneath them. Neighbouring systems remain faintly visible and the map can still be panned and zoomed; clicking a visible neighbour's name moves the camera over to it the same way.
 - **In the zoomed view:** clicking a clump highlights that faction in the panel instead of opening a strip; a ship counter in the panel is clickable when that ship can act, choosing it without leaving the view.
 - **Leaving:** Back to map or Escape reverses the motion: the panel slides out and the dimming lifts while the camera returns to the view from before zooming in (the whole map if the zoom began on another view). Nothing is swapped in afterwards. Reduced-motion users get the change without animation.
 
@@ -39,7 +39,9 @@
 - **Trigger:** during the cargo or exploration step, the acting player clicks a ship's counter in the action panel.
 - **Emphasis:** the ship becomes the chosen ship (gold outline around its pip and its counter) and the star map zooms into its system, as when clicking that system's name.
 - **Clearing:** clicking the same counter again clears the choice and zooms back out. Back to map and Escape leave the zoom but keep the choice.
-- **Movement step:** a counter there only chooses the ship, without zooming, so its destinations on neighbouring systems stay in view. Entering the movement step zooms back out to the whole map.
+- **Exploration step:** each ship that can explore is a bare counter with its odds and an Explore button under it. The odds are the guaranteed markers, when there are any, plus the chance of one more (`1 + 30%`, `80%`); their tooltip spells this out with the exploration value. The malfunction rate is shown once beside the prompt for each kind of ship (RE, CV) that can explore.
+- **Exploration results:** the explorations made this turn form a table in its own darker panel under the ships, one ruled row each. A row's first line is the ship's name with its outcome labels at the right, in small tracked capitals: `SURVEY` in green when the markers are enough for one, `FAILED` in grey when there are none, and in red what a malfunction did (`1 DAMAGE`, `CRIPPLED`, `SHIP LOST`). Its second line has four columns aligned across rows: a red ten-sided die showing the roll for an extra marker when one was made; the markers gained; the malfunction roll as two black ten-sided dice, tens then units, always shown; and any markers salvaged from a lost ship. The panel is as wide as its content, or the full width on a phone. With three or more results, they fill columns, reading down each column and then to the next column on the right. Columns are two deep while that many fit the action panel; with less room the columns that fit grow deeper, down to a single list.
+- **Movement step:** a counter there only chooses the ship, without zooming, so its destinations on neighbouring systems stay in view. Entering the movement step zooms back out to the whole map, whether the player ended the cargo step or it ended by itself.
 
 ### Cargo holds
 
@@ -54,23 +56,24 @@
 - **Destination:** a sliding toggle centred at the top of the panel lists what the ship can exchange cargo with where it is: Earth (buying, at Sol), the player's base in that system or the base unloading would found, and each of the player's other arrived cargo ships there. The first is chosen to begin with. If there is nothing to exchange with, the panel is replaced by a line saying so.
 - **Parties:** the ship's counter and hold sit at the left, the destination at the right (Earth's photograph, a settlement token with the base's count, or the partner ship's counter and hold) and a two-headed arrow joins them.
 - **Rows:** one row per kind of cargo, under the two parties' names: the kind, the count aboard, a left and a right arrow button, and the count at the destination (or the price each at Earth). The left arrow moves one onto the ship and the right arrow one off it. A count that the draft raises turns green and one it lowers turns orange. An arrow that cannot be used is disabled and its tooltip gives the reason.
-- **Commit:** the footer shows `No changes`, `No cost` or `Pay $NB`, and a Commit button that is disabled until something is drafted. Commit records the whole draft as one action; the ship stays chosen with an empty draft.
+- **Commit:** the footer shows `No changes`, `No cost` or `Pay $NB`, and a Commit button that is disabled until something is drafted. Commit records the whole draft as one action; the ship stays chosen with an empty draft. Once none of the player's ships can load, unload or exchange anything, the turn goes on by itself and the choice clears; a player who reaches the cargo step with nothing to do skips it.
 - **Discarding:** there is no cancel button. The draft is dropped by choosing another destination, another ship or the same ship again, by Undo, and by ending the step.
 
 ### Choosing a destination
 
 - **Trigger:** a ship is chosen during the movement step.
 - **Emphasis:** every system the ship can reach gains a cyan hex outline and a label with the travel time. The action panel only lists the ships that can move, as bare counters, and prompts for a destination on the map.
-- **Commit:** clicking a highlighted system moves the ship and clears the choice. Once none of the player's ships can move, the turn goes on to exploration by itself; a player who reaches the movement step with nothing to move skips it.
+- **Commit:** clicking a highlighted system moves the ship and clears the choice. Once none of the player's ships can move, the turn goes on by itself; a player who reaches the movement step with nothing to move skips it. The exploration step is skipped too when none of the player's ships can explore, but it never ends by itself once reached, so the results stay on screen until the player ends it.
 - **Unaffected:** unreachable systems keep their normal look and are not clickable.
 
 ### Choosing a tech
 
 - **Trigger:** during the develop-techs step, the acting player clicks a tech marked as available in the tech tree.
+- **Before a choice:** the action panel shows what the player can spend, in a darker panel of labelled columns: the total of their markers in each field, on that field's blank chit, then their cash. Under it, next to the chart, is the only prompt: `Choose a tech on the chart below`. The prompt comes after the totals so that it is not read as an instruction to pick one of the chits.
 - **Emphasis:**
     - Available techs show a cyan frame and their current cost.
     - The chosen tech shows a thick gold frame.
-    - The action panel shows that tech's payment, with the suggested markers lit and the cash top-up. Toggling a marker changes only the payment, not the chart.
+    - The action panel shows that tech's payment in a darker panel with two labelled groups of bare chits, each from the highest value down: `PAY WITH`, holding the suggested markers followed by the cash top-up in gold (red when the player cannot afford it), and `KEEP`, slightly faded, holding the rest. Clicking a chit moves it to the other group; that changes only the payment, not the chart. The button reads `Develop with 5+4+1 and $2B`, naming the chits in the same order.
 - **Commit:** developing the tech commits the action and clears the choice; Cancel clears it without committing.
 
 ### Star map or tech chart
@@ -91,6 +94,13 @@
 - **Zoom and tech chart.** Switching to the tech chart keeps the zoom; returning to the star map moves the camera to the zoomed system again. The tech chart has its own camera and is never zoomed by it.
 - **Strip and destinations.** While a ship is chosen in the movement step, a reachable system's outline covers its clumps, so a click there moves the ship rather than opening a strip.
 
+## Player area
+
+- **Standings:** one aligned row per player in initiative order: initiative, faction emblem, name (`You` for the viewer) with their current step beneath (`Done` in green once they have finished), then four right-aligned columns: `RE` and `CV` in play, `SET` (settlements at bases) and `$B` (cash, in gold).
+- **Console:** under the standings, one panel about a single player: a header in their faction's colour with faction, player, initiative and step; cash and the marker total in each field; their bases as map tabs with the system and its population (green once it reaches the population a winning system needs); their ships as map pips grouped by the system they are at or travelling to, with the turns left after a ship still on its way; and techs developed out of the chart in each field, marked `new` for a field developed this turn.
+- **Trigger:** clicking a standings row shows that player in the console and tints the row in their faction's colour. The viewer's own row is shown to begin with.
+- **Unaffected:** the choice changes nothing on the star map or in the action panel.
+
 ## Shared visual state
 
 ### Selection
@@ -108,6 +118,14 @@
 - **Lifetime:** cleared whenever the selection changes or clears, replaced by choosing a destination, and reset to nothing drafted by Commit.
 - **Validity:** derived from the current state. A destination that is no longer available falls back to the first available one, and a drafted amount outside the current limits counts as nothing drafted.
 - **History and replay:** the player cannot act in History View, so no draft is shown there.
+
+### Console player
+
+- **Meaning:** the player whose console the player area shows.
+- **Owner and readers:** owned by the game session; set by a standings row, read by the standings (row tint) and the console.
+- **Lifetime:** kept until another row is clicked.
+- **Validity:** derived from the current state; without a choice, or if the chosen player is no longer in the game, it is the viewer, or the first player in initiative order for a spectator.
+- **History and replay:** kept while navigating history; the standings and console describe the displayed state.
 
 ### Inspected clump
 
@@ -137,6 +155,7 @@
 
 - **Base tabs and pip layout:** computed once per system by the board, the base tabs first so the pip layout can keep ships clear of them. Both are drawn by the system tile; the ship strip anchors to the clumps.
 - **Selection outline:** drawn by the ship pip.
+- **Pip badges:** the cargo dot and the arrival badge are drawn by the system tile in a layer above all of its clumps, so no ship covers another ship's badge. The layer ignores the pointer, so a click on a badge reaches the clump beneath it.
 - **Transfer panel:** drawn by the cargo step from a view computed once from the state, the chosen ship, the destination and the draft; the same view feeds the holds in the ship list.
 - **Ship strip:** drawn by the board above every system tile.
 - **Zoom:** the star map's scaling wrapper owns the camera; the table asks it to focus the system's hex with the panel's size kept clear, and to restore the captured earlier view on the way out. The panel slide, the camera move and the dimming share one duration and easing. The table reports the zoom-out's completion to the session after that duration.

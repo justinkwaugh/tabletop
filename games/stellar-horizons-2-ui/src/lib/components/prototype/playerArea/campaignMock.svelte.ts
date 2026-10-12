@@ -2,8 +2,8 @@
 // Three variants of the player area, switchable via `?players=A|B|C` on the game table:
 // A (ledger: standings list plus one console), B (faction sheets: a card per player) and
 // C (command deck: slim rows plus a wide faction sheet along the bottom of the map). D is the
-// direction chosen from those: A's aligned rows, with C's sheet on wide screens only.
-import { MediaQuery } from 'svelte/reactivity'
+// direction chosen from those: aligned rows with numeric columns, and A's one console under them
+// for the chosen faction, at every width.
 import {
     Faction,
     TECHS,
@@ -13,7 +13,7 @@ import {
 } from '@tabletop/stellar-horizons-2'
 
 export const PLAYER_VARIANTS = [
-    { key: 'D', name: 'Rows; sheet under the map, or stacked on narrow screens' },
+    { key: 'D', name: 'Rows and one console' },
     { key: 'A', name: 'Ledger: standings and one console' },
     { key: 'B', name: 'Faction sheets: a card per player' },
     { key: 'C', name: 'Command deck: rows and a sheet under the map' }
@@ -552,10 +552,9 @@ class PlayerAreaPrototype {
     variant: PlayerVariantKey | undefined = $state(variantFromUrl())
     selected: Faction = $state(Faction.Starfarers)
     sheetOpen = $state(false)
-    wide = new MediaQuery('(min-width: 64rem)')
 
     get sheetUnderMap(): boolean {
-        return this.variant === 'C' || (this.variant === 'D' && this.wide.current)
+        return this.variant === 'C'
     }
 
     get you(): MockFaction {

@@ -3,7 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { canMoveAnyShip, endIdleMovement, moveOptions } from '../model/movement.js'
+import { endIdleSteps } from '../model/idleSteps.js'
+import { canMoveAnyShip, moveOptions } from '../model/movement.js'
 import { TurnStep } from '../model/turn.js'
 
 export type MoveShipMetadata = Type.Static<typeof MoveShipMetadata>
@@ -54,7 +55,7 @@ export class HydratedMoveShip extends HydratableAction<typeof MoveShip> implemen
         this.metadata = { fromSystemId: ship.systemId, turns: option.turns }
         ship.systemId = this.systemId
         ship.transit = option.turns
-        endIdleMovement(state, this.playerId)
+        endIdleSteps(state, this.playerId)
     }
 
     static canMoveShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {

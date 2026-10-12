@@ -67,7 +67,6 @@ async function buildProbeAndReachMovement(page: Page) {
     await page.getByRole('button', { name: 'Build Kepler at Sol for $5B' }).click()
     await expect(clump(page, /^The Starfarers at Sol: 1 ship$/)).toBeVisible()
     await page.getByRole('button', { name: 'Done building' }).click()
-    await page.getByRole('button', { name: 'Done with cargo' }).click()
     await expect(page.getByRole('button', { name: 'Done moving' })).toBeVisible()
 }
 
@@ -87,7 +86,7 @@ test('a chosen ship shows its destinations and moves from the map', async ({ pag
         .toBe(2)
     await expect.poll(() => selectedShipId(page)).toBeUndefined()
     await expect(page.getByRole('button', { name: 'Move to Alpha Centauri' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Done exploring' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'End turn' })).toBeVisible()
 })
 
 test('Undo clears a chosen ship before undoing any action', async ({ page }) => {
@@ -116,13 +115,11 @@ test('history hides a chosen ship and live view restores it', async ({ page }) =
 test('a tech chosen on the chart is paid for with suggested markers', async ({ page }) => {
     await createGame(page)
     await page.getByRole('button', { name: 'Done building' }).click()
-    await page.getByRole('button', { name: 'Done with cargo' }).click()
-    await page.getByRole('button', { name: 'Done exploring' }).click()
     await page
         .getByRole('button', { name: 'Improved Interstellar Settlement', exact: true })
         .click()
-    await expect(page.getByRole('button', { name: /^Develop for/ })).toBeVisible()
-    await page.getByRole('button', { name: /^Develop for/ }).click()
+    await expect(page.getByRole('button', { name: /^Develop (with|for free)/ })).toBeVisible()
+    await page.getByRole('button', { name: /^Develop (with|for free)/ }).click()
     await expect
         .poll(() =>
             page.evaluate(
@@ -309,8 +306,23 @@ test('cargo is drafted with the arrows and committed as one transfer', async ({ 
     await page.getByRole('button', { name: 'Commit', exact: true }).click()
     await expect.poll(() => settlementsAboard(page, 'starfarers-andromeda')).toBe(2)
     expect(await actionCount(page)).toBe(before + 1)
+})
+
+test('the cargo step stays open while more can be done, then ends by itself', async ({ page }) => {
+    await createGame(page)
+    await buildAndReachCargo(page, 'Andromeda')
+    await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
+    await loadOne(page).click()
+    await page.getByRole('button', { name: 'Commit', exact: true }).click()
+    await expect.poll(() => settlementsAboard(page, 'starfarers-andromeda')).toBe(1)
     await expect(page.getByText('No changes')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Commit', exact: true })).toBeDisabled()
+
+    await loadOne(page).click()
+    await page.getByRole('button', { name: 'Commit', exact: true }).click()
+    await expect(page.getByText('Choose a ship to move')).toBeVisible()
+    await expect.poll(() => selectedShipId(page)).toBeUndefined()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toHaveCount(0)
 })
 
 test('Undo discards a cargo draft before undoing any action', async ({ page }) => {

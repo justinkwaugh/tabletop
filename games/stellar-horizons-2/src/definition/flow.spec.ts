@@ -173,7 +173,7 @@ describe('Footfall turn flow', () => {
         expect(after.getPlayerState(second).step).toBe(TurnStep.Build)
     })
 
-    it("ends the movement step once none of the player's ships can move", () => {
+    it("ends movement once none of the player's ships can move, and skips exploration with all of them in transit", () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
         const probe = (shipId: string) => ({
@@ -199,13 +199,34 @@ describe('Footfall turn flow', () => {
         state = move('starfarers-kepler')
         expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
         state = move('starfarers-copernicus')
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Development)
     })
 
-    it('skips the movement step for a player with nothing to move', () => {
+    it('skips the cargo, movement and exploration steps for a player with nothing to do in them', () => {
+        const { game, state: started } = startedGame(2)
+        const [first] = started.turnManager.turnOrder
+        const state = execute(
+            game,
+            started,
+            userAction(game, first, ActionType.EndStep, { step: TurnStep.Build })
+        )
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Development)
+    })
+
+    it('stops at the exploration step while a ship can explore, and stays there after it has', () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
+            hydrated.ships.push({
+                shipId: 'starfarers-kepler',
+                playerId: first,
+                systemId: 'alpha-centauri',
+                transit: 0,
+                damage: 0,
+                settlements: 0,
+                loadedFromBase: false,
+                explored: false
+            })
             hydrated.getPlayerState(first).step = TurnStep.Cargo
         })
         state = execute(
@@ -213,6 +234,55 @@ describe('Footfall turn flow', () => {
             state,
             userAction(game, first, ActionType.EndStep, { step: TurnStep.Cargo })
         )
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
+        state = execute(
+            game,
+            state,
+            userAction(game, first, ActionType.EndStep, { step: TurnStep.Movement })
+        )
         expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+        state = execute(
+            game,
+            state,
+            userAction(game, first, ActionType.Explore, { shipId: 'starfarers-kepler' })
+        )
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+    })
+
+    it('stops at the cargo step while a ship can still buy, then ends it once nothing is left', () => {
+        const { game, state: started } = startedGame(2)
+        const [first] = started.turnManager.turnOrder
+        let state = edit(started, (hydrated) => {
+            hydrated.ships.push({
+                shipId: 'starfarers-andromeda',
+                playerId: first,
+                systemId: 'sol',
+                transit: 0,
+                damage: 0,
+                settlements: 0,
+                loadedFromBase: false,
+                explored: false
+            })
+        })
+        state = execute(
+            game,
+            state,
+            userAction(game, first, ActionType.EndStep, { step: TurnStep.Build })
+        )
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Cargo)
+        const buy = (settlements: number) =>
+            execute(
+                game,
+                state,
+                userAction(game, first, ActionType.TransferCargo, {
+                    shipId: 'starfarers-andromeda',
+                    partner: { kind: CargoPartnerKind.Earth },
+                    settlements
+                })
+            )
+        state = buy(1)
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Cargo)
+        state = buy(1)
+        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
     })
 })

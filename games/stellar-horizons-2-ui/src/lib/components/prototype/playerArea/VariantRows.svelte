@@ -1,6 +1,6 @@
 <script lang="ts">
-    // PROTOTYPE (variant D): one aligned row per player. The chosen faction's detail is the wide
-    // sheet under the map on wide screens, and the console stacked below the rows on narrow ones.
+    // PROTOTYPE (variant D): one aligned row per player, and under them one console with the
+    // chosen faction's detail.
     import { ShipKind } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { FACTION_FILL, factionName } from '$lib/utils/presentation.js'
@@ -24,11 +24,6 @@
         ].filter(Boolean)
         return parts.length > 0 ? parts.join(', ') : undefined
     }
-
-    function choose(faction: MockFaction) {
-        playerArea.selected = faction.faction
-        playerArea.sheetOpen = true
-    }
 </script>
 
 <div class="standings">
@@ -48,7 +43,7 @@
             class="row"
             class:selected={playerArea.selected === faction.faction}
             style:--faction={FACTION_FILL[faction.faction]}
-            onclick={() => choose(faction)}
+            onclick={() => (playerArea.selected = faction.faction)}
             title="{factionName(faction.faction)}{warn ? `: ${warn}` : ''}"
         >
             <span class="init">{faction.initiative}</span>
@@ -70,9 +65,7 @@
     {/each}
 </div>
 
-{#if !playerArea.wide.current}
-    <div class="stacked"><Console faction={playerArea.selectedFaction} /></div>
-{/if}
+<div class="stacked"><Console faction={playerArea.selectedFaction} /></div>
 
 <style>
     .standings {

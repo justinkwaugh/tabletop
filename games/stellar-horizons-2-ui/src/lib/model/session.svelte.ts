@@ -69,6 +69,7 @@ export class StellarHorizonsGameSession extends GameSession<
     private cargoDraft: CargoDraft | undefined = $state()
     private inspected: { systemId: string; playerId: string } | undefined = $state()
     private focus: { systemId: string; closing: boolean } | undefined = $state()
+    private consolePlayer: string | undefined = $state()
 
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
@@ -194,6 +195,19 @@ export class StellarHorizonsGameSession extends GameSession<
 
     focusClosing: boolean = $derived(this.focus?.closing ?? false)
 
+    // The player whose console the player area shows: the one chosen from the standings,
+    // otherwise the viewer.
+    consolePlayerId: string | undefined = $derived.by(() => {
+        const chosen = this.consolePlayer
+        return chosen && this.gameState.players.some((player) => player.playerId === chosen)
+            ? chosen
+            : (this.myPlayerId ?? this.gameState.initiativeOrder().at(0))
+    })
+
+    showConsole(playerId: string) {
+        this.consolePlayer = playerId
+    }
+
     focusSystem(systemId: string) {
         this.closeClump()
         this.focus = { systemId, closing: false }
@@ -281,6 +295,10 @@ export class StellarHorizonsGameSession extends GameSession<
                 })
             )
         )
+        if (this.myStep !== TurnStep.Cargo) {
+            this.clearSelection()
+            this.enterStep()
+        }
     }
 
     override async undo() {
@@ -293,6 +311,13 @@ export class StellarHorizonsGameSession extends GameSession<
 
     resetAction() {
         this.select(undefined)
+    }
+
+    // Movement starts from the whole map, so every destination is in view.
+    private enterStep() {
+        if (this.myStep === TurnStep.Movement) {
+            this.leaveFocus()
+        }
     }
 
     private select(selection: Selection | undefined) {
@@ -395,10 +420,7 @@ export class StellarHorizonsGameSession extends GameSession<
             ActionType.EndStep,
             this.inTurn(this.createPlayerAction(EndStep, { step }))
         )
-        // Movement starts from the whole map, so every destination is in view.
-        if (this.myStep === TurnStep.Movement) {
-            this.leaveFocus()
-        }
+        this.enterStep()
     }
 
     async chooseSurveyWorld(slot: number | undefined) {
