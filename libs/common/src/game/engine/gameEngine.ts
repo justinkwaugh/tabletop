@@ -30,11 +30,17 @@ import {
 } from './branch.js'
 import { findBranchScopeViolation } from './branchScope.js'
 import {
+    BranchCloseActionType,
+    spanRuns,
+    isBranchClose,
     isRestingInSpan,
     restingSpan,
     spanAwaitingBranch,
+    returnedPlayerIds,
+    spanActivePlayerIds,
     unmergedPlayerIds
 } from './parallelSpan.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 import {
     isOutOfTurnActionType,
     isOutOfTurnDeclaration,
@@ -255,15 +261,66 @@ export class GameEngine<
         const steps: ActionCascadeResult<T>[] = []
         let current = state
         while (isRestingInSpan(current)) {
-            const nextPlayerId = unmergedPlayerIds(restingSpan(current)).at(0)
+            const span = restingSpan(current)
+            const returnedPlayerId = returnedPlayerIds(span).at(0)
+            const nextPlayerId = unmergedPlayerIds(span).at(0)
             const step =
-                nextPlayerId === undefined
-                    ? this.completeSpan({ state: current, game })
-                    : this.startBranch({ state: current, game, playerId: nextPlayerId })
+                returnedPlayerId !== undefined
+                    ? this.closeBranch({ state: current, playerId: returnedPlayerId })
+                    : nextPlayerId === undefined
+                      ? this.completeSpan({ state: current, game })
+                      : this.startBranch({ state: current, game, playerId: nextPlayerId })
             steps.push(step)
             current = step.updatedState
         }
         return steps.length === 0 ? undefined : combineCascades(state, steps)
+    }
+
+    closeBranch({ state, playerId }: { state: T; playerId: string }): ActionCascadeResult<T> {
+        const span = restingSpan(state)
+        assert(span.playerIds.includes(playerId), `Player ${playerId} takes no part in this span`)
+        const action: GameAction = {
+            id: span.branchCloseIds[playerId],
+            gameId: state.gameId,
+            type: BranchCloseActionType,
+            source: ActionSource.System,
+            playerId,
+            createdAt: new Date()
+        }
+        const updatedState = this.applyBranchClose(state, action)
+        action.index = state.actionCount
+        action.undoPatch = createPatch(updatedState, state)
+        return {
+            processedActions: [action],
+            updatedState,
+            indexOffset: 0,
+            actionCascade: { before: state, transitions: [{ action, after: updatedState }] }
+        }
+    }
+
+    private applyBranchClose(state: T, action: GameAction): T {
+        const playerId = action.playerId
+        assertExists(playerId, 'A Branch Close names its Player')
+        const span = state.parallelSpan
+        assertExists(span, 'No Parallel Span is in progress')
+        assert(
+            span.branchCloseIds[playerId] === action.id,
+            `This is not the Branch Close of ${playerId} in this span`
+        )
+        assert(
+            !span.closedPlayerIds.includes(playerId),
+            `The Branch of ${playerId} is already closed`
+        )
+        const closed = { ...span, closedPlayerIds: [...span.closedPlayerIds, playerId] }
+        return {
+            ...structuredClone(state),
+            parallelSpan: closed,
+            activePlayerIds: spanActivePlayerIds(closed),
+            actionCount: state.actionCount + 1,
+            actionChecksum: calculateActionChecksum(state.actionChecksum, [
+                { ...action, index: state.actionCount }
+            ])
+        }
     }
 
     startBranch({
@@ -292,6 +349,10 @@ export class GameEngine<
             unmergedPlayerIds(span).length === 0,
             'Span Completion needs every Branch on the Main Line'
         )
+        assert(
+            span.closedPlayerIds.length === span.playerIds.length,
+            'Span Completion needs a Branch Close for every Branch'
+        )
         return this.executeCanonicalAction({
             action: this.spanAction(state, this.spanDefinition(span).spanCompletion, {
                 id: span.completionId
@@ -301,16 +362,10 @@ export class GameEngine<
         })
     }
 
-    branchesReadyToMerge({
-        state,
-        closedPlayerIds
-    }: {
-        state: T
-        closedPlayerIds: readonly string[]
-    }): string[] {
+    branchesReadyToMerge({ state }: { state: T }): string[] {
         const span = restingSpan(state)
         const waiting = unmergedPlayerIds(span)
-        const firstOpen = waiting.findIndex((playerId) => !closedPlayerIds.includes(playerId))
+        const firstOpen = waiting.findIndex((playerId) => !span.closedPlayerIds.includes(playerId))
         if (firstOpen < 0) return waiting
         return this.spanDefinition(span).merge === 'barrier' ? [] : waiting.slice(0, firstOpen)
     }
@@ -366,7 +421,6 @@ export class GameEngine<
         asAdministrator?: boolean
     }): { branch: Branch; view: T; undoneActions: GameAction[] } {
         const playerId = branch.playerId
-        assert(!branch.closed, `The Branch of ${playerId} is closed`)
         const window = branchUndoWindow(actions, actionId, { asAdministrator })
         if (window.kind === 'refused') throw new BranchUndoError(playerId, window.reason)
         assert(
@@ -377,11 +431,35 @@ export class GameEngine<
         for (const action of window.actions.toReversed()) {
             view = this.undoProcessedAction({ action, state: view })
         }
+        const undone = branchFromView(state, view, playerId)
         return {
-            branch: branchFromView(state, view, playerId),
-            view,
+            branch: undone,
+            view: branchView(state, undone),
             undoneActions: window.actions
         }
+    }
+
+    replayOnSpan({
+        state,
+        game,
+        recorded
+    }: {
+        state: T
+        game: Game
+        recorded: readonly GameAction[]
+    }): ActionCascadeResult<T> {
+        const steps: ActionCascadeResult<T>[] = []
+        let current = state
+        for (const run of spanRuns(recorded, restingSpan(state))) {
+            const playerId = run[0].playerId
+            assertExists(playerId, 'Every step of a span belongs to a Player')
+            const step = isBranchClose(run[0])
+                ? this.closeBranch({ state: current, playerId })
+                : this.replayOnMainLine({ state: current, game, playerId, recorded: run })
+            steps.push(step)
+            current = step.updatedState
+        }
+        return combineCascades(state, steps)
     }
 
     mergeBranch({
@@ -398,6 +476,10 @@ export class GameEngine<
         const playerId = branch.playerId
         assert(branch.closed, `The Branch of ${playerId} is still open`)
         const span = restingSpan(state)
+        assert(
+            span.closedPlayerIds.includes(playerId),
+            `The Branch of ${playerId} has no Branch Close on the Main Line`
+        )
         assert(
             unmergedPlayerIds(span).at(0) === playerId,
             `The Branch of ${playerId} is not next in Merge Order`
@@ -466,6 +548,7 @@ export class GameEngine<
     }
 
     applyProcessedAction({ action, state, game }: { action: GameAction; state: T; game: Game }): T {
+        if (isBranchClose(action)) return this.applyBranchClose(state, action)
         if (isRedactedAction(action)) {
             assertExists(action.forwardPatch, 'Redacted Action record requires a forward patch')
             return this.applyStatePatch(state, action.forwardPatch)
@@ -701,8 +784,7 @@ export class GameEngine<
             span.mergedPlayerIds.push(branchPlayerId)
             delete span.branchPlayerId
         }
-        state.activePlayerIds =
-            span.branchPlayerId === undefined ? unmergedPlayerIds(span) : [span.branchPlayerId]
+        state.activePlayerIds = spanActivePlayerIds(span)
     }
 
     private newSpan(state: U, definition: ParallelSpanDefinition<U>): ParallelSpanState {
@@ -713,6 +795,8 @@ export class GameEngine<
             'Merge Order must place every Active Player'
         )
         const playerIds = mergeOrder.filter((playerId) => state.isActivePlayer(playerId))
+        const identityForEach = () =>
+            Object.fromEntries(playerIds.map((playerId) => [playerId, identity.randId()]))
         return {
             machineState: state.machineState,
             branchPoint: {
@@ -720,11 +804,11 @@ export class GameEngine<
                 actionChecksum: state.actionChecksum
             },
             playerIds,
+            closedPlayerIds: [],
             mergedPlayerIds: [],
-            branchStartIds: Object.fromEntries(
-                playerIds.map((playerId) => [playerId, identity.randId()])
-            ),
-            completionId: identity.randId()
+            branchStartIds: identityForEach(),
+            completionId: identity.randId(),
+            branchCloseIds: identityForEach()
         }
     }
 

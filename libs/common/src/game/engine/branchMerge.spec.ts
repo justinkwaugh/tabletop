@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { GameAction } from './gameAction.js'
 import { branchUndoWindow, branchView } from './branch.js'
+import { isBranchClose } from './parallelSpan.js'
 import { createSpanGame, spanAction, type SpanGameState } from './tests/spanGame.js'
 import {
     beginSpan,
+    closeOnMainLine,
     mergePrivatePlay,
     playLocally,
     playPrivately,
@@ -101,11 +103,35 @@ describe('Branch Undo', () => {
         )
     })
 
-    it('refuses a Closed Branch', () => {
+    it('reopens a Closed Branch when the Action that closed it is undone', () => {
         const spanGame = createSpanGame()
         const state = beginSpan(spanGame)
-        const play = playPrivately(spanGame, state, 'p2', [spanAction('f2', 'finish', 'p2')])
-        expect(() => undo(spanGame, state, play, 'f2')).toThrow('The Branch of p2 is closed')
+        const play = playPrivately(spanGame, state, 'p2', [
+            spanAction('w2', 'work', 'p2'),
+            spanAction('f2', 'finish', 'p2')
+        ])
+        expect(play.branch.closed).toBe(true)
+        const closedOnMainLine = closeOnMainLine(spanGame, state, 'p2')
+        const undone = undo(spanGame, closedOnMainLine, play, 'f2')
+        expect(summary(undone.undoneActions)).toEqual(['finish:p2'])
+        expect(undone.branch.closed).toBe(false)
+        expect(playerOf(undone.view, 'p2').work).toBe(1)
+        expect(undone.view.parallelSpan?.branchPlayerId).toBe('p2')
+        expect(undone.view.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('leaves the reopened Player alone in their Branch whoever else has closed since', () => {
+        const spanGame = createSpanGame({ merge: 'barrier' })
+        const state = beginSpan(spanGame)
+        const third = playPrivately(spanGame, state, 'p3', [spanAction('f3', 'finish', 'p3')])
+        const second = playPrivately(spanGame, closeOnMainLine(spanGame, state, 'p3'), 'p2', [
+            spanAction('f2', 'finish', 'p2')
+        ])
+        const bothClosed = closeOnMainLine(spanGame, closeOnMainLine(spanGame, state, 'p3'), 'p2')
+        const reopened = undo(spanGame, bothClosed, third, 'f3')
+        expect(reopened.view.activePlayerIds).toEqual(['p3'])
+        expect(branchView(bothClosed, second.branch).activePlayerIds).toEqual(['p1'])
+        expect(undo(spanGame, bothClosed, second, 'f2').view.activePlayerIds).toEqual(['p2'])
     })
 
     it('refuses recorded Actions that do not end where the Branch does', () => {
@@ -178,8 +204,9 @@ describe('Merge', () => {
         expect(merged.processedActions.map((action) => action.id)).toEqual(
             play.actions.map((action) => action.id)
         )
-        expect(merged.processedActions.map((action) => action.index)).toEqual([1, 2, 3, 4, 5])
-        expect(merged.updatedState.actionCount).toBe(6)
+        expect(merged.processedActions.map((action) => action.index)).toEqual([2, 3, 4, 5, 6])
+        expect(merged.updatedState.actionCount).toBe(7)
+        expect(merged.updatedState.parallelSpan?.closedPlayerIds).toEqual(['p3'])
         expect(merged.updatedState.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
         expect(merged.updatedState.machineState).toBe('branching')
         expect(merged.updatedState.activePlayerIds).toEqual(['p2', 'p1'])
@@ -198,7 +225,7 @@ describe('Merge', () => {
         for (const action of merged.processedActions.toReversed()) {
             reversed = spanGame.engine.undoProcessedAction({ action, state: reversed })
         }
-        expect(reversed).toEqual(state)
+        expect(reversed).toEqual(closeOnMainLine(spanGame, state, 'p3'))
     })
 
     it('merges a Player who closed first after the Player ahead of them', () => {
@@ -206,42 +233,74 @@ describe('Merge', () => {
         const state = beginSpan(spanGame)
         const second = playPrivately(spanGame, state, 'p2', secondPlayerActions)
         const third = playPrivately(spanGame, state, 'p3', thirdPlayerActions)
-        const afterThird = mergePrivatePlay(spanGame, state, third).updatedState
+        const secondClosed = closeOnMainLine(spanGame, state, 'p2')
+        expect(spanGame.engine.branchesReadyToMerge({ state: secondClosed })).toEqual([])
+        const afterThird = mergePrivatePlay(spanGame, secondClosed, third).updatedState
+        expect(afterThird.parallelSpan?.closedPlayerIds).toEqual(['p2', 'p3'])
         const afterSecond = mergePrivatePlay(spanGame, afterThird, second)
         expect(afterSecond.updatedState.parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
-        expect(afterSecond.processedActions.map((action) => action.index)).toEqual([6, 7, 8, 9, 10])
+        expect(afterSecond.processedActions.map((action) => action.index)).toEqual([
+            8, 9, 10, 11, 12
+        ])
         expect(playerOf(afterSecond.updatedState, 'p2').work).toBe(1)
         expect(playerOf(afterSecond.updatedState, 'p3').queued).toBe(3)
     })
 
-    it('makes a Hosted Game’s merged history a valid Local Game history of the same Actions', () => {
-        const spanGame = createSpanGame()
-        const branchPoint = beginSpan(spanGame)
-        const first = playPrivately(spanGame, branchPoint, 'p1', firstPlayerActions)
-        const second = playPrivately(spanGame, branchPoint, 'p2', secondPlayerActions)
-        const third = playPrivately(spanGame, branchPoint, 'p3', thirdPlayerActions)
-        const history: GameAction[] = []
-        let mainLine = branchPoint
-        for (const play of [third, second, first]) {
-            const merged = mergePrivatePlay(spanGame, mainLine, play)
-            history.push(...merged.processedActions)
-            mainLine = merged.updatedState
+    it.each([
+        { closes: ['p3', 'p2', 'p1'], name: 'each Branch merging as it closes' },
+        { closes: ['p2', 'p1', 'p3'], name: 'Branches closing in another order than they merge' }
+    ])(
+        'reaches what a Local Game reaches playing the same Actions in turn, with $name',
+        ({ closes }) => {
+            const spanGame = createSpanGame()
+            const branchPoint = beginSpan(spanGame)
+            const plays: Record<string, PrivatePlay> = {
+                p1: playPrivately(spanGame, branchPoint, 'p1', firstPlayerActions),
+                p2: playPrivately(spanGame, branchPoint, 'p2', secondPlayerActions),
+                p3: playPrivately(spanGame, branchPoint, 'p3', thirdPlayerActions)
+            }
+            const history: GameAction[] = []
+            let mainLine = branchPoint
+            const record = (step: {
+                processedActions: GameAction[]
+                updatedState: SpanGameState
+            }) => {
+                history.push(...step.processedActions)
+                mainLine = step.updatedState
+            }
+            for (const playerId of closes) {
+                record(spanGame.engine.closeBranch({ state: mainLine, playerId }))
+                for (const ready of spanGame.engine.branchesReadyToMerge({ state: mainLine })) {
+                    record(mergePrivatePlay(spanGame, mainLine, plays[ready]))
+                }
+            }
+            record(spanGame.engine.completeSpan({ game: spanGame.game, state: mainLine }))
+
+            const played = playLocally(spanGame, branchPoint, [
+                ...thirdPlayerActions,
+                ...secondPlayerActions,
+                ...firstPlayerActions
+            ])
+
+            const identified = (actions: readonly GameAction[]) =>
+                actions.map((action) => `${action.type}:${action.id}`)
+            const apartFromCloses = (actions: readonly GameAction[]) =>
+                identified(actions.filter((action) => !isBranchClose(action)))
+            const closesOf = (actions: readonly GameAction[]) =>
+                identified(actions.filter(isBranchClose)).toSorted()
+            expect(apartFromCloses(history)).toEqual(apartFromCloses(played.processedActions))
+            expect(closesOf(history)).toEqual(closesOf(played.processedActions))
+            expect(closesOf(history)).toHaveLength(3)
+            expect(history.map((action) => action.index)).toEqual(
+                played.processedActions.map((action) => action.index)
+            )
+            expect({ ...mainLine, actionChecksum: 0 }).toEqual({
+                ...played.state,
+                actionChecksum: 0
+            })
+            expect(mainLine.pot).toBe(5)
         }
-        const completed = spanGame.engine.completeSpan({ game: spanGame.game, state: mainLine })
-        history.push(...completed.processedActions)
-
-        const played = playLocally(spanGame, branchPoint, [
-            ...thirdPlayerActions,
-            ...secondPlayerActions,
-            ...firstPlayerActions
-        ])
-
-        const positioned = (actions: readonly GameAction[]) =>
-            actions.map((action) => `${action.index}:${action.type}:${action.id}`)
-        expect(positioned(history)).toEqual(positioned(played.processedActions))
-        expect(completed.updatedState).toEqual(played.state)
-        expect(completed.updatedState.pot).toBe(5)
-    })
+    )
 
     it('refuses a Branch that is still open', () => {
         const spanGame = createSpanGame()
@@ -323,7 +382,7 @@ describe('Merge', () => {
         const state = beginSpan(spanGame)
         const play = playPrivately(spanGame, state, 'p3', thirdPlayerActions)
         const merged = mergePrivatePlay(spanGame, state, play).updatedState
-        const view = branchView(state, play.branch)
+        const view = branchView(closeOnMainLine(spanGame, state, 'p3'), play.branch)
         expect(merged.items).toEqual(view.items)
         expect(merged.startingPositionRandom).toEqual(view.startingPositionRandom)
         expect(merged.parallelSpan).toEqual(view.parallelSpan)
@@ -334,8 +393,10 @@ describe('Branches ready to merge', () => {
     function ready(merge: 'barrier' | 'ordered', closedPlayerIds: readonly string[]) {
         const spanGame = createSpanGame({ merge })
         return spanGame.engine.branchesReadyToMerge({
-            state: beginSpan(spanGame),
-            closedPlayerIds
+            state: closedPlayerIds.reduce(
+                (state, playerId) => closeOnMainLine(spanGame, state, playerId),
+                beginSpan(spanGame)
+            )
         })
     }
 

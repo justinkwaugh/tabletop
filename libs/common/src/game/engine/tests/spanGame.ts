@@ -9,6 +9,7 @@ import {
     GameState,
     HydratableAction,
     HydratableGameState,
+    isBranchClose,
     PlayerAction,
     PlayerState,
     PlayerStatus,
@@ -578,5 +579,8 @@ export function spanAction<Name extends SpanActionType>(
 }
 
 export function summary(actions: readonly GameAction[]): string[] {
-    return actions.map((action) => `${action.type}:${action.playerId ?? ''}`)
+    return actions.map(
+        (action) =>
+            `${isBranchClose(action) ? 'closeBranch' : action.type}:${action.playerId ?? ''}`
+    )
 }

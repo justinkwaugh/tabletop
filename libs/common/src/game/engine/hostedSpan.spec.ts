@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { UnmergedBranch } from './branch.js'
 import { createGameFork } from './gameFork.js'
-import { reverseToBranchStart, settleSpan } from './hostedSpan.js'
+import { removeBranchCloses, reverseToBranchStart, settleSpan } from './hostedSpan.js'
 import { createSpanGame, spanAction, type SpanGameOptions } from './tests/spanGame.js'
 import {
     beginSpan,
@@ -34,14 +34,14 @@ function settle(
     spanGame: SpanGame,
     state: ReturnType<typeof beginSpan>,
     unmergedBranches: readonly UnmergedBranch[],
-    held = false
+    mergesHeld = false
 ) {
     return settleSpan({
         engine: spanGame.engine,
         game: spanGame.game,
         state,
         unmergedBranches,
-        held
+        mergesHeld
     })
 }
 
@@ -81,7 +81,11 @@ describe('Settling a span on the host', () => {
     it('merges at once a Branch that closes on Branch Start', () => {
         const { spanGame, state } = begun({ idle: ['p3'] })
         const settlement = settle(spanGame, state, [])
-        expect(summary(settlement.processedActions)).toEqual(['openBranch:p3', 'idleSkip:p3'])
+        expect(summary(settlement.processedActions)).toEqual([
+            'closeBranch:p3',
+            'openBranch:p3',
+            'idleSkip:p3'
+        ])
         expect(settlement.mergedPlayerIds).toEqual(['p3'])
         expect(settlement.createdBranches.map(({ branch }) => branch.playerId)).toEqual([
             'p2',
@@ -99,16 +103,22 @@ describe('Settling a span on the host', () => {
         expect(settlement.mergedPlayerIds).toEqual(['p3', 'p2', 'p1'])
     })
 
-    it('does not merge a Closed Branch while a Branch ahead of it is open', () => {
+    it('records a Branch Close, and does not merge the Branch while one ahead of it is open', () => {
         const { spanGame, state } = begun()
-        const settlement = settle(spanGame, state, [
+        const branches = [
             openBranch(spanGame, state, 'p3'),
             closedBranch(spanGame, state, 'p2'),
             openBranch(spanGame, state, 'p1')
-        ])
-        expect(settlement.processedActions).toEqual([])
+        ]
+        const settlement = settle(spanGame, state, branches)
+        expect(summary(settlement.processedActions)).toEqual(['closeBranch:p2'])
+        expect(settlement.updatedState.parallelSpan?.closedPlayerIds).toEqual(['p2'])
+        expect(settlement.updatedState.activePlayerIds).toEqual(['p3', 'p1'])
         expect(settlement.mergedPlayerIds).toEqual([])
         expect(settlement.createdBranches).toEqual([])
+
+        const again = settle(spanGame, settlement.updatedState, branches)
+        expect(again.processedActions).toEqual([])
     })
 
     it('merges every Closed Branch that is ready, in Merge Order', () => {
@@ -120,14 +130,18 @@ describe('Settling a span on the host', () => {
         ])
         expect(settlement.mergedPlayerIds).toEqual(['p3', 'p2'])
         expect(summary(settlement.processedActions)).toEqual([
+            'closeBranch:p3',
+            'closeBranch:p2',
             'openBranch:p3',
             'finish:p3',
             'openBranch:p2',
             'finish:p2'
         ])
-        expect(settlement.processedActions.map((action) => action.index)).toEqual([1, 2, 3, 4])
+        expect(settlement.processedActions.map((action) => action.index)).toEqual([
+            1, 2, 3, 4, 5, 6
+        ])
         expect(settlement.actionCascade.before).toEqual(state)
-        expect(settlement.actionCascade.transitions).toHaveLength(4)
+        expect(settlement.actionCascade.transitions).toHaveLength(6)
     })
 
     it('completes the span when the last Branch is merged', () => {
@@ -209,6 +223,7 @@ describe('Settling a span on the host', () => {
             [closedBranch(spanGame, state, 'p3'), openBranch(spanGame, state, 'p2')],
             true
         )
+        expect(summary(settlement.processedActions)).toEqual(['closeBranch:p3'])
         expect(settlement.mergedPlayerIds).toEqual([])
         expect(settlement.createdBranches.map(({ branch }) => branch.playerId)).toEqual(['p1'])
     })
@@ -304,10 +319,160 @@ describe('A Fork taken inside a merged Branch', () => {
             actionIndex: actions.length - 1,
             runtime: spanGame.runtime
         })
-        expect(summary(fork.actions)).toEqual(['begin:p1', 'openBranch:p3', 'work:p3', 'finish:p3'])
+        expect(summary(fork.actions)).toEqual([
+            'begin:p1',
+            'openBranch:p3',
+            'work:p3',
+            'finish:p3',
+            'closeBranch:p3'
+        ])
         expect(fork.state.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
         expect(fork.state.parallelSpan?.branchPlayerId).toBeUndefined()
         expect(fork.game.lastActionPlayerId).toBe('p3')
         expect(fork.game.spanHold).toBeUndefined()
+    })
+})
+
+describe('A Fork taken after a Branch Close that is not yet merged', () => {
+    it('lands before that Branch Close', () => {
+        const spanGame = createSpanGame()
+        const begun = spanGame.engine.executeCanonicalAction({
+            game: spanGame.game,
+            state: spanGame.state,
+            action: spanAction('begin', 'begin', 'p1')
+        })
+        const settlement = settle(spanGame, begun.updatedState, [
+            closedBranch(spanGame, begun.updatedState, 'p2'),
+            openBranch(spanGame, begun.updatedState, 'p3'),
+            openBranch(spanGame, begun.updatedState, 'p1')
+        ])
+        const actions = [...begun.processedActions, ...settlement.processedActions]
+        expect(summary(actions)).toEqual(['begin:p1', 'closeBranch:p2'])
+
+        const fork = createGameFork({
+            game: spanGame.game,
+            state: settlement.updatedState,
+            actions,
+            actionIndex: 0,
+            runtime: spanGame.runtime
+        })
+        expect(summary(fork.actions)).toEqual(['begin:p1'])
+        expect(fork.state.parallelSpan?.closedPlayerIds).toEqual([])
+        expect(fork.game.activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+    })
+})
+
+describe('Reopening a Closed Branch on the Main Line', () => {
+    function closedFirst() {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const last = closedBranch(spanGame, state, 'p1')
+        const waiting = settle(spanGame, state, [
+            last,
+            openBranch(spanGame, state, 'p2'),
+            openBranch(spanGame, state, 'p3')
+        ])
+        return { spanGame, state, last, waiting }
+    }
+
+    it('takes the Branch Close off the Main Line', () => {
+        const { spanGame, state, waiting } = closedFirst()
+        expect(summary(waiting.processedActions)).toEqual(['closeBranch:p1'])
+        const reopened = removeBranchCloses({
+            engine: spanGame.engine,
+            game: spanGame.game,
+            state: waiting.updatedState,
+            history: waiting.processedActions,
+            playerIds: ['p1']
+        })
+        expect(reopened.state).toEqual(state)
+        expect(summary(reopened.removed)).toEqual(['closeBranch:p1'])
+        expect(reopened.replayed).toEqual([])
+    })
+
+    it('leaves in place the closes and Merges that came after it', () => {
+        const { spanGame, state, last, waiting } = closedFirst()
+        const others = settle(spanGame, waiting.updatedState, [
+            last,
+            openBranch(spanGame, state, 'p2'),
+            playPrivately(spanGame, state, 'p3', [
+                spanAction('w3', 'work', 'p3'),
+                spanAction('f3', 'finish', 'p3')
+            ])
+        ])
+        const history = [...waiting.processedActions, ...others.processedActions]
+        expect(summary(history)).toEqual([
+            'closeBranch:p1',
+            'closeBranch:p3',
+            'openBranch:p3',
+            'work:p3',
+            'finish:p3'
+        ])
+
+        const reopened = removeBranchCloses({
+            engine: spanGame.engine,
+            game: spanGame.game,
+            state: others.updatedState,
+            history,
+            playerIds: ['p1']
+        })
+        expect(reopened.removed).toEqual(history)
+        expect(summary(reopened.replayed)).toEqual(summary(history).slice(1))
+        expect(reopened.replayed.map((action) => action.id)).toEqual(
+            history.slice(1).map((action) => action.id)
+        )
+        expect(reopened.replayed.map((action) => action.index)).toEqual([1, 2, 3, 4])
+        expect(reopened.state.parallelSpan?.closedPlayerIds).toEqual(['p3'])
+        expect(reopened.state.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
+        expect(reopened.state.activePlayerIds).toEqual(['p2', 'p1'])
+        expect(playerOf(reopened.state, 'p3')).toEqual(playerOf(others.updatedState, 'p3'))
+    })
+
+    it('takes several off at once and starts from the earliest of them', () => {
+        const spanGame = createSpanGame({ merge: 'barrier' })
+        const state = beginSpan(spanGame)
+        const closed = settle(spanGame, state, [
+            closedBranch(spanGame, state, 'p2'),
+            closedBranch(spanGame, state, 'p3'),
+            openBranch(spanGame, state, 'p1')
+        ])
+        expect(summary(closed.processedActions)).toEqual(['closeBranch:p3', 'closeBranch:p2'])
+        const removed = removeBranchCloses({
+            engine: spanGame.engine,
+            game: spanGame.game,
+            state: closed.updatedState,
+            history: closed.processedActions,
+            playerIds: ['p2', 'p3']
+        })
+        expect(removed.state).toEqual(state)
+        expect(removed.replayed).toEqual([])
+        expect(
+            removeBranchCloses({
+                engine: spanGame.engine,
+                game: spanGame.game,
+                state: closed.updatedState,
+                history: closed.processedActions,
+                playerIds: []
+            })
+        ).toEqual({ state: closed.updatedState, removed: [], replayed: [] })
+    })
+
+    it('refuses once that Player’s Branch is on the Main Line', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const merged = settle(spanGame, state, [
+            closedBranch(spanGame, state, 'p3'),
+            openBranch(spanGame, state, 'p2'),
+            openBranch(spanGame, state, 'p1')
+        ])
+        expect(() =>
+            removeBranchCloses({
+                engine: spanGame.engine,
+                game: spanGame.game,
+                state: merged.updatedState,
+                history: merged.processedActions,
+                playerIds: ['p3']
+            })
+        ).toThrow('Only the Branch Close of a Branch not yet on the Main Line can be removed')
     })
 })

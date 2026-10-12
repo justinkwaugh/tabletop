@@ -6,7 +6,12 @@ import { BaseError } from '../../util/errors.js'
 import { ActionSource, GameAction, Patch } from './gameAction.js'
 import { ENGINE_MAINTAINED_FIELDS } from './branchScope.js'
 import { withoutActionPositions } from './commutation.js'
-import { sameHistoryPosition, spanAwaitingBranch, unmergedPlayerIds } from './parallelSpan.js'
+import {
+    sameHistoryPosition,
+    spanAwaitingBranch,
+    spanActivePlayerIds,
+    unmergedPlayerIds
+} from './parallelSpan.js'
 import { createPatch } from './statePatch.js'
 import { BranchPoint, type GameState, type ParallelSpanState } from '../model/gameState.js'
 
@@ -15,7 +20,6 @@ export const Branch = Type.Object({
     playerId: Type.String(),
     branchPoint: BranchPoint,
     machineState: Type.String(),
-    activePlayerIds: Type.Array(Type.String()),
     actionCount: Type.Number(),
     actionChecksum: Type.Number(),
     closed: Type.Boolean(),
@@ -81,19 +85,20 @@ function viewOver<T extends GameState>(state: T, span: ParallelSpanState, branch
         structuredClone(state),
         structuredClone(branch.change)
     ).newDocument
+    const viewed = {
+        ...structuredClone(span),
+        mergedPlayerIds: branch.closed
+            ? [...span.mergedPlayerIds, branch.playerId]
+            : [...span.mergedPlayerIds],
+        ...(branch.closed ? {} : { branchPlayerId: branch.playerId })
+    }
     return {
         ...changed,
         machineState: branch.machineState,
-        activePlayerIds: [...branch.activePlayerIds],
+        activePlayerIds: spanActivePlayerIds(viewed),
         actionCount: branch.actionCount,
         actionChecksum: branch.actionChecksum,
-        parallelSpan: {
-            ...structuredClone(span),
-            mergedPlayerIds: branch.closed
-                ? [...span.mergedPlayerIds, branch.playerId]
-                : [...span.mergedPlayerIds],
-            ...(branch.closed ? {} : { branchPlayerId: branch.playerId })
-        }
+        parallelSpan: viewed
     }
 }
 
@@ -118,7 +123,6 @@ export function branchFromView(state: GameState, view: GameState, playerId: stri
         playerId,
         branchPoint: structuredClone(span.branchPoint),
         machineState: view.machineState,
-        activePlayerIds: [...view.activePlayerIds],
         actionCount: view.actionCount,
         actionChecksum: view.actionChecksum,
         closed: view.parallelSpan?.branchPlayerId === undefined,

@@ -50,6 +50,7 @@ class Remote extends DummyRemoteApiService {
     readonly perspective: Visibility.Perspective
     onMainLine?: (submission: SpanHostSubmission) => Promise<void>
     onBranch?: (unmergedBranch: UnmergedBranch) => Promise<void>
+    onReplaced?: (startIndex: number) => Promise<void>
     pendingAcceptance?: Promise<void>
     syncChecks = 0
 
@@ -158,7 +159,10 @@ class Remote extends DummyRemoteApiService {
         const submission = this.host.submit(action)
         const unmergedBranch = this.project(submission.unmergedBranch)
         await this.onMainLine?.(submission)
-        if (submission.mainLine === undefined && unmergedBranch !== undefined) {
+        if (
+            unmergedBranch !== undefined &&
+            (submission.mainLine === undefined || unmergedBranch.branch.closed)
+        ) {
             await this.onBranch?.(unmergedBranch)
         }
         return {
@@ -169,15 +173,37 @@ class Remote extends DummyRemoteApiService {
         }
     }
 
+    replayFrom(startIndex: number) {
+        const history = Visibility.projectActionHistory({
+            game: this.host.game,
+            currentState: this.host.state,
+            actions: this.host.actions.slice(startIndex),
+            startIndex,
+            perspective: this.perspective,
+            visibility: this.visibility,
+            replay: { game: this.host.game, runtime: this.host.runtime }
+        })
+        return { startIndex, actions: [...history.actions] }
+    }
+
     async undoAction(_game: Game, actionId: string) {
+        const checksumBefore = this.host.state.actionChecksum
         const undone = this.host.undoInBranch(this.playerId, actionId)
-        const unmergedBranch = this.project(undone)
+        const unmergedBranch = this.project(undone.unmergedBranch)
+        const actionReplay = this.replayFrom(undone.replay.startIndex)
+        if (this.host.state.actionChecksum !== checksumBefore) {
+            await this.onReplaced?.(undone.replay.startIndex)
+        }
         if (unmergedBranch !== undefined) await this.onBranch?.(unmergedBranch)
-        const actionReplay = { startIndex: this.host.state.actionCount, actions: [] }
         return {
             game: structuredClone(this.host.game),
             actionReplay,
-            canonicalReplay: { ...actionReplay, userActions: [] },
+            canonicalReplay: {
+                ...actionReplay,
+                userActions: actionReplay.actions.filter(
+                    (action) => action.source === ActionSource.User
+                )
+            },
             checksum: this.host.state.actionChecksum,
             perspective: this.perspective,
             unmergedBranch
@@ -191,6 +217,7 @@ interface Client {
     api: Remote
     receive(submission: SpanHostSubmission): Promise<void>
     receiveBranch(unmergedBranch: UnmergedBranch): Promise<void>
+    receiveReplacement(startIndex: number): Promise<void>
     dispose(): void
 }
 
@@ -276,9 +303,32 @@ async function table(options: SpanGameOptions = {}) {
                     }
                 })
             },
+            async receiveReplacement(startIndex: number) {
+                await notifications.emit({
+                    eventType: NotificationEventType.Data,
+                    channel: NotificationChannel.User,
+                    notification: {
+                        id: `replacement-${host.state.actionChecksum}`,
+                        type: NotificationCategory.Game,
+                        action: GameNotificationAction.ReplaceProjectedActions,
+                        data: {
+                            game: structuredClone(host.game),
+                            actionReplay: api.replayFrom(startIndex),
+                            checksum: host.state.actionChecksum,
+                            perspective: api.perspective
+                        }
+                    }
+                })
+                await settle(session)
+            },
             dispose() {
                 session.dispose()
                 bridge.dispose()
+            }
+        }
+        api.onReplaced = async (startIndex) => {
+            for (const other of clients) {
+                if (other !== client) await other.receiveReplacement(startIndex)
             }
         }
         api.onMainLine = async (submission) => {
@@ -423,7 +473,7 @@ export async function runHostedSpanMerges() {
         await p3.session.act('finish', 'f3')
         await t.settleAll()
         const mergedPlayerSeesMainLine =
-            played(p3.session) === 'begin:p1,openBranch:p3,work:p3,finish:p3' &&
+            played(p3.session) === 'begin:p1,closeBranch:p3,openBranch:p3,work:p3,finish:p3' &&
             !p3.session.isMyTurn &&
             p3.session.undoableAction === undefined
         const openPlayerKeepsOwnBranch =
@@ -432,18 +482,19 @@ export async function runHostedSpanMerges() {
             p2.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3' &&
             p2.session.gameState.dehydrate().actionCount === 2
         const openPlayerWatchedTheMerge =
-            p2.session.shown.join() === 'openBranch:p3,work:p3,finish:p3'
+            p2.session.shown.join() === 'closeBranch:p3,openBranch:p3,work:p3,finish:p3'
         const spectatorSeesOnlyTheMainLine =
-            played(watcher.session) === 'begin:p1,openBranch:p3,work:p3,finish:p3' &&
-            watcher.session.shown.join() === 'openBranch:p3,work:p3,finish:p3' &&
+            played(watcher.session) === 'begin:p1,closeBranch:p3,openBranch:p3,work:p3,finish:p3' &&
+            watcher.session.shown.join() === 'closeBranch:p3,openBranch:p3,work:p3,finish:p3' &&
             watcher.api.syncChecks === 0
 
         p2.session.shown.length = 0
         await p2.session.act('finish', 'f2')
         await t.settleAll()
         const ownMergeIsNotReplayed =
-            p2.session.shown.filter((shown) => shown.endsWith(':p2')).join() === 'finish:p2' &&
-            played(p2.session).endsWith('openBranch:p2,work:p2,finish:p2') &&
+            p2.session.shown.filter((shown) => shown.endsWith(':p2')).join() ===
+                'finish:p2,closeBranch:p2' &&
+            played(p2.session).endsWith('closeBranch:p2,openBranch:p2,work:p2,finish:p2') &&
             !p2.session.isMyTurn
 
         await p1.session.act('finish', 'f1')
@@ -514,7 +565,7 @@ export async function runHostedSpanReload() {
         await reopened.session.history.goToPreviousAction()
         await settle(reopened.session)
         const historyFollowsTheMainLine =
-            played(reopened.session) === 'begin:p1,openBranch:p3,finish:p3'
+            played(reopened.session) === 'begin:p1,closeBranch:p3,openBranch:p3,finish:p3'
         await reopened.session.history.goToEnd()
         await settle(reopened.session)
 
@@ -526,9 +577,10 @@ export async function runHostedSpanReload() {
         await reopened.session.history.goToPreviousAction()
         await settle(reopened.session)
         const historyStepsWithinTheBranch =
-            played(reopened.session) === 'begin:p1,openBranch:p3,finish:p3,openBranch:p2,work:p2' &&
-            reopened.session.currentActionIndex === 4 &&
-            reopened.session.gameState.dehydrate().actionCount === 5
+            played(reopened.session) ===
+                'begin:p1,closeBranch:p3,openBranch:p3,finish:p3,openBranch:p2,work:p2' &&
+            reopened.session.currentActionIndex === 5 &&
+            reopened.session.gameState.dehydrate().actionCount === 6
         await reopened.session.history.goToEnd()
         await settle(reopened.session)
         await reopened.session.act('work', 'w2c')
@@ -563,16 +615,22 @@ export async function runHostedSpanBarrier() {
         await p1.session.act('begin', 'begin')
         await t.settleAll()
 
+        const syncsBeforeClosing = p2.api.syncChecks
         await p2.session.act('work', 'w2')
         await p2.session.act('finish', 'f2')
+        await t.settleAll()
         const waitsWithOwnPlayInView =
             played(p2.session) === 'openBranch:p2,work:p2,finish:p2' &&
             !p2.session.isMyTurn &&
-            p2.session.undoableAction === undefined &&
-            t.host.state.actionCount === 1
-        const othersSeeNoneOfIt =
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p2' &&
+            p2.api.syncChecks === syncsBeforeClosing &&
+            p2.session.gameState.activePlayerIds.join() === 'p3,p1' &&
+            t.host.state.actionCount === 2
+        const othersSeeOnlyThatItClosed =
             played(p3.session) === 'openBranch:p3' &&
-            p3.session.shown.every((shown) => !shown.endsWith(':p2')) &&
+            p3.session.shown.filter((shown) => shown.endsWith(':p2')).join() === 'closeBranch:p2' &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p2' &&
+            p3.session.isMyTurn &&
             t.host.game.activePlayerIds?.join() === 'p3,p1'
 
         await p3.session.act('finish', 'f3')
@@ -582,7 +640,7 @@ export async function runHostedSpanBarrier() {
         await t.settleAll()
         const watchedEveryoneElse =
             p2.session.shown.join() ===
-            'openBranch:p3,finish:p3,openBranch:p1,work:p1,finish:p1,complete:'
+            'closeBranch:p1,openBranch:p3,finish:p3,openBranch:p1,work:p1,finish:p1,complete:'
         const expected = summary(t.host.actions).join()
         const everyoneEndsOnTheMainLine = [p1, p2, p3].every(
             ({ session }) =>
@@ -590,7 +648,7 @@ export async function runHostedSpanBarrier() {
         )
         return {
             waitsWithOwnPlayInView,
-            othersSeeNoneOfIt,
+            othersSeeOnlyThatItClosed,
             watchedEveryoneElse,
             everyoneEndsOnTheMainLine
         }
@@ -849,6 +907,111 @@ export async function runHostedSpanSecondSession() {
             otherSessionSeesTheClose,
             withoutAnySyncCheck,
             catchesUpBySyncAfterMissingOne
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanReopen() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+
+        await p1.session.act('work', 'w1')
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+        const offersUndoOfTheClose =
+            !p1.session.isMyTurn &&
+            p1.session.undoableAction?.id === 'f1' &&
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1'
+
+        await p1.session.undo()
+        await t.settleAll()
+        const reopensOwnBranch =
+            played(p1.session) === 'openBranch:p1,work:p1' &&
+            p1.session.isMyTurn &&
+            summary(t.host.actions).join() === 'begin:p1' &&
+            t.host.unmergedBranch('p1')?.branch.closed === false
+        const othersSeeThemPlayingAgain =
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === '' &&
+            played(p2.session) === 'openBranch:p2' &&
+            p2.session.isMyTurn
+
+        await p1.session.act('finish', 'f1-again')
+        await p3.session.act('work', 'w3')
+        await p3.session.act('finish', 'f3')
+        await t.settleAll()
+        const mainLineBefore = summary(t.host.actions).join()
+        await p1.session.undo()
+        await t.settleAll()
+        const keepsWhatFollowedTheClose =
+            mainLineBefore ===
+                'begin:p1,closeBranch:p1,closeBranch:p3,openBranch:p3,work:p3,finish:p3' &&
+            summary(t.host.actions).join() ===
+                'begin:p1,closeBranch:p3,openBranch:p3,work:p3,finish:p3' &&
+            played(p1.session) === 'openBranch:p1,work:p1' &&
+            p1.session.isMyTurn &&
+            p1.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3'
+        const everyoneAgreesWithTheHost =
+            played(p3.session) === summary(t.host.actions).join() &&
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p3' &&
+            p2.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3'
+
+        await p1.session.act('finish', 'f1-third')
+        await p2.session.act('finish', 'f2')
+        await t.settleAll()
+        const expected = summary(t.host.actions).join()
+        return {
+            offersUndoOfTheClose,
+            reopensOwnBranch,
+            othersSeeThemPlayingAgain,
+            keepsWhatFollowedTheClose,
+            everyoneAgreesWithTheHost,
+            completesAfterwards: [p1, p2, p3].every(
+                ({ session }) =>
+                    played(session) === expected && session.gameState.machineState === 'scoring'
+            )
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanClosesCross() {
+    const t = await table({ merge: 'barrier' })
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        const syncsBefore = p2.api.syncChecks
+
+        const acceptance = Promise.withResolvers<void>()
+        p2.api.pendingAcceptance = acceptance.promise
+        const closing = p2.session.act('finish', 'f2')
+        await settle(p2.session)
+        await p3.session.act('finish', 'f3')
+        acceptance.resolve()
+        await closing
+        await t.settleAll()
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        await t.settleAll()
+
+        return {
+            hostRecordedTheOtherCloseFirst:
+                summary(t.host.actions).join() === 'begin:p1,closeBranch:p3,closeBranch:p2',
+            takesBothClosesInOrder:
+                p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p3,p2' &&
+                played(p2.session) === 'openBranch:p2,finish:p2' &&
+                !p2.session.isMyTurn,
+            withoutFallingBackToASync:
+                p2.api.syncChecks === syncsBefore && !p2.session.synchronizationFailed
         }
     } finally {
         t.dispose()

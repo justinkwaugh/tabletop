@@ -64,13 +64,6 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         return this.context && positionOf(this.context.state)
     }
 
-    get isClosed(): boolean {
-        return (
-            this.context !== undefined &&
-            this.context.state.parallelSpan?.branchPlayerId === undefined
-        )
-    }
-
     get isAwaited(): boolean {
         return this.context === undefined && this.awaitedSpan() !== undefined
     }
@@ -95,7 +88,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         this.fetchIfAwaited(!this.session.awaitsAnswer())
     }
 
-    followAnswer(sent: UnmergedBranch | undefined): void {
+    followAnswer(sent?: UnmergedBranch): void {
         this.track(sent)
         this.fetchIfAwaited(true)
     }
@@ -139,10 +132,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     acceptUndo(before: GameContext<T, U>, sent: UnmergedBranch): void {
         const branch = this.context
         assertExists(branch, 'There is no Branch for the host to have undone in')
-        if (sameHistoryPosition(branch.state, sent.branch)) return
-        const undone = this.undoneTo(before, sent)
-        assertExists(undone, 'The Branch is not where the host has it after Undo')
-        branch.restoreFrom(undone)
+        branch.restoreFrom(this.undoneTo(before, sent))
     }
 
     followPublished(sent: UnmergedBranch): boolean {
@@ -160,19 +150,19 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         if (sent.actions.length > 0 && sent.actions[0].index === held) {
             reconciliation.applyProcessed(sent.actions)
         } else if (sent.branch.actionCount < held) {
-            const undone = this.undoneTo(branch, sent)
-            if (undone === undefined) return false
-            branch.restoreFrom(undone)
+            branch.restoreFrom(this.undoneTo(branch, sent))
         }
         return sameHistoryPosition(branch.state, sent.branch)
     }
 
-    private undoneTo(from: GameContext<T, U>, sent: UnmergedBranch): GameContext<T, U> | undefined {
+    private undoneTo(from: GameContext<T, U>, sent: UnmergedBranch): GameContext<T, U> {
         const undone = from.clone()
-        while (undone.state.actionCount > sent.branch.actionCount) {
-            if (undone.undoLastAction() === undefined) return undefined
+        while (undone.nextActionIndex > sent.branch.actionCount) {
+            assertExists(undone.popAction(), 'The Branch has no Action left to undo')
         }
-        return sameHistoryPosition(undone.state, sent.branch) ? undone : undefined
+        undone.updateGameState(branchView(this.mainLine.state, sent.branch))
+        undone.verifyFullChecksum()
+        return undone
     }
 
     hydrateHistory({ context, unmergedBranch }: LoadedGame<T, U>): boolean {

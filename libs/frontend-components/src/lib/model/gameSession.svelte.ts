@@ -1312,10 +1312,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     await this.representations.reload()
                     return
                 }
-                this.acceptSubmission(action, response, relevantContext, {
-                    before: priorContext,
-                    result: actionResults
-                })
+                await this.acceptSubmission(
+                    action,
+                    response,
+                    relevantContext,
+                    isRepresentationCurrent,
+                    { before: priorContext, result: actionResults }
+                )
                 this.announceReconciledRace(action, response.missingActions)
             }
         } catch (e) {
@@ -1386,31 +1389,44 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             await this.representations.reload()
             return
         }
-        this.acceptSubmission(action, response, context)
+        await this.acceptSubmission(action, response, context, isRepresentationCurrent)
     }
 
-    private acceptSubmission(
+    private async acceptSubmission(
         action: GameAction,
         response: Awaited<ReturnType<RemoteApiService['applyAction']>>,
         context: GameContext<T, U>,
+        isRepresentationCurrent: () => boolean,
         optimistic?: OptimisticSubmission<T, U>
-    ): void {
-        if (context === this.ownBranch.context && response.actions.length === 0) {
+    ): Promise<void> {
+        if (context !== this.ownBranch.context) {
+            this.reconciliation.acceptSubmission(action.id, response, optimistic)
+            this.ownBranch.followAnswer(response.unmergedBranch)
+            return
+        }
+
+        const merged = response.actions.some((accepted) => accepted.id === action.id)
+        if (response.actions.length > 0) {
+            await this.waitForVisibleTransitionSettled()
+            if (!isRepresentationCurrent()) {
+                await this.representations.reload()
+                return
+            }
+        }
+        if (!merged) {
             const sent = response.unmergedBranch
             assertExists(sent, 'The host accepted a Branch Action without returning the Branch')
             this.ownBranch.acceptSubmission(action.id, sent, response.game, optimistic)
-            return
         }
-        this.reconciliation.acceptSubmission(
-            action.id,
-            response,
-            context === this.gameContext ? optimistic : undefined
-        )
-        this.ownBranch.followAnswer(response.unmergedBranch)
+        if (
+            response.actions.length > 0 &&
+            this.reconciliation.continueWith(response.actions, response.game)
+        ) {
+            this.ownBranch.followAnswer(merged ? response.unmergedBranch : undefined)
+        }
     }
 
     private isBeyondOwnUndo(context: GameContext<T, U>): boolean {
-        if (context === this.ownBranch.context) return this.ownBranch.isClosed
         return (
             context === this.gameContext &&
             this.usesHostExecution(context) &&
@@ -1484,20 +1500,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     return
                 }
                 this.suppressStateChangeActions = true
+                const replay = response.actionReplay ?? response.canonicalReplay
                 if (context === this.ownBranch.context) {
                     const sent = response.unmergedBranch
                     assertExists(
                         sent,
                         'The host undid a Branch Action without returning the Branch'
                     )
+                    if (response.checksum !== this.gameContext.state.actionChecksum) {
+                        this.reconciliation.replace(replay, response.checksum, response.game)
+                    }
                     this.ownBranch.acceptUndo(before, sent)
+                    this.ownBranch.followAnswer()
                 } else {
-                    this.reconciliation.replace(
-                        response.actionReplay ?? response.canonicalReplay,
-                        response.checksum,
-                        response.game,
-                        before
-                    )
+                    this.reconciliation.replace(replay, response.checksum, response.game, before)
                 }
             } else if (context.game.storage === GameStorage.Local) {
                 await this.gameService.saveGameLocally({

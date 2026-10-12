@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
 import { GameAction } from '../engine/gameAction.js'
+import { BranchCloseActionType, isBranchClose } from '../engine/parallelSpan.js'
 import {
     protect,
     redaction,
@@ -106,8 +107,10 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
     private readonly projectors: Readonly<Record<string, Projector<Type.TSchema>>>
 
     constructor(actionSchemas: Schemas, options: ActionProjectorOptions<Schemas>) {
-        if (Object.hasOwn(actionSchemas, RedactedActionType)) {
-            throw Error(`Game Action registry cannot use reserved type "${RedactedActionType}"`)
+        for (const reserved of [RedactedActionType, BranchCloseActionType]) {
+            if (Object.hasOwn(actionSchemas, reserved)) {
+                throw Error(`Game Action registry cannot use reserved type "${reserved}"`)
+            }
         }
         this.actionValidator = Compile(GameAction)
 
@@ -122,14 +125,15 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
     }
 
     project(action: GameAction, perspective: Perspective, context?: ProjectionContext): GameAction {
+        const actionWithoutCanonicalPatches = structuredClone(action)
+        delete actionWithoutCanonicalPatches.undoPatch
+        delete actionWithoutCanonicalPatches.forwardPatch
+        if (isBranchClose(action)) return actionWithoutCanonicalPatches
+
         const projector = this.projectors[action.type]
         if (projector === undefined) {
             throw Error(`No visibility schema registered for Action type "${action.type}"`)
         }
-
-        const actionWithoutCanonicalPatches = structuredClone(action)
-        delete actionWithoutCanonicalPatches.undoPatch
-        delete actionWithoutCanonicalPatches.forwardPatch
 
         const projected: unknown = projector.project(
             actionWithoutCanonicalPatches,

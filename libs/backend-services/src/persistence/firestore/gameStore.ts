@@ -851,19 +851,15 @@ export class FirestoreGameStore implements GameStore {
     async writeUnmergedBranch({
         gameId,
         write,
-        watchBranchesOf = [],
         validator
     }: {
         gameId: string
         write: UnmergedBranchWrite
-        watchBranchesOf?: readonly string[]
         validator: BranchWriteValidator
-    }): Promise<{ written: boolean; updatedGame: Game }> {
+    }): Promise<{ written: boolean }> {
         const playerId = write.branch.playerId
-        let gameChanged = false
 
-        const transactionBody = async (transaction: Transaction, locks: CacheWriteLocks) => {
-            gameChanged = false
+        const transactionBody = async (transaction: Transaction) => {
             const [existingGame, existingState] = await this.readGameAndState(gameId, transaction)
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
@@ -872,18 +868,12 @@ export class FirestoreGameStore implements GameStore {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
             }
             const [existingBranch] = await this.readBranches(gameId, [playerId], transaction)
-            const watchedBranches = await this.readBranches(gameId, watchBranchesOf, transaction)
-            const gameUpdates: Partial<Game> = {}
             const validation = await validator({
                 game: existingGame,
                 state: existingState,
-                branch: existingBranch,
-                watchedBranches,
-                gameUpdates
+                branch: existingBranch
             })
-            if (validation === UpdateValidationResult.Cancel) {
-                return { written: false, updatedGame: existingGame }
-            }
+            if (validation === UpdateValidationResult.Cancel) return { written: false }
 
             const applyBranchWrite = await this.prepareBranchWrite(
                 transaction,
@@ -891,33 +881,15 @@ export class FirestoreGameStore implements GameStore {
                 write,
                 existingBranch
             )
-            if (Object.keys(gameUpdates).length === 0) {
-                applyBranchWrite()
-                return { written: true, updatedGame: existingGame }
-            }
-
-            gameChanged = true
-            gameUpdates.updatedAt = new Date()
-            gameUpdates.lastActionAt = gameUpdates.updatedAt
-            const updatedGame = { ...structuredClone(existingGame), ...gameUpdates }
-            await locks.addKeys(GameCacheKeys.gameRecordWrite(gameId))
-            await this.protectChangedLists(locks, existingGame, updatedGame)
             applyBranchWrite()
-            transaction.update(
-                this.games.doc(gameId),
-                this.createGameUpdateDocument(gameUpdates, updatedGame)
-            )
-            return { written: true, updatedGame }
+            return { written: true }
         }
 
         try {
-            const result = await this.cacheService.lockWhileWriting(
+            return await this.cacheService.lockWhileWriting(
                 [GameCacheKeys.branch(gameId, playerId)],
-                async (locks) =>
-                    this.runTransaction((transaction) => transactionBody(transaction, locks))
+                async () => this.runTransaction(transactionBody)
             )
-            if (gameChanged) this.refillGameCache(gameId)
-            return result
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')

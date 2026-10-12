@@ -3,10 +3,9 @@ import {
     GameResult,
     GameStatus,
     BranchUndoError,
+    assert,
     assertExists,
     belongsToSpan,
-    createMissingBranches,
-    siteActivePlayerIds,
     isRestingInSpan,
     restingSpan,
     sameHistoryPosition,
@@ -24,6 +23,7 @@ import {
 import { measureSync } from '../diagnostics/requestTimings.js'
 import type { GameStore, UnmergedBranchWrite } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
+import type { ReopenedBranch } from './spanReversal.js'
 import {
     DisallowedActionError,
     DisallowedUndoError,
@@ -37,7 +37,6 @@ export type BranchSubmission =
           readonly game: Game
           readonly state: GameState
           readonly unmergedBranch: UnmergedBranch
-          readonly settlement?: SpanSettlement
       }
     | {
           readonly kind: 'mainLine'
@@ -102,8 +101,7 @@ export function fillGameUpdatesAfterActions({
     newState,
     gameUpdates,
     lastActionPlayerId,
-    settlement,
-    unmergedBranches
+    settlement
 }: {
     definition: GameDefinition
     existingState: GameState
@@ -111,12 +109,8 @@ export function fillGameUpdatesAfterActions({
     gameUpdates: Partial<Game>
     lastActionPlayerId: string | undefined
     settlement: SpanSettlement | undefined
-    unmergedBranches: readonly UnmergedBranch[]
 }): void {
-    gameUpdates.activePlayerIds = siteActivePlayerIds(
-        newState,
-        unmergedBranches.map(({ branch }) => branch)
-    )
+    gameUpdates.activePlayerIds = newState.activePlayerIds
     if (lastActionPlayerId !== undefined) {
         gameUpdates.lastActionPlayerId = lastActionPlayerId
     }
@@ -208,41 +202,15 @@ export async function submitBranchAction({
         game,
         state,
         unmergedBranches: [...others, mine],
-        held: game.spanHold !== undefined
+        mergesHeld: game.spanHold !== undefined
     })
-    const assertOthersUnmoved = (found: readonly Branch[]) =>
-        assertBranchesUnmoved(gameId, otherPlayerIds, found, others)
-
-    if (settlement.processedActions.length === 0) {
-        const { updatedGame } = await gameStore.writeUnmergedBranch({
-            gameId,
-            write,
-            watchBranchesOf: otherPlayerIds,
-            validator: async (found) => {
-                assertGameUnmoved(found.game, found.state, state)
-                assertBranchUnmoved(gameId, found.branch, stored)
-                assertOthersUnmoved(found.watchedBranches)
-                fillGameUpdatesAfterActions({
-                    definition,
-                    existingState: found.state,
-                    newState: state,
-                    gameUpdates: found.gameUpdates,
-                    lastActionPlayerId: playerId,
-                    settlement,
-                    unmergedBranches: [...others, mine]
-                })
-                return UpdateValidationResult.Proceed
-            }
-        })
-        return { kind: 'branch', game: updatedGame, state, unmergedBranch: sent, settlement }
-    }
+    assert(
+        settlement.processedActions.length > 0,
+        'Closing a Branch puts its Branch Close on the Main Line'
+    )
 
     const merged = settlement.mergedPlayerIds
     const mineMerged = merged.includes(playerId)
-    const remaining = [
-        ...[...others, mine].filter((record) => !merged.includes(record.branch.playerId)),
-        ...settlement.createdBranches
-    ]
     const { storedActions, updatedGame, relatedActions, priorState } =
         await gameStore.addActionsToGame({
             game,
@@ -271,15 +239,14 @@ export async function submitBranchAction({
                     existingBranches.find((candidate) => candidate.playerId === playerId),
                     stored
                 )
-                assertOthersUnmoved(existingBranches)
+                assertBranchesUnmoved(gameId, otherPlayerIds, existingBranches, others)
                 fillGameUpdatesAfterActions({
                     definition,
                     existingState,
                     newState,
                     gameUpdates,
                     lastActionPlayerId: playerId,
-                    settlement,
-                    unmergedBranches: remaining
+                    settlement
                 })
                 return UpdateValidationResult.Proceed
             }
@@ -313,28 +280,13 @@ export function assertBranchesUnmoved(
     }
 }
 
-export async function branchesAfterReversal({
-    gameStore,
-    engine,
-    game,
-    state,
-    leavesSpan
-}: {
-    gameStore: GameStore
-    engine: GameEngine
-    game: Game
-    state: GameState
-    leavesSpan: boolean
-}): Promise<{ watchedPlayerIds: string[]; kept: UnmergedBranch[]; fresh: UnmergedBranch[] }> {
-    const watchedPlayerIds =
-        leavesSpan || !isRestingInSpan(state) ? [] : unmergedPlayerIds(restingSpan(state))
-    const kept = await gameStore.findUnmergedBranches(game.id, watchedPlayerIds)
-    return {
-        watchedPlayerIds,
-        kept,
-        fresh: createMissingBranches({ engine, game, state, unmergedBranches: kept })
-    }
-}
+export type BranchUndo =
+    | { readonly kind: 'branch'; readonly unmergedBranch: UnmergedBranch }
+    | {
+          readonly kind: 'reopen'
+          readonly unmergedBranch: UnmergedBranch
+          readonly reopened: ReopenedBranch
+      }
 
 export async function undoBranchAction({
     gameStore,
@@ -350,7 +302,7 @@ export async function undoBranchAction({
     actionId: string
     playerIds: readonly string[]
     asAdministrator: boolean
-}): Promise<{ state: GameState; unmergedBranch: UnmergedBranch } | undefined> {
+}): Promise<BranchUndo | undefined> {
     const gameId = game.id
     const state = game.state
     assertExists(state, 'A Branch Undo requires current Game State')
@@ -364,7 +316,6 @@ export async function undoBranchAction({
             record.actions.some((action) => action.id === actionId)
     )
     if (target === undefined) return undefined
-    if (target.branch.closed) throw refuse('the Branch is closed')
 
     const engine = new GameEngine(definition.runtime)
     const undone = (() => {
@@ -375,6 +326,14 @@ export async function undoBranchAction({
             throw error
         }
     })()
+    const unmergedBranch = { branch: undone.branch, actions: [] }
+    if (target.branch.closed) {
+        return {
+            kind: 'reopen',
+            unmergedBranch,
+            reopened: { branch: undone.branch, undoneActions: undone.undoneActions }
+        }
+    }
 
     await gameStore.writeUnmergedBranch({
         gameId,
@@ -386,5 +345,5 @@ export async function undoBranchAction({
             return UpdateValidationResult.Proceed
         }
     })
-    return { state, unmergedBranch: { branch: undone.branch, actions: [] } }
+    return { kind: 'branch', unmergedBranch }
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+    BranchCloseActionType,
     GameEngine,
     GameNotificationAction,
     GameSyncStatus,
@@ -210,13 +211,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(JSON.stringify(sent.data)).not.toContain('"rules"')
         })
 
-        it('publishes the closing Action to its Player and tells everyone the Game changed', async () => {
+        it('publishes the closing Action to its Player and the Branch Close to everyone', async () => {
             await host()
             await act('p1', 'begin', 'begin')
             sendNotification.mockClear()
             const response = await act('p2', 'finish', 'f2')
             expect(published().map(({ topics, action }) => ({ topics, action }))).toEqual([
                 { topics: ['user-p2'], action: GameNotificationAction.UpdateBranch },
+                { topics: [`game-${game.id}`], action: GameNotificationAction.AddProjectedActions },
+                { topics: ['user-p1'], action: GameNotificationAction.AddProjectedActions },
+                { topics: ['user-p2'], action: GameNotificationAction.AddProjectedActions },
+                { topics: ['user-p3'], action: GameNotificationAction.AddProjectedActions },
                 {
                     topics: ['user-p1', 'user-p2', 'user-p3'],
                     action: GameNotificationAction.Update
@@ -228,6 +233,11 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     actions: response.unmergedBranch?.actions
                 }
             })
+            for (const sent of published().slice(1, 5)) {
+                expect(sent.data).toMatchObject({
+                    actions: [{ type: BranchCloseActionType, playerId: 'p2', index: 1 }]
+                })
+            }
         })
 
         it('publishes a Branch Action an administrator takes for a Player to that Player', async () => {
@@ -263,14 +273,19 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(await branchCounts()).toEqual({ p1: 2, p2: 2, p3: 1 })
         })
 
-        it('drops a Player from the site’s Active Players when their Branch closes, without touching the Main Line', async () => {
+        it('records a Branch Close on the Main Line when a Player closes, and stops waiting on them', async () => {
             await host()
             await act('p1', 'begin', 'begin')
             const response = await act('p2', 'finish', 'f2')
-            expect(response.actions).toEqual([])
+            expect(summary(response.actions)).toEqual(['closeBranch:p2'])
             expect(response.unmergedBranch?.branch.closed).toBe(true)
+            expect(summary(response.unmergedBranch?.actions ?? [])).toEqual(['finish:p2'])
+            const state = await mainLine()
+            expect(state.actionCount).toBe(2)
+            expect(state.parallelSpan?.closedPlayerIds).toEqual(['p2'])
+            expect(state.parallelSpan?.mergedPlayerIds).toEqual([])
+            expect(state.activePlayerIds).toEqual(['p3', 'p1'])
             expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p1'])
-            expect((await mainLine()).actionCount).toBe(1)
             expect((await store.findBranch(game.id, 'p2'))?.closed).toBe(true)
         })
 
@@ -288,11 +303,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await act('p3', 'work', 'w3')
             const response = await act('p3', 'finish', 'f3')
             expect(summary(response.actions)).toEqual([
+                'closeBranch:p3',
                 'openBranch:p3',
                 'work:p3',
                 'finish:p3',
                 'openBranch:p2',
                 'finish:p2'
+            ])
+            expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                'begin:p1',
+                'closeBranch:p2',
+                ...summary(response.actions)
             ])
             expect(response.unmergedBranch).toBeUndefined()
             expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
@@ -338,13 +359,22 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(settled.machineState).toBe('scoring')
             expect(settled.parallelSpan).toBeUndefined()
             expect(await branchCounts()).toEqual({ p1: undefined, p2: undefined, p3: undefined })
-            expect({ ...settled, id: expected.id }).toEqual(expected)
+            expect(settled.actionChecksum).not.toBe(expected.actionChecksum)
+            expect({ ...settled, id: expected.id, actionChecksum: 0 }).toEqual({
+                ...expected,
+                actionChecksum: 0
+            })
         })
 
         it('merges at once a Branch that closes on Branch Start', async () => {
             await host({ idle: ['p3'] })
             const response = await act('p1', 'begin', 'begin')
-            expect(summary(response.actions)).toEqual(['begin:p1', 'openBranch:p3', 'idleSkip:p3'])
+            expect(summary(response.actions)).toEqual([
+                'begin:p1',
+                'closeBranch:p3',
+                'openBranch:p3',
+                'idleSkip:p3'
+            ])
             expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: undefined })
             expect((await storedGame()).activePlayerIds).toEqual(['p2', 'p1'])
         })
@@ -549,7 +579,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     const opened = await open('p3', includeActions)
                     expect(opened?.unmergedBranch).toBeUndefined()
                     expect(opened?.game.state?.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
-                    expect(opened?.game.state?.actionCount).toBe(3)
+                    expect(opened?.game.state?.actionCount).toBe(4)
                 }
             )
 
@@ -651,7 +681,11 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 })
                 expect(result.branchSync).toEqual({ status: GameSyncStatus.OutOfSync })
                 expect(result.checksum).toBe((await mainLine()).actionChecksum)
-                expect(summary(result.actions)).toEqual(['openBranch:p3', 'finish:p3'])
+                expect(summary(result.actions)).toEqual([
+                    'closeBranch:p3',
+                    'openBranch:p3',
+                    'finish:p3'
+                ])
             })
         })
 
@@ -710,21 +744,124 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
             })
 
-            it('refuses to undo in a Closed Branch', async () => {
-                await act('p2', 'work', 'w2')
+            it.each([
+                { by: 'its Player', undoer: user('p2') },
+                { by: 'an administrator', undoer: administrator }
+            ])(
+                'reopens a Closed Branch when $by undoes the Action that closed it',
+                async ({ undoer }) => {
+                    await act('p2', 'work', 'w2')
+                    await act('p2', 'finish', 'f2')
+                    expect((await mainLine()).parallelSpan?.closedPlayerIds).toEqual(['p2'])
+                    sendNotification.mockClear()
+
+                    const response = await undo('f2', undoer)
+                    const state = await mainLine()
+                    expect(state.actionCount).toBe(1)
+                    expect(state.parallelSpan?.closedPlayerIds).toEqual([])
+                    expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+                    const reopened = await store.findUnmergedBranch(game.id, 'p2')
+                    expect(reopened?.branch.closed).toBe(false)
+                    expect(summary(reopened?.actions ?? [])).toEqual(['openBranch:p2', 'work:p2'])
+                    expect(response.actionReplay).toEqual({ startIndex: 1, actions: [] })
+                    expect(response.checksum).toBe(state.actionChecksum)
+                    expect(published().map(({ topics, action }) => ({ topics, action }))).toEqual([
+                        {
+                            topics: [`game-${game.id}`],
+                            action: GameNotificationAction.ReplaceProjectedActions
+                        },
+                        {
+                            topics: ['user-p1'],
+                            action: GameNotificationAction.ReplaceProjectedActions
+                        },
+                        {
+                            topics: ['user-p2'],
+                            action: GameNotificationAction.ReplaceProjectedActions
+                        },
+                        {
+                            topics: ['user-p3'],
+                            action: GameNotificationAction.ReplaceProjectedActions
+                        },
+                        {
+                            topics: ['user-p1', 'user-p2', 'user-p3'],
+                            action: GameNotificationAction.Update
+                        },
+                        { topics: ['user-p2'], action: GameNotificationAction.UpdateBranch }
+                    ])
+
+                    await act('p2', 'work', 'w2-more')
+                    await act('p2', 'finish', 'f2-again')
+                    expect((await mainLine()).parallelSpan?.closedPlayerIds).toEqual(['p2'])
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 4, p3: 1 })
+                }
+            )
+
+            it('sends the Player who reopens their Branch as it now stands', async () => {
                 await act('p2', 'finish', 'f2')
-                await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                const response = await undo('f2', user('p2'))
+                expect(response.unmergedBranch?.branch).toMatchObject({
+                    playerId: 'p2',
+                    closed: false,
+                    actionCount: 1
+                })
+            })
+
+            it('reopens a Branch from an earlier Action in it, undoing what followed', async () => {
+                await act('p2', 'work', 'w2a')
+                await act('p2', 'work', 'w2b')
+                await act('p2', 'finish', 'f2')
+                await undo('w2b', user('p2'))
+                expect((await mainLine()).actionCount).toBe(1)
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                expect((await store.findBranch(game.id, 'p2'))?.closed).toBe(false)
+            })
+
+            it('leaves in place the closes and Merges that followed the Branch Close', async () => {
+                await act('p1', 'finish', 'f1')
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                const before = summary(await store.findActionsForGame(await storedGame()))
+                expect(before).toEqual([
+                    'begin:p1',
+                    'closeBranch:p1',
+                    'closeBranch:p3',
+                    'openBranch:p3',
+                    'work:p3',
+                    'finish:p3'
+                ])
+
+                const response = await undo('f1', user('p1'))
+                const state = await mainLine()
+                expect(summary(await store.findActionsForGame(await storedGame()))).toEqual(
+                    before.filter((step) => step !== 'closeBranch:p1')
+                )
+                expect(state.parallelSpan?.closedPlayerIds).toEqual(['p3'])
+                expect(state.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
+                expect((await storedGame()).activePlayerIds).toEqual(['p2', 'p1'])
+                expect(summary(response.actionReplay.actions)).toEqual(before.slice(2))
+                expect(response.actionReplay.startIndex).toBe(1)
+
+                await act('p1', 'finish', 'f1-again')
+                await act('p2', 'finish', 'f2')
+                expect((await mainLine()).machineState).toBe('scoring')
+            })
+
+            it('refuses to reopen a Branch once it has merged', async () => {
+                await act('p3', 'finish', 'f3')
+                await expect(undo('f3', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual(['p3'])
             })
 
             it('lands an administrator’s Undo inside a merged Branch at the start of that Branch', async () => {
                 await act('p2', 'work', 'w2')
                 await act('p3', 'work', 'w3')
                 await act('p3', 'finish', 'f3')
-                expect((await mainLine()).actionCount).toBe(4)
+                expect((await mainLine()).actionCount).toBe(5)
                 await undo('f3', administrator)
                 const landed = await mainLine()
                 expect(landed.actionCount).toBe(1)
                 expect(landed.machineState).toBe('branching')
+                expect(landed.parallelSpan?.closedPlayerIds).toEqual([])
                 expect(landed.parallelSpan?.mergedPlayerIds).toEqual([])
                 expect(landed.parallelSpan?.branchPlayerId).toBeUndefined()
                 expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
@@ -749,7 +886,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 await expect(undo('f3', administrator)).rejects.toBeInstanceOf(
                     GameUpdateCollisionError
                 )
-                expect((await mainLine()).actionCount).toBe(4)
+                expect((await mainLine()).actionCount).toBe(5)
                 expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: undefined })
             })
 
@@ -760,8 +897,65 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 expect((await storedGame()).activePlayerIds).toEqual(['p2'])
                 const response = await undo('f3', administrator)
                 expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2'])
-                expect(response.actionReplay).toEqual({ startIndex: 1, actions: [] })
+                expect(response.actionReplay).toEqual({ startIndex: 2, actions: [] })
                 expect(response.checksum).toBe((await mainLine()).actionChecksum)
+                expect((await mainLine()).parallelSpan?.closedPlayerIds).toEqual(['p1'])
+            })
+
+            it('keeps another Player closed when an administrator’s Undo passes over their Branch Close', async () => {
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                await act('p1', 'finish', 'f1')
+                expect(summary(await store.findActionsForGame(await storedGame())).at(-1)).toBe(
+                    'closeBranch:p1'
+                )
+                const response = await undo('w3', administrator)
+                const state = await mainLine()
+                expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                    'begin:p1',
+                    'closeBranch:p1'
+                ])
+                expect(state.parallelSpan?.closedPlayerIds).toEqual(['p1'])
+                expect(state.activePlayerIds).toEqual(['p3', 'p2'])
+                expect((await store.findBranch(game.id, 'p1'))?.closed).toBe(true)
+                expect(await branchCounts()).toEqual({ p1: 2, p2: 1, p3: 1 })
+                expect(summary(response.actionReplay.actions)).toEqual(['closeBranch:p1'])
+            })
+
+            it('reopens every Player whose merged Branch an administrator’s Undo reverses', async () => {
+                await act('p2', 'work', 'w2')
+                await act('p2', 'finish', 'f2')
+                await act('p3', 'work', 'w3')
+                await act('p3', 'finish', 'f3')
+                expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                    'begin:p1',
+                    'closeBranch:p2',
+                    'closeBranch:p3',
+                    'openBranch:p3',
+                    'work:p3',
+                    'finish:p3',
+                    'openBranch:p2',
+                    'work:p2',
+                    'finish:p2'
+                ])
+
+                await undo('w3', administrator)
+                const state = await mainLine()
+                expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                    'begin:p1'
+                ])
+                expect(state.parallelSpan?.closedPlayerIds).toEqual([])
+                expect(state.parallelSpan?.mergedPlayerIds).toEqual([])
+                expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+                expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+                for (const playerId of ['p1', 'p2', 'p3']) {
+                    expect((await store.findBranch(game.id, playerId))?.closed).toBe(false)
+                }
+
+                await act('p2', 'finish', 'f2-again')
+                await act('p1', 'finish', 'f1')
+                await act('p3', 'finish', 'f3-again')
+                expect((await mainLine()).machineState).toBe('scoring')
             })
 
             it('refuses a Player another Player’s Branch Action and their own merged Action', async () => {
@@ -770,7 +964,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 await expect(undo('w2', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
                 await act('p3', 'finish', 'f3')
                 await expect(undo('w3', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
-                expect((await mainLine()).actionCount).toBe(4)
+                expect((await mainLine()).actionCount).toBe(5)
                 expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: undefined })
             })
 
@@ -965,7 +1159,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                         playerId: 'p2',
                         branchPoint: { actionCount: 99, actionChecksum: 1 },
                         machineState: 'working',
-                        activePlayerIds: ['p2'],
                         actionCount: 3,
                         actionChecksum: 5,
                         closed: true,
@@ -1007,10 +1200,38 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 fields: { spanHold: { playerId: 'p2', reason: 'left from an earlier span' } }
             })
             const response = await act('p1', 'begin', 'begin')
-            expect(summary(response.actions)).toEqual(['begin:p1'])
+            expect(summary(response.actions)).toEqual(['begin:p1', 'closeBranch:p3'])
             expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 2 })
             expect((await store.findBranch(game.id, 'p3'))?.closed).toBe(true)
             expect((await storedGame()).activePlayerIds).toEqual(['p2', 'p1'])
+        })
+
+        it('lets a Barrier span be played again after an administrator’s Undo into its first merged Branch', async () => {
+            await host({ merge: 'barrier' })
+            await act('p1', 'begin', 'begin')
+            await act('p2', 'finish', 'f2')
+            await act('p3', 'work', 'w3')
+            await act('p3', 'finish', 'f3')
+            await act('p1', 'finish', 'f1')
+            expect((await mainLine()).machineState).toBe('scoring')
+
+            await service.undoAction({
+                definition,
+                gameId: game.id,
+                actionId: 'w3',
+                user: { ...user('admin'), roles: [Role.Admin] }
+            })
+            const state = await mainLine()
+            expect(state.machineState).toBe('branching')
+            expect(state.parallelSpan?.closedPlayerIds).toEqual([])
+            expect(state.parallelSpan?.mergedPlayerIds).toEqual([])
+            expect((await storedGame()).activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+            expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+
+            await act('p3', 'finish', 'f3-again')
+            await act('p2', 'finish', 'f2-again')
+            await act('p1', 'finish', 'f1-again')
+            expect((await mainLine()).machineState).toBe('scoring')
         })
 
         it('holds Branches back under a Barrier Merge until every Branch is closed', async () => {
@@ -1018,7 +1239,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await act('p1', 'begin', 'begin')
             await act('p3', 'finish', 'f3')
             await act('p2', 'finish', 'f2')
-            expect((await mainLine()).actionCount).toBe(1)
+            expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                'begin:p1',
+                'closeBranch:p3',
+                'closeBranch:p2'
+            ])
+            expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual([])
             await act('p1', 'finish', 'f1')
             expect((await mainLine()).machineState).toBe('scoring')
         })

@@ -22,12 +22,13 @@ describe('The in-memory host for the span fixture', () => {
         const host = new SpanHost()
         host.submit(spanAction('begin', 'begin', 'p1'))
         const waiting = host.submit(spanAction('f2', 'finish', 'p2'))
-        expect(waiting.mainLine).toBeUndefined()
+        expect(summary(waiting.mainLine?.processedActions ?? [])).toEqual(['closeBranch:p2'])
         expect(waiting.unmergedBranch?.branch.closed).toBe(true)
         expect(host.game.activePlayerIds).toEqual(['p3', 'p1'])
 
         const merged = host.submit(spanAction('f3', 'finish', 'p3'))
         expect(summary(merged.mainLine?.processedActions ?? [])).toEqual([
+            'closeBranch:p3',
             'openBranch:p3',
             'finish:p3',
             'openBranch:p2',
@@ -44,8 +45,20 @@ describe('The in-memory host for the span fixture', () => {
         const host = new SpanHost()
         host.submit(spanAction('begin', 'begin', 'p1'))
         host.submit(spanAction('w2', 'work', 'p2'))
-        expect(host.undoInBranch('p2', 'w2').branch.actionCount).toBe(1)
+        expect(host.undoInBranch('p2', 'w2').unmergedBranch.branch.actionCount).toBe(1)
         expect(host.unmergedBranch('p2')?.actions).toHaveLength(1)
+    })
+
+    it('reopens a Closed Branch and takes its Branch Close off the Main Line', () => {
+        const host = new SpanHost()
+        host.submit(spanAction('begin', 'begin', 'p1'))
+        host.submit(spanAction('f2', 'finish', 'p2'))
+        expect(summary(host.actions)).toEqual(['begin:p1', 'closeBranch:p2'])
+        const undone = host.undoInBranch('p2', 'f2')
+        expect(undone.unmergedBranch.branch.closed).toBe(false)
+        expect(undone.replay).toEqual({ startIndex: 1, actions: [] })
+        expect(summary(host.actions)).toEqual(['begin:p1'])
+        expect(host.game.activePlayerIds).toEqual(['p3', 'p2', 'p1'])
     })
 
     it('gives a Branch’s Player their own Branch with host-only values projected away', () => {

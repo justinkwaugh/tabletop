@@ -1,7 +1,12 @@
-import { assertExists } from '../../util/assertions.js'
-import { belongsToSpan, BranchMergeError, type Branch, type UnmergedBranch } from './branch.js'
+import { assert, assertExists } from '../../util/assertions.js'
+import { belongsToSpan, BranchMergeError, type UnmergedBranch } from './branch.js'
 import { combineCascades, type ActionCascadeResult, type GameEngine } from './gameEngine.js'
-import { isRestingInSpan, restingSpan, unmergedPlayerIds } from './parallelSpan.js'
+import {
+    closedUnmergedPlayerIds,
+    isRestingInSpan,
+    restingSpan,
+    unmergedPlayerIds
+} from './parallelSpan.js'
 import type { GameAction } from './gameAction.js'
 import type { Game, SpanHold } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
@@ -10,15 +15,6 @@ export interface SpanSettlement<T extends GameState = GameState> extends ActionC
     readonly createdBranches: UnmergedBranch[]
     readonly mergedPlayerIds: string[]
     readonly refusal?: SpanHold
-}
-
-export function siteActivePlayerIds(state: GameState, branches: readonly Branch[]): string[] {
-    if (!isRestingInSpan(state)) return state.activePlayerIds
-    const span = restingSpan(state)
-    const closedPlayerIds = branches
-        .filter((branch) => branch.closed && belongsToSpan(branch, span))
-        .map((branch) => branch.playerId)
-    return unmergedPlayerIds(span).filter((playerId) => !closedPlayerIds.includes(playerId))
 }
 
 export function createMissingBranches<T extends GameState, U extends HydratedGameState<T>>({
@@ -50,13 +46,13 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
     game,
     state,
     unmergedBranches,
-    held = false
+    mergesHeld = false
 }: {
     engine: GameEngine<T, U>
     game: Game
     state: T
     unmergedBranches: readonly UnmergedBranch[]
-    held?: boolean
+    mergesHeld?: boolean
 }): SpanSettlement<T> {
     const steps: ActionCascadeResult<T>[] = []
     const created: UnmergedBranch[] = []
@@ -78,7 +74,20 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
             known.set(record.branch.playerId, record)
             created.push(record)
         }
-        if (held) break
+        const closing = unmerged.filter(
+            (playerId) =>
+                known.get(playerId)?.branch.closed === true &&
+                !span.closedPlayerIds.includes(playerId)
+        )
+        if (closing.length > 0) {
+            for (const playerId of closing) {
+                const closed = engine.closeBranch({ state: current, playerId })
+                steps.push(closed)
+                current = closed.updatedState
+            }
+            continue
+        }
+        if (mergesHeld) break
 
         if (unmerged.length === 0) {
             const completed = engine.completeSpan({ state: current, game })
@@ -87,10 +96,7 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
             continue
         }
 
-        const ready = engine.branchesReadyToMerge({
-            state: current,
-            closedPlayerIds: unmerged.filter((playerId) => known.get(playerId)?.branch.closed)
-        })
+        const ready = engine.branchesReadyToMerge({ state: current })
         if (ready.length === 0) break
         for (const playerId of ready) {
             const record = known.get(playerId)
@@ -117,23 +123,84 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
     }
 }
 
-export function reverseToBranchStart<T extends GameState, U extends HydratedGameState<T>>({
-    engine,
-    state,
-    history
-}: {
+interface Reversal<T extends GameState, U extends HydratedGameState<T>> {
     engine: GameEngine<T, U>
     state: T
     history: readonly GameAction[]
-}): { state: T; reversed: GameAction[] } | undefined {
+}
+
+function reverseUntil<T extends GameState, U extends HydratedGameState<T>>(
+    { engine, state, history }: Reversal<T, U>,
+    landed: (state: T) => boolean
+): { state: T; reversed: GameAction[] } | undefined {
     const remaining = [...history]
     const reversed: GameAction[] = []
     let current = state
-    while (current.parallelSpan?.branchPlayerId !== undefined) {
+    while (!landed(current)) {
         const action = remaining.pop()
         if (action === undefined) return undefined
         current = engine.undoProcessedAction({ action, state: current })
         reversed.unshift(action)
     }
     return { state: current, reversed }
+}
+
+function isOutsideEveryBranch(state: GameState): boolean {
+    return state.parallelSpan?.branchPlayerId === undefined
+}
+
+function holdsNoUnmergedClose(state: GameState): boolean {
+    const span = state.parallelSpan
+    return span === undefined || closedUnmergedPlayerIds(span).length === 0
+}
+
+export function removeBranchCloses<T extends GameState, U extends HydratedGameState<T>>({
+    engine,
+    game,
+    state,
+    history,
+    playerIds
+}: Reversal<T, U> & { game: Game; playerIds: readonly string[] }): {
+    state: T
+    removed: GameAction[]
+    replayed: GameAction[]
+} {
+    if (playerIds.length === 0) return { state, removed: [], replayed: [] }
+    const span = restingSpan(state)
+    const closeIds = playerIds.map((playerId) => span.branchCloseIds[playerId])
+    const isRemovedClose = (action: GameAction) => closeIds.includes(action.id)
+    assert(
+        playerIds.every((playerId) => closedUnmergedPlayerIds(span).includes(playerId)),
+        'Only the Branch Close of a Branch not yet on the Main Line can be removed'
+    )
+    assert(
+        history.filter(isRemovedClose).length === playerIds.length,
+        'The Main Line given does not hold every Branch Close to remove'
+    )
+    const removed = history.slice(history.findIndex(isRemovedClose))
+    let earlier = state
+    for (const action of removed.toReversed()) {
+        earlier = engine.undoProcessedAction({ action, state: earlier })
+    }
+    const replayed = engine.replayOnSpan({
+        state: earlier,
+        game,
+        recorded: removed.filter((action) => !isRemovedClose(action))
+    })
+    return { state: replayed.updatedState, removed, replayed: replayed.processedActions }
+}
+
+export function reverseToBranchStart<T extends GameState, U extends HydratedGameState<T>>(
+    reversal: Reversal<T, U>
+): { state: T; reversed: GameAction[] } | undefined {
+    return reverseUntil(reversal, isOutsideEveryBranch)
+}
+
+export function reverseToForkPosition<T extends GameState, U extends HydratedGameState<T>>(
+    reversal: Reversal<T, U>
+): { state: T; reversed: GameAction[] } | undefined {
+    return reverseUntil(
+        reversal,
+        (state) => isOutsideEveryBranch(state) && holdsNoUnmergedClose(state)
+    )
 }

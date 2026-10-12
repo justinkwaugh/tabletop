@@ -45,10 +45,20 @@ export function playPrivately(
     return { branch: execution.branch, actions: recorded, view: execution.view }
 }
 
+export function closeOnMainLine(
+    { engine }: SpanGame,
+    state: SpanGameState,
+    playerId: string
+): SpanGameState {
+    return state.parallelSpan?.closedPlayerIds.includes(playerId)
+        ? state
+        : engine.closeBranch({ state, playerId }).updatedState
+}
+
 export function mergePrivatePlay(spanGame: SpanGame, state: SpanGameState, play: PrivatePlay) {
     return spanGame.engine.mergeBranch({
         game: spanGame.game,
-        state,
+        state: play.branch.closed ? closeOnMainLine(spanGame, state, play.branch.playerId) : state,
         branch: play.branch,
         actions: play.actions
     })

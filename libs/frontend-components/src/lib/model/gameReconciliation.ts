@@ -259,6 +259,17 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         this.apply(actions, ServerActionHandling.ApplyProcessed)
     }
 
+    continueWith(actions: GameAction[], game: Game): boolean {
+        const handling = ServerActionHandling.ApplyProcessed
+        const next = actions.find((action) => !this.context.hasAction(action.id))
+        if (next?.index !== undefined && next.index > this.context.state.actionCount) {
+            this.pending.push({ kind: 'actions', actions, handling, game })
+            return false
+        }
+        this.apply(actions, handling, game)
+        return true
+    }
+
     private apply(
         actions: readonly GameAction[],
         handling: ServerActionHandling,

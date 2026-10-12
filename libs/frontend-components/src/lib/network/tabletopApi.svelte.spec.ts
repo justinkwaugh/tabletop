@@ -237,7 +237,6 @@ describe('TabletopApi and a Player’s Unmerged Branch', () => {
         playerId: 'p1',
         branchPoint: { actionCount: 4, actionChecksum: 11 },
         machineState: 'working',
-        activePlayerIds: ['p1'],
         actionCount: 2,
         actionChecksum: 7,
         closed: false,
