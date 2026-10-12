@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { Firestore, DocumentReference, Query } from '@google-cloud/firestore'
-import { createClient, SocketClosedUnexpectedlyError, type RedisClientType } from 'redis'
+import { SocketClosedUnexpectedlyError, type RedisClientType } from 'redis'
 import {
     ActionSource,
     GameResult,
@@ -16,7 +16,7 @@ import {
     type GameState,
     type User
 } from '@tabletop/common'
-import { cacheFixture } from '../../cache/tests/cacheFixture.js'
+import { openEmulatorStore, type EmulatorStore } from './tests/emulatorStore.js'
 import { FirestoreGameStore } from './gameStore.js'
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { UpdateValidationResult } from '../stores/validator.js'
@@ -27,8 +27,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
     'Game cache dependencies against Firestore and Redis',
     () => {
         let db: Firestore
+        let emulator: EmulatorStore
         let client: RedisClientType
-        let live: ReturnType<typeof cacheFixture>
+        let live: EmulatorStore['live']
         let store: FirestoreGameStore
         let game: Game
         let state: GameState
@@ -39,12 +40,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         beforeEach(async () => {
             prefix = `game-cache-test-${randomUUID()}`
             db = new Firestore({ projectId: 'demo-tabletop', ignoreUndefinedProperties: true })
-            client = createClient({
-                socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
-            })
-            await client.connect()
-            live = cacheFixture(client)
-            store = new FirestoreGameStore(live.cache, db)
+            emulator = await openEmulatorStore(db)
+            ;({ client, live, store } = emulator)
             owner = { id: `${prefix}-owner`, status: UserStatus.Active, roles: [], externalIds: [] }
             newcomer = { ...owner, id: `${prefix}-newcomer` }
             game = {
@@ -86,19 +83,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
 
         afterEach(async () => {
             vi.restoreAllMocks()
-            try {
-                await db.recursiveDelete(db.doc(`games/${game.id}`))
-                for await (const keys of client.scanIterator({
-                    MATCH: `*${prefix}*`,
-                    COUNT: 100
-                })) {
-                    if (keys.length) await client.del(keys)
-                }
-            } finally {
-                live.cache.destroy()
-                client.destroy()
-                await db.terminate()
-            }
+            await emulator.close(game.id, `*${prefix}*`)
         })
 
         async function primeUser(user: User, category: GameStatusCategory): Promise<string> {

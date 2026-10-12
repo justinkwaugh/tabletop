@@ -7,7 +7,9 @@ import {
     GameStatusCategory,
     GameHistoryPage,
     GameHistoryCursor,
-    UserGameStats
+    UserGameStats,
+    Branch,
+    UnmergedBranch
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
@@ -17,8 +19,27 @@ export type ActionUpdateValidator = (
     newState: GameState,
     actions: GameAction[],
     gameUpdates: Partial<Game>,
-    relatedActions: GameAction[]
+    relatedActions: GameAction[],
+    existingBranches: Branch[]
 ) => Promise<UpdateValidationResult>
+
+export type BranchWriteValidator = (existing: {
+    game: Game
+    state: GameState
+    branch: Branch | undefined
+    gameUpdates: Partial<Game>
+}) => Promise<UpdateValidationResult>
+
+export interface UnmergedBranchWrite {
+    readonly branch: Branch
+    readonly addedActions: readonly GameAction[]
+    readonly removedActions: readonly GameAction[]
+}
+
+export interface UnmergedBranchWrites {
+    readonly set: readonly UnmergedBranchWrite[]
+    readonly removeBranchesOf: readonly string[]
+}
 
 export type ActionUndoValidator = (
     existingGame: Game,
@@ -100,15 +121,30 @@ export interface GameStore {
         endIndex: number
     }): Promise<GameAction[]>
 
+    findBranch(gameId: string, playerId: string): Promise<Branch | undefined>
+    findUnmergedBranch(gameId: string, playerId: string): Promise<UnmergedBranch | undefined>
+    findUnmergedBranches(gameId: string, playerIds: readonly string[]): Promise<UnmergedBranch[]>
+    writeUnmergedBranch({
+        gameId,
+        write,
+        validator
+    }: {
+        gameId: string
+        write: UnmergedBranchWrite
+        validator: BranchWriteValidator
+    }): Promise<{ written: boolean; updatedGame: Game }>
+
     addActionsToGame({
         game,
         actions,
         state,
+        unmergedBranchWrites,
         validator
     }: {
         game: Game
         actions: GameAction[]
         state: GameState
+        unmergedBranchWrites?: UnmergedBranchWrites
         validator?: ActionUpdateValidator
     }): Promise<{
         storedActions: GameAction[]
@@ -122,12 +158,14 @@ export interface GameStore {
         actions,
         redoneActions,
         state,
+        removeUnmergedBranches,
         validator
     }: {
         gameId: string
         actions: GameAction[]
         redoneActions: GameAction[]
         state: GameState
+        removeUnmergedBranches?: boolean
         validator?: ActionUndoValidator
     }): Promise<{
         undoneActions: GameAction[]

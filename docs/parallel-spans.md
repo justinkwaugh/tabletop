@@ -1,6 +1,6 @@
 # Parallel Spans: working design
 
-**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host, the Game Client and Stellar Horizons are not started. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
+**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. On the host, storage of Unmerged Branches is built; the rest of the host, the Game Client and Stellar Horizons are not started. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
 
 ## The model in brief
 
@@ -143,7 +143,7 @@ _Avoid_: presented state
 ## Host
 
 1. **Unmerged Branches are stored beside the Game State,** not inside it. Players acting at the same moment do not write the same record, one Player's private Action does not invalidate what the host has cached for everyone else, and Unmerged Branches stay out of main-line undo patches, Forks and History. This is a host-only choice: titles and Game Clients are the same either way.
-2. **One record per Unmerged Branch,** holding its Player, Branch Point, status, bookkeeping, Branch Change and Actions, with its own cache entry.
+2. **One record per Unmerged Branch,** in two parts. A small document holds the Branch: its Player, Branch Point, status, bookkeeping and Branch Change, with its own cache entry. Its Actions are stored in chunks, in the same format and by the same code as the Main Line's, so Actions are stored one way everywhere. Executing a Player's next Action reads only the small document.
 3. **A Branch Action writes only that record,** except the one that closes the Branch. It is published to the Branch's Player only, and the Action History Checksum and the entity tag other Players see do not change. The closing Action also updates the Game, so everyone learns of it and their entity tags change once. A Game Title that declares a Branching Machine State must define visibility, because a title without it publishes every Action to one shared topic.
 4. **Stale Branches are ignored.** A stored Branch whose Branch Point does not match the Game's current Parallel Span is never applied, and is removed. Anything that ends a Parallel Span, or reverses the Main Line out of one, removes its Branches in the same transaction.
 5. **The owner's entity tag and synchronization check** include their Branch's Action count and checksum.
@@ -171,7 +171,11 @@ Working out the bound in full, and measuring how often it makes a decade scarce,
 
 1. Branch execution with the Branch Scope check and Starting Position Randomness, engine only, against a toy title. Done.
 2. Branch Undo and the Merge, engine only, with the check that merged history is a valid Local Game history. Done.
-3. Host storage, submission, synchronization, projection and notifications.
+3. Host, in four parts:
+    1. Storage of Unmerged Branches and their cache entries. Done: `libs/backend-services/src/persistence/firestore/gameBranches.spec.ts`.
+    2. Submission: routing a Player's Action to their Branch, creating Branches when a span begins, and merging.
+    3. What each Player is sent: the owner's Branch, synchronization and the entity tag. A read of the Game State together with a Branch is guarded today only by the Game's revision, which a Branch write deliberately leaves alone, so this part must add the Branch's cache entry as a guard.
+    4. Undo routing, and publishing a Branch's Actions to its Player only.
 4. Game Client support for a Branch View.
 5. Stellar Horizons adoption.
 
