@@ -421,8 +421,9 @@
 </div>
 
 <style>
-    /* Each glow's blur covers only its own halo. */
-    :global(.candidate-halo) {
+    /* Each glow's blur covers only its own halo. Nested under the board, every halo's home, so the
+       rule never reaches beyond this title's table. */
+    div :global(.candidate-halo) {
         filter: url(#marracash-halo-glow);
     }
 
