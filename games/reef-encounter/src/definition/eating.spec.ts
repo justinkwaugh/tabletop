@@ -62,6 +62,7 @@ describe('eating a coral', () => {
             [CoralColor.White]: 2
         })
         expect(player.shrimpOnOpenSea).toBe(true)
+        expect(session.state.openSeaShrimps).toEqual([player.playerId])
         expect(player.getShrimpsInParrotfish()).toBe(0)
         expect(isEatCoral(eaten) && eaten.metadata).toEqual({
             color: CoralColor.White,
@@ -101,6 +102,7 @@ describe('eating a coral', () => {
         })
         eat(session)
         expect(currentPlayer(session).getShrimpsInParrotfish()).toBe(1)
+        expect(session.state.openSeaShrimps).toEqual([])
     })
 
     it('scores the eaten polyps', () => {

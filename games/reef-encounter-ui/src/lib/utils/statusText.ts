@@ -1,14 +1,21 @@
 import { GameEndReason, MachineState } from '@tabletop/reef-encounter'
 
-const Activities: Partial<Record<MachineState, string>> = {
-    [MachineState.ChoosingParrotfishPolyp]: 'is feeding one of their polyps to their parrotfish.',
-    [MachineState.ChoosingLarvaCubes]: 'is taking two larva cubes.',
-    [MachineState.TakingTurn]: 'is taking their turn.',
-    [MachineState.FinalTurns]: 'is taking a final turn, in which they may eat one coral.'
+const Activities: Partial<Record<MachineState, (self: boolean) => string>> = {
+    [MachineState.ChoosingParrotfishPolyp]: (self) =>
+        self
+            ? 'are feeding one of your polyps to your parrotfish.'
+            : 'is feeding one of their polyps to their parrotfish.',
+    [MachineState.ChoosingLarvaCubes]: (self) => `${self ? 'are' : 'is'} taking two larva cubes.`,
+    [MachineState.TakingTurn]: (self) => (self ? 'are taking your turn.' : 'is taking their turn.'),
+    [MachineState.FinalTurns]: (self) =>
+        self
+            ? 'are taking a final turn, in which you may eat one coral.'
+            : 'is taking a final turn, in which they may eat one coral.'
 }
 
-export function waitingActivity(machineState: MachineState): string | undefined {
-    return Activities[machineState]
+// The subject is a player's name, or "You" for the viewer.
+export function waitingActivity(machineState: MachineState, self: boolean): string | undefined {
+    return Activities[machineState]?.(self)
 }
 
 const EndReasons: Record<GameEndReason, string> = {

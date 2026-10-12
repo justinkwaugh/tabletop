@@ -159,19 +159,18 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             })
         }
     })
-    state.turnManager.turnOrder.forEach((playerId, seat) => {
-        if (state.getPlayerState(playerId).shrimpOnOpenSea) {
-            pieces.push({
-                kind: 'shrimp',
-                key: `sea:shrimp:${playerId}`,
-                container: 'sea',
-                center: eatenShrimpSlot(seat),
-                place: 'on the open sea, eaten',
-                playerId,
-                // The printed silhouettes alternate in direction.
-                upsideDown: seat % 2 === 1
-            })
-        }
+    // Eaten shrimps fill the printed silhouettes from the first, in the order they were eaten.
+    state.openSeaShrimps.forEach((playerId, slot) => {
+        pieces.push({
+            kind: 'shrimp',
+            key: `sea:shrimp:${playerId}`,
+            container: 'sea',
+            center: eatenShrimpSlot(slot),
+            place: 'on the open sea, eaten',
+            playerId,
+            // The printed silhouettes alternate in direction.
+            upsideDown: slot % 2 === 1
+        })
     })
 
     return byLayer(pieces)

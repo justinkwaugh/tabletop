@@ -88,6 +88,7 @@ export class ReefEncounterGameInitializer
             turnManager,
             reefs,
             shrimps: [],
+            openSeaShrimps: [],
             turn: newTurnRecord(),
             coralTiles: this.placeCoralTiles(prng),
             openSea,

@@ -8,7 +8,6 @@
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
-    const activity = $derived(waitingActivity(state.machineState))
     const lastTurn = $derived(previousTurn(gameSession.actions, state.activePlayerIds))
     const phrases = $derived(
         lastTurn
@@ -20,9 +19,10 @@
     )
 </script>
 
-{#if activity}
-    {#each state.activePlayerIds as playerId (playerId)}
+{#each state.activePlayerIds as playerId (playerId)}
+    {@const activity = waitingActivity(state.machineState, playerId === gameSession.myPlayer?.id)}
+    {#if activity}
         <p class="prompt"><PlayerName {playerId} /> {activity}</p>
-    {/each}
-{/if}
+    {/if}
+{/each}
 <Phrases {phrases} />

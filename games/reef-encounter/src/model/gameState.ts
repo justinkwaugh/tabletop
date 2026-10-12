@@ -91,6 +91,9 @@ export const ReefEncounterGameState = Type.Intersect([
         machineState: Type.Enum(MachineState),
         reefs: Type.Array(Reef),
         shrimps: Type.Array(Shrimp),
+        // Players whose first eaten shrimp is on the open sea, in the order they were eaten:
+        // each takes the next free shrimp silhouette.
+        openSeaShrimps: Type.Array(Type.String()),
         turn: TurnRecord,
         coralTiles: Type.Array(CoralTileState),
         openSea: Type.Array(OpenSeaSpace),
@@ -142,6 +145,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare winningPlayerIds: string[]
     declare reefs: Reef[]
     declare shrimps: Shrimp[]
+    declare openSeaShrimps: string[]
     declare turn: TurnRecord
     declare coralTiles: CoralTileState[]
     declare openSea: OpenSeaSpace[]
@@ -574,6 +578,9 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         const player = this.getPlayerState(playerId)
         const shrimpToOpenSea = !player.shrimpOnOpenSea
         player.eat(color, coral.length - returnedToBag)
+        if (shrimpToOpenSea) {
+            this.openSeaShrimps.push(playerId)
+        }
         this.turn.acted = true
         const eaten: CoralEaten = { color, polyps: coral.length, returnedToBag, shrimpToOpenSea }
         if (this.startsFinalTurns(playerId)) {

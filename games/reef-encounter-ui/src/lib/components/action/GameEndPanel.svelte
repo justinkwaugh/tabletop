@@ -11,15 +11,21 @@
     const values = $derived(coralValues(state.coralTiles))
     const table = $derived(scoreTable(state.scores(), values, state.turnManager.turnOrder))
     const winners = $derived(table.rows.filter((row) => row.place === 1))
+    const myId = $derived(gameSession.myPlayer?.id)
+    // "You" agrees like a plural, and reads lower case mid-sentence.
+    const soleWinnerIsMe = $derived(winners.length === 1 && winners[0].playerId === myId)
+    const midSentence = (playerId: string) => (playerId === myId ? 'lowercase' : 'capitalize')
 </script>
 
 <p class="prompt reef-display">
     {#each winners as winner, index (winner.playerId)}
         {#if index > 0}{index === winners.length - 1 ? ' and ' : ', '}{/if}<PlayerName
             playerId={winner.playerId}
+            capitalization={index > 0 ? midSentence(winner.playerId) : 'capitalize'}
         />
     {/each}
-    {winners.length > 1 ? ' share the win' : ' wins'} with {winners[0]?.total} points
+    {winners.length > 1 ? ' share the win' : soleWinnerIsMe ? ' win' : ' wins'} with {winners[0]
+        ?.total} points
 </p>
 
 {#if endReasonText(state.endReason)}
@@ -70,7 +76,9 @@
 
 {#each table.tieBreaks as tie (tie.behindId)}
     <p class="detail">
-        <PlayerName playerId={tie.aheadId} /> places ahead of <PlayerName playerId={tie.behindId} /> on
+        <PlayerName playerId={tie.aheadId} />
+        {tie.aheadId === myId ? 'place' : 'places'} ahead of
+        <PlayerName playerId={tie.behindId} capitalization={midSentence(tie.behindId)} /> on
         {tie.criterion}, {tie.ahead} to {tie.behind}.
     </p>
 {/each}
