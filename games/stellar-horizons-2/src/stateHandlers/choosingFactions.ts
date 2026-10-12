@@ -3,6 +3,7 @@ import { HydratedChooseFaction, isChooseFaction } from '../actions/chooseFaction
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { nextStartingBasePlacer } from '../model/startingBases.js'
 
 export class ChoosingFactionsStateHandler implements MachineStateHandler<
     HydratedChooseFaction,
@@ -32,8 +33,12 @@ export class ChoosingFactionsStateHandler implements MachineStateHandler<
         _action: HydratedChooseFaction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return this.nextChooser(context.gameState)
-            ? MachineState.ChoosingFactions
+        const state = context.gameState
+        if (this.nextChooser(state)) {
+            return MachineState.ChoosingFactions
+        }
+        return nextStartingBasePlacer(state)
+            ? MachineState.PlacingStartingBases
             : MachineState.StartOfTurn
     }
 

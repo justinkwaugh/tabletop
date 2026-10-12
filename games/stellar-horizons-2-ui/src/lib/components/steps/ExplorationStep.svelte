@@ -10,9 +10,11 @@
         shipDefinition
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { anomalyOpportunities } from '$lib/utils/anomalyAttempts.js'
     import { columnFill } from '$lib/utils/columnFill.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipTile from '../ShipTile.svelte'
+    import AnomalyAttempt from './AnomalyAttempt.svelte'
     import ExplorationResult from './ExplorationResult.svelte'
 
     const gameSession = getGameSession()
@@ -20,6 +22,9 @@
     const playerId = $derived(gameSession.myPlayerId ?? '')
     const explorers = $derived(
         gameState.shipsOf(playerId).filter((ship) => canExplore(gameState, ship))
+    )
+    const opportunities = $derived(
+        anomalyOpportunities(gameState, playerId, gameSession.anomalyDraft)
     )
     // The malfunction rate is the same for every RE and for every CV, so it is shown once per
     // kind that can explore.
@@ -64,6 +69,14 @@
 </script>
 
 <div class="sh-step">
+    {#if opportunities.length > 0}
+        <div class="prompt">Send ships to resolve an anomaly</div>
+        <div class="anomalies">
+            {#each opportunities as opportunity (opportunity.systemId)}
+                <AnomalyAttempt {opportunity} />
+            {/each}
+        </div>
+    {/if}
     {#if explorers.length > 0}
         <div class="prompt">
             Choose a ship to explore with
@@ -94,7 +107,11 @@
                 >
             </ShipTile>
         {:else}
-            <p class="empty">No ships can explore this turn.</p>
+            <p class="empty">
+                {opportunities.length > 0
+                    ? 'No ships can explore a system this turn.'
+                    : 'No ships can explore this turn.'}
+            </p>
         {/each}
     </div>
     {#if results.length > 0}
@@ -120,6 +137,12 @@
 </div>
 
 <style>
+    .anomalies {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
     .risk {
         font-size: 13px;
         color: #8fa4c2;

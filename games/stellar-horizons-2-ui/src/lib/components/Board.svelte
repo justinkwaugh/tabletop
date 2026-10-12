@@ -5,23 +5,28 @@
     import ShipStrip from './board/ShipStrip.svelte'
     import { factionShipGroups, shipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { baseTabLayout, systemTabBases } from '$lib/utils/baseTabLayout.js'
+    import { anomalyBox, frameWithAnomaly } from '$lib/utils/tileFeatures.js'
 
     const gameSession = getGameSession()
     const layout = $derived(
         boardLayout(gameSession.gameState.systems.map((system) => system.systemId))
     )
     const systems = $derived(
-        layout.frames.map((frame) => {
+        layout.frames.map((printed) => {
             const state = gameSession.gameState
-            const bases = baseTabLayout(frame, systemTabBases(state, frame.systemId))
+            const frame =
+                state.systemState(printed.systemId).anomaly === undefined
+                    ? printed
+                    : frameWithAnomaly(printed)
+            const kept = frame.anomaly ? [anomalyBox(frame.anomaly)] : []
+            const bases = baseTabLayout(frame, systemTabBases(state, frame.systemId), kept)
             return {
                 frame,
                 bases,
-                ships: shipPipLayout(
-                    frame,
-                    factionShipGroups(state, frame.systemId),
-                    bases.map((tab) => tab.box)
-                )
+                ships: shipPipLayout(frame, factionShipGroups(state, frame.systemId), [
+                    ...bases.map((tab) => tab.box),
+                    ...kept
+                ])
             }
         })
     )

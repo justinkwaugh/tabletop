@@ -3,6 +3,7 @@ import {
     HydratedStellarHorizonsGameState,
     type StellarHorizonsProjectedState
 } from '../model/gameState.js'
+import { HydratedAttemptAnomaly, isAttemptAnomaly } from '../actions/attemptAnomaly.js'
 import { HydratedBuildShip, isBuildShip } from '../actions/buildShip.js'
 import { HydratedChooseFaction, isChooseFaction } from '../actions/chooseFaction.js'
 import { HydratedChooseSurveyWorld, isChooseSurveyWorld } from '../actions/chooseSurveyWorld.js'
@@ -17,7 +18,9 @@ import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedMoveShip, isMoveShip } from '../actions/moveShip.js'
 import { HydratedPassTerraform, isPassTerraform } from '../actions/passTerraform.js'
+import { HydratedPlaceStartingBase, isPlaceStartingBase } from '../actions/placeStartingBase.js'
 import { HydratedRepairShip, isRepairShip } from '../actions/repairShip.js'
+import { HydratedResolveAnomaly, isResolveAnomaly } from '../actions/resolveAnomaly.js'
 import { HydratedResolveSurvey, isResolveSurvey } from '../actions/resolveSurvey.js'
 import { HydratedScrapShip, isScrapShip } from '../actions/scrapShip.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
@@ -32,6 +35,8 @@ export class StellarHorizonsHydrator implements GameHydrator<
         switch (true) {
             case isChooseFaction(data):
                 return new HydratedChooseFaction(data)
+            case isPlaceStartingBase(data):
+                return new HydratedPlaceStartingBase(data)
             case isStartTurn(data):
                 return new HydratedStartTurn(data)
             case isBuildShip(data):
@@ -48,6 +53,10 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedMoveShip(data)
             case isExplore(data):
                 return new HydratedExplore(data)
+            case isAttemptAnomaly(data):
+                return new HydratedAttemptAnomaly(data)
+            case isResolveAnomaly(data):
+                return new HydratedResolveAnomaly(data)
             case isDevelopTech(data):
                 return new HydratedDevelopTech(data)
             case isEndStep(data):

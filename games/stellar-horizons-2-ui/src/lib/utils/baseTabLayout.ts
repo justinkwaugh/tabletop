@@ -59,7 +59,11 @@ export function systemTabBases(
 // Bases are tabs attached to one slanted edge of the tile, each cut to the edge's angle and
 // reaching the middle of the seam, stacked down that edge. Rows hold more than one tab only
 // when one edge is too short, so a system's bases never wrap around a corner.
-export function baseTabLayout(frame: SystemFrame, bases: readonly TabBase[]): BaseTab[] {
+export function baseTabLayout(
+    frame: SystemFrame,
+    bases: readonly TabBase[],
+    reserved: readonly Box[] = []
+): BaseTab[] {
     if (bases.length === 0) {
         return []
     }
@@ -73,7 +77,7 @@ export function baseTabLayout(frame: SystemFrame, bases: readonly TabBase[]): Ba
     for (const strict of [true, false]) {
         for (let perRow = 1; perRow <= MAX_PER_ROW; perRow++) {
             for (const edge of edges) {
-                const tabs = fitOnEdge(frame, bases, edge, perRow, strict)
+                const tabs = fitOnEdge(frame, bases, edge, perRow, strict, reserved)
                 if (tabs) {
                     return tabs
                 }
@@ -97,7 +101,8 @@ function fitOnEdge(
     bases: readonly TabBase[],
     edge: Edge,
     perRow: number,
-    strict: boolean
+    strict: boolean,
+    reserved: readonly Box[]
 ): BaseTab[] | undefined {
     const rows: TabBase[][] = []
     for (let index = 0; index < bases.length; index += perRow) {
@@ -110,7 +115,7 @@ function fitOnEdge(
         )
         const clear = tabs.every(
             (tab, index) =>
-                isClear(frame, tab.box, strict) &&
+                isClear(frame, tab.box, strict, reserved) &&
                 tabs.slice(0, index).every((other) => !boxesOverlap(other.box, tab.box))
         )
         if (clear) {
@@ -161,8 +166,8 @@ function rowTabs(row: readonly TabBase[], top: number, side: Side): BaseTab[] {
     })
 }
 
-function isClear(frame: SystemFrame, box: Box, strict: boolean): boolean {
-    if (printedText(frame).some((text) => boxesOverlap(text, box))) {
+function isClear(frame: SystemFrame, box: Box, strict: boolean, reserved: readonly Box[]): boolean {
+    if ([...printedText(frame), ...reserved].some((kept) => boxesOverlap(kept, box))) {
         return false
     }
     if (!strict) {

@@ -8,6 +8,7 @@ import {
     maxPopulation,
     worldTile
 } from '../components/worlds.js'
+import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { PendingSurvey, WorldPlacement } from './pieces.js'
 import { drawWorldTile, returnWorldTile } from './pools.js'
@@ -23,11 +24,28 @@ export const SurveyResolution = Type.Object({
     explorationMarker: Type.Number(),
     drawnTileId: Type.Optional(Type.String()),
     placedSlot: Type.Optional(Type.Number()),
-    awaitingChoice: Type.Boolean()
+    awaitingChoice: Type.Boolean(),
+    anomaly: Type.Optional(AnomalySearch)
 })
 
 export function placementPopulation(world: WorldPlacement): number {
     return maxPopulation(world.tileId, world.side)
+}
+
+export function canStartInSystem(systemId: string, tileId: string): boolean {
+    return (
+        !starSystemDefinition(systemId).earthlikeRestricted ||
+        !isEarthlikeClass(worldTile(tileId).worldClass)
+    )
+}
+
+export function fillWorldSlots(state: HydratedStellarHorizonsGameState, systemId: string) {
+    const system = state.systemState(systemId)
+    while (system.worlds.length < starSystemDefinition(systemId).worldSlots) {
+        const tileId = drawWorldTile(state, (candidate) => canStartInSystem(systemId, candidate))
+        assertExists(tileId, `No world tile left to fill ${systemId}`)
+        system.worlds.push({ tileId, side: WorldSide.I })
+    }
 }
 
 export function nextPendingSurvey(state: HydratedStellarHorizonsGameState): PendingSurvey {
@@ -55,30 +73,38 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     system.explorationMarker -= 1
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
+    drawSurveyWorld(state, survey, resolution)
+    resolution.anomaly = searchForAnomaly(state, survey.systemId)
+    return resolution
+}
 
-    const definition = starSystemDefinition(survey.systemId)
-    const isLegal = (tileId: string) =>
-        !definition.earthlikeRestricted || !isEarthlikeClass(worldTile(tileId).worldClass)
+function drawSurveyWorld(
+    state: HydratedStellarHorizonsGameState,
+    survey: PendingSurvey,
+    resolution: SurveyResolution
+) {
+    const system = state.systemState(survey.systemId)
+    const isLegal = (tileId: string) => canStartInSystem(survey.systemId, tileId)
 
-    if (system.worlds.length < definition.worldSlots) {
+    if (system.worlds.length < starSystemDefinition(survey.systemId).worldSlots) {
         const tileId = drawWorldTile(state, isLegal)
         if (tileId) {
             system.worlds.push({ tileId, side: WorldSide.I })
             resolution.drawnTileId = tileId
             resolution.placedSlot = system.worlds.length - 1
         }
-        return resolution
+        return
     }
 
     const hasSmallWorld = system.worlds.some(
         (world) => placementPopulation(world) < SURVEY_REPLACEMENT_POPULATION
     )
     if (!hasSmallWorld) {
-        return resolution
+        return
     }
     const tileId = drawWorldTile(state, isLegal)
     if (!tileId) {
-        return resolution
+        return
     }
     resolution.drawnTileId = tileId
     if (surveySwapSlots(state, survey.systemId, tileId).length > 0) {
@@ -91,7 +117,6 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     } else {
         returnWorldTile(state, tileId)
     }
-    return resolution
 }
 
 export function surveySwapSlots(

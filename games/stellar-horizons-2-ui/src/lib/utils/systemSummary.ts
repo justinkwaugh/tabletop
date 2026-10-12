@@ -1,6 +1,10 @@
 import {
     FACTIONS,
+    anomalyDifficulty,
+    systemAnomaly,
+    settlementVictory,
     systemDefinition,
+    type AnomalyDefinition,
     type Faction,
     type HydratedStellarHorizonsGameState,
     type ShipState
@@ -13,9 +17,16 @@ export interface FleetSummary {
     ships: ShipState[]
 }
 
+export interface AnomalySummary {
+    anomaly: AnomalyDefinition
+    difficulty: number
+    players: number
+}
+
 export interface SystemSummary {
     name: string
-    settlementGoal: number
+    anomaly?: AnomalySummary
+    settlementGoal?: number
     fleets: FleetSummary[]
 }
 
@@ -26,9 +37,24 @@ export function systemSummary(
 ): SystemSummary {
     return {
         name: systemDefinition(systemId).name,
-        settlementGoal: state.scenarioDefinition().victorySettlements,
+        anomaly: anomalySummary(state, systemId),
+        settlementGoal: settlementVictory(state.scenarioDefinition())?.settlements,
         fleets: fleets(state, systemId, viewerId)
     }
+}
+
+export function anomalySummary(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): AnomalySummary | undefined {
+    const anomaly = systemAnomaly(state, systemId)
+    return anomaly
+        ? {
+              anomaly,
+              difficulty: anomalyDifficulty(state, anomaly.id),
+              players: state.numPlayers
+          }
+        : undefined
 }
 
 function fleets(

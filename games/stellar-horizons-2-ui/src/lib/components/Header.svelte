@@ -11,7 +11,10 @@
         if (gameSession.isViewingHistory) return 'HISTORY'
         if (gameState.result) return 'END OF GAME'
         if (gameState.machineState === MachineState.ChoosingFactions) return 'CHOOSE FACTIONS'
+        if (gameState.machineState === MachineState.PlacingStartingBases && gameSession.canAct)
+            return 'PLACE YOUR STARTING BASE'
         if (gameState.machineState === MachineState.Terraforming) return 'TERRAFORMING'
+        if (gameState.machineState === MachineState.ResolvingAnomalies) return 'ANOMALIES'
         if (
             gameState.machineState === MachineState.ChoosingSurveyWorld ||
             gameState.machineState === MachineState.ResolvingSurveys
@@ -28,7 +31,12 @@
     <div class="year">
         <span class="year-number">DECADE {gameState.year}</span>
         {#if isEvenDecade(gameState.year)}
-            <span class="even" title="Even decade: income and terraforming">EVEN DECADE</span>
+            <span
+                class="even"
+                title={gameState.scenarioDefinition().terraforming
+                    ? 'Even decade: income and terraforming'
+                    : 'Even decade: income'}>EVEN DECADE</span
+            >
         {/if}
     </div>
     <div class="status">

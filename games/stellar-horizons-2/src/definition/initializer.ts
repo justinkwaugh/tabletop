@@ -9,9 +9,10 @@ import {
     type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
+import { ANOMALIES } from '../components/anomalies.js'
 import { FACTION_COLORS } from '../components/factions.js'
-import { FOOTFALL, ScenarioId } from '../components/scenarios.js'
-import { systemsInSectors } from '../components/systems.js'
+import { STAR_MAP } from '../components/starMap.js'
+import { SOL_SYSTEM_ID, systemsInSectors } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
 import { techsThroughColumn } from '../components/techs.js'
 import { ALL_WORLD_TILE_IDS } from '../components/worlds.js'
@@ -22,8 +23,10 @@ import {
 } from '../model/gameState.js'
 import { HydratedStellarHorizonsPlayerState } from '../model/playerState.js'
 import { drawTechMarkers, fullTechPool } from '../model/pools.js'
+import { fillWorldSlots } from '../model/surveys.js'
 import { TurnStep } from '../model/turn.js'
 import { DECADE } from '../model/turnCycle.js'
+import { configuredScenario } from './config.js'
 import { MachineState } from './states.js'
 
 export class StellarHorizonsGameInitializer
@@ -37,7 +40,13 @@ export class StellarHorizonsGameInitializer
         state: UninitializedGameState,
         assignment?: StartingPositionAssignment
     ): HydratedStellarHorizonsGameState {
-        const scenario = FOOTFALL
+        const scenario = configuredScenario(game.config)
+        if (game.players.length < scenario.minPlayers) {
+            throw new Error(`${scenario.name} needs at least ${scenario.minPlayers} players`)
+        }
+        const surveyedSystemIds = scenario.surveyedAroundSol
+            ? STAR_MAP.adjacentSystemIds(SOL_SYSTEM_ID)
+            : []
         const prng = new Prng(state.prng)
         const colors = [...FACTION_COLORS]
         shuffle(colors, prng.random)
@@ -55,7 +64,8 @@ export class StellarHorizonsGameInitializer
                     techs: structuredClone(startingTechs),
                     step: TurnStep.Build,
                     remoteRepairUsed: false,
-                    fieldsDeveloped: []
+                    fieldsDeveloped: [],
+                    anomalies: []
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -65,11 +75,14 @@ export class StellarHorizonsGameInitializer
             players,
             machineState: MachineState.ChoosingFactions,
             turnManager,
-            scenario: ScenarioId.Footfall,
+            scenario: scenario.id,
             year: scenario.startYear,
             systems: systemsInSectors(scenario.sectors).map((system) => ({
                 systemId: system.id,
-                explorationMarker: system.worldSlots > 0 ? scenario.explorationMarkerValue : 0,
+                explorationMarker:
+                    system.worldSlots > 0 && !surveyedSystemIds.includes(system.id)
+                        ? scenario.explorationMarkerValue
+                        : 0,
                 worlds: []
             })),
             ships: [],
@@ -81,10 +94,18 @@ export class StellarHorizonsGameInitializer
                 Physics: fullTechPool(),
                 Engineering: fullTechPool()
             },
+            anomalyPool:
+                scenario.anomalies === undefined ? [] : ANOMALIES.map((anomaly) => anomaly.id),
+            pendingAnomalyAttempts: [],
             pendingSurveys: [],
             terraformQueue: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
+        for (const systemId of surveyedSystemIds) {
+            if (hydrated.isSystemInPlay(systemId)) {
+                fillWorldSlots(hydrated, systemId)
+            }
+        }
         for (const playerId of hydrated.initiativeOrder()) {
             const player = hydrated.getPlayerState(playerId)
             for (const field of TECH_FIELDS) {

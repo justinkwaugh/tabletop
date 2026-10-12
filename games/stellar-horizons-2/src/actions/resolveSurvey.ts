@@ -36,7 +36,7 @@ export class HydratedResolveSurvey
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const resolution = resolveNextSurvey(state)
         this.metadata = resolution
-        if (resolution.drawnTileId !== undefined) {
+        if (resolution.drawnTileId !== undefined || resolution.anomaly !== undefined) {
             this.revealsInfo = true
         }
     }

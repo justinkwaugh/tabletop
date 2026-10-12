@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import LastActionDescription from './LastActionDescription.svelte'
     import FactionPicker from './steps/FactionPicker.svelte'
+    import StartingBasePicker from './steps/StartingBasePicker.svelte'
     import StepTracker from './steps/StepTracker.svelte'
     import BuildStep from './steps/BuildStep.svelte'
     import CargoStep from './steps/CargoStep.svelte'
@@ -26,6 +27,8 @@
         <WaitingPanel />
     {:else if machineState === MachineState.ChoosingFactions}
         <FactionPicker />
+    {:else if machineState === MachineState.PlacingStartingBases}
+        <StartingBasePicker />
     {:else if machineState === MachineState.PlayingTurn}
         <StepTracker />
         {#if gameSession.actingStep === TurnStep.Build}

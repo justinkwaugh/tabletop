@@ -4,6 +4,13 @@ import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { terraformingPlayers } from '../model/terraforming.js'
 
 export function stateAfterTurnActions(state: HydratedStellarHorizonsGameState): MachineState {
+    if (state.pendingAnomalyAttempts.length > 0) {
+        return MachineState.ResolvingAnomalies
+    }
+    return stateAfterAnomalies(state)
+}
+
+export function stateAfterAnomalies(state: HydratedStellarHorizonsGameState): MachineState {
     if (state.pendingSurveys.length > 0) {
         return MachineState.ResolvingSurveys
     }
@@ -11,7 +18,7 @@ export function stateAfterTurnActions(state: HydratedStellarHorizonsGameState): 
 }
 
 export function stateAfterSurveys(state: HydratedStellarHorizonsGameState): MachineState {
-    if (!isEvenDecade(state.year)) {
+    if (!state.scenarioDefinition().terraforming || !isEvenDecade(state.year)) {
         return MachineState.EndOfTurn
     }
     state.terraformQueue = terraformingPlayers(state)

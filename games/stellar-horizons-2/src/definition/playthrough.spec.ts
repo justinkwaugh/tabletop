@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { GameResult, validateGameResult, type Game, type GameAction } from '@tabletop/common'
 import { ShipKind, shipDefinition } from '../components/ships.js'
 import { TECHS, TechId } from '../components/techs.js'
+import { ScenarioId } from '../components/scenarios.js'
+import {
+    anomalyAttemptShips,
+    attemptableSystemIds,
+    canJoinAnomalyAttempt
+} from '../model/anomalies.js'
 import { RepairMethod, canRepair, shipsAvailableToBuild } from '../model/building.js'
 import { CargoPartnerKind } from '../model/cargoTransfer.js'
 import { canAffordTech, isTechAvailable, techCost } from '../model/development.js'
@@ -17,7 +23,8 @@ import { surveySwapSlots } from '../model/surveys.js'
 import { replacementOptions, terraformTargets } from '../model/terraforming.js'
 import { systemPopulation } from '../model/victory.js'
 import { TurnStep } from '../model/turn.js'
-import { execute, hydrate, startedGame, userAction } from '../testing/fixtures.js'
+import { startingBaseSystemIds } from '../model/startingBases.js'
+import { VOYAGES_CONFIG, execute, hydrate, startedGame, userAction } from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 
@@ -26,6 +33,10 @@ function botAction(game: Game, state: HydratedStellarHorizonsGameState): GameAct
     const act = (type: ActionType, fields: Record<string, unknown> = {}) =>
         userAction(game, playerId, type, fields)
     switch (state.machineState) {
+        case MachineState.PlacingStartingBases:
+            return act(ActionType.PlaceStartingBase, {
+                systemId: startingBaseSystemIds(state)[0]
+            })
         case MachineState.ChoosingSurveyWorld: {
             const choice = state.surveyChoice
             const slots = choice ? surveySwapSlots(state, choice.systemId, choice.drawnTileId) : []
@@ -42,7 +53,9 @@ function botAction(game: Game, state: HydratedStellarHorizonsGameState): GameAct
         }
         case MachineState.PlayingTurn:
             return (
-                turnAction(state, playerId, act) ??
+                (state.scenario === ScenarioId.Voyages
+                    ? voyagesAction(state, playerId, act)
+                    : turnAction(state, playerId, act)) ??
                 act(ActionType.EndStep, {
                     step: state.getPlayerState(playerId).step
                 })
@@ -150,6 +163,84 @@ function turnAction(
     }
 }
 
+// A fleet of probes surveys the map while the crew vehicles gather at anomalies.
+function voyagesAction(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    act: (type: ActionType, fields?: Record<string, unknown>) => GameAction
+): GameAction | undefined {
+    const player = state.getPlayerState(playerId)
+    const ships = state.shipsOf(playerId)
+    switch (player.step) {
+        case TurnStep.Build: {
+            const probes = ships.filter((ship) => shipDefinition(ship.shipId).kind === ShipKind.RE)
+            const affordable = shipsAvailableToBuild(state, playerId).filter(
+                (definition) => definition.cost <= player.cash
+            )
+            const wanted =
+                probes.length < 3
+                    ? affordable.find((definition) => definition.kind === ShipKind.RE)
+                    : affordable
+                          .filter((definition) => definition.kind === ShipKind.CV)
+                          .toSorted(
+                              (a, b) => b.combat + b.exploration - (a.combat + a.exploration)
+                          )[0]
+            return wanted
+                ? act(ActionType.BuildShip, { shipId: wanted.id, systemId: 'sol' })
+                : undefined
+        }
+        case TurnStep.Movement: {
+            for (const ship of ships.filter(hasArrived)) {
+                const destination = voyagesDestination(state, ship.shipId)
+                if (destination) {
+                    return act(ActionType.MoveShip, { shipId: ship.shipId, systemId: destination })
+                }
+            }
+            return undefined
+        }
+        case TurnStep.Exploration: {
+            const [systemId] = attemptableSystemIds(state, playerId)
+            if (systemId) {
+                return act(ActionType.AttemptAnomaly, {
+                    systemId,
+                    shipIds: anomalyAttemptShips(state, playerId, systemId).map(
+                        (ship) => ship.shipId
+                    )
+                })
+            }
+            const explorer = ships.find((ship) => canExplore(state, ship))
+            return explorer ? act(ActionType.Explore, { shipId: explorer.shipId }) : undefined
+        }
+        case TurnStep.Cargo:
+            return undefined
+        default:
+            return turnAction(state, playerId, act)
+    }
+}
+
+function voyagesDestination(
+    state: HydratedStellarHorizonsGameState,
+    shipId: string
+): string | undefined {
+    const ship = state.ship(shipId)
+    const useful = (systemId: string) => {
+        const system = state.systemState(systemId)
+        return system.anomaly !== undefined
+            ? canJoinAnomalyAttempt(state, { ...ship, systemId, explored: false })
+            : system.explorationMarker > 0
+    }
+    if (useful(ship.systemId)) {
+        return undefined
+    }
+    const crowding = (systemId: string) =>
+        state.ships.filter((other) => other.systemId === systemId).length
+    const anomalous = (systemId: string) => (state.systemState(systemId).anomaly ? 0 : 1)
+    return moveOptions(state, ship)
+        .map((option) => option.systemId)
+        .filter(useful)
+        .toSorted((a, b) => anomalous(a) - anomalous(b) || crowding(a) - crowding(b))[0]
+}
+
 const PRIORITY_TECHS: readonly TechId[] = [
     TechId.ImprovedInterstellarSettlement,
     TechId.Terraforming,
@@ -229,5 +320,33 @@ describe.each([1, 2, 3, 4])('Footfall played by bots with %i players', (playerCo
             ...rest
         }: StellarHorizonsProjectedState) => rest
         expect(gameplay(playToEnd(playerCount))).toEqual(gameplay(playToEnd(playerCount)))
+    })
+})
+
+const VOYAGES_LAST_YEAR = 2700
+
+function playVoyages(playerCount: number): StellarHorizonsProjectedState {
+    const started = startedGame(playerCount, VOYAGES_CONFIG)
+    const { game } = started
+    let state = started.state
+    for (
+        let step = 0;
+        state.machineState !== MachineState.EndOfGame && state.year <= VOYAGES_LAST_YEAR;
+        step++
+    ) {
+        expect(step).toBeLessThan(40000)
+        state = execute(game, state, botAction(game, hydrate(state)))
+    }
+    return state
+}
+
+describe.each([2, 3, 4])('These are the Voyages played by bots with %i players', (playerCount) => {
+    it('finds and resolves anomalies, and any ending is a valid result', () => {
+        const state = playVoyages(playerCount)
+        const resolved = state.players.reduce((total, player) => total + player.anomalies.length, 0)
+        expect(resolved).toBeGreaterThan(0)
+        if (state.machineState === MachineState.EndOfGame) {
+            validateGameResult(state)
+        }
     })
 })

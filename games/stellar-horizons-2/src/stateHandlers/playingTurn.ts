@@ -1,4 +1,5 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { HydratedAttemptAnomaly, isAttemptAnomaly } from '../actions/attemptAnomaly.js'
 import { HydratedBuildShip, isBuildShip } from '../actions/buildShip.js'
 import { HydratedCloneSettlement, isCloneSettlement } from '../actions/cloneSettlement.js'
 import { HydratedDevelopTech, isDevelopTech } from '../actions/developTech.js'
@@ -22,6 +23,7 @@ type PlayingTurnAction =
     | HydratedTransferCargo
     | HydratedMoveShip
     | HydratedExplore
+    | HydratedAttemptAnomaly
     | HydratedDevelopTech
     | HydratedEndStep
 
@@ -41,6 +43,7 @@ export class PlayingTurnStateHandler implements MachineStateHandler<
             isTransferCargo(action) ||
             isMoveShip(action) ||
             isExplore(action) ||
+            isAttemptAnomaly(action) ||
             isDevelopTech(action) ||
             isEndStep(action)
         )
@@ -64,6 +67,7 @@ export class PlayingTurnStateHandler implements MachineStateHandler<
             [ActionType.TransferCargo, HydratedTransferCargo.canTransferCargo(state, playerId)],
             [ActionType.MoveShip, HydratedMoveShip.canMoveShip(state, playerId)],
             [ActionType.Explore, HydratedExplore.canExplore(state, playerId)],
+            [ActionType.AttemptAnomaly, HydratedAttemptAnomaly.canAttemptAnomaly(state, playerId)],
             [ActionType.DevelopTech, HydratedDevelopTech.canDevelopTech(state, playerId)],
             [ActionType.ScrapShip, HydratedScrapShip.canScrapShip(state, playerId)],
             [ActionType.EndStep, HydratedEndStep.canEndStep(state, playerId)]

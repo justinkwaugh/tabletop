@@ -1,5 +1,6 @@
 import { SOL_SYSTEM_ID, starSystemDefinition } from '../components/systems.js'
 import { isRevealedWorld } from '../components/worlds.js'
+import { blocksBases } from './anomalies.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
@@ -13,7 +14,11 @@ export function canSettleSystem(
     playerId: string,
     systemId: string
 ): boolean {
-    if (systemId === SOL_SYSTEM_ID || !hasRevealedWorld(state, systemId)) {
+    if (
+        systemId === SOL_SYSTEM_ID ||
+        !hasRevealedWorld(state, systemId) ||
+        blocksBases(state, systemId)
+    ) {
         return false
     }
     const threshold = capabilitiesOf(state, playerId).settleHabitability

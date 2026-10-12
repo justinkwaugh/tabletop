@@ -4,9 +4,11 @@ import {
     PlayerStatus,
     assertExists,
     type Game,
-    type GameAction
+    type GameAction,
+    type GameConfig
 } from '@tabletop/common'
 import { Faction } from '../components/factions.js'
+import { ScenarioId } from '../components/scenarios.js'
 import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { StellarHorizonsRuntime } from '../definition/runtime.js'
@@ -18,12 +20,15 @@ import type {
 export const engine = new GameEngine(StellarHorizonsRuntime)
 export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-export function createGame(playerCount: number): Game {
+export const VOYAGES_CONFIG: GameConfig = { scenario: ScenarioId.Voyages }
+
+export function createGame(playerCount: number, config: GameConfig = {}): Game {
     return StellarHorizonsRuntime.initializer.initializeGame(
         {
             id: 'stellar-horizons-test',
             typeId: Definition.info.id,
             ownerId: 'owner',
+            config,
             players: Array.from({ length: playerCount }, (_, index) => ({
                 id: `p${index}`,
                 name: `Player ${index}`,
@@ -92,11 +97,14 @@ export const FACTION_PICKS: readonly Faction[] = [
     Faction.TruePath
 ]
 
-export function startedGame(playerCount: number): {
+export function startedGame(
+    playerCount: number,
+    config: GameConfig = {}
+): {
     game: Game
     state: StellarHorizonsProjectedState
 } {
-    const game = createGame(playerCount)
+    const game = createGame(playerCount, config)
     let state = engine.startGame(game, { masterSeed: MASTER_SEED }).initialState
     for (const faction of FACTION_PICKS.slice(0, playerCount)) {
         const [playerId] = state.activePlayerIds

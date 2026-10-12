@@ -1,6 +1,11 @@
 <script lang="ts">
     // Everything about the player chosen in the standings, in plain labelled sections.
-    import { TECH_FIELDS, TurnStep, shipDefinition } from '@tabletop/stellar-horizons-2'
+    import {
+        TECH_FIELDS,
+        TurnStep,
+        anomalyDefinition,
+        shipDefinition
+    } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { factionConsole } from '$lib/utils/playerArea.js'
@@ -12,6 +17,7 @@
         plural,
         systemName
     } from '$lib/utils/presentation.js'
+    import AnomalyTile from '../AnomalyTile.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
@@ -27,6 +33,7 @@
 
 {#if view}
     {@const standing = view.standing}
+    {@const goal = view.settlementGoal}
     {@const faction = standing.faction}
     <div class="console" style:--faction={faction ? FACTION_FILL[faction] : '#3d4a63'}>
         <div class="head">
@@ -60,6 +67,29 @@
                 </span>
             </div>
 
+            {#if standing.anomalies}
+                {@const tally = standing.anomalies}
+                <section>
+                    <h4>
+                        Anomalies
+                        <span>{view.anomalyIds.length} of {tally.goal.resolved}</span>
+                    </h4>
+                    {#if view.anomalyIds.length > 0}
+                        <div class="anomalies">
+                            {#each view.anomalyIds as anomalyId (anomalyId)}
+                                <span title={anomalyDefinition(anomalyId).name}>
+                                    <AnomalyTile {anomalyId} width={58} />
+                                </span>
+                            {/each}
+                        </div>
+                    {/if}
+                    <div class="note">
+                        {tally.science} science, {tally.combat} combat. {tally.goal.resolved} win, with
+                        at least {tally.goal.ofEachChallenge} of each.
+                    </div>
+                </section>
+            {/if}
+
             <section>
                 <h4>
                     Bases
@@ -75,15 +105,18 @@
                         <span class="system">{systemName(base.systemId)}</span>
                         <span
                             class="note"
-                            class:met={base.population >= view.populationGoal}
-                            title="A base wins at {view.settlementGoal} settlements in a system of {view.populationGoal} population"
-                            >population {base.population}</span
+                            class:met={goal !== undefined &&
+                                base.population >= goal.systemPopulation}
+                            title={goal
+                                ? `A base wins at ${goal.settlements} settlements in a system of ${goal.systemPopulation} population`
+                                : undefined}>population {base.population}</span
                         >
                     </div>
                 {:else}
                     <div class="note">
-                        No bases yet. {view.settlementGoal} settlements in a system of {view.populationGoal}
-                        population wins.
+                        No bases yet.{#if goal}
+                            {goal.settlements} settlements in a system of {goal.systemPopulation}
+                            population wins.{/if}
                     </div>
                 {/each}
             </section>
@@ -141,6 +174,13 @@
 {/if}
 
 <style>
+    .anomalies {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 4px;
+    }
+
     .console {
         border: 1px solid #1e2b44;
         border-radius: 8px;

@@ -22,7 +22,25 @@ const BOARD_SYSTEMS = [
     'gliese-876',
     'luhman-16',
     'alpha-centauri',
-    'sirius'
+    'sirius',
+    'vega',
+    '61-cygni',
+    'altair',
+    'fomalhaut',
+    'beta-comae-berenices',
+    'epsilon-indi',
+    'beta-hydri',
+    'delta-pavonis',
+    '61-virginis',
+    'trappist-1',
+    'arcturus',
+    'gamma-serpentis',
+    '72-herculis',
+    '26-draconis',
+    'alpha-mensae',
+    'innes-star',
+    'beta-aquilae',
+    '18-scorpii'
 ]
 const FACTION_ART = {
     Consortium: 'Consortium',
@@ -40,8 +58,54 @@ const EXPLORATION_ART = {
     Engineering: 'EXP Value Eng blank.png'
 }
 
+// Two module file names differ from the printed tile: "Alien derelict" and "Violent Separtists".
+const ANOMALY_ART = {
+    'adorable-critters': 'Adorable Critters.png',
+    'alien-artifacts': 'Alien Artifacts.png',
+    'alien-derelict': 'Alien derelict.png',
+    'alien-remains': 'Alien Remains.png',
+    'alien-sentinel': 'Alien Sentinel.png',
+    'anarchist-outpost': 'Anarchist Outpost.png',
+    'asteroid-clouds': 'Asteroid Clouds.png',
+    'colossal-comet': 'Colossal Comet.png',
+    'decapod-infestation': 'Decapod Infestation.png',
+    dissidents: 'Dissidents.png',
+    'hostile-xenomorphs': 'Hostile Xenomorphs.png',
+    'ice-caverns': 'Ice Caverns.png',
+    'medicinal-herbs': 'Medicinal Herbs.png',
+    megafauna: 'Megafauna.png',
+    'mineral-veins': 'Mineral Veins.png',
+    'nanobot-swarm': 'Nanobot Swarm.png',
+    'natural-stimulants': 'Natural Stimulants.png',
+    'pirate-lair': 'Pirate Lair.png',
+    'predatory-plants': 'Predatory Plants.png',
+    'primal-carnivores': 'Primal Carnivores.png',
+    'rare-crystals': 'Rare Crystals.png',
+    'rescue-scout-ship': 'Rescue Scout Ship.png',
+    'savage-storms': 'Savage Storms.png',
+    'severe-radiation': 'Severe Radiation.png',
+    'shadow-fleet': 'Shadow Fleet.png',
+    'splinter-colony': 'Splinter Colony.png',
+    'stellar-chart': 'Stellar Chart.png',
+    'stellar-flares': 'Stellar Flares.png',
+    'stunning-vistas': 'Stunning Vistas.png',
+    'symbiotic-spores': 'Symbiotic Spores.png',
+    'system-quarantine': 'System Quarantine.png',
+    'terran-dna': 'Terran DNA.png',
+    'tunnel-complex': 'Tunnel Complex.png',
+    'violent-separatists': 'Violent Separtists.png'
+}
+
 rmSync(outDir, { recursive: true, force: true })
-for (const dir of ['systems', 'ships', 'ships-flagless', 'worlds', 'markers', 'factions']) {
+for (const dir of [
+    'systems',
+    'ships',
+    'ships-flagless',
+    'worlds',
+    'markers',
+    'factions',
+    'anomalies'
+]) {
     mkdirSync(join(outDir, dir), { recursive: true })
 }
 
@@ -132,7 +196,8 @@ const entries = {
     factions: {},
     techMarkers: {},
     techMarkerBlanks: {},
-    exploration: {}
+    exploration: {},
+    anomalies: {}
 }
 let importIndex = 0
 function register(group, key, path) {
@@ -364,6 +429,116 @@ for (const [field, art] of Object.entries(FIELD_ART)) {
     register('exploration', field, `markers/exploration-${field}.webp`)
 }
 
+// Some module tiles carry a stray coloured line along one edge, so each is cut to a hexagon
+// just inside its printed edge.
+const ANOMALY_SIZE = { width: 253, height: 220 }
+const ANOMALY_HEX = [
+    [0.25, 0],
+    [0.75, 0],
+    [1, 0.5],
+    [0.75, 1],
+    [0.25, 1],
+    [0, 0.5]
+]
+    .map(([x, y]) => {
+        const inset = 3
+        const px = inset + x * (ANOMALY_SIZE.width - inset * 2)
+        const py = inset + y * (ANOMALY_SIZE.height - inset * 2)
+        return `${Math.round(px)},${Math.round(py)}`
+    })
+    .join(' ')
+// The difficulty is printed in a red triangle (combat) or a blue disc (science). Its place is
+// read from each tile so the UI can draw the difficulty that applies over the printed one.
+const BADGE_COLOURS = [
+    [199, 28, 34],
+    [0, 125, 183]
+]
+const BADGE_TOLERANCE = 40
+const BADGE_MARGIN = 2
+function anomalyPixels(file) {
+    const { width, height } = ANOMALY_SIZE
+    return execFileSync('convert', [
+        join(images, file),
+        '-resize',
+        `${width}x${height}!`,
+        '-alpha',
+        'off',
+        '-depth',
+        '8',
+        'rgb:-'
+    ])
+}
+
+function anomalyBadge(pixels) {
+    const { width, height } = ANOMALY_SIZE
+    const matches = (x, y, colour) => {
+        const offset = (y * width + x) * 3
+        const distance = colour.reduce(
+            (sum, value, channel) => sum + Math.abs(value - pixels[offset + channel]),
+            0
+        )
+        return distance <= BADGE_TOLERANCE
+    }
+    // Only pixels well inside a patch of the colour count, which leaves out the blended edges
+    // of the tile's title, drawn in a lighter shade of the same hue.
+    const isInside = (x, y, colour) => {
+        for (let dy = -BADGE_MARGIN; dy <= BADGE_MARGIN; dy++) {
+            for (let dx = -BADGE_MARGIN; dx <= BADGE_MARGIN; dx++) {
+                if (!matches(x + dx, y + dy, colour)) return false
+            }
+        }
+        return true
+    }
+    const boxes = BADGE_COLOURS.map((colour) => {
+        const box = { left: width, top: height, right: 0, bottom: 0, n: 0 }
+        for (let y = BADGE_MARGIN; y < height - BADGE_MARGIN; y++) {
+            for (let x = BADGE_MARGIN; x < width - BADGE_MARGIN; x++) {
+                if (!isInside(x, y, colour)) continue
+                box.left = Math.min(box.left, x - BADGE_MARGIN)
+                box.right = Math.max(box.right, x + BADGE_MARGIN)
+                box.top = Math.min(box.top, y - BADGE_MARGIN)
+                box.bottom = Math.max(box.bottom, y + BADGE_MARGIN)
+                box.n += 1
+            }
+        }
+        return box
+    })
+    const box = boxes.reduce((best, candidate) => (candidate.n > best.n ? candidate : best))
+    return {
+        x: (box.left + box.right + 1) / 2,
+        y: (box.top + box.bottom + 1) / 2,
+        width: box.right - box.left + 1,
+        height: box.bottom - box.top + 1
+    }
+}
+
+const anomalyBadges = {}
+for (const [anomalyId, file] of Object.entries(ANOMALY_ART)) {
+    const size = `${ANOMALY_SIZE.width}x${ANOMALY_SIZE.height}`
+    webp(file, `anomalies/${anomalyId}.webp`, [
+        '-resize',
+        `${size}!`,
+        '-alpha',
+        'set',
+        '(',
+        '-size',
+        size,
+        'xc:black',
+        '-fill',
+        'white',
+        '-draw',
+        `polygon ${ANOMALY_HEX}`,
+        ')',
+        '-alpha',
+        'off',
+        '-compose',
+        'CopyOpacity',
+        '-composite'
+    ])
+    register('anomalies', anomalyId, `anomalies/${anomalyId}.webp`)
+    anomalyBadges[anomalyId] = anomalyBadge(anomalyPixels(file))
+}
+
 const worldLines = Object.entries(entries.worlds).map(
     ([tileId, urls]) => `    '${tileId}': { I: ${urls.I}${urls.II ? `, II: ${urls.II}` : ''} },`
 )
@@ -421,6 +596,17 @@ ${record('techMarkerBlanks').join('\n')}
 export const EXPLORATION_MARKER_ART: Record<string, string> = {
 ${record('exploration').join('\n')}
 }
+
+export const ANOMALY_ART: Record<string, string> = {
+${record('anomalies').join('\n')}
+}
+
+export const ANOMALY_ART_SIZE = ${JSON.stringify(ANOMALY_SIZE)}
+
+export const ANOMALY_BADGE: Record<
+    string,
+    { x: number; y: number; width: number; height: number }
+> = ${JSON.stringify(anomalyBadges)}
 `
 )
 console.log(`Wrote ${importIndex + 1} images and ${manifestPath}`)
