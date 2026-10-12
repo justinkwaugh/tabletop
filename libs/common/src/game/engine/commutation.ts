@@ -6,6 +6,7 @@ import { isSequencedActionType } from './actionHistory.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
+import { errorMessage } from '../../util/errors.js'
 
 export type CommutationOutcome = { kind: 'commutes' } | { kind: 'invalid'; reason: string }
 
@@ -20,7 +21,7 @@ export function racesSequencedAction(
     )
 }
 
-function withoutActionPositions(state: GameState): Record<string, unknown> {
+export function withoutActionPositions(state: GameState): Record<string, unknown> {
     const { actionCount: _count, actionChecksum: _checksum, turnManager, ...rest } = state
     return {
         ...rest,
@@ -99,6 +100,6 @@ export function proveCommutation<
             return invalid('the orders reach different Game States')
         return { kind: 'commutes' }
     } catch (error) {
-        return invalid(error instanceof Error ? error.message : String(error))
+        return invalid(errorMessage(error))
     }
 }

@@ -1,4 +1,4 @@
-import type { HydratedGameState } from '../model/gameState.js'
+import { startingPositionRandomFor, type HydratedGameState } from '../model/gameState.js'
 import { Prng } from '../components/prng.js'
 import type { GameConfig } from '../model/gameConfig.js'
 import { ActionSource, createAction } from './gameAction.js'
@@ -63,9 +63,18 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
 
     private generateSystemActionId(): string {
         if (this.gameState.isAtLeastVersion(2)) {
-            return new Prng(this.gameState.prng).randId()
+            return this.identityPrng().randId()
         }
         return this.generateLegacyActionId()
+    }
+
+    private identityPrng(): Prng {
+        const branchPlayerId = this.gameState.parallelSpan?.branchPlayerId
+        return new Prng(
+            branchPlayerId === undefined
+                ? this.gameState.prng
+                : startingPositionRandomFor(this.gameState, branchPlayerId).identity
+        )
     }
 
     /**

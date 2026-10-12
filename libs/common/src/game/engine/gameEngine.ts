@@ -5,10 +5,36 @@ import {
     type StartingPositionAssignment
 } from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
-import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
+import {
+    deriveGameSeeds,
+    deriveStartingPositionSeeds,
+    generateMasterSeed,
+    normalizeMasterSeed
+} from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
-import { GameAction, type HydratedAction, Patch } from './gameAction.js'
+import * as Value from 'typebox/value'
+import type * as Type from 'typebox'
+import { ActionSource, createAction, GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { createPatch } from './statePatch.js'
+import { runs, sameRun, unprocessed } from './actionReplay.js'
+import {
+    branchFromView,
+    BranchMergeError,
+    BranchUndoError,
+    branchUndoWindow,
+    branchView,
+    sameBranchOutcome,
+    unopenedBranchView,
+    type Branch,
+    type BranchExecution
+} from './branch.js'
+import { findBranchScopeViolation } from './branchScope.js'
+import {
+    isRestingInSpan,
+    restingSpan,
+    spanAwaitingBranch,
+    unmergedPlayerIds
+} from './parallelSpan.js'
 import {
     isOutOfTurnActionType,
     isOutOfTurnDeclaration,
@@ -18,15 +44,19 @@ import { Game, GameStatus } from '../model/game.js'
 import {
     GameState,
     type HydratedGameState,
+    type ParallelSpanState,
+    type StartingPositionRandomState,
     type UninitializedGameState
 } from '../model/gameState.js'
+import { Prng, type RandomState } from '../components/prng.js'
 import { MachineContext } from './machineContext.js'
 import { type MachineStateHandler } from './machineStateHandler.js'
-import { type GameRuntime } from '../definition/gameDefinition.js'
+import { type GameRuntime, type ParallelSpanDefinition } from '../definition/gameDefinition.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
+import { errorMessage } from '../../util/errors.js'
 import type { Perspective } from '../visibility/valueProjector.js'
 import { isRedactedAction, UnavailableProjectedActionError } from '../visibility/actionProjector.js'
 
@@ -57,6 +87,13 @@ export interface GameStartOptions extends GameCreationOptions {
 export interface ActionAvailabilityOptions {
     readonly perspective?: Perspective
 }
+
+interface SpanStep {
+    readonly branchPlayerId?: string
+    readonly completing: boolean
+}
+
+const OUTSIDE_SPAN_STEP: SpanStep = { completing: false }
 
 interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly before: T
@@ -103,10 +140,7 @@ export class GameEngine<
             gameId: game.id,
             seed,
             prng: { seed, invocations: 0 },
-            protectedPrng:
-                derived === undefined
-                    ? { seed: generateSeed(), invocations: 0 }
-                    : { algorithm: 'chacha20-v1', seed: derived.protectedSeed, invocations: 0 },
+            protectedPrng: this.secretStream(derived?.protectedSeed),
             ...(masterSeed === undefined ? {} : { masterSeed }),
             activePlayerIds: [],
             winningPlayerIds: [],
@@ -154,13 +188,19 @@ export class GameEngine<
             assignment
         )
 
+        if (this.runtime.parallelSpans !== undefined) {
+            initialState.startingPositionRandom = this.generateStartingPositionRandom(
+                initialState.turnManager.turnOrder,
+                uninitializedState.masterSeed
+            )
+        }
+
         const machineContext = new MachineContext({
             gameConfig: game.config,
             gameState: initialState
         })
 
-        const initialHandler = this.getStateHandler(initialState)
-        initialHandler.enter(machineContext)
+        this.enterMachineState(initialState, machineContext, OUTSIDE_SPAN_STEP)
 
         const state = initialState.dehydrate()
         this.validateCanonicalState(state)
@@ -194,6 +234,177 @@ export class GameEngine<
         return runtimeState.isActivePlayer(playerId)
             ? types
             : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+    }
+
+    advanceSpan({ state, game }: { state: T; game: Game }): ActionCascadeResult<T> | undefined {
+        const steps: ActionCascadeResult<T>[] = []
+        let current = state
+        while (isRestingInSpan(current)) {
+            const nextPlayerId = unmergedPlayerIds(restingSpan(current)).at(0)
+            const step =
+                nextPlayerId === undefined
+                    ? this.completeSpan({ state: current, game })
+                    : this.startBranch({ state: current, game, playerId: nextPlayerId })
+            steps.push(step)
+            current = step.updatedState
+        }
+        return steps.length === 0 ? undefined : this.joinedCascade(state, steps)
+    }
+
+    startBranch({
+        state,
+        game,
+        playerId
+    }: {
+        state: T
+        game: Game
+        playerId: string
+    }): ActionCascadeResult<T> {
+        const span = spanAwaitingBranch(state, playerId)
+        return this.executeCanonicalAction({
+            action: this.spanAction(state, this.spanDefinition(span).branchStart, {
+                id: span.branchStartIds[playerId],
+                playerId
+            }),
+            state,
+            game
+        })
+    }
+
+    completeSpan({ state, game }: { state: T; game: Game }): ActionCascadeResult<T> {
+        const span = restingSpan(state)
+        assert(
+            unmergedPlayerIds(span).length === 0,
+            'Span Completion needs every Branch on the Main Line'
+        )
+        return this.executeCanonicalAction({
+            action: this.spanAction(state, this.spanDefinition(span).spanCompletion, {
+                id: span.completionId
+            }),
+            state,
+            game
+        })
+    }
+
+    branchesReadyToMerge({
+        state,
+        closedPlayerIds
+    }: {
+        state: T
+        closedPlayerIds: readonly string[]
+    }): string[] {
+        const span = restingSpan(state)
+        const waiting = unmergedPlayerIds(span)
+        const firstOpen = waiting.findIndex((playerId) => !closedPlayerIds.includes(playerId))
+        if (firstOpen < 0) return waiting
+        return this.spanDefinition(span).merge === 'barrier' ? [] : waiting.slice(0, firstOpen)
+    }
+
+    createBranch({
+        state,
+        game,
+        playerId
+    }: {
+        state: T
+        game: Game
+        playerId: string
+    }): BranchExecution<T> {
+        const started = this.startBranch({
+            state: unopenedBranchView(state, playerId),
+            game,
+            playerId
+        })
+        return this.branchExecution(state, started, playerId)
+    }
+
+    executeBranchAction({
+        state,
+        branch,
+        action,
+        game
+    }: {
+        state: T
+        branch: Branch
+        action: GameAction
+        game: Game
+    }): BranchExecution<T> {
+        assert(!branch.closed, `The Branch of ${branch.playerId} is closed`)
+        const executed = this.executeCanonicalAction({
+            action,
+            state: branchView(state, branch),
+            game
+        })
+        return this.branchExecution(state, executed, branch.playerId)
+    }
+
+    undoBranchAction({
+        state,
+        branch,
+        actions,
+        actionId,
+        asAdministrator = false
+    }: {
+        state: T
+        branch: Branch
+        actions: readonly GameAction[]
+        actionId: string
+        asAdministrator?: boolean
+    }): { branch: Branch; view: T; undoneActions: GameAction[] } {
+        const playerId = branch.playerId
+        assert(!branch.closed, `The Branch of ${playerId} is closed`)
+        const window = branchUndoWindow(actions, actionId, { asAdministrator })
+        if (window.kind === 'refused') throw new BranchUndoError(playerId, window.reason)
+        assert(
+            window.actions.at(-1)?.index === branch.actionCount - 1,
+            'The recorded Actions do not end where the Branch does'
+        )
+        let view = branchView(state, branch)
+        for (const action of window.actions.toReversed()) {
+            view = this.undoProcessedAction({ action, state: view })
+        }
+        return {
+            branch: branchFromView(state, view, playerId),
+            view,
+            undoneActions: window.actions
+        }
+    }
+
+    mergeBranch({
+        state,
+        game,
+        branch,
+        actions
+    }: {
+        state: T
+        game: Game
+        branch: Branch
+        actions: readonly GameAction[]
+    }): ActionCascadeResult<T> {
+        const playerId = branch.playerId
+        assert(branch.closed, `The Branch of ${playerId} is still open`)
+        const span = restingSpan(state)
+        assert(
+            unmergedPlayerIds(span).at(0) === playerId,
+            `The Branch of ${playerId} is not next in Merge Order`
+        )
+        const expected = branchView(state, branch)
+        const recordedRuns = runs(actions)
+        if (recordedRuns.at(0)?.at(0)?.id !== span.branchStartIds[playerId])
+            throw new BranchMergeError(playerId, 'its record does not begin with its Branch Start')
+
+        const steps: ActionCascadeResult<T>[] = []
+        let current = state
+        for (const recorded of recordedRuns) {
+            const replayed = this.replayOnMainLine({ state: current, game, playerId, recorded })
+            steps.push(replayed)
+            current = replayed.updatedState
+        }
+        if (!sameBranchOutcome(current, expected))
+            throw new BranchMergeError(
+                playerId,
+                'it reached a different Game State on the Main Line'
+            )
+        return this.joinedCascade(state, steps)
     }
 
     executeAction(input: {
@@ -345,6 +556,7 @@ export class GameEngine<
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
 
+            const spanStep = this.spanStepFor(currentAction, hydratedState)
             assert(
                 this.isPlayerAllowed(currentAction, hydratedState),
                 `Player ${currentAction.playerId} is not an active player`
@@ -365,14 +577,20 @@ export class GameEngine<
             )
 
             hydratedAction.apply(runtimeState, machineContext)
+            if (spanStep.completing) hydratedAction.revealsInfo = true
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 
             hydratedState.recordAction(hydratedAction)
             hydratedState.machineState = nextMachineState
 
-            const nextHandler = this.getStateHandler(hydratedState)
-            nextHandler.enter(machineContext)
+            this.enterMachineState(hydratedState, machineContext, spanStep)
+            assert(
+                spanStep.branchPlayerId === undefined ||
+                    hydratedState.parallelSpan?.branchPlayerId !== undefined ||
+                    machineContext.getPendingActions().length === 0,
+                'A Branch must end its cascade when it closes'
+            )
 
             const stateBeforeAction = updatedState
             updatedState = hydratedState.dehydrate()
@@ -388,6 +606,7 @@ export class GameEngine<
             if (canonical) this.validateCanonicalState(updatedState)
 
             const undoPatch: Patch = createPatch(updatedState, stateBeforeAction)
+            this.assertWithinBranchScope(spanStep, undoPatch, stateBeforeAction, updatedState)
 
             const dehydratedAction = hydratedAction.dehydrate()
             dehydratedAction.undoPatch = undoPatch
@@ -403,6 +622,204 @@ export class GameEngine<
             before,
             transitions
         }
+    }
+
+    private spanStepFor(action: GameAction, state: U): SpanStep {
+        const span = state.parallelSpan
+        if (span === undefined) return OUTSIDE_SPAN_STEP
+        assert(action.outOfTurn !== true, 'Out-of-Turn Actions are rejected during a Parallel Span')
+        if (span.branchPlayerId !== undefined) {
+            return { branchPlayerId: span.branchPlayerId, completing: false }
+        }
+        assert(
+            action.source === ActionSource.System,
+            'No User Action is valid in a Branching Machine State'
+        )
+        const playerId = action.playerId
+        if (playerId === undefined || span.branchStartIds[playerId] !== action.id) {
+            return { completing: action.id === span.completionId }
+        }
+        assert(
+            !span.mergedPlayerIds.includes(playerId),
+            `The Branch of ${playerId} is already on the Main Line`
+        )
+        span.branchPlayerId = playerId
+        state.activePlayerIds = [playerId]
+        return { branchPlayerId: playerId, completing: false }
+    }
+
+    private enterMachineState(state: U, context: MachineContext<U>, spanStep: SpanStep): void {
+        const handler = this.getStateHandler(state)
+        const span = state.parallelSpan
+        if (span === undefined) {
+            const definition = this.runtime.parallelSpans?.[state.machineState]
+            if (definition !== undefined) state.parallelSpan = this.newSpan(state, definition)
+            handler.enter(context)
+            if (state.parallelSpan !== undefined) {
+                state.activePlayerIds = [...state.parallelSpan.playerIds]
+            }
+            return
+        }
+
+        const { branchPlayerId, completing } = spanStep
+        const inBranchingMachineState = state.machineState === span.machineState
+        if (branchPlayerId === undefined && !inBranchingMachineState) {
+            assert(
+                completing && unmergedPlayerIds(span).length === 0,
+                'Only Span Completion may leave a Branching Machine State'
+            )
+            delete state.parallelSpan
+            this.enterMachineState(state, context, OUTSIDE_SPAN_STEP)
+            return
+        }
+        assert(!completing, 'Span Completion must leave the Branching Machine State')
+        assert(
+            branchPlayerId === undefined ||
+                inBranchingMachineState ||
+                this.runtime.parallelSpans?.[state.machineState] === undefined,
+            'A Branch cannot enter another Branching Machine State'
+        )
+
+        handler.enter(context)
+
+        if (branchPlayerId !== undefined && inBranchingMachineState) {
+            span.mergedPlayerIds.push(branchPlayerId)
+            delete span.branchPlayerId
+        }
+        state.activePlayerIds =
+            span.branchPlayerId === undefined ? unmergedPlayerIds(span) : [span.branchPlayerId]
+    }
+
+    private newSpan(state: U, definition: ParallelSpanDefinition<U>): ParallelSpanState {
+        const identity = new Prng(state.prng)
+        const playerIds = [...definition.mergeOrder(state)]
+        return {
+            machineState: state.machineState,
+            branchPoint: {
+                actionCount: state.actionCount,
+                actionChecksum: state.actionChecksum
+            },
+            playerIds,
+            mergedPlayerIds: [],
+            branchStartIds: Object.fromEntries(
+                playerIds.map((playerId) => [playerId, identity.randId()])
+            ),
+            completionId: identity.randId()
+        }
+    }
+
+    private assertWithinBranchScope(
+        spanStep: SpanStep,
+        undoPatch: Patch,
+        before: T,
+        after: T
+    ): void {
+        const playerId = spanStep.branchPlayerId
+        if (playerId === undefined) return
+        const violation = findBranchScopeViolation({ undoPatch, before, after, playerId })
+        assert(violation === undefined, `The Branch of ${playerId} may not change ${violation}`)
+    }
+
+    private spanDefinition(span: ParallelSpanState): ParallelSpanDefinition<U> {
+        const definition = this.runtime.parallelSpans?.[span.machineState]
+        assertExists(definition, `${span.machineState} is not a Branching Machine State`)
+        return definition
+    }
+
+    private spanAction(
+        state: T,
+        schema: Type.TSchema,
+        identity: { id: string; playerId?: string }
+    ): GameAction {
+        const action: unknown = createAction(schema, {
+            ...identity,
+            gameId: state.gameId,
+            source: ActionSource.System,
+            createdAt: new Date()
+        })
+        assert(Value.Check(GameAction, action), 'A span Action must be a Game Action')
+        return action
+    }
+
+    private joinedCascade(
+        before: T,
+        steps: readonly ActionCascadeResult<T>[]
+    ): ActionCascadeResult<T> {
+        const last = steps.at(-1)
+        assertExists(last, 'A joined cascade needs at least one step')
+        return {
+            processedActions: steps.flatMap((step) => step.processedActions),
+            updatedState: last.updatedState,
+            indexOffset: 0,
+            actionCascade: {
+                before,
+                transitions: steps.flatMap((step) => step.actionCascade.transitions)
+            }
+        }
+    }
+
+    private replayOnMainLine({
+        state,
+        game,
+        playerId,
+        recorded
+    }: {
+        state: T
+        game: Game
+        playerId: string
+        recorded: readonly GameAction[]
+    }): ActionCascadeResult<T> {
+        const first = recorded[0]
+        let replayed: ActionCascadeResult<T>
+        try {
+            replayed = this.executeCanonicalAction({ action: unprocessed(first), state, game })
+        } catch (error) {
+            throw new BranchMergeError(
+                playerId,
+                `${first.type} failed on the Main Line: ${errorMessage(error)}`
+            )
+        }
+        const sameIdentities = recorded.every(
+            (action, index) => action.id === replayed.processedActions.at(index)?.id
+        )
+        if (!sameRun(recorded, replayed.processedActions) || !sameIdentities)
+            throw new BranchMergeError(playerId, `${first.type} ran differently on the Main Line`)
+        return replayed
+    }
+
+    private branchExecution(
+        state: T,
+        executed: ActionCascadeResult<T>,
+        playerId: string
+    ): BranchExecution<T> {
+        return {
+            branch: branchFromView(state, executed.updatedState, playerId),
+            processedActions: executed.processedActions,
+            view: executed.updatedState
+        }
+    }
+
+    private generateStartingPositionRandom(
+        initialOrder: readonly string[],
+        masterSeed: string | undefined
+    ): StartingPositionRandomState[] {
+        return initialOrder.map((playerId, startingPosition) => {
+            const seeds =
+                masterSeed === undefined
+                    ? undefined
+                    : deriveStartingPositionSeeds(masterSeed, startingPosition)
+            return {
+                playerId,
+                identity: { seed: seeds?.identitySeed ?? generateSeed(), invocations: 0 },
+                rules: this.secretStream(seeds?.rulesSeed)
+            }
+        })
+    }
+
+    private secretStream(derivedSeed: string | undefined): RandomState {
+        return derivedSeed === undefined
+            ? { seed: generateSeed(), invocations: 0 }
+            : { algorithm: 'chacha20-v1', seed: derivedSeed, invocations: 0 }
     }
 
     private guardStateForPerspective(

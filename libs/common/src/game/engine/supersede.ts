@@ -5,6 +5,7 @@ import { isSupersedableActionType } from './actionHistory.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
+import { errorMessage } from '../../util/errors.js'
 
 export type SupersedeReplay<T extends GameState> = {
     undone: GameAction[]
@@ -71,6 +72,6 @@ export function replaceSupersededAction<
         engine.executeCanonicalAction({ action: unprocessed(replacement), state: current, game })
         return { kind: 'replace', undone: [...window], redone, state: current }
     } catch (error) {
-        return { kind: 'invalid', reason: error instanceof Error ? error.message : String(error) }
+        return { kind: 'invalid', reason: errorMessage(error) }
     }
 }
