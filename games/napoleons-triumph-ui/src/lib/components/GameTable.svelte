@@ -9,7 +9,7 @@
         HistoryControls,
         DefaultTabs
     } from '@tabletop/frontend-components'
-    import { assert } from '@tabletop/common'
+    import { assert, type Point } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
     import type {
@@ -146,14 +146,19 @@
         }
     }
 
+    function panAtThisZoom(points: Point[], animate: boolean) {
+        wrapper?.focusRect(boundsOf(points, session.boardRotation), {
+            animate,
+            maxScale: session.zoom,
+            padding: UNCOVERED_PADDING
+        })
+    }
+
     // The orders sheet hangs over the top of the board, so pieces picked up beneath it are brought out from under it at the zoom the board already has.
     function uncover(sprite: GroupSprite, sheet: Element, animate: boolean) {
         const pieces = boardHost?.querySelector(`[data-group="${CSS.escape(sprite.group.key)}"]`)
         if (pieces && pieces.getBoundingClientRect().top < sheet.getBoundingClientRect().bottom) {
-            wrapper?.focusRect(
-                boundsOf(sprite.blocks.flatMap(blockCorners), session.boardRotation),
-                { animate, maxScale: session.zoom, padding: UNCOVERED_PADDING }
-            )
+            panAtThisZoom(sprite.blocks.flatMap(blockCorners), animate)
         }
     }
 
@@ -181,28 +186,31 @@
         )
     }
 
-    // The same width at which the styles below treat the screen as a small one.
-    const SMALL_SCREEN = '(max-width: 639px)'
+    // A phone held either way: narrower than the styles' small-screen width, or as short as one lying on its side.
+    const SMALL_SCREEN = '(max-width: 639px), (max-height: 539px)'
 
-    // On a small screen the view closes in on the seat just opened: a corps's set-up locale and the locales around it, or the locale the fixed battery stands in. A seat with no one place on the map (a corps held off it, the detached units, a fixed battery not yet placed) gets the whole set-up area back.
-    function closeInOnOpenSeat(animate: boolean) {
+    function localeOfOpenSeat(): number | undefined {
         const battery = session.setupTable?.fixedBattery
-        const locale =
+        return (
             session.setupLocales.find((entry) => entry.open)?.locale ??
             (battery?.open ? battery.position?.locale : undefined)
-        if (locale === undefined) {
-            showSetupArea(animate)
-            return
-        }
-        focusWhereSeenOnSetup(
-            [locale, ...session.gameState.map.adjacentLocales(locale)],
-            SEAT_FOCUS,
-            animate
         )
     }
 
-    // A wide screen shows the whole set-up area, so the view stays as it is unless it has been moved off the open corps's locale, which is then brought back in at the zoom the board has.
-    function keepOpenSeatInView(animate: boolean) {
+    function closeInOnOpenSeat(animate: boolean) {
+        const locale = localeOfOpenSeat()
+        if (locale === undefined) {
+            showSetupArea(animate)
+        } else {
+            focusWhereSeenOnSetup(
+                [locale, ...session.gameState.map.adjacentLocales(locale)],
+                SEAT_FOCUS,
+                animate
+            )
+        }
+    }
+
+    function panToOpenCorpsIfOutOfView(animate: boolean) {
         const open = session.setupLocales.find((entry) => entry.open)
         const shape =
             open &&
@@ -216,28 +224,22 @@
             at.top >= view.top &&
             at.bottom <= view.bottom
         if (!inView) {
-            wrapper?.focusRect(boundsOf(outlines([open.locale]), session.boardRotation), {
-                animate,
-                maxScale: session.zoom,
-                padding: UNCOVERED_PADDING
-            })
+            panAtThisZoom(outlines([open.locale]), animate)
         }
     }
 
-    function showOpenSeat(animate: boolean) {
+    // A wide screen already shows the whole set-up area, so there the view is not closed in on a seat.
+    async function showOpenSeat(animate: boolean) {
+        await tick()
         if (window.matchMedia(SMALL_SCREEN).matches) {
             closeInOnOpenSeat(animate)
         } else {
-            keepOpenSeatInView(animate)
+            panToOpenCorpsIfOutOfView(animate)
         }
     }
 
     async function showPickedUp(animate: boolean) {
         await tick()
-        if (session.isDeploying) {
-            showOpenSeat(animate)
-            return
-        }
         const group = session.selectedGroup
         if (!group) return
         const sheet = table?.querySelector('.nt-orders-drawer')
@@ -280,17 +282,20 @@
         }
     }
 
-    let showingSetup = false
+    let setupShownFor: string | undefined
 
-    // A set-up opens on the locales the army sets up in, so every corps can be found on the map before any seat is tapped; when it is over the whole field comes back.
+    // At one table the second army's set-up follows the first's at once, so the opening view is shown once per player.
     async function showSetup() {
         await tick()
-        if (session.isDeploying && session.setupLocales.length > 0 && !showingSetup) {
-            showingSetup = true
+        const deploying = session.isDeploying ? session.myPlayerId : undefined
+        if (deploying === undefined) {
+            if (setupShownFor !== undefined) {
+                setupShownFor = undefined
+                wrapper?.fitToContent()
+            }
+        } else if (setupShownFor !== deploying && session.setupLocales.length > 0) {
+            setupShownFor = deploying
             showSetupArea(false)
-        } else if (!session.isDeploying && showingSetup) {
-            showingSetup = false
-            wrapper?.fitToContent()
         }
     }
 
@@ -303,10 +308,12 @@
         void showSetup()
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
+        const stopFollowingSeats = session.onSeatOpened(() => void showOpenSeat(true))
         const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())
         return () => {
             session.removeGameStateChangeListener(followGame)
             stopListening()
+            stopFollowingSeats()
             stopReadingZoom()
         }
     })

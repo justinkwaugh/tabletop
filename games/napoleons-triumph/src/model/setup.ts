@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { SANTON_LOCALE } from '../components/austerlitz.js'
-import type { LocaleDefinition, LocaleId } from '../components/battleMap.js'
+import type { BattleMap, LocaleDefinition, LocaleId } from '../components/battleMap.js'
 import {
     MAX_CORPS_UNITS,
     Side,
@@ -57,11 +57,8 @@ function startsOffMap(
     return state.scenario === Scenario.December1 && corps.offMap === true
 }
 
-function setupLocaleOf(
-    state: HydratedNapoleonsTriumphGameState,
-    commanderId: string
-): LocaleDefinition {
-    const locale = state.map.setupLocale(commanderId)
+export function setupLocaleOf(map: BattleMap, commanderId: string): LocaleDefinition {
+    const locale = map.setupLocale(commanderId)
     assertExists(locale, `${commanderId} has no set-up locale`)
     return locale
 }
@@ -72,7 +69,18 @@ function setupPosition(
 ): Position | undefined {
     return corps.offMap
         ? undefined
-        : { locale: setupLocaleOf(state, corps.commanderId).id, approach: corps.approach }
+        : { locale: setupLocaleOf(state.map, corps.commanderId).id, approach: corps.approach }
+}
+
+/** Rule 6, step 7: Bernadotte and Davout must each be given a unit that is not two-strength infantry. */
+export function hasUnitOtherThanLineInfantry(
+    state: HydratedNapoleonsTriumphGameState,
+    unitIds: readonly string[]
+): boolean {
+    return unitIds.some((id) => {
+        const face = faceOf(state.unit(id))
+        return !(face.type === UnitType.Infantry && face.strength === 2)
+    })
 }
 
 function validateCorps(
@@ -113,10 +121,7 @@ function validateCorps(
             legal(corps.approach === undefined, 'A corps off the map has no position')
             if (side === Side.French) {
                 legal(
-                    corps.unitIds.some((id) => {
-                        const face = faceOf(state.unit(id))
-                        return !(face.type === UnitType.Infantry && face.strength === 2)
-                    }),
+                    hasUnitOtherThanLineInfantry(state, corps.unitIds),
                     `${definition.name} needs a unit other than two-strength infantry`
                 )
             }
@@ -125,7 +130,7 @@ function validateCorps(
         if (corps.approach !== undefined) {
             const approach = state.map.approach(corps.approach)
             legal(
-                approach.locale === setupLocaleOf(state, corps.commanderId).id &&
+                approach.locale === setupLocaleOf(state.map, corps.commanderId).id &&
                     !approach.impassable,
                 `${definition.name} sets up in its own locale`
             )
@@ -150,6 +155,29 @@ export function nearAlliedObjective(
     )
 }
 
+/** Rule 6, step 8: where a unit detached from a commander on the map may stand. */
+export function validateDetachedPosition(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    commanderId: string,
+    { locale, approach }: Position
+) {
+    const distance = state.map.distance(setupLocaleOf(state.map, commanderId).id, locale)
+    legal(
+        distance !== undefined && distance <= DETACHMENT_REACH,
+        'A detachment stays within two locales of its commander'
+    )
+    legal(!nearAlliedObjective(state, locale), 'Detachments keep clear of the Allied objectives')
+    legal(!state.isEnemyOccupied(locale, playerId), 'Detachments cannot enter an enemy locale')
+    if (approach !== undefined) {
+        const definition = state.map.approach(approach)
+        legal(
+            definition.locale === locale && !definition.impassable,
+            'That approach cannot be blocked'
+        )
+    }
+}
+
 function validateDetachments(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -170,25 +198,7 @@ function validateDetachments(
         legal(corps !== undefined && !corps.offMap, 'Detachments come from corps on the map')
         const remaining = corps.unitIds.filter((id) => !ids.includes(id))
         legal(remaining.length > 0, 'A commander cannot detach its last unit')
-        const home = setupLocaleOf(state, corps.commanderId)
-        const { locale, approach } = detachment.position
-        const distance = state.map.distance(home.id, locale)
-        legal(
-            distance !== undefined && distance <= DETACHMENT_REACH,
-            'A detachment stays within two locales of its commander'
-        )
-        legal(
-            !nearAlliedObjective(state, locale),
-            'Detachments keep clear of the Allied objectives'
-        )
-        legal(!state.isEnemyOccupied(locale, playerId), 'Detachments cannot enter an enemy locale')
-        if (approach !== undefined) {
-            const definition = state.map.approach(approach)
-            legal(
-                definition.locale === locale && !definition.impassable,
-                'That approach cannot be blocked'
-            )
-        }
+        validateDetachedPosition(state, playerId, corps.commanderId, detachment.position)
     }
 }
 

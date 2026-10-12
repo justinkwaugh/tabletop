@@ -143,9 +143,9 @@ import {
     type SetupStep
 } from './setupSelection.js'
 import {
-    destinationOfPost,
     firstDestination,
-    placedFromPool,
+    placedStraightFromPool,
+    seatOfUnitApart,
     setupLocales,
     setupTable,
     setupTargets,
@@ -176,6 +176,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private setup: SetupSelection = $state.raw(noSetupSelection())
     private battle: BattleSelections = $state(emptyBattleSelections())
     private readonly pickUpListeners = new Set<() => void>()
+    private readonly seatOpenedListeners = new Set<() => void>()
 
     private zoomSource: ZoomSource | undefined = $state.raw()
 
@@ -330,7 +331,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.mySide && this.isCommanding ? reinforcementsOf(this.gameState, this.mySide) : []
     )
 
-    /** The pieces ringed on the map: those picked up for a command, or in set-up those of the open seat. */
     ringedSprites: GroupSprite[] = $derived.by(() => {
         const step = this.setupStep
         if (!step) {
@@ -550,11 +550,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    /** The table moves the view for pieces just picked up, and in set-up for the seat just opened; it is told when, rather than watching the selection. */
+    /** The table moves the view for pieces just picked up; it is told when, rather than watching the selection. */
     onPickUp(listener: () => void): () => void {
         this.pickUpListeners.add(listener)
         return () => {
             this.pickUpListeners.delete(listener)
+        }
+    }
+
+    /** As with pieces picked up, the table is told when a set-up seat is opened, from the panel or by tapping a corps on the map. Taking a unit standing on its own in hand on the map is not announced: the view stays where the tap was. */
+    onSeatOpened(listener: () => void): () => void {
+        this.seatOpenedListeners.add(listener)
+        return () => {
+            this.seatOpenedListeners.delete(listener)
         }
     }
 
@@ -683,7 +691,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const step = this.setupStep
         if (step && !sameDestination(step.open, open)) {
             this.stageSetup(recordSetupStep(this.setup, { setup: step.setup, open }))
-            this.announcePickUp()
+            for (const listener of this.seatOpenedListeners) {
+                listener()
+            }
         }
     }
 
@@ -693,7 +703,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!step || !stack.offered || unitId === undefined) {
             return
         }
-        const placed = placedFromPool(this.gameState, step, unitId)
+        const placed = placedStraightFromPool(this.gameState, step, unitId)
         if (placed) {
             this.arrange(placed)
         } else {
@@ -1010,7 +1020,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )
     }
 
-    // A corps tapped on the map is opened; a unit standing on its own is taken in hand, to be turned within its locale.
     private openOnMap(group: PieceGroup, unitId: string) {
         const step = this.setupStep
         if (!step) {
@@ -1025,7 +1034,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.stageSetup(
                 recordSetupStep(this.setup, {
                     setup: step.setup,
-                    open: destinationOfPost(step.setup, unitId),
+                    open: seatOfUnitApart(step.setup, unitId),
                     heldUnitId: unitId
                 })
             )
@@ -1035,14 +1044,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private arrange(setup: ArmySetup, heldUnitId?: string) {
         const playerId = this.myPlayerId
         const step = this.setupStep
-        if (step && playerId && fits(this.gameState, playerId, setup)) {
+        if (step && playerId) {
+            assert(
+                fits(this.gameState, playerId, setup),
+                'Only arrangements within the maximums are offered in set-up'
+            )
             this.stageSetup(recordSetupStep(this.setup, { setup, open: step.open, heldUnitId }))
         }
     }
 
     // The shared session ignores actions while it settles one and then resets these selections, so nothing is staged meanwhile.
     private announcePickUp() {
-        if (this.selectedGroup || this.isDeploying) {
+        if (this.selectedGroup) {
             for (const listener of this.pickUpListeners) {
                 listener()
             }

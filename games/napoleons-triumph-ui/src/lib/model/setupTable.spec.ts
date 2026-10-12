@@ -6,12 +6,13 @@ import {
     SANTON_LOCALE,
     Scenario,
     Side,
-    UnitType
+    UnitType,
+    setupLocaleOf
 } from '@tabletop/napoleons-triumph'
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import {
+    OnMapStart,
     emptySetup,
-    setupLocaleOf,
     withCorpsOnMap,
     withFixedBatteryPosted,
     withUnitDetached,
@@ -21,9 +22,9 @@ import {
 } from './armySetup.js'
 import { DestinationKind, type SetupDestination, type SetupStep } from './setupSelection.js'
 import {
-    destinationOfPost,
     firstDestination,
-    placedFromPool,
+    placedStraightFromPool,
+    seatOfUnitApart,
     setupLocales,
     setupTable,
     setupTargets,
@@ -84,7 +85,7 @@ describe('the set-up table', () => {
         const step: SetupStep = { setup, open: corps('lannes') }
         const table = setupTable(state, playerId, step)
         const unitId = nextOf(table, UnitType.Infantry, 2)
-        const placed = placedFromPool(state, step, unitId)
+        const placed = placedStraightFromPool(state, step, unitId)
         assertExists(placed, 'A unit joins the open corps at once')
 
         const after = setupTable(state, playerId, { setup: placed, open: step.open })
@@ -117,7 +118,7 @@ describe('the set-up table', () => {
         const step: SetupStep = { setup, open: DETACHED }
         const unitId = nextOf(setupTable(state, playerId, step), UnitType.Cavalry, 2)
 
-        expect(placedFromPool(state, step, unitId)).toBeUndefined()
+        expect(placedStraightFromPool(state, step, unitId)).toBeUndefined()
         const inHand: SetupStep = { ...step, heldUnitId: unitId }
         expect(stackOf(setupTable(state, playerId, inHand), UnitType.Cavalry, 2).held).toBe(true)
         expect(
@@ -145,7 +146,7 @@ describe('the set-up table', () => {
         const inReserve: SetupStep = { ...inHand, setup: withTargetChosen(inHand, locale) }
         expect(inReserve.setup.detached).toEqual([{ unitId, position: { locale: home } }])
         const table = setupTable(state, playerId, inReserve)
-        expect(table.detached?.held).toEqual({ unitId, position: { locale: home } })
+        expect(table.detached?.heldAtItsPost).toEqual({ unitId, position: { locale: home } })
         expect(table.detached?.room).toBe(MAX_FRENCH_DETACHMENTS - 1)
 
         const [approach] = setupTargets(state, playerId, inReserve)
@@ -200,7 +201,7 @@ describe('the set-up table', () => {
         const { state, playerId, setup } = frenchToSetUp({ santon: true })
         const step: SetupStep = { setup, open: FIXED_BATTERY }
         const battery = nextOf(setupTable(state, playerId, step), UnitType.Artillery, 1)
-        const placed = placedFromPool(state, step, battery)
+        const placed = placedStraightFromPool(state, step, battery)
         assertExists(placed, 'The fixed battery goes to the Santon at once')
 
         expect(placed.detached).toEqual([{ unitId: battery, position: { locale: SANTON_LOCALE } }])
@@ -256,8 +257,8 @@ describe('the set-up table', () => {
             cavalry,
             { locale: home }
         )
-        expect(destinationOfPost(posted, battery)).toEqual(FIXED_BATTERY)
-        expect(destinationOfPost(posted, cavalry)).toEqual(DETACHED)
+        expect(seatOfUnitApart(posted, battery)).toEqual(FIXED_BATTERY)
+        expect(seatOfUnitApart(posted, cavalry)).toEqual(DETACHED)
     })
 
     it('reports what is wrong only once every unit is placed', () => {
@@ -314,15 +315,21 @@ describe('the corps that start on the map', () => {
         const playerId = game.playerOf(Side.Allied)
         const setup = emptySetup(state, Side.Allied)
         const untouched = setupTable(state, playerId, { setup, open: firstDestination(setup) })
-        expect(untouched.corps.every((seat) => seat.offMap && seat.mayStartOnMap)).toBe(true)
+        expect(
+            untouched.corps.every((seat) => seat.offMap && seat.onMapStart === OnMapStart.Offered)
+        ).toBe(true)
+        expect(untouched.corpsStillToStartOnMap).toBe(2)
         expect(untouched.detached).toBeUndefined()
         expect(untouched.fixedBattery).toBeUndefined()
 
         const two = withCorpsOnMap(withCorpsOnMap(setup, 'bagration', true), 'langeron', true)
         const chosen = setupTable(state, playerId, { setup: two, open: firstDestination(two) })
         expect(
-            chosen.corps.filter((seat) => seat.mayStartOnMap).map((seat) => seat.commanderId)
+            chosen.corps
+                .filter((seat) => seat.onMapStart === OnMapStart.Offered)
+                .map((seat) => seat.commanderId)
         ).toEqual(['bagration', 'langeron'])
+        expect(chosen.corpsStillToStartOnMap).toBe(0)
         expect(setupLocales(state, { setup: two, open: firstDestination(two) })).toHaveLength(2)
     })
 })

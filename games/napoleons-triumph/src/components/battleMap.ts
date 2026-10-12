@@ -104,6 +104,8 @@ export class BattleMap {
     private readonly approaches = new Map<ApproachId, ApproachDefinition>()
     private readonly roadLinks: RoadLink[] = []
     private readonly roadEntries: RoadEntry[] = []
+    private readonly setupLocales = new Map<string, LocaleDefinition>()
+    private readonly stepsBetween = new Map<LocaleId, Map<LocaleId, number>>()
 
     constructor(spec: MapSpec) {
         for (const locale of spec.locales) {
@@ -117,6 +119,11 @@ export class BattleMap {
                 setupCommanderId: locale.setup,
                 approaches: []
             })
+        }
+        for (const locale of this.locales.values()) {
+            if (locale.setupCommanderId !== undefined) {
+                this.setupLocales.set(locale.setupCommanderId, locale)
+            }
         }
         spec.borders.forEach((border, index) => {
             this.addApproach(index * 2, border.a, border.b, border, border.aSymbols ?? '')
@@ -229,20 +236,24 @@ export class BattleMap {
     }
 
     distance(from: LocaleId, to: LocaleId): number | undefined {
-        const reached = new Set<LocaleId>([from])
-        const queue = [{ locale: from, steps: 0 }]
-        for (const { locale, steps } of queue) {
-            if (locale === to) {
-                return steps
-            }
+        return this.stepsFrom(from).get(to)
+    }
+
+    private stepsFrom(from: LocaleId): Map<LocaleId, number> {
+        const known = this.stepsBetween.get(from)
+        if (known) {
+            return known
+        }
+        const steps = new Map<LocaleId, number>([[from, 0]])
+        for (const [locale, taken] of steps) {
             for (const next of this.reachableNeighbours(locale)) {
-                if (!reached.has(next)) {
-                    reached.add(next)
-                    queue.push({ locale: next, steps: steps + 1 })
+                if (!steps.has(next)) {
+                    steps.set(next, taken + 1)
                 }
             }
         }
-        return undefined
+        this.stepsBetween.set(from, steps)
+        return steps
     }
 
     localesWithStar(star: Star): LocaleDefinition[] {
@@ -250,7 +261,7 @@ export class BattleMap {
     }
 
     setupLocale(commanderId: string): LocaleDefinition | undefined {
-        return this.allLocales.find((locale) => locale.setupCommanderId === commanderId)
+        return this.setupLocales.get(commanderId)
     }
 
     roadLinksFrom(locale: LocaleId): RoadLink[] {

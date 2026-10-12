@@ -10,13 +10,15 @@ import {
     commandersOf,
     deployArmy,
     nearAlliedObjective,
+    setupLocaleOf,
     type Deployment,
     type HydratedNapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
 import { TestGame, suggestedDeployment } from '@tabletop/napoleons-triumph/testing'
 import {
     arrayedArmy,
-    corpsCards,
+    advanceGuardStillToChoose,
+    corpsStrengths,
     creditsOf,
     deploymentOf,
     detachedPosts,
@@ -24,8 +26,8 @@ import {
     emptySetup,
     fits,
     fixedBatteryPosts,
+    onMapStartOf,
     postStances,
-    setupLocaleOf,
     setupProblem,
     stanceTargets,
     unassignedStacks,
@@ -36,6 +38,8 @@ import {
     withUnitDetached,
     withUnitJoining,
     withUnitReturned,
+    OnMapStart,
+    RoomLimit,
     type ArmySetup
 } from './armySetup.js'
 import { copyOf } from './stateCopy.js'
@@ -71,7 +75,7 @@ function cardOf(
     setup: ArmySetup,
     commanderId: string
 ) {
-    const card = corpsCards(state, playerId, setup).find(
+    const card = corpsStrengths(state, playerId, setup).find(
         (candidate) => candidate.commanderId === commanderId
     )
     assertExists(card, `${commanderId} has no card`)
@@ -126,6 +130,29 @@ describe('an untouched set-up', () => {
         const two = withCorpsOnMap(withCorpsOnMap(setup, 'bagration', true), 'langeron', true)
         expect(fits(state, playerId, two)).toBe(true)
         expect(fits(state, playerId, withCorpsOnMap(two, 'kienmayer', true))).toBe(false)
+        expect(advanceGuardStillToChoose(state, playerId, setup)).toBe(2)
+        expect(advanceGuardStillToChoose(state, playerId, two)).toBe(0)
+        expect(onMapStartOf(state, playerId, two, 'bagration')).toBe(OnMapStart.Offered)
+        expect(onMapStartOf(state, playerId, two, 'kienmayer')).toBe(OnMapStart.TwoChosen)
+    })
+
+    it('cannot start a corps on the map with more units than its locale holds', () => {
+        const game = new TestGame({ scenario: Scenario.December1 })
+        const state = game.hydrated
+        const playerId = game.playerOf(Side.Allied)
+        const setup = emptySetup(state, Side.Allied)
+        const capacity = setupLocaleOf(state.map, 'kienmayer').capacity
+        const units = unitIdsOf(state, playerId)
+
+        expect(onMapStartOf(state, playerId, setup, 'kienmayer')).toBe(OnMapStart.Offered)
+        expect(
+            onMapStartOf(
+                state,
+                playerId,
+                joining(setup, 'kienmayer', units.slice(0, capacity + 1)),
+                'kienmayer'
+            )
+        ).toBe(OnMapStart.TooManyUnits)
     })
 
     it('offers the whole army as one stack per face, strongest infantry first', () => {
@@ -183,6 +210,55 @@ describe('what a corps still needs and can take', () => {
         expect(fits(state, playerId, withUnitJoining(full, units[capacity], 'legrand'))).toBe(false)
     })
 
+    it('says whether it is the corps or its locale that is full', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const units = unitIdsOf(state, playerId)
+        const capacity = setupLocaleOf(state.map, 'legrand').capacity
+        expect(cardOf(state, playerId, setup, 'legrand').fullBecause).toBeUndefined()
+        expect(
+            cardOf(state, playerId, joining(setup, 'legrand', units.slice(0, capacity)), 'legrand')
+                .fullBecause
+        ).toBe(RoomLimit.Locale)
+        expect(
+            cardOf(
+                state,
+                playerId,
+                joining(setup, 'lannes', units.slice(0, MAX_CORPS_UNITS)),
+                'lannes'
+            ).fullBecause
+        ).toBe(RoomLimit.Corps)
+        expect(
+            cardOf(
+                state,
+                playerId,
+                joining(setup, 'davout', units.slice(0, MAX_CORPS_UNITS)),
+                'davout'
+            ).fullBecause
+        ).toBe(RoomLimit.Corps)
+    })
+
+    it('keeps a slot needed in a reinforcement corps until it has a unit other than two-strength infantry', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const line = state
+            .unitsOf(playerId)
+            .filter((unit) => unit.face?.type === UnitType.Infantry && unit.face.strength === 2)
+            .map((unit) => unit.id)
+        const [cavalry] = unitIdsOf(state, playerId, UnitType.Cavalry)
+        const allLine = joining(setup, 'davout', line.slice(0, 4))
+
+        expect(cardOf(state, playerId, setup, 'davout').needsOtherKind).toBe(true)
+        expect(cardOf(state, playerId, allLine, 'davout')).toMatchObject({
+            needsOtherKind: true,
+            stillNeeded: 1
+        })
+        expect(
+            cardOf(state, playerId, withUnitJoining(allLine, cavalry, 'davout'), 'davout')
+        ).toMatchObject({ needsOtherKind: false, stillNeeded: 0 })
+        expect(
+            cardOf(state, playerId, joining(setup, 'lannes', line.slice(0, 4)), 'lannes')
+        ).toMatchObject({ needsOtherKind: false, stillNeeded: 0 })
+    })
+
     it('has less room in its locale for every unit detached into it', () => {
         const { state, playerId, setup } = frenchToSetUp()
         const home = setupLocaleOf(state.map, 'legrand')
@@ -226,7 +302,7 @@ describe('units set up on their own', () => {
 
         expect(posted.corps.every((corps) => corps.unitIds.length === 0)).toBe(true)
         expect(creditsOf(state, playerId, posted)).toEqual([
-            { unitId, commanderId: 'st-hilaire', isDetachment: true }
+            { unitId, commanderId: 'st-hilaire', isDetachment: true, standsWithCorps: false }
         ])
     })
 
@@ -305,7 +381,12 @@ describe('the fixed battery', () => {
         })
 
         expect(creditsOf(state, playerId, posted)).toEqual([
-            { unitId: battery, commanderId: 'lannes', isDetachment: false }
+            {
+                unitId: battery,
+                commanderId: 'lannes',
+                isDetachment: false,
+                standsWithCorps: false
+            }
         ])
         expect(detachmentsUsed(state, playerId, posted)).toBe(0)
     })
@@ -351,6 +432,36 @@ describe('the fixed battery', () => {
                 (target) => target.kind === TargetKind.Approach
             )
         ).toBe(true)
+    })
+
+    it('is the corps’s own unit when it blocks the approach the corps blocks', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const [held, other] = state.map.passableApproachesOf(home)
+        const detached = unitIdsOf(state, playerId, UnitType.Cavalry)
+            .slice(0, 3)
+            .reduce(
+                (posted, unitId) => withUnitDetached(posted, unitId, { locale: home }),
+                withCorpsStance(setup, 'lannes', held.id)
+            )
+        const inTheCorps = withFixedBatteryPosted(detached, battery, {
+            locale: home,
+            approach: held.id
+        })
+        const apart = withFixedBatteryPosted(detached, battery, {
+            locale: home,
+            approach: other.id
+        })
+
+        expect(creditsOf(state, playerId, inTheCorps).at(-1)).toMatchObject({
+            unitId: battery,
+            standsWithCorps: true
+        })
+        expect(cardOf(state, playerId, inTheCorps, 'lannes').stillNeeded).toBe(0)
+        expect(cardOf(state, playerId, apart, 'lannes').stillNeeded).toBe(1)
+        expect(arrayedArmy(state, playerId, inTheCorps).unit(battery).commanderId).toBe('lannes')
+        expect(arrayedArmy(state, playerId, apart).unit(battery).commanderId).toBeUndefined()
     })
 
     it('gives way to the artillery unit named after it', () => {
@@ -436,6 +547,28 @@ describe('a finished set-up', () => {
                 }
             }
         }
+    })
+
+    it('is not finished while the fixed battery has a locale but no approach, even where its corps blocks one', () => {
+        const { state, playerId } = frenchToSetUp()
+        const suggested = setupFrom(state, suggestedDeployment(state, Side.French))
+        const battery = suggested.detached.find(
+            (entry) => entry.unitId === suggested.fixedBatteryId
+        )
+        assertExists(battery, 'The suggested French set-up places a fixed battery')
+        const { locale } = battery.position
+        const corps = suggested.corps.find(
+            (entry) => !entry.offMap && setupLocaleOf(state.map, entry.commanderId).id === locale
+        )
+        assertExists(corps, 'The suggested fixed battery stands in a set-up locale')
+        const [approach] = state.map.passableApproachesOf(locale)
+        const corpsBlocking = withCorpsStance(suggested, corps.commanderId, approach.id)
+        const batteryInReserve = withFixedBatteryPosted(corpsBlocking, battery.unitId, { locale })
+
+        expect(setupProblem(state, playerId, corpsBlocking)).toBeUndefined()
+        expect(setupProblem(state, playerId, batteryInReserve)).toBe(
+            'The fixed battery blocks an approach'
+        )
     })
 
     it('says in the rules’ words what is still wrong once every unit is placed', () => {

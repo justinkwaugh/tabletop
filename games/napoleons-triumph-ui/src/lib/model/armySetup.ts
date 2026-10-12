@@ -1,30 +1,31 @@
 import { assertExists } from '@tabletop/common'
 import {
     ALLIED_ADVANCE_GUARD_CORPS,
-    DETACHMENT_REACH,
     MAX_CORPS_UNITS,
     MAX_FRENCH_DETACHMENTS,
     SANTON_LOCALE,
     STARTING_ARMIES,
     Scenario,
     Side,
-    UnitType,
     commanderDefinition,
     commandersOf,
     deployArmy,
     faceOf,
+    hasUnitOtherThanLineInfantry,
     isGuard,
-    nearAlliedObjective,
+    isLegal,
     sameFace,
+    setupLocaleOf,
+    validateDetachedPosition,
     whyIllegal,
     type BattleMap,
     type Deployment,
     type Detachment,
     type Face,
     type HydratedNapoleonsTriumphGameState,
-    type LocaleDefinition,
     type Position
 } from '@tabletop/napoleons-triumph'
+import { UNIT_TYPE_ORDER } from '$lib/utils/unitTypeOrder.js'
 import { copyOf } from './stateCopy.js'
 import {
     approachTarget,
@@ -33,6 +34,8 @@ import {
     type ReserveTarget
 } from './targets.js'
 
+export type SetupTarget = ReserveTarget | ApproachTarget
+
 export interface CorpsSetup {
     commanderId: string
     unitIds: string[]
@@ -40,22 +43,11 @@ export interface CorpsSetup {
     offMap: boolean
 }
 
-/** The army as the player wants it to stand: who stays with each commander and which units stand on their own. Rule 6 has every detached unit come from a commander; which one is worked out, not asked. */
+/** Rule 6 has every detached unit come from a commander; here the player says only where units stand, and which commander that was is worked out. */
 export interface ArmySetup {
     corps: CorpsSetup[]
     detached: Detachment[]
     fixedBatteryId?: string
-}
-
-const setupLocalesByMap = new WeakMap<BattleMap, Map<string, LocaleDefinition>>()
-
-export function setupLocaleOf(map: BattleMap, commanderId: string): LocaleDefinition {
-    const known = setupLocalesByMap.get(map) ?? new Map<string, LocaleDefinition>()
-    setupLocalesByMap.set(map, known)
-    const locale = known.get(commanderId) ?? map.setupLocale(commanderId)
-    assertExists(locale, `${commanderId} has no set-up locale`)
-    known.set(commanderId, locale)
-    return locale
 }
 
 /** Rule 6, step 6: on 1 December the Allied player picks the two corps that start on the map. */
@@ -75,10 +67,18 @@ export function emptySetup(state: HydratedNapoleonsTriumphGameState, side: Side)
     }
 }
 
-function corpsOf(setup: ArmySetup, commanderId: string): CorpsSetup {
+export function corpsOf(setup: ArmySetup, commanderId: string): CorpsSetup {
     const corps = setup.corps.find((entry) => entry.commanderId === commanderId)
     assertExists(corps, `${commanderId} leads no corps of the set-up`)
     return corps
+}
+
+export function fixedBatteryPost(setup: ArmySetup): Detachment | undefined {
+    return setup.detached.find((entry) => entry.unitId === setup.fixedBatteryId)
+}
+
+export function detachedOtherThanTheBattery(setup: ArmySetup): Detachment[] {
+    return setup.detached.filter((entry) => entry.unitId !== setup.fixedBatteryId)
 }
 
 function withCorps(
@@ -159,31 +159,12 @@ function sizeIn(sizes: CorpsSizes, commanderId: string): number {
     return size
 }
 
-const reachByMap = new WeakMap<BattleMap, Map<number, Map<number, number>>>()
-
-/** Rule 6, step 8: the locales within two of a commander's set-up locale, with how far each is. */
-function stepsWithinReach(map: BattleMap, home: number): Map<number, number> {
-    const reaches = reachByMap.get(map) ?? new Map<number, Map<number, number>>()
-    reachByMap.set(map, reaches)
-    const known = reaches.get(home)
-    if (known) {
-        return known
-    }
-    const reach = new Map(
-        map.allLocales.flatMap((locale): [number, number][] => {
-            const steps = map.distance(home, locale.id)
-            return steps !== undefined && steps <= DETACHMENT_REACH ? [[locale.id, steps]] : []
-        })
-    )
-    reaches.set(home, reach)
-    return reach
-}
-
-/** The commander a unit standing on its own is counted as coming from. Rule 6, step 9 lets the fixed battery block an approach of its own set-up locale without being one of the six detachments. */
+/** Rule 6, step 9: the fixed battery may block an approach of its own set-up locale without being one of the six detachments, and on the approach its corps blocks it stands in the corps. */
 export interface Credit {
     unitId: string
     commanderId: string
     isDetachment: boolean
+    standsWithCorps: boolean
 }
 
 function creditChoices(
@@ -193,34 +174,41 @@ function creditChoices(
     { unitId, position }: Detachment
 ): Credit[] {
     const map = state.map
-    const mayBeDetachedHere =
-        !nearAlliedObjective(state, position.locale) &&
-        !state.isEnemyOccupied(position.locale, playerId)
     const aimedInPlace = setup.fixedBatteryId === unitId && !state.santon
     return setup.corps
         .filter((corps) => !corps.offMap)
         .flatMap((corps) => {
-            const home = setupLocaleOf(map, corps.commanderId).id
+            const { commanderId } = corps
+            const home = setupLocaleOf(map, commanderId).id
             if (aimedInPlace && home === position.locale) {
-                return [{ unitId, commanderId: corps.commanderId, isDetachment: false, steps: 0 }]
+                const standsWithCorps = corps.approach === position.approach
+                return [{ unitId, commanderId, isDetachment: false, standsWithCorps, steps: 0 }]
             }
-            const steps = stepsWithinReach(map, home).get(position.locale)
-            return mayBeDetachedHere && steps !== undefined
-                ? [{ unitId, commanderId: corps.commanderId, isDetachment: true, steps }]
+            return isLegal(() => validateDetachedPosition(state, playerId, commanderId, position))
+                ? [
+                      {
+                          unitId,
+                          commanderId,
+                          isDetachment: true,
+                          standsWithCorps: false,
+                          steps: map.distance(home, position.locale) ?? 0
+                      }
+                  ]
                 : []
         })
         .toSorted((a, b) => a.steps - b.steps)
-        .map(({ unitId: id, commanderId, isDetachment }) => ({
-            unitId: id,
-            commanderId,
-            isDetachment
-        }))
+        .map(({ steps: _steps, ...credit }) => credit)
 }
 
-/** Rule 8: a corps is never just a commander, so an empty corps still needs a unit of its own whatever is detached from it. */
-function unitsStillNeeded(commanderId: string, staying: number, credited: number): number {
-    const shortOfMinimum = commanderDefinition(commanderId).minimumUnits - staying - credited
-    return Math.max(shortOfMinimum, staying === 0 ? 1 : 0)
+/** Rule 8: a corps is never just a commander, so a corps with no unit standing with it still needs one, whatever is detached from it. */
+function unitsStillNeeded(commanderId: string, staying: number, credits: Credit[]): number {
+    const standing = staying + credits.filter((credit) => credit.standsWithCorps).length
+    const shortOfMinimum = commanderDefinition(commanderId).minimumUnits - staying - credits.length
+    return Math.max(shortOfMinimum, standing === 0 ? 1 : 0)
+}
+
+function creditsTo(credits: readonly Credit[], commanderId: string): Credit[] {
+    return credits.filter((credit) => credit.commanderId === commanderId)
 }
 
 function unitsPlaced(setup: ArmySetup): string[] {
@@ -230,23 +218,55 @@ function unitsPlaced(setup: ArmySetup): string[] {
     ]
 }
 
-/** A set-up with, for each unit standing on its own, the commanders it could be counted as coming from, nearest first. */
-interface SetupReading {
+interface CreditProblem {
     setup: ArmySetup
-    creditChoices: Credit[][]
+    choices: Credit[][]
     stillToPlace: number
 }
 
-function readingOf(
+function creditProblemOf(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup
-): SetupReading {
+): CreditProblem {
     return {
         setup,
-        creditChoices: setup.detached.map((entry) => creditChoices(state, playerId, setup, entry)),
+        choices: setup.detached.map((entry) => creditChoices(state, playerId, setup, entry)),
         stillToPlace: state.unitsOf(playerId).length - unitsPlaced(setup).length
     }
+}
+
+function mayCredit(
+    choice: Credit,
+    sizes: CorpsSizes,
+    chosen: readonly Credit[],
+    detachments: number
+): boolean {
+    const held = sizeIn(sizes, choice.commanderId) + creditsTo(chosen, choice.commanderId).length
+    return (
+        held < MAX_CORPS_UNITS &&
+        detachments + Number(choice.isDetachment) <= MAX_FRENCH_DETACHMENTS
+    )
+}
+
+function detachmentsAmong(credits: readonly Credit[]): number {
+    return credits.filter((credit) => credit.isDetachment).length
+}
+
+function canBeCredited({ choices }: CreditProblem, sizes: CorpsSizes): boolean {
+    const chosen: Credit[] = []
+    const creditedFrom = (index: number): boolean =>
+        index === choices.length ||
+        choices[index].some((choice) => {
+            if (!mayCredit(choice, sizes, chosen, detachmentsAmong(chosen))) {
+                return false
+            }
+            chosen.push(choice)
+            const credited = creditedFrom(index + 1)
+            chosen.pop()
+            return credited
+        })
+    return creditedFrom(0)
 }
 
 const UNMEETABLE_SHORTFALL_COST = 10000
@@ -261,56 +281,49 @@ function cheapestDetachmentsFrom(choices: Credit[][]): number[] {
     return cheapest
 }
 
-/** Detached units count as coming from the nearest commander that can take them, and from another only where that is what lets every corps reach its minimum with the units still to place. When all that is asked is whether the set-up can be read at all, the first reading found will do. */
-function creditsWith(
-    { setup, creditChoices: choices, stillToPlace }: SetupReading,
-    sizes: CorpsSizes,
-    anyWillDo = false
+/** Detached units count as coming from the nearest commander that can take them, and from another only where that is what lets every corps reach its minimum with the units still to place. */
+function bestCredits(
+    { setup, choices, stillToPlace }: CreditProblem,
+    sizes: CorpsSizes
 ): Credit[] | undefined {
     const cheapestRest = cheapestDetachmentsFrom(choices)
-    const credited = new Map<string, number>()
-    const creditedTo = (commanderId: string): number => credited.get(commanderId) ?? 0
     const chosen: Credit[] = []
     let best: { cost: number; credits: Credit[] } | undefined
-    const shortfall = (): number =>
-        setup.corps.reduce(
-            (sum, corps) =>
+    const costOfChosen = (spent: number): number => {
+        const shortfall = setup.corps.reduce(
+            (sum, { commanderId }) =>
                 sum +
                 unitsStillNeeded(
-                    corps.commanderId,
-                    sizeIn(sizes, corps.commanderId),
-                    creditedTo(corps.commanderId)
+                    commanderId,
+                    sizeIn(sizes, commanderId),
+                    creditsTo(chosen, commanderId)
                 ),
             0
         )
-    const settled = (index: number, detachments: number, preferenceCost: number): boolean => {
+        return Math.max(0, shortfall - stillToPlace) * UNMEETABLE_SHORTFALL_COST + spent
+    }
+    const search = (index: number, preferenceCost: number) => {
+        const detachments = detachmentsAmong(chosen)
         const spent = detachments * DETACHMENT_COST + preferenceCost
         if (best !== undefined && spent + cheapestRest[index] >= best.cost) {
-            return false
+            return
         }
         if (index === choices.length) {
-            const unmeetable = Math.max(0, shortfall() - stillToPlace)
-            const cost = unmeetable * UNMEETABLE_SHORTFALL_COST + spent
+            const cost = costOfChosen(spent)
             if (best === undefined || cost < best.cost) {
                 best = { cost, credits: [...chosen] }
             }
-            return anyWillDo
+            return
         }
-        return choices[index].some((choice, preference) => {
-            const held = sizeIn(sizes, choice.commanderId) + creditedTo(choice.commanderId)
-            const used = detachments + (choice.isDetachment ? 1 : 0)
-            if (held >= MAX_CORPS_UNITS || used > MAX_FRENCH_DETACHMENTS) {
-                return false
+        choices[index].forEach((choice, preference) => {
+            if (mayCredit(choice, sizes, chosen, detachments)) {
+                chosen.push(choice)
+                search(index + 1, preferenceCost + preference)
+                chosen.pop()
             }
-            credited.set(choice.commanderId, creditedTo(choice.commanderId) + 1)
-            chosen.push(choice)
-            const done = settled(index + 1, used, preferenceCost + preference)
-            chosen.pop()
-            credited.set(choice.commanderId, creditedTo(choice.commanderId) - 1)
-            return done
         })
     }
-    settled(0, 0, 0)
+    search(0, 0)
     return best?.credits
 }
 
@@ -329,11 +342,11 @@ function unitsStandingIn(
 function fitsWith(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
-    reading: SetupReading,
+    problem: CreditProblem,
     sizes: CorpsSizes
 ): boolean {
     const map = state.map
-    const { setup } = reading
+    const { setup } = problem
     const onMap = setup.corps.filter((corps) => !corps.offMap)
     const side = state.sideOf(playerId)
     const heldLocales = new Set([
@@ -346,81 +359,103 @@ function fitsWith(
         [...heldLocales].every(
             (locale) => unitsStandingIn(map, setup, sizes, locale) <= map.locale(locale).capacity
         ) &&
-        creditsWith(reading, sizes, true) !== undefined
+        canBeCredited(problem, sizes)
     )
 }
 
-/** Whether the set-up keeps within every maximum: eight units to a commander, the capacity of each locale, six detachments. Minimums are not asked for; they are what is still to do. */
+/** Maximums only: eight units to a commander, the capacity of each locale, six detachments. Minimums are what is still to do. */
 export function fits(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup
 ): boolean {
-    return fitsWith(state, playerId, readingOf(state, playerId, setup), sizesOf(setup))
+    return fitsWith(state, playerId, creditProblemOf(state, playerId, setup), sizesOf(setup))
 }
 
 function roomIn(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
-    reading: SetupReading,
+    problem: CreditProblem,
     commanderId: string
 ): number {
-    const sizes = sizesOf(reading.setup)
+    const sizes = sizesOf(problem.setup)
     const size = sizeIn(sizes, commanderId)
     let room = 0
     while (
         size + room < MAX_CORPS_UNITS &&
-        fitsWith(state, playerId, reading, new Map(sizes).set(commanderId, size + room + 1))
+        fitsWith(state, playerId, problem, new Map(sizes).set(commanderId, size + room + 1))
     ) {
         room++
     }
     return room
 }
 
-export interface CorpsCard {
+export enum RoomLimit {
+    Corps = 'Corps',
+    Locale = 'Locale'
+}
+
+export interface CorpsStrength {
     commanderId: string
     unitIds: string[]
     /** Detached units counted as coming from this commander, shown while they are what brings the corps up to its minimum. */
     creditedIds: string[]
     stillNeeded: number
+    /** Rule 6, step 7: a reinforcement corps with nothing but two-strength infantry so far. */
+    needsOtherKind: boolean
     room: number
+    fullBecause?: RoomLimit
     offMap: boolean
     approach?: number
 }
 
-export function corpsCards(
+function limitOn(map: BattleMap, setup: ArmySetup, corps: CorpsSetup): RoomLimit {
+    if (corps.offMap) {
+        return RoomLimit.Corps
+    }
+    const home = setupLocaleOf(map, corps.commanderId)
+    const standing = unitsStandingIn(map, setup, sizesOf(setup), home.id)
+    return standing >= home.capacity ? RoomLimit.Locale : RoomLimit.Corps
+}
+
+export function corpsStrengths(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup
-): CorpsCard[] {
-    const reading = readingOf(state, playerId, setup)
-    const credits = creditsIn(reading)
+): CorpsStrength[] {
+    const problem = creditProblemOf(state, playerId, setup)
+    const credits = creditsIn(problem)
     return setup.corps.map((corps) => {
-        const credited = credits
-            .filter((credit) => credit.commanderId === corps.commanderId)
-            .map((credit) => credit.unitId)
-        const shortWithoutCredits = Math.max(
-            0,
-            commanderDefinition(corps.commanderId).minimumUnits - corps.unitIds.length
+        const { commanderId, unitIds } = corps
+        const definition = commanderDefinition(commanderId)
+        const credited = creditsTo(credits, commanderId)
+        const shortWithoutCredits = Math.max(0, definition.minimumUnits - unitIds.length)
+        const creditedIds = credited.slice(0, shortWithoutCredits).map((credit) => credit.unitId)
+        const needsOtherKind =
+            definition.reinforcement === true && !hasUnitOtherThanLineInfantry(state, unitIds)
+        const room = Math.min(
+            roomIn(state, playerId, problem, commanderId),
+            MAX_CORPS_UNITS - unitIds.length - creditedIds.length
         )
-        const creditedIds = credited.slice(0, shortWithoutCredits)
         return {
-            commanderId: corps.commanderId,
-            unitIds: corps.unitIds,
+            commanderId,
+            unitIds,
             creditedIds,
-            stillNeeded: unitsStillNeeded(corps.commanderId, corps.unitIds.length, credited.length),
-            room: Math.min(
-                roomIn(state, playerId, reading, corps.commanderId),
-                MAX_CORPS_UNITS - corps.unitIds.length - creditedIds.length
+            stillNeeded: Math.max(
+                unitsStillNeeded(commanderId, unitIds.length, credited),
+                Number(needsOtherKind)
             ),
+            needsOtherKind,
+            room,
+            fullBecause: room === 0 ? limitOn(state.map, setup, corps) : undefined,
             offMap: corps.offMap,
             approach: corps.approach
         }
     })
 }
 
-function creditsIn(reading: SetupReading): Credit[] {
-    const credits = creditsWith(reading, sizesOf(reading.setup))
+function creditsIn(problem: CreditProblem): Credit[] {
+    const credits = bestCredits(problem, sizesOf(problem.setup))
     assertExists(credits, 'Every detached unit of a set-up comes from a commander within reach')
     return credits
 }
@@ -430,7 +465,7 @@ export function creditsOf(
     playerId: string,
     setup: ArmySetup
 ): Credit[] {
-    return creditsIn(readingOf(state, playerId, setup))
+    return creditsIn(creditProblemOf(state, playerId, setup))
 }
 
 export function detachmentsUsed(
@@ -438,16 +473,39 @@ export function detachmentsUsed(
     playerId: string,
     setup: ArmySetup
 ): number {
-    return creditsOf(state, playerId, setup).filter((credit) => credit.isDetachment).length
+    return detachmentsAmong(creditsOf(state, playerId, setup))
 }
 
-export function mayStartOnMap(
+/** Rule 6, step 6: whether a corps held off the map could be one of the two that start on it, and if not, why. */
+export enum OnMapStart {
+    Offered = 'Offered',
+    TwoChosen = 'TwoChosen',
+    TooManyUnits = 'TooManyUnits'
+}
+
+export function onMapStartOf(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup,
     commanderId: string
-): boolean {
-    return fits(state, playerId, withCorpsOnMap(setup, commanderId, true))
+): OnMapStart {
+    const corps = corpsOf(setup, commanderId)
+    if (!corps.offMap || fits(state, playerId, withCorpsOnMap(setup, commanderId, true))) {
+        return OnMapStart.Offered
+    }
+    const onMap = setup.corps.filter((entry) => !entry.offMap).length
+    return onMap >= ALLIED_ADVANCE_GUARD_CORPS ? OnMapStart.TwoChosen : OnMapStart.TooManyUnits
+}
+
+/** Rule 6, step 6: how many of the two corps that start on the map the Allied player has still to choose on 1 December. */
+export function advanceGuardStillToChoose(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    setup: ArmySetup
+): number {
+    return choosesAdvanceGuard(state, state.sideOf(playerId))
+        ? ALLIED_ADVANCE_GUARD_CORPS - setup.corps.filter((corps) => !corps.offMap).length
+        : 0
 }
 
 export interface UnitStack {
@@ -455,17 +513,14 @@ export interface UnitStack {
     unitIds: string[]
 }
 
-const TYPE_ORDER = [UnitType.Infantry, UnitType.Cavalry, UnitType.Artillery]
-
 function byRank(a: Face, b: Face): number {
     return (
-        TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) ||
+        UNIT_TYPE_ORDER.indexOf(a.type) - UNIT_TYPE_ORDER.indexOf(b.type) ||
         Number(isGuard(b)) - Number(isGuard(a)) ||
         b.strength - a.strength
     )
 }
 
-/** Units of one face are interchangeable, so those not yet placed are offered as one stack per face. */
 export function unassignedStacks(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -485,31 +540,44 @@ export function unassignedStacks(
     }))
 }
 
+function stancesIn(
+    map: BattleMap,
+    locale: number,
+    blocked: number | undefined,
+    mayStandBack: boolean
+): SetupTarget[] {
+    const approaches = map
+        .passableApproachesOf(locale)
+        .filter((approach) => approach.id !== blocked)
+        .map((approach) => approachTarget({ locale, approach: approach.id }))
+    return mayStandBack ? [reserveTarget(locale), ...approaches] : approaches
+}
+
 /** Rule 6: a corps sets up in its own locale, in reserve or blocking one of its approaches. */
 export function stanceTargets(
     map: BattleMap,
     setup: ArmySetup,
     commanderId: string
-): (ReserveTarget | ApproachTarget)[] {
+): SetupTarget[] {
     const corps = corpsOf(setup, commanderId)
-    if (corps.offMap) {
-        return []
-    }
-    const locale = setupLocaleOf(map, commanderId).id
-    const approaches = map
-        .passableApproachesOf(locale)
-        .filter((approach) => approach.id !== corps.approach)
-        .map((approach) => approachTarget({ locale, approach: approach.id }))
-    return corps.approach === undefined ? approaches : [reserveTarget(locale), ...approaches]
+    return corps.offMap
+        ? []
+        : stancesIn(
+              map,
+              setupLocaleOf(map, commanderId).id,
+              corps.approach,
+              corps.approach !== undefined
+          )
 }
 
-function localesWithinReach(map: BattleMap, setup: ArmySetup): number[] {
-    const reached = setup.corps
-        .filter((corps) => !corps.offMap)
-        .flatMap((corps) => [
-            ...stepsWithinReach(map, setupLocaleOf(map, corps.commanderId).id).keys()
-        ])
-    return [...new Set(reached)].toSorted((a, b) => a - b)
+function localesToStandIn(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    standingIn: (locale: number) => ArmySetup
+): ReserveTarget[] {
+    return state.map.allLocales
+        .filter((locale) => fits(state, playerId, standingIn(locale.id)))
+        .map((locale) => reserveTarget(locale.id))
 }
 
 /** Rule 6, step 8: the locales a unit may be set up in on its own. It starts in reserve there and may then block an approach. */
@@ -519,52 +587,39 @@ export function detachedPosts(
     setup: ArmySetup,
     unitId: string
 ): ReserveTarget[] {
-    return localesWithinReach(state.map, setup)
-        .filter((locale) => fits(state, playerId, withUnitDetached(setup, unitId, { locale })))
-        .map((locale) => reserveTarget(locale))
+    return localesToStandIn(state, playerId, (locale) =>
+        withUnitDetached(setup, unitId, { locale })
+    )
 }
 
-/** Rule 6, step 9: the locales the fixed battery may stand in. With the Santon rule in use it stands on the Santon, which is not offered as a choice. */
+/** Rule 6, step 9: the locales the fixed battery may stand in, which have to give it an approach to block. With the Santon rule in use it stands on the Santon, which is not offered as a choice. */
 export function fixedBatteryPosts(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup,
     unitId: string
 ): ReserveTarget[] {
-    return localesWithinReach(state.map, setup)
-        .filter(
-            (locale) =>
-                state.map.passableApproachesOf(locale).length > 0 &&
-                fits(state, playerId, withFixedBatteryPosted(setup, unitId, { locale }))
-        )
-        .map((locale) => reserveTarget(locale))
+    return localesToStandIn(state, playerId, (locale) =>
+        withFixedBatteryPosted(setup, unitId, { locale })
+    ).filter(({ position }) => state.map.passableApproachesOf(position.locale).length > 0)
 }
 
-/** Where a unit already standing on its own may turn within its locale: the fixed battery has to block an approach, any other unit may also stand back in reserve. */
-export function postStances(
-    map: BattleMap,
-    setup: ArmySetup,
-    unitId: string
-): (ReserveTarget | ApproachTarget)[] {
+/** Rule 6, steps 8 and 9: a unit standing on its own may turn to any approach of its locale; the fixed battery has to block one, any other unit may also stand back in reserve. */
+export function postStances(map: BattleMap, setup: ArmySetup, unitId: string): SetupTarget[] {
     const post = setup.detached.find((entry) => entry.unitId === unitId)
     assertExists(post, `${unitId} does not stand on its own`)
-    const { locale, approach: blocked } = post.position
-    const approaches = map
-        .passableApproachesOf(locale)
-        .filter((approach) => approach.id !== blocked)
-        .map((approach) => approachTarget({ locale, approach: approach.id }))
-    return blocked === undefined || setup.fixedBatteryId === unitId
-        ? approaches
-        : [reserveTarget(locale), ...approaches]
+    const { locale, approach } = post.position
+    return stancesIn(
+        map,
+        locale,
+        approach,
+        approach !== undefined && setup.fixedBatteryId !== unitId
+    )
 }
 
 /** Table ruling: with the Santon rule in use the fixed battery stands on the Santon, in reserve. */
 export function withFixedBatteryOnTheSanton(setup: ArmySetup, unitId: string): ArmySetup {
     return withFixedBatteryPosted(setup, unitId, { locale: SANTON_LOCALE })
-}
-
-function standsWithItsCorps(setup: ArmySetup, credit: Credit, position: Position): boolean {
-    return !credit.isDetachment && corpsOf(setup, credit.commanderId).approach === position.approach
 }
 
 export function deploymentOf(
@@ -573,15 +628,13 @@ export function deploymentOf(
     setup: ArmySetup
 ): Deployment {
     const credits = creditsOf(state, playerId, setup)
-    const battery = setup.detached.find((entry) => entry.unitId === setup.fixedBatteryId)
+    const battery = fixedBatteryPost(setup)
     const batteryCredit = credits.find((credit) => credit.unitId === battery?.unitId)
     const deployment: Deployment = {
         corps: setup.corps.map((corps) => {
             const unitIds = [
                 ...corps.unitIds,
-                ...credits
-                    .filter((credit) => credit.commanderId === corps.commanderId)
-                    .map((credit) => credit.unitId)
+                ...creditsTo(credits, corps.commanderId).map((credit) => credit.unitId)
             ]
             if (corps.offMap) {
                 return { commanderId: corps.commanderId, unitIds, offMap: true as const }
@@ -603,17 +656,20 @@ export function deploymentOf(
     return deployment
 }
 
-/** What still keeps the set-up from being deployed, in the rules' own words. */
 export function setupProblem(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup
 ): string | undefined {
+    // Rule 6, step 9: the engine reads a fixed battery given no approach as standing with its corps, which passes when the corps blocks one. Here the battery was put in the locale on its own, so its approach is still to be chosen.
+    const battery = fixedBatteryPost(setup)
+    if (battery && battery.position.approach === undefined && !state.santon) {
+        return 'The fixed battery blocks an approach'
+    }
     const deployment = deploymentOf(state, playerId, setup)
     return whyIllegal(() => deployArmy(copyOf(state), playerId, deployment))
 }
 
-/** The position with the army standing as set up so far; units not yet placed stay off the map. */
 export function arrayedArmy(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -636,9 +692,7 @@ export function arrayedArmy(
         const unit = arrayed.unit(unitId)
         const credit = credits.find((candidate) => candidate.unitId === unitId)
         assertExists(credit, `Detached unit ${unitId} comes from no commander`)
-        unit.commanderId = standsWithItsCorps(setup, credit, position)
-            ? credit.commanderId
-            : undefined
+        unit.commanderId = credit.standsWithCorps ? credit.commanderId : undefined
         unit.position = { ...position }
         unit.fixed = setup.fixedBatteryId === unitId ? true : undefined
     }

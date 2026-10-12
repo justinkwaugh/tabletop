@@ -11,6 +11,7 @@ import {
     MAX_FRENCH_DETACHMENTS,
     deployArmy,
     nearAlliedObjective,
+    setupLocaleOf,
     type CorpsDeployment,
     type Deployment
 } from './setup.js'
@@ -45,9 +46,7 @@ function moveUnits(deployment: Deployment, from: string, to: string, count: numb
 }
 
 function homeOf(state: HydratedNapoleonsTriumphGameState, commanderId: string): number {
-    const locale = state.map.setupLocale(commanderId)
-    assertExists(locale, `${commanderId} has no set-up locale`)
-    return locale.id
+    return setupLocaleOf(state.map, commanderId).id
 }
 
 describe('rule 6: assigning units to commanders', () => {

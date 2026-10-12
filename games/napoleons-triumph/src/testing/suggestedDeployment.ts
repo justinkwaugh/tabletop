@@ -14,6 +14,7 @@ import { faceOf, type ProjectedUnit } from '../model/pieces.js'
 import {
     ALLIED_ADVANCE_GUARD_CORPS,
     deployArmy,
+    setupLocaleOf,
     type CorpsDeployment,
     type Deployment
 } from '../model/setup.js'
@@ -25,14 +26,8 @@ function firstWith(
     return pool.find(match) ?? pool[0]
 }
 
-function setupLocaleId(state: HydratedNapoleonsTriumphGameState, commanderId: string): number {
-    const locale = state.map.setupLocale(commanderId)
-    assertExists(locale, `${commanderId} has no set-up locale`)
-    return locale.id
-}
-
 function stepsFromTheSanton(state: HydratedNapoleonsTriumphGameState, commanderId: string): number {
-    return state.map.distance(setupLocaleId(state, commanderId), SANTON_LOCALE) ?? Infinity
+    return state.map.distance(setupLocaleOf(state.map, commanderId).id, SANTON_LOCALE) ?? Infinity
 }
 
 function fixedBatteryOnTheSanton(
@@ -94,10 +89,7 @@ export function suggestedDeployment(
     const roomFor = (commanderId: string): number =>
         offMap(commanderId)
             ? MAX_CORPS_UNITS
-            : Math.min(
-                  MAX_CORPS_UNITS,
-                  state.map.locale(setupLocaleId(state, commanderId)).capacity
-              )
+            : Math.min(MAX_CORPS_UNITS, setupLocaleOf(state.map, commanderId).capacity)
     for (const commander of commanders) {
         if (commander.reinforcement) {
             take(
@@ -154,7 +146,9 @@ export function suggestedDeployment(
         if (entry.offMap || battery === undefined) {
             continue
         }
-        const [approach] = state.map.passableApproachesOf(setupLocaleId(state, entry.commanderId))
+        const [approach] = state.map.passableApproachesOf(
+            setupLocaleOf(state.map, entry.commanderId).id
+        )
         assertExists(approach, `The fixed battery of ${entry.commanderId} has no approach to block`)
         deployment.fixedBattery = { unitId: battery, approach: approach.id }
         break

@@ -1,7 +1,12 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { MAX_FRENCH_DETACHMENTS, commanderDefinition } from '@tabletop/napoleons-triumph'
-    import { setupLocaleOf } from '$lib/model/armySetup.js'
+    import {
+        MAX_CORPS_UNITS,
+        MAX_FRENCH_DETACHMENTS,
+        commanderDefinition,
+        setupLocaleOf
+    } from '@tabletop/napoleons-triumph'
+    import { OnMapStart, RoomLimit } from '$lib/model/armySetup.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { DestinationKind } from '$lib/model/setupSelection.js'
     import type { CorpsSeat, DetachedSeat, FixedBatterySeat } from '$lib/model/setupTable.js'
@@ -21,11 +26,7 @@
     const openKey = $derived(
         openCorps?.commanderId ?? (table?.detached?.open ? 'detached' : 'fixed-battery')
     )
-    const corpsToStart = $derived(
-        table?.corps.some((seat) => seat.mayStartOnMap !== undefined)
-            ? 2 - table.corps.filter((seat) => !seat.offMap).length
-            : 0
-    )
+    const corpsToStart = $derived(table?.corpsStillToStartOnMap ?? 0)
 
     function standingOf(seat: CorpsSeat): Standing {
         if (seat.offMap) {
@@ -46,19 +47,42 @@
             : { place: 'not placed', stance: '' }
     )
 
+    function whyFull(seat: CorpsSeat): string {
+        const home = setupLocaleOf(game.map, seat.commanderId)
+        return seat.fullBecause === RoomLimit.Locale
+            ? `${game.map.label(home.id)} holds only ${home.capacity} units`
+            : `a corps holds ${MAX_CORPS_UNITS} units at most`
+    }
+
     function corpsGuidance(seat: CorpsSeat): string {
         const name = commanderDefinition(seat.commanderId).name
         if (seat.room === 0) {
-            return `${name}’s corps can take no more units.`
+            return `${name}’s corps can take no more: ${whyFull(seat)}.`
+        }
+        const adding = `Tap units to add them to ${name}’s corps.`
+        if (seat.needsOtherKind) {
+            return `${adding} One of them must be something other than 2-strength infantry.`
         }
         return seat.offMap
-            ? `Tap units to add them to ${name}’s corps.`
-            : `Tap units to add them to ${name}’s corps. On the map, tap an approach of its locale to block it.`
+            ? adding
+            : `${adding} On the map, tap an approach of its locale to block it.`
+    }
+
+    const ON_MAP_REFUSALS: Record<Exclude<OnMapStart, OnMapStart.Offered>, string> = {
+        [OnMapStart.TwoChosen]: 'two chosen',
+        [OnMapStart.TooManyUnits]: 'too many units'
+    }
+
+    function onMapSwitch(seat: CorpsSeat, start: OnMapStart): string {
+        if (start !== OnMapStart.Offered) {
+            return ON_MAP_REFUSALS[start]
+        }
+        return seat.offMap ? 'start on map' : 'hold off map'
     }
 
     function detachedGuidance(seat: DetachedSeat): string {
-        if (seat.held) {
-            const { place, stance } = standingAt(game.map, seat.held.position)
+        if (seat.heldAtItsPost) {
+            const { place, stance } = standingAt(game.map, seat.heldAtItsPost.position)
             return `It stands ${stance} at ${place}. Tap an approach of the locale to block it.`
         }
         if (heldStack) {
@@ -109,8 +133,8 @@
         return table.problem ?? ''
     })
 
-    // The seats scroll sideways on a narrow screen, and a destination can be opened from the map, so the open one is brought into the row's view. Only the row scrolls: the map stays under the finger that tapped it.
-    const keepOpenSeatInView: Attachment<HTMLElement> = (row) => {
+    // Only the row is scrolled: scrollIntoView would scroll the page as well and take the map from under the finger that tapped a corps on it.
+    const scrollToOpenSeat: Attachment<HTMLElement> = (row) => {
         void openKey
         const seat = row.querySelector('.nt-setup-seat-open')?.getBoundingClientRect()
         const view = row.getBoundingClientRect()
@@ -124,9 +148,11 @@
     const ready = $derived(table?.unassigned === 0 && table.problem === undefined)
 </script>
 
-{#snippet emptySlots(needed: number, room: number)}
+{#snippet emptySlots(needed: number, room: number, lastNeedsOtherKind = false)}
     {#each { length: needed }, index (index)}
-        <span class="nt-setup-slot nt-setup-slot-needed"></span>
+        <span class="nt-setup-slot nt-setup-slot-needed"
+            >{lastNeedsOtherKind && index === needed - 1 ? 'not 2-str. infantry' : ''}</span
+        >
     {:else}
         {#if room > 0}
             <span class="nt-setup-slot"></span>
@@ -154,7 +180,7 @@
                 </div>
             {/each}
         </div>
-        <div class="nt-setup-seats" {@attach keepOpenSeatInView}>
+        <div class="nt-setup-seats" {@attach scrollToOpenSeat}>
             {#each table.corps as seat (seat.commanderId)}
                 {@const definition = commanderDefinition(seat.commanderId)}
                 {@const standing = standingOf(seat)}
@@ -178,14 +204,14 @@
                         <span class="nt-setup-where">{standing.place}</span>
                         <span class="nt-setup-where">{standing.stance}</span>
                     </button>
-                    {#if seat.mayStartOnMap !== undefined}
+                    {#if seat.onMapStart !== undefined}
                         <button
                             type="button"
                             class="nt-setup-switch"
-                            disabled={!seat.mayStartOnMap}
+                            disabled={seat.onMapStart !== OnMapStart.Offered}
                             onclick={() =>
                                 gameSession.startCorpsOnMap(seat.commanderId, seat.offMap)}
-                            >{seat.offMap ? 'start on map' : 'hold off map'}</button
+                            >{onMapSwitch(seat, seat.onMapStart)}</button
                         >
                     {/if}
                     <div class="nt-setup-slots">
@@ -212,7 +238,7 @@
                                 />
                             </span>
                         {/each}
-                        {@render emptySlots(seat.stillNeeded, seat.room)}
+                        {@render emptySlots(seat.stillNeeded, seat.room, seat.needsOtherKind)}
                     </div>
                 </div>
             {/each}
@@ -278,7 +304,7 @@
                                 {playerId}
                                 face={game.unit(unitId).face}
                                 scale={SLOT_SCALE}
-                                selected={detached.held?.unitId === unitId}
+                                selected={detached.heldAtItsPost?.unitId === unitId}
                                 label="Take this unit back"
                                 onclick={() => gameSession.returnToPool(unitId)}
                             />
@@ -336,8 +362,8 @@
         font-variant-numeric: tabular-nums;
     }
 
-    .nt-setup-stack-spent {
-        opacity: 0.35;
+    .nt-setup-stack-spent .nt-setup-stack-count {
+        color: color-mix(in srgb, var(--nt-ink) 40%, var(--nt-ground));
     }
 
     .nt-setup-seats {
@@ -396,7 +422,7 @@
     }
 
     .nt-setup-switch[disabled] {
-        opacity: 0.4;
+        opacity: 0.55;
         text-decoration: none;
     }
 
@@ -422,6 +448,11 @@
         background: color-mix(in srgb, var(--nt-ink) 5%, transparent);
         background-clip: content-box;
         padding: 3px 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8.5px;
+        white-space: nowrap;
     }
 
     .nt-setup-slot-needed {

@@ -66,7 +66,7 @@ test('corps start empty, show what they still need, then one free slot at a time
     }
     await expect(progress).toHaveText('38 units to assign')
     await expect(page.locator('.nt-setup-prompt')).toHaveText(
-        'Kienmayer’s corps can take no more units.'
+        'Kienmayer’s corps can take no more: Aujezd holds only 6 units.'
     )
     await expect(page.getByRole('button', { name: 'Take 2-strength infantry' })).toBeDisabled()
 
@@ -155,7 +155,15 @@ test('the French fixed battery blocks an approach of a corps’s locale without 
     await deployAllies(page)
     const deploy = page.getByRole('button', { name: 'Deploy the army' })
     const prompt = page.locator('.nt-setup-prompt')
+    await openSeat(page, 'davout')
+    await expect(prompt).toContainText('something other than 2-strength infantry')
+    for (let taken = 0; taken < 4; taken++) await takeFromPool(page, '2-strength infantry')
+    await expect(neededSlots(page, 'davout')).toHaveText('not 2-str. infantry')
+    for (let returned = 0; returned < 4; returned++) await units(page, 'davout').first().click()
+    await expect(units(page, 'davout')).toHaveCount(0)
+
     await fillCorps(page, FRENCH_ARMY)
+    await expect(prompt).not.toContainText('something other than 2-strength infantry')
     await expect(page.locator('.nt-setup-progress')).toHaveText('1 unit to assign')
 
     await openSeat(page, 'fixed-battery')
