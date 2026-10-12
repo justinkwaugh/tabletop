@@ -21,6 +21,8 @@ Coral tiles, larva cubes and cylinders on the open sea always stand upright, wha
 
 - **Player aid.** Trigger: the round ? button at the right of the turn header. The English reference card from the game opens over the board, which takes no input while it is open; Escape, a click outside the card or the button again closes it, and focus returns to the button.
 
+- **History lines.** Each move reads as a full sentence to screen readers and shows as a short line in which component icons stand in for words: polyp faces (a bite out of the corner for a consumed polyp, a striped square for an unseen one), larva cubes, cylinders, a sandstone slab numbered for each board, and a parrotfish in the player's colour. Shrimps stay words, being too small to read as icons.
+
 ## Coexistence and precedence
 
 - A shrimp choice (_Introducing_ or _Moving a shrimp_) wins over everything else on the table: while one is open, no placement rings, open-sea rings or shrimp pick-up rings show, and the panel shows only the shrimp prompt.
@@ -48,6 +50,7 @@ None of these exist in History View or for players who are not acting: every rin
 
 - **Pieces** (`animators/piecesAnimator.ts`, owned by the session's state-change animation). Every state change compares the table's pieces before and after (`utils/tablePieces.ts`): a new piece drops in, a removed one sinks away, an attacking polyp lands once the polyp it replaces has gone, a shrimp moved along its reef slides there, and the open sea's polyps shuffle along their larva space as it fills. Coral tiles a cylinder flips turn over once it has landed, about the screen's vertical axis whichever way the open sea is turned. A shrimp that changes drawing (eaten onto the open sea, or moved to another reef) lifts off one and lands on the other. The viewer's own live actions play briskly with no hold; other players' actions and full-action replays hold for readability; undo and history steps finish within 200ms.
 - While a change plays out the session refuses every choice, staged or committed. To show it, the board's rings and the action panel's buttons take no pointer clicks until the table settles.
+- **Seascape** (local presentation). Behind the table, light shafts sway, caustics drift, weed waves and a few bubbles rise; the parrotfish of each player whose turn it is breathes out bubbles in their panel. None of it takes input, and all of it holds still under reduced motion.
 - **Blinking** (local presentation). Each shrimp on the table blinks six to eight times a minute, in a rhythm and phase picked from the piece, so shrimps never blink together for long. Shrimps in the panels do not blink, and none blink under reduced motion.
 
 ## Verification scenarios

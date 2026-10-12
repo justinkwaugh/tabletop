@@ -100,7 +100,7 @@
     td {
         padding: 4px 8px;
         text-align: center;
-        border-bottom: 1px solid rgb(255 255 255 / 0.25);
+        border-bottom: 1px solid var(--reef-rule);
     }
 
     thead th {
@@ -139,7 +139,7 @@
     }
 
     .none {
-        color: rgb(255 255 255 / 0.35);
+        color: var(--reef-rule);
     }
 
     .total {
@@ -147,7 +147,7 @@
     }
 
     tr.winner .total {
-        color: var(--reef-accent);
+        color: var(--reef-coral-deep);
     }
 
     @media (max-width: 639px) {

@@ -35,22 +35,49 @@
 </section>
 
 <style>
+    /* Watercolour paper, its edge roughened like the box art's painted border. Inside it the
+       ink colours turn dark, so the panels within need no colours of their own. */
     .card {
-        margin: 0 8px 8px;
-        padding: 10px 14px 12px;
-        border-radius: 8px;
-        background: rgb(0 0 0 / 0.26);
-        box-shadow: inset 0 0 0 2px var(--reef-line);
+        --reef-ink: var(--reef-paper-ink);
+        --reef-muted: var(--reef-paper-muted);
+        --reef-rule: rgb(29 71 63 / 0.18);
+        position: relative;
+        isolation: isolate;
+        margin: 0 8px 10px;
+        padding: 16px 18px 14px;
+        color: var(--reef-ink);
+    }
+
+    .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: var(--reef-wobble);
+        background:
+            radial-gradient(ellipse 40% 60% at 8% 20%, rgb(140 198 179 / 0.16), transparent 70%),
+            radial-gradient(ellipse 30% 70% at 92% 80%, rgb(238 123 90 / 0.08), transparent 70%),
+            radial-gradient(ellipse 70% 90% at 50% 0, #fffdf6, var(--reef-paper) 70%);
+        box-shadow:
+            inset 0 0 0 1px rgb(255 255 255 / 0.9),
+            inset 0 0 22px rgb(170 150 105 / 0.18),
+            0 8px 18px -8px rgb(4 30 26 / 0.55);
+        filter: url(#reef-rough-edge);
     }
 
     .card :global(.warning) {
         margin-top: 8px;
+        padding: 4px 10px;
+        border-radius: 8px;
         font-size: 14px;
-        color: #ffd29a;
+        color: #7a3313;
+        background: rgb(238 123 90 / 0.14);
+        box-shadow: inset 3px 0 0 var(--reef-coral);
     }
 
     .card :global(.prompt) {
-        font-size: 18px;
+        font-size: 19px;
+        line-height: 1.25;
     }
 
     .card :global(.detail) {
@@ -58,15 +85,13 @@
         color: var(--reef-muted);
     }
 
+    .card :global(.detail + .detail) {
+        margin-top: 2px;
+    }
+
     @media (max-width: 639px) {
         .card {
-            padding: 8px 10px 10px;
-        }
-
-        .card :global(.warning) {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #ffd29a;
+            padding: 12px 10px 10px;
         }
 
         .card :global(.prompt) {

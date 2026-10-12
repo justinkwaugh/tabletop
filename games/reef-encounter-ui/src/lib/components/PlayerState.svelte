@@ -40,10 +40,14 @@
     </svg>
 {/snippet}
 
-<article class="panel" class:turn={isTurn} style:--player={paint}>
+<article class="panel reef-glass" class:turn={isTurn} style:--player={paint}>
     <header
         style:background-image="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})"
     >
+        {#if isTurn}
+            <!-- The parrotfish whose turn it is breathes out a stream of bubbles. -->
+            <span class="breath" aria-hidden="true"><i></i><i></i><i></i></span>
+        {/if}
         <h3
             class="plaque reef-display"
             style:background={gameSession.colors.getPlayerBgColorValue(player.id)}
@@ -151,41 +155,110 @@
 
 <style>
     .panel {
-        border-radius: 10px;
+        position: relative;
         overflow: hidden;
-        background: rgb(0 0 0 / 0.26);
-        box-shadow: inset 0 0 0 2px var(--reef-line);
         text-align: left;
+        transition: box-shadow 0.25s;
     }
 
     .panel.turn {
         box-shadow:
-            inset 0 0 0 2px var(--reef-line),
-            0 0 0 3px var(--player);
+            inset 0 0 0 2px var(--player),
+            inset 0 0 0 3.5px rgb(255 255 255 / 0.7),
+            0 0 0 2px var(--player),
+            0 0 22px 2px color-mix(in srgb, var(--player) 55%, transparent);
     }
 
+    /* The art fades into the glass along a wavy waterline. */
     header {
         position: relative;
         height: 84px;
         background-size: cover;
         background-position: center;
-        border-bottom: 2px solid var(--reef-line);
+        mask:
+            linear-gradient(black, black) top / 100% calc(100% - 6px) no-repeat,
+            radial-gradient(circle at 50% 0, black 7px, transparent 7.5px) 0 100% / 22px 7px
+                repeat-x;
     }
 
     .plaque {
         position: absolute;
         left: 10px;
-        bottom: 8px;
-        padding: 1px 12px;
-        border-radius: 6px;
+        bottom: 12px;
+        padding: 1px 14px 2px;
+        border-radius: 999px;
         font-size: 18px;
-        box-shadow: 0 0 0 2px var(--reef-line);
+        box-shadow:
+            0 0 0 2px rgb(255 255 255 / 0.85),
+            0 3px 6px rgb(4 30 26 / 0.45);
+    }
+
+    .breath {
+        position: absolute;
+        top: 10px;
+        left: 30%;
+        width: 24px;
+        height: 60px;
+        pointer-events: none;
+    }
+
+    .breath i {
+        position: absolute;
+        bottom: 0;
+        left: 6px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fff, rgb(255 255 255 / 0.2) 65%);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.7);
+        animation: breathe 2.8s ease-in infinite;
+    }
+
+    .breath i:nth-child(2) {
+        width: 6px;
+        height: 6px;
+        animation-delay: -0.9s;
+    }
+
+    .breath i:nth-child(3) {
+        width: 5px;
+        height: 5px;
+        animation-delay: -1.9s;
+    }
+
+    @keyframes breathe {
+        0% {
+            transform: translate(0, 0) scale(0.6);
+            opacity: 0;
+        }
+        15% {
+            opacity: 1;
+        }
+        100% {
+            transform: translate(6px, -54px) scale(1.1);
+            opacity: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .breath i {
+            animation: none;
+            opacity: 0.8;
+        }
+
+        .breath i:nth-child(2) {
+            transform: translate(4px, -18px);
+        }
+
+        .breath i:nth-child(3) {
+            transform: translate(2px, -34px);
+        }
     }
 
     dl {
         display: grid;
         gap: 6px;
-        padding: 10px 12px 12px;
+        padding: 8px 12px 12px;
         margin: 0;
     }
 
@@ -196,8 +269,16 @@
         gap: 8px;
     }
 
+    .row + .row {
+        padding-top: 6px;
+        border-top: 1px dashed rgb(255 255 255 / 0.16);
+    }
+
     dt {
+        font-family: 'Reef Fredoka', sans-serif;
+        font-weight: 500;
         font-size: 13px;
+        letter-spacing: 0.03em;
         color: var(--reef-muted);
     }
 
@@ -222,15 +303,21 @@
         font-size: 14px;
     }
 
+    /* Points sit in a little sunlit bubble. */
     .points {
         margin-left: auto;
-        font-size: 18px;
+        padding: 0 9px;
+        border-radius: 999px;
+        font-size: 17px;
         font-variant-numeric: tabular-nums;
+        color: var(--reef-paper-ink);
+        background: radial-gradient(circle at 35% 30%, #fffdf3, var(--reef-sun));
+        box-shadow: 0 2px 4px rgb(4 30 26 / 0.3);
     }
 
     .points::after {
         content: ' pts';
-        font-size: 13px;
-        color: var(--reef-muted);
+        font-size: 12px;
+        color: var(--reef-paper-muted);
     }
 </style>

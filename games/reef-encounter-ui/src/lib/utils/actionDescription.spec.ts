@@ -4,6 +4,7 @@ import {
     ActionType,
     CoralColor,
     type EatCoral,
+    type ExchangeConsumedPolyp,
     type FeedParrotfish,
     type PlayLarvaCube,
     type PlacePolyp
@@ -70,9 +71,31 @@ describe('describing a turn', () => {
             color: CoralColor.Grey
         }
         expect(describeActions([feed], 'your')).toEqual([
-            { text: 'fed a grey polyp to your parrotfish.', playerId: 'a' }
+            expect.objectContaining({ text: 'fed a grey polyp to your parrotfish.', playerId: 'a' })
         ])
         expect(capitalised('fed a grey polyp.')).toBe('Fed a grey polyp.')
+    })
+
+    it('shows components as icons, with shorter words where the icons carry the meaning', () => {
+        const [trade] = describeActions(
+            [
+                {
+                    ...base(),
+                    type: ActionType.ExchangeConsumedPolyp,
+                    playerId: 'a',
+                    color: CoralColor.Pink
+                } as ExchangeConsumedPolyp
+            ],
+            'their'
+        )
+        expect(trade.text).toBe('traded a consumed pink polyp for a pink larva cube.')
+        expect(trade.parts).toEqual([
+            'traded ',
+            expect.objectContaining({ icon: 'polyp', color: CoralColor.Pink, consumed: true }),
+            { text: ' for ', short: ' → ' },
+            expect.objectContaining({ icon: 'cube', color: CoralColor.Pink, count: 1 }),
+            '.'
+        ])
     })
 
     it('says when a move starts the final turns', () => {

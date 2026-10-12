@@ -9,7 +9,8 @@
         movesPieces,
         type HistoryEntry
     } from '$lib/utils/historyEntries.js'
-    import { capitalised, describeActions } from '$lib/utils/actionDescription.js'
+    import { describeActions } from '$lib/utils/actionDescription.js'
+    import PhraseLine from './PhraseLine.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const timeAgo = createTimeAgo()
@@ -68,14 +69,21 @@
 <div class="history" bind:this={scrollContainer}>
     {#each entries as entry, index (entry.actions[0].id)}
         {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
-            <h4 class="divider reef-display">Setup</h4>
+            <h4 class="divider reef-title">Setup</h4>
         {/if}
         {#if finalTurns.has(entry) && (index === 0 || !finalTurns.has(entries[index - 1]))}
-            <h4 class="divider reef-display">Final turns</h4>
+            <h4 class="divider reef-title">Final turns</h4>
         {/if}
         {@const lastAt = entry.actions.at(-1)?.createdAt}
         {@const replaying = replay?.entryId === entry.actions[0].id}
-        <article class="entry" class:replaying class:dimmed={replay && !replaying}>
+        <article
+            class="entry reef-glass"
+            class:replaying
+            class:dimmed={replay && !replaying}
+            style:--player={entry.playerId
+                ? gameSession.colors.getPlayerBgColorValue(entry.playerId)
+                : 'var(--reef-sun)'}
+        >
             {#if entry.playerId}
                 {@const name = gameSession.getPlayerName(entry.playerId)}
                 <header>
@@ -95,7 +103,7 @@
                         <span class="replaying">Replaying</span>
                     {:else if movesPieces(entry)}
                         <button
-                            class="replay"
+                            class="replay reef-display"
                             disabled={replay !== undefined}
                             aria-label="Replay {name}'s moves"
                             title="Replay these moves on the table"
@@ -111,7 +119,7 @@
             {/if}
             <ul>
                 {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their') as phrase, index (index)}
-                    <li>{capitalised(phrase.text)}</li>
+                    <li><PhraseLine {phrase} capitalise /></li>
                 {/each}
             </ul>
         </article>
@@ -126,32 +134,53 @@
         gap: 8px;
         height: 100%;
         overflow-y: auto;
-        padding: 2px;
+        padding: 2px 2px 8px;
         align-content: start;
     }
 
+    /* A heading between two lines of gentle waves. */
     .divider {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin: 4px 2px 0;
-        font-size: 14px;
-        color: var(--reef-muted);
+        margin: 6px 2px 0;
+        font-size: 16px;
+        color: var(--reef-ink);
+        text-shadow: 0 1px 3px rgb(4 30 26 / 0.5);
     }
 
     .divider::before,
     .divider::after {
         content: '';
         flex: 1;
-        border-top: 1.5px solid rgb(255 255 255 / 0.45);
+        height: 6px;
+        background: radial-gradient(
+                circle at 50% 100%,
+                transparent 3.2px,
+                var(--reef-edge) 3.4px 4.6px,
+                transparent 4.8px
+            )
+            0 0 / 12px 6px repeat-x;
+        opacity: 0.8;
     }
 
     .entry {
-        border-radius: 8px;
-        background: rgb(0 0 0 / 0.26);
-        box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
-        padding: 8px 10px;
+        position: relative;
+        padding: 8px 10px 8px 14px;
         text-align: left;
+    }
+
+    /* The player's colour runs down the card's edge like a ribbon of weed. */
+    .entry::before {
+        content: '';
+        position: absolute;
+        left: 4px;
+        top: 9px;
+        bottom: 9px;
+        width: 4px;
+        border-radius: 4px;
+        background: var(--player);
+        box-shadow: 0 0 0 1px rgb(255 255 255 / 0.5);
     }
 
     .jumps {
@@ -163,12 +192,12 @@
         cursor: pointer;
         margin: -4px -6px 4px;
         padding: 4px 6px;
-        border-radius: 6px;
+        border-radius: 8px;
     }
 
     .jumps:hover,
     .jumps:focus-visible {
-        background: rgb(255 255 255 / 0.16);
+        background: rgb(255 255 255 / 0.14);
         outline: none;
     }
 
@@ -181,15 +210,17 @@
     }
 
     .replay {
-        border-radius: 6px;
-        padding: 1px 8px;
+        border-radius: 999px;
+        padding: 1px 10px;
         font-size: 12px;
-        box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7);
+        color: var(--reef-paper-ink);
+        background: radial-gradient(ellipse 90% 80% at 40% 20%, #fffdf7, #e9dfc6);
+        box-shadow: 0 1px 3px rgb(4 30 26 / 0.35);
     }
 
     .replay:hover:not(:disabled),
     .replay:focus-visible {
-        background: rgb(255 255 255 / 0.16);
+        background: #fff;
         outline: none;
     }
 
@@ -199,11 +230,13 @@
 
     .replaying {
         font-size: 12px;
-        color: var(--reef-accent);
+        color: var(--reef-sun);
     }
 
     .entry.replaying {
-        box-shadow: inset 0 0 0 2px var(--reef-accent);
+        box-shadow:
+            inset 0 0 0 2px var(--reef-sun),
+            0 0 16px rgb(255 217 138 / 0.4);
     }
 
     .entry.dimmed {
@@ -217,11 +250,12 @@
 
     ul {
         display: grid;
-        gap: 2px;
+        gap: 4px;
         margin: 0;
         padding: 0;
         list-style: none;
         font-size: 14px;
+        line-height: 1.45;
     }
 
     .empty {
