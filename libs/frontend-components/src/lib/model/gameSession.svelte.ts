@@ -20,6 +20,8 @@ import {
     GameStorage,
     assertExists,
     createAction,
+    executeInLocalGame,
+    isLocalGame,
     type User,
     type GameChat,
     type GameChatMessage,
@@ -1178,7 +1180,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     action,
                     gameSnapshot,
                     stateSnapshot,
-                    this.projectedExecutionPerspective(relevantContext)
+                    relevantContext
                 )
             } catch (error) {
                 if (
@@ -1431,13 +1433,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         action: GameAction,
         game: Game,
         state: T,
-        perspective?: Visibility.Perspective
+        context: GameContext<T, U>
     ): GameActionResults<T> {
-        const { processedActions, updatedState } =
-            perspective === undefined
-                ? this.engine.executeCanonicalAction({ action, state, game })
-                : this.engine.executeAction({ action, state, game, perspective })
+        const perspective = this.projectedExecutionPerspective(context)
+        const execution = { engine: this.engine, action, state, game }
+        const { processedActions, updatedState } = this.ownsHistory(context)
+            ? executeInLocalGame(execution)
+            : perspective === undefined
+              ? this.engine.executeCanonicalAction(execution)
+              : this.engine.executeAction({ ...execution, perspective })
         return new GameActionResults(processedActions, updatedState)
+    }
+
+    private ownsHistory(context: GameContext<T, U>): boolean {
+        return !this.usesHostExecution(context) && isLocalGame(context.game)
     }
 
     // For primary game context only

@@ -2,6 +2,7 @@ import {
     ActionSource,
     assert,
     assertExists,
+    executeInLocalGame,
     GameEngine,
     GameStatus,
     GameSyncStatus,
@@ -49,7 +50,7 @@ export class HarnessHostApi extends DummyRemoteApiService {
                     action.playerId === this.perspective.playerId),
             'Action belongs to another player'
         )
-        const result = this.engine.executeCanonicalAction({ game, state, action })
+        const result = executeInLocalGame({ engine: this.engine, game, state, action })
         const now = new Date()
         for (const processed of result.processedActions) processed.createdAt = now
         const updatedGame = this.updatedGame(game, result.updatedState, action)
