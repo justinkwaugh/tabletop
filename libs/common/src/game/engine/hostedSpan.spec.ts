@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { UnmergedBranch } from './branch.js'
-import { settleSpan } from './hostedSpan.js'
+import { createGameFork } from './gameFork.js'
+import { reverseToBranchStart, settleSpan } from './hostedSpan.js'
 import { createSpanGame, spanAction, type SpanGameOptions } from './tests/spanGame.js'
-import { beginSpan, playPrivately, playerOf, summary, type SpanGame } from './tests/spanPlay.js'
+import {
+    beginSpan,
+    playLocally,
+    playPrivately,
+    playerOf,
+    summary,
+    type SpanGame
+} from './tests/spanPlay.js'
 
 function closedBranch(
     spanGame: SpanGame,
@@ -229,5 +237,77 @@ describe('Settling a span on the host', () => {
         expect(settlement.processedActions).toEqual([])
         expect(settlement.createdBranches).toEqual([])
         expect(settlement.updatedState).toEqual(spanGame.state)
+    })
+})
+
+describe('Reversing the Main Line to the start of a Branch', () => {
+    function played() {
+        const spanGame = createSpanGame()
+        const resting = beginSpan(spanGame)
+        const inBranch = playLocally(spanGame, resting, [
+            spanAction('w3', 'work', 'p3'),
+            spanAction('w3b', 'work', 'p3')
+        ])
+        return { spanGame, resting, inBranch }
+    }
+
+    it('reverses back through the Branch’s Actions and its Branch Start', () => {
+        const { spanGame, resting, inBranch } = played()
+        const landed = reverseToBranchStart({
+            engine: spanGame.engine,
+            state: inBranch.state,
+            history: inBranch.processedActions
+        })
+        expect(landed?.state).toEqual(resting)
+        expect(summary(landed?.reversed ?? [])).toEqual(['openBranch:p3', 'work:p3', 'work:p3'])
+    })
+
+    it('reverses nothing when the Main Line is not inside a Branch', () => {
+        const { spanGame, resting } = played()
+        expect(
+            reverseToBranchStart({ engine: spanGame.engine, state: resting, history: [] })
+        ).toEqual({ state: resting, reversed: [] })
+    })
+
+    it('reports when the history given does not reach the start of the Branch', () => {
+        const { spanGame, inBranch } = played()
+        expect(
+            reverseToBranchStart({
+                engine: spanGame.engine,
+                state: inBranch.state,
+                history: inBranch.processedActions.slice(-1)
+            })
+        ).toBeUndefined()
+    })
+})
+
+describe('A Fork taken inside a merged Branch', () => {
+    it('starts where that Branch started and carries no hold', () => {
+        const spanGame = createSpanGame()
+        const begun = spanGame.engine.executeCanonicalAction({
+            game: spanGame.game,
+            state: spanGame.state,
+            action: spanAction('begin', 'begin', 'p1')
+        })
+        const played = playLocally(spanGame, begun.updatedState, [
+            spanAction('w3', 'work', 'p3'),
+            spanAction('f3', 'finish', 'p3'),
+            spanAction('w2', 'work', 'p2')
+        ])
+        const actions = [...begun.processedActions, ...played.processedActions]
+        expect(summary(actions).at(-1)).toBe('work:p2')
+
+        const fork = createGameFork({
+            game: { ...spanGame.game, spanHold: { playerId: 'p2', reason: 'refused' } },
+            state: played.state,
+            actions,
+            actionIndex: actions.length - 1,
+            runtime: spanGame.runtime
+        })
+        expect(summary(fork.actions)).toEqual(['begin:p1', 'openBranch:p3', 'work:p3', 'finish:p3'])
+        expect(fork.state.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
+        expect(fork.state.parallelSpan?.branchPlayerId).toBeUndefined()
+        expect(fork.game.lastActionPlayerId).toBe('p3')
+        expect(fork.game.spanHold).toBeUndefined()
     })
 })

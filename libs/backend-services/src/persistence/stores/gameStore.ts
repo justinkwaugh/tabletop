@@ -48,7 +48,8 @@ export type ActionUndoValidator = (
     existingActions: GameAction[],
 
     newState: GameState,
-    gameUpdates: Partial<Game>
+    gameUpdates: Partial<Game>,
+    existingBranches: Branch[]
 ) => Promise<UpdateValidationResult>
 
 export type UndoActionWindow = {
@@ -150,6 +151,7 @@ export interface GameStore {
         redoneActions,
         state,
         removeUnmergedBranches,
+        watchBranchesOf,
         validator
     }: {
         gameId: string
@@ -157,6 +159,7 @@ export interface GameStore {
         redoneActions: GameAction[]
         state: GameState
         removeUnmergedBranches?: boolean
+        watchBranchesOf?: readonly string[]
         validator?: ActionUndoValidator
     }): Promise<{
         undoneActions: GameAction[]

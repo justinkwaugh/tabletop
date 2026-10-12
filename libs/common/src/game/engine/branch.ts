@@ -6,7 +6,7 @@ import { BaseError } from '../../util/errors.js'
 import { ActionSource, GameAction, Patch } from './gameAction.js'
 import { ENGINE_MAINTAINED_FIELDS } from './branchScope.js'
 import { withoutActionPositions } from './commutation.js'
-import { sameBranchPoint, spanAwaitingBranch } from './parallelSpan.js'
+import { sameHistoryPosition, spanAwaitingBranch } from './parallelSpan.js'
 import { createPatch } from './statePatch.js'
 import { BranchPoint, type GameState } from '../model/gameState.js'
 
@@ -71,7 +71,7 @@ export function unopenedBranchView<T extends GameState>(state: T, playerId: stri
 export function branchView<T extends GameState>(state: T, branch: Branch): T {
     const span = spanAwaitingBranch(state, branch.playerId)
     assert(
-        sameBranchPoint(span.branchPoint, branch.branchPoint),
+        sameHistoryPosition(span.branchPoint, branch.branchPoint),
         `The Branch of ${branch.playerId} belongs to another Parallel Span`
     )
     const changed = jsonpatch.applyPatch(

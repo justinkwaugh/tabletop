@@ -1298,6 +1298,7 @@ export class FirestoreGameStore implements GameStore {
         redoneActions,
         state,
         removeUnmergedBranches = false,
+        watchBranchesOf = [],
         validator
     }: {
         gameId: string
@@ -1305,6 +1306,7 @@ export class FirestoreGameStore implements GameStore {
         redoneActions: GameAction[]
         state: GameState
         removeUnmergedBranches?: boolean
+        watchBranchesOf?: readonly string[]
         validator: ActionUndoValidator
     }): Promise<{
         undoneActions: GameAction[]
@@ -1336,9 +1338,10 @@ export class FirestoreGameStore implements GameStore {
             }
             assertTournamentUndoAllowed(existingGame)
             assertUndoActionStorageSupported(existingGame.actionChunkSize)
-            const storedBranches = removeUnmergedBranches
+            const removedBranches = removeUnmergedBranches
                 ? await this.protectStoredBranches(locks, gameId, transaction)
                 : []
+            const watchedBranches = await this.readBranches(gameId, watchBranchesOf, transaction)
 
             if (!existingState) {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
@@ -1369,7 +1372,8 @@ export class FirestoreGameStore implements GameStore {
                         existingState,
                         existingActions,
                         state,
-                        gameUpdates
+                        gameUpdates,
+                        watchedBranches
                     )
                 ) {
                     case UpdateValidationResult.Cancel:
@@ -1420,7 +1424,7 @@ export class FirestoreGameStore implements GameStore {
                 this.createGameUpdateDocument(gameUpdates, updatedGame)
             )
             transaction.set(stateCollection.doc(gameId), state)
-            for (const branch of storedBranches) {
+            for (const branch of removedBranches) {
                 this.deleteUnmergedBranch(transaction, gameId, branch)
             }
 

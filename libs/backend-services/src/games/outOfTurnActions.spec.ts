@@ -127,7 +127,8 @@ function createHost() {
                 structuredClone(state),
                 structuredClone(undone),
                 newState,
-                gameUpdates
+                gameUpdates,
+                []
             )
             expect(result).toBe(UpdateValidationResult.Proceed)
             const priorState = state

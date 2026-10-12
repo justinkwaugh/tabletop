@@ -5,6 +5,7 @@ import {
     branchFromView,
     branchView,
     findPlayerForUserId,
+    type ActionHistoryPosition,
     type Branch,
     type ActionCascadeResult,
     type CanonicalActionReplay,
@@ -28,6 +29,7 @@ export interface GameRepresentation {
     readonly game: Game
     readonly actions: GameAction[]
     readonly perspective: Visibility.Perspective | undefined
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export interface ActionResultsRepresentation {
@@ -35,13 +37,19 @@ export interface ActionResultsRepresentation {
     readonly actions: GameAction[]
     readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
-    readonly branch?: UnmergedBranch
+    readonly unmergedBranch?: UnmergedBranch
+}
+
+export interface BranchSyncRepresentation {
+    readonly status: GameSyncStatus
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export interface GameSyncRepresentation {
     readonly status: GameSyncStatus
     readonly actions: GameAction[]
     readonly checksum: number
+    readonly branchSync?: BranchSyncRepresentation
 }
 
 export interface UndoResultsRepresentation {
@@ -52,6 +60,7 @@ export interface UndoResultsRepresentation {
     readonly undoneActions?: GameAction[]
     readonly redoneActions?: GameAction[]
     readonly perspective: Visibility.Perspective | undefined
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export function createGameRepresentationEtag({
@@ -59,12 +68,14 @@ export function createGameRepresentationEtag({
     game,
     hostView = false,
     visibility: registeredVisibility,
+    branchPosition,
     user
 }: {
     canonicalEtag: string
     game: Game
     hostView?: boolean
     visibility?: Visibility.GameVisibility<GameState>
+    branchPosition?: ActionHistoryPosition
     user: User
 }): string {
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
@@ -79,10 +90,15 @@ export function createGameRepresentationEtag({
         .update(canonicalEtag)
         .update('\0')
         .update(perspectiveKey)
+        .update(
+            branchPosition === undefined
+                ? ''
+                : `\0branch:${branchPosition.actionCount}:${branchPosition.actionChecksum}`
+        )
         .digest('base64url')
 }
 
-interface BranchRepresentationInput {
+export interface BranchRepresentationInput {
     game: Game
     state: GameState
     branch: Branch
@@ -118,17 +134,42 @@ export function createBranchRepresentation({
     }
 }
 
+export function withUnmergedBranch<Representation extends object>(
+    representation: Representation,
+    input: BranchRepresentationInput | undefined
+): Representation & { unmergedBranch?: UnmergedBranch } {
+    const unmergedBranch = input === undefined ? undefined : createBranchRepresentation(input)
+    return unmergedBranch === undefined ? representation : { ...representation, unmergedBranch }
+}
+
 export function createBranchResultsRepresentation(
     input: BranchRepresentationInput
 ): ActionResultsRepresentation {
-    const branch = createBranchRepresentation(input)
-    return {
-        game: omitGameState(input.game),
-        actions: [],
-        missingActions: undefined,
-        perspective: derivePerspective(input),
-        ...(branch === undefined ? {} : { branch })
-    }
+    return withUnmergedBranch(
+        {
+            game: omitGameState(input.game),
+            actions: [],
+            missingActions: undefined,
+            perspective: derivePerspective(input)
+        },
+        input
+    )
+}
+
+export function createBranchUndoRepresentation(
+    input: BranchRepresentationInput
+): UndoResultsRepresentation {
+    const actionReplay = { startIndex: input.state.actionCount, actions: [] }
+    return withUnmergedBranch(
+        {
+            game: omitGameState(input.game),
+            actionReplay,
+            canonicalReplay: createLegacyCompatibleReplay(actionReplay),
+            checksum: input.state.actionChecksum,
+            perspective: derivePerspective(input)
+        },
+        input
+    )
 }
 
 export function createGameRepresentation({
