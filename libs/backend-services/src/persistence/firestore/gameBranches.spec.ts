@@ -218,6 +218,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect((await store.findBranch(game.id, 'p1'))?.actionCount).toBe(2)
         })
 
+        it('rewrites a Branch whose Actions did not change, leaving them stored', async () => {
+            await write(freshBranch('p1', 2))
+            await write({
+                branch: { ...branchOf('p1', 2), closed: true },
+                addedActions: [],
+                removedActions: []
+            })
+            expect((await store.findBranch(game.id, 'p1'))?.closed).toBe(true)
+            expect(await storedActionIds('p1')).toEqual(['p1-0', 'p1-1'])
+        })
+
         it('refuses to remove Actions that are not the ones stored', async () => {
             await write(freshBranch('p1', 2))
             await expect(
@@ -353,6 +364,59 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(await storedActionIds('p2')).toHaveLength(4)
             expect((await store.findBranch(game.id, 'p2'))?.actionCount).toBe(4)
             expect((await store.findGameById(game.id, true))?.state?.actionCount).toBe(1)
+        })
+
+        it('keeps a Branch that one Main Line write both removes and sets afresh', async () => {
+            await write(freshBranch('p1', 205))
+            await store.addActionsToGame({
+                game,
+                actions: [mainLineAction(0)],
+                state: { ...state, actionCount: 1, actionChecksum: 7 },
+                unmergedBranchWrites: { set: [freshBranch('p1', 2)], removeBranchesOf: ['p1'] },
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            expect(await storedActionIds('p1')).toEqual(['p1-0', 'p1-1'])
+            expect(await chunkCount('p1')).toBe(1)
+        })
+
+        it('shows a Main Line write the Branches it asks to watch', async () => {
+            await write(freshBranch('p1', 3))
+            const seen: (number | undefined)[] = []
+            await store.addActionsToGame({
+                game,
+                actions: [mainLineAction(0)],
+                state: { ...state, actionCount: 1, actionChecksum: 7 },
+                unmergedBranchWrites: { set: [], removeBranchesOf: [], watchBranchesOf: ['p1'] },
+                validator: async (
+                    _game,
+                    _before,
+                    _after,
+                    _actions,
+                    _updates,
+                    _related,
+                    existing
+                ) => {
+                    seen.push(...existing.map((branch) => branch.actionCount))
+                    return UpdateValidationResult.Proceed
+                }
+            })
+            expect(seen).toEqual([3])
+            expect((await store.findBranch(game.id, 'p1'))?.actionCount).toBe(3)
+        })
+
+        it('shows a Branch write the other Branches it asks to watch', async () => {
+            await write(freshBranch('p2', 4))
+            const seen: (number | undefined)[] = []
+            await store.writeUnmergedBranch({
+                gameId: game.id,
+                write: freshBranch('p1'),
+                watchBranchesOf: ['p2'],
+                validator: async (existing) => {
+                    seen.push(...existing.watchedBranches.map((branch) => branch.actionCount))
+                    return UpdateValidationResult.Proceed
+                }
+            })
+            expect(seen).toEqual([4])
         })
 
         it('writes no Branch when the Main Line write is cancelled', async () => {

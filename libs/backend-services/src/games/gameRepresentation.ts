@@ -2,7 +2,10 @@ import {
     ActionSource,
     assert,
     assertExists,
+    branchFromView,
+    branchView,
     findPlayerForUserId,
+    type Branch,
     type ActionCascadeResult,
     type CanonicalActionReplay,
     type Game,
@@ -14,6 +17,7 @@ import {
     GameEngine,
     omitGameState,
     type ProcessedActionReplay,
+    type UnmergedBranch,
     type User,
     Visibility
 } from '@tabletop/common'
@@ -31,6 +35,7 @@ export interface ActionResultsRepresentation {
     readonly actions: GameAction[]
     readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
+    readonly branch?: UnmergedBranch
 }
 
 export interface GameSyncRepresentation {
@@ -75,6 +80,55 @@ export function createGameRepresentationEtag({
         .update('\0')
         .update(perspectiveKey)
         .digest('base64url')
+}
+
+interface BranchRepresentationInput {
+    game: Game
+    state: GameState
+    branch: Branch
+    actions: readonly GameAction[]
+    visibility: Visibility.GameVisibility<GameState>
+    user: User
+}
+
+export function createBranchRepresentation({
+    game,
+    state,
+    branch,
+    actions,
+    visibility,
+    user
+}: BranchRepresentationInput): UnmergedBranch | undefined {
+    const perspective = derivePerspective({ game, user })
+    if (perspective.kind !== 'player' || perspective.playerId !== branch.playerId) {
+        return undefined
+    }
+    const history = Visibility.projectActionHistory({
+        game,
+        currentState: branchView(state, branch),
+        startIndex: branch.actionCount - actions.length,
+        actions,
+        visibility,
+        perspective
+    })
+    const projectedMainLine = visibility.state.project(state, perspective, { config: game.config })
+    return {
+        branch: branchFromView(projectedMainLine, history.currentState, branch.playerId),
+        actions: [...history.actions]
+    }
+}
+
+export function createBranchResultsRepresentation(
+    input: BranchRepresentationInput
+): ActionResultsRepresentation {
+    const branch = createBranchRepresentation(input)
+    return {
+        game: omitGameState(input.game),
+        actions: [],
+        missingActions: undefined,
+        perspective: derivePerspective(input),
+        ...(branch === undefined ? {} : { branch })
+    }
 }
 
 export function createGameRepresentation({

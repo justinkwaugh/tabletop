@@ -97,12 +97,13 @@ _Avoid_: presented state
 5. **Only Span Completion ends a span.** If the last Player's Action moved the machine on for good, that Branch would run differently on the Main Line than it ran privately. A span in which no Player has anything to do completes at once, because every Branch Start runs through.
 6. **Branch Start and Span Completion are steps of their own.** No handler queues them and they belong to no User Action's cascade. Whoever owns the history, the Game Client in a Local Game or the host in a Hosted Game, asks the engine to advance the span whenever the Main Line rests in the Branching Machine State: open the next Branch, or complete the span once every Branch is on the Main Line. Executing a Player's Action never does either, so an Action runs the same privately, in a Local Game and in a Merge. Their identities are fixed when the span begins and held in the span record, and the engine recognises each by its identity. A recorded Branch Start therefore opens its Branch again when replayed on its own, and nothing but the span's own Span Completion can end it. A Branch must end its cascade when it closes: no System Action may still be waiting.
 7. **A Local Game plays Branches on the Main Line, one at a time.** It has no Unmerged Branches. Branches are opened in Merge Order: the first on entering the span, the next when the one before closes. This is why rule 2 is required and not only convenient.
-8. **Inside a Branch the only Active Player is that Branch's Player,** until it closes. The engine sets Active Players throughout a span; handlers do not. Between Branches the Active Players are those whose Branches are not yet on the Main Line. In a Local Game that is the Player whose Branch is being played on the Main Line, so the Game Client's existing choice of Acting Player follows the Merge Order without change.
+8. **Inside a Branch the only Active Player is that Branch's Player,** until it closes. Between Branches the Active Players are those whose Branches are not yet on the Main Line. The engine maintains Active Players once a span has begun. In a Local Game that is the Player whose Branch is being played on the Main Line, so the Game Client's existing choice of Acting Player follows the Merge Order without change.
 9. **Game State records the span.** A Branch can take the Main Line through other Machine States, so the current Machine State cannot say whether a span is in progress. Game State records the span's Branch Point, its Players, which Players' Branches are on the Main Line, whose Branch is being played, if any, and the identities of each Branch Start and of Span Completion. That last entry is how a handler or a System Action knows whose Branch it is in. Whether an Unmerged Branch has closed is not in Game State, which changes only through main-line Actions; it is on the Branch's own record and on the Game.
-10. **What a Game Title declares** for a Branching Machine State: which Players take part, the Merge Order, Barrier Merge or Ordered Merge, and the Branch Start and Span Completion Actions.
-11. **Out-of-Turn Actions are rejected during a Parallel Span,** for now.
-12. **Contested and interactive play,** such as selling to a shared market or combat, stays in ordinary ordered Machine States.
-13. **A Parallel Span lies within one turn.** Turns start and end on the Main Line, outside a span. A Branch never starts or ends one, so the shared turn records are not touched inside it.
+10. **Who takes part is the Active Players.** The Branching Machine State's entry sets the Active Players, as any Machine State's entry does, and the span's Players are exactly those. A Player it leaves out has no Branch and plays no part. That entry runs again each time a Branch returns; whatever it sets then is replaced at once by the engine.
+11. **What a Game Title declares** for a Branching Machine State: the Merge Order, which must place every Active Player; Barrier Merge or Ordered Merge; and the Branch Start and Span Completion Actions.
+12. **Out-of-Turn Actions are rejected during a Parallel Span,** for now.
+13. **Contested and interactive play,** such as selling to a shared market or combat, stays in ordinary ordered Machine States.
+14. **A Parallel Span lies within one turn.** Turns start and end on the Main Line, outside a span. A Branch never starts or ends one, so the shared turn records are not touched inside it.
 
 ## What a Branch may change
 
@@ -151,6 +152,10 @@ _Avoid_: presented state
 7. **Forks** see only the Main Line. A Fork taken at the Branch Point gets fresh Branches.
 8. **Hosted Games flagged as hotseat** are not a case this design covers; in practice they do not occur.
 9. **An administrator's Undo and a Fork land only at the edge of a Branch,** for now: before a Player's Branch Start or after their Branch has closed. A position inside a merged Branch would leave that Player part-way through a Branch on the Main Line of a Hosted Game, with no private Branch to continue in. A request for such a position lands at the start of that Branch instead. Undoing back past the last Merge removes Span Completion with it.
+10. **One endpoint for Actions.** A Player submits an Action the same way everywhere. The host routes it: when the Game rests in a span and the Player has an open Branch, the Action runs in their Branch; otherwise it runs on the Main Line. While a span is in progress the host accepts nothing else: an Action from a Player with no open Branch in it is refused.
+11. **What each Player is sent.** Everyone is sent the same projected main-line Game State. A Player with an Unmerged Branch is also sent that Branch and its Actions, projected for them.
+12. **A refused Merge holds the span.** The host records the hold on the Game with the Player and the reason, logs it as an error, and attempts no further Merges while it stands. Players keep playing their own open Branches. An administrator clears it once the title is fixed.
+13. **Whatever could make a Branch ready is settled in the same transaction.** The Action that begins a span creates every Branch and merges any that closed on Branch Start. The Action that closes a Branch is written together with every Merge it makes possible, and with Span Completion and the next span's Branches when it gets that far. Before it commits, that write checks that the Main Line and every unmerged Player's stored Branch are still as they were when the host decided what to merge. If any has changed, as when two Players close at the same moment, the whole submission is retried from fresh data. Nothing is left half done, so no Closed Branch can be stranded waiting for a Merge.
 
 ## Stellar Horizons
 
@@ -173,10 +178,10 @@ Working out the bound in full, and measuring how often it makes a decade scarce,
 2. Branch Undo and the Merge, engine only, with the check that merged history is a valid Local Game history. Done.
 3. Host, in four parts:
     1. Storage of Unmerged Branches and their cache entries. Done: `libs/backend-services/src/persistence/firestore/gameBranches.spec.ts`.
-    2. Submission: routing a Player's Action to their Branch, creating Branches when a span begins, and merging.
+    2. Submission: routing a Player's Action to their Branch, creating Branches when a span begins, and merging. Done: `libs/common/src/game/engine/hostedSpan.spec.ts` for the settling logic and `libs/backend-services/src/games/gameSpans.spec.ts` for the service. Not yet: releasing a hold, and a Hosted Game that starts in a Branching Machine State, which the host refuses for now.
     3. What each Player is sent: the owner's Branch, synchronization and the entity tag. A read of the Game State together with a Branch is guarded today only by the Game's revision, which a Branch write deliberately leaves alone, so this part must add the Branch's cache entry as a guard.
     4. Undo routing, and publishing a Branch's Actions to its Player only.
-4. Game Client support for a Branch View.
+4. Game Client support for a Branch View. The shared Game Client keeps the Player's Branch beside the Main Line and derives the Branch View with the function the host uses, so other Players' merged Actions arrive as real Actions and the Player's own Merge is a clean swap. A title's own Game UI is handed an ordinary Game State and does not need to know about Branches.
 5. Stellar Horizons adoption.
 
 The host must be deployed before any title adopts this, and each adopting title republishes its UI Artifact. Titles that do not adopt it are unaffected.

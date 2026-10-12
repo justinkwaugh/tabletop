@@ -48,6 +48,33 @@ describe('Parallel Span on the Main Line', () => {
         expect(state.activePlayerIds).toEqual(SPAN_MERGE_ORDER)
     })
 
+    it('takes as its Players the Active Players the Branching Machine State’s entry sets', () => {
+        const spanGame = createSpanGame({ sitsOut: ['p2'] })
+        const state = beginSpan(spanGame)
+        expect(state.parallelSpan?.playerIds).toEqual(['p3', 'p1'])
+        expect(state.activePlayerIds).toEqual(['p3', 'p1'])
+        expect(Object.keys(state.parallelSpan?.branchStartIds ?? {})).toEqual(['p3', 'p1'])
+        expect(() => playPrivately(spanGame, state, 'p2', [])).toThrow(
+            'Player p2 takes no part in this span'
+        )
+        const played = playLocally(spanGame, state, [
+            spanAction('f3', 'finish', 'p3'),
+            spanAction('f1', 'finish', 'p1')
+        ])
+        expect(summary(played.processedActions)).toEqual([
+            'openBranch:p3',
+            'finish:p3',
+            'openBranch:p1',
+            'finish:p1',
+            'complete:'
+        ])
+    })
+
+    it('refuses a Merge Order that does not place every Active Player', () => {
+        const spanGame = createSpanGame({ mergeOrderOmits: ['p2'] })
+        expect(() => beginSpan(spanGame)).toThrow('Merge Order must place every Active Player')
+    })
+
     it('accepts no User Action while the span rests in the Branching Machine State', () => {
         const spanGame = createSpanGame()
         expect(() =>

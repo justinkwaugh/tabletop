@@ -7,7 +7,6 @@ import {
     normalizeMasterSeed,
     assert,
     ActionSource,
-    GameResult,
     calculateActionChecksum,
     createGameFork,
     GameForkError,
@@ -48,8 +47,14 @@ import {
     WasInvitedNotification,
     Visibility,
     assertExists,
+    combineCascades,
+    isRestingInSpan,
+    settleSpan,
+    type ActionCascadeResult,
+    type SpanHold,
     type Tournament,
-    type TournamentSchedule
+    type TournamentSchedule,
+    type UnmergedBranch
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -65,7 +70,6 @@ import {
     DuplicatePlayerError,
     GameAlreadyStartedError,
     GameNotFoundError,
-    GameNotInProgressError,
     GameNotWaitingForPlayersError,
     GameNotWaitingToStartError,
     GamePlayerCountInvalidError,
@@ -91,6 +95,8 @@ import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import {
     createActionResultsRepresentation,
+    createBranchRepresentation,
+    createBranchResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
     createGameSyncRepresentation,
@@ -114,6 +120,13 @@ import {
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
 import { enqueueGameAutoStart, type GameAutoStartTask } from './publicGameAutoStart.js'
+import {
+    actsInBranch,
+    assertGameUnmoved,
+    fillGameUpdatesAfterActions,
+    freshBranchWrite,
+    submitBranchAction
+} from './spanSubmission.js'
 
 export class GameService {
     constructor(
@@ -950,6 +963,10 @@ export class GameService {
             const { startedGame: initializedGame, initialState } = new GameEngine(
                 definition.runtime
             ).startGame(game, masterSeed)
+            assert(
+                !isRestingInSpan(initialState),
+                'A Hosted Game cannot yet start in a Branching Machine State'
+            )
             ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: {
@@ -1017,6 +1034,17 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        if (game.state.parallelSpan !== undefined) {
+            if (!actsInBranch(game.state, action.playerId)) {
+                throw new DisallowedActionError({
+                    gameId,
+                    actionId: action.id,
+                    reason: 'a Parallel Span is in progress and you have no open Branch in it'
+                })
+            }
+            return this.applyActionToBranch({ definition, game, action, user })
+        }
+
         game = await this.supersedeDeclaration({ definition, game, action, user })
         const reconciledRace = await this.reconcileRace({ definition, game, action })
 
@@ -1032,7 +1060,22 @@ export class GameService {
                 game
             })
         )
-        const { processedActions, updatedState, indexOffset } = actionResult
+        const settlement = isRestingInSpan(actionResult.updatedState)
+            ? settleSpan({
+                  engine: gameEngine,
+                  game,
+                  state: actionResult.updatedState,
+                  unmergedBranches: [],
+                  held: game.spanHold !== undefined
+              })
+            : undefined
+        if (settlement !== undefined) this.spanVisibility(definition, game)
+        const applied =
+            settlement === undefined
+                ? actionResult
+                : combineCascades(initialState, [actionResult, settlement])
+        const { processedActions, updatedState } = applied
+        const { indexOffset } = actionResult
         countTiming('game.processedActions', processedActions.length)
 
         // write the action and the updated state
@@ -1041,6 +1084,10 @@ export class GameService {
                 game: game,
                 actions: processedActions,
                 state: updatedState,
+                unmergedBranchWrites: {
+                    set: (settlement?.createdBranches ?? []).map(freshBranchWrite),
+                    removeBranchesOf: settlement?.mergedPlayerIds ?? []
+                },
                 validator: async (
                     existingGame,
                     existingState,
@@ -1053,17 +1100,11 @@ export class GameService {
                         return UpdateValidationResult.Cancel
                     }
 
-                    if (existingGame.status !== GameStatus.Started) {
-                        throw new GameNotInProgressError({ id: gameId })
-                    }
-
-                    const executedState = actionResult.actionCascade.before
-                    if (
-                        executedState.actionCount !== existingState.actionCount ||
-                        executedState.actionChecksum !== existingState.actionChecksum
-                    ) {
-                        throw new GameUpdateCollisionError({ id: gameId })
-                    }
+                    assertGameUnmoved(
+                        existingGame,
+                        existingState,
+                        actionResult.actionCascade.before
+                    )
 
                     let newActionIndex = existingState.actionCount
                     actions.forEach((action) => {
@@ -1109,24 +1150,123 @@ export class GameService {
                         relatedActions.push(...missingActions)
                     }
 
-                    gameUpdates.activePlayerIds = newState.activePlayerIds
-                    const lastPlayerAction = findLast(actions, (a) => a.playerId != undefined)
-                    if (lastPlayerAction) {
-                        gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
-                    }
-                    if (
-                        !existingState.result &&
-                        newState.result &&
-                        newState.result !== GameResult.Abandoned &&
-                        definition.runtime.scoring
-                    ) {
-                        gameUpdates.finalScores = definition.runtime.scoring.finalScores(newState)
-                    }
+                    fillGameUpdatesAfterActions({
+                        definition,
+                        existingState,
+                        newState,
+                        gameUpdates,
+                        lastActionPlayerId: findLast(actions, (a) => a.playerId != undefined)
+                            ?.playerId,
+                        settlement,
+                        unmergedBranches: settlement?.createdBranches ?? []
+                    })
 
                     return UpdateValidationResult.Proceed
                 }
             })
+        this.reportRefusedMerge(gameId, settlement?.refusal)
 
+        return this.finishActionApplication({
+            definition,
+            game,
+            updatedGame,
+            result: applied,
+            storedActions,
+            relatedActions,
+            priorState,
+            user,
+            unmergedBranch: settlement?.createdBranches.find(
+                ({ branch }) => branch.playerId === action.playerId
+            )
+        })
+    }
+
+    private async applyActionToBranch({
+        definition,
+        game,
+        action,
+        user
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+        user: User
+    }): Promise<ActionResultsRepresentation> {
+        const visibility = this.spanVisibility(definition, game)
+        const submission = await submitBranchAction({
+            gameStore: this.gameStore,
+            definition,
+            game,
+            action
+        })
+        this.reportRefusedMerge(game.id, submission.settlement?.refusal)
+        if (submission.kind === 'mainLine') {
+            return this.finishActionApplication({
+                definition,
+                game,
+                updatedGame: submission.updatedGame,
+                result: submission.settlement,
+                storedActions: submission.storedActions,
+                relatedActions: submission.relatedActions,
+                priorState: submission.priorState,
+                user,
+                unmergedBranch: submission.unmergedBranch
+            })
+        }
+
+        const results = createBranchResultsRepresentation({
+            game: submission.game,
+            state: submission.state,
+            ...submission.unmergedBranch,
+            visibility,
+            user
+        })
+        if (submission.unmergedBranch.branch.closed) {
+            await this.notifyGamePlayers(GameNotificationAction.Update, { game: results.game })
+        }
+        return results
+    }
+
+    private spanVisibility(
+        definition: GameDefinition,
+        game: Game
+    ): Visibility.GameVisibility<GameState> {
+        const visibility = Visibility.getGameVisibility(game, definition.runtime)
+        assertExists(
+            visibility,
+            'A Game Title with a Branching Machine State must define visibility'
+        )
+        return visibility
+    }
+
+    private reportRefusedMerge(gameId: string, refusal: SpanHold | undefined): void {
+        if (refusal !== undefined) {
+            console.error('A Merge was refused; the span is held', { gameId, ...refusal })
+        }
+    }
+
+    private async finishActionApplication({
+        definition,
+        game,
+        updatedGame,
+        result,
+        storedActions,
+        relatedActions,
+        priorState,
+        user,
+        unmergedBranch
+    }: {
+        definition: GameDefinition
+        game: Game
+        updatedGame: Game
+        result: ActionCascadeResult
+        storedActions: GameAction[]
+        relatedActions: GameAction[]
+        priorState: GameState
+        user: User
+        unmergedBranch?: UnmergedBranch
+    }): Promise<ActionResultsRepresentation> {
+        const updatedState = result.updatedState
         if (!priorState.result && updatedGame.result && updatedGame.tournament) {
             try {
                 await enqueueTournamentTask(this.taskService, {
@@ -1140,7 +1280,7 @@ export class GameService {
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({
                 game: updatedGame,
-                result: actionResult,
+                result,
                 storedActions,
                 missingActions: relatedActions,
                 priorState,
@@ -1153,7 +1293,7 @@ export class GameService {
         await measure('projection.publish.action', () =>
             publishActionResults({
                 game: updatedGame,
-                result: actionResult,
+                result,
                 storedActions,
                 priorState,
                 runtime: definition.runtime,
@@ -1163,8 +1303,10 @@ export class GameService {
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
-        for (const activePlayerId of updatedState.activePlayerIds) {
-            if (!priorState.activePlayerIds.includes(activePlayerId)) {
+        const waitedOnBefore = game.activePlayerIds ?? priorState.activePlayerIds
+        const waitedOnNow = updatedGame.activePlayerIds ?? updatedState.activePlayerIds
+        for (const activePlayerId of waitedOnNow) {
+            if (!waitedOnBefore.includes(activePlayerId)) {
                 const activePlayer = this.findPlayerByPlayerId(representation.game, activePlayerId)
                 if (!activePlayer || !activePlayer.userId) {
                     continue
@@ -1182,7 +1324,15 @@ export class GameService {
             await this.sendGameEndEmail(representation.game)
         }
 
-        return representation
+        if (unmergedBranch === undefined) return representation
+        const branch = createBranchRepresentation({
+            game: updatedGame,
+            state: updatedState,
+            ...unmergedBranch,
+            visibility: this.spanVisibility(definition, updatedGame),
+            user
+        })
+        return branch === undefined ? representation : { ...representation, branch }
     }
 
     private async reconcileRace({

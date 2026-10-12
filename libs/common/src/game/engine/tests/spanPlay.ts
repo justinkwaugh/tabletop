@@ -3,6 +3,8 @@ import type { Branch } from '../branch.js'
 import type { GameAction } from '../gameAction.js'
 import { createSpanGame, spanAction, type SpanGameState } from './spanGame.js'
 
+export { summary } from './spanGame.js'
+
 export type SpanGame = ReturnType<typeof createSpanGame>
 
 export interface PrivatePlay {
@@ -82,8 +84,4 @@ export function playerOf(state: SpanGameState, playerId: string) {
     const player = state.players.find((candidate) => candidate.playerId === playerId)
     assertExists(player, `No player ${playerId}`)
     return player
-}
-
-export function summary(actions: readonly GameAction[]): string[] {
-    return actions.map((action) => `${action.type}:${action.playerId ?? ''}`)
 }
