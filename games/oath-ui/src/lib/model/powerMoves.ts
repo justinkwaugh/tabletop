@@ -37,8 +37,8 @@ export interface PowerMoves {
 }
 
 /**
- * An effect whose choices are moves (Messenger): warbands and a site in turn, each read on the
- * state the choices before it leave. The panel shows one move at a time.
+ * An effect whose choices are moves (Messenger, Warning Signals): warbands and a site in turn, each
+ * read on the state the choices before it leave. The panel shows one move at a time.
  */
 export function isPowerMoves(choices: readonly LegalChoice[]): boolean {
     return (
@@ -91,8 +91,9 @@ function destinationsOf(from: MoveFrom, sites: readonly PowerChoice[]): MoveTo[]
 
 /**
  * The moves as the panel shows them: each read with the engine's options on the state the moves
- * before it leave. A pick with one option is made (the first move's From too, which the power
- * needs); a later move's From starts empty, as a further move may be made or not.
+ * before it leave. A pick with one option is made (the first move's From too: "Use" waits for a
+ * whole move, even where the card's moves are all a "may", as Warning Signals' are); a later move's
+ * From starts empty, as a further move may be made or not.
  */
 export function powerMoves(
     state: HydratedOathGameState,
@@ -106,20 +107,26 @@ export function powerMoves(
         const warbands = legal[whole.length * 2]
         const sites = legal[whole.length * 2 + 1]
         if (!warbands || !sites) return { whole }
-        const open = openMove(warbands, sites, picks[whole.length] ?? {})
+        const first = whole.length === 0
+        const open = openMove(warbands, sites, picks[whole.length] ?? {}, first)
         const { from, count, to } = open
         if (!from || count === undefined || !to) return { whole, open }
         whole.push({ from, count, to })
     }
 }
 
-function openMove(warbands: LegalChoice, sites: LegalChoice, pick: MovePick): OpenMove {
+function openMove(
+    warbands: LegalChoice,
+    sites: LegalChoice,
+    pick: MovePick,
+    first: boolean
+): OpenMove {
     const sources = warbands.options.flatMap((option) =>
         option.kind === PowerChoiceKind.Warbands ? [option.group] : []
     )
     const wanted = pick.from
     const picked = wanted ? sources.find((group) => sameFrom(group, wanted)) : undefined
-    const source = picked ?? (warbands.spec.min > 0 ? only(sources) : undefined)
+    const source = picked ?? (first ? only(sources) : undefined)
     if (!source) return { sources, free: 0, destinations: [] }
     const from = { at: source.at, owner: source.owner }
     const free = source.count

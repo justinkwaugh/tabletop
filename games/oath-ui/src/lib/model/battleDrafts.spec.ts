@@ -4,6 +4,7 @@ import {
     Banner,
     CampaignTargetKind,
     MachineState,
+    PowerChoiceKind,
     PowerTiming,
     cardPowers,
     isCampaignAttackPlans,
@@ -751,5 +752,150 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         defeat.setPicked(1, 1)
         defeat.setPicked(0, 1)
         expect(defeat.picked).toEqual([1, 1])
+    })
+})
+
+/**
+ * Warning Signals: "Move any warbands to and from your board and any sites you rule (except the
+ * last warband from a site)" — Messenger's text, so Messenger's moves, one at a time.
+ */
+describe('Warning Signals’ moves in the defence draft', () => {
+    const WARNING = 'denizen.nomad.warning-signals'
+    const WARNING_PLAN = {
+        cardId: WARNING,
+        powerIndex: required(
+            cardPowers(WARNING).find((power) => power.timing === PowerTiming.BattlePlan),
+            'Warning Signals’ battle plan'
+        ).powerIndex
+    }
+    const onBoard = { at: { kind: 'board' as const, playerId: FOE }, owner: FOE }
+    const at = (siteId: string) => ({ at: { kind: 'site' as const, siteId }, owner: FOE })
+
+    /** FOE defends with 2 on their board, 3 at c1 and 2 at c2, and Warning Signals as an adviser. */
+    function warned(
+        board: Record<string, number> = { [FOE]: 2 },
+        sites: Record<string, Record<string, number>> = { c1: { [FOE]: 3 }, c2: { [FOE]: 2 } }
+    ) {
+        const state = testState(
+            [
+                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
+                testPlayer({
+                    playerId: FOE,
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    warbandsOnBoard: board,
+                    advisers: [{ cardId: WARNING, faceUp: true }]
+                })
+            ],
+            {
+                machineState: MachineState.CampaignPlans,
+                activePlayerIds: [FOE],
+                warbandsBySite: sites,
+                campaign: {
+                    attackerPlayerId: ME,
+                    defenderPlayerId: FOE,
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 0,
+                    defensePool: 0,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 0,
+                    swords: 0,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    pendingDefenderPlans: { queue: [FOE] },
+                    ...campaignRecords()
+                }
+            }
+        )
+        const session = openSessionOn(tableOf(state))
+        session.defence.setPlan(WARNING_PLAN, true)
+        return session
+    }
+
+    it('the first From opens empty; each next move is offered on the state the moves before it leave', () => {
+        const defence = warned().defence
+        const first = required(defence.movesOf(WARNING_PLAN)?.open, 'a From opens')
+        expect(first.from).toBeUndefined()
+        expect(first.sources).toEqual([
+            { ...onBoard, count: 2 },
+            { ...at('c1'), count: 2 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(defence.plansComplete).toBe(false)
+
+        defence.setMoves(WARNING_PLAN, [{ from: at('c1'), count: 2, to: { kind: 'board' } }])
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toHaveLength(1)
+        expect(moves.open?.from).toBeUndefined()
+        expect(moves.open?.sources).toEqual([
+            { ...onBoard, count: 4 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(defence.plansComplete).toBe(true)
+    })
+
+    it('board warbands go to two sites in one use; the send is the flat list, a site only where they go to one', async () => {
+        const session = warned()
+        const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
+        const defence = session.defence
+        defence.setMoves(WARNING_PLAN, [
+            { from: onBoard, count: 1, to: { kind: 'site', siteId: 'c1' } },
+            { from: onBoard, count: 1, to: { kind: 'site', siteId: 'c2' } },
+            { from: at('c1'), count: 2, to: { kind: 'board' } }
+        ])
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(3)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+        await defence.answer(true)
+        expect(sent).toHaveBeenLastCalledWith([
+            {
+                ...WARNING_PLAN,
+                choices: [
+                    { kind: PowerChoiceKind.Warbands, group: { ...onBoard, count: 1 } },
+                    { kind: PowerChoiceKind.Site, siteId: 'c1' },
+                    { kind: PowerChoiceKind.Warbands, group: { ...onBoard, count: 1 } },
+                    { kind: PowerChoiceKind.Site, siteId: 'c2' },
+                    { kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }
+                ]
+            }
+        ])
+    })
+
+    it('Undo takes back one pick, then the move before, then the plan', () => {
+        const defence = warned().defence
+        defence.setMoves(WARNING_PLAN, [
+            { from: at('c1'), count: 2, to: { kind: 'board' } },
+            { from: onBoard, count: 3 }
+        ])
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBe(3)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBeUndefined()
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toEqual(onBoard)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toBeUndefined()
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(1)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(0)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBe(2)
+        expect(defence.back()).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toBeUndefined()
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+    })
+
+    it('a lone From starts made; after the 16th whole move no From opens', () => {
+        const defence = warned({ [FOE]: 16 }, { c1: { [FOE]: 1 } }).defence
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toEqual(onBoard)
+        defence.setMoves(WARNING_PLAN, Array.from({ length: 16 }, () => ({ from: onBoard, count: 1 })))
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toHaveLength(16)
+        expect(moves.whole.every((move) => move.to.kind === 'site' && move.to.siteId === 'c1')).toBe(true)
+        expect(moves.open).toBeUndefined()
+        expect(defence.plansComplete).toBe(true)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
     })
 })

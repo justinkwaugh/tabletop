@@ -3,6 +3,7 @@
     import { assertExists } from '@tabletop/common'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { powerUseCards } from '$lib/model/cardChoice.js'
     import { powerKey } from '@tabletop/oath'
@@ -70,16 +71,26 @@
         </div>
         {#each usable as power (powerKey(power.cardId, power.powerIndex))}
             {@const choices = defence.planChoicesOf(power)}
+            {@const moves = defence.movesOf(power)}
             {#if defence.isDeclared(power) && choices.length > 0}
-                <div class="mb-1">
+                <div class="mb-1" data-plan-picks={power.cardId}>
                     <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
-                    <PowerChoicePicker
-                        {choices}
-                        bind:picks={
-                            () => defence.planPicksOf(power),
-                            (picks) => defence.setPlanPicks(power, picks)
-                        }
-                    />
+                    <!-- Warning Signals' moves are Messenger's: one at a time, as tiles and warband pieces. -->
+                    {#if moves}
+                        <PowerMovesPicker
+                            {moves}
+                            picks={defence.planPicksOf(power).moves}
+                            onchange={(picks) => defence.setMoves(power, picks)}
+                        />
+                    {:else}
+                        <PowerChoicePicker
+                            {choices}
+                            bind:picks={
+                                () => defence.planPicksOf(power),
+                                (picks) => defence.setPlanPicks(power, picks)
+                            }
+                        />
+                    {/if}
                 </div>
             {/if}
         {/each}

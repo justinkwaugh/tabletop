@@ -20,7 +20,7 @@ describe('a power’s moves', () => {
             { spec: optional(PowerChoiceKind.Site, sequential ? { sequential: true } : {}), options: [] }
         ]
         expect(isPowerMoves([...pair(true), ...pair(true)])).toBe(true)
-        // Warning Signals: warbands and a site, read before the power.
+        // A pair read on the state before the power (Warning Signals' before its moves were paired).
         expect(isPowerMoves(pair(false))).toBe(false)
         expect(isPowerMoves([])).toBe(false)
     })

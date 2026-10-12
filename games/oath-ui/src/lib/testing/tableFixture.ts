@@ -199,6 +199,7 @@ export type TableName =
     | 'drumAfterBrassHorse'
     | 'messenger'
     | 'messengerTwoOwners'
+    | 'warningSignals'
     | 'historyAct'
     | 'historyCampaign'
     | 'historyDeals'
@@ -2191,6 +2192,79 @@ function messengerTwoOwnersTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * Warning Signals: Rhys, an Exile, campaigns against the Ancient City, where Dana, the Chancellor,
+ * holds 4 Imperial warbands; she also rules the Steppe (2) and the Marshes (1), her board is
+ * empty, and she answers with battle plans, Warning Signals among her advisers.
+ */
+function warningSignalsTable(): PlayedTable {
+    const [city, steppe] = mapSlotsFor(Region.Cradle)
+    const [mountain, marshes] = mapSlotsFor(Region.Provinces)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: city,
+                favor: 3,
+                secrets: 1,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
+                advisers: [faceup('denizen.nomad.warning-signals')]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: city,
+                favor: 2,
+                secrets: 1,
+                warbandsOnBoard: { rhys: 5 },
+                warbandsInPersonalBank: { rhys: 10 }
+            })
+        ],
+        {
+            machineState: MachineState.CampaignPlans,
+            chancellorPlayerId: 'dana',
+            map: allMapSlots(),
+            siteCards: {
+                [city]: 'site.ancient-city',
+                [steppe]: 'site.steppe',
+                [mountain]: 'site.mountain',
+                [marshes]: 'site.marshes'
+            },
+            denizensBySite: { [city]: [], [steppe]: [], [mountain]: [], [marshes]: [] },
+            warbandsBySite: {
+                [city]: { [IMPERIAL_WARBANDS]: 4 },
+                [steppe]: { [IMPERIAL_WARBANDS]: 2 },
+                [marshes]: { [IMPERIAL_WARBANDS]: 1 }
+            },
+            campaign: {
+                attackerPlayerId: 'rhys',
+                defenderPlayerId: 'dana',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [{ kind: CampaignTargetKind.Site, siteId: city }],
+                attackPool: 5,
+                defensePool: 4,
+                attackRoll: [],
+                defenseRoll: [],
+                defense: 0,
+                swords: 0,
+                defendingForce: [
+                    { at: { kind: 'site', siteId: city }, owner: IMPERIAL_WARBANDS, count: 4 }
+                ],
+                defendingBandits: 0,
+                pendingDefenderPlans: { queue: ['dana'] },
+                ...campaignRecords()
+            }
+        }
+    )
+    openTurn(state, 'rhys')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
 /** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
 function travelCardsTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -3761,6 +3835,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     oracleNoFavor: () => oracleTable(0),
     messenger: messengerTable,
     messengerTwoOwners: messengerTwoOwnersTable,
+    warningSignals: warningSignalsTable,
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
     historyDeals: () => historyWordsTable('deals')

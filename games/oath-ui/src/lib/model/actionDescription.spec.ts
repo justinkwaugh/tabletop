@@ -1368,6 +1368,13 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             expect(describeAction(action({ type: ActionType.AnswerConsent, playerId: 'p3', granted: false, metadata: { kind: 'joinDefence', askingPlayerId: 'p2', battle } }), nameOf)).toBe("stayed out of the battle; 2 swords against 1 defense; killed a warband on Bob's board (Bear Traps)")
         })
 
+        it('Warning Signals’ moves name each site, a site to a site among them', () => {
+            const planNotes = ['Warning Signals: p3 moved 2 from slot.cradle.0 to slot.provinces.0; 1 from the board to slot.cradle.0']
+            expect(describeAction(action({ type: ActionType.CampaignDefend, playerId: 'p3', plans: [], metadata: { plansUsed: ['Warning Signals'], swords: 2, defense: 3, planNotes } }), nameOf)).toBe(
+                'used Warning Signals; 2 swords against 3 defense; moved 2 from Cradle 1 to Provinces 1; 1 from the board to Cradle 1 (Warning Signals)'
+            )
+        })
+
         it('the victor’s plans follow the spoils, after the placements', () => {
             const row = action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: IMPERIAL_WARBANDS, count: 2 }], burnFavor: false, metadata: { warbandsPlaced: 2, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, triggered: ['Field Promotion: gained 3 Imperial warbands'] } })
             expect(describeAction(row, nameOf)).toBe('took the spoils: placed 2 Imperial warbands at Provinces 1; gained 3 Imperial warbands (Field Promotion)')

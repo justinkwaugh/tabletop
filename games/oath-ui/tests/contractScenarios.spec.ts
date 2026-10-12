@@ -3448,6 +3448,123 @@ test.describe('Messenger’s moves', () => {
     })
 })
 
+/**
+ * Warning Signals: Messenger's text, so Messenger's moves in the defender's battle plans: From,
+ * How many and To as tiles and warband pieces, one move at a time; "Use plans" once a move is whole
+ * and none half-built; Undo takes back one pick, then the move, then the plan.
+ */
+test.describe('Warning Signals’ moves', () => {
+    const picks = (page: Page) => grid(page).locator('[data-plan-picks="denizen.nomad.warning-signals"]')
+    const tile = (page: Page, name: string) => picks(page).getByRole('button', { name, exact: true })
+    const pieces = (page: Page) => picks(page).getByRole('button', { name: /^How many: \d+$/ })
+    const piece = (page: Page, n: number) => picks(page).getByRole('button', { name: `How many: ${n}`, exact: true })
+    const moves = (page: Page) => picks(page).locator('[data-move]')
+    const card = (page: Page) =>
+        grid(page).locator('button[aria-pressed]').filter({ has: page.getByRole('img', { name: 'Warning Signals', exact: true }) })
+
+    async function openWarningSignals(page: Page) {
+        await openTable(page, 'warningSignals')
+        await card(page).click()
+        await expect(card(page)).toHaveAttribute('aria-pressed', 'true')
+    }
+
+    test('move 1 from a site, move 2 from the board it filled; Use plans once a move is whole', async ({ page }) => {
+        await openWarningSignals(page)
+        await expect(picks(page).locator('select')).toHaveCount(0)
+        await expect(picks(page).getByText('From:', { exact: true })).toBeVisible()
+        await expect(tile(page, 'Ancient City, 3 free')).toBeVisible()
+        await expect(tile(page, 'Steppe, 1 free')).toBeVisible()
+        await expect(picks(page).getByRole('button', { name: /^Marshes/ })).toHaveCount(0)
+        await expect(picks(page).getByRole('button', { name: /^Your board/ })).toHaveCount(0)
+        await expect(answer(page, 'Use plans')).toHaveCount(0)
+        await expect(answer(page, 'No plans')).toBeVisible()
+
+        await tile(page, 'Ancient City, 3 free').click()
+        await expect(pieces(page)).toHaveCount(3)
+        await piece(page, 2).click()
+        for (const name of ['Your board', 'Steppe', 'Marshes']) await expect(tile(page, name)).toBeVisible()
+        await expect(tile(page, 'Ancient City')).toHaveCount(0)
+        await expect(answer(page, 'Use plans')).toHaveCount(0)
+
+        await tile(page, 'Your board').click()
+        await expect(moves(page)).toHaveCount(1)
+        await expect(moves(page).first()).toHaveText(/^\s*2\s*Ancient City → your board$/)
+        await expect(answer(page, 'Use plans')).toBeVisible()
+
+        await tile(page, 'Your board, 2 free').click()
+        await expect(answer(page, 'Use plans')).toHaveCount(0)
+        await piece(page, 2).click()
+        await tile(page, 'Marshes').click()
+        await expect(moves(page)).toHaveCount(2)
+        await expect(moves(page).nth(1)).toHaveText(/^\s*2\s*your board → Marshes$/)
+        for (const name of ['Ancient City, 1 free', 'Steppe, 1 free', 'Marshes, 2 free']) await expect(tile(page, name)).toBeVisible()
+        await expect(grid(page).locator('p.text-oath-danger')).toHaveCount(0)
+
+        await answer(page, 'Use plans').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).warbandsAt['slot.provinces.1']).toEqual({ imperial: 3 })
+        const facts = await call(page, 'tableFacts')
+        expect(facts.warbandsAt['slot.cradle.0']).toEqual({ imperial: 2 })
+        expect(facts.boardOf.dana.imperial ?? 0).toBe(0)
+    })
+
+    test('Undo takes back To, then How many, then From, then the move before, then the plan', async ({ page }) => {
+        await openWarningSignals(page)
+        await tile(page, 'Ancient City, 3 free').click()
+        await piece(page, 2).click()
+        await tile(page, 'Your board').click()
+        await tile(page, 'Your board, 2 free').click()
+        await piece(page, 1).click()
+
+        await undoButton(page).click()
+        await expect(piece(page, 1)).toHaveAttribute('aria-pressed', 'false')
+        await expect(tile(page, 'Your board, 2 free')).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(moves(page)).toHaveCount(1)
+        await undoButton(page).click()
+        await expect(moves(page)).toHaveCount(0)
+        await expect(piece(page, 2)).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await undoButton(page).click()
+        await expect(pieces(page)).toHaveCount(0)
+        await expect(tile(page, 'Ancient City, 3 free')).toHaveAttribute('aria-pressed', 'false')
+        await expect(card(page)).toHaveAttribute('aria-pressed', 'true')
+        await undoButton(page).click()
+        await expect(card(page)).toHaveAttribute('aria-pressed', 'false')
+        await expect(picks(page)).toHaveCount(0)
+    })
+
+    test.describe('on a 375 px phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('every tile and warband piece is at least 44 px and inside the panel', async ({ page }) => {
+            await openWarningSignals(page)
+            await tile(page, 'Ancient City, 3 free').click()
+            await piece(page, 2).click()
+            await tile(page, 'Your board').click()
+            await tile(page, 'Your board, 2 free').click()
+            await piece(page, 2).click()
+            await panelImagesLoaded(page)
+            const panel = await boxOf(grid(page))
+            const controls = [
+                ...['Your board, 2 free', 'Ancient City, 1 free', 'Steppe, 1 free', 'Ancient City', 'Steppe', 'Marshes'].map((name) => tile(page, name)),
+                piece(page, 1),
+                piece(page, 2)
+            ]
+            for (const control of controls) {
+                const size = await layoutSizeOf(control)
+                expect(size?.height, await control.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(44)
+                const box = await boxOf(control)
+                expect(box.x).toBeGreaterThanOrEqual(panel.x)
+                expect(box.x + box.width).toBeLessThanOrEqual(panel.x + panel.width)
+            }
+            expect(await layoutSizeOf(piece(page, 1))).toEqual({ width: 44, height: 44 })
+            expect(await clippedLabels(page)).toEqual([])
+            expect(await wrappedLabels(page)).toEqual([])
+        })
+    })
+})
+
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
     await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()

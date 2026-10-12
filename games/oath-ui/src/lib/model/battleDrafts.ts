@@ -24,8 +24,9 @@ import {
     type WarbandOwner
 } from '@tabletop/oath'
 import { samePowerUse } from './powerUse.js'
-import { declaredPlan, planChoices } from './planChoices.js'
-import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
+import { declaredPlan, planChoices, planMoves, planPicksComplete } from './planChoices.js'
+import { emptyPicks, hasPicks, type PowerChoicePicks } from './powerChoices.js'
+import { withoutLastPick, type MovePick, type PowerMoves } from './powerMoves.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -447,6 +448,8 @@ void _planStagesAreCovered
 /** R-5.5.3 — one player's battle plans, each with the picks its text asks for. */
 abstract class PlanDeclarationDraft implements PanelDraft {
     private flow = new StagedFlow<PlanValueByStage>(PLAN_STAGE_ORDER)
+    // The plan whose moves were picked last: Undo takes its picks back one at a time.
+    private movesPicked: string | undefined
 
     constructor(protected readonly session: OathGameSession) {}
 
@@ -486,23 +489,47 @@ abstract class PlanDeclarationDraft implements PanelDraft {
 
     setPlanPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
         if (!this.isDeclared(use)) return
+        this.movesPicked = undefined
         this.flow.set('planPicks', {
             ...this.flow.value('planPicks'),
             [powerKey(use.cardId, use.powerIndex)]: picks
         })
     }
 
+    /** Warning Signals' moves, one at a time, each read on the state the moves before it leave. */
+    movesOf(use: PowerUseKey): PowerMoves | undefined {
+        const playerId = this.playerId
+        const power = this.usable.find((p) => samePowerUse(p, use))
+        return playerId && power && this.isDeclared(power)
+            ? planMoves(this.session.gameState, playerId, power, this.planPicksOf(power))
+            : undefined
+    }
+
+    setMoves(use: PowerUseKey, moves: MovePick[]): void {
+        if (!this.isDeclared(use)) return
+        this.setPlanPicks(use, { ...this.planPicksOf(use), moves })
+        this.movesPicked = powerKey(use.cardId, use.powerIndex)
+    }
+
+    // Read from the keys, not `plans`, which reads every declared plan's choices.
     isDeclared(use: PowerUseKey): boolean {
-        return this.plans.some((p) => samePowerUse(p, use))
+        const key = powerKey(use.cardId, use.powerIndex)
+        return (
+            this.playerId !== undefined &&
+            (this.flow.value('plans') ?? []).includes(key) &&
+            this.usable.some((p) => samePowerUse(p, use))
+        )
     }
 
     /** "Use plans" waits for a plan, and for every declared plan's picks. */
     get plansComplete(): boolean {
+        const playerId = this.playerId
         const declared = this.usable.filter((power) => this.isDeclared(power))
         return (
+            playerId !== undefined &&
             declared.length > 0 &&
             declared.every((power) =>
-                picksComplete(this.planChoicesOf(power), this.planPicksOf(power))
+                planPicksComplete(this.session.gameState, playerId, power, this.planPicksOf(power))
             )
         )
     }
@@ -527,6 +554,7 @@ abstract class PlanDeclarationDraft implements PanelDraft {
             .map((p) => powerKey(p.cardId, p.powerIndex))
             .filter((k) => k !== key)
         const picks = this.flow.value('planPicks')
+        this.movesPicked = undefined
         this.flow.set('plans', on ? [...rest, key] : rest)
         if (picks !== undefined) this.flow.set('planPicks', picks)
     }
@@ -535,11 +563,23 @@ abstract class PlanDeclarationDraft implements PanelDraft {
         return this.flow.hasManualSelection()
     }
 
+    /** Undo takes back the last move pick when moves were picked last; otherwise the last stage. */
     back(): boolean {
-        return this.flow.back() !== undefined
+        const key = this.movesPicked
+        const stored = this.flow.value('planPicks')
+        const picks = key === undefined ? undefined : stored?.[key]
+        if (key === undefined || picks === undefined || picks.moves.length === 0) {
+            this.movesPicked = undefined
+            return this.flow.back() !== undefined
+        }
+        const rest = { ...stored, [key]: { ...picks, moves: withoutLastPick(picks.moves) } }
+        if (Object.values(rest).some(hasPicks)) this.flow.set('planPicks', rest)
+        else this.flow.back()
+        return true
     }
 
     reset(): void {
+        this.movesPicked = undefined
         this.flow.reset()
     }
 }

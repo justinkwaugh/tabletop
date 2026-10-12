@@ -52,6 +52,7 @@ import {
 import {
     emptyPicks,
     favorBankSuits,
+    hasPicks,
     picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
@@ -554,20 +555,6 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
         else super.back()
         return true
     }
-}
-
-function hasPicks(picks: PowerChoicePicks): boolean {
-    return (
-        picks.moves.length > 0 ||
-        [
-            picks.option,
-            picks.count,
-            picks.terms,
-            picks.several,
-            picks.severalCount,
-            picks.bargain
-        ].some((record) => Object.keys(record).length > 0)
-    )
 }
 
 type OfferTerms = {
