@@ -14,15 +14,27 @@ export function failOnPageErrors() {
     })
 }
 
-export async function createGame(page: Page) {
+interface GameOptions {
+    seed?: string
+    santon?: boolean
+}
+
+export async function createGame(
+    page: Page,
+    { seed = '0123456789abcdef0123456789abcdef', santon = false }: GameOptions = {}
+) {
     await page.goto('/')
     await page.getByRole('button', { name: 'New game', exact: true }).click()
     await page.getByPlaceholder('choose a name for your game').fill('Austerlitz')
-    await page
-        .getByPlaceholder('optional reproduction seed')
-        .fill('0123456789abcdef0123456789abcdef')
+    await page.getByPlaceholder('optional reproduction seed').fill(seed)
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
+    if (santon) {
+        // Workaround: the option's checkbox is visually hidden behind its switch, and WebKit ignores a pointer click on it.
+        const option = page.getByLabel('The Santon').first()
+        await option.dispatchEvent('click')
+        await expect(option).toBeChecked()
+    }
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
 }
 

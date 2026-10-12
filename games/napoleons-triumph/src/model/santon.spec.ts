@@ -91,6 +91,22 @@ describe('setting up the fixed battery on the Santon (rules 6 and 18)', () => {
         expect(fixed.shown).toEqual(artillery())
     })
 
+    it('must stand on the Santon when the Santon rule is in use', () => {
+        const game = new TestGame(santonRule)
+        game.deploy(Side.Allied)
+        expect(() =>
+            game.deploy(Side.French, (deployment) => {
+                const named = deployment.fixedBattery
+                assertExists(named, 'The suggested deployment names a fixed battery')
+                deployment.detachments = []
+                deployment.fixedBattery = {
+                    unitId: named.unitId,
+                    approach: game.hydrated.map.passableApproachesOf(64)[0].id
+                }
+            })
+        ).toThrow('With the Santon in use the fixed battery sets up on the Santon')
+    })
+
     it('puts it on an approach, as anywhere else, when the rule is not in use', () => {
         const game = new TestGame()
         game.deploy(Side.Allied)

@@ -109,8 +109,9 @@ import {
 import {
     previewDeployment,
     settleFixedBattery,
+    mayNameFixedBattery,
     unitTargets,
-    withBatteryFixed,
+    withBatteryNamed,
     withCorpsOffMapToggled,
     withDetachmentRecalled,
     stanceTargets,
@@ -672,7 +673,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     nameFixedBattery(unitId: string) {
-        this.editSetup((deployment) => withBatteryFixed(deployment, unitId))
+        this.editSetup((deployment) => withBatteryNamed(this.gameState, deployment, unitId))
+    }
+
+    mayNameFixedBattery(unitId: string): boolean {
+        const deployment = this.deployment
+        return deployment !== undefined && mayNameFixedBattery(this.gameState, deployment, unitId)
     }
 
     async commitSetup() {

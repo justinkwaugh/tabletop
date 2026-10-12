@@ -3,6 +3,7 @@ import { assertExists } from '@tabletop/common'
 import {
     DETACHMENT_REACH,
     MAX_FRENCH_DETACHMENTS,
+    SANTON_LOCALE,
     Side,
     approachTowardsEnemy,
     suggestedDeployment,
@@ -13,11 +14,13 @@ import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import {
     detachmentTargets,
     fixedBatteryTargets,
+    mayNameFixedBattery,
     previewDeployment,
     settleFixedBattery,
     setupLocaleOf,
     unitTargets,
     withBatteryFixed,
+    withBatteryNamed,
     withCorpsOffMapToggled,
     withDetachmentRecalled,
     stanceTargets,
@@ -210,6 +213,98 @@ describe('the fixed battery of a set-up', () => {
 
         const withoutGuns = withCorpsOffMapToggled(withoutLannes, 'vandamme')
         expect(settleFixedBattery(state, Side.French, withoutGuns).fixedBattery).toBeUndefined()
+    })
+})
+
+describe('the fixed battery with the Santon rule in use', () => {
+    interface SantonSetup extends FrenchSetup {
+        battery: string
+    }
+
+    function santonSetup(): SantonSetup {
+        const game = new TestGame({ santon: true })
+        game.deploy(Side.Allied)
+        const state = game.hydrated
+        const deployment = settleFixedBattery(
+            state,
+            Side.French,
+            suggestedDeployment(state, Side.French)
+        )
+        const battery = deployment.fixedBattery?.unitId
+        assertExists(battery, 'The suggested French set-up names a fixed battery')
+        return { state, playerId: game.playerOf(Side.French), deployment, battery }
+    }
+
+    function standsOnTheSanton(setup: FrenchSetup, deployment: Deployment, unitId: string) {
+        expect(deployment.fixedBattery).toEqual({ unitId })
+        const preview = previewDeployment(setup.state, setup.playerId, deployment)
+        expect(preview.problem).toBeUndefined()
+        expect(preview.state?.unit(unitId).position).toEqual({ locale: SANTON_LOCALE })
+    }
+
+    it('stands on the Santon in reserve, as a detachment, with nowhere else to go', () => {
+        const setup = santonSetup()
+        const { state, playerId, deployment, battery } = setup
+        standsOnTheSanton(setup, deployment, battery)
+        expect(deployment.detachments).toEqual([
+            { unitId: battery, position: { locale: SANTON_LOCALE } }
+        ])
+        expect(fixedBatteryTargets(state, playerId, deployment)).toEqual([])
+        expect(unitTargets(state, playerId, deployment, battery)).toEqual([])
+        expect(unitTargets(state, playerId, deployment, LANNES_FOOT)).not.toEqual([])
+    })
+
+    it('goes back to the Santon when it is posted elsewhere, recalled or aimed', () => {
+        const setup = santonSetup()
+        const { state, deployment, battery } = setup
+        const edits = [
+            withUnitDetached(deployment, battery, { locale: 64 }),
+            withDetachmentRecalled(deployment, battery),
+            { ...deployment, fixedBattery: { unitId: battery, approach: 1 } }
+        ]
+        for (const edited of edits) {
+            standsOnTheSanton(setup, settleFixedBattery(state, Side.French, edited), battery)
+        }
+    })
+
+    it('passes only to artillery of a corps within reach of the Santon, and sends the unit it replaces back to its corps', () => {
+        const setup = santonSetup()
+        const { state, deployment, battery } = setup
+        expect(mayNameFixedBattery(state, deployment, battery)).toBe(false)
+        expect(mayNameFixedBattery(state, deployment, VANDAMME_GUNS)).toBe(false)
+
+        const withMurat = withUnitAssigned(deployment, VANDAMME_GUNS, 'murat')
+        expect(mayNameFixedBattery(state, withMurat, VANDAMME_GUNS)).toBe(true)
+        const passed = settleFixedBattery(
+            state,
+            Side.French,
+            withBatteryNamed(state, withMurat, VANDAMME_GUNS)
+        )
+        standsOnTheSanton(setup, passed, VANDAMME_GUNS)
+        expect(passed.detachments.map((entry) => entry.unitId)).toEqual([VANDAMME_GUNS])
+    })
+
+    it('passes to other artillery within reach when the unit named joins a corps out of reach', () => {
+        const setup = santonSetup()
+        const { state, deployment, battery } = setup
+        const swapped = withUnitAssigned(
+            withUnitAssigned(deployment, VANDAMME_GUNS, 'murat'),
+            battery,
+            'vandamme'
+        )
+        standsOnTheSanton(setup, settleFixedBattery(state, Side.French, swapped), VANDAMME_GUNS)
+    })
+
+    it('says why the army cannot deploy when no artillery is within reach of the Santon', () => {
+        const { state, playerId, deployment, battery } = santonSetup()
+        const outOfReach = settleFixedBattery(
+            state,
+            Side.French,
+            withUnitAssigned(deployment, battery, 'vandamme')
+        )
+        expect(previewDeployment(state, playerId, outOfReach).problem).toBe(
+            'With the Santon in use the fixed battery sets up on the Santon'
+        )
     })
 })
 

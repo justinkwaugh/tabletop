@@ -44,6 +44,36 @@ export function previewDeployment(
     return problem === undefined ? { state: deployed } : { problem }
 }
 
+// Table ruling: with the Santon rule in use the fixed battery stands on the Santon, in reserve. No corps sets up there, so the artillery unit is detached to it from a corps within reach, the one named if it can be.
+function settleOnTheSanton(
+    state: HydratedNapoleonsTriumphGameState,
+    deployment: Deployment
+): Deployment | undefined {
+    const map = state.map
+    const stepsFromTheSanton = (commanderId: string): number =>
+        map.distance(setupLocaleOf(map, commanderId).id, SANTON_LOCALE) ?? Infinity
+    const withinReach = deployment.corps
+        .filter(
+            (corps) => !corps.offMap && stepsFromTheSanton(corps.commanderId) <= DETACHMENT_REACH
+        )
+        .toSorted((a, b) => stepsFromTheSanton(a.commanderId) - stepsFromTheSanton(b.commanderId))
+        .flatMap((corps) => corps.unitIds)
+        .filter((unitId) => state.unit(unitId).face?.type === UnitType.Artillery)
+    const named = deployment.fixedBattery?.unitId
+    const unitId = named !== undefined && withinReach.includes(named) ? named : withinReach[0]
+    if (unitId === undefined) {
+        return undefined
+    }
+    return {
+        ...deployment,
+        detachments: [
+            ...deployment.detachments.filter((entry) => entry.unitId !== unitId),
+            { unitId, position: { locale: SANTON_LOCALE } }
+        ],
+        fixedBattery: { unitId }
+    }
+}
+
 // Rule 6, step 9: a French set-up with artillery on the map names a fixed battery, on an approach unless it is on the Santon.
 export function settleFixedBattery(
     state: HydratedNapoleonsTriumphGameState,
@@ -52,6 +82,10 @@ export function settleFixedBattery(
 ): Deployment {
     if (side !== Side.French) {
         return deployment
+    }
+    const onTheSanton = state.santon ? settleOnTheSanton(state, deployment) : undefined
+    if (onTheSanton) {
+        return onTheSanton
     }
     const map = state.map
     const gunsOnMap = deployment.corps
@@ -66,9 +100,6 @@ export function settleFixedBattery(
     const detachment = deployment.detachments.find((entry) => entry.unitId === battery.unitId)
     const locale = detachment?.position.locale ?? setupLocaleOf(map, battery.corps.commanderId).id
     const standing = detachment ? detachment.position.approach : battery.corps.approach
-    if (state.santon && locale === SANTON_LOCALE && standing === undefined) {
-        return { ...deployment, fixedBattery: { unitId: battery.unitId } }
-    }
     const approaches = map.passableApproachesOf(locale).map((approach) => approach.id)
     // Guns detached onto an approach stand where the player put them, whatever approach was named for them before.
     const posted = detachment !== undefined && standing !== undefined
@@ -176,6 +207,33 @@ export function withBatteryFixed(deployment: Deployment, unitId: string): Deploy
     return { ...deployment, fixedBattery: { unitId } }
 }
 
+/** Names other artillery as the fixed battery; with the Santon rule in use the unit it replaces goes back to its corps from the Santon. */
+export function withBatteryNamed(
+    state: HydratedNapoleonsTriumphGameState,
+    deployment: Deployment,
+    unitId: string
+): Deployment {
+    const replaced = deployment.fixedBattery?.unitId
+    return withBatteryFixed(
+        state.santon && replaced !== undefined
+            ? withDetachmentRecalled(deployment, replaced)
+            : deployment,
+        unitId
+    )
+}
+
+export function mayNameFixedBattery(
+    state: HydratedNapoleonsTriumphGameState,
+    deployment: Deployment,
+    unitId: string
+): boolean {
+    return (
+        deployment.fixedBattery?.unitId !== unitId &&
+        settleFixedBattery(state, Side.French, withBatteryNamed(state, deployment, unitId))
+            .fixedBattery?.unitId === unitId
+    )
+}
+
 function fixedBatteryLocale(map: BattleMap, deployment: Deployment): number | undefined {
     const battery = deployment.fixedBattery
     if (!battery) {
@@ -214,7 +272,7 @@ export function fixedBatteryTargets(
     deployment: Deployment
 ): ApproachTarget[] {
     const locale = fixedBatteryLocale(state.map, deployment)
-    if (locale === undefined) {
+    if (locale === undefined || state.santon) {
         return []
     }
     const standsOn = previewDeployment(state, playerId, deployment).state?.unit(
@@ -249,6 +307,9 @@ export function unitTargets(
     const posts = detachmentTargets(state, playerId, deployment, unitId)
     if (deployment.fixedBattery?.unitId !== unitId) {
         return posts
+    }
+    if (state.santon) {
+        return []
     }
     const locale = fixedBatteryLocale(state.map, deployment)
     return [

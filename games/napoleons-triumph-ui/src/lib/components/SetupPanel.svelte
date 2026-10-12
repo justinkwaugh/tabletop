@@ -1,7 +1,9 @@
 <script lang="ts">
     import {
         MAX_CORPS_UNITS,
+        DETACHMENT_REACH,
         MAX_FRENCH_DETACHMENTS,
+        SANTON_LOCALE,
         Scenario,
         Side,
         UnitType,
@@ -41,15 +43,20 @@
         return `at ${place}, facing ${game.map.label(game.map.approach(corps.approach).neighbour)}`
     }
 
-    const batteryAim = $derived.by(() => {
+    const batteryPosition = $derived.by(() => {
         const battery = deployment?.fixedBattery?.unitId
-        const approach = battery
-            ? gameSession.setupPreview.state?.unit(battery).position?.approach
-            : undefined
-        return approach === undefined
-            ? undefined
-            : game.map.label(game.map.approach(approach).neighbour)
+        return battery ? gameSession.setupPreview.state?.unit(battery).position : undefined
     })
+    const batteryAim = $derived(
+        batteryPosition?.approach === undefined
+            ? undefined
+            : game.map.label(game.map.approach(batteryPosition.approach).neighbour)
+    )
+    const batteryOnTheSanton = $derived(
+        game.santon &&
+            batteryPosition?.locale === SANTON_LOCALE &&
+            batteryPosition.approach === undefined
+    )
 
     function marker(unitId: string): string | undefined {
         if (deployment?.fixedBattery?.unitId === unitId) {
@@ -67,9 +74,16 @@
                 : ''}. To change where a corps stands, tap it on the map and then an approach of its
             locale, or the locale to hold it in reserve.
             {#if side === Side.French && deployment.fixedBattery}
-                One artillery unit is your fixed battery: it blocks an approach and never moves
-                again. Pick it to aim it at another approach of its locale, or pick another
-                artillery unit to make that one the fixed battery.
+                {#if game.santon}
+                    One artillery unit is your fixed battery. With the Santon in use it stands on
+                    the Santon, in reserve, as one of your detachments, and cannot be moved. Other
+                    artillery of a corps within {DETACHMENT_REACH} locales of the Santon can take its
+                    place: pick it to make it the fixed battery.
+                {:else}
+                    One artillery unit is your fixed battery: it blocks an approach and never moves
+                    again. Pick it to aim it at another approach of its locale, or pick another
+                    artillery unit to make that one the fixed battery.
+                {/if}
             {/if}
         </div>
         <div class="nt-setup-corps">
@@ -122,7 +136,7 @@
         </div>
         <div class="nt-setup-footer">
             {#if picked !== undefined}
-                {#if detached.has(picked)}
+                {#if detached.has(picked) && !(game.santon && deployment.fixedBattery?.unitId === picked)}
                     <button
                         type="button"
                         class="nt-plain-button"
@@ -130,13 +144,18 @@
                         >Return it to its corps</button
                     >
                 {/if}
-                {#if deployment.fixedBattery?.unitId === picked && batteryAim}
+                {#if deployment.fixedBattery?.unitId === picked && batteryAim && !game.santon}
                     <span class="nt-setup-hint"
                         >The fixed battery faces {batteryAim}. Tap another approach of its locale to
                         turn it there.</span
                     >
+                {:else if deployment.fixedBattery?.unitId === picked && batteryOnTheSanton}
+                    <span class="nt-setup-hint"
+                        >The fixed battery stays on the Santon, in reserve, and can fire across any
+                        of its approaches.</span
+                    >
                 {/if}
-                {#if pickedIsArtillery && pickedOnMap && side === Side.French && deployment.fixedBattery?.unitId !== picked}
+                {#if pickedIsArtillery && pickedOnMap && side === Side.French && gameSession.mayNameFixedBattery(picked)}
                     <button
                         type="button"
                         class="nt-plain-button"

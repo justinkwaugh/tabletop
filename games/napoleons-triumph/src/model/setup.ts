@@ -11,7 +11,7 @@ import {
 } from '../components/pieces.js'
 import { Scenario } from '../components/timeTrack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { legal } from './legality.js'
+import { isLegal, legal } from './legality.js'
 import { Position, faceOf, samePosition, type ProjectedUnit } from './pieces.js'
 import { ALLIED_OBJECTIVES } from './victory.js'
 
@@ -225,8 +225,12 @@ function validateFixedBattery(
     legal(battery !== undefined, 'The French name one battery on the map as their fixed battery')
     const placement = artilleryOnMap.find((candidate) => candidate.unit.id === battery.unitId)
     legal(placement?.position !== undefined, 'The fixed battery is an artillery unit on the map')
-    const onSanton = state.santon && placement.position.locale === SANTON_LOCALE
-    if (onSanton) {
+    // Table ruling: with the Santon rule in use the fixed battery stands on the Santon, as it did. Rule 18 itself only says what follows if it sets up there.
+    if (state.santon) {
+        legal(
+            placement.position.locale === SANTON_LOCALE,
+            'With the Santon in use the fixed battery sets up on the Santon'
+        )
         legal(
             placement.position.approach === undefined && battery.approach === undefined,
             'A fixed battery on the Santon sets up in reserve'
@@ -331,6 +335,38 @@ export function approachTowardsEnemy(
     )
 }
 
+function stepsFromTheSanton(state: HydratedNapoleonsTriumphGameState, commanderId: string): number {
+    return state.map.distance(setupLocaleOf(state, commanderId).id, SANTON_LOCALE) ?? Infinity
+}
+
+// With the Santon rule in use the fixed battery stands on the Santon: the suggestion sends the artillery of the nearest corps, which is one of the six detachments.
+function fixedBatteryOnTheSanton(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    deployment: Deployment
+): Deployment | undefined {
+    const posted = deployment.corps
+        .filter((corps) => !corps.offMap)
+        .toSorted(
+            (a, b) =>
+                stepsFromTheSanton(state, a.commanderId) - stepsFromTheSanton(state, b.commanderId)
+        )
+        .flatMap((corps) =>
+            corps.unitIds.filter((id) => faceOf(state.unit(id)).type === UnitType.Artillery)
+        )
+        .map((unitId): Deployment => ({
+            ...deployment,
+            detachments: [{ unitId, position: { locale: SANTON_LOCALE } }],
+            fixedBattery: { unitId }
+        }))
+    return posted.find((candidate) =>
+        isLegal(() => {
+            validateDetachments(state, playerId, candidate)
+            validateFixedBattery(state, playerId, candidate, placements(state, candidate))
+        })
+    )
+}
+
 export function suggestedDeployment(
     state: HydratedNapoleonsTriumphGameState,
     side: Side
@@ -374,6 +410,20 @@ export function suggestedDeployment(
             )
         }
     }
+    if (side === Side.French && state.santon) {
+        // The fixed battery is detached to the Santon, so the corps nearest it is given artillery before the rest is dealt out.
+        const nearest = commanders
+            .filter((commander) => !offMap(commander.id))
+            .reduce((best, commander) =>
+                stepsFromTheSanton(state, commander.id) < stepsFromTheSanton(state, best.id)
+                    ? commander
+                    : best
+            )
+        take(
+            nearest.id,
+            firstWith(pool, (unit) => faceOf(unit).type === UnitType.Artillery)
+        )
+    }
     while (pool.length > 0) {
         const open = commanders.filter((commander) => sizeOf(commander.id) < roomFor(commander.id))
         assert(open.length > 0, 'The army does not fit its set-up locales')
@@ -391,6 +441,11 @@ export function suggestedDeployment(
     if (side !== Side.French) {
         return deployment
     }
+    if (state.santon) {
+        const onTheSanton = fixedBatteryOnTheSanton(state, playerId, deployment)
+        assertExists(onTheSanton, 'No artillery of the suggested set-up reaches the Santon')
+        return onTheSanton
+    }
     for (const entry of corps) {
         const battery = entry.unitIds.find(
             (id) => faceOf(state.unit(id)).type === UnitType.Artillery
@@ -399,10 +454,10 @@ export function suggestedDeployment(
             continue
         }
         const locale = setupLocaleOf(state, entry.commanderId)
-        const onSanton = state.santon && locale.id === SANTON_LOCALE
-        deployment.fixedBattery = onSanton
-            ? { unitId: battery }
-            : { unitId: battery, approach: approachTowardsEnemy(state, playerId, locale.id).id }
+        deployment.fixedBattery = {
+            unitId: battery,
+            approach: approachTowardsEnemy(state, playerId, locale.id).id
+        }
         break
     }
     return deployment
