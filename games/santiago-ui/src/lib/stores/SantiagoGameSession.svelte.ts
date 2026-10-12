@@ -80,6 +80,13 @@ export class SantiagoGameSession extends GameSession<
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
+    private incoming: HydratedSantiagoGameState | undefined
+
+    // The state the running transition will publish, so animators can preview where it leads;
+    // otherwise the visible state.
+    get incomingGameState(): HydratedSantiagoGameState {
+        return this.incoming ?? this.gameState
+    }
 
     get landMood(): LandMood {
         return landMood(this.gameState)
@@ -116,12 +123,15 @@ export class SantiagoGameSession extends GameSession<
         newState: HydratedSantiagoGameState,
         oldState?: HydratedSantiagoGameState
     ) {
+        this.incoming = newState
         try {
             await super.notifyStateChangeListeners(newState, oldState)
         } catch (error) {
             this.clearAnimationPreviews()
             this.landMoodAnimator.settle(this.landMood)
             throw error
+        } finally {
+            this.incoming = undefined
         }
     }
 
@@ -299,10 +309,35 @@ export class SantiagoGameSession extends GameSession<
         return { playerId: this.myPlayer?.id, isMyTurn: this.isMyTurn }
     }
 
-    // Who the session will present, and whether it will be their turn, once `state` is visible.
+    // Who the session will present, and whether it will be their turn, once `state` is visible,
+    // following the shared session's rules as far as its public members show them. It cannot see a
+    // host perspective, so a hotseat game shown from one may preview the active player instead, and
+    // the bar settles when the state publishes.
     viewerIn(state: HydratedSantiagoGameState): Viewer {
-        const { player, isMyTurn } = this.perspectiveIn(state)
-        return { playerId: player?.id, isMyTurn }
+        const players = this.game.players
+        const isActive = (playerId: string | undefined) =>
+            playerId !== undefined && state.activePlayerIds.includes(playerId)
+        const firstActive = players.find((player) => isActive(player.id))?.id
+        if (this.isViewingAsNonActivePlayer) {
+            return { playerId: players.find((player) => !isActive(player.id))?.id, isMyTurn: false }
+        }
+        if (this.isExploring) return { playerId: firstActive, isMyTurn: true }
+        if (this.isActingAdmin) {
+            const adminPlayerId = isActive(this.adminPlayerId)
+                ? this.adminPlayerId
+                : state.activePlayerIds.length === 1
+                  ? state.activePlayerIds[0]
+                  : undefined
+            if (adminPlayerId) return { playerId: adminPlayerId, isMyTurn: true }
+        }
+        const visibleFirstActive = players.find((player) =>
+            this.gameState.activePlayerIds.includes(player.id)
+        )?.id
+        if (this.game.hotseat && this.myPlayer?.id === visibleFirstActive) {
+            return { playerId: firstActive, isMyTurn: true }
+        }
+        const playerId = this.myPlayer?.id
+        return { playerId, isMyTurn: isActive(playerId) }
     }
 
     // Dispatches a board click on a canal segment to the right action for the current phase.
