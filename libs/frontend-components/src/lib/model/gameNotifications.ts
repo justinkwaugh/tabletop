@@ -134,6 +134,7 @@ export class GameNotifications {
                         branch: unmergedBranch.branch,
                         actions: this.convertActions(unmergedBranch.actions)
                     },
+                    undoneActionIds: notification.data.undoneActionIds ?? [],
                     game: this.convertGame(notification.data.game),
                     perspective: notification.data.perspective
                 })

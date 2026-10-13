@@ -43,6 +43,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     context?: GameContext<T, U> = $state.raw()
     private followed: T
     private requestedAt?: ActionHistoryPosition
+    private readonly undoneActionIds = new Set<string>()
     private reconciliation?: GameReconciliation<T, U>
     private joinedHistory?: JoinedBranchHistory<T, U>
 
@@ -130,12 +131,17 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     }
 
     acceptUndo(before: GameContext<T, U>, sent: UnmergedBranch): void {
-        const branch = this.context
-        assertExists(branch, 'There is no Branch for the host to have undone in')
-        branch.restoreFrom(this.undoneTo(before, sent))
+        const undone = before.actions.filter(
+            (action) => action.index !== undefined && action.index >= sent.branch.actionCount
+        )
+        this.undoTo(
+            sent,
+            undone.map((action) => action.id)
+        )
     }
 
-    followPublished(sent: UnmergedBranch): boolean {
+    followPublished(sent: UnmergedBranch, undoneActionIds: readonly string[]): boolean {
+        this.track(undefined)
         const { context: branch, reconciliation } = this
         const span = this.awaitedSpan()
         if (
@@ -146,23 +152,31 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         ) {
             return false
         }
-        const held = branch.state.actionCount
-        if (sent.actions.length > 0 && sent.actions[0].index === held) {
-            reconciliation.applyProcessed(sent.actions)
-        } else if (sent.branch.actionCount < held) {
-            branch.restoreFrom(this.undoneTo(branch, sent))
+        if (undoneActionIds.some((id) => branch.hasAction(id))) {
+            this.undoTo(sent, undoneActionIds)
+            return true
         }
+        const added = sent.actions.filter(
+            (action) => !branch.hasAction(action.id) && !this.undoneActionIds.has(action.id)
+        )
+        if (added.length === 0) return true
+        if (added[0].index !== branch.state.actionCount) return false
+        reconciliation.applyProcessed(added)
         return sameHistoryPosition(branch.state, sent.branch)
     }
 
-    private undoneTo(from: GameContext<T, U>, sent: UnmergedBranch): GameContext<T, U> {
-        const undone = from.clone()
+    private undoTo(sent: UnmergedBranch, undoneActionIds: readonly string[]): void {
+        this.track(undefined)
+        const branch = this.context
+        assertExists(branch, 'There is no Branch for the host to have undone in')
+        for (const id of undoneActionIds) this.undoneActionIds.add(id)
+        const undone = branch.clone()
         while (undone.nextActionIndex > sent.branch.actionCount) {
             assertExists(undone.popAction(), 'The Branch has no Action left to undo')
         }
         undone.updateGameState(branchView(this.mainLine.state, sent.branch))
         undone.verifyFullChecksum()
-        return undone
+        branch.restoreFrom(undone)
     }
 
     hydrateHistory({ context, unmergedBranch }: LoadedGame<T, U>): boolean {
@@ -184,6 +198,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     }
 
     private hold(context: GameContext<T, U> | undefined): void {
+        this.undoneActionIds.clear()
         this.context = context
         this.reconciliation = context && new GameReconciliation(context)
     }
@@ -225,7 +240,8 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         const playerId = this.session.playerId()
         const current = this.context
         const span = this.awaitedSpan()
-        if (playerId === undefined || (current === undefined && span === undefined)) return
+        if (playerId === undefined) return
+        if (current === undefined && (span === undefined || sent === undefined)) return
 
         const replay = { engine: this.engine, game: mainLine.game, playerId }
         const held = current && branchFromView(before, current.state, playerId)
@@ -245,9 +261,12 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
                     })
                 ]
             )
-        } else if (current === undefined) {
-            return
-        } else if (held !== undefined && span !== undefined && belongsToSpan(held, span)) {
+        } else if (
+            current !== undefined &&
+            held !== undefined &&
+            span !== undefined &&
+            belongsToSpan(held, span)
+        ) {
             current.updateGameState(branchView(mainLine.state, held))
             this.session.onChange(merged)
         } else {

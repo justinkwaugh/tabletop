@@ -49,7 +49,7 @@ class Notifications extends DummyNotificationService {
 class Remote extends DummyRemoteApiService {
     readonly perspective: Visibility.Perspective
     onMainLine?: (submission: SpanHostSubmission) => Promise<void>
-    onBranch?: (unmergedBranch: UnmergedBranch) => Promise<void>
+    onBranch?: (unmergedBranch: UnmergedBranch, undoneActionIds?: string[]) => Promise<void>
     onReplaced?: (startIndex: number) => Promise<void>
     pendingAcceptance?: Promise<void>
     syncChecks = 0
@@ -194,7 +194,9 @@ class Remote extends DummyRemoteApiService {
         if (this.host.state.actionChecksum !== checksumBefore) {
             await this.onReplaced?.(undone.replay.startIndex)
         }
-        if (unmergedBranch !== undefined) await this.onBranch?.(unmergedBranch)
+        if (unmergedBranch !== undefined) {
+            await this.onBranch?.(unmergedBranch, undone.undoneActionIds)
+        }
         return {
             game: structuredClone(this.host.game),
             actionReplay,
@@ -216,7 +218,7 @@ interface Client {
     session: SpanSession
     api: Remote
     receive(submission: SpanHostSubmission): Promise<void>
-    receiveBranch(unmergedBranch: UnmergedBranch): Promise<void>
+    receiveBranch(unmergedBranch: UnmergedBranch, undoneActionIds?: string[]): Promise<void>
     receiveReplacement(startIndex: number): Promise<void>
     dispose(): void
 }
@@ -264,6 +266,21 @@ async function table(options: SpanGameOptions = {}) {
         })
         session.listenToGame()
         await settle(session)
+        const emit = (id: string, action: GameNotificationAction, data: object) =>
+            notifications.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.User,
+                notification: {
+                    id,
+                    type: NotificationCategory.Game,
+                    action,
+                    data: {
+                        game: structuredClone(host.game),
+                        ...data,
+                        perspective: api.perspective
+                    }
+                }
+            })
         const client: Client = {
             playerId,
             session,
@@ -271,54 +288,32 @@ async function table(options: SpanGameOptions = {}) {
             async receive(submission: SpanHostSubmission) {
                 const actions = api.projectMainLine(submission)
                 if (actions.length === 0) return
-                await notifications.emit({
-                    eventType: NotificationEventType.Data,
-                    channel: NotificationChannel.User,
-                    notification: {
-                        id: `delivery-${actions[0].id}`,
-                        type: NotificationCategory.Game,
-                        action: GameNotificationAction.AddProjectedActions,
-                        data: {
-                            game: structuredClone(host.game),
-                            actions,
-                            perspective: api.perspective
-                        }
-                    }
-                })
+                await emit(
+                    `delivery-${actions[0].id}`,
+                    GameNotificationAction.AddProjectedActions,
+                    { actions }
+                )
                 await settle(session)
             },
-            async receiveBranch(unmergedBranch: UnmergedBranch) {
-                await notifications.emit({
-                    eventType: NotificationEventType.Data,
-                    channel: NotificationChannel.User,
-                    notification: {
-                        id: `branch-${unmergedBranch.branch.actionChecksum}`,
-                        type: NotificationCategory.Game,
-                        action: GameNotificationAction.UpdateBranch,
-                        data: {
-                            game: structuredClone(host.game),
-                            unmergedBranch: structuredClone(unmergedBranch),
-                            perspective: api.perspective
-                        }
+            async receiveBranch(unmergedBranch: UnmergedBranch, undoneActionIds?: string[]) {
+                await emit(
+                    `branch-${unmergedBranch.branch.actionChecksum}`,
+                    GameNotificationAction.UpdateBranch,
+                    {
+                        unmergedBranch: structuredClone(unmergedBranch),
+                        ...(undoneActionIds === undefined ? {} : { undoneActionIds })
                     }
-                })
+                )
             },
             async receiveReplacement(startIndex: number) {
-                await notifications.emit({
-                    eventType: NotificationEventType.Data,
-                    channel: NotificationChannel.User,
-                    notification: {
-                        id: `replacement-${host.state.actionChecksum}`,
-                        type: NotificationCategory.Game,
-                        action: GameNotificationAction.ReplaceProjectedActions,
-                        data: {
-                            game: structuredClone(host.game),
-                            actionReplay: api.replayFrom(startIndex),
-                            checksum: host.state.actionChecksum,
-                            perspective: api.perspective
-                        }
+                await emit(
+                    `replacement-${host.state.actionChecksum}`,
+                    GameNotificationAction.ReplaceProjectedActions,
+                    {
+                        actionReplay: api.replayFrom(startIndex),
+                        checksum: host.state.actionChecksum
                     }
-                })
+                )
                 await settle(session)
             },
             dispose() {
@@ -336,9 +331,11 @@ async function table(options: SpanGameOptions = {}) {
                 if (other !== client) await other.receive(submission)
             }
         }
-        api.onBranch = async (unmergedBranch) => {
+        api.onBranch = async (unmergedBranch, undoneActionIds) => {
             for (const sameUser of clients) {
-                if (sameUser.playerId === playerId) await sameUser.receiveBranch(unmergedBranch)
+                if (sameUser.playerId === playerId) {
+                    await sameUser.receiveBranch(unmergedBranch, undoneActionIds)
+                }
             }
         }
         clients.push(client)
@@ -1012,6 +1009,165 @@ export async function runHostedSpanClosesCross() {
                 !p2.session.isMyTurn,
             withoutFallingBackToASync:
                 p2.api.syncChecks === syncsBefore && !p2.session.synchronizationFailed
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanBeginsWhileAnimating() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        p1.session.animationMillisecondsFor['begin:p1'] = 120
+        p1.session.shown.length = 0
+        await p1.session.act('begin', 'begin')
+        await new Promise((resolve) => setTimeout(resolve, 250))
+        await settle(p1.session)
+        return {
+            playsTheBeginningThenTheBranchStart:
+                p1.session.shown.join() === 'begin:p1,openBranch:p1',
+            endsShowingOwnBranch:
+                p1.session.gameState.parallelSpan?.branchPlayerId === 'p1' &&
+                p1.session.gameState.activePlayerIds.join() === 'p1' &&
+                p1.session.isMyTurn
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanLateBranchUpdates() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+
+        const receiveBranch = p2.receiveBranch
+        let late: (() => Promise<void>)[] = []
+        const holdBack = () => {
+            late = []
+            p2.receiveBranch = async (...update) => {
+                late.push(() => receiveBranch(...update))
+            }
+        }
+        const deliver = async (update: () => Promise<void>) => {
+            await update()
+            await settle(p2.session)
+            await new Promise((resolve) => setTimeout(resolve, 30))
+            await settle(p2.session)
+        }
+
+        holdBack()
+        await p2.session.act('work', 'w2a')
+        await p2.session.act('work', 'w2b')
+        const syncsBefore = p2.api.syncChecks
+        p2.session.shown.length = 0
+        await deliver(late[0])
+        const keepsTheLaterAction =
+            played(p2.session) === 'openBranch:p2,work:p2,work:p2' && p2.session.shown.length === 0
+        await deliver(late[1])
+        const ignoresWhatItAlreadyHolds =
+            played(p2.session) === 'openBranch:p2,work:p2,work:p2' && p2.session.shown.length === 0
+
+        holdBack()
+        await p2.session.act('work', 'w2c')
+        await p2.session.undo()
+        await settle(p2.session)
+        const undone = played(p2.session) === 'openBranch:p2,work:p2,work:p2'
+        p2.session.shown.length = 0
+        await deliver(late[0])
+        const ignoresAnActionItHasUndone =
+            undone &&
+            played(p2.session) === 'openBranch:p2,work:p2,work:p2' &&
+            p2.session.shown.length === 0
+        await p2.session.act('work', 'w2d')
+        p2.session.shown.length = 0
+        await deliver(late[1])
+        const ignoresAnUndoItHasMade =
+            played(p2.session) === 'openBranch:p2,work:p2,work:p2,work:p2' &&
+            p2.session.shown.length === 0
+
+        return {
+            keepsTheLaterAction,
+            ignoresWhatItAlreadyHolds,
+            ignoresAnActionItHasUndone,
+            ignoresAnUndoItHasMade,
+            withoutAnySyncCheck: p2.api.syncChecks === syncsBefore,
+            staysInStepWithTheHost:
+                t.host.unmergedBranch('p2')?.branch.actionChecksum ===
+                p2.session.gameState.dehydrate().actionChecksum
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanUndoBehindTheMainLine() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p2.session.act('work', 'w2')
+
+        const merged = t.host.submit(spanAction('f3', 'finish', 'p3'))
+        const syncsBefore = p2.api.syncChecks
+        await p2.session.undo()
+        await settle(p2.session)
+        const undoesWithoutTheMainLine =
+            played(p2.session) === 'openBranch:p2' &&
+            t.host.unmergedBranch('p2')?.branch.actionCount === 1 &&
+            p2.api.syncChecks === syncsBefore
+        await p2.receive(merged)
+        return {
+            undoesWithoutTheMainLine,
+            thenFollowsTheMainLine:
+                played(p2.session) === 'openBranch:p2' &&
+                p2.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3' &&
+                p2.api.syncChecks === syncsBefore &&
+                p2.session.isMyTurn
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanReopenBehindTheMainLine() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+
+        t.host.submit(spanAction('r3', 'roll', 'p3'))
+        t.host.submit(spanAction('f3', 'finish', 'p3'))
+        await p1.session.undo()
+        await settle(p1.session)
+        await p1.session.retrySynchronization()
+        await settle(p1.session)
+
+        const others = (state: { players: { playerId: string }[] }) =>
+            JSON.stringify(state.players.filter((player) => player.playerId !== 'p1'))
+        return {
+            reopened:
+                played(p1.session) === 'openBranch:p1' &&
+                p1.session.isMyTurn &&
+                t.host.unmergedBranch('p1')?.branch.closed === false,
+            showsTheOtherMergeOnce:
+                others(p1.session.gameState.dehydrate()) === others(t.host.state) &&
+                p1.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3',
+            stillAgreesAfterTheirOwnPlay: await (async () => {
+                await p1.session.act('work', 'w1')
+                await p2.session.retrySynchronization()
+                return others(p1.session.gameState.dehydrate()) === others(t.host.state)
+            })()
         }
     } finally {
         t.dispose()

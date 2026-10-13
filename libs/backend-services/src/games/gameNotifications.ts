@@ -177,15 +177,13 @@ export async function publishUndoResults({
 
 export async function publishBranchUpdate({
     game,
-    state,
     unmergedBranch,
-    visibility,
+    undoneActionIds,
     notificationService
 }: {
     game: Game
-    state: GameState
     unmergedBranch: UnmergedBranch
-    visibility: Visibility.GameVisibility<GameState>
+    undoneActionIds: string[]
     notificationService: NotificationSender
 }): Promise<void> {
     const playerId = unmergedBranch.branch.playerId
@@ -194,12 +192,8 @@ export async function publishBranchUpdate({
     await publish({
         data: {
             game: omitGameState(game),
-            unmergedBranch: Visibility.projectUnmergedBranch({
-                game,
-                state,
-                ...unmergedBranch,
-                visibility
-            }),
+            unmergedBranch,
+            ...(undoneActionIds.length === 0 ? {} : { undoneActionIds }),
             perspective: { kind: 'player', playerId }
         },
         action: GameNotificationAction.UpdateBranch,

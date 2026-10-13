@@ -222,6 +222,7 @@ describe('GameNotifications', () => {
                 branch,
                 actions: [{ ...f.action, createdAt: f.game.createdAt }]
             },
+            undoneActionIds: [],
             game: f.game,
             perspective: data.perspective
         })

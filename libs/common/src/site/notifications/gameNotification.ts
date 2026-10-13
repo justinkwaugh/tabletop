@@ -77,6 +77,7 @@ export type GameNotificationUpdateBranchData = Type.Static<typeof GameNotificati
 export const GameNotificationUpdateBranchData = Type.Object({
     game: GameWithoutState,
     unmergedBranch: UnmergedBranch,
+    undoneActionIds: Type.Optional(Type.Array(Type.String())),
     perspective: Perspective
 })
 

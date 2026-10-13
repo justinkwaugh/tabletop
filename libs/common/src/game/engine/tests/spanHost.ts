@@ -13,6 +13,7 @@ export interface SpanHostSubmission {
 
 export interface SpanHostUndo {
     readonly unmergedBranch: UnmergedBranch
+    readonly undoneActionIds: string[]
     readonly replay: { readonly startIndex: number; readonly actions: GameAction[] }
 }
 
@@ -53,7 +54,11 @@ export class SpanHost {
         const undone = this.engine.undoBranchAction({ state: this.state, ...record, actionId })
         const kept = record.actions.slice(0, record.actions.length - undone.undoneActions.length)
         this.branches.set(playerId, { branch: undone.branch, actions: kept })
-        return { unmergedBranch: { branch: undone.branch, actions: [] }, replay }
+        return {
+            unmergedBranch: { branch: undone.branch, actions: [] },
+            undoneActionIds: undone.undoneActions.map((action) => action.id),
+            replay
+        }
     }
 
     private reopenOnMainLine(playerId: string): SpanHostUndo['replay'] {

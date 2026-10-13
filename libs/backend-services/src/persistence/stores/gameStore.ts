@@ -26,7 +26,7 @@ export type BranchWriteValidator = (existing: {
     game: Game
     state: GameState
     branch: Branch | undefined
-}) => Promise<UpdateValidationResult>
+}) => Promise<void>
 
 export interface UnmergedBranchWrite {
     readonly branch: Branch
@@ -36,7 +36,7 @@ export interface UnmergedBranchWrite {
 
 export interface UnmergedBranchWrites {
     readonly set: readonly UnmergedBranchWrite[]
-    readonly removeBranchesOf: readonly string[]
+    readonly removeBranchesOf: readonly string[] | 'all'
     readonly watchBranchesOf?: readonly string[]
 }
 
@@ -76,7 +76,8 @@ export interface GameStore {
     writeFullGameData(
         game: Game,
         state: GameState,
-        actions: GameAction[]
+        actions: GameAction[],
+        unmergedBranches?: readonly UnmergedBranchWrite[]
     ): Promise<{
         storedGame: Game
         storedGameState: GameState
@@ -120,7 +121,7 @@ export interface GameStore {
         gameId: string
         write: UnmergedBranchWrite
         validator: BranchWriteValidator
-    }): Promise<{ written: boolean }>
+    }): Promise<void>
 
     addActionsToGame({
         game,
@@ -146,18 +147,14 @@ export interface GameStore {
         actions,
         redoneActions,
         state,
-        removeUnmergedBranches,
-        setUnmergedBranches,
-        watchBranchesOf,
+        unmergedBranchWrites,
         validator
     }: {
         gameId: string
         actions: GameAction[]
         redoneActions: GameAction[]
         state: GameState
-        removeUnmergedBranches?: boolean
-        setUnmergedBranches?: readonly UnmergedBranchWrite[]
-        watchBranchesOf?: readonly string[]
+        unmergedBranchWrites?: UnmergedBranchWrites
         validator?: ActionUndoValidator
     }): Promise<{
         undoneActions: GameAction[]
@@ -179,7 +176,15 @@ export interface GameStore {
     deleteGame(game: Game): Promise<void>
 
     getActionChecksum(gameId: string): Promise<number | undefined>
-    setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void>
+    setGameState({
+        gameId,
+        state,
+        unmergedBranches
+    }: {
+        gameId: string
+        state: GameState
+        unmergedBranches?: readonly UnmergedBranchWrite[]
+    }): Promise<void>
 
     // This is just for seamless migration to the new checksum system
     setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number>

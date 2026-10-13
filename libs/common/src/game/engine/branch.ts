@@ -38,9 +38,6 @@ export interface BranchExecution<T extends GameState = GameState> {
     readonly view: T
 }
 
-export type BranchUndoWindow =
-    { kind: 'undo'; actions: GameAction[] } | { kind: 'refused'; reason: string }
-
 export class BranchMergeError extends BaseError {
     constructor(playerId: string, reason: string) {
         super({
@@ -134,18 +131,19 @@ export function branchFromView(state: GameState, view: GameState, playerId: stri
 }
 
 export function branchUndoWindow(
+    playerId: string,
     actions: readonly GameAction[],
     actionId: string,
-    { asAdministrator = false }: { asAdministrator?: boolean } = {}
-): BranchUndoWindow {
+    asAdministrator: boolean
+): GameAction[] {
     const position = actions.findIndex((action) => action.id === actionId)
-    if (position < 0) return { kind: 'refused', reason: 'the Action is not in this Branch' }
+    if (position < 0) throw new BranchUndoError(playerId, 'the Action is not in this Branch')
     if (actions[position].source !== ActionSource.User)
-        return { kind: 'refused', reason: 'only a User Action can be undone' }
+        throw new BranchUndoError(playerId, 'only a User Action can be undone')
     const window = actions.slice(position)
     if (!asAdministrator && window.some((action) => action.revealsInfo))
-        return { kind: 'refused', reason: 'it would undo an Action that revealed information' }
-    return { kind: 'undo', actions: window }
+        throw new BranchUndoError(playerId, 'it would undo an Action that revealed information')
+    return window
 }
 
 function mergeOutcome(state: GameState): Record<string, unknown> {

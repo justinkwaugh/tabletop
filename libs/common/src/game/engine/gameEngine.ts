@@ -20,7 +20,6 @@ import { runs, sameRun, unprocessed } from './actionReplay.js'
 import {
     branchFromView,
     BranchMergeError,
-    BranchUndoError,
     branchUndoWindow,
     branchView,
     sameBranchOutcome,
@@ -362,12 +361,12 @@ export class GameEngine<
         })
     }
 
-    branchesReadyToMerge({ state }: { state: T }): string[] {
+    nextBranchToMerge({ state }: { state: T }): string | undefined {
         const span = restingSpan(state)
         const waiting = unmergedPlayerIds(span)
-        const firstOpen = waiting.findIndex((playerId) => !span.closedPlayerIds.includes(playerId))
-        if (firstOpen < 0) return waiting
-        return this.spanDefinition(span).merge === 'barrier' ? [] : waiting.slice(0, firstOpen)
+        const isClosed = (playerId: string) => span.closedPlayerIds.includes(playerId)
+        const held = this.spanDefinition(span).merge === 'barrier' && !waiting.every(isClosed)
+        return held ? undefined : waiting.slice(0, 1).find(isClosed)
     }
 
     createBranch({
@@ -419,24 +418,18 @@ export class GameEngine<
         actions: readonly GameAction[]
         actionId: string
         asAdministrator?: boolean
-    }): { branch: Branch; view: T; undoneActions: GameAction[] } {
+    }): { branch: Branch; undoneActions: GameAction[] } {
         const playerId = branch.playerId
-        const window = branchUndoWindow(actions, actionId, { asAdministrator })
-        if (window.kind === 'refused') throw new BranchUndoError(playerId, window.reason)
+        const undoneActions = branchUndoWindow(playerId, actions, actionId, asAdministrator)
         assert(
-            window.actions.at(-1)?.index === branch.actionCount - 1,
+            undoneActions.at(-1)?.index === branch.actionCount - 1,
             'The recorded Actions do not end where the Branch does'
         )
         let view = branchView(state, branch)
-        for (const action of window.actions.toReversed()) {
+        for (const action of undoneActions.toReversed()) {
             view = this.undoProcessedAction({ action, state: view })
         }
-        const undone = branchFromView(state, view, playerId)
-        return {
-            branch: undone,
-            view: branchView(state, undone),
-            undoneActions: window.actions
-        }
+        return { branch: branchFromView(state, view, playerId), undoneActions }
     }
 
     replayOnSpan({

@@ -12,11 +12,12 @@ import {
 import type { FirestoreGameStore } from './gameStore.js'
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { UpdateValidationResult } from '../stores/validator.js'
+import { NotFoundError } from '../stores/errors.js'
 import type { BranchWriteValidator, UnmergedBranchWrite } from '../stores/gameStore.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
 import { openEmulatorStore, type EmulatorStore } from './tests/emulatorStore.js'
 
-const proceed: BranchWriteValidator = async () => UpdateValidationResult.Proceed
+const proceed: BranchWriteValidator = async () => {}
 
 describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMULATOR_HOST)(
     'Unmerged Branch storage against Firestore and Redis',
@@ -262,26 +263,27 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(found.map(({ actions }) => actions.length)).toEqual([2, 3])
         })
 
-        it('shows the validator what is stored, and changes nothing when it cancels', async () => {
+        it('shows the validator what is stored, and changes nothing when it refuses', async () => {
             await write(freshBranch('p1'))
             await warmGameKeys()
             const etag = await store.getGameEtag(game.id)
             const seen: { machineState: string; actionCount?: number }[] = []
-            const { written } = await write(
-                {
-                    branch: branchOf('p1', 3),
-                    addedActions: actionsOf('p1', 1, 3),
-                    removedActions: []
-                },
-                async (existing) => {
-                    seen.push({
-                        machineState: existing.state.machineState,
-                        actionCount: existing.branch?.actionCount
-                    })
-                    return UpdateValidationResult.Cancel
-                }
-            )
-            expect(written).toBe(false)
+            await expect(
+                write(
+                    {
+                        branch: branchOf('p1', 3),
+                        addedActions: actionsOf('p1', 1, 3),
+                        removedActions: []
+                    },
+                    async (existing) => {
+                        seen.push({
+                            machineState: existing.state.machineState,
+                            actionCount: existing.branch?.actionCount
+                        })
+                        throw new NotFoundError({ type: 'Branch', id: 'refused' })
+                    }
+                )
+            ).rejects.toThrow(NotFoundError)
             expect(seen).toEqual([{ machineState: 'branching', actionCount: 1 }])
             expect(await storedActionIds('p1')).toEqual(['p1-0'])
             expect((await store.findGameById(game.id, false))?.activePlayerIds).toEqual([
@@ -396,7 +398,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 actions: [action],
                 redoneActions: [],
                 state,
-                removeUnmergedBranches: true,
+                unmergedBranchWrites: { set: [], removeBranchesOf: 'all' },
                 validator: async () => UpdateValidationResult.Proceed
             })
             expect(await store.findUnmergedBranches(game.id, ['p1', 'p2'])).toEqual([])
@@ -442,8 +444,10 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 actions: [action],
                 redoneActions: [],
                 state,
-                removeUnmergedBranches: true,
-                setUnmergedBranches: [replacement, freshBranch('p3')],
+                unmergedBranchWrites: {
+                    set: [replacement, freshBranch('p3')],
+                    removeBranchesOf: 'all'
+                },
                 validator: async () => UpdateValidationResult.Proceed
             })
             const kept = await store.findUnmergedBranches(game.id, ['p1', 'p2', 'p3'])

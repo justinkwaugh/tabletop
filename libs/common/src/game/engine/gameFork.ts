@@ -64,7 +64,6 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
             state = engine.undoProcessedAction({ action, state })
         }
         const landed = reverseToForkPosition({ engine, state, history: ordered.slice(0, end) })
-        assertExists(landed, 'Fork position cannot be moved clear of an Unmerged Branch')
         state = landed.state
         const inherited = ordered.slice(0, end - landed.reversed.length)
         assert(

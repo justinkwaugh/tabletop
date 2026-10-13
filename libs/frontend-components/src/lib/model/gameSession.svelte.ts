@@ -696,7 +696,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective),
             branchPosition: () => this.ownBranch.position,
             adoptBranch: (sent) => this.ownBranch.adopt(sent),
-            followBranch: (sent) => this.ownBranch.followPublished(sent)
+            followBranch: (sent, undoneActionIds) =>
+                this.ownBranch.followPublished(sent, undoneActionIds)
         })
 
         this.notifications = new GameNotifications(game, notificationService, {
@@ -1401,6 +1402,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     ): Promise<void> {
         if (context !== this.ownBranch.context) {
             this.reconciliation.acceptSubmission(action.id, response, optimistic)
+            if (response.unmergedBranch !== undefined) {
+                await this.waitForVisibleTransitionSettled()
+                if (!isRepresentationCurrent()) {
+                    await this.representations.reload()
+                    return
+                }
+            }
             this.ownBranch.followAnswer(response.unmergedBranch)
             return
         }
@@ -1507,11 +1515,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         sent,
                         'The host undid a Branch Action without returning the Branch'
                     )
-                    if (response.checksum !== this.gameContext.state.actionChecksum) {
+                    if (
+                        response.checksum !== this.gameContext.state.actionChecksum &&
+                        replay.startIndex <= this.gameContext.nextActionIndex
+                    ) {
                         this.reconciliation.replace(replay, response.checksum, response.game)
                     }
                     this.ownBranch.acceptUndo(before, sent)
-                    this.ownBranch.followAnswer()
                 } else {
                     this.reconciliation.replace(replay, response.checksum, response.game, before)
                 }

@@ -86,26 +86,20 @@ export async function findStoredBranch({
 async function findOwnUnmergedBranch({
     gameStore,
     game,
-    user
-}: OwnBranchLookup): Promise<UnmergedBranch | undefined> {
+    user,
+    includeActions
+}: OwnBranchLookup & { includeActions: boolean }): Promise<UnmergedBranch | undefined> {
     const own = ownBranchSpan(game, user)
     if (own === undefined) return undefined
-    const unmergedBranch = await gameStore.findUnmergedBranch(game.id, own.playerId)
+    const withoutActions = async () => {
+        const branch = await gameStore.findBranch(game.id, own.playerId)
+        return branch && { branch, actions: [] }
+    }
+    const unmergedBranch = includeActions
+        ? await gameStore.findUnmergedBranch(game.id, own.playerId)
+        : await withoutActions()
     return unmergedBranch !== undefined && belongsToSpan(unmergedBranch.branch, own.span)
         ? unmergedBranch
-        : undefined
-}
-
-async function findOwnBranchWithoutHistory({
-    gameStore,
-    game,
-    user
-}: OwnBranchLookup): Promise<UnmergedBranch | undefined> {
-    const own = ownBranchSpan(game, user)
-    if (own === undefined) return undefined
-    const branch = await gameStore.findBranch(game.id, own.playerId)
-    return branch !== undefined && belongsToSpan(branch, own.span)
-        ? { branch, actions: [] }
         : undefined
 }
 
@@ -122,14 +116,18 @@ export async function loadWithOwnBranch<Loaded extends { game: Game }>({
     includeActions: boolean
     load: () => Promise<Loaded | undefined>
 }): Promise<{ loaded: Loaded; unmergedBranch?: UnmergedBranch } | undefined> {
-    const find = includeActions ? findOwnUnmergedBranch : findOwnBranchWithoutHistory
     return readAtOneMainLinePosition({
         gameStore,
         gameId,
         read: async () => {
             const loaded = await load()
             if (loaded === undefined) return { value: undefined }
-            const unmergedBranch = await find({ gameStore, game: loaded.game, user })
+            const unmergedBranch = await findOwnUnmergedBranch({
+                gameStore,
+                game: loaded.game,
+                user,
+                includeActions
+            })
             const awaitsItsBranch =
                 unmergedBranch === undefined && ownBranchSpan(loaded.game, user) !== undefined
             return {
@@ -163,7 +161,12 @@ export async function checkBranchSync({
     const current = await gameStore.findGameById(game.id, true)
     const state = current?.state
     if (current === undefined || state === undefined) throw new GameNotFoundError({ id: game.id })
-    const unmergedBranch = await findOwnUnmergedBranch({ gameStore, game: current, user })
+    const unmergedBranch = await findOwnUnmergedBranch({
+        gameStore,
+        game: current,
+        user,
+        includeActions: true
+    })
     return withUnmergedBranch(
         { status: GameSyncStatus.OutOfSync },
         unmergedBranch && {

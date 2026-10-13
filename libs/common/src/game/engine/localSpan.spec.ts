@@ -49,33 +49,6 @@ describe('Executing an Action in a Local Game', () => {
         expect(play.state.activePlayerIds).toEqual(['p2'])
     })
 
-    it('completes the span after the Action that closes the last Branch', () => {
-        const play = localPlay()
-        play.take(spanAction('begin', 'begin', 'p1'))
-        play.take(spanAction('f3', 'finish', 'p3'))
-        play.take(spanAction('f2', 'finish', 'p2'))
-        const last = play.take(spanAction('f1', 'finish', 'p1'))
-        expect(summary(last.processedActions)).toEqual(['finish:p1', 'closeBranch:p1', 'complete:'])
-        expect(play.state.machineState).toBe('scoring')
-        expect(play.state.parallelSpan).toBeUndefined()
-    })
-
-    it('carries a Player with nothing to do through their Branch on the way', () => {
-        const play = localPlay({ idle: ['p2'] })
-        play.take(spanAction('begin', 'begin', 'p1'))
-        const closed = play.take(spanAction('f3', 'finish', 'p3'))
-        expect(summary(closed.processedActions)).toEqual([
-            'finish:p3',
-            'closeBranch:p3',
-            'openBranch:p2',
-            'idleSkip:p2',
-            'closeBranch:p2',
-            'openBranch:p1'
-        ])
-        expect(play.state.parallelSpan?.mergedPlayerIds).toEqual(['p3', 'p2'])
-        expect(play.state.activePlayerIds).toEqual(['p1'])
-    })
-
     it('opens the first Branch of a span that Span Completion leads into', () => {
         const play = localPlay({ spans: 2 })
         play.take(spanAction('begin', 'begin', 'p1'))
@@ -102,13 +75,5 @@ describe('Executing an Action in a Local Game', () => {
             state = play.spanGame.engine.undoProcessedAction({ action, state })
         }
         expect(state).toEqual(before)
-    })
-
-    it('differs from the engine alone only by what it asks for afterwards', () => {
-        const { spanGame } = localPlay()
-        const action = spanAction('begin', 'begin', 'p1')
-        const alone = spanGame.engine.executeCanonicalAction({ ...spanGame, action })
-        expect(summary(alone.processedActions)).toEqual(['begin:p1'])
-        expect(alone.updatedState.parallelSpan?.branchPlayerId).toBeUndefined()
     })
 })

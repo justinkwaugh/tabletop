@@ -33,7 +33,7 @@ export function unmergedPlayerIds(span: ParallelSpanState): string[] {
     return span.playerIds.filter((playerId) => !span.mergedPlayerIds.includes(playerId))
 }
 
-export function waitedOnPlayerIds(span: ParallelSpanState): string[] {
+function waitedOnPlayerIds(span: ParallelSpanState): string[] {
     return span.playerIds.filter(
         (playerId) =>
             !span.closedPlayerIds.includes(playerId) && !span.mergedPlayerIds.includes(playerId)
