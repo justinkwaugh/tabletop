@@ -48,7 +48,7 @@ function frenchToSetUp(config: GameConfig = {}) {
     game.deploy(Side.Allied)
     const state = game.hydrated
     const playerId = game.playerOf(Side.French)
-    return { state, playerId, setup: emptySetup(state, Side.French) }
+    return { state, playerId, setup: emptySetup(state, playerId) }
 }
 
 function stackOf(table: SetupTable, type: UnitType, strength: number): PoolStack {
@@ -85,7 +85,7 @@ describe('the set-up table', () => {
         const step: SetupStep = { setup, open: corps('lannes') }
         const table = setupTable(state, playerId, step)
         const unitId = nextOf(table, UnitType.Infantry, 2)
-        const placed = placedStraightFromPool(state, step, unitId)
+        const placed = placedStraightFromPool(step, unitId)
         assertExists(placed, 'A unit joins the open corps at once')
 
         const after = setupTable(state, playerId, { setup: placed, open: step.open })
@@ -118,7 +118,7 @@ describe('the set-up table', () => {
         const step: SetupStep = { setup, open: DETACHED }
         const unitId = nextOf(setupTable(state, playerId, step), UnitType.Cavalry, 2)
 
-        expect(placedStraightFromPool(state, step, unitId)).toBeUndefined()
+        expect(placedStraightFromPool(step, unitId)).toBeUndefined()
         const inHand: SetupStep = { ...step, heldUnitId: unitId }
         expect(stackOf(setupTable(state, playerId, inHand), UnitType.Cavalry, 2).held).toBe(true)
         expect(
@@ -170,7 +170,8 @@ describe('the set-up table', () => {
         expect(placed.fixedBattery).toEqual({
             unitId: battery,
             position: { locale: home },
-            open: true
+            open: true,
+            holdsTheSanton: false
         })
         expect(placed.detached?.unitIds).toEqual([])
     })
@@ -224,21 +225,28 @@ describe('the set-up table', () => {
         ).toBe(state.map.passableApproachesOf(home).length - 1)
     })
 
-    it('sends the fixed battery straight to the Santon when the Santon rule is in use', () => {
+    it('starts with the fixed battery holding the Santon when the Santon rule is in use, with nothing to place or turn', () => {
         const { state, playerId, setup } = frenchToSetUp({ santon: true })
         const step: SetupStep = { setup, open: FIXED_BATTERY }
-        const battery = nextOf(setupTable(state, playerId, step), UnitType.Artillery, 1)
-        const placed = placedStraightFromPool(state, step, battery)
-        assertExists(placed, 'The fixed battery goes to the Santon at once')
+        const table = setupTable(state, playerId, step)
 
-        expect(placed.detached).toEqual([{ unitId: battery, position: { locale: SANTON_LOCALE } }])
-        expect(
-            setupTargets(state, playerId, {
-                setup: placed,
-                open: FIXED_BATTERY,
-                heldUnitId: battery
-            })
-        ).toEqual([])
+        expect(table.fixedBattery).toEqual({
+            unitId: setup.fixedBatteryId,
+            position: { locale: SANTON_LOCALE },
+            open: true,
+            holdsTheSanton: true
+        })
+        expect(table.unassigned).toBe(35)
+        expect(stackOf(table, UnitType.Artillery, 1).count).toBe(2)
+        expect(table.stacks.some((stack) => stack.offered)).toBe(false)
+        expect(table.detached).toMatchObject({ unitIds: [], room: MAX_FRENCH_DETACHMENTS - 1 })
+        expect(table.corps.map((seat) => seat.stillNeeded)).toEqual(
+            setupTable(frenchToSetUp().state, playerId, {
+                setup: frenchToSetUp().setup,
+                open: FIXED_BATTERY
+            }).corps.map((seat) => seat.stillNeeded)
+        )
+        expect(setupTargets(state, playerId, step)).toEqual([])
     })
 
     it('marks on the map the units of the open seat: a corps, every detached unit, or just the one in hand', () => {
@@ -340,7 +348,7 @@ describe('the corps that start on the map', () => {
         const game = new TestGame({ scenario: Scenario.December1 })
         const state = game.hydrated
         const playerId = game.playerOf(Side.Allied)
-        const setup = emptySetup(state, Side.Allied)
+        const setup = emptySetup(state, playerId)
         const untouched = setupTable(state, playerId, { setup, open: firstDestination(setup) })
         expect(
             untouched.corps.every((seat) => seat.offMap && seat.onMapStart === OnMapStart.Offered)

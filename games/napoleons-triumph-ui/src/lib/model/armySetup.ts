@@ -7,6 +7,7 @@ import {
     STARTING_ARMIES,
     Scenario,
     Side,
+    UnitType,
     commanderDefinition,
     commandersOf,
     deployArmy,
@@ -55,9 +56,22 @@ export function choosesAdvanceGuard(state: HydratedNapoleonsTriumphGameState, si
     return side === Side.Allied && state.scenario === Scenario.December1
 }
 
-export function emptySetup(state: HydratedNapoleonsTriumphGameState, side: Side): ArmySetup {
+/** The French batteries are all alike, so which of them holds the Santon is no choice of the player's. */
+function batteryForTheSanton(state: HydratedNapoleonsTriumphGameState, playerId: string): string {
+    const [battery] = state
+        .unitsOf(playerId)
+        .filter((unit) => faceOf(unit).type === UnitType.Artillery)
+        .map((unit) => unit.id)
+        .toSorted()
+    assertExists(battery, 'The French army has artillery')
+    return battery
+}
+
+/** Table ruling: with the Santon rule in use the fixed battery stands on the Santon, in reserve, so the French set-up starts with it there. */
+export function emptySetup(state: HydratedNapoleonsTriumphGameState, playerId: string): ArmySetup {
+    const side = state.sideOf(playerId)
     const heldBack = choosesAdvanceGuard(state, side)
-    return {
+    const untouched: ArmySetup = {
         corps: commandersOf(side).map((commander) => ({
             commanderId: commander.id,
             unitIds: [],
@@ -65,6 +79,11 @@ export function emptySetup(state: HydratedNapoleonsTriumphGameState, side: Side)
         })),
         detached: []
     }
+    return side === Side.French && state.santon
+        ? withFixedBatteryPosted(untouched, batteryForTheSanton(state, playerId), {
+              locale: SANTON_LOCALE
+          })
+        : untouched
 }
 
 export function corpsOf(setup: ArmySetup, commanderId: string): CorpsSetup {
@@ -365,13 +384,33 @@ function fitsWith(
     )
 }
 
-/** Maximums only: eight units to a commander, the capacity of each locale, six detachments. Minimums are what is still to do. */
+/** Rule 6, step 7: a reinforcement corps with nothing but two-strength infantry so far. */
+function needsOtherKind(state: HydratedNapoleonsTriumphGameState, corps: CorpsSetup): boolean {
+    return (
+        commanderDefinition(corps.commanderId).reinforcement === true &&
+        !hasUnitOtherThanLineInfantry(state, corps.unitIds)
+    )
+}
+
+function leavesRoomForTheOtherKind(
+    state: HydratedNapoleonsTriumphGameState,
+    setup: ArmySetup
+): boolean {
+    return setup.corps.every(
+        (corps) => corps.unitIds.length < MAX_CORPS_UNITS || !needsOtherKind(state, corps)
+    )
+}
+
+/** Maximums only: eight units to a commander, seven of them two-strength infantry where another kind is required, the capacity of each locale, six detachments. Minimums are what is still to do. */
 export function fits(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     setup: ArmySetup
 ): boolean {
-    return fitsWith(state, playerId, creditProblemOf(state, playerId, setup), sizesOf(setup))
+    return (
+        leavesRoomForTheOtherKind(state, setup) &&
+        fitsWith(state, playerId, creditProblemOf(state, playerId, setup), sizesOf(setup))
+    )
 }
 
 function roomIn(
@@ -394,17 +433,19 @@ function roomIn(
 
 export enum RoomLimit {
     Corps = 'Corps',
-    Locale = 'Locale'
+    Locale = 'Locale',
+    /** Rule 6, steps 7 and 8: the eight of a corps count the units detached from it. */
+    CorpsWithDetached = 'CorpsWithDetached'
 }
 
 export interface CorpsStrength {
     commanderId: string
     unitIds: string[]
-    /** Detached units counted as coming from this commander, shown while they are what brings the corps up to its minimum. */
-    creditedIds: string[]
     stillNeeded: number
     /** Rule 6, step 7: a reinforcement corps with nothing but two-strength infantry so far. */
     needsOtherKind: boolean
+    /** Rule 6, steps 7 and 8: the corps stands below its minimum, which is met by units that were detached from it. */
+    minimumMetByDetached: boolean
     room: number
     fullBecause?: RoomLimit
     offMap: boolean
@@ -412,12 +453,35 @@ export interface CorpsStrength {
 }
 
 function limitOn(map: BattleMap, setup: ArmySetup, corps: CorpsSetup): RoomLimit {
-    if (corps.offMap) {
+    if (corps.unitIds.length >= MAX_CORPS_UNITS || corps.offMap) {
         return RoomLimit.Corps
     }
     const home = setupLocaleOf(map, corps.commanderId)
     const standing = unitsStandingIn(map, setup, sizesOf(setup), home.id)
-    return standing >= home.capacity ? RoomLimit.Locale : RoomLimit.Corps
+    return standing >= home.capacity ? RoomLimit.Locale : RoomLimit.CorpsWithDetached
+}
+
+function stillNeededBy(
+    state: HydratedNapoleonsTriumphGameState,
+    corps: CorpsSetup,
+    credited: Credit[]
+): number {
+    return Math.max(
+        unitsStillNeeded(corps.commanderId, corps.unitIds.length, credited),
+        Number(needsOtherKind(state, corps))
+    )
+}
+
+/** A corps asks the pool for its whole minimum. Detached units are counted towards it only once the pool cannot fill every corps, so no detached unit is tied to a corps before it has to be. */
+function creditsTowardsMinimums(
+    state: HydratedNapoleonsTriumphGameState,
+    problem: CreditProblem
+): Credit[] {
+    const neededFromThePool = problem.setup.corps.reduce(
+        (sum, corps) => sum + stillNeededBy(state, corps, []),
+        0
+    )
+    return neededFromThePool <= problem.stillToPlace ? [] : creditsIn(problem)
 }
 
 export function corpsStrengths(
@@ -426,28 +490,18 @@ export function corpsStrengths(
     setup: ArmySetup
 ): CorpsStrength[] {
     const problem = creditProblemOf(state, playerId, setup)
-    const credits = creditsIn(problem)
+    const credits = creditsTowardsMinimums(state, problem)
     return setup.corps.map((corps) => {
         const { commanderId, unitIds } = corps
-        const definition = commanderDefinition(commanderId)
-        const credited = creditsTo(credits, commanderId)
-        const shortWithoutCredits = Math.max(0, definition.minimumUnits - unitIds.length)
-        const creditedIds = credited.slice(0, shortWithoutCredits).map((credit) => credit.unitId)
-        const needsOtherKind =
-            definition.reinforcement === true && !hasUnitOtherThanLineInfantry(state, unitIds)
-        const room = Math.min(
-            roomIn(state, playerId, problem, commanderId),
-            MAX_CORPS_UNITS - unitIds.length - creditedIds.length
-        )
+        const stillNeeded = stillNeededBy(state, corps, creditsTo(credits, commanderId))
+        const room = roomIn(state, playerId, problem, commanderId)
         return {
             commanderId,
             unitIds,
-            creditedIds,
-            stillNeeded: Math.max(
-                unitsStillNeeded(commanderId, unitIds.length, credited),
-                Number(needsOtherKind)
-            ),
-            needsOtherKind,
+            stillNeeded,
+            needsOtherKind: needsOtherKind(state, corps),
+            minimumMetByDetached:
+                stillNeeded === 0 && unitIds.length < commanderDefinition(commanderId).minimumUnits,
             room,
             fullBecause: room === 0 ? limitOn(state.map, setup, corps) : undefined,
             offMap: corps.offMap,
@@ -594,7 +648,7 @@ export function detachedPosts(
     )
 }
 
-/** Rule 6, step 9: the locales the fixed battery may stand in, which have to give it an approach to block. With the Santon rule in use it stands on the Santon, which is not offered as a choice. */
+/** Rule 6, step 9: the locales the fixed battery may stand in, which have to give it an approach to block. With the Santon rule in use it stands on the Santon from the start and is never placed. */
 export function fixedBatteryPosts(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -617,11 +671,6 @@ export function postStances(map: BattleMap, setup: ArmySetup, unitId: string): S
         approach,
         approach !== undefined && setup.fixedBatteryId !== unitId
     )
-}
-
-/** Table ruling: with the Santon rule in use the fixed battery stands on the Santon, in reserve. */
-export function withFixedBatteryOnTheSanton(setup: ArmySetup, unitId: string): ArmySetup {
-    return withFixedBatteryPosted(setup, unitId, { locale: SANTON_LOCALE })
 }
 
 export function deploymentOf(

@@ -97,12 +97,12 @@ export async function fillCorps(page: Page, army: Army) {
     }
 }
 
-/** With the Santon in use the fixed battery goes to the Santon by itself; otherwise it blocks an approach of Lannes's locale. */
+/** With the Santon in use the fixed battery holds the Santon from the start; otherwise it blocks an approach of Lannes's locale. */
 export async function placeFixedBattery(page: Page) {
     await openSeat(page, 'fixed-battery')
-    await takeFromPool(page, ARTILLERY)
     const onTheSanton = await seat(page, 'fixed-battery').locator('.nt-unit-tile').count()
     if (onTheSanton === 0) {
+        await takeFromPool(page, ARTILLERY)
         await tap(page, `svg [data-locale="${FIXED_BATTERY_LOCALE}"]`)
         await tap(page, `svg [data-approach="${FIXED_BATTERY_APPROACH}"]`)
     }

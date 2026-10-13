@@ -219,11 +219,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
     isDeploying = $derived(this.canAct && this.validActionTypes.includes(ActionType.DeployArmy))
 
     private setupStep: SetupStep | undefined = $derived.by(() => {
-        const side = this.mySide
-        if (!this.isDeploying || !side) {
+        const playerId = this.myPlayerId
+        if (!this.isDeploying || !playerId) {
             return undefined
         }
-        const untouched = emptySetup(this.gameState, side)
+        const untouched = emptySetup(this.gameState, playerId)
         return (
             latestSetupStep(this.setup) ?? { setup: untouched, open: firstDestination(untouched) }
         )
@@ -707,7 +707,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!step || !stack.offered || unitId === undefined) {
             return
         }
-        const placed = placedStraightFromPool(this.gameState, step, unitId)
+        const placed = placedStraightFromPool(step, unitId)
         if (placed) {
             this.arrange(placed)
         } else {

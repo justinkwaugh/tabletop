@@ -33,7 +33,6 @@ import {
     unassignedStacks,
     withCorpsOnMap,
     withCorpsStance,
-    withFixedBatteryOnTheSanton,
     withFixedBatteryPosted,
     withUnitDetached,
     withUnitJoining,
@@ -50,7 +49,7 @@ function frenchToSetUp(config: GameConfig = {}) {
     game.deploy(Side.Allied)
     const state = game.hydrated
     const playerId = game.playerOf(Side.French)
-    return { game, state, playerId, setup: emptySetup(state, Side.French) }
+    return { game, state, playerId, setup: emptySetup(state, playerId) }
 }
 
 function unitIdsOf(
@@ -118,13 +117,31 @@ describe('an untouched set-up', () => {
             setup.corps.filter((corps) => corps.offMap).map((corps) => corps.commanderId)
         ).toEqual(['bernadotte', 'davout'])
         expect(setup.detached).toEqual([])
+        expect(setup.fixedBatteryId).toBeUndefined()
+    })
+
+    it('starts with a battery already on the Santon, in reserve and as a detachment, when the Santon rule is in use', () => {
+        const { state, playerId, setup } = frenchToSetUp({ santon: true })
+        const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
+
+        expect(setup.fixedBatteryId).toBe(battery)
+        expect(setup.detached).toEqual([{ unitId: battery, position: { locale: SANTON_LOCALE } }])
+        expect(setup.corps.every((corps) => corps.unitIds.length === 0)).toBe(true)
+        expect(fits(state, playerId, setup)).toBe(true)
+        expect(detachmentsUsed(state, playerId, setup)).toBe(1)
+        expect(
+            unassignedStacks(state, playerId, setup).reduce(
+                (sum, stack) => sum + stack.unitIds.length,
+                0
+            )
+        ).toBe(state.unitsOf(playerId).length - 1)
     })
 
     it('holds every Allied corps off the map on 1 December until two are chosen', () => {
         const game = new TestGame({ scenario: Scenario.December1 })
         const state = game.hydrated
         const playerId = game.playerOf(Side.Allied)
-        const setup = emptySetup(state, Side.Allied)
+        const setup = emptySetup(state, playerId)
         expect(setup.corps.every((corps) => corps.offMap)).toBe(true)
 
         const two = withCorpsOnMap(withCorpsOnMap(setup, 'bagration', true), 'langeron', true)
@@ -140,7 +157,7 @@ describe('an untouched set-up', () => {
         const game = new TestGame({ scenario: Scenario.December1 })
         const state = game.hydrated
         const playerId = game.playerOf(Side.Allied)
-        const setup = emptySetup(state, Side.Allied)
+        const setup = emptySetup(state, playerId)
         const capacity = setupLocaleOf(state.map, 'kienmayer').capacity
         const units = unitIdsOf(state, playerId)
 
@@ -259,6 +276,27 @@ describe('what a corps still needs and can take', () => {
         ).toMatchObject({ needsOtherKind: false, stillNeeded: 0 })
     })
 
+    it('takes only seven two-strength infantry where one unit has to be of another kind', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const line = state
+            .unitsOf(playerId)
+            .filter((unit) => unit.face?.type === UnitType.Infantry && unit.face.strength === 2)
+            .map((unit) => unit.id)
+        const [cavalry] = unitIdsOf(state, playerId, UnitType.Cavalry)
+        const sevenLine = joining(setup, 'bernadotte', line.slice(0, MAX_CORPS_UNITS - 1))
+
+        expect(fits(state, playerId, withUnitJoining(sevenLine, line[7], 'bernadotte'))).toBe(false)
+        expect(fits(state, playerId, withUnitJoining(sevenLine, cavalry, 'bernadotte'))).toBe(true)
+        expect(cardOf(state, playerId, sevenLine, 'bernadotte')).toMatchObject({
+            room: 1,
+            stillNeeded: 1,
+            needsOtherKind: true
+        })
+        expect(
+            fits(state, playerId, joining(setup, 'lannes', line.slice(0, MAX_CORPS_UNITS)))
+        ).toBe(true)
+    })
+
     it('has less room in its locale for every unit detached into it', () => {
         const { state, playerId, setup } = frenchToSetUp()
         const home = setupLocaleOf(state.map, 'legrand')
@@ -304,6 +342,45 @@ describe('units set up on their own', () => {
         expect(creditsOf(state, playerId, posted)).toEqual([
             { unitId, commanderId: 'st-hilaire', isDetachment: true, standsWithCorps: false }
         ])
+    })
+
+    it('take nothing off what a corps asks for while the pool can still fill every corps', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const [unitId] = unitIdsOf(state, playerId)
+        const home = setupLocaleOf(state.map, 'st-hilaire').id
+        const posted = withUnitDetached(setup, unitId, { locale: home })
+
+        expect(cardOf(state, playerId, posted, 'st-hilaire')).toMatchObject({
+            unitIds: [],
+            stillNeeded: cardOf(state, playerId, setup, 'st-hilaire').stillNeeded,
+            minimumMetByDetached: false
+        })
+    })
+
+    it('count towards the eight of the only commander they can have come from', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const [detached, ...units] = unitIdsOf(state, playerId)
+        const withinReachOf = (commanderId: string, locale: number) =>
+            (state.map.distance(setupLocaleOf(state.map, commanderId).id, locale) ?? Infinity) <= 2
+        const post = detachedPosts(state, playerId, setup, detached)
+            .map((target) => target.position.locale)
+            .find((locale) =>
+                setup.corps.every(
+                    (corps) =>
+                        corps.offMap ||
+                        withinReachOf(corps.commanderId, locale) ===
+                            (corps.commanderId === 'lannes')
+                )
+            )
+        assertExists(post, 'Some locale is within reach of Lannes alone')
+        const posted = withUnitDetached(setup, detached, { locale: post })
+        const seven = joining(posted, 'lannes', units.slice(0, MAX_CORPS_UNITS - 1))
+
+        expect(cardOf(state, playerId, posted, 'lannes').room).toBe(MAX_CORPS_UNITS - 1)
+        expect(cardOf(state, playerId, seven, 'lannes')).toMatchObject({
+            room: 0,
+            fullBecause: RoomLimit.CorpsWithDetached
+        })
     })
 
     it('number six at most', () => {
@@ -352,10 +429,13 @@ describe('units set up on their own', () => {
             suggested
         )
 
-        const card = cardOf(state, playerId, thin, 'st-hilaire')
-        expect(card.unitIds).toEqual([kept])
-        expect(card.creditedIds).toEqual(sent.slice(0, 2))
-        expect(card.stillNeeded).toBe(0)
+        expect(cardOf(state, playerId, thin, 'st-hilaire')).toEqual(
+            expect.objectContaining({
+                unitIds: [kept],
+                stillNeeded: 0,
+                minimumMetByDetached: true
+            })
+        )
         expect(setupProblem(state, playerId, thin)).toBeUndefined()
     })
 
@@ -467,12 +547,23 @@ describe('the fixed battery', () => {
         const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
         const home = setupLocaleOf(state.map, 'lannes').id
         const [held, other] = state.map.passableApproachesOf(home)
-        const detached = unitIdsOf(state, playerId, UnitType.Cavalry)
-            .slice(0, 3)
-            .reduce(
-                (posted, unitId) => withUnitDetached(posted, unitId, { locale: home }),
-                withCorpsStance(setup, 'lannes', held.id)
-            )
+        const cavalry = unitIdsOf(state, playerId, UnitType.Cavalry).slice(0, 3)
+        const rest = unitIdsOf(state, playerId).filter(
+            (unitId) => unitId !== battery && !cavalry.includes(unitId)
+        )
+        const poolEmptied = ['bernadotte', 'bessieres', 'davout', 'murat'].reduce(
+            (joined, commanderId, index) =>
+                joining(
+                    joined,
+                    commanderId,
+                    rest.slice(index * MAX_CORPS_UNITS, (index + 1) * MAX_CORPS_UNITS)
+                ),
+            withCorpsStance(setup, 'lannes', held.id)
+        )
+        const detached = cavalry.reduce(
+            (posted, unitId) => withUnitDetached(posted, unitId, { locale: home }),
+            poolEmptied
+        )
         const inTheCorps = withFixedBatteryPosted(detached, battery, {
             locale: home,
             approach: held.id
@@ -503,16 +594,6 @@ describe('the fixed battery', () => {
         )
         expect(replaced.fixedBatteryId).toBe(second)
         expect(replaced.detached.map((entry) => entry.unitId)).toEqual([second])
-    })
-
-    it('stands on the Santon, in reserve and as a detachment, when the Santon rule is in use', () => {
-        const { state, playerId, setup } = frenchToSetUp({ santon: true })
-        const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
-        const posted = withFixedBatteryOnTheSanton(setup, battery)
-
-        expect(posted.detached).toEqual([{ unitId: battery, position: { locale: SANTON_LOCALE } }])
-        expect(fits(state, playerId, posted)).toBe(true)
-        expect(detachmentsUsed(state, playerId, posted)).toBe(1)
     })
 })
 

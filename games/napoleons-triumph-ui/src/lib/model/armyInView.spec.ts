@@ -32,7 +32,7 @@ describe('whose army a state shows', () => {
         const game = new TestGame()
         const view = viewOf(game, Side.Allied)
         const unitsToSetUp = (side: Side) =>
-            unassignedStacks(view, game.playerOf(side), emptySetup(view, side))
+            unassignedStacks(view, game.playerOf(side), emptySetup(view, game.playerOf(side)))
         expect(() => unitsToSetUp(Side.Allied)).not.toThrow()
         expect(() => unitsToSetUp(Side.French)).toThrow('The face of unit F01 is not known')
     })

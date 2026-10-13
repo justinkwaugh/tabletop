@@ -26,7 +26,6 @@ import {
     stanceTargets,
     unassignedStacks,
     withCorpsStance,
-    withFixedBatteryOnTheSanton,
     withFixedBatteryPosted,
     withUnitDetached,
     withUnitJoining,
@@ -63,6 +62,8 @@ export interface FixedBatterySeat {
     unitId?: string
     position?: Position
     open: boolean
+    /** Table ruling: with the Santon rule in use the fixed battery stands on the Santon and stays there. */
+    holdsTheSanton: boolean
 }
 
 export interface SetupTable {
@@ -84,11 +85,6 @@ interface PlacingApart {
         setup: ArmySetup,
         face: Face
     ): boolean
-    placedAtOnce(
-        state: HydratedNapoleonsTriumphGameState,
-        setup: ArmySetup,
-        unitId: string
-    ): ArmySetup | undefined
     posts(
         state: HydratedNapoleonsTriumphGameState,
         playerId: string,
@@ -102,15 +98,12 @@ const PLACING_APART: Record<SeatOfUnitsApart, PlacingApart> = {
     [DestinationKind.Detached]: {
         takes: (state, playerId, setup) =>
             detachmentsUsed(state, playerId, setup) < MAX_FRENCH_DETACHMENTS,
-        placedAtOnce: () => undefined,
         posts: detachedPosts,
         standing: withUnitDetached
     },
     [DestinationKind.FixedBattery]: {
         takes: (_state, _playerId, setup, face) =>
             face.type === UnitType.Artillery && setup.fixedBatteryId === undefined,
-        placedAtOnce: (state, setup, unitId) =>
-            state.santon ? withFixedBatteryOnTheSanton(setup, unitId) : undefined,
         posts: fixedBatteryPosts,
         standing: withFixedBatteryPosted
     }
@@ -149,13 +142,12 @@ function opensCorps(open: SetupDestination, commanderId: string): boolean {
 }
 
 export function placedStraightFromPool(
-    state: HydratedNapoleonsTriumphGameState,
     { setup, open }: SetupStep,
     unitId: string
 ): ArmySetup | undefined {
     return open.kind === DestinationKind.Corps
         ? withUnitJoining(setup, unitId, open.commanderId)
-        : PLACING_APART[open.kind].placedAtOnce(state, setup, unitId)
+        : undefined
 }
 
 function takesFromPool(
@@ -180,7 +172,7 @@ export function setupTable(
     const stacks = unassignedStacks(state, playerId, setup).map(({ face, unitIds }) => {
         const [nextUnitId] = unitIds
         const placed =
-            nextUnitId === undefined ? undefined : placedStraightFromPool(state, step, nextUnitId)
+            nextUnitId === undefined ? undefined : placedStraightFromPool(step, nextUnitId)
         return {
             face,
             count: unitIds.length,
@@ -222,7 +214,8 @@ export function setupTable(
         fixedBattery: {
             unitId: battery?.unitId,
             position: battery?.position,
-            open: open.kind === DestinationKind.FixedBattery
+            open: open.kind === DestinationKind.FixedBattery,
+            holdsTheSanton: state.santon
         }
     }
 }

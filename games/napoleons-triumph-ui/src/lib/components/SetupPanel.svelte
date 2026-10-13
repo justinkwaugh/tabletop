@@ -48,16 +48,23 @@
     )
 
     function whyFull(seat: CorpsSeat): string {
-        const home = setupLocaleOf(game.map, seat.commanderId)
-        return seat.fullBecause === RoomLimit.Locale
-            ? `${game.map.label(home.id)} holds only ${home.capacity} units`
-            : `a corps holds ${MAX_CORPS_UNITS} units at most`
+        const eight = `a corps holds ${MAX_CORPS_UNITS} units at most`
+        if (seat.fullBecause === RoomLimit.Locale) {
+            const home = setupLocaleOf(game.map, seat.commanderId)
+            return `${game.map.label(home.id)} holds only ${home.capacity} units`
+        }
+        return seat.fullBecause === RoomLimit.CorpsWithDetached
+            ? `${eight}, counting the units detached from it`
+            : eight
     }
 
     function corpsGuidance(seat: CorpsSeat): string {
-        const name = commanderDefinition(seat.commanderId).name
+        const { name, minimumUnits } = commanderDefinition(seat.commanderId)
         if (seat.room === 0) {
             return `${name}’s corps can take no more: ${whyFull(seat)}.`
+        }
+        if (seat.minimumMetByDetached) {
+            return `${name}’s corps is under its minimum of ${minimumUnits}; detached units make up the difference.`
         }
         const adding = `Tap units to add them to ${name}’s corps.`
         if (seat.needsOtherKind) {
@@ -94,10 +101,8 @@
     }
 
     function batteryGuidance(seat: FixedBatterySeat): string {
-        if (game.santon) {
-            return seat.unitId === undefined
-                ? 'Tap an artillery unit to make it the fixed battery. With the Santon in use it stands on the Santon.'
-                : 'The fixed battery holds the Santon. Tap it to take it back.'
+        if (seat.holdsTheSanton) {
+            return 'With the Santon in use the fixed battery holds the Santon.'
         }
         if (seat.position?.approach !== undefined) {
             return 'The fixed battery is placed. Tap another approach of its locale to turn it, or the battery to take it back.'
@@ -224,20 +229,6 @@
                                 onclick={() => gameSession.returnToPool(unitId)}
                             />
                         {/each}
-                        {#each seat.creditedIds as unitId (unitId)}
-                            <span
-                                class="nt-setup-credited"
-                                title="Detached; counts towards this corps"
-                            >
-                                <UnitTile
-                                    {playerId}
-                                    face={game.unit(unitId).face}
-                                    scale={SLOT_SCALE}
-                                    dimmed
-                                    label="Detached unit that counts towards this corps"
-                                />
-                            </span>
-                        {/each}
                         {@render emptySlots(seat.stillNeeded, seat.room, seat.needsOtherKind)}
                     </div>
                 </div>
@@ -270,8 +261,12 @@
                                 {playerId}
                                 face={game.unit(unitId).face}
                                 scale={SLOT_SCALE}
-                                label="Take this unit back"
-                                onclick={() => gameSession.returnToPool(unitId)}
+                                label={battery.holdsTheSanton
+                                    ? 'The fixed battery on the Santon'
+                                    : 'Take this unit back'}
+                                onclick={battery.holdsTheSanton
+                                    ? undefined
+                                    : () => gameSession.returnToPool(unitId)}
                             />
                         {:else}
                             {@render emptySlots(1, 1)}
@@ -435,10 +430,6 @@
     .nt-setup-slots :global(.nt-unit-tile) {
         height: var(--nt-slot-height);
         justify-content: center;
-    }
-
-    .nt-setup-credited {
-        display: flex;
     }
 
     .nt-setup-slot {

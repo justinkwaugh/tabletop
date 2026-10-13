@@ -18,6 +18,9 @@ failOnPageErrors()
 const KIENMAYER_MINIMUM = 3
 const KIENMAYER_LOCALE_HOLDS = 6
 const ST_HILAIRE_LOCALE = 93
+const ST_HILAIRE_MINIMUM = 3
+const LANNES_MINIMUM = 4
+const MOST_LINE_INFANTRY_IN_A_REINFORCEMENT_CORPS = 7
 
 function units(page: Page, name: string) {
     return seat(page, name).locator('.nt-unit-tile')
@@ -127,8 +130,8 @@ test('a French unit is set up on its own straight from the pool, in a locale and
     await expect(left).toHaveText('5 left')
     await expect(prompt).toContainText('It stands in reserve at locale 93')
     await expect(page.locator('[data-commander="detached"]')).toHaveCount(1)
-    await expect(units(page, 'st-hilaire')).toHaveCount(1)
-    await expect(units(page, 'st-hilaire').first()).toBeDisabled()
+    await expect(units(page, 'st-hilaire')).toHaveCount(0)
+    await expect(neededSlots(page, 'st-hilaire')).toHaveCount(ST_HILAIRE_MINIMUM)
 
     await tap(page, 'svg [aria-label="Block this approach"]')
     await expect(prompt).toContainText('It stands facing')
@@ -186,23 +189,55 @@ test('the French fixed battery blocks an approach of a corps’s locale without 
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 })
 
+test('a reinforcement corps takes seven two-strength infantry and then only a unit of another kind', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployAllies(page)
+    const lineInfantry = page.getByRole('button', { name: 'Take 2-strength infantry' })
+    const prompt = page.locator('.nt-setup-prompt')
+
+    await openSeat(page, 'bernadotte')
+    for (let taken = 0; taken < MOST_LINE_INFANTRY_IN_A_REINFORCEMENT_CORPS; taken++) {
+        await takeFromPool(page, '2-strength infantry')
+    }
+    await expect(lineInfantry).toBeDisabled()
+    await expect(neededSlots(page, 'bernadotte')).toHaveText('not 2-str. infantry')
+    await expect(prompt).toContainText('something other than 2-strength infantry')
+
+    await takeFromPool(page, '2-strength cavalry')
+    await expect(units(page, 'bernadotte')).toHaveCount(
+        MOST_LINE_INFANTRY_IN_A_REINFORCEMENT_CORPS + 1
+    )
+    await expect(emptySlots(page, 'bernadotte')).toHaveCount(0)
+    await expect(prompt).toHaveText(
+        'Bernadotte’s corps can take no more: a corps holds 8 units at most.'
+    )
+})
+
 // With this deal of the blocks the artillery units carry other numbers than in the usual deal.
 const ANOTHER_DEAL = '0000000000000000000000009e3779b1'
 
-test('with the Santon in use the fixed battery goes straight to the Santon as a detachment', async ({
+test('with the Santon in use the French set-up starts with the fixed battery on the Santon, tied to no corps', async ({
     page
 }) => {
     await createGame(page, { santon: true, seed: ANOTHER_DEAL })
     await deployAllies(page)
-    await fillCorps(page, FRENCH_ARMY)
-    await placeFixedBattery(page)
 
+    await expect(units(page, 'fixed-battery')).toHaveCount(1)
+    await expect(units(page, 'fixed-battery').first()).toBeDisabled()
     await expect(seat(page, 'fixed-battery').locator('.nt-setup-where').first()).toHaveText(
         'Santon'
     )
+    await expect(seat(page, 'detached').locator('.nt-setup-where').nth(1)).toHaveText('5 left')
+    await expect(page.locator('.nt-setup-progress')).toHaveText('35 units to assign')
+    await expect(page.locator('.nt-setup-seat .nt-unit-tile')).toHaveCount(1)
+    await expect(neededSlots(page, 'lannes')).toHaveCount(LANNES_MINIMUM)
+
+    await fillCorps(page, FRENCH_ARMY)
+    await placeFixedBattery(page)
     await expect(page.locator('.nt-setup-prompt')).toContainText('holds the Santon')
     await expect(page.locator('svg [aria-label="Block this approach"]')).toHaveCount(0)
-    await expect(seat(page, 'detached').locator('.nt-setup-where').nth(1)).toHaveText('5 left')
 
     await page.getByRole('button', { name: 'Deploy the army' }).click()
     await expect(page.locator('.nt-setup')).toHaveCount(0)
