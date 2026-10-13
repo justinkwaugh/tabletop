@@ -74,6 +74,25 @@
         session.isCommanding && session.selectedGroup ? ordersDrawerHeight : 0
     )
 
+    const MAP_MENU_ROOM = 96
+    let mapMenuTop = $state(0)
+
+    // The orders sheet hangs over the board from the action area above it, so how far down the board
+    // it reaches can only be measured. The map menu goes under the sheet, and under the legend too
+    // where the legend runs across to the menu's corner.
+    $effect(() => {
+        const sheet = boardCovered > 0 ? table?.querySelector('.nt-orders-sheet') : undefined
+        if (!sheet || !boardHost) {
+            mapMenuTop = 0
+            return
+        }
+        const host = boardHost.getBoundingClientRect()
+        const key = table?.querySelector('.nt-orders-key')?.getBoundingClientRect()
+        const besideTheKey = !key || key.right < host.right - MAP_MENU_ROOM
+        const covered = besideTheKey ? sheet.getBoundingClientRect().bottom : key.bottom
+        mapMenuTop = Math.max(0, covered - host.top)
+    })
+
     // A new step opens at its prompt, wherever the step before it was scrolled to.
     const openAtTheTop: Attachment<HTMLElement> = (scroller) => {
         void session.gameState.machineState
@@ -435,6 +454,7 @@
                     <div
                         class="nt-board-host"
                         style:--nt-board-covered="{boardCovered}px"
+                        style:--nt-map-menu-top="{mapMenuTop}px"
                         bind:this={boardHost}
                     >
                         <ScalingWrapper

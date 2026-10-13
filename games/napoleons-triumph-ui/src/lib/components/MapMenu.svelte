@@ -24,22 +24,35 @@
     ]
 </script>
 
-<div class="nt-map-menu pointer-events-auto absolute bottom-1 right-1 z-10">
+<div class="nt-map-menu pointer-events-auto absolute right-1 z-10">
+    <button
+        type="button"
+        class="nt-map-chip nt-map-menu-toggle"
+        aria-expanded={open}
+        aria-controls="nt-map-menu-items"
+        onclick={() => (open = !open)}
+    >
+        Map
+        <svg viewBox="0 0 12 10" class="nt-map-lines" aria-hidden="true">
+            <path d="M0.8 1.2 H11.2 M0.8 5 H11.2 M0.8 8.8 H11.2"></path>
+        </svg>
+    </button>
     <div class="nt-map-menu-items" class:nt-map-menu-open={open} id="nt-map-menu-items">
-        <button
-            type="button"
-            class="nt-map-chip"
-            aria-pressed={gameSession.approachSymbolsShown}
-            onclick={() => (gameSession.approachSymbolsShown = !gameSession.approachSymbolsShown)}
-            >Approach symbols</button
+        <SlidingSwitch
+            label="See the map from"
+            choices={VIEWS}
+            chosen={gameSession.boardView}
+            onchoose={onview}
+            chip
         >
-        <button
-            type="button"
-            class="nt-map-chip"
-            aria-pressed={gameSession.darkBorders}
-            onclick={() => gameSession.setDarkBorders(!gameSession.darkBorders)}
-            >Darker borders</button
-        >
+            {#snippet mark(view)}
+                {#if view === BoardView.North}
+                    <svg viewBox="0 0 10 11" class="nt-map-north" aria-hidden="true">
+                        <path d="M5 0.4 L9.7 5.6 H6.7 V10.6 H3.3 V5.6 H0.3 Z"></path>
+                    </svg>
+                {/if}
+            {/snippet}
+        </SlidingSwitch>
         <div class="nt-map-picture">
             <button
                 type="button"
@@ -56,35 +69,28 @@
                 >with unit types</button
             >
         </div>
-        <div class="nt-map-view">
-            <SlidingSwitch
-                label="See the map from"
-                choices={VIEWS}
-                chosen={gameSession.boardView}
-                onchoose={onview}
-            >
-                {#snippet mark(view)}
-                    {#if view === BoardView.North}
-                        <svg viewBox="0 0 10 11" class="nt-map-north" aria-hidden="true">
-                            <path d="M5 0.4 L9.7 5.6 H6.7 V10.6 H3.3 V5.6 H0.3 Z"></path>
-                        </svg>
-                    {/if}
-                {/snippet}
-            </SlidingSwitch>
-        </div>
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.movementTrailsShown}
+            onclick={() => (gameSession.movementTrailsShown = !gameSession.movementTrailsShown)}
+            >Moves this turn</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.darkBorders}
+            onclick={() => gameSession.setDarkBorders(!gameSession.darkBorders)}
+            >Darker borders</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.approachSymbolsShown}
+            onclick={() => (gameSession.approachSymbolsShown = !gameSession.approachSymbolsShown)}
+            >Approach symbols</button
+        >
     </div>
-    <button
-        type="button"
-        class="nt-map-chip nt-map-menu-toggle"
-        aria-expanded={open}
-        aria-controls="nt-map-menu-items"
-        onclick={() => (open = !open)}
-    >
-        Map
-        <svg viewBox="0 0 12 10" class="nt-map-lines" aria-hidden="true">
-            <path d="M0.8 1.2 H11.2 M0.8 5 H11.2 M0.8 8.8 H11.2"></path>
-        </svg>
-    </button>
 </div>
 
 <style>
@@ -94,6 +100,14 @@
         flex-direction: column;
         align-items: flex-end;
         gap: 3px;
+    }
+
+    .nt-map-menu {
+        top: calc(var(--nt-map-menu-top, 0px) + 4px);
+    }
+
+    .nt-map-menu-items:not(.nt-map-menu-open) {
+        display: none;
     }
 
     .nt-map-chip {
@@ -113,12 +127,6 @@
         gap: 3px;
     }
 
-    .nt-map-view {
-        display: flex;
-        border-radius: 6px;
-        background: var(--nt-ground);
-    }
-
     .nt-map-lines {
         flex: none;
         width: 0.95em;
@@ -134,10 +142,6 @@
         width: 0.72em;
         height: 0.8em;
         fill: currentColor;
-    }
-
-    .nt-map-chip.nt-map-menu-toggle {
-        display: none;
     }
 
     .nt-map-chip:hover:not([disabled]) {
@@ -157,18 +161,6 @@
     }
 
     @media (max-width: 639px) {
-        .nt-map-chip.nt-map-menu-toggle {
-            display: inline-flex;
-        }
-
-        .nt-map-menu-items {
-            display: none;
-        }
-
-        .nt-map-menu-items.nt-map-menu-open {
-            display: flex;
-        }
-
         .nt-map-chip {
             padding: 5px 12px;
             font-size: 13px;

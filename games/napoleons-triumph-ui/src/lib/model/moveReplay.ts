@@ -40,6 +40,7 @@ import {
     layoutPieces,
     midpoint,
     type BlockSprite,
+    type BoardPieces,
     type GroupSprite,
     type HeldApproach,
     type PieceGroup
@@ -74,7 +75,7 @@ export interface Caption {
     text: string
 }
 
-interface Movement {
+export interface Movement {
     unitIds: string[]
     to: Position
     from?: Position
@@ -82,15 +83,26 @@ interface Movement {
     road: LocaleId[]
 }
 
-function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
+export function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
     return { units: state.units, commanders: state.commanders, attack: state.attack }
+}
+
+export function piecesOf(standing: Standing, units = standing.units): BoardPieces {
+    return {
+        units,
+        commander: (id) => {
+            const commander = standing.commanders.find((candidate) => candidate.id === id)
+            assertExists(commander, `Unknown commander ${id}`)
+            return commander
+        }
+    }
 }
 
 function positionKey(position: Position | undefined): string {
     return position ? `${position.locale}:${position.approach ?? 'reserve'}` : 'off the map'
 }
 
-function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
+export function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
     const stood = new Map(before.units.map((unit) => [unit.id, unit.position]))
     const marched = isMove(action) ? action.order : undefined
     const entry = marched?.entryId ? ENTRY_GEOMETRY[marched.entryId].at : undefined
@@ -248,7 +260,7 @@ function within(value: number, low: number, high: number): number {
     return Math.min(Math.max(value, low), high)
 }
 
-function onBoard(point: Point): Point {
+export function onBoard(point: Point): Point {
     return {
         x: within(point.x, BOARD_MARGIN, BOARD_WIDTH - BOARD_MARGIN),
         y: within(point.y, BOARD_MARGIN, BOARD_HEIGHT - BOARD_MARGIN)
@@ -290,12 +302,13 @@ function arrowLine(
     return tail ? [onBoard(tail), ...onwards] : []
 }
 
-// The arrow belongs to the attack while it is being made; the defender stepping up afterwards is shown by where it went.
+// The arrow belongs to the attack while it is being made; pieces crossing to the approach or over it afterwards are shown by where they went.
 function attackMarkOf(
     action: GameAction,
     attack: VisibleAttack | undefined
 ): AttackMark | undefined {
-    if (!attack || isAdvance(action)) {
+    const crossesAfterwards = isAdvance(action) || (isOccupy(action) && !action.artilleryStays)
+    if (!attack || crossesAfterwards) {
         return undefined
     }
     return {
@@ -319,20 +332,13 @@ export function moveReplayScene(
         ].map((unit) => [placeLeftId(unit.id), unit])
     )
     const laidOut = layoutPieces(
-        {
-            units: [
-                ...after.units.flatMap((unit) => {
-                    const was = stood.get(placeLeftId(unit.id))
-                    return was ? [{ ...was, id: placeLeftId(unit.id) }, unit] : [unit]
-                }),
-                ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
-            ],
-            commander: (id) => {
-                const commander = after.commanders.find((candidate) => candidate.id === id)
-                assertExists(commander, `Unknown commander ${id}`)
-                return commander
-            }
-        },
+        piecesOf(after, [
+            ...after.units.flatMap((unit) => {
+                const was = stood.get(placeLeftId(unit.id))
+                return was ? [{ ...was, id: placeLeftId(unit.id) }, unit] : [unit]
+            }),
+            ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
+        ]),
         { rotation, readBy }
     )
     const left = laidOut

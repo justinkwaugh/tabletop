@@ -131,6 +131,13 @@ export async function deployBothArmies(page: Page) {
 }
 
 // Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
+export async function openMapMenu(page: Page) {
+    const menu = page.getByRole('button', { name: 'Map', exact: true })
+    if ((await menu.getAttribute('aria-expanded')) === 'false') {
+        await menu.click()
+    }
+}
+
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
 }
