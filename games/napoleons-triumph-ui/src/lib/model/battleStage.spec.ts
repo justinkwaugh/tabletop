@@ -719,6 +719,54 @@ describe('guns picked to fire', () => {
         expect(stage.problem).toBeUndefined()
     })
 
+    it('drop the command the threat was planned with once other pieces are named', () => {
+        const WIDE_FROM = 93
+        const WIDE_INTO = 94
+        const ofLannes = (id: string, face: PiecePlacement['face']): PiecePlacement => ({
+            id,
+            side: Side.French,
+            face,
+            locale: WIDE_FROM,
+            facing: WIDE_INTO,
+            commanderId: 'lannes'
+        })
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        arrangeBattlefield(game, [
+            ofLannes('F-a1', artillery()),
+            ofLannes('F-a2', artillery()),
+            ofLannes('F-inf', infantry(3)),
+            { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: WIDE_INTO }
+        ])
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.ThreatenAttack, french, {
+            approach: game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id,
+            plan: { kind: CommandKind.Corps, unitIds: ['F-a1', 'F-a2', 'F-inf'] }
+        })
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
+            unitIds: ['A-inf'],
+            leaderIds: []
+        })
+        game.act(ActionType.PressAttack, french)
+
+        expect(stageOf(game, StageKind.Declaration).command).toBe(CommandKind.Corps)
+        const gunsOnly = stageOf(
+            game,
+            StageKind.Declaration,
+            tap(game, emptyBattleSelections(), 'F-inf', 'F-inf', 'F-a1', 'F-a2')
+        )
+        expect(gunsOnly.attackers.toSorted()).toEqual(['F-a1', 'F-a2'])
+        expect(gunsOnly.leaders.toSorted()).toEqual(['F-a1', 'F-a2'])
+        expect(gunsOnly.commandOptions).toEqual([
+            CommandKind.Detach,
+            CommandKind.Unit,
+            CommandKind.Corps
+        ])
+        expect(gunsOnly.command).toBe(CommandKind.Detach)
+        expect(gunsOnly.problem).toBeUndefined()
+    })
+
     it('cannot lead the whole corps', () => {
         const game = pressed()
         const stage = stageOf(

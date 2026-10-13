@@ -1,5 +1,6 @@
 import {
     CommandKind,
+    UnitType,
     commanderCanCommand,
     commanderDefinition,
     commandersOf,
@@ -63,6 +64,28 @@ export function reinforcementsOf(
         : corps
 }
 
+const COMMANDS_TO_FIRE_TOGETHER = 2
+
+/** Erratum to rule 11: two artillery units blocking the same approach may attack across it together, each by its own Unit Move. Both lead, side by side, which takes a wide approach. */
+export function mayFireTogether(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    group: CommandedGroup,
+    unitIds: readonly string[]
+): boolean {
+    const units = group.units.filter((unit) => unitIds.includes(unit.id))
+    const approach = units.at(0)?.position?.approach
+    return (
+        unitIds.length === COMMANDS_TO_FIRE_TOGETHER &&
+        units.length === unitIds.length &&
+        units.every((unit) => unit.face?.type === UnitType.Artillery) &&
+        approach !== undefined &&
+        state.map.approach(approach).wide &&
+        independentCommandsLeft(state, playerId) >= COMMANDS_TO_FIRE_TOGETHER &&
+        (group.commander === undefined || group.units.length > units.length)
+    )
+}
+
 export function moveCommandOptions(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -83,7 +106,12 @@ export function moveCommandOptions(
     const detach =
         canCommand && !whole && commander.position !== undefined ? [CommandKind.Detach] : []
     const unit = single ? [CommandKind.Unit] : []
-    return wholeCorpsChosen ? [...corps, ...detach, ...unit] : [...unit, ...detach, ...corps]
+    const unitEach = mayFireTogether(state, playerId, group, pickedUnitIds)
+        ? [CommandKind.Unit]
+        : []
+    return wholeCorpsChosen
+        ? [...corps, ...detach, ...unit, ...unitEach]
+        : [...unit, ...detach, ...unitEach, ...corps]
 }
 
 export function moveOrder(

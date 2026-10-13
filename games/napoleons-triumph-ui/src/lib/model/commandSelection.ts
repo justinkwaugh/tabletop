@@ -74,8 +74,21 @@ export function chooseCorpsUnit(
         : commandSelection.revise(selection, 'units', next, 'manual')
 }
 
-export function setDetachedUnit(selection: CommandSelection, unitId: string): CommandSelection {
-    return commandSelection.revise(selection, 'units', [unitId], 'manual')
+/** Detached units are commanded one at a time, so tapping another takes its place, unless the two may be commanded together; tapping the last one chosen puts the group down. */
+export function chooseDetachedUnit(
+    selection: CommandSelection,
+    unitId: string,
+    chosen: readonly string[],
+    mayJoinTheChosen: boolean
+): CommandSelection {
+    if (!chosen.includes(unitId)) {
+        const next = mayJoinTheChosen ? [...chosen, unitId] : [unitId]
+        return commandSelection.revise(selection, 'units', next, 'manual')
+    }
+    const rest = chosen.filter((id) => id !== unitId)
+    return rest.length === 0
+        ? commandSelection.empty()
+        : commandSelection.revise(selection, 'units', rest, 'manual')
 }
 
 export function setCommand(selection: CommandSelection, kind: CommandKind): CommandSelection {

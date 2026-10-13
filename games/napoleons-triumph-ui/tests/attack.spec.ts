@@ -1,5 +1,17 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createGame, deployBothArmies, failOnPageErrors, pickUp, tap } from './table.js'
+import {
+    FRENCH_ARMY,
+    createGame,
+    deployAllies,
+    deployBothArmies,
+    failOnPageErrors,
+    fillCorps,
+    openSeat,
+    pickUp,
+    placeFixedBattery,
+    takeFromPool,
+    tap
+} from './table.js'
 
 failOnPageErrors()
 
@@ -211,4 +223,76 @@ test('the pieces that made the threat are still named after the page is reloaded
         'aria-pressed',
         'true'
     )
+})
+
+const ST_HILAIRE_LOCALE = 93
+const APPROACH_FROM_ST_HILAIRE_TO_LOCALE_94 = 326
+
+test('two artillery units on a wide approach are picked together and fire by a Unit Move each', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployAllies(page)
+    const withoutArtillery = (faces: string[]) => faces.filter((face) => face !== 'artillery')
+    await fillCorps(page, {
+        ...FRENCH_ARMY,
+        davout: withoutArtillery(FRENCH_ARMY.davout),
+        vandamme: withoutArtillery(FRENCH_ARMY.vandamme)
+    })
+    await placeFixedBattery(page)
+    await openSeat(page, 'detached')
+    for (let posted = 0; posted < 2; posted++) {
+        await takeFromPool(page, 'artillery')
+        await tap(page, `svg [data-locale="${ST_HILAIRE_LOCALE}"]`)
+        await tap(page, `svg [data-approach="${APPROACH_FROM_ST_HILAIRE_TO_LOCALE_94}"]`)
+    }
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
+
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+
+    const batteries = page
+        .locator('[data-commander="detached"][role="button"]')
+        .filter({ has: page.locator('g:nth-of-type(2)') })
+    await batteries.dispatchEvent('click')
+    const strip = page.getByRole('group', { name: 'Detached units' })
+    const units = strip.getByRole('button', { name: 'Include this unit in the command' })
+    const chosen = strip.getByRole('button', {
+        name: 'Include this unit in the command',
+        pressed: true
+    })
+    const unitMove = strip.getByRole('button', { name: 'Unit Move', exact: true })
+    const threat = page.locator('[aria-label="Threaten an attack across this approach"]')
+    await expect(units).toHaveCount(2)
+    await expect(chosen).toHaveCount(1)
+    await expect(threat).toHaveCount(1)
+
+    await strip
+        .getByRole('button', { name: 'Include this unit in the command', pressed: false })
+        .click()
+    await expect(chosen).toHaveCount(2)
+    await expect(unitMove).toHaveAttribute('aria-pressed', 'true')
+    await expect(strip).toContainText('The two fire together')
+    await expect(page.locator('[aria-label^="Move to"]')).toHaveCount(0)
+    await expect(threat).toHaveCount(1)
+
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Press the attack' }).click()
+
+    const pieces = page.locator('button[aria-label="Choose this unit"]:not([disabled])')
+    const attack = page.getByRole('button', { name: /^Attack/ })
+    await expect(pieces.filter({ hasText: 'attacks' })).toHaveCount(2)
+    await pieces.nth(0).click()
+    await pieces.nth(1).click()
+    await expect(pieces.filter({ hasText: 'leads' })).toHaveCount(2)
+    await expect(
+        page.getByRole('group', { name: 'Command' }).getByRole('button', { name: 'Unit Move' })
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(attack).toBeEnabled()
+    await attack.click()
+    await expect(attack).toBeHidden()
 })

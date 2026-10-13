@@ -92,6 +92,7 @@ import {
 } from './blockMark.js'
 import {
     chooseCorpsUnit,
+    chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
     guardAttackAnnounced,
@@ -99,7 +100,6 @@ import {
     noCommandSelection,
     pickedUpOf,
     setCommand,
-    setDetachedUnit,
     setGuardAttack,
     setPickedUp,
     undoCommandSelection,
@@ -118,6 +118,7 @@ import {
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
 import type { HistoryLine } from './historyChapters.js'
 import {
+    mayFireTogether,
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
@@ -584,10 +585,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
         if (group.commander) {
             this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.startingUnits(group)))
-        } else if (this.pickedUnitIds.includes(unitId)) {
-            this.stageCommand(noCommandSelection())
         } else {
-            this.stageCommand(setDetachedUnit(this.selection, unitId))
+            const chosen = this.pickedUnitIds
+            const playerId = this.myPlayerId
+            const mayJoin =
+                playerId !== undefined &&
+                mayFireTogether(this.gameState, playerId, group, [...chosen, unitId])
+            this.stageCommand(chooseDetachedUnit(this.selection, unitId, chosen, mayJoin))
         }
     }
 

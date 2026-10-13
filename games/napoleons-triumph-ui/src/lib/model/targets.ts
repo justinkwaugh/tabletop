@@ -241,6 +241,26 @@ function localTargets(
     return targets
 }
 
+/** Erratum to rule 11: artillery units given a Unit Move each can do one thing together, which is to attack across the approach they block. */
+function targetsOfUnitsFiringTogether(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    unitIds: readonly string[]
+): MoveTarget[] {
+    const [first] = unitIds
+    const position = state.unit(first).position
+    if (position?.approach === undefined) {
+        return []
+    }
+    const block = { locale: position.locale, approach: position.approach }
+    const site = { attackerId: playerId, attackApproach: position.approach }
+    const orders = unitIds.map((unitId) => ({ kind: CommandKind.Unit, unitIds: [unitId] }))
+    return mayThreaten(state, playerId, position.approach) &&
+        isLegal(() => resolveAttackOrders(state, site, orders))
+        ? [attackTarget(block)]
+        : []
+}
+
 function roadLength(target: MoveTarget): number {
     return target.kind === TargetKind.Reserve || target.kind === TargetKind.Approach
         ? (target.road?.length ?? 0)
@@ -264,6 +284,9 @@ export function moveTargets(
     order: MoveOrder,
     entryIds: readonly string[] = []
 ): MoveTarget[] {
+    if (order.kind === CommandKind.Unit && order.unitIds.length > 1) {
+        return targetsOfUnitsFiringTogether(state, playerId, order.unitIds)
+    }
     if (!isLegal(() => resolveOrder(state, playerId, order))) {
         return []
     }

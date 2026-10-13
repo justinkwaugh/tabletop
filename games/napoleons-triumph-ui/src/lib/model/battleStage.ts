@@ -255,11 +255,16 @@ function attackerPicking(
     const leaders = (attackerSelection.value(selections.attackers, 'leaders') ?? []).filter((id) =>
         attackers.includes(id)
     )
+    const asPlanned =
+        planned !== undefined &&
+        planned.unitIds.length === attackers.length &&
+        planned.unitIds.every((id) => attackers.includes(id))
     const command = attackCommand(
         state,
         attack,
         attackers,
-        attackerSelection.value(selections.attackers, 'command') ?? planned?.kind
+        attackerSelection.value(selections.attackers, 'command') ??
+            (asPlanned ? planned.kind : undefined)
     )
     return {
         groups,

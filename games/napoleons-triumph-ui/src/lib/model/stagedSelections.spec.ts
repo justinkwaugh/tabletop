@@ -25,6 +25,7 @@ import {
 } from './battleSelection.js'
 import {
     chooseCorpsUnit,
+    chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
     guardAttackAnnounced,
@@ -32,7 +33,6 @@ import {
     noCommandSelection,
     pickedUpOf,
     setCommand,
-    setDetachedUnit,
     setGuardAttack,
     setPickedUp,
     undoCommandSelection,
@@ -80,11 +80,23 @@ describe('command selection', () => {
     })
 
     it('returns to the units a pick-up starts with when leaving some out is undone', () => {
-        const thinned = setDetachedUnit(corpsPickedUp(), 'F01')
+        const thinned = chooseDetachedUnit(corpsPickedUp(), 'F01', ['F02'], false)
         expect(chosenUnitsOf(thinned)).toEqual(['F01'])
         const restored = undoCommandSelection(thinned)
         expect(chosenUnitsOf(restored)).toBeUndefined()
         expect(pickedUpOf(restored)).toEqual({ groupKey: 'corps' })
+    })
+
+    it('commands detached units one at a time, or two together where they may be', () => {
+        const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [], false)
+        expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01'], false))).toEqual(['F02'])
+
+        const two = chooseDetachedUnit(one, 'F02', ['F01'], true)
+        expect(chosenUnitsOf(two)).toEqual(['F01', 'F02'])
+        expect(chosenUnitsOf(chooseDetachedUnit(two, 'F01', ['F01', 'F02'], false))).toEqual([
+            'F02'
+        ])
+        expect(chooseDetachedUnit(one, 'F01', ['F01'], false)).toEqual(noCommandSelection())
     })
 
     it('leaves Undo to the last action when nothing has been chosen', () => {
@@ -182,7 +194,12 @@ describe('choosing units of a corps', () => {
         expect(chosenCommandOf(whole)).toBe(CommandKind.Corps)
         expect(guardAttackAnnounced(whole)).toBe(true)
 
-        const another = setDetachedUnit(setCommand(corpsPickedUp(), CommandKind.Unit), 'F02')
+        const another = chooseDetachedUnit(
+            setCommand(corpsPickedUp(), CommandKind.Unit),
+            'F02',
+            ['F01'],
+            false
+        )
         expect(chosenCommandOf(another)).toBe(CommandKind.Unit)
     })
 })
