@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { PHASE_DONE_LABELS, PHASE_LABELS } from '$lib/utils/presentation.js'
+    import { FACTION_FILL, PHASE_DONE_LABELS, PHASE_LABELS } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
     const phases = $derived(gameSession.gameState.scenarioDefinition().phases)
@@ -9,46 +8,59 @@
     const currentIndex = $derived(current ? phases.indexOf(current) : -1)
     const acting = $derived(gameSession.actingPhase)
     const order = $derived(gameSession.phaseOrder)
+
+    function name(playerId: string): string {
+        return playerId === gameSession.myPlayerId ? 'You' : gameSession.getPlayerName(playerId)
+    }
+
+    function fill(playerId: string): string {
+        const faction = gameSession.gameState.findPlayerState(playerId)?.faction
+        return faction ? FACTION_FILL[faction] : '#3d4a63'
+    }
+
+    const PROGRESS_TITLES = {
+        done: 'has finished',
+        playing: 'is playing',
+        pending: 'has not started'
+    } as const
 </script>
 
 <div class="tracker">
-    <ol class="phases" aria-label="Phases of the decade">
-        {#each phases as phase, index (phase)}
-            <li
-                class:current={phase === current}
-                class:past={index < currentIndex}
-                aria-current={phase === current ? 'step' : undefined}
-                title={PHASE_LABELS[phase]}
-            >
-                <span class="number">{index + 1}</span>
-                <span class="label">{PHASE_LABELS[phase]}</span>
-            </li>
-        {/each}
-    </ol>
+    <div class="tracks">
+        <ol class="track phases" aria-label="Phases of the decade">
+            {#each phases as phase, index (phase)}
+                <li
+                    class:current={phase === current}
+                    class:past={index < currentIndex}
+                    aria-current={phase === current ? 'step' : undefined}
+                    title={PHASE_LABELS[phase]}
+                >
+                    <span class="number">{index + 1}</span>
+                    <span class="label">{PHASE_LABELS[phase]}</span>
+                </li>
+            {/each}
+        </ol>
+        {#if order.length > 1}
+            <ol class="track players" aria-label="Order of play this phase">
+                {#each order as entry (entry.playerId)}
+                    <li
+                        data-progress={entry.progress}
+                        style:--faction={fill(entry.playerId)}
+                        title="{name(entry.playerId)} {PROGRESS_TITLES[entry.progress]}"
+                    >
+                        <span class="name">{name(entry.playerId)}</span>
+                        {#if entry.progress === 'done'}
+                            <span class="mark" aria-label="finished">✓</span>
+                        {/if}
+                    </li>
+                {/each}
+            </ol>
+        {/if}
+    </div>
     {#if acting}
         <button type="button" class="done" onclick={() => gameSession.endPhase()}>
             {PHASE_DONE_LABELS[acting]}
         </button>
-    {/if}
-    {#if order.length > 1}
-        <ol class="order" aria-label="Order of play this phase">
-            {#each order as entry (entry.playerId)}
-                <li
-                    data-progress={entry.progress}
-                    class:you={entry.playerId === gameSession.myPlayerId}
-                    title={entry.progress === 'done'
-                        ? 'Finished'
-                        : entry.progress === 'playing'
-                          ? 'Playing'
-                          : 'Not started'}
-                >
-                    <PlayerName playerId={entry.playerId} />
-                    {#if entry.progress === 'done'}
-                        <span class="mark" aria-label="finished">✓</span>
-                    {/if}
-                </li>
-            {/each}
-        </ol>
     {/if}
 </div>
 
@@ -56,26 +68,36 @@
     .tracker {
         container-type: inline-size;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 8px 12px;
         flex-wrap: wrap;
     }
 
-    /* One track of arrow segments, each pointing into the next. */
-    .phases {
+    .tracks {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    /* One track of arrow segments, each pointing into the next. The phases of the decade are
+       one track; the players of the phase in play, in the order their play lands, are a second
+       track attached beneath it. */
+    .track {
         --point: 9px;
         display: flex;
         min-width: 0;
     }
 
-    .phases li {
+    .track li {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
         margin-left: calc(3px - var(--point));
         padding: 4px 14px 4px calc(var(--point) + 10px);
         font-size: 13px;
         white-space: nowrap;
-        color: #7f93b3;
-        background: #131d31;
         clip-path: polygon(
             0 0,
             calc(100% - var(--point)) 0,
@@ -86,7 +108,7 @@
         );
     }
 
-    .phases li:first-child {
+    .track li:first-child {
         margin-left: 0;
         padding-left: 12px;
         clip-path: polygon(
@@ -96,6 +118,11 @@
             calc(100% - var(--point)) 100%,
             0 100%
         );
+    }
+
+    .phases li {
+        color: #7f93b3;
+        background: #131d31;
     }
 
     .phases li.past {
@@ -113,7 +140,32 @@
         display: none;
     }
 
-    /* Collapse to numbers by the panel's own width, since the sidebar narrows it. */
+    .players li {
+        min-height: 22px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        font-size: 12px;
+        color: #dbe7f5;
+        background: color-mix(in srgb, var(--faction) 55%, #0d1322);
+    }
+
+    .players li[data-progress='playing'] {
+        font-weight: 700;
+        background: color-mix(in srgb, var(--faction) 78%, #0d1322);
+    }
+
+    .players li[data-progress='done'],
+    .players li[data-progress='pending'] {
+        color: #9fb4d0;
+        background: color-mix(in srgb, var(--faction) 30%, #0d1322);
+    }
+
+    .mark {
+        color: #dbe7f5;
+        font-weight: 700;
+    }
+
+    /* Collapse to numbers and colours by the panel's own width, since the sidebar narrows it. */
     @container (max-width: 620px) {
         .phases li:not(.current) .label {
             display: none;
@@ -121,6 +173,21 @@
 
         .phases li:not(.current) .number {
             display: inline;
+        }
+
+        .players li .name {
+            display: none;
+        }
+
+        .players li {
+            min-width: 34px;
+            box-sizing: border-box;
+            padding-right: 10px;
+            padding-left: calc(var(--point) + 6px);
+        }
+
+        .players li:first-child {
+            padding-left: 8px;
         }
     }
 
@@ -136,50 +203,5 @@
 
     .done:hover {
         background: #ffd968;
-    }
-
-    /* The players of the phase in the order their play lands, each marked off once finished. */
-    .order {
-        display: flex;
-        flex-basis: 100%;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px 0;
-        font-size: 12px;
-        color: #7f93b3;
-    }
-
-    .order li {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 1px 8px;
-        border-radius: 999px;
-        border: 1px solid transparent;
-    }
-
-    .order li + li::before {
-        content: '›';
-        margin-right: 10px;
-        margin-left: -14px;
-        color: #3d4a63;
-    }
-
-    .order li[data-progress='playing'] {
-        color: #dbe7f5;
-        border-color: #2a5878;
-    }
-
-    .order li[data-progress='done'] {
-        color: #6f84a3;
-    }
-
-    .order li.you {
-        background: #131d31;
-    }
-
-    .mark {
-        color: #7fe08a;
-        font-weight: 700;
     }
 </style>
