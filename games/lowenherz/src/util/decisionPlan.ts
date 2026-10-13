@@ -12,7 +12,7 @@
 //     rulebook doesn't).
 // A player's slots are always placed back-to-back (front-loaded), never interleaved
 // with another player's turn, matching how the rulebook describes it.
-export function buildDecisionPlan(turnOrderFromFirstPlayer: string[]): string[] {
+export function buildDecisionPlan(turnOrderFromFirstPlayer: readonly string[]): string[] {
     const playerCount = turnOrderFromFirstPlayer.length
 
     const plan: string[] = []
@@ -23,10 +23,10 @@ export function buildDecisionPlan(turnOrderFromFirstPlayer: string[]): string[] 
     return plan
 }
 
-// Rotates turnOrder (the fixed seating order) so it starts at firstPlayerId.
-export function rotateToStart(turnOrder: string[], firstPlayerId: string): string[] {
+// Rotates a seating order so it starts at firstPlayerId.
+export function rotateToStart(turnOrder: readonly string[], firstPlayerId: string): string[] {
     const startIndex = turnOrder.indexOf(firstPlayerId)
-    if (startIndex < 0) return turnOrder
+    if (startIndex < 0) return [...turnOrder]
     return [...turnOrder.slice(startIndex), ...turnOrder.slice(0, startIndex)]
 }
 
@@ -44,9 +44,8 @@ export function isRoundDecided(plan: string[], totalDecisionsMade: number): bool
 // every politics card that's "played with a decision card" (Renegade, Alliance, and
 // cancelling an Alliance).
 export function currentChoosingPlayerId(
-    turnOrder: string[],
-    firstPlayerId: string,
+    turnOrderFromFirstPlayer: readonly string[],
     totalDecisionsMade: number
 ): string | undefined {
-    return currentDecisionPlayer(buildDecisionPlan(rotateToStart(turnOrder, firstPlayerId)), totalDecisionsMade)
+    return currentDecisionPlayer(buildDecisionPlan(turnOrderFromFirstPlayer), totalDecisionsMade)
 }

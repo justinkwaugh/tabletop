@@ -43,8 +43,6 @@ function buildState(
         board,
         regions,
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: playerIds[0],
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

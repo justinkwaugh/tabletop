@@ -102,11 +102,6 @@ export const LowenherzGameState = Type.Object({
     regions: Type.Array(Region),
     alliances: Type.Array(Alliance),
 
-    // Fixed clockwise seating order, chosen once at game start. firstPlayerId
-    // rotates to the next entry in this list after each action card resolves.
-    turnOrder: Type.Array(Type.String()),
-    firstPlayerId: Type.String(),
-
     // The color the neutral prince's pieces are drawn in: whichever of the four
     // colors no player was dealt. Set in 2- and 3-player games (see
     // LowenherzInitializer); undefined at 4 players, where there is no prince.
@@ -122,6 +117,9 @@ export const LowenherzGameState = Type.Object({
     minimumOneDucat: Type.Optional(Type.Boolean()),
     publicMoney: Type.Optional(Type.Boolean()),
     minimumCastleDistance: Type.Optional(Type.Number()),
+    // Recorded at setup: games stored before the placer-ID fix replay without the
+    // mid-allotment enclosure cap.
+    enclosureEndsWallAllotment: Type.Optional(Type.Boolean()),
 
     // The setup castle whose knight has not been placed yet, and who is placing
     // it. Set by PlaceCastle and cleared by PlaceSetupKnight, so it is defined
@@ -256,12 +254,11 @@ export class HydratedLowenherzGameState
     declare board: LowenherzBoard
     declare regions: Region[]
     declare alliances: Alliance[]
-    declare turnOrder: string[]
-    declare firstPlayerId: string
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
     declare publicMoney?: boolean
     declare minimumCastleDistance?: number
+    declare enclosureEndsWallAllotment?: boolean
     declare pendingSetupCastle?: { col: number; row: number; playerId: string }
 
     declare actionDeck?: ActionCard[]
@@ -348,6 +345,17 @@ export class HydratedLowenherzGameState
     override isActivePlayer(playerId: string): boolean {
         if (super.isActivePlayer(playerId)) return true
         return this.negotiation?.playerIds.includes(playerId) ?? false
+    }
+
+    // Clockwise seating order, starting with this round's first player.
+    get turnOrder(): readonly string[] {
+        return this.turnManager.turnOrder
+    }
+
+    get firstPlayerId(): string {
+        const firstPlayerId = this.turnManager.turnOrder[0]
+        assertExists(firstPlayerId, 'Turn order has no first player')
+        return firstPlayerId
     }
 
     get requiredCastleDistance(): number {

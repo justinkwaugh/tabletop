@@ -50,8 +50,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         board: blankBoard(),
         regions: [ownRegion(), enemyRegion()],
         alliances: [{ id: 'alliance-1', regionAId: 'own', regionBId: 'enemy' }],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,
@@ -207,7 +205,7 @@ describe('HydratedCancelAlliance', () => {
                 { playerId: 'p2', color: Color.Yellow, money: 12, powerPoints: 0, knightsInStock: 5, politicsCards: [] },
                 { playerId: 'p3', color: Color.Purple, money: 12, powerPoints: 0, knightsInStock: 5, politicsCards: [] }
             ],
-            turnOrder: ['p1', 'p2', 'p3'],
+            turnManager: { series: [], turnOrder: ['p1', 'p2', 'p3'], turnCounts: {} },
             activePlayerIds: ['p3']
         })
         // p3's decision-laying turn is 3rd in a 3-player round (p1, p1, p2, p3), so

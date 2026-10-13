@@ -42,8 +42,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         board: blankBoard(),
         regions: [],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,
@@ -153,5 +151,40 @@ describe('PlacingWallsStateHandler', () => {
         })
 
         expect(handler.isValidAction(action, context)).toBe(false)
+    })
+
+    describe('when the placer encloses their last castle with walls still in hand', () => {
+        function enclosedState(overrides: Partial<LowenherzGameState> = {}) {
+            const board = blankBoard()
+            board.squares[5][5] = { type: SquareType.Blank, castleOwner: 'p1', regionId: 'r1' }
+            return buildState({
+                board,
+                regions: [{ id: 'r1', owner: 'p1', squareKeys: ['5,5'], castleSquareKey: '5,5' }],
+                wallsRemaining: 1,
+                ...overrides
+            })
+        }
+
+        it('ends the allotment in a game that records the enclosure rule', () => {
+            const state = enclosedState({ enclosureEndsWallAllotment: true })
+            const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+            const next = new PlacingWallsStateHandler().onAction(makePlaceWall(0, 0, 1, 0), context)
+
+            expect(next).toBe(MachineState.ResolvingActions)
+            expect(state.wallsRemaining).toBeUndefined()
+            expect(state.wallPlacingPlayerId).toBeUndefined()
+        })
+
+        it('keeps the allotment open in a stored game that predates the enclosure rule', () => {
+            const state = enclosedState()
+            const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+            const next = new PlacingWallsStateHandler().onAction(makePlaceWall(0, 0, 1, 0), context)
+
+            expect(next).toBe(MachineState.PlacingWalls)
+            expect(state.wallsRemaining).toBe(1)
+            expect(state.wallPlacingPlayerId).toBe('p1')
+        })
     })
 })

@@ -32,7 +32,7 @@ function buildGame(playerCount: number, config: GameConfig = {}): Game {
 }
 
 describe('LowenherzGameInitializer', () => {
-    it('keeps turnOrder stable even after turnManager.turnOrder is rotated in place', () => {
+    it('keeps seating and the first player castle on the turn manager', () => {
         const initializer = LowenherzRuntime.initializer
         const game = buildGame(4)
 
@@ -46,17 +46,17 @@ describe('LowenherzGameInitializer', () => {
             winningPlayerIds: []
         })
 
-        const originalTurnOrder = [...state.turnOrder]
-        expect(state.turnOrder.length).toBe(4)
+        const seating = [...state.turnManager.turnOrder]
+        expect(seating).toHaveLength(4)
+        expect(state.turnOrder).toEqual(seating)
+        expect(state.firstPlayerId).toBe(seating[0])
+        expect(state.dehydrate()).not.toHaveProperty('turnOrder')
+        expect(state.dehydrate()).not.toHaveProperty('firstPlayerId')
 
-        // Regression check: this is the kind of in-place rotation the generic engine
-        // performs on turnManager.turnOrder as part of its own bookkeeping. Our own
-        // turnOrder field must not be the same array reference, or it'd get scrambled
-        // too - which is exactly the bug that made every 2nd-lap placement fail.
-        state.turnManager.newFirstPlayer(state.turnOrder[2])
+        state.turnManager.newFirstPlayer(seating[2])
 
-        expect(state.turnOrder).toEqual(originalTurnOrder)
-        expect(state.turnManager.turnOrder).not.toEqual(originalTurnOrder)
+        expect(state.firstPlayerId).toBe(seating[2])
+        expect(state.turnOrder).toEqual([seating[2], seating[3], seating[0], seating[1]])
     })
 
     it('records the rulebook castle distance so the game keeps it even if the rule is read differently later', () => {
@@ -75,6 +75,20 @@ describe('LowenherzGameInitializer', () => {
 
         expect(state.minimumCastleDistance).toBe(RULEBOOK_CASTLE_MIN_DISTANCE)
         expect(state.requiredCastleDistance).toBe(7)
+    })
+
+    it('records that enclosing every castle ends a wall allotment', () => {
+        const state = LowenherzRuntime.initializer.initializeGameState(buildGame(4), {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        expect(state.enclosureEndsWallAllotment).toBe(true)
     })
 
     it('deals all 13 politics cards across the two piles with the printed multiplicities, and gives every player an empty hand', () => {
@@ -214,8 +228,10 @@ describe('LowenherzGameInitializer', () => {
 
         let anyCardMoved = false
         for (let attempt = 0; attempt < 40; attempt++) {
+            const source = state.dehydrate()
+            source.prng = { seed: attempt + 1, invocations: 0 }
             const explored = new HydratedLowenherzGameState(
-                new LowenherzGameExploration().createFromCanonicalState(state.dehydrate())
+                new LowenherzGameExploration().createFromCanonicalState(source)
             )
 
             // Same cards, same pile sizes - only the split between them may differ.
@@ -234,7 +250,8 @@ describe('LowenherzGameInitializer', () => {
             }
         }
 
-        // Forty redeals of a 13-card deck: an in-place shuffle would never move one across.
+        // Forty differently seeded redeals of a 13-card deck: an in-place shuffle would
+        // never move one across.
         expect(anyCardMoved).toBe(true)
     })
 })

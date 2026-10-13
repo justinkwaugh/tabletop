@@ -1,9 +1,17 @@
-import { getSquare, LowenherzBoard, neighbors, squareKey, SquareType, WallEdge } from '../model/board.js'
+import {
+    getSquare,
+    LowenherzBoard,
+    neighbors,
+    parseSquareKey,
+    squareKey,
+    SquareType,
+    WallEdge
+} from '../model/board.js'
 import { Region } from '../model/region.js'
 
 export function countTowns(region: Region, board: LowenherzBoard): number {
     return region.squareKeys.filter((key) => {
-        const [col, row] = key.split(',').map(Number)
+        const [col, row] = parseSquareKey(key)
         return getSquare(board, col, row)?.type === SquareType.Village
     }).length
 }
@@ -14,7 +22,7 @@ export function countTowns(region: Region, board: LowenherzBoard): number {
 // if the number of knights in his region exceeds that of the other prince's region."
 export function countKnights(region: Region, board: LowenherzBoard): number {
     return region.squareKeys.filter((key) => {
-        const [col, row] = key.split(',').map(Number)
+        const [col, row] = parseSquareKey(key)
         return getSquare(board, col, row)?.knightOwner === region.owner
     }).length
 }
@@ -38,7 +46,7 @@ export function findConnectedComponents(squareKeys: string[]): string[][] {
         while (stack.length > 0) {
             const current = stack.pop()!
             component.push(current)
-            const [col, row] = current.split(',').map(Number)
+            const [col, row] = parseSquareKey(current)
             for (const n of neighbors(col, row)) {
                 const nKey = squareKey(n.col, n.row)
                 if (remaining.has(nKey)) {
@@ -61,7 +69,7 @@ export function findConnectedComponents(squareKeys: string[]): string[][] {
 export function regionsAreNeighboring(a: Region, b: Region): boolean {
     const bKeys = new Set(b.squareKeys)
     return a.squareKeys.some((key) => {
-        const [col, row] = key.split(',').map(Number)
+        const [col, row] = parseSquareKey(key)
         return neighbors(col, row).some((n) => bKeys.has(squareKey(n.col, n.row)))
     })
 }

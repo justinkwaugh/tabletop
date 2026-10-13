@@ -26,8 +26,7 @@ export function distributeMoneyBag(
 // next player in seating order, and the per-round tracking fields reset for the next
 // card draw.
 export function advanceRound(state: HydratedLowenherzGameState) {
-    const currentIndex = state.turnOrder.indexOf(state.firstPlayerId)
-    state.firstPlayerId = state.turnOrder[(currentIndex + 1) % state.turnOrder.length]
+    state.turnManager.newFirstPlayer(state.turnManager.nextPlayer(state.firstPlayerId))
     state.decisions = []
     state.currentActionCard = undefined
     state.resolvedSlots = []

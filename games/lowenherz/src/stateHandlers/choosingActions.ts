@@ -8,12 +8,7 @@ import { HydratedPlayAllianceCard } from '../actions/playAllianceCard.js'
 import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
 import { canCancelAnAlliance } from '../util/allianceCancellation.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
-import {
-    buildDecisionPlan,
-    currentDecisionPlayer,
-    isRoundDecided,
-    rotateToStart
-} from '../util/decisionPlan.js'
+import { buildDecisionPlan, currentDecisionPlayer, isRoundDecided } from '../util/decisionPlan.js'
 
 type ChoosingActionsAction =
     | HydratedChooseAction
@@ -22,7 +17,7 @@ type ChoosingActionsAction =
     | HydratedCancelAlliance
 
 function planFor(state: HydratedLowenherzGameState): string[] {
-    return buildDecisionPlan(rotateToStart(state.turnOrder, state.firstPlayerId))
+    return buildDecisionPlan(state.turnOrder)
 }
 
 export class ChoosingActionsStateHandler implements MachineStateHandler<

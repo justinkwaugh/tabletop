@@ -62,8 +62,9 @@ describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
                 expect(startedGame.protectedInformation).toBe(true)
                 expect(initialState.machineState).toBe(openingState)
                 expect(initialState.turnManager.turnOrder).toEqual(order)
-                expect(initialState.turnOrder).toEqual(order)
-                expect(initialState.firstPlayerId).toBe(order[0])
+                const hydrated = LowenherzRuntime.hydrator.hydrateState(initialState)
+                expect(hydrated.turnOrder).toEqual(order)
+                expect(hydrated.firstPlayerId).toBe(order[0])
                 expect(initialState.players.map((player) => player.playerId)).toEqual(order)
                 expect(initialState.activePlayerIds).toEqual([order[0]])
             }
@@ -88,7 +89,7 @@ describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
                     playerIds: reversedIds
                 })
                 .dehydrate()
-            expect(reversed.turnOrder).toEqual(reversedIds)
+            expect(reversed.turnManager.turnOrder).toEqual(reversedIds)
             expect(
                 reversed.players.map((player) => [player.playerId, player.color]).toSorted()
             ).toEqual(normal.players.map((player) => [player.playerId, player.color]).toSorted())
