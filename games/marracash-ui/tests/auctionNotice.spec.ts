@@ -111,7 +111,7 @@ test.describe('with reduced motion', () => {
             })
         const still = ['translateY(0px)', 'translate(0px, 0px) scale(1)']
         expect(await transforms()).toEqual(still)
-        await page.waitForTimeout(2_100)
+        await page.waitForTimeout(1_600)
         expect(await transforms()).toEqual(still)
         await expect(notice(page)).toHaveCount(0, { timeout: 8_000 })
         await expect(stallPlacard(page)).toBeVisible()

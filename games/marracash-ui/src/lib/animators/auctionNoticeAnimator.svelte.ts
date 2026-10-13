@@ -22,7 +22,7 @@ export type AuctionNoticePart = 'backdrop' | 'card' | 'placard'
 export type ShownAuctionNotice = { shopId: ShopId; auctioneerId: string; color: MarketColor }
 
 const EnterSeconds = 0.35
-const HoldSeconds = 1.5
+const HoldSeconds = 1
 const FlightSeconds = 0.65
 const FadeSeconds = 0.3
 
