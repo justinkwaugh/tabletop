@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { GameAction } from './gameAction.js'
 import { branchView } from './branch.js'
+import { executeBranchAction, undoBranchAction } from './branchExecution.js'
 import { isBranchClose } from './parallelSpan.js'
 import { createSpanGame, spanAction, type SpanGameState } from './tests/spanGame.js'
 import {
@@ -36,7 +37,8 @@ function undo(
     actionId: string,
     asAdministrator = false
 ) {
-    const undone = spanGame.engine.undoBranchAction({
+    const undone = undoBranchAction({
+        engine: spanGame.engine,
         state,
         branch: play.branch,
         actions: play.actions,
@@ -86,7 +88,8 @@ describe('Branch Undo', () => {
         const play = playPrivately(spanGame, state, 'p2', [spanAction('r1', 'roll', 'p2')])
         const undone = undo(spanGame, state, play, 'r1', true)
         expect(playerOf(undone.view, 'p2').rolls).toEqual([])
-        const again = spanGame.engine.executeBranchAction({
+        const again = executeBranchAction({
+            engine: spanGame.engine,
             game: spanGame.game,
             state,
             branch: undone.branch,

@@ -10,6 +10,7 @@ import {
     reverseToBranchStart,
     sameHistoryPosition,
     settleSpan,
+    undoBranchAction as undoInBranch,
     unmergedPlayerIds,
     type Branch,
     type Game,
@@ -74,7 +75,7 @@ export async function undoBranchAction({
     const engine = new GameEngine(definition.runtime)
     const undone = (() => {
         try {
-            return engine.undoBranchAction({ state, ...target, actionId, asAdministrator })
+            return undoInBranch({ engine, state, ...target, actionId, asAdministrator })
         } catch (error) {
             if (error instanceof BranchUndoError) {
                 throw new DisallowedUndoError({ gameId, actionId, reason: error.message })

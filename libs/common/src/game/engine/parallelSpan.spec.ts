@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionSource, type GameAction } from './gameAction.js'
 import { branchView, branchViewDuringMerge } from './branch.js'
+import { executeBranchAction } from './branchExecution.js'
+import { advanceSpan } from './localSpan.js'
 import { BranchCloseActionType } from './parallelSpan.js'
 import { Visibility } from '../../index.js'
 import {
@@ -261,7 +263,7 @@ describe('Parallel Span on the Main Line', () => {
     it('does nothing when asked to advance a Game that is not resting in a span', () => {
         const spanGame = createSpanGame()
         expect(
-            spanGame.engine.advanceSpan({ game: spanGame.game, state: spanGame.state })
+            advanceSpan({ engine: spanGame.engine, game: spanGame.game, state: spanGame.state })
         ).toBeUndefined()
     })
 })
@@ -562,7 +564,8 @@ describe('Unmerged Branch', () => {
         expect(closed.branch.closed).toBe(true)
         expect(closed.branch.machineState).toBe('branching')
         expect(() =>
-            spanGame.engine.executeBranchAction({
+            executeBranchAction({
+                engine: spanGame.engine,
                 game: spanGame.game,
                 state,
                 branch: closed.branch,
@@ -592,7 +595,8 @@ describe('Unmerged Branch', () => {
         expect(playerOf(view, 'p2').work).toBe(1)
         expect(view.parallelSpan?.mergedPlayerIds).toEqual(['p3'])
         expect(view.parallelSpan?.branchPlayerId).toBe('p2')
-        const next = spanGame.engine.executeBranchAction({
+        const next = executeBranchAction({
+            engine: spanGame.engine,
             game: spanGame.game,
             state: moved,
             branch: mine.branch,
