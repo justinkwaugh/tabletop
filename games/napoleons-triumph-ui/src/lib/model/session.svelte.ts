@@ -42,6 +42,8 @@ import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
 import { sameIds } from '$lib/utils/ids.js'
+import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
+import { timeMarker } from '$lib/utils/timeTrack.js'
 import {
     arrowsToKeepClear,
     flagMarks,
@@ -270,6 +272,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     commandDiscs: Point[] = $derived(commandDiscs(this.gameState))
+
+    timeMarker: Point = $derived(timeMarker(this.gameState))
+
+    moraleMarkers: MoraleMarker[] = $derived(moraleMarkers(this.gameState))
 
     heldApproaches: HeldApproach[] = $derived(heldApproaches(this.sprites))
 

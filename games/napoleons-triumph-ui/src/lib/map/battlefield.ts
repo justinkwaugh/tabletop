@@ -2,9 +2,13 @@ import type { BoundingBox, Point } from '@tabletop/common'
 import { boxHolds } from '$lib/utils/boundingBox.js'
 import { BOARD_WIDTH } from './boardGeometry.js'
 
-export const MAP_FILE_WIDTH = 2448
+const MAP_FILE_WIDTH = 2448
 
-const MAP_FILE_SCALE = BOARD_WIDTH / MAP_FILE_WIDTH
+export const MAP_FILE_SCALE = BOARD_WIDTH / MAP_FILE_WIDTH
+
+export function mapFilePoint(x: number, y: number): Point {
+    return { x: x * MAP_FILE_SCALE, y: y * MAP_FILE_SCALE }
+}
 
 interface MapFileArea {
     left: number

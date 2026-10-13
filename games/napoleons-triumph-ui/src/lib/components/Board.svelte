@@ -9,7 +9,7 @@
     import ApproachBars from './board/ApproachBars.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
-    import CommandDiscs from './board/CommandDiscs.svelte'
+    import TrackMarkers from './board/TrackMarkers.svelte'
     import FlagLayer from './board/FlagLayer.svelte'
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
@@ -56,7 +56,7 @@
                 <ContactShadow id="nt-contact-shadow" />
             </defs>
             <ApproachBars />
-            <CommandDiscs />
+            <TrackMarkers />
             <HeldApproaches approaches={gameSession.heldApproaches} />
             <SetupLocales />
             <TargetLayer />
