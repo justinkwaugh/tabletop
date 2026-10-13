@@ -8,22 +8,18 @@
     import { viewTransformInSvg } from '$lib/utils/boardView.js'
     import { attackMarkerScale } from '$lib/utils/attackMarker.js'
     import { flagScale } from '$lib/utils/flagLayout.js'
-    import { ARROW_HEAD_LENGTH } from '$lib/utils/wayArrow.js'
     import ApproachBars from './board/ApproachBars.svelte'
     import AttackArrow from './board/AttackArrow.svelte'
     import Block from './board/Block.svelte'
     import CommanderFlag from './board/CommanderFlag.svelte'
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
+    import WayArrow from './board/WayArrow.svelte'
     import SwelledRule from './SwelledRule.svelte'
 
     const gameSession = getGameSession()
 
     const SHADOW = 'nt-replay-shadow'
-    const SHAFT_WIDTH = 11
-    const CASING = 3
-    const ARROW_HEAD = `M0 0 L${-ARROW_HEAD_LENGTH} -17 L${-ARROW_HEAD_LENGTH} 17 Z`
-
     let mapWidth = $state(0)
 
     const replay = $derived(gameSession.moveReplay)
@@ -151,25 +147,7 @@
                             </g>
                         {/each}
                         {#each scene.arrows as arrow, index (index)}
-                            {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle}) scale(${arrow.scale})`}
-                            {@const shaft = arrow.shaft
-                                .map((point) => `${point.x},${point.y}`)
-                                .join(' ')}
-                            <g class="nt-replay-way" stroke-width={SHAFT_WIDTH * arrow.scale}>
-                                <polyline
-                                    points={shaft}
-                                    class="nt-replay-way-casing"
-                                    stroke-width={(SHAFT_WIDTH + CASING * 2) * arrow.scale}
-                                ></polyline>
-                                <path
-                                    d={ARROW_HEAD}
-                                    transform={head}
-                                    class="nt-replay-way-casing"
-                                    stroke-width={CASING * 2}
-                                ></path>
-                                <polyline points={shaft}></polyline>
-                                <path d={ARROW_HEAD} transform={head} stroke="none"></path>
-                            </g>
+                            <WayArrow {arrow} />
                         {/each}
                         {#each flags as flag (flag.key)}
                             <CommanderFlag {flag} view={flagView} />
@@ -304,26 +282,6 @@
         display: block;
         width: 100%;
         height: 100%;
-    }
-
-    .nt-replay-way {
-        fill: none;
-        stroke: #2b2620;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-    }
-
-    .nt-replay-way path {
-        fill: #2b2620;
-    }
-
-    .nt-replay-way .nt-replay-way-casing {
-        fill: #f1ecdc;
-        stroke: #f1ecdc;
-    }
-
-    .nt-replay-way polyline.nt-replay-way-casing {
-        fill: none;
     }
 
     footer {

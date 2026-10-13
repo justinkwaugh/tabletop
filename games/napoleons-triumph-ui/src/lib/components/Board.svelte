@@ -5,6 +5,7 @@
     import boardArt from '$lib/images/board.webp'
     import boardPreview from '$lib/images/board-preview.webp'
     import setupMarks from '$lib/images/setup-marks.webp'
+    import MovementTrails from './board/MovementTrails.svelte'
     import PiecesLayer from './board/PiecesLayer.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
     import ApproachBars from './board/ApproachBars.svelte'
@@ -76,6 +77,7 @@
             <ClosedReserves />
             <TargetLayer />
             <g data-in-picture><PiecesLayer /></g>
+            <MovementTrails />
             <ApproachSymbols />
             <g data-in-picture><FlagLayer /></g>
             <TargetLayer overThePieces />

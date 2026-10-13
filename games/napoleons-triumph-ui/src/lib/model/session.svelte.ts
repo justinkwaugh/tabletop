@@ -47,6 +47,8 @@ import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
 import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
+import { numberOfTrail } from '$lib/utils/trailNumber.js'
+import { lineSamples } from '$lib/utils/wayArrow.js'
 import {
     arrowsToKeepClear,
     flagMarks,
@@ -132,6 +134,7 @@ import {
 } from './armySetup.js'
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
 import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
+import { turnTrails, type Trail } from './turnTrails.js'
 import {
     RideChoice,
     mayFireTogether,
@@ -214,6 +217,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
     darkBorders = $derived(this.preferences.values.darkBorders)
 
     approachSymbolsShown = $state(false)
+
+    movementTrailsShown = $state(false)
 
     pictureShowsUnitTypes = $state(true)
 
@@ -301,6 +306,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
         })
     )
 
+    movementTrails: Trail[] = $derived(
+        this.movementTrailsShown
+            ? turnTrails(
+                  this.history.visibleContext,
+                  this.sprites.flatMap((sprite) => sprite.blocks),
+                  { rotation: this.boardRotation, readBy: this.myPlayerId }
+              )
+            : []
+    )
+
     commandDiscs: Point[] = $derived(commandDiscs(this.gameState))
 
     timeMarker: Point = $derived(timeMarker(this.gameState))
@@ -332,7 +347,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return flagMarks(
             this.sprites,
             this.flagView,
-            arrowsToKeepClear(arrowApproaches, this.zoom),
+            [
+                ...arrowsToKeepClear(arrowApproaches, this.zoom),
+                ...this.movementTrails.flatMap((trail) => [
+                    ...lineSamples(trail.line),
+                    numberOfTrail(trail, this.flagView.scale).at
+                ])
+            ],
             (group) => this.flagBearer(group, this.hasCommanded(group)),
             this.plantedFlags
         )

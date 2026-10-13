@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { createGame, deployBothArmies, failOnPageErrors } from './table.js'
+import { createGame, deployBothArmies, failOnPageErrors, openMapMenu } from './table.js'
 
 failOnPageErrors()
 
@@ -31,6 +31,7 @@ async function savedPicture(page: Page) {
 test('the map menu saves a picture of the whole board as it is turned', async ({ page }) => {
     await createGame(page)
     await deployBothArmies(page)
+    await openMapMenu(page)
 
     const fromTheAlliedLines = await savedPicture(page)
     expect(fromTheAlliedLines.name).toBe('napoleons-triumph-2-december-7-00am.jpg')
@@ -47,6 +48,7 @@ test('a picture saved without unit types says so in its name and leaves the boar
 }) => {
     await createGame(page)
     await deployBothArmies(page)
+    await openMapMenu(page)
     const faces = page.locator('svg[data-board] [data-unit-face]')
     const shown = await faces.count()
     expect(shown).toBeGreaterThan(0)

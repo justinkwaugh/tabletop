@@ -164,6 +164,7 @@ describe('what the history can replay', () => {
         const moved = moveReplayScene(recorded.replay(occupation), NORTH)
         expect(idsOf(moved.left)).toEqual(['F-inf'])
         expect(moved.arrows).toHaveLength(1)
+        expect(moved.attackMark).toBeUndefined()
     })
 
     function standsAgainstAThreat(defenders: string[]) {
