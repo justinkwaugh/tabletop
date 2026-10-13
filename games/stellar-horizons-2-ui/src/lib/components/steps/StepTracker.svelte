@@ -167,7 +167,9 @@
         min-height: 22px;
         padding-top: 2px;
         padding-bottom: 2px;
-        font-size: 12px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         color: #dbe7f5;
         background: color-mix(in srgb, var(--faction) 55%, #0d1322);
     }
