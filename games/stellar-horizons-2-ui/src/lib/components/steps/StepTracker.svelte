@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { phaseDefinition } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_FILL, PHASE_DONE_LABELS, PHASE_LABELS } from '$lib/utils/presentation.js'
 
@@ -8,6 +9,8 @@
     const currentIndex = $derived(current ? phases.indexOf(current) : -1)
     const acting = $derived(gameSession.actingPhase)
     const order = $derived(gameSession.phaseOrder)
+    // Under a barrier nobody's play lands before anyone else's, so the track has no direction.
+    const unordered = $derived(current ? phaseDefinition(current).merge === 'barrier' : false)
 
     function name(playerId: string): string {
         return playerId === gameSession.myPlayerId ? 'You' : gameSession.getPlayerName(playerId)
@@ -41,7 +44,11 @@
             {/each}
         </ol>
         {#if order.length > 1}
-            <ol class="track players" aria-label="Order of play this phase">
+            <ol
+                class="track players"
+                class:unordered
+                aria-label={unordered ? 'Players in this phase' : 'Order of play this phase'}
+            >
                 {#each order as entry (entry.playerId)}
                     <li
                         data-progress={entry.progress}
@@ -50,7 +57,23 @@
                     >
                         <span class="name">{name(entry.playerId)}</span>
                         {#if entry.progress === 'done'}
-                            <span class="mark" aria-label="finished">✓</span>
+                            <svg
+                                class="mark"
+                                viewBox="0 0 12 12"
+                                width="12"
+                                height="12"
+                                role="img"
+                                aria-label="finished"
+                            >
+                                <path
+                                    d="M1.5 6.5 4.75 9.75 10.5 2.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="3"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
                         {/if}
                     </li>
                 {/each}
@@ -161,8 +184,21 @@
     }
 
     .mark {
-        color: #dbe7f5;
-        font-weight: 700;
+        flex: none;
+        color: #ffffff;
+    }
+
+    /* A barrier phase has no order of play, so its players are plain blocks, not arrows. */
+    .players.unordered li {
+        margin-left: 3px;
+        padding-right: 11px;
+        padding-left: 11px;
+        border-radius: 4px;
+        clip-path: none;
+    }
+
+    .players.unordered li:first-child {
+        margin-left: 0;
     }
 
     /* Collapse to numbers and colours by the panel's own width, since the sidebar narrows it. */
@@ -187,6 +223,12 @@
         }
 
         .players li:first-child {
+            padding-left: 8px;
+        }
+
+        .players.unordered li {
+            min-width: 28px;
+            padding-right: 8px;
             padding-left: 8px;
         }
     }

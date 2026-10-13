@@ -99,7 +99,7 @@ test('the phases of a decade are played one player at a time, in the order the r
         const session = window.stellarSession
         return session.gameState.initiativeOrder().map((playerId) => session.getPlayerName(playerId))
     })
-    const order = page.getByRole('list', { name: 'Order of play this phase' })
+    const order = page.getByRole('list', { name: /Order of play this phase|Players in this phase/ })
     const entries = order.getByRole('listitem')
     await expect(entries).toHaveCount(3)
     await expect(entries.first()).toContainText('You')
@@ -108,7 +108,7 @@ test('the phases of a decade are played one player at a time, in the order the r
     await expect(page.getByRole('button', { name: 'Done building' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Done building' }).click()
-    await expect(entries.first()).toContainText('✓')
+    await expect(entries.first().getByRole('img', { name: 'finished' })).toBeVisible()
     await expect(entries.nth(1)).toContainText('You')
     await page.getByRole('button', { name: 'Done building' }).click()
     await expect.poll(() => activePlayerIsFirstInInitiative(page)).toBe(true)
