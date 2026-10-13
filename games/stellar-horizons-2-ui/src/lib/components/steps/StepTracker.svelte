@@ -163,7 +163,11 @@
         display: none;
     }
 
+    /* Each player's segment is outlined in their faction colour: the colour fills the clipped
+       shape and the panel's dark is painted back over it, inset by the stroke. */
     .players li {
+        --stroke: 1.5px;
+        position: relative;
         min-height: 22px;
         padding-top: 2px;
         padding-bottom: 2px;
@@ -171,18 +175,47 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #dbe7f5;
-        background: color-mix(in srgb, var(--faction) 55%, #0d1322);
+        background: var(--faction);
+    }
+
+    .players li::before {
+        content: '';
+        position: absolute;
+        inset: var(--stroke) calc(var(--stroke) + 1px);
+        background: #0d1322;
+        clip-path: polygon(
+            0 0,
+            calc(100% - var(--point)) 0,
+            100% 50%,
+            calc(100% - var(--point)) 100%,
+            0 100%,
+            var(--point) 50%
+        );
+    }
+
+    .players li:first-child::before {
+        inset: var(--stroke) calc(var(--stroke) + 1px) var(--stroke) var(--stroke);
+        clip-path: polygon(
+            0 0,
+            calc(100% - var(--point)) 0,
+            100% 50%,
+            calc(100% - var(--point)) 100%,
+            0 100%
+        );
+    }
+
+    .players li > * {
+        position: relative;
     }
 
     .players li[data-progress='playing'] {
         font-weight: 700;
-        background: color-mix(in srgb, var(--faction) 78%, #0d1322);
     }
 
     .players li[data-progress='done'],
     .players li[data-progress='pending'] {
-        color: #9fb4d0;
-        background: color-mix(in srgb, var(--faction) 30%, #0d1322);
+        color: #8fa4c2;
+        background: color-mix(in srgb, var(--faction) 55%, #0d1322);
     }
 
     .mark {
@@ -196,6 +229,13 @@
         padding-right: 11px;
         padding-left: 11px;
         border-radius: 4px;
+        clip-path: none;
+    }
+
+    .players.unordered li::before,
+    .players.unordered li:first-child::before {
+        inset: var(--stroke);
+        border-radius: 3px;
         clip-path: none;
     }
 
