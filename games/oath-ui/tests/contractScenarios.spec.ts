@@ -8639,12 +8639,15 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
  * and its gain shows on each destination it fits, with its bank's suit, and is sent with the way.
  * Dana is at the River; the Plains match one bank (beast), the Wastes two (beast and nomad), the
  * Drowned City none, and the Great Slum's hearth bank is empty unless the table gives it favor.
+ * A chip too wide for its card puts the gain on a dark row under the gold cost: in
+ * `hospitalityHiddenPlace` the Wastes' two cards stand at the Hidden Place, whose way flips a secret.
  */
 test.describe('Hospitality on a Travel', () => {
     const plains = 'slot.cradle.1'
     const city = 'slot.provinces.0'
     const slum = 'slot.provinces.2'
     const wastes = 'slot.hinterland.2'
+    const hidden = 'slot.hinterland.1'
     const hospitality = 'denizen.nomad.hospitality'
     const chipOf = (page: Page, slotId: string) => siteAt(page, slotId).locator('.travel-cost')
     const gainOf = (page: Page, slotId: string) => chipOf(page, slotId).locator('.travel-cost__gain')
@@ -8652,18 +8655,111 @@ test.describe('Hospitality on a Travel', () => {
         grid(page).getByRole('button', { name: new RegExp(`gain 1 favor from the ${suit} bank$`) })
     const facts = (page: Page) => call(page, 'tableFacts')
 
+    const costsOf = (page: Page, slotId: string) => chipOf(page, slotId).locator('.travel-cost__way')
+    const fontSizeOf = (page: Page, slotId: string) =>
+        chipOf(page, slotId).evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+    const backgroundOf = (locator: Locator) =>
+        locator.evaluate((element) => getComputedStyle(element).backgroundColor)
+    const GOLD = 'rgb(251, 191, 36)'
+    const DARK = 'rgb(28, 25, 23)'
+
+    /** The smallest box around `boxes`. */
+    const around = (boxes: Box[]): Box => {
+        const left = Math.min(...boxes.map((box) => box.x))
+        const top = Math.min(...boxes.map((box) => box.y))
+        const right = Math.max(...boxes.map((box) => box.x + box.width))
+        const bottom = Math.max(...boxes.map((box) => box.y + box.height))
+        return { x: left, y: top, width: right - left, height: bottom - top }
+    }
+
+    /** The box of what an element holds (its words and symbols), not of its padding. */
+    const inkOf = (locator: Locator): Promise<Box> =>
+        locator.evaluate((element) => {
+            const range = document.createRange()
+            range.selectNodeContents(element)
+            const box = range.getBoundingClientRect()
+            return { x: box.x, y: box.y, width: box.width, height: box.height }
+        })
+
+    /** The colour the page shows at one point, read from a screenshot of that pixel. */
+    async function colourIs(page: Page, x: number, y: number, colour: string, what: string) {
+        const png = await page.screenshot({ clip: { x: Math.round(x), y: Math.round(y), width: 1, height: 1 } })
+        const shown = await page.evaluate(async (data) => {
+            const image = new Image()
+            image.src = `data:image/png;base64,${data}`
+            await image.decode()
+            const canvas = document.createElement('canvas')
+            canvas.width = canvas.height = 1
+            const context = canvas.getContext('2d')!
+            context.drawImage(image, 0, 0)
+            return [...context.getImageData(0, 0, 1, 1).data.slice(0, 3)]
+        }, png.toString('base64'))
+        const wanted = (colour.match(/\d+/g) ?? []).map(Number)
+        const off = Math.max(...wanted.map((value, index) => Math.abs(value - (shown[index] ?? 0))))
+        expect(off, `${what}: rgb(${shown.join(', ')}) at ${Math.round(x)},${Math.round(y)}`).toBeLessThanOrEqual(12)
+    }
+
+    /**
+     * Every piece of the chip stands inside the card's visible frame, and inside the chip, which
+     * paints no further than its own box. The frame is the yellow outline `.board-card` draws just
+     * outside its box, the card's face. The chip's own box is not enough: a chip held to the
+     * card's width can still spill its costs and symbols past both edges of the frame.
+     */
+    async function wholeOnItsFrame(page: Page, slotId: string) {
+        const chip = await settledBox(chipOf(page, slotId))
+        const frame = await boxOf(siteCard(page, slotId))
+        expect(inside(chip, frame), 'the chip inside the frame').toBe(true)
+        for (const box of await boxesOf(chipOf(page, slotId).locator('*'))) {
+            expect(inside(box, frame), 'a piece of the chip inside the frame').toBe(true)
+            expect(inside(box, chip), 'a piece of the chip inside the chip').toBe(true)
+        }
+    }
+
     /** The chip stands on one line, wholly on its card, the gain's dark end level with the cost. */
     async function oneLineOnItsCard(page: Page, slotId: string) {
+        await wholeOnItsFrame(page, slotId)
         const chip = await boxOf(chipOf(page, slotId))
         const gain = await boxOf(gainOf(page, slotId))
-        const fontSize = await chipOf(page, slotId).evaluate((element) =>
-            parseFloat(getComputedStyle(element).fontSize)
-        )
-        expect(inside(chip, await boxOf(siteCard(page, slotId)))).toBe(true)
+        const fontSize = await fontSizeOf(page, slotId)
         expect(chip.height).toBeLessThan(fontSize * 1.6)
+        expect(onTwoRows(around(await boxesOf(costsOf(page, slotId))), await inkOf(gainOf(page, slotId)))).toBe(false)
         expect(gain.y).toBeGreaterThanOrEqual(chip.y - 0.5)
         expect(gain.y + gain.height).toBeLessThanOrEqual(chip.y + chip.height + 0.5)
         expect(gain.x + gain.width).toBeCloseTo(chip.x + chip.width, 0)
+        const middle = chip.y + chip.height / 2
+        await colourIs(page, chip.x + 4, middle, GOLD, 'the gold cost at the left end')
+        await colourIs(page, chip.x + chip.width - 4, middle, DARK, 'the dark gain at the right end')
+    }
+
+    /** One line where the chip fits on its card, otherwise two rows; either way wholly on it. */
+    async function fitsOnItsCard(page: Page, slotId: string) {
+        await settledBox(chipOf(page, slotId))
+        if (onTwoRows(around(await boxesOf(costsOf(page, slotId))), await inkOf(gainOf(page, slotId))))
+            await twoRowsOnItsCard(page, slotId)
+        else await oneLineOnItsCard(page, slotId)
+    }
+
+    /** Whether the gain stands wholly under the cost. */
+    const onTwoRows = (cost: Box, gain: Box) => gain.y >= cost.y + cost.height - 0.5
+
+    /** The chip is two rows on its card: the gold cost on top, the dark gain under it, each centred. */
+    async function twoRowsOnItsCard(page: Page, slotId: string) {
+        await wholeOnItsFrame(page, slotId)
+        const frame = await boxOf(siteCard(page, slotId))
+        const chip = await boxOf(chipOf(page, slotId))
+        const costRow = around(await boxesOf(costsOf(page, slotId)))
+        const gainRow = await inkOf(gainOf(page, slotId))
+        expect(onTwoRows(costRow, gainRow), 'the gain under the cost').toBe(true)
+        const centre = frame.x + frame.width / 2
+        expect(Math.abs(costRow.x + costRow.width / 2 - centre), 'the cost centred').toBeLessThanOrEqual(1)
+        expect(Math.abs(gainRow.x + gainRow.width / 2 - centre), 'the gain centred').toBeLessThanOrEqual(1)
+        expect(await backgroundOf(chipOf(page, slotId))).toBe(GOLD)
+        expect(await backgroundOf(gainOf(page, slotId))).toBe(DARK)
+        // Each row keeps its colour out to both ends of the chip.
+        for (const x of [chip.x + 4, chip.x + chip.width - 4]) {
+            await colourIs(page, x, costRow.y + costRow.height / 2, GOLD, 'the cost row gold')
+            await colourIs(page, x, gainRow.y + gainRow.height / 2, DARK, 'the gain row dark')
+        }
     }
 
     test('on a desktop it starts in use with no bank asked; every destination stays lit, the gain on those it fits', async ({ page }) => {
@@ -8739,6 +8835,17 @@ test.describe('Hospitality on a Travel', () => {
         expect((await facts(page)).favorBank).toEqual(before.favorBank)
     })
 
+    test('on a desktop a chip too wide for its card is two rows, as on a phone; one that fits stays on one line', async ({ page }) => {
+        await openTable(page, 'hospitalityHiddenPlace')
+        await tile(page, 'Travel').click()
+        await expect(travelPrompt(page)).toBeVisible()
+        await oneLineOnItsCard(page, plains)
+        await twoRowsOnItsCard(page, hidden)
+        await siteCard(page, hidden).click()
+        await expect(bankWay(page, 'Beast')).toHaveCount(1)
+        await expect(bankWay(page, 'Nomad')).toHaveCount(1)
+    })
+
     test('Toll Roads and a gain on one site: one way reads the toll then the gain, and sends both', async ({ page }) => {
         await openTable(page, 'hospitalityToll')
         await tile(page, 'Travel').click()
@@ -8777,13 +8884,13 @@ test.describe('Hospitality on a Travel', () => {
             expect((await facts(page)).favorBank.beast).toBe(before.favorBank.beast - 1)
         })
 
-        test('two banks: the chip reads both suits on one line; a tap opens a way per bank, stacked; Undo closes them', async ({ page }) => {
+        test('two banks: the chip reads both suits, on one line if it fits; a tap opens a way per bank, stacked; Undo closes them', async ({ page }) => {
             await openTable(page, 'hospitality')
             await chooseTravelOnThePhone(page)
             await regionChip(page, 'Hinterland').tap()
             await expect.poll(() => onScreen(page, siteCard(page, wastes))).toBe(true)
             await expect(gainOf(page, wastes)).toContainText('or')
-            await oneLineOnItsCard(page, wastes)
+            await fitsOnItsCard(page, wastes)
 
             await siteCard(page, wastes).tap()
             const [one, other] = [await boxOf(bankWay(page, 'Beast')), await boxOf(bankWay(page, 'Nomad'))]
@@ -8812,6 +8919,16 @@ test.describe('Hospitality on a Travel', () => {
             await expect.poll(() => onScreen(page, siteCard(page, slum))).toBe(true)
             await expect(chipOf(page, slum).getByRole('img', { name: 'favor' })).toHaveCount(2)
             await oneLineOnItsCard(page, slum)
+        })
+
+        test('a secret to flip and two banks: too wide for one line, the gain drops to a dark row under the gold cost', async ({ page }) => {
+            await openTable(page, 'hospitalityHiddenPlace')
+            await chooseTravelOnThePhone(page)
+            await regionChip(page, 'Hinterland').tap()
+            await expect.poll(() => onScreen(page, siteCard(page, hidden))).toBe(true)
+            await expect(costsOf(page, hidden).getByRole('img', { name: 'secret' })).toHaveCount(1)
+            await expect(gainOf(page, hidden).getByRole('img', { name: /^the (Beast|Nomad) bank$/ })).toHaveCount(2)
+            await twoRowsOnItsCard(page, hidden)
         })
     })
 })

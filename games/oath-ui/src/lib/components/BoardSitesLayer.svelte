@@ -162,14 +162,20 @@
 
         {#if text.chip !== undefined}
             <!-- Hospitality's gain ends the chip in a dark part: "+1 [favor] [suit] or [suit]". -->
-            <span class="travel-cost" class:targeted>
+            <span
+                class="travel-cost"
+                class:targeted
+                class:with-gain={'banks' in text.chip && text.chip.banks !== undefined}
+            >
                 {#if 'words' in text.chip}
                     {text.chip.words}
                 {:else}
-                    {#each text.chip.ways as way, index (index)}
-                        {#if index > 0}<span class="travel-cost__or">{' or '}</span>{/if}
-                        {@render chipWay(way)}
-                    {/each}{#if text.chip.banks}<span class="travel-cost__gain"
+                    <span class="travel-cost__cost">
+                        {#each text.chip.ways as way, index (index)}
+                            {#if index > 0}<span class="travel-cost__or">{' or '}</span>{/if}
+                            {@render chipWay(way)}
+                        {/each}
+                    </span>{#if text.chip.banks}<span class="travel-cost__gain"
                             >+1<img
                                 class="travel-cost__token"
                                 src={favorTokenImage()}
@@ -237,9 +243,12 @@
         bottom: -13px;
         transform: translateX(-50%);
         z-index: 3;
+        --pad-top: 2px;
+        --pad-x: 10px;
+        --pad-bottom: 1px;
         display: inline-flex;
         align-items: center;
-        padding: 2px 10px 1px;
+        padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
         border-radius: 999px;
         background: #fbbf24;
         color: #1c1917;
@@ -255,16 +264,52 @@
         align-items: center;
     }
 
-    /* Hospitality's gain is not a cost, so not gold: the chip's right end turns dark for it. */
+    /* The ways to pay stay together on one line, as the gain does. */
+    .travel-cost__cost {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    /* With Hospitality's gain the chip breaks only between the cost and the gain: one too wide for
+       its card puts the gain on a row under the cost. Each part reaches the chip's edges, so the
+       cost is gold and the gain dark whichever way the chip falls; the chip clips both to its
+       shape, a pill on one line and rounded corners on two. */
+    .travel-cost.with-gain {
+        flex-wrap: wrap;
+        align-items: stretch;
+        column-gap: 0.7em;
+        row-gap: calc(var(--pad-top) + var(--pad-bottom));
+        overflow: clip;
+        border-radius: 1em;
+    }
+
+    .travel-cost.with-gain .travel-cost__cost,
+    .travel-cost__gain {
+        margin-block: calc(-1 * var(--pad-top)) calc(-1 * var(--pad-bottom));
+        padding-block: var(--pad-top) var(--pad-bottom);
+    }
+
+    /* Gold to the chip's left edge and half way across the gap, over the gain's dark. */
+    .travel-cost.with-gain .travel-cost__cost {
+        z-index: 1;
+        margin-inline: calc(-1 * var(--pad-x)) -0.35em;
+        padding-inline: var(--pad-x) 0.35em;
+        background: inherit;
+    }
+
+    /* Hospitality's gain is not a cost, so not gold: dark to the chip's right edge, and out across
+       its whole row (the chip clips it) for the cost to cover where they share one. */
     .travel-cost__gain {
         display: inline-flex;
         align-items: center;
         white-space: nowrap;
-        align-self: stretch;
-        margin: -2px -10px -1px 0.35em;
-        padding: 2px 10px 1px 0.35em;
-        border-radius: 0 999px 999px 0;
+        margin-right: calc(-1 * var(--pad-x));
+        padding-right: var(--pad-x);
         background: #1c1917;
+        border-image-source: linear-gradient(#1c1917, #1c1917);
+        border-image-slice: 0 fill;
+        border-image-outset: 0 100vw;
         color: #fafaf9;
     }
 
@@ -304,16 +349,13 @@
         max-width: calc(100% - 16px);
         margin-inline: auto;
         transform: none;
-        padding: 3px 20px 2px;
+        --pad-top: 3px;
+        --pad-x: 20px;
+        --pad-bottom: 2px;
         font-size: 36px;
         white-space: normal;
         text-align: center;
         justify-content: center;
-    }
-
-    .site.on-map .travel-cost__gain {
-        margin: -3px -20px -2px 0.35em;
-        padding: 3px 20px 2px 0.35em;
     }
 
     /* Top-left: the only corner the site's own print leaves free. */

@@ -136,6 +136,7 @@ export type TableName =
     | 'travelToll'
     | 'hospitality'
     | 'hospitalityToll'
+    | 'hospitalityHiddenPlace'
     | 'majorEvents'
     | 'sinceLastTurn'
     | 'sinceLastTurnLong'
@@ -2975,10 +2976,13 @@ function travelTollTable(): PlayedTable {
  * Hospitality on Dana's Travel from the River: she holds Hospitality (nomad), War Tortoise (beast)
  * and Crop Rotation (hearth). The Plains hold Wolves (one bank, beast); the Wastes Oracle and
  * Birdsong (two banks, beast and nomad); the Drowned City Forced Labor (no match); the Great Slum,
- * which Rhys rules, Toll Roads and Rowdy Pub (hearth, whose bank is empty unless `hearth`). The
- * Shrouded Wood, the Mountain and the Hidden Place hold no card.
+ * which Rhys rules, Toll Roads and Rowdy Pub (hearth, whose bank is empty but in the `toll`
+ * scene). The Shrouded Wood, the Mountain and the Hidden Place hold no card. The `hiddenPlace`
+ * scene moves Oracle and Birdsong to the Hidden Place, so one destination has two banks and asks a
+ * secret flipped as well (the site's own power).
  */
-function hospitalityTable(hearth: boolean): PlayedTable {
+function hospitalityTable(scene: 'plain' | 'toll' | 'hiddenPlace'): PlayedTable {
+    const hearth = scene === 'toll'
     const [river, plains] = mapSlotsFor(Region.Cradle)
     const [city, wood, slum] = mapSlotsFor(Region.Provinces)
     const [mountain, hidden, wastes] = mapSlotsFor(Region.Hinterland)
@@ -2987,6 +2991,7 @@ function hospitalityTable(hearth: boolean): PlayedTable {
         'denizen.beast.war-tortoise',
         'denizen.hearth.crop-rotation'
     ].map((cardId) => ({ cardId, faceUp: true }))
+    const twoBanks = ['denizen.nomad.oracle', 'denizen.beast.birdsong']
     const state = testState(
         [
             testPlayer({ playerId: 'dana', color: Color.Purple, siteId: river, supply: 7, favor: 3, secrets: 1, advisers }),
@@ -3019,8 +3024,8 @@ function hospitalityTable(hearth: boolean): PlayedTable {
                 [wood]: [],
                 [slum]: ['denizen.order.toll-roads', 'denizen.hearth.rowdy-pub'],
                 [mountain]: [],
-                [hidden]: [],
-                [wastes]: ['denizen.nomad.oracle', 'denizen.beast.birdsong']
+                [hidden]: scene === 'hiddenPlace' ? twoBanks : [],
+                [wastes]: scene === 'hiddenPlace' ? [] : twoBanks
             },
             warbandsBySite: { [slum]: { rhys: 2 } },
             favorBank: {
@@ -4570,8 +4575,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardChangesSearch: () => mushroomsTable(2),
     cardsOpenTravel: travelCardsTable,
     travelToll: travelTollTable,
-    hospitality: () => hospitalityTable(false),
-    hospitalityToll: () => hospitalityTable(true),
+    hospitality: () => hospitalityTable('plain'),
+    hospitalityToll: () => hospitalityTable('toll'),
+    hospitalityHiddenPlace: () => hospitalityTable('hiddenPlace'),
     majorEvents: majorEventsTable,
     sinceLastTurn: () => sinceLastTurnTable(false),
     sinceLastTurnLong: () => sinceLastTurnTable(true),
