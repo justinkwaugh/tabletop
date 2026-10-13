@@ -1,11 +1,18 @@
 import { assert, assertExists } from '@tabletop/common'
 import { UnitType, sameFace } from '../components/pieces.js'
-import { DecisionKind, type LossEntry, type MoralePenalty, type PendingDecision } from './attack.js'
+import {
+    DecisionKind,
+    type LossEntry,
+    type MoralePenalty,
+    type PendingDecision,
+    type ResultTerm
+} from './attack.js'
 import { attackLocale, currentAttack, defenseLocale, type AttackState } from './attackState.js'
 import {
     attackerLossPoints,
     attackerWins,
     counterAttackStrength,
+    counterAttackTerm,
     defenderLossPoints,
     splitEvenly
 } from './combat.js'
@@ -95,6 +102,11 @@ export function finalResultWith(
     const attack = currentAttack(state)
     assertExists(attack.initialResult, 'The attack has not been declared')
     return attack.initialResult - counterAttackStrength(counterAttackers.map(faceOf))
+}
+
+/** What a counter-attack by these units takes from the initial result. */
+export function counterAttackAccountWith(counterAttackers: readonly ProjectedUnit[]): ResultTerm[] {
+    return [counterAttackTerm(counterAttackers.map(faceOf))]
 }
 
 /** Rule 11, steps 7 and 8. */

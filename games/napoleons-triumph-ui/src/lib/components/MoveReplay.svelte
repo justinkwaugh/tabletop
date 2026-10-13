@@ -2,7 +2,7 @@
     import type { Attachment } from 'svelte/attachments'
     import boardArt from '$lib/images/board.webp'
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
-    import { AttackMarkKind, replayFlags } from '$lib/model/moveReplay.js'
+    import { replayFlags } from '$lib/model/moveReplay.js'
     import { roleMarkOf } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { viewTransformInSvg } from '$lib/utils/boardView.js'
@@ -153,11 +153,7 @@
                             <CommanderFlag {flag} view={flagView} />
                         {/each}
                         {#if scene.attackMark}
-                            <AttackArrow
-                                approach={scene.attackMark.approach}
-                                scale={attackMarkerScale(zoom)}
-                                feint={scene.attackMark.kind === AttackMarkKind.Feint}
-                            />
+                            <AttackArrow mark={scene.attackMark} scale={attackMarkerScale(zoom)} />
                         {/if}
                     </g>
                 </svg>

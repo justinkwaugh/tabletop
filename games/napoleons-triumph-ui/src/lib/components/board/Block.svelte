@@ -4,6 +4,7 @@
     import type { RoleMark } from '$lib/model/roleMark.js'
     import { washedOut, type ArmyColors } from '$lib/utils/armyColors.js'
     import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
+    import { faceWidth } from '$lib/utils/faceLayout.js'
 
     let {
         x,
@@ -26,6 +27,10 @@
     } = $props()
 
     const ROLE_MARK_AT = BLOCK_LENGTH / 2 - 10
+    const SYMBOL_WIDTH = 16
+    const STRONGEST = 3
+    // A loss stands clear of both the end of the block and the symbols of the strongest unit, the same place on every block.
+    const HEAVY_MARK_AT = (faceWidth(STRONGEST, SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
     const MOVED_DOT_AT = BLOCK_LENGTH / 2 - 8
     const LETTERLESS_ROLE_LOZENGE = 'M0 -4.6 L4.2 0 L0 4.6 L-4.2 0 Z'
     const EDGE = 3
@@ -66,15 +71,22 @@
                 ink={paint.ink}
                 ground={paint.block}
                 symbolHeight={11}
-                symbolWidth={16}
+                symbolWidth={SYMBOL_WIDTH}
             />
         </g>
     {/if}
     {#if roleMark}
-        <g transform="translate({ROLE_MARK_AT} {-EDGE / 2})">
+        <g transform="translate({roleMark.heavy ? HEAVY_MARK_AT : ROLE_MARK_AT} {-EDGE / 2})">
             {#if roleMark.letter}
-                <text y="4" font-size="11" font-weight="700" text-anchor="middle" fill={paint.ink}
-                    >{roleMark.letter}</text
+                <text
+                    y={roleMark.heavy ? 4.6 : 4}
+                    font-size={roleMark.heavy ? 13 : 11}
+                    font-weight="700"
+                    text-anchor="middle"
+                    fill={paint.ink}
+                    stroke={roleMark.heavy ? paint.ink : undefined}
+                    stroke-width="0.7"
+                    class:nt-block-heavy-mark={roleMark.heavy}>{roleMark.letter}</text
                 >
             {:else}
                 <path d={LETTERLESS_ROLE_LOZENGE} fill={paint.ink}></path>
@@ -85,3 +97,9 @@
         <circle cx={MOVED_DOT_AT} cy={-EDGE / 2} r="3.2" fill={paint.ink} opacity="0.85"></circle>
     {/if}
 </g>
+
+<style>
+    .nt-block-heavy-mark {
+        font-variant-numeric: lining-nums;
+    }
+</style>

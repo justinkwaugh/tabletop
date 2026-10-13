@@ -1,4 +1,5 @@
 import { Side, UnitType, type Face } from '../components/pieces.js'
+import { ResultTermKind, type ResultTerm } from './attack.js'
 
 export interface Engagement {
     attackLeaders: Face[]
@@ -22,27 +23,50 @@ function totalStrength(faces: Face[]): number {
     return faces.reduce((sum, face) => sum + face.strength, 0)
 }
 
-function defenseLeaderStrength(face: Face, guardAttack: boolean): number {
-    return guardAttack && face.strength < 3 ? face.strength - 1 : face.strength
+const GUARD_ATTACK_SPARES_FROM = 3
+
+function asTheyWere(faces: Face[]): Face[] {
+    return faces.map((face) => ({ ...face }))
 }
 
-export function initialResult(engagement: Engagement): number {
+/** Rule 11, step 6, as the things it counts: their values add up to the initial result. */
+export function initialResultTerms(engagement: Engagement): ResultTerm[] {
     const type = leadingType(engagement.attackLeaders)
-    let result = totalStrength(engagement.attackLeaders)
+    const terms: ResultTerm[] = [
+        {
+            kind: ResultTermKind.AttackLeaders,
+            value: totalStrength(engagement.attackLeaders),
+            faces: asTheyWere(engagement.attackLeaders)
+        }
+    ]
     if (type === UnitType.Infantry && engagement.defendersBlocking) {
-        result -= 1
+        terms.push({ kind: ResultTermKind.InfantryAgainstBlockers, value: -1 })
     }
     const penaltiesApply = engagement.defendersBlocking || engagement.penaltiesApplyInReserve
     if (type !== undefined && penaltiesApply && engagement.approachPenalties.includes(type)) {
-        result -= 1
+        terms.push({ kind: ResultTermKind.ApproachPenalty, value: -1 })
     }
-    if (type !== UnitType.Artillery) {
-        result -= engagement.defenseLeaders.reduce(
-            (sum, face) => sum + defenseLeaderStrength(face, engagement.guardAttack),
-            0
-        )
+    if (type === UnitType.Artillery) {
+        terms.push({ kind: ResultTermKind.ArtilleryLeads, value: 0 })
+        return terms
     }
-    return result
+    terms.push({
+        kind: ResultTermKind.DefenseLeaders,
+        value: 0 - totalStrength(engagement.defenseLeaders),
+        faces: asTheyWere(engagement.defenseLeaders)
+    })
+    const eased = engagement.guardAttack
+        ? engagement.defenseLeaders.filter((face) => face.strength < GUARD_ATTACK_SPARES_FROM)
+              .length
+        : 0
+    if (eased > 0) {
+        terms.push({ kind: ResultTermKind.GuardAttack, value: eased })
+    }
+    return terms
+}
+
+export function initialResult(engagement: Engagement): number {
+    return initialResultTerms(engagement).reduce((sum, term) => sum + term.value, 0)
 }
 
 export interface Tiebreak {
@@ -67,6 +91,15 @@ export function attackerWins(result: number, tiebreak: Tiebreak): boolean {
 
 export function counterAttackStrength(counterAttackers: Face[]): number {
     return counterAttackers.reduce((sum, face) => sum + Math.max(0, face.strength - 1), 0)
+}
+
+/** Rule 11, step 8, as the one thing it counts: the counter-attackers as they stood before each lost its step. */
+export function counterAttackTerm(counterAttackers: Face[]): ResultTerm {
+    return {
+        kind: ResultTermKind.CounterAttack,
+        value: 0 - counterAttackStrength(counterAttackers),
+        faces: asTheyWere(counterAttackers)
+    }
 }
 
 export function attackerLossPoints(

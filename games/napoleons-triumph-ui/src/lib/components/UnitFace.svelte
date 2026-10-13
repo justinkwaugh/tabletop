@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Face } from '@tabletop/napoleons-triumph'
+    import { FACE_SYMBOL_GAP, faceWidth } from '$lib/utils/faceLayout.js'
     import UnitSymbol from './UnitSymbol.svelte'
 
     let {
@@ -16,15 +17,14 @@
         symbolHeight: number
     } = $props()
 
-    const GAP = 3
     const LINE_WIDTH = 1.3
     const DOT_SHARE_OF_HEIGHT = 0.27
 
-    const total = $derived(face.strength * symbolWidth + (face.strength - 1) * GAP)
+    const total = $derived(faceWidth(face.strength, symbolWidth))
     const offsets = $derived(
         Array.from(
             { length: face.strength },
-            (_, index) => -total / 2 + index * (symbolWidth + GAP)
+            (_, index) => -total / 2 + index * (symbolWidth + FACE_SYMBOL_GAP)
         )
     )
 </script>

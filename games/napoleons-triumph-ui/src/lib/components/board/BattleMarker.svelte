@@ -7,7 +7,7 @@
 
     const gameSession = getGameSession()
 
-    const attack = $derived(gameSession.attack)
+    const mark = $derived(gameSession.attackMark)
     const retreats = $derived.by(() => {
         const stage = gameSession.battleStage
         const [, from] = gameSession.battleLocales
@@ -18,8 +18,8 @@
     const scale = $derived(attackMarkerScale(gameSession.zoom))
 </script>
 
-{#if attack}
-    <AttackArrow approach={attack.attackApproach} {scale} feint={attack.feint === true} />
+{#if mark}
+    <AttackArrow {mark} {scale} />
 {/if}
 {#each retreats as retreat (retreat.locale)}
     <g

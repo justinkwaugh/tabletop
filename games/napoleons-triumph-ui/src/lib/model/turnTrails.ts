@@ -21,6 +21,8 @@ import {
 export interface Trail {
     /** Which of the turn's moves it was, counting from one. The arrows of one action share a number. */
     order: number
+    /** Whose pieces made the move. */
+    playerId: string
     arrow: DrawnArrow
     line: Point[]
     /** Halfway along the arrow, where its number goes. */
@@ -77,7 +79,7 @@ function halfway(line: readonly Point[]): { middle: Point; along: Point } {
     return { middle: { x: from.x + along.x * left, y: from.y + along.y * left }, along }
 }
 
-function numbered(order: number, line: Point[], rotation: number): Trail[] {
+function numbered(order: number, playerId: string, line: Point[], rotation: number): Trail[] {
     const arrow = drawnArrow(line)
     if (!arrow) {
         return []
@@ -88,7 +90,16 @@ function numbered(order: number, line: Point[], rotation: number): Trail[] {
     const upwards = -(across.x * down.x + across.y * down.y)
     const rightwards = across.x * right.x + across.y * right.y
     const sign = Math.abs(upwards) > SIDEWAYS ? Math.sign(upwards) : Math.sign(rightwards) || 1
-    return [{ order, arrow, line, middle, aside: { x: across.x * sign, y: across.y * sign } }]
+    return [
+        {
+            order,
+            playerId,
+            arrow,
+            line,
+            middle,
+            aside: { x: across.x * sign, y: across.y * sign }
+        }
+    ]
 }
 
 /**
@@ -131,13 +142,14 @@ export function turnTrails(
             const end = centreOf(
                 here.length > 0 ? here : asSeen(stopped.filter(moved), stopped, view.readBy)
             )
-            if (!start || !end) {
+            const owner = stopped.find(moved)?.unit.playerId
+            if (!start || !end || owner === undefined) {
                 continue
             }
             const bends = movement.road.slice(0, -1).map((locale) => LOCALE_GEOMETRY[locale].anchor)
             const [tail, ...onwards] = arrowAlong([start, ...bends, end], stayed, here)
             if (tail) {
-                trails.push(...numbered(order, [onBoard(tail), ...onwards], view.rotation))
+                trails.push(...numbered(order, owner, [onBoard(tail), ...onwards], view.rotation))
             }
         }
     }

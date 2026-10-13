@@ -29,6 +29,19 @@ export const FEINT_ARROW_FOLD_PATH =
     `C${CURL_INNER + 6} ${CURL_TOP} ${CURL_OUTER} ${CURL_TOP + 4} ${CURL_OUTER} ${CURL_LIFT} ` +
     `Q${CURL_INNER + 8} ${-SHAFT_HALF_WIDTH - 1} ${CURL_INNER} ${-SHAFT_HALF_WIDTH} Z`
 
+/**
+ * A counter-attack: a narrower arrow beside the attack's own, pointing back the way the attack came.
+ * It is drawn pointing forward, for the marker to turn round, and the two stand side by side about
+ * the middle of the bar.
+ */
+const COUNTER_SHAFT_HALF_WIDTH = 6
+const COUNTER_HEAD_HALF_WIDTH = 14
+const BETWEEN_THE_ARROWS = 5
+export const COUNTER_ARROW_PATH = `M${TAIL} ${-COUNTER_SHAFT_HALF_WIDTH} H${NECK} V${-COUNTER_HEAD_HALF_WIDTH} L${TIP} 0 L${NECK} ${COUNTER_HEAD_HALF_WIDTH} V${COUNTER_SHAFT_HALF_WIDTH} H${TAIL} Z`
+const PAIR_HALF_WIDTH = HEAD_HALF_WIDTH + BETWEEN_THE_ARROWS / 2 + COUNTER_HEAD_HALF_WIDTH
+export const ATTACK_ARROW_ASIDE = HEAD_HALF_WIDTH - PAIR_HALF_WIDTH
+export const COUNTER_ARROW_ASIDE = PAIR_HALF_WIDTH - COUNTER_HEAD_HALF_WIDTH
+
 export function attackMarkerScale(zoom: number): number {
     return Math.min(3.4, Math.max(1.2, 0.7 / zoom))
 }

@@ -6,17 +6,18 @@ import {
     attackerLeadsInitially,
     canPressAttack,
     checkAttackDeclaration,
+    counterAttackAccountWith,
     counterAttackCandidates,
     declareDefense,
     declareFeint,
     eligibleReserveDefenders,
     finalResultWith,
+    initialAccountOf,
     initialResultOf,
     isLegal,
     mustDefend,
     nextDecision,
     occupyAfterRetreat,
-    retreatingUnits,
     samePosition,
     validateCounterAttackers,
     whyIllegal,
@@ -25,7 +26,8 @@ import {
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type ThreatOrder,
-    type ProjectedUnit
+    type ProjectedUnit,
+    type ResultTerm
 } from '@tabletop/napoleons-triumph'
 import {
     attackCommand,
@@ -83,7 +85,6 @@ export interface DefenceStage extends Picking {
     kind: StageKind.Defence
     forced: boolean
     candidates: ProjectedUnit[]
-    bystanders: ProjectedUnit[]
     defenders: string[]
     leaders: string[]
     leaderLimit: number
@@ -122,6 +123,7 @@ export interface DeclarationStage extends AttackerPicking {
     target?: string
     problem?: string
     initialResult?: number
+    initialAccount?: ResultTerm[]
 }
 
 export interface OccupationStage extends AttackerPicking {
@@ -138,6 +140,7 @@ export interface CounterStage extends Picking {
     counterAttackers: string[]
     attackWinning: boolean
     finalResult: number
+    counterAccount: ResultTerm[]
     problem?: string
 }
 
@@ -215,7 +218,6 @@ function defenceStage(
         kind: StageKind.Defence,
         forced,
         candidates,
-        bystanders: retreatingUnits(state).filter((unit) => !candidates.includes(unit)),
         defenders,
         leaders,
         leaderLimit: state.map.approach(attack.defenseApproach).wide ? 2 : 1,
@@ -356,6 +358,10 @@ function declarationStage(
         initialResult:
             declaration && problem === undefined
                 ? initialResultOf(state, checkAttackDeclaration(state, declaration))
+                : undefined,
+        initialAccount:
+            declaration && problem === undefined
+                ? initialAccountOf(state, checkAttackDeclaration(state, declaration))
                 : undefined
     }
 }
@@ -407,6 +413,7 @@ function counterStage(
         counterAttackers,
         attackWinning,
         finalResult: finalResultWith(state, units),
+        counterAccount: counterAttackAccountWith(units),
         problem: whyIllegal(() =>
             validateCounterAttackers(state, units, attack.defenseApproach, attackWinning)
         ),
@@ -704,16 +711,35 @@ export function commandersGoing(stage: AdvanceStage): string[] {
     return stage.commanders.filter((entry) => entry.goes).map((entry) => entry.commanderId)
 }
 
-export function cycleLoss(
+/**
+ * A retreat's losses are owed by groups of units, so a tap never changes how many steps are lost,
+ * only where they fall: one step moves onto the tapped unit from the unit of its group carrying most.
+ * A unit that owes nothing, or can take no more, is left as it is.
+ */
+export function moveLossOnto(
     state: HydratedNapoleonsTriumphGameState,
     stage: RetreatStage,
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
-    const strength = strengthOf(state.unit(unitId))
-    const next = ((stage.plan.losses[unitId] ?? 0) + 1) % (strength + 1)
-    const { [unitId]: _previous, ...others } = stage.plan.losses
-    const losses = next === 0 ? others : { ...others, [unitId]: next }
+    const lossOf = (id: string) => stage.plan.losses[id] ?? 0
+    const group = stage.plan.groups.find((candidate) => candidate.unitIds.includes(unitId))
+    if (!group || lossOf(unitId) >= strengthOf(state.unit(unitId))) {
+        return selections
+    }
+    const stillOwed = group.assigned < group.steps
+    const [giver] = group.unitIds
+        .filter((id) => id !== unitId && lossOf(id) > 0)
+        .toSorted((a, b) => lossOf(b) - lossOf(a))
+    if (!stillOwed && giver === undefined) {
+        return selections
+    }
+    const moved = {
+        ...stage.plan.losses,
+        ...(stillOwed || giver === undefined ? {} : { [giver]: lossOf(giver) - 1 }),
+        [unitId]: lossOf(unitId) + 1
+    }
+    const losses = Object.fromEntries(Object.entries(moved).filter(([, steps]) => steps > 0))
     return { ...selections, retreat: setRetreatLosses(selections.retreat, losses) }
 }
 
@@ -811,6 +837,23 @@ export function committedRoles(attack: VisibleAttack): Record<string, BattleRole
             attack.counterAttackingUnitIds.map((id) => [id, BattleRole.CounterAttacks])
         )
     }
+}
+
+/** The roles as they stood in the defence, for listing the defenders apart from the counter-attack some of them then made. */
+export function rolesBeforeTheCounterAttack(
+    attack: VisibleAttack,
+    roles: Record<string, BattleRole>
+): Record<string, BattleRole> {
+    const defended = (id: string) =>
+        attack.defenseLeaderIds.includes(id) ? BattleRole.Leads : BattleRole.Defends
+    return Object.fromEntries(
+        Object.entries(roles).map(([id, role]) => [
+            id,
+            role === BattleRole.CounterAttacks && attack.counterAttackingUnitIds.includes(id)
+                ? defended(id)
+                : role
+        ])
+    )
 }
 
 export function rolesShown(

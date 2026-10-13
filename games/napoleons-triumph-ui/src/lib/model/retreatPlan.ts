@@ -22,6 +22,8 @@ export interface RetreatingUnit {
     fate: RetreatFate
     loss: number
     owesLoss: boolean
+    /** It owes its loss with other units, so steps of it can be moved between them. */
+    sharesLoss: boolean
     destination?: number
 }
 
@@ -145,6 +147,9 @@ export function retreatPlan(
                 (destination === undefined ? RetreatFate.NoRoom : RetreatFate.Retreats),
             loss,
             owesLoss: lossGroups.some((group) => group.unitIds.includes(unit.id)),
+            sharesLoss: lossGroups.some(
+                (group) => group.unitIds.length > 1 && group.unitIds.includes(unit.id)
+            ),
             destination
         }
     })
