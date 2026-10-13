@@ -243,3 +243,55 @@ describe('a corps in reserve', () => {
         }
     })
 })
+
+describe('stacks short of room', () => {
+    const SMALL = 110
+    const ROOMY = 94
+
+    function stackIn(locale: number, looseLocales: number[] = []) {
+        const game = new TestGame()
+        game.deployBoth()
+        arrangeBattlefield(
+            game,
+            Array.from({ length: 5 }, (_, index) => ({
+                id: `inf-${index}`,
+                side: Side.Allied,
+                face: infantry(2),
+                locale,
+                commanderId: 'langeron'
+            }))
+        )
+        const [stack] = layoutPieces(game.hydrated, { rotation: 0, looseLocales })
+        const [first, second] = stack.blocks
+        const spacing = Math.hypot(
+            second.centre.x - first.centre.x,
+            second.centre.y - first.centre.y
+        )
+        return { closedUp: stack.closedUp, spacing, blocks: stack.blocks }
+    }
+
+    it('close up in a small locale, each block lying over part of the next', () => {
+        const stack = stackIn(SMALL)
+        expect(stack.closedUp).toBe(true)
+        expect(stack.spacing).toBeLessThan(BLOCK_THICKNESS)
+    })
+
+    it('stand a full block apart where there is room', () => {
+        const stack = stackIn(ROOMY)
+        expect(stack.closedUp).toBe(false)
+        expect(stack.spacing).toBeGreaterThan(BLOCK_THICKNESS)
+    })
+
+    it('spread to a full block apart when their locale is laid out loose', () => {
+        const stack = stackIn(SMALL, [SMALL])
+        expect(stack.closedUp).toBe(false)
+        expect(stack.spacing).toBe(stackIn(ROOMY).spacing)
+    })
+
+    it('draw the top block whole and last, with each block under it showing its lower edge', () => {
+        const stack = stackIn(SMALL)
+        const lowestOnTheBoard = stack.blocks.toSorted((a, b) => b.centre.y - a.centre.y)
+        expect(stack.blocks).toEqual(lowestOnTheBoard)
+        expect(stack.blocks.at(-1)?.unit.id).toBe('inf-0')
+    })
+})

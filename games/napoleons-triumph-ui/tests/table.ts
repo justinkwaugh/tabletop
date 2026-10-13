@@ -130,9 +130,9 @@ export async function deployBothArmies(page: Page) {
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 }
 
-// Pieces carry role="button" only while the session takes choices, so Playwright waits out an action or Undo still settling.
+// Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
 export async function pickUp(page: Page, commander: string) {
-    await tap(page, `[data-commander="${commander}"][role="button"]`)
+    await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
 }
 
 // Workaround: a position that takes many turns to reach is written into the dev harness's own copy of the game, which is then opened again.

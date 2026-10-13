@@ -9,6 +9,7 @@ import {
     openSeat,
     pickUp,
     placeFixedBattery,
+    rearrange,
     takeFromPool,
     tap
 } from './table.js'
@@ -287,7 +288,7 @@ test('two artillery units on a wide approach are picked together and fire by a U
     await page.getByRole('button', { name: 'End turn' }).click()
 
     const batteries = page
-        .locator('[data-commander="detached"][role="button"]')
+        .locator('[data-commander="detached"][aria-label="Select these pieces"]')
         .filter({ has: page.locator('g:nth-of-type(2)') })
     await batteries.dispatchEvent('click')
     const strip = page.getByRole('group', { name: 'Detached units' })
@@ -328,4 +329,44 @@ test('two artillery units on a wide approach are picked together and fire by a U
     await expect(attack).toBeEnabled()
     await attack.click()
     await expect(attack).toBeHidden()
+})
+
+test('a stack closed up for want of room spreads out when tapped, and when picked up', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await rearrange(page, (state) => {
+        const crowded = { locale: 110 }
+        for (const unit of state.units.filter((unit) => unit.commanderId === 'langeron')) {
+            unit.position = crowded
+        }
+        for (const commander of state.commanders.filter((entry) => entry.id === 'langeron')) {
+            commander.position = crowded
+        }
+    })
+    const stack = page.locator('[data-commander="langeron"]')
+    // Measured on the board, not on screen: picking a corps up can move and zoom the view, and the board may be turned.
+    const extent = () =>
+        stack.evaluate((group) => {
+            const box = group instanceof SVGGraphicsElement ? group.getBBox() : undefined
+            return box ? Math.round(box.width + box.height) : 0
+        })
+
+    await expect(stack).toHaveAttribute('aria-label', 'Select these pieces')
+    const closedUp = await extent()
+    await pickUp(page, 'langeron')
+    await expect.poll(extent).toBeGreaterThan(closedUp + 10)
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect.poll(extent).toBe(closedUp)
+
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await expect(stack).toHaveAttribute('aria-label', 'Spread these pieces out')
+    const closedUpForTheFrench = await extent()
+    await stack.click()
+    await expect(stack).toHaveAttribute('aria-label', 'Close these pieces up')
+    await expect.poll(extent).toBeGreaterThan(closedUpForTheFrench + 10)
+    await stack.click()
+    await expect(stack).toHaveAttribute('aria-label', 'Spread these pieces out')
+    await expect.poll(extent).toBe(closedUpForTheFrench)
 })

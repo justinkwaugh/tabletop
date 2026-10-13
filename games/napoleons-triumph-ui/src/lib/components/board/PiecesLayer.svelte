@@ -21,20 +21,33 @@
         if (gameSession.canSelect(sprite.group)) {
             event.stopPropagation()
             gameSession.selectGroup(sprite.group)
+        } else if (gameSession.maySpread(sprite)) {
+            event.stopPropagation()
+            gameSession.toggleSpread(sprite)
         }
+    }
+
+    function taskOf(sprite: GroupSprite): string | undefined {
+        if (gameSession.canSelect(sprite.group)) {
+            return 'Select these pieces'
+        }
+        if (gameSession.maySpread(sprite)) {
+            return sprite.closedUp ? 'Spread these pieces out' : 'Close these pieces up'
+        }
+        return undefined
     }
 </script>
 
 {#each sprites as sprite (sprite.group.key)}
     {@const colors = gameSession.armyColors(sprite.group.playerId)}
-    {@const selectable = gameSession.canSelect(sprite.group)}
+    {@const task = taskOf(sprite)}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
         filter="url(#nt-contact-shadow)"
-        class:nt-selectable={selectable}
-        role={selectable ? 'button' : undefined}
-        tabindex={selectable ? 0 : undefined}
-        aria-label={selectable ? 'Select these pieces' : undefined}
+        class:nt-selectable={task !== undefined}
+        role={task ? 'button' : undefined}
+        tabindex={task ? 0 : undefined}
+        aria-label={task}
         data-commander={sprite.group.commander?.id ?? 'detached'}
         data-group={sprite.group.key}
         onclick={(event) => select(event, sprite)}

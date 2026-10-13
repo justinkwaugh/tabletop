@@ -56,6 +56,8 @@ interface PlacedGroup extends PieceGroup {
 export interface GroupSprite {
     group: PlacedGroup
     blocks: BlockSprite[]
+    /** Its blocks lie closer than a block is thick, so each lies over part of the next. */
+    closedUp: boolean
     flagFeetByPreference?: Point[]
     centre: Point
     radius: number
@@ -130,7 +132,12 @@ function flagFeetOnTopOfStack(blocks: BlockSprite[], rotation: number): Point[] 
     return level(top, shoulder) ? [midpoint([top, shoulder]), top, shoulder] : [top, shoulder]
 }
 
-function sprite(group: PlacedGroup, blocks: BlockSprite[], rotation: number): GroupSprite {
+function sprite(
+    group: PlacedGroup,
+    blocks: BlockSprite[],
+    spacing: number,
+    rotation: number
+): GroupSprite {
     const xs = blocks.map((block) => block.centre.x)
     const ys = blocks.map((block) => block.centre.y)
     const centre = {
@@ -143,7 +150,8 @@ function sprite(group: PlacedGroup, blocks: BlockSprite[], rotation: number): Gr
     const flagFeetByPreference = group.commander
         ? flagFeetOnTopOfStack(blocks, rotation)
         : undefined
-    return { group, blocks, flagFeetByPreference, centre, radius }
+    const closedUp = blocks.length > 1 && spacing < BLOCK_THICKNESS
+    return { group, blocks, closedUp, flagFeetByPreference, centre, radius }
 }
 
 function angleFacingAcross(bar: ApproachGeometry): number {
@@ -214,7 +222,7 @@ function layoutBlockers(
                 }
             }
         })
-        return sprite(group, fromTheBar.toReversed(), options.rotation)
+        return sprite(group, fromTheBar.toReversed(), spacing, options.rotation)
     })
     return frontToRear.toReversed()
 }
@@ -249,6 +257,7 @@ function clearestFiles(
 interface PlacedBlocks {
     group: PlacedGroup
     blocks: BlockSprite[]
+    spacing: number
 }
 
 function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
@@ -276,7 +285,7 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
             GROUP_GAP +
             BLOCK_THICKNESS / 2 +
             ((tallest - group.units.length) * spacing) / 2
-        const blocks = group.units.map((unit, rank) => {
+        const topToBottom = group.units.map((unit, rank) => {
             const along = top + rank * spacing
             return {
                 unit,
@@ -287,7 +296,7 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
                 }
             }
         })
-        return { group, blocks }
+        return { group, blocks: topToBottom.toReversed(), spacing }
     })
 }
 
@@ -383,10 +392,11 @@ export function layoutPieces(
             const reserve = arrangeReserve(sortGroups(groups), options)
             const locale = LOCALE_GEOMETRY[groups[0].position.locale]
             const shift = shiftClearOf(reserve, locale, placed)
-            const settled = reserve.map(({ group, blocks }) =>
+            const settled = reserve.map(({ group, blocks, spacing }) =>
                 sprite(
                     group,
                     blocks.map((block) => ({ ...block, centre: moved(block.centre, shift) })),
+                    spacing,
                     options.rotation
                 )
             )

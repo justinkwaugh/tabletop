@@ -24,6 +24,7 @@ import {
     ThreatenAttack,
     canStillMove,
     isLegal,
+    standingGroupKey,
     validateAttach,
     type CommandKind,
     type Commander,
@@ -264,10 +265,22 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     battleLocales: number[] = $derived(battleLocalesOf(this.gameState))
 
+    spreadLocale: number | undefined = $state()
+
+    private pickedUpLocale: number | undefined = $derived.by(() => {
+        const groupKey = pickedUpOf(this.selection)?.groupKey
+        return this.gameState.units.find(
+            (unit) => groupKey !== undefined && standingGroupKey(unit) === groupKey
+        )?.position?.locale
+    })
+
     sprites: GroupSprite[] = $derived(
         layoutPieces(this.arrayedArmy ?? this.gameState, {
             rotation: this.boardRotation,
-            looseLocales: this.battleLocales
+            looseLocales: [
+                ...this.battleLocales,
+                ...[this.spreadLocale, this.pickedUpLocale].filter((locale) => locale !== undefined)
+            ]
         })
     )
 
@@ -547,6 +560,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return own && (this.isDeploying || this.isCommanding)
     }
 
+    maySpread(sprite: GroupSprite): boolean {
+        const taken = this.canSelect(sprite.group)
+        return !taken && (sprite.closedUp || sprite.group.position.locale === this.spreadLocale)
+    }
+
+    toggleSpread(sprite: GroupSprite) {
+        if (!this.maySpread(sprite)) {
+            return
+        }
+        const { locale } = sprite.group.position
+        this.spreadLocale = this.spreadLocale === locale ? undefined : locale
+    }
+
     selectGroup(group: PieceGroup) {
         if (!this.canSelect(group)) {
             return
@@ -660,6 +686,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     clearSelection() {
+        this.spreadLocale = undefined
         this.stageCommand(noCommandSelection())
     }
 
@@ -1054,6 +1081,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     resetAction() {
+        this.spreadLocale = undefined
         this.selection = noCommandSelection()
         this.setup = noSetupSelection()
         this.battle = emptyBattleSelections()
