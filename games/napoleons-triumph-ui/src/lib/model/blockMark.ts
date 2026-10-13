@@ -19,7 +19,7 @@ export interface BlockMarkContext {
     roles: Readonly<Record<string, BattleRole>>
     selectedGroupKey?: string
     pickedUnitIds: readonly string[]
-    ridingOn: boolean
+    riderIds: readonly string[]
 }
 
 function carriesMovedMark(unit: ProjectedUnit, context: BlockMarkContext): boolean {
@@ -50,5 +50,5 @@ export function blockMarkOf(
 }
 
 export function shownMovedInUnitStrip(unit: ProjectedUnit, context: BlockMarkContext): boolean {
-    return carriesMovedMark(unit, context) && !context.ridingOn
+    return carriesMovedMark(unit, context) && !context.riderIds.includes(unit.id)
 }

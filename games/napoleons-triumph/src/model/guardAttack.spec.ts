@@ -15,7 +15,7 @@ import {
     type PiecePlacement,
     type TestGame
 } from '../testing/harness.js'
-import { CommandKind } from './attack.js'
+import { CommandKind, MoralePenaltyKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
 import { VictoryKind } from './gameState.js'
 
@@ -597,5 +597,194 @@ describe('committing the elite units (rule 15)', () => {
         expect(state.playerOf(Side.French).morale).toBe(1)
         expect(state.victory).toBeUndefined()
         expect(state.machineState).toBe(MachineState.Occupying)
+    })
+})
+
+describe('the record of what the elite units cost (rule 15)', () => {
+    it('names the commitment of the Guard, then the defeat of its Guard Attack', () => {
+        const game = frenchTurn([
+            { id: 'F-guard', side: Side.French, face: guard(), locale: BELOW_THE_SLOPE },
+            {
+                id: 'A-inf',
+                side: Side.Allied,
+                face: infantry(2),
+                locale: WIDE_FROM,
+                facing: BELOW_THE_SLOPE
+            }
+        ])
+        const french = game.playerOf(Side.French)
+        const declared = assault(game, {
+            attacker: Side.French,
+            from: BELOW_THE_SLOPE,
+            into: WIDE_FROM,
+            guardUnitId: 'F-guard',
+            defenders: ['A-inf'],
+            defenseLeaders: ['A-inf'],
+            orders: [unitMove('F-guard')],
+            leaders: ['F-guard']
+        })
+        expect(declared).toMatchObject({
+            attackerWon: false,
+            moraleLost: 1,
+            penalties: [
+                { playerId: french, kind: MoralePenaltyKind.GuardCommitted, moraleLost: 4 },
+                { playerId: french, kind: MoralePenaltyKind.GuardAttackDefeated, moraleLost: 3 }
+            ]
+        })
+    })
+
+    it('is kept with the declaration while a counter-attack is awaited, and with the counter-attack for what that costs', () => {
+        const game = frenchTurn([
+            { id: 'F-guard', side: Side.French, face: guard(), locale: FROM },
+            { id: 'A-lead', side: Side.Allied, face: infantry(2), locale: INTO, facing: FROM },
+            { id: 'A-heavy', side: Side.Allied, face: cavalry(3), locale: INTO, facing: FROM }
+        ])
+        const declared = assault(game, {
+            attacker: Side.French,
+            from: FROM,
+            into: INTO,
+            guardUnitId: 'F-guard',
+            defenders: ['A-lead', 'A-heavy'],
+            defenseLeaders: ['A-lead'],
+            orders: [unitMove('F-guard')],
+            leaders: ['F-guard']
+        })
+        expect(game.state.machineState).toBe(MachineState.CounterAttackDecision)
+        expect(declared).toMatchObject({
+            penalties: [
+                {
+                    playerId: game.playerOf(Side.French),
+                    kind: MoralePenaltyKind.GuardCommitted,
+                    moraleLost: 4
+                }
+            ]
+        })
+        const countered = game.outcome(ActionType.CounterAttack, game.playerOf(Side.Allied), {
+            unitIds: ['A-heavy']
+        })
+        expect(countered).toMatchObject({
+            attackerWon: false,
+            penalties: [
+                {
+                    playerId: game.playerOf(Side.Allied),
+                    kind: MoralePenaltyKind.HeavyCavalryCommitted,
+                    moraleLost: 2
+                },
+                {
+                    playerId: game.playerOf(Side.French),
+                    kind: MoralePenaltyKind.GuardAttackDefeated,
+                    moraleLost: 3
+                }
+            ]
+        })
+        expect(morale(game, Side.Allied)).toBe(27 - 2)
+    })
+
+    it('gives the morale that was really lost when an army has little left', () => {
+        const game = alliedTurn([
+            { id: 'A-guard', side: Side.Allied, face: guard(), locale: WIDE_INTO },
+            { id: 'F-guard', side: Side.French, face: guard(), locale: WIDE_FROM }
+        ])
+        game.arrange((state) => {
+            state.playerOf(Side.French).morale = 1
+            state.playerOf(Side.Allied).morale = 3
+            state.playerOf(Side.Allied).guardCommitted = true
+        })
+        const declared = assault(game, {
+            attacker: Side.Allied,
+            from: WIDE_INTO,
+            into: WIDE_FROM,
+            guardUnitId: 'A-guard',
+            defenders: ['F-guard'],
+            defenseLeaders: ['F-guard'],
+            orders: [unitMove('A-guard')],
+            leaders: ['A-guard']
+        })
+        expect(declared).toMatchObject({
+            penalties: [
+                {
+                    playerId: game.playerOf(Side.French),
+                    kind: MoralePenaltyKind.GuardCommitted,
+                    moraleLost: 0
+                },
+                {
+                    playerId: game.playerOf(Side.Allied),
+                    kind: MoralePenaltyKind.GuardAttackDefeated,
+                    moraleLost: 2
+                }
+            ],
+            demoralizedId: game.playerOf(Side.Allied)
+        })
+    })
+
+    it('names the commitment of an elite unit that only takes a loss', () => {
+        const game = frenchTurn([
+            { id: 'F-heavy', side: Side.French, face: cavalry(3), locale: FROM },
+            { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: INTO, facing: FROM }
+        ])
+        const declared = assault(game, {
+            attacker: Side.French,
+            from: FROM,
+            into: INTO,
+            defenders: ['A-inf'],
+            defenseLeaders: ['A-inf'],
+            orders: [unitMove('F-heavy')],
+            leaders: []
+        })
+        expect(declared).toMatchObject({
+            attackerWon: false,
+            penalties: [
+                {
+                    playerId: game.playerOf(Side.French),
+                    kind: MoralePenaltyKind.HeavyCavalryCommitted,
+                    moraleLost: 2
+                }
+            ]
+        })
+        expect(game.hydrated.findUnit('F-heavy')?.face).not.toEqual(cavalry(3))
+    })
+
+    it('is kept with a retreat that commits an elite unit', () => {
+        const game = alliedTurn([
+            { id: 'A-inf', side: Side.Allied, face: infantry(2), locale: FROM },
+            { id: 'F-heavy', side: Side.French, face: cavalry(3), locale: INTO }
+        ])
+        game.arrange((state) => {
+            state.playerOf(Side.French).morale = 2
+        })
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.Allied), {
+            approach: approach(FROM, INTO)
+        })
+        const retreated = game.outcome(ActionType.Retreat, game.playerOf(Side.French), {
+            losses: {},
+            destinations: { 'F-heavy': REFUGE },
+            kept: {}
+        })
+        expect(retreated).toMatchObject({
+            penalties: [
+                {
+                    playerId: game.playerOf(Side.French),
+                    kind: MoralePenaltyKind.HeavyCavalryCommitted,
+                    moraleLost: 1
+                }
+            ]
+        })
+    })
+
+    it('is empty for an attack with no elite unit', () => {
+        const game = frenchTurn([
+            { id: 'F-line', side: Side.French, face: infantry(3), locale: FROM },
+            { id: 'A-inf', side: Side.Allied, face: infantry(2), locale: INTO, facing: FROM }
+        ])
+        const declared = assault(game, {
+            attacker: Side.French,
+            from: FROM,
+            into: INTO,
+            defenders: ['A-inf'],
+            defenseLeaders: ['A-inf'],
+            orders: [unitMove('F-line')],
+            leaders: ['F-line']
+        })
+        expect(declared).toMatchObject({ penalties: [] })
     })
 })

@@ -45,13 +45,17 @@ import {
     nameLeaders,
     regroupSelection,
     retreatSelection,
-    setCommandersStaying,
+    setCommandersGoing,
     setKeptInCorps,
     sendRetreating,
     setStruckLeader,
     setRetreatLosses,
     type BattleSelections
 } from './battleSelection.js'
+import { sameIds } from '$lib/utils/ids.js'
+import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
+import type { SingledOut } from '$lib/utils/pieceLayout.js'
+import { RideChoice } from './moveCommands.js'
 import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import { copyOf } from './stateCopy.js'
 
@@ -95,6 +99,7 @@ export interface RetreatStage extends Picking {
 interface AttackerPicking extends Picking {
     groups: AttackerGroup[]
     attackers: string[]
+    ride?: RideChoice
     commandOptions: CommandKind[]
     command?: CommandKind
     orders?: MoveOrder[]
@@ -158,7 +163,7 @@ export interface AdvanceStage extends Picking {
     kind: StageKind.Advance
     units: ProjectedUnit[]
     advancing: string[]
-    commanders: { commanderId: string; goes: boolean; mustGo: boolean }[]
+    commanders: { commanderId: string; goes: boolean; mustGo: boolean; unitsStaying: number }[]
 }
 
 export type BattleStage =
@@ -244,10 +249,11 @@ function retreatStage(
 function attackerPicking(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections
+    selections: BattleSelections,
+    mayRide: boolean
 ): AttackerPicking & { leaders: string[] } {
     const planned = attack.attackPlan?.order
-    const groups = attackerGroups(state, attack)
+    const groups = attackerGroups(state, attack, mayRide)
     const pickableIds = groups.flatMap((group) => idsOf(group.units))
     const named =
         attackerSelection.value(selections.attackers, 'attackers') ?? planned?.unitIds ?? []
@@ -255,17 +261,24 @@ function attackerPicking(
     const leaders = (attackerSelection.value(selections.attackers, 'leaders') ?? []).filter((id) =>
         attackers.includes(id)
     )
+    const asPlanned = planned !== undefined && sameIds(planned.unitIds, attackers)
+    const plannedRide =
+        asPlanned && planned.continues !== true ? RideChoice.NewCommand : RideChoice.RidingOn
+    const wantedRide = attackerSelection.value(selections.attackers, 'ride') ?? plannedRide
     const command = attackCommand(
         state,
         attack,
         attackers,
-        attackerSelection.value(selections.attackers, 'command') ?? planned?.kind
+        attackerSelection.value(selections.attackers, 'command') ??
+            (asPlanned ? planned.kind : undefined),
+        { mayRide, ride: wantedRide }
     )
     return {
         groups,
         pickableIds,
         attackers,
         leaders,
+        ride: command.ride,
         commandOptions: command.options,
         command: command.chosen,
         orders: command.orders,
@@ -278,7 +291,7 @@ function feintStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): FeintStage {
-    const picking = attackerPicking(state, attack, selections)
+    const picking = attackerPicking(state, attack, selections, true)
     const { orders } = picking
     const canPress = canPressAttack(state)
     // Rule 11, steps 3-5: a pressed attack names its pieces only after the defence's leading units are shown.
@@ -304,7 +317,8 @@ function declarationStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): DeclarationStage {
-    const picking = attackerPicking(state, attack, selections)
+    // Rule 11: an attack by road must be a feint, so cavalry riding on presses an attack only by a new command.
+    const picking = attackerPicking(state, attack, selections, false)
     const approachWide = state.map.approach(attack.attackApproach).wide
     const wide =
         approachWide &&
@@ -351,7 +365,7 @@ function occupationStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): OccupationStage {
-    const picking = attackerPicking(state, attack, selections)
+    const picking = attackerPicking(state, attack, selections, true)
     const { orders } = picking
     const byRoad = orders?.some((order) => order.road !== undefined) === true
     const legalWith = (candidate: MoveOrder[] | undefined, gunsStay: boolean) =>
@@ -413,20 +427,25 @@ function advanceStage(
         : (advanceSelection.value(selections.advance, 'advancing') ?? []).filter((id) =>
               unitIds.includes(id)
           )
-    const staying = advanceSelection.value(selections.advance, 'commandersStaying') ?? []
+    const sent = advanceSelection.value(selections.advance, 'commandersGoing') ?? []
     const commanderIds = [...new Set(advancing.flatMap((id) => state.unit(id).commanderId ?? []))]
     const commanders = commanderIds
         .map((commanderId) => state.commander(commanderId))
         .filter((commander) => samePosition(commander.position, state.unit(advancing[0]).position))
         .map((commander) => {
-            const mustGo = state
+            const unitsStaying = state
                 .corpsUnits(commander.id)
-                .filter((unit) => samePosition(unit.position, commander.position))
-                .every((unit) => advancing.includes(unit.id))
+                .filter(
+                    (unit) =>
+                        samePosition(unit.position, commander.position) &&
+                        !advancing.includes(unit.id)
+                ).length
+            const mustGo = unitsStaying === 0
             return {
                 commanderId: commander.id,
+                unitsStaying,
                 mustGo,
-                goes: mustGo || !staying.includes(commander.id)
+                goes: mustGo || sent.includes(commander.id)
             }
         })
     return {
@@ -516,10 +535,6 @@ export function battleStageOf(
         default:
             return undefined
     }
-}
-
-function sameIds(a: readonly string[], b: readonly string[]): boolean {
-    return a.length === b.length && a.every((id) => b.includes(id))
 }
 
 function withAttackers(
@@ -754,18 +769,39 @@ function pickRetreatingUnit(
     }
 }
 
-export function toggleStaying(
+export function sendCommander(
     stage: AdvanceStage,
     selections: BattleSelections,
-    commanderId: string
+    commanderId: string,
+    goes: boolean
 ): BattleSelections {
-    const staying = stage.commanders
-        .filter((entry) => !entry.goes !== (entry.commanderId === commanderId))
+    const sent = stage.commanders
+        .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
         .map((entry) => entry.commanderId)
-    return { ...selections, advance: setCommandersStaying(selections.advance, staying) }
+    return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }
 
-function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
+/** The units each side has committed to the attack, leaders first, with the approach they fight at. */
+export function committedUnits(attack: VisibleAttack | undefined): SingledOut[] {
+    return attack
+        ? [
+              {
+                  towards: APPROACH_GEOMETRY[attack.attackApproach].centre,
+                  unitIds: [...attack.attackLeaderIds, ...attack.attackingUnitIds]
+              },
+              {
+                  towards: APPROACH_GEOMETRY[attack.defenseApproach].centre,
+                  unitIds: [
+                      ...attack.defenseLeaderIds,
+                      ...attack.counterAttackingUnitIds,
+                      ...attack.defendingUnitIds
+                  ]
+              }
+          ]
+        : []
+}
+
+export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
         ...Object.fromEntries(attack.defendingUnitIds.map((id) => [id, BattleRole.Defends])),

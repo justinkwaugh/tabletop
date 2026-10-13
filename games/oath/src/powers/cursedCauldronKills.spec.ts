@@ -94,7 +94,7 @@ function cauldronNote(s: HydratedOathGameState): string | undefined {
     return victory?.metadata?.triggered?.find((note) => note.startsWith('Cursed Cauldron'))
 }
 
-const gainedNote = (n: number) => `Cursed Cauldron: gained ${n} warbands, one per enemy warband killed`
+const gainedNote = (n: number, user = ATTACKER) => `Cursed Cauldron: ${user} gained ${n} warbands, one per enemy warband killed`
 
 describe('Cursed Cauldron counts every enemy warband killed in the Campaign (revision 4)', () => {
     it("the skulls' kills count, with the defeated attacker's half", () => {
@@ -106,7 +106,7 @@ describe('Cursed Cauldron counts every enemy warband killed in the Campaign (rev
         const killed = bankOf(s, ATTACKER) - ATTACKER_BANK
         expect(killed).toBe(skulls + defeatKilled)
         expect(DEFENDER_BANK - bankOf(s, DEFENDER)).toBe(killed)
-        expect(sacrifice.metadata?.planNotes).toContain(gainedNote(killed))
+        expect(sacrifice.metadata?.planNotes).toContain(gainedNote(killed, DEFENDER))
     })
 
     it("Bear Traps' kill counts", () => {

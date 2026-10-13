@@ -26,6 +26,8 @@ export const RoadMarch = Type.Object({
     commanderId: Type.Optional(Type.String()),
     unitIds: Type.Array(Type.String(), { minItems: 1 }),
     start: Type.Optional(Type.Integer()),
+    /** Rule 10: the roads of the start locale the cavalry could leave by, having come there by road this turn. */
+    startRoads: Type.Optional(Type.Array(Type.Integer())),
     entryId: Type.Optional(Type.String()),
     path: Type.Array(Type.Integer(), { minItems: 1 }),
     /** Rule 10 and its rulings: a stopped move enters no further locale and threatens nothing, but may still end blocking an approach its road crosses. */
@@ -80,7 +82,9 @@ export const PendingDecision = Type.Union([
 export type ThreatOrder = Type.Static<typeof ThreatOrder>
 export const ThreatOrder = Type.Object({
     kind: Type.Enum(CommandKind),
-    unitIds: Type.Array(Type.String(), { minItems: 1 })
+    unitIds: Type.Array(Type.String(), { minItems: 1 }),
+    /** Cavalry riding on by road that means to go on under the command it rides by, not a new one. */
+    continues: Type.Optional(Type.Literal(true))
 })
 
 /** Rule 11, step 5: the declaration is free to differ from what the attacker had in mind. */
@@ -113,6 +117,20 @@ export const LossEntry = Type.Object({
     steps: Type.Integer(),
     eliminated: Type.Boolean(),
     face: Face
+})
+
+export enum MoralePenaltyKind {
+    HeavyCavalryCommitted = 'HeavyCavalryCommitted',
+    GuardCommitted = 'GuardCommitted',
+    GuardAttackDefeated = 'GuardAttackDefeated'
+}
+
+/** Rule 15: morale an army pays beyond its losses, as the amount its morale actually fell. */
+export type MoralePenalty = Type.Static<typeof MoralePenalty>
+export const MoralePenalty = Type.Object({
+    playerId: Type.String(),
+    kind: Type.Enum(MoralePenaltyKind),
+    moraleLost: Type.Integer({ minimum: 0 })
 })
 
 export type Attack = Type.Static<typeof Attack>

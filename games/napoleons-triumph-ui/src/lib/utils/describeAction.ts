@@ -2,6 +2,7 @@ import { Visibility, type GameAction } from '@tabletop/common'
 import {
     CommandKind,
     FeintEnd,
+    MoralePenaltyKind,
     Side,
     commanderDefinition,
     isAdvance,
@@ -25,6 +26,7 @@ import {
     type BattleMap,
     type CombatMetadata,
     type HydratedNapoleonsTriumphGameState,
+    type MoralePenalty,
     type MoveOrder,
     type Position
 } from '@tabletop/napoleons-triumph'
@@ -39,6 +41,11 @@ function sideOf(game: DescribedGame, playerId: string | undefined): Side | undef
 const ARMY: Record<Side, string> = {
     [Side.French]: 'The French',
     [Side.Allied]: 'The Allies'
+}
+
+function armyOf(game: DescribedGame, playerId: string | undefined): string {
+    const side = sideOf(game, playerId)
+    return side ? ARMY[side] : 'A player'
 }
 
 function standing(map: BattleMap, position: Position): string {
@@ -72,11 +79,36 @@ function sentence(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+function penalty({ playerId, kind, moraleLost }: MoralePenalty, game: DescribedGame): string {
+    const army = armyOf(game, playerId)
+    const cost = moraleLost > 0 ? ` and lose ${moraleLost} morale` : ''
+    switch (kind) {
+        case MoralePenaltyKind.GuardCommitted:
+            return `${army} commit the Guard${cost}.`
+        case MoralePenaltyKind.HeavyCavalryCommitted:
+            return `${army} commit their heavy cavalry${cost}.`
+        case MoralePenaltyKind.GuardAttackDefeated:
+            return `The Guard Attack is defeated. ${army} ${moraleLost > 0 ? `lose ${moraleLost} more morale and ` : ''}may make no more Guard Attacks.`
+    }
+}
+
+function penalties(
+    all: readonly MoralePenalty[] | undefined,
+    game: DescribedGame,
+    paidAfterLosses: boolean
+): string[] {
+    return (all ?? [])
+        .filter(
+            (entry) => (entry.kind === MoralePenaltyKind.GuardAttackDefeated) === paidAfterLosses
+        )
+        .map((entry) => penalty(entry, game))
+}
+
 function combat(metadata: CombatMetadata | undefined, game: DescribedGame): string {
     if (!metadata) {
         return ''
     }
-    const parts: string[] = []
+    const parts: string[] = penalties(metadata.penalties, game, false)
     if (metadata.finalResult !== undefined && metadata.attackerWon !== undefined) {
         parts.push(
             `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is thrown back'}.`
@@ -93,6 +125,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
     if (loser && metadata.moraleLost) {
         parts.push(`${ARMY[loser]} lose ${metadata.moraleLost} morale.`)
     }
+    parts.push(...penalties(metadata.penalties, game, true))
     const broken = sideOf(game, metadata.demoralizedId)
     if (broken) {
         parts.push(`${ARMY[broken]} are demoralized.`)
@@ -102,7 +135,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
 
 export function describeAction(action: GameAction, game: DescribedGame): string {
     const side = sideOf(game, action.playerId)
-    const army = side ? ARMY[side] : 'A player'
+    const army = armyOf(game, action.playerId)
     const { map } = game
     if (Visibility.isRedactedAction(action) || isDeployArmy(action)) {
         return `${army} deploy their army.`
@@ -146,8 +179,11 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         const cost =
             steps > 0 ? `, losing ${steps} step${steps === 1 ? '' : 's'} and as much morale` : ''
         const when = action.metadata?.beforeCombat ? ' without a fight' : ''
+        const committed = penalties(action.metadata?.penalties, game, false)
+            .map((text) => ` ${text}`)
+            .join('')
         const broken = action.metadata?.demoralized ? ` ${army} are demoralized.` : ''
-        return `${army} retreat from ${from}${when}${cost}.${broken}`
+        return `${army} retreat from ${from}${when}${cost}.${committed}${broken}`
     }
     if (isPressAttack(action)) {
         return `${army} press the attack; the defense leading units are shown.`
@@ -186,7 +222,7 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
     }
     if (isOccupy(action)) {
         return action.artilleryStays
-            ? `${army} show their guns and hold them in place.`
+            ? `${army} show their artillery and hold it in place.`
             : `${army} move into the abandoned locale with ${action.orders.map((order) => force(order)).join(' and ')}.`
     }
     if (isEndTurn(action)) {

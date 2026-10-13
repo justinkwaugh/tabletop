@@ -1,19 +1,13 @@
 <script lang="ts">
-    import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { StageKind } from '$lib/model/battleSelection.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        ATTACK_ARROW_PATH,
-        attackMarkerAngle,
-        attackMarkerScale
-    } from '$lib/utils/attackMarker.js'
+    import { attackMarkerScale } from '$lib/utils/attackMarker.js'
     import { retreatArrows } from '$lib/utils/retreatArrows.js'
+    import AttackArrow from './AttackArrow.svelte'
 
     const gameSession = getGameSession()
 
-    const bar = $derived(
-        gameSession.attack ? APPROACH_GEOMETRY[gameSession.attack.attackApproach] : undefined
-    )
+    const attack = $derived(gameSession.attack)
     const retreats = $derived.by(() => {
         const stage = gameSession.battleStage
         const [, from] = gameSession.battleLocales
@@ -24,21 +18,8 @@
     const scale = $derived(attackMarkerScale(gameSession.zoom))
 </script>
 
-{#if bar}
-    <g
-        transform="translate({bar.centre.x} {bar.centre.y}) scale({scale})"
-        class="pointer-events-none"
-    >
-        <g transform="rotate({attackMarkerAngle(bar)})">
-            <path
-                d={ATTACK_ARROW_PATH}
-                fill="#7a1418"
-                stroke="#f1ecdc"
-                stroke-width="2.5"
-                stroke-linejoin="round"
-            ></path>
-        </g>
-    </g>
+{#if attack}
+    <AttackArrow approach={attack.attackApproach} {scale} feint={attack.feint === true} />
 {/if}
 {#each retreats as retreat (retreat.locale)}
     <g

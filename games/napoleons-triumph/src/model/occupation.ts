@@ -5,7 +5,7 @@ import { endAttack } from './attackResolution.js'
 import { currentAttack, defenseLocale } from './attackState.js'
 import { artilleryMayFire, resolveAttackOrders } from './attackOrders.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { isSantonBattery } from './leaders.js'
+import { artilleryBarredOnSanton, isSantonBattery } from './leaders.js'
 import { endRoadMarch, relocate, requireRoom, settleRoadMarch } from './movement.js'
 import { expendOrder } from './orders.js'
 import { faceOf } from './pieces.js'
@@ -39,6 +39,7 @@ export function occupyAfterRetreat(
                 !resolved.byRoad &&
                 resolved.commands.every((command) => command.order.kind !== CommandKind.Corps) &&
                 resolved.units.every((unit) => faceOf(unit).type === UnitType.Artillery) &&
+                resolved.units.every((unit) => !artilleryBarredOnSanton(state, unit)) &&
                 resolved.units.length <= unitsAbreast(approach.wide) &&
                 artilleryMayFire(state, attack.attackApproach),
             'Only artillery that could have led the attack may stay in place'

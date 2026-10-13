@@ -8,8 +8,7 @@
     <span
         class="bank-empty"
         style="width:{size}px; height:{size}px; font-size:{Math.round(size * 0.5)}px;"
-        aria-label="empty"
-        title="empty">0</span
+        aria-label="empty">0</span
     >
 {:else}
     <TokenBadge kind="favor" {count} {size} />

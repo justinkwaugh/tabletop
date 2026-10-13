@@ -33,7 +33,7 @@ import {
 import type { GameAction } from '@tabletop/common'
 import { bannerName, cardName, goalText, oathName, type NameOf } from '$lib/model/names.js'
 import { searchStoppedOnVision } from '$lib/model/actionDescription.js'
-import { ENDINGS, isWinRule } from '$lib/model/endings.js'
+import { endingParts, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'
 
@@ -72,17 +72,26 @@ export interface MajorEventContext {
     nameOf: NameOf
     oathType: OathType
     campaign?: Campaign
+    /** Each seat will be its `PlayerName` chip, which reads "you" for the viewer: name every seat by its id. */
+    seatsById?: boolean
 }
 
 const ORDINALS = ['1st', '2nd', '3rd', '4th', '5th']
 const TRACK_LAST = VISIONS_DRAWN_SUPPLY_COST.length - 1
 
 function seat(playerId: string, context: MajorEventContext): string {
+    if (context.seatsById) return playerId
     return playerId === context.viewerId ? 'you' : context.nameOf(playerId)
 }
 
 function capitalized(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** A sentence that starts with a seat: a chip capitalizes itself, a name or "you" here. */
+function startingWith(playerId: string, context: MajorEventContext): string {
+    const named = seat(playerId, context)
+    return context.seatsById ? named : capitalized(named)
 }
 
 function opponentOf(context: MajorEventContext): string | undefined {
@@ -213,7 +222,7 @@ export function majorEventOf(
             heading: 'Citizenship taken',
             tone: 'heading',
             pictures: [],
-            consequence: `${capitalized(seat(action.playerId, context))} ${isActor ? 'are' : 'is'} a Citizen of the Empire`
+            consequence: `${startingWith(action.playerId, context)} ${isActor ? 'are' : 'is'} a Citizen of the Empire`
         }
     }
     if (isExileCitizen(action) || isSelfExile(action)) {
@@ -224,7 +233,7 @@ export function majorEventOf(
             heading: 'Citizenship lost',
             tone: 'heading',
             pictures: [],
-            consequence: `${capitalized(seat(exiled, context))} ${isViewer ? 'are' : 'is'} an Exile again`
+            consequence: `${startingWith(exiled, context)} ${isViewer ? 'are' : 'is'} an Exile again`
         }
     }
     if (isCampaignResolveVictory(action)) {
@@ -325,14 +334,14 @@ export function gameEndEvent(
     const picture: EventPicture = visionId
         ? { kind: 'card', cardId: visionId }
         : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
-    const [how, why] = ENDINGS[rule].split(' — ')
+    const { how, why } = endingParts(rule)
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',
         aside: `round ${state.round}`,
         tone: 'heading',
         pictures: [picture],
-        sentence: `${capitalized(seat(winnerId, context))} won ${how}`,
+        sentence: `${startingWith(winnerId, context)} won ${how}`,
         consequence: why ? capitalized(why) : undefined
     }
 }

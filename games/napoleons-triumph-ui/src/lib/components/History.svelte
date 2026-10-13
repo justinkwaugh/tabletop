@@ -1,33 +1,34 @@
 <script lang="ts">
-    import { historyChapters, type HistoryLine } from '$lib/model/historyChapters.js'
+    import type { HistoryLine } from '$lib/model/historyChapters.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { describeAction } from '$lib/utils/describeAction.js'
 
     const gameSession = getGameSession()
-    const game = $derived(gameSession.gameState)
-
-    const chapters = $derived(
-        historyChapters(gameSession.actions, game.rounds.series, game.scenario, (action) =>
-            describeAction(action, game)
-        )
-    )
+    const chapters = $derived(gameSession.chapters)
 </script>
 
+{#snippet told(entry: HistoryLine)}
+    <span
+        class="nt-history-mark"
+        style="background: {entry.playerId
+            ? gameSession.colors.getPlayerUiColor(entry.playerId)
+            : '#8a857a'};"
+    ></span>
+    <span>{entry.text}</span>
+{/snippet}
+
 {#snippet line(entry: HistoryLine, time: string, step: boolean)}
-    <button
-        type="button"
-        class="nt-history-entry"
-        class:nt-history-step={step}
-        onclick={() => gameSession.openHistoryLine(entry, time)}
-    >
-        <span
-            class="nt-history-mark"
-            style="background: {entry.playerId
-                ? gameSession.colors.getPlayerUiColor(entry.playerId)
-                : '#8a857a'};"
-        ></span>
-        <span>{entry.text}</span>
-    </button>
+    {#if entry.pictured}
+        <button
+            type="button"
+            class="nt-history-entry nt-history-pictured"
+            class:nt-history-step={step}
+            onclick={() => gameSession.openHistoryLine(entry, time)}
+        >
+            {@render told(entry)}
+        </button>
+    {:else}
+        <div class="nt-history-entry" class:nt-history-step={step}>{@render told(entry)}</div>
+    {/if}
 {/snippet}
 
 <div class="nt-history">
@@ -75,7 +76,7 @@
         font-size: 12px;
     }
 
-    .nt-history-entry:hover {
+    .nt-history-pictured:hover {
         background: rgba(43, 38, 32, 0.07);
     }
 

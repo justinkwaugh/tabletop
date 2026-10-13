@@ -1,6 +1,6 @@
 import { assert, assertExists } from '@tabletop/common'
 import { UnitType, sameFace } from '../components/pieces.js'
-import { DecisionKind, type LossEntry, type PendingDecision } from './attack.js'
+import { DecisionKind, type LossEntry, type MoralePenalty, type PendingDecision } from './attack.js'
 import { attackLocale, currentAttack, defenseLocale, type AttackState } from './attackState.js'
 import {
     attackerLossPoints,
@@ -67,16 +67,24 @@ function recordLoss(attack: AttackState, playerId: string, loss: LossEntry) {
     }
 }
 
+/** What an attack has cost so far in the action being played: steps, and morale beyond them. */
+export interface CombatCost {
+    losses: LossEntry[]
+    penalties: MoralePenalty[]
+}
+
 export function lose(
     state: HydratedNapoleonsTriumphGameState,
     attack: AttackState,
     unit: ProjectedUnit,
-    steps: number
-): LossEntry {
+    steps: number,
+    cost: CombatCost
+) {
     state.reveal(unit)
+    cost.penalties.push(...state.commit(unit))
     const loss = state.takeLoss(unit, steps)
     recordLoss(attack, unit.playerId, loss)
-    return loss
+    cost.losses.push(loss)
 }
 
 /** Rule 11, step 8: the initial result less the counter-attackers at the strength their loss leaves them. */
@@ -106,13 +114,14 @@ export function counterAttack(
     validateCounterAttackers(state, units, attack.defenseApproach, attackerLeadsInitially(state))
     attack.counterAttackingUnitIds = [...unitIds]
     attack.finalResult = finalResultWith(state, units)
-    for (const unit of units) {
-        state.commit(unit)
+    const cost: CombatCost = {
+        losses: [],
+        penalties: units.flatMap((unit) => state.commit(unit))
     }
-    return resolveCombat(
-        state,
-        units.map((unit) => lose(state, attack, unit, 1))
-    )
+    for (const unit of units) {
+        lose(state, attack, unit, 1, cost)
+    }
+    return resolveCombat(state, cost)
 }
 
 export function living(
@@ -128,7 +137,7 @@ function loseEvenly(
     units: readonly ProjectedUnit[],
     losses: number,
     chooserId: string,
-    records: LossEntry[]
+    cost: CombatCost
 ): number {
     if (units.length === 0 || losses <= 0) {
         return Math.max(0, losses)
@@ -145,7 +154,7 @@ function loseEvenly(
     units.forEach((unit, index) => {
         const steps = split.taken[index] + (interchangeable && odd && unit === odd[0] ? 1 : 0)
         if (steps > 0) {
-            records.push(lose(state, attack, unit, steps))
+            lose(state, attack, unit, steps, cost)
         }
     })
     if (odd && !interchangeable) {
@@ -164,7 +173,7 @@ function queueExcess(
     ownerId: string,
     candidates: readonly ProjectedUnit[],
     amount: number,
-    records: LossEntry[]
+    cost: CombatCost
 ) {
     if (amount <= 0 || candidates.length === 0) {
         return
@@ -172,7 +181,7 @@ function queueExcess(
     const capacity = candidates.reduce((sum, unit) => sum + faceOf(unit).strength, 0)
     if (candidates.length === 1 || amount >= capacity) {
         for (const unit of candidates) {
-            records.push(lose(state, attack, unit, Math.min(amount, faceOf(unit).strength)))
+            lose(state, attack, unit, Math.min(amount, faceOf(unit).strength), cost)
         }
         return
     }
@@ -184,17 +193,30 @@ function queueExcess(
     })
 }
 
-export interface CombatOutcome {
-    losses: LossEntry[]
+export interface CombatOutcome extends CombatCost {
     morale?: MoraleOutcome
     finalResult?: number
     attackerWon?: boolean
 }
 
+/** Rule 15: a defeated Guard Attack is paid for after the losses, so its penalty comes last. */
+export function concludeCombat(
+    state: HydratedNapoleonsTriumphGameState,
+    cost: CombatCost
+): CombatOutcome {
+    const morale = concludeAttack(state)
+    const defeat = morale?.guardAttackDefeat
+    return {
+        losses: cost.losses,
+        penalties: defeat ? [...cost.penalties, defeat] : cost.penalties,
+        morale
+    }
+}
+
 /** Rule 11, steps 8 to 10: the final result and every loss that needs no choice. */
 export function resolveCombat(
     state: HydratedNapoleonsTriumphGameState,
-    records: LossEntry[]
+    cost: CombatCost
 ): CombatOutcome {
     const attack = currentAttack(state)
     assertExists(attack.initialResult, 'The attack has not been declared')
@@ -216,7 +238,7 @@ export function resolveCombat(
         attackLeaders,
         attackerLoss,
         attack.defenderId,
-        records
+        cost
     )
     queueExcess(
         state,
@@ -226,7 +248,7 @@ export function resolveCombat(
             (unit) => !attack.attackLeaderIds.includes(unit.id)
         ),
         attackerExcess,
-        records
+        cost
     )
 
     const fightingLeaders = defenseLeaders.filter(
@@ -238,7 +260,7 @@ export function resolveCombat(
         fightingLeaders,
         defenderLoss,
         attack.attackerId,
-        records
+        cost
     )
     const counterAttackers = living(state, attack.counterAttackingUnitIds)
     const afterCounterAttackers = loseEvenly(
@@ -247,15 +269,15 @@ export function resolveCombat(
         counterAttackers,
         afterLeaders,
         attack.attackerId,
-        records
+        cost
     )
     const others = living(state, attack.defendingUnitIds).filter(
         (unit) =>
             !fightingLeaders.includes(unit) && !attack.counterAttackingUnitIds.includes(unit.id)
     )
-    queueExcess(state, attack, attack.defenderId, others, afterCounterAttackers, records)
+    queueExcess(state, attack, attack.defenderId, others, afterCounterAttackers, cost)
     const attackerWon = attack.attackerWon
-    return { losses: records, morale: concludeAttack(state), finalResult: final, attackerWon }
+    return { ...concludeCombat(state, cost), finalResult: final, attackerWon }
 }
 
 function isLossDecision(decision: PendingDecision): boolean {
@@ -296,6 +318,7 @@ export function concludeAttack(
 export interface MoraleOutcome {
     loserId?: string
     moraleLost: number
+    guardAttackDefeat?: MoralePenalty
     demoralizedId?: string
 }
 
@@ -308,12 +331,14 @@ function settleLosses(state: HydratedNapoleonsTriumphGameState): MoraleOutcome {
     const loserId = attack.attackerWon ? attack.defenderId : attack.attackerId
     const moraleLost = attack.attackerWon ? attack.defenderStepsLost : attack.attackerStepsLost
     state.loseMorale(loserId, moraleLost, attack.artilleryLed === true)
-    if (!attack.attackerWon && attack.guardAttack && !state.isDemoralized(loserId)) {
-        state.failGuardAttack(attack.attackerId)
-    }
+    const guardAttackDefeat =
+        !attack.attackerWon && attack.guardAttack && !state.isDemoralized(loserId)
+            ? state.failGuardAttack(attack.attackerId)
+            : undefined
     return {
         loserId,
         moraleLost,
+        guardAttackDefeat,
         demoralizedId: state.isDemoralized(loserId) ? loserId : undefined
     }
 }

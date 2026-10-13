@@ -23,7 +23,7 @@ function commanding(viewerId: string, changes: Partial<BlockMarkContext> = {}): 
         pickableIds: [],
         roles: {},
         pickedUnitIds: [],
-        ridingOn: false,
+        riderIds: [],
         ...changes
     }
 }
@@ -49,7 +49,7 @@ describe('the moved mark of a block', () => {
     it('stays on cavalry that is riding on', () => {
         const { viewerId, moved } = ownUnits()
         const riding = commanding(viewerId, {
-            ridingOn: true,
+            riderIds: [moved.id],
             selectedGroupKey: GROUP,
             pickedUnitIds: [moved.id]
         })
@@ -58,11 +58,16 @@ describe('the moved mark of a block', () => {
 })
 
 describe('a moved unit in the unit strip', () => {
-    it('is set aside as moved, except while its group is riding on', () => {
+    it('is set aside as moved, unless it is cavalry that may still ride on', () => {
         const { viewerId, fresh, moved } = ownUnits()
         expect(shownMovedInUnitStrip(moved, commanding(viewerId))).toBe(true)
         expect(shownMovedInUnitStrip(fresh, commanding(viewerId))).toBe(false)
-        expect(shownMovedInUnitStrip(moved, commanding(viewerId, { ridingOn: true }))).toBe(false)
+        expect(shownMovedInUnitStrip(moved, commanding(viewerId, { riderIds: [moved.id] }))).toBe(
+            false
+        )
+        expect(shownMovedInUnitStrip(moved, commanding(viewerId, { riderIds: ['another'] }))).toBe(
+            true
+        )
     })
 })
 

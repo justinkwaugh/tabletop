@@ -91,6 +91,9 @@ export const SITE_DEFINITIONS: CardDefinition[] = SITE_RECORDS.map((rec) => ({
 
 export const ALL_SITE_IDS: string[] = SITE_DEFINITIONS.map((s) => s.id)
 
+/** R-2.8.1 — the most denizen and edifice cards any site prints room for. */
+export const MAX_SITE_CAPACITY = Math.max(...SITE_RECORDS.map((r) => r.capacity))
+
 export function siteRecord(siteCardId: string): SiteRecord | undefined {
     return SITE_RECORDS.find((r) => r.id === siteCardId)
 }

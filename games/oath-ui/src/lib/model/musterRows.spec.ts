@@ -18,13 +18,13 @@ function site(player: Record<string, unknown> = {}) {
 }
 
 const read = (rows: ReturnType<typeof musterRows>) =>
-    rows.map((row) => [row.cardId, row.gain, row.bankShort, row.paysSecret])
+    rows.map((row) => [row.cardId, row.gain, row.paysSecret])
 
 describe('the Musters at your site (R-5.2)', () => {
     it('lists each card a favor can go on, in the strip order, with the two warbands it brings', () => {
         expect(read(musterRows(site(), 'p1', []))).toEqual([
-            [BINDERS, 2, false, false],
-            [ASSASSIN, 2, false, false]
+            [BINDERS, 2, false],
+            [ASSASSIN, 2, false]
         ])
     })
 
@@ -34,8 +34,15 @@ describe('the Musters at your site (R-5.2)', () => {
 
     it('counts what the bank can give when it runs short (R-9.3)', () => {
         expect(read(musterRows(site({ warbandsInPersonalBank: { p1: 1 } }), 'p1', []))).toEqual([
-            [BINDERS, 1, true, false],
-            [ASSASSIN, 1, true, false]
+            [BINDERS, 1, false],
+            [ASSASSIN, 1, false]
+        ])
+    })
+
+    it('keeps a Muster from an empty bank, its gain 0: the favor placed still blocks the card (R-9.3)', () => {
+        expect(read(musterRows(site({ warbandsInPersonalBank: { p1: 0 } }), 'p1', []))).toEqual([
+            [BINDERS, 0, false],
+            [ASSASSIN, 0, false]
         ])
     })
 

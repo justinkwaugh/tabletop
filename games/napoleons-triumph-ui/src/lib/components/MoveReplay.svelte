@@ -2,40 +2,52 @@
     import type { Attachment } from 'svelte/attachments'
     import boardArt from '$lib/images/board.webp'
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
-    import { replayFlags } from '$lib/model/moveReplay.js'
+    import { AttackMarkKind, replayFlags } from '$lib/model/moveReplay.js'
+    import { roleMarkOf } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { viewTransformInSvg } from '$lib/utils/boardView.js'
+    import { attackMarkerScale } from '$lib/utils/attackMarker.js'
     import { flagScale } from '$lib/utils/flagLayout.js'
-    import { ARROW_HEAD_LENGTH } from '$lib/utils/wayArrow.js'
     import ApproachBars from './board/ApproachBars.svelte'
+    import AttackArrow from './board/AttackArrow.svelte'
     import Block from './board/Block.svelte'
     import CommanderFlag from './board/CommanderFlag.svelte'
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
+    import WayArrow from './board/WayArrow.svelte'
     import SwelledRule from './SwelledRule.svelte'
 
     const gameSession = getGameSession()
 
     const SHADOW = 'nt-replay-shadow'
-    const SHAFT_WIDTH = 11
-    const CASING = 3
-    const ARROW_HEAD = `M0 0 L${-ARROW_HEAD_LENGTH} -17 L${-ARROW_HEAD_LENGTH} 17 Z`
-
     let mapWidth = $state(0)
 
     const replay = $derived(gameSession.moveReplay)
     const scene = $derived(gameSession.moveReplayScene)
     const rotation = $derived(gameSession.boardRotation)
-    const flagView = $derived({
-        rotation,
-        scale: scene && mapWidth > 0 ? flagScale(mapWidth / scene.focus.width) : 1
-    })
+    const zoom = $derived(scene && mapWidth > 0 ? mapWidth / scene.focus.width : 1)
+    const flagView = $derived({ rotation, scale: flagScale(zoom) })
     const flags = $derived(
         scene ? replayFlags(scene, flagView, (group) => gameSession.flagBearer(group, false)) : []
     )
 
     const shownAsModal: Attachment<HTMLDialogElement> = (dialog) => {
         dialog.showModal()
+    }
+
+    const ARROW_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
+
+    // The host steps the game through its history on the arrow keys, from a listener on the window; under the sheet that would move the table the sheet promises to leave alone.
+    function keepArrowKeys(event: KeyboardEvent) {
+        if (!replay || !ARROW_KEYS.includes(event.key)) {
+            return
+        }
+        event.stopPropagation()
+        if (event.key === 'ArrowLeft') {
+            gameSession.stepMoveReplay(-1)
+        } else if (event.key === 'ArrowRight') {
+            gameSession.stepMoveReplay(1)
+        }
     }
 
     // Workaround: the second click of a double-click on a history entry lands on the backdrop of the sheet the first one opened.
@@ -46,23 +58,47 @@
     }
 </script>
 
+<svelte:window onkeydowncapture={keepArrowKeys} />
+
 {#if replay && scene}
     <dialog
         class="nt-replay"
-        aria-label="A move from the history"
+        aria-label="An action from the history"
         {@attach shownAsModal}
         onclose={() => gameSession.closeMoveReplay()}
         onclick={dismiss}
     >
         <div class="nt-replay-sheet">
             <header>
-                <div>
-                    <div class="nt-replay-time">{replay.time}</div>
-                    <h2>{replay.text}</h2>
+                <div class="nt-replay-time">{replay.time}</div>
+                <div class="nt-replay-controls">
+                    <button
+                        type="button"
+                        class="nt-replay-step"
+                        aria-label="The action before"
+                        disabled={!gameSession.earlierReplay}
+                        onclick={() => gameSession.stepMoveReplay(-1)}
+                    >
+                        <svg viewBox="0 0 10 16" aria-hidden="true"
+                            ><path d="M8 2 L2 8 L8 14"></path></svg
+                        >
+                    </button>
+                    <button
+                        type="button"
+                        class="nt-replay-step"
+                        aria-label="The action after"
+                        disabled={!gameSession.laterReplay}
+                        onclick={() => gameSession.stepMoveReplay(1)}
+                    >
+                        <svg viewBox="0 0 10 16" aria-hidden="true"
+                            ><path d="M2 2 L8 8 L2 14"></path></svg
+                        >
+                    </button>
+                    <form method="dialog">
+                        <button class="nt-replay-close">Close</button>
+                    </form>
                 </div>
-                <form method="dialog">
-                    <button class="nt-replay-close">Close</button>
-                </form>
+                <h2>{replay.text}</h2>
             </header>
             <SwelledRule />
             <div class="nt-replay-map" bind:clientWidth={mapWidth}>
@@ -94,43 +130,35 @@
                                 />
                             {/each}
                         </g>
-                        <g filter="url(#{SHADOW})">
-                            {#each scene.sprites as sprite (sprite.group.key)}
+                        {#each scene.sprites as sprite (sprite.group.key)}
+                            <g filter="url(#{SHADOW})">
                                 {#each sprite.blocks as block (block.unit.id)}
+                                    {@const role = scene.roles[block.unit.id]}
                                     <Block
                                         x={block.centre.x}
                                         y={block.centre.y}
                                         angle={block.angle}
                                         colors={gameSession.armyColors(block.unit.playerId)}
                                         face={gameSession.visibleFace(block.unit)}
+                                        roleMark={role && roleMarkOf(role)}
+                                        dimmed={scene.bystanderIds.includes(block.unit.id)}
                                     />
                                 {/each}
-                            {/each}
-                        </g>
-                        {#each scene.arrows as arrow, index (index)}
-                            {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle}) scale(${arrow.scale})`}
-                            {@const shaft = arrow.shaft
-                                .map((point) => `${point.x},${point.y}`)
-                                .join(' ')}
-                            <g class="nt-replay-way" stroke-width={SHAFT_WIDTH * arrow.scale}>
-                                <polyline
-                                    points={shaft}
-                                    class="nt-replay-way-casing"
-                                    stroke-width={(SHAFT_WIDTH + CASING * 2) * arrow.scale}
-                                ></polyline>
-                                <path
-                                    d={ARROW_HEAD}
-                                    transform={head}
-                                    class="nt-replay-way-casing"
-                                    stroke-width={CASING * 2}
-                                ></path>
-                                <polyline points={shaft}></polyline>
-                                <path d={ARROW_HEAD} transform={head} stroke="none"></path>
                             </g>
+                        {/each}
+                        {#each scene.arrows as arrow, index (index)}
+                            <WayArrow {arrow} />
                         {/each}
                         {#each flags as flag (flag.key)}
                             <CommanderFlag {flag} view={flagView} />
                         {/each}
+                        {#if scene.attackMark}
+                            <AttackArrow
+                                approach={scene.attackMark.approach}
+                                scale={attackMarkerScale(zoom)}
+                                feint={scene.attackMark.kind === AttackMarkKind.Feint}
+                            />
+                        {/if}
                     </g>
                 </svg>
             </div>
@@ -173,10 +201,10 @@
     }
 
     header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        column-gap: 16px;
     }
 
     .nt-replay-time {
@@ -185,9 +213,48 @@
     }
 
     h2 {
+        grid-column: 1 / -1;
         font-size: 19px;
         font-style: italic;
         line-height: 1.25;
+    }
+
+    .nt-replay-controls {
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .nt-replay-step {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 30px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .nt-replay-step svg {
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .nt-replay-step:hover:not([disabled]) {
+        background: color-mix(in srgb, var(--nt-ink) 9%, transparent);
+    }
+
+    .nt-replay-step[disabled] {
+        opacity: 0.3;
+        cursor: default;
+    }
+
+    .nt-replay-close {
+        margin-left: 8px;
     }
 
     .nt-replay-close,
@@ -217,26 +284,6 @@
         height: 100%;
     }
 
-    .nt-replay-way {
-        fill: none;
-        stroke: #2b2620;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-    }
-
-    .nt-replay-way path {
-        fill: #2b2620;
-    }
-
-    .nt-replay-way .nt-replay-way-casing {
-        fill: #f1ecdc;
-        stroke: #f1ecdc;
-    }
-
-    .nt-replay-way polyline.nt-replay-way-casing {
-        fill: none;
-    }
-
     footer {
         display: flex;
         justify-content: flex-end;
@@ -248,7 +295,13 @@
         }
 
         h2 {
+            min-height: 2.5em;
             font-size: 16px;
+        }
+
+        .nt-replay-step {
+            width: 40px;
+            height: 34px;
         }
     }
 </style>

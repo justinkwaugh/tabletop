@@ -9,7 +9,8 @@ import {
     one,
     optional,
     PowerChoiceKind,
-    type ChoiceDomain
+    type ChoiceDomain,
+    type PowerChoice
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import {
@@ -37,6 +38,8 @@ import {
     regionOfPawn
 } from './vocabulary.js'
 import { warbandEntries } from '../util/warbands.js'
+import type { WarbandGroup } from '../model/campaign.js'
+import { ANY_WARBANDS_MOVES } from './choiceDomains.js'
 
 // "Action: Peek at an adviser of a player whose pawn is at your site. If it is the Conspiracy, you play it
 //  or discard it. If it is not, give them the [favor] here." Cost: place 1 favor.
@@ -129,7 +132,9 @@ registerModifier(LAND_WARDEN, powerIndexOf(LAND_WARDEN, PowerTiming.Modifier), {
 })
 
 // "Move any warbands to and from your board and any sites you rule (except the last warband from a
-//  site). At end, discard Warning Signals." Defender. Warbands to a site all go to the one site named.
+//  site). At end, discard Warning Signals." Defender. Messenger's text, so Messenger's moves: each
+//  warbands, then the site they go to (none: from a site, to the board), each read on the state the
+//  moves before it leave.
 const WARNING_SIGNALS = 'denizen.nomad.warning-signals'
 /** R-5.5.1.a — a defender's plan, so the Campaign it is used in is under way. */
 function defendedCampaignScope(state: HydratedOathGameState): ImperialScope | undefined {
@@ -161,51 +166,124 @@ const boardGroups: ChoiceDomain = (state, playerId) =>
             kind: PowerChoiceKind.Warbands,
             group: { at: { kind: 'board' as const, playerId }, owner, count }
         }))
+/** The board first, as Messenger offers it. */
+const warningSignalsSources: ChoiceDomain = (state, playerId, power) => [
+    ...boardGroups(state, playerId, power),
+    ...ruledSiteGroups(state, playerId, power)
+]
 registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.BattlePlan), {
-    choices: [
+    choices: Array.from({ length: ANY_WARBANDS_MOVES }, () => [
         optional(PowerChoiceKind.Warbands, {
-            what: 'warbands at sites you rule to move to your board (never the last)',
-            domain: ruledSiteGroups,
-            max: 16
-        }),
-        optional(PowerChoiceKind.Warbands, {
-            what: 'warbands on your board to move to a site',
-            domain: boardGroups,
-            max: 8
+            what: 'warbands to move',
+            domain: warningSignalsSources,
+            sequential: true
         }),
         optional(PowerChoiceKind.Site, {
-            what: 'the site you rule they go to',
-            domain: ruledSites
+            what: 'a site you rule to move them to',
+            domain: ruledSites,
+            sequential: true
         })
-    ],
+    ]).flat(),
+    stateAfter: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).state,
     hooks: {
         discardAtEnd: true,
-        reasonCannotUse: (ctx) => {
-            const toSite = chosen(ctx, PowerChoiceKind.Warbands).some(
-                ({ group }) => group.at.kind === 'board'
-            )
-            const [to] = chosen(ctx, PowerChoiceKind.Site)
-            if (toSite && !to) return 'name the site you rule the board warbands go to'
-            if (!toSite && to) return 'name the board warbands to move to that site'
-            return undefined
-        },
+        reasonCannotUse: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).reason,
         onUse: (ctx) => {
-            const groups = chosen(ctx, PowerChoiceKind.Warbands)
-            const [to] = chosen(ctx, PowerChoiceKind.Site)
+            const { playerId, choices } = ctx
             const notes: string[] = []
-            for (const { group } of groups) {
-                assertExists(ctx.playerId, "the bandits' compelled plans declare no choices")
-                const fromSite = group.at.kind === 'site' ? group.at.siteId : undefined
-                const siteId = fromSite ?? to?.siteId
-                if (!siteId) continue
-                const move = fromSite ? moveWarbandsSiteToBoard : moveWarbandsBoardToSite
-                const moved = move(ctx.state, ctx.playerId, group.owner, siteId, group.count)
-                const route = fromSite
-                    ? `from ${siteId} to the board`
-                    : `from the board to ${siteId}`
-                notes.push(`${moved} ${route}`)
+            if (choices.length > 0) {
+                assertExists(playerId, "the bandits' compelled plans declare no choices")
+                notes.push(...applyWarningSignals(ctx.state, playerId, choices, false).notes)
             }
-            return `Warning Signals: moved ${notes.join('; ') || 'nothing'}`
+            return `Warning Signals: ${playerId} moved ${notes.join('; ') || 'nothing'}`
         }
     }
 })
+
+/**
+ * Each warbands choice and the site after it. A use recorded before the moves were paired named
+ * its board warbands together, then the one site they all went to: so a board group with no site
+ * of its own goes where the board groups after it go.
+ */
+function warningSignalsMoves(
+    choices: readonly PowerChoice[]
+): { group: WarbandGroup; to: string | undefined }[] {
+    return choices.flatMap((choice, i) => {
+        if (choice.kind !== PowerChoiceKind.Warbands) return []
+        let next = i + 1
+        if (choice.group.at.kind === 'board') {
+            while (isBoardGroup(choices[next])) next += 1
+        }
+        const after = choices[next]
+        return [
+            {
+                group: choice.group,
+                to: after?.kind === PowerChoiceKind.Site ? after.siteId : undefined
+            }
+        ]
+    })
+}
+
+function isBoardGroup(choice: PowerChoice | undefined): boolean {
+    return choice?.kind === PowerChoiceKind.Warbands && choice.group.at.kind === 'board'
+}
+
+function warningSignalsOnCopy(
+    state: HydratedOathGameState,
+    playerId: string,
+    choices: readonly PowerChoice[]
+): { state: HydratedOathGameState; reason?: string } {
+    const copy = new HydratedOathGameState(state.dehydrate())
+    return { state: copy, reason: applyWarningSignals(copy, playerId, choices, true).reason }
+}
+
+/**
+ * R-6.5 with the card's text — the moves in turn. Checked (the declaration, on a copy): refused at
+ * the first move the rules or the warbands there do not allow. Unchecked (the plan's use, as it
+ * always was): each move moves what it can.
+ */
+function applyWarningSignals(
+    state: HydratedOathGameState,
+    playerId: string,
+    choices: readonly PowerChoice[],
+    checked: boolean
+): { reason?: string; notes: string[] } {
+    const scope = defendedCampaignScope(state)
+    const notes: string[] = []
+    const refused = (reason: string) => ({ reason, notes })
+    for (const { group, to } of warningSignalsMoves(choices)) {
+        const { at, owner, count } = group
+        if (checked && to !== undefined && !rulesSite(state, playerId, to, scope)) {
+            return refused(`you do not rule ${to}`)
+        }
+        if (at.kind === 'board') {
+            if (to === undefined) {
+                if (checked)
+                    return refused('warbands on your board need a site you rule to move to')
+                continue
+            }
+            const moved = moveWarbandsBoardToSite(state, playerId, owner, to, count)
+            if (checked && moved < count) {
+                return refused(`only ${moved} of those warbands on your board to move`)
+            }
+            notes.push(`${moved} from the board to ${to}`)
+            continue
+        }
+        if (checked && !rulesSite(state, playerId, at.siteId, scope)) {
+            return refused(`you do not rule ${at.siteId}`)
+        }
+        const lifted = moveWarbandsSiteToBoard(state, playerId, owner, at.siteId, count)
+        if (checked && lifted < count) {
+            return refused(
+                `only ${lifted} of those warbands may leave ${at.siteId} (the last must stay)`
+            )
+        }
+        if (to === undefined) {
+            notes.push(`${lifted} from ${at.siteId} to the board`)
+            continue
+        }
+        moveWarbandsBoardToSite(state, playerId, owner, to, lifted)
+        notes.push(`${lifted} from ${at.siteId} to ${to}`)
+    }
+    return { notes }
+}

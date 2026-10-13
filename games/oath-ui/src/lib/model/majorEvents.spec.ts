@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ActionType, Banner, CardKind, OathType, PlayerStatus, SearchPlay, SearchSource } from '@tabletop/oath'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import { tokenParts } from './tokenText.js'
 import {
     MajorEventKind,
     campaignsBefore,
@@ -164,5 +165,42 @@ describe('the History’s rows and its game-end row', () => {
             const state = ended({ p2: { revealedVisionId: FAITH }, p3: { revealedVisionId: REBELLION } }, { banners, warbandsOnCards: { [FAITH]: { p3: 1 } } })
             expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([{ kind: 'card', cardId: REBELLION }])
         })
+    })
+})
+
+describe('every seat a framed row names is its chip: the aside, the line that follows, the winner', () => {
+    /** The words as the History draws them: each seat its chip, "<you>" for the reader. */
+    const drawn = (text: string | undefined, viewerId: string | undefined) =>
+        tokenParts(text ?? '', { seats: { names: { player: nameOf, seats: ['p1', 'p2', 'p3'] }, viewerId } })
+            .map((part) => (part.kind === 'seat' ? (part.playerId === viewerId ? '<you>' : `<${nameOf(part.playerId)}>`) : part.kind === 'text' ? part.text : `[${part.kind}]`))
+            .join('')
+    const chips = (viewerId?: string, extra: Partial<MajorEventContext> = {}) => context(viewerId, { seatsById: true, ...extra })
+
+    it('a Campaign won and lost: "against <chip>", "From <chip>: …"', () => {
+        const campaign = action({ type: ActionType.Campaign, playerId: 'p3', defender: { kind: 'player', playerId: 'p1' }, targets: [], attackDice: 3 })
+        const spoils = action({ type: ActionType.CampaignResolveVictory, playerId: 'p3', metadata: { warbandsPlaced: 0, seizeBurned: 0, favorBurned: 0, relicsTaken: ['relic.book-of-records'], bannersSeized: [] } })
+        const won = majorEventOf(spoils, chips('p2', { campaign: campaignsBefore([campaign, spoils])[1] }))
+        expect(drawn(won?.aside, 'p2')).toBe('against <Ann>')
+        expect(drawn(won?.consequence, 'p2')).toBe('From <Ann>: Book of Records')
+        expect(drawn(won?.aside, 'p1')).toBe('against <you>')
+        const lost = action({ type: ActionType.CampaignSacrifice, playerId: 'p3', sacrifice: 0, metadata: { attack: 2, defense: 3, attackerVictorious: false, sacrificed: 0 } })
+        expect(drawn(majorEventOf(lost, chips('p2', { campaign: campaignsBefore([campaign, lost])[1] }))?.aside, 'p2')).toBe('against <Ann>')
+    })
+
+    it('Citizenship and the Usurper: the seat starts the line as its chip, and the verb agrees with "you"', () => {
+        const taken = action({ type: ActionType.ResolveCitizenshipOffer, playerId: 'p2', granted: true })
+        expect(drawn(majorEventOf(taken, chips('p1'))?.consequence, 'p1')).toBe('<Ben> is a Citizen of the Empire')
+        expect(drawn(majorEventOf(taken, chips('p2'))?.consequence, 'p2')).toBe('<you> are a Citizen of the Empire')
+        const exiled = action({ type: ActionType.ExileCitizen, playerId: 'p1', citizenPlayerId: 'p2' })
+        expect(drawn(majorEventOf(exiled, chips('p3'))?.consequence, 'p3')).toBe('<Ben> is an Exile again')
+        const flip = action({ type: ActionType.ResolveWake, playerId: 'p3', favorSteps: [], metadata: { flippedToUsurper: true } })
+        expect(drawn(majorEventOf(flip, chips('p1'))?.consequence, 'p1')).toBe('If <Cass> still holds it at their next Wake, <Cass> wins')
+        expect(drawn(majorEventOf(flip, chips('p3'))?.consequence, 'p3')).toBe('If <you> still hold it at your next Wake, <you> win')
+    })
+
+    it('the game-end row names its winner by their chip', () => {
+        const state = ended({ p3: { revealedVisionId: FAITH } })
+        expect(drawn(gameEndEvent(state, 'p3', 'R-3.1', chips('p1')).sentence, 'p1')).toBe('<Cass> won as Usurper')
+        expect(drawn(gameEndEvent(state, 'p3', 'R-3.1', chips('p3')).sentence, 'p3')).toBe('<you> won as Usurper')
     })
 })

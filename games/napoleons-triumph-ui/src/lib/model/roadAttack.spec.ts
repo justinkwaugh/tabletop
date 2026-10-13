@@ -4,11 +4,19 @@ import {
     TestGame,
     arrangeBattlefield,
     cavalry,
+    RIDDEN_IN,
     infantry,
+    reinforcementCavalryRiddenIn,
     type PiecePlacement
 } from '@tabletop/napoleons-triumph/testing'
-import { StageKind, emptyBattleSelections } from './battleSelection.js'
+import {
+    StageKind,
+    emptyBattleSelections,
+    setAttackRide,
+    type BattleSelections
+} from './battleSelection.js'
 import { battleStageOf } from './battleStage.js'
+import { RideChoice } from './moveCommands.js'
 import { TargetKind, moveTargets } from './targets.js'
 
 const NEAR = 53
@@ -41,13 +49,13 @@ function screened(attacker: PiecePlacement, beyond: PiecePlacement[] = []): Test
 
 const horse: PiecePlacement = { id: 'F-cav', side: Side.French, face: cavalry(2), locale: NEAR }
 
-function stageOf(game: TestGame) {
+function stageOf(game: TestGame, selections: BattleSelections = emptyBattleSelections()) {
     const state = game.hydrated
     const attack = state.attack
     if (!attack) {
         throw new Error('Expected an attack in progress')
     }
-    return battleStageOf(state, attack, emptyBattleSelections())
+    return battleStageOf(state, attack, selections)
 }
 
 describe('following up a retreat with cavalry', () => {
@@ -141,7 +149,7 @@ describe('cavalry riding on', () => {
         const targets = moveTargets(game.hydrated, game.playerOf(Side.French), ridingOn)
         const reserves = targets.filter((target) => target.kind === TargetKind.Reserve)
         expect(reserves.map((target) => target.position.locale)).toContain(BEYOND)
-        expect(reserves.every((target) => target.road !== undefined)).toBe(true)
+        expect(reserves.every((target) => target.ways !== undefined)).toBe(true)
         expect(
             targets.some(
                 (target) => target.kind === TargetKind.Approach && target.position.locale === TAKEN
@@ -173,5 +181,131 @@ describe('cavalry riding on', () => {
             canPress: false,
             feinting: true
         })
+    })
+})
+
+describe('cavalry reinforcements riding on in their turn of entry', () => {
+    const { taken: RIDDEN_INTO, held: HELD, corps } = RIDDEN_IN
+    const ride = { ...corps, road: [], continues: true as const }
+    const ridden = reinforcementCavalryRiddenIn
+
+    function threatening(plan: { continues?: true }): TestGame {
+        const game = ridden()
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach: game.hydrated.map.approachBetween(RIDDEN_INTO, HELD).id,
+            plan: { kind: CommandKind.Corps, unitIds: ['F-off'], ...plan }
+        })
+        return game
+    }
+
+    function standing(plan: { continues?: true }): TestGame {
+        const game = threatening(plan)
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
+            unitIds: ['A-line'],
+            leaderIds: []
+        })
+        return game
+    }
+
+    function givingWay(plan: { continues?: true }): TestGame {
+        const game = threatening(plan)
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: { 'A-line': 1 },
+            destinations: { 'A-line': 53 },
+            kept: {}
+        })
+        return game
+    }
+
+    it('may go by road again under a new command, with a fresh allowance of road', () => {
+        const game = ridden()
+        const french = game.playerOf(Side.French)
+        const riding = moveTargets(game.hydrated, french, { ...corps, continues: true })
+        const anew = moveTargets(game.hydrated, french, corps)
+        const reached = (targets: typeof anew) =>
+            targets
+                .filter((target) => target.kind === TargetKind.Reserve)
+                .map((target) => target.position.locale)
+        expect(reached(anew).length).toBeGreaterThan(reached(riding).length)
+        expect(anew.some((target) => target.kind === TargetKind.Attack)).toBe(true)
+    })
+
+    it('follows up a retreat riding on unless a new command was meant, and may be switched', () => {
+        const ridingOn = stageOf(givingWay({ continues: true }))
+        expect(ridingOn).toMatchObject({
+            kind: StageKind.Occupation,
+            attackers: ['F-off'],
+            ride: RideChoice.RidingOn,
+            orders: [ride],
+            byRoad: true
+        })
+        expect(ridingOn).toHaveProperty('groups', [
+            expect.objectContaining({ label: 'Riding on by road' })
+        ])
+
+        const game = givingWay({})
+        expect(stageOf(game)).toMatchObject({
+            ride: RideChoice.NewCommand,
+            orders: [corps],
+            roadOrders: [{ ...corps, road: [] }],
+            mayMoveIn: true,
+            byRoad: false
+        })
+        const switched = {
+            ...emptyBattleSelections(),
+            attackers: setAttackRide(emptyBattleSelections().attackers, RideChoice.RidingOn)
+        }
+        expect(stageOf(game, switched)).toMatchObject({ ride: RideChoice.RidingOn, orders: [ride] })
+    })
+
+    it('feints either way when the defence stands', () => {
+        expect(stageOf(standing({ continues: true }))).toMatchObject({
+            kind: StageKind.Feint,
+            canPress: true,
+            ride: RideChoice.RidingOn,
+            orders: [ride]
+        })
+        expect(stageOf(standing({}))).toMatchObject({
+            ride: RideChoice.NewCommand,
+            orders: [corps]
+        })
+    })
+
+    it('presses an attack only by a new command, whatever it meant when it threatened', () => {
+        const game = standing({ continues: true })
+        game.act(ActionType.PressAttack, game.playerOf(Side.French))
+        const stage = stageOf(game)
+        expect(stage).toMatchObject({
+            kind: StageKind.Declaration,
+            attackers: ['F-off'],
+            orders: [corps],
+            commandOptions: [CommandKind.Corps]
+        })
+        expect(stage).not.toHaveProperty('ride', expect.anything())
+        expect(stage).not.toHaveProperty('problem', expect.anything())
+        expect(stage).toHaveProperty('groups', [expect.objectContaining({ label: 'In reserve' })])
+    })
+})
+
+describe('cavalry riding on that is no reinforcement', () => {
+    it('has no new command to take, in an attack or out of it', () => {
+        const game = screened(horse, [
+            { id: 'A-line', side: Side.Allied, face: infantry(2), locale: BEYOND }
+        ])
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.Occupy, french, { orders: [{ ...rider, road: [] }] })
+        expect(moveTargets(game.hydrated, french, rider)).toEqual([])
+        game.act(ActionType.ThreatenAttack, french, {
+            approach: game.hydrated.map.approachBetween(TAKEN, BEYOND).id,
+            plan: rider
+        })
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: { 'A-line': 2 },
+            destinations: {},
+            kept: {}
+        })
+        const stage = stageOf(game)
+        expect(stage).toMatchObject({ kind: StageKind.Occupation, orders: [ridingOn] })
+        expect(stage).not.toHaveProperty('ride', expect.anything())
     })
 })

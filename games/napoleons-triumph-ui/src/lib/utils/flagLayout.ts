@@ -1,5 +1,5 @@
 import type { BoundingBox, Point } from '@tabletop/common'
-import { UnitType, commanderDefinition, type Face } from '@tabletop/napoleons-triumph'
+import { commanderDefinition, type Face, type UnitType } from '@tabletop/napoleons-triumph'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { ArmyColors } from './armyColors.js'
 import { attackMarkerSamples, attackMarkerScale } from './attackMarker.js'
@@ -7,11 +7,11 @@ import { screenAxes } from './boardView.js'
 import { boxHolds } from './boundingBox.js'
 import { blockSamples, type BlockFootprint } from './blockShape.js'
 import type { GroupSprite, PieceGroup } from './pieceLayout.js'
+import { UNIT_TYPE_ORDER } from './unitTypeOrder.js'
 
 export const STAFF_HEIGHT = 30
 export const BANNER_HEIGHT = 18
 export const TALLY_WIDTH = 27
-const TALLY_TYPES = [UnitType.Infantry, UnitType.Cavalry, UnitType.Artillery]
 const SAMPLE_STEP = 12
 const STAFF_HALF_WIDTH = 2
 const KEEP_CLEAR_WEIGHT = 4
@@ -50,7 +50,7 @@ export function talliesOf(faces: Face[], unitCount: number): Tally[] {
     if (faces.length !== unitCount) {
         return []
     }
-    return TALLY_TYPES.map((type) => ({
+    return UNIT_TYPE_ORDER.map((type) => ({
         type,
         count: faces.filter((face) => face.type === type).length
     })).filter((tally) => tally.count > 0)
@@ -178,13 +178,21 @@ export function arrowsToKeepClear(approachIds: readonly number[], zoom: number):
     )
 }
 
+/** A commander's flag standing where its corps will set up, before the corps has any units to carry it. */
+export interface PlantedFlag {
+    commanderId: string
+    at: Point
+    colors: ArmyColors
+}
+
 export function flagMarks(
     sprites: readonly GroupSprite[],
     view: FlagView,
     keepClear: Point[],
-    bearerOf: (group: PieceGroup) => FlagBearer
+    bearerOf: (group: PieceGroup) => FlagBearer,
+    planted: readonly PlantedFlag[] = []
 ): FlagMark[] {
-    const standing = sprites.flatMap((sprite) => {
+    const carried = sprites.flatMap((sprite) => {
         const { commander, units, key } = sprite.group
         if (!commander || !sprite.flagFeetByPreference) {
             return []
@@ -200,6 +208,18 @@ export function flagMarks(
             hasCommanded
         }
     })
+    const standing = [
+        ...carried,
+        ...planted.map(({ commanderId, at, colors }) => ({
+            key: `planted:${commanderId}`,
+            feetByPreference: [at],
+            name: commanderDefinition(commanderId).name,
+            colors,
+            count: 0,
+            tallies: [],
+            hasCommanded: false
+        }))
+    ]
     const placements = placeFlags(
         standing.map(({ key, feetByPreference, name, tallies }) => ({
             key,

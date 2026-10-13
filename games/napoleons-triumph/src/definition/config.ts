@@ -49,7 +49,8 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         id: 'santon',
         type: ConfigOptionType.Boolean,
         name: 'The Santon',
-        description: 'The steep hill on the French left gets its own rules for artillery',
+        description:
+            'The French fixed battery stands on the steep hill on their left, which gets its own rules for artillery',
         default: false
     }
 ]

@@ -30,7 +30,13 @@ import {
     type Face
 } from '../components/pieces.js'
 import { Scenario, roundDefinition, type RoundDefinition } from '../components/timeTrack.js'
-import { Attack, RoadMarch, type LossEntry } from './attack.js'
+import {
+    Attack,
+    MoralePenaltyKind,
+    RoadMarch,
+    type LossEntry,
+    type MoralePenalty
+} from './attack.js'
 import {
     Commander,
     Position,
@@ -170,6 +176,11 @@ export class HydratedNapoleonsTriumphGameState
         return unit
     }
 
+    /** Rule 11: the cavalry whose move by road is still open. */
+    riders(): ProjectedUnit[] {
+        return (this.roadMarch?.unitIds ?? []).map((id) => this.unit(id))
+    }
+
     findUnit(id: string): ProjectedUnit | undefined {
         return this.units.find((candidate) => candidate.id === id)
     }
@@ -270,29 +281,41 @@ export class HydratedNapoleonsTriumphGameState
     }
 
     /** Rule 13: morale lost this way never falls below one, so it cannot break the army. */
-    private wearDown(player: HydratedNapoleonsTriumphPlayerState, points: number) {
+    private wearDown(player: HydratedNapoleonsTriumphPlayerState, points: number): number {
         const lost = Math.min(points, player.morale - 1)
         player.morale -= lost
         player.moraleLost += lost
+        return lost
     }
 
     /** Rule 15: the first use of heavy cavalry or of the Guard costs its army morale. */
-    commit(unit: ProjectedUnit) {
+    commit(unit: ProjectedUnit): MoralePenalty[] {
         const player = this.getPlayerState(unit.playerId)
+        const { playerId } = player
         const face = faceOf(unit)
+        const penalties: MoralePenalty[] = []
         if (isHeavyCavalry(face) && !player.heavyCavalryCommitted) {
             player.heavyCavalryCommitted = true
-            this.wearDown(player, HEAVY_CAVALRY_COMMITMENT_PENALTY)
+            penalties.push({
+                playerId,
+                kind: MoralePenaltyKind.HeavyCavalryCommitted,
+                moraleLost: this.wearDown(player, HEAVY_CAVALRY_COMMITMENT_PENALTY)
+            })
         }
         if (isGuard(face) && !player.guardCommitted) {
             player.guardCommitted = true
-            this.wearDown(player, GUARD_COMMITMENT_PENALTY)
+            penalties.push({
+                playerId,
+                kind: MoralePenaltyKind.GuardCommitted,
+                moraleLost: this.wearDown(player, GUARD_COMMITMENT_PENALTY)
+            })
         }
+        return penalties
     }
 
+    /** Rule 15: the caller commits the unit before it takes the loss. */
     takeLoss(unit: ProjectedUnit, steps: number): LossEntry {
         assert(steps > 0, 'A loss must remove at least one step')
-        this.commit(unit)
         const before = faceOf(unit)
         const taken = Math.min(steps, before.strength)
         const after = reducedFace(before, taken)
@@ -315,19 +338,24 @@ export class HydratedNapoleonsTriumphGameState
     }
 
     /** Rule 13: a loss from an artillery-led attack cannot be the one that breaks an army. */
-    loseMorale(playerId: string, points: number, fromArtillery = false) {
+    loseMorale(playerId: string, points: number, fromArtillery = false): number {
         const player = this.getPlayerState(playerId)
         if (player.morale - points >= 1 || fromArtillery) {
-            this.wearDown(player, points)
-            return
+            return this.wearDown(player, points)
         }
-        player.moraleLost += player.morale
+        const lost = player.morale
+        player.moraleLost += lost
         player.morale = 0
+        return lost
     }
 
-    failGuardAttack(playerId: string) {
+    failGuardAttack(playerId: string): MoralePenalty {
         this.getPlayerState(playerId).guardAttackForfeited = true
-        this.loseMorale(playerId, FAILED_GUARD_ATTACK_PENALTY)
+        return {
+            playerId,
+            kind: MoralePenaltyKind.GuardAttackDefeated,
+            moraleLost: this.loseMorale(playerId, FAILED_GUARD_ATTACK_PENALTY)
+        }
     }
 
     isDemoralized(playerId: string): boolean {

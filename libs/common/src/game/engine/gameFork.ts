@@ -86,6 +86,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         delete fork.state
         delete fork.finishedAt
         delete fork.result
+        delete fork.everFinished
         fork.winningPlayerIds = []
         fork.activePlayerIds = [...state.activePlayerIds]
         fork.lastActionAt = inherited.at(-1)?.createdAt

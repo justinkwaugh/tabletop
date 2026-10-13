@@ -1,7 +1,7 @@
 import { unitsAbreast, type LocaleId } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
 import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
-import type { LossEntry } from './attack.js'
+import type { LossEntry, MoralePenalty } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, type ProjectedUnit } from './pieces.js'
 import { legal } from './legality.js'
@@ -20,6 +20,7 @@ export interface RetreatPlan {
 
 export interface RetreatOutcome {
     losses: LossEntry[]
+    penalties: MoralePenalty[]
     stepsLost: number
     eliminatedForRoom: string[]
     demoralized: boolean
@@ -118,9 +119,7 @@ export function executeRetreat(
     const afterCombat = attack.attackerWon === true
     const retreating = retreatingUnits(state)
     state.revealAll(retreating)
-    for (const unit of retreating) {
-        state.commit(unit)
-    }
+    const penalties = retreating.flatMap((unit) => state.commit(unit))
     const groups = retreatLossGroups(state)
     validateLosses(state, groups, plan.losses)
 
@@ -188,6 +187,7 @@ export function executeRetreat(
     state.loseMorale(attack.defenderId, stepsLost)
     return {
         losses: records,
+        penalties,
         stepsLost,
         eliminatedForRoom: stranded.map((unit) => unit.id),
         demoralized: state.isDemoralized(attack.defenderId)

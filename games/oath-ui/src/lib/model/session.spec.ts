@@ -6,7 +6,7 @@ import { FIXTURE_SITE_CAPACITY, openTurn, required, testPlayer, testState } from
 import { disposeSessions, openSessionOn, searchingTable, setupTable, tableOf } from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
 
-// docs/user-interactions.md — Back unwinds manual picks, Undo waits for them, and nothing is offered from history.
+// docs/user-interactions.md — Undo unwinds manual picks before any sent action, and nothing is offered from history.
 function openSession() {
     return openSessionOn(searchingTable())
 }
@@ -16,7 +16,7 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-describe('OathGameSession — Back, Undo and the history gate', () => {
+describe('OathGameSession — Undo and the history gate', () => {
     it('opens on the Search the chancellor drew, with nothing picked', () => {
         const session = openSession()
         expect(session.gameState.machineState).toBe(MachineState.Searching)
@@ -39,23 +39,23 @@ describe('OathGameSession — Back, Undo and the history gate', () => {
         expect(historyUndo).toHaveBeenCalledTimes(1)
     })
 
-    it('Back unwinds one pick at a time: the placement, then the kept card', () => {
+    it('Undo unwinds one pick at a time: the placement, then the kept card', async () => {
         const session = openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
         void session.search.choosePlacement({ play: SearchPlay.Discard })
         expect(session.search.placement).toEqual({ play: SearchPlay.Discard })
 
-        session.back()
+        await session.undo()
         expect(session.search.placement).toBeUndefined()
         expect(session.search.kept).toBe(first)
 
-        session.back()
+        await session.undo()
         expect(session.search.kept).toBeUndefined()
         expect(session.hasManualDraft).toBe(false)
     })
 
-    it('a pick in the action grid is a draft too, and Back returns to the grid', async () => {
+    it('a pick in the action grid is a draft too, and Undo returns to the grid', async () => {
         const session = openSession()
         const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
         session.chooseAction(ActionType.Travel)
@@ -141,15 +141,21 @@ describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Pla
         return { session, sent }
     }
 
-    it('Salad Days turned faceup waits for three different banks, then sends them', async () => {
+    it('Salad Days turned faceup starts with no bank picked, waits for three different banks, then sends them', async () => {
         const { session, sent } = flipping()
         const faceup = session.facedownAdviserOptions[0].placements.find((p) => p.play === SearchPlay.Adviser)
-        expect(faceup?.blockedBecause).toBeUndefined()
+        expect(faceup).toBeDefined()
 
         await session.chooseAdviserPlay(SALAD_DAYS, SearchPlay.Adviser)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserPlay).toBe(SearchPlay.Adviser)
         expect(session.adviserPlayChoices).toHaveLength(3)
+        expect(session.adviserPlayComplete).toBe(false)
+        await session.confirmAdviserPlay()
+        expect(sent).not.toHaveBeenCalled()
+
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 1, 1: 1, 2: 1 } })
+        expect(session.adviserPlayComplete).toBe(true)
         expect(session.adviserPlayReason).toMatch(/different/)
 
         session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0, 1: 1, 2: 2 } })
@@ -205,6 +211,40 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
         expect(action.toSiteId).toBe('c2')
         expect(action.discardFirstCardId).toBe(WAYSIDE_INN)
     })
+
+    it('at their own full site, the site play opens once a card there is picked to discard first, and is sent with it', async () => {
+        const ERRAND_BOY = 'denizen.beast.errand-boy'
+        const here = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+        const there = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.elsewhere-${i}`)
+        const state = testState(
+            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: ERRAND_BOY, faceUp: false }] })],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: here, c2: there, p1: [] },
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: 'me' },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
+            }
+        )
+        openTurn(state, 'me')
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+
+        await session.chooseAdviserPlay(ERRAND_BOY, SearchPlay.Site)
+        expect(session.adviserPlayReason).toMatch(/c1 is at its capacity/)
+        // A card discarded at another site frees no room here.
+        expect(session.adviserDiscardFirstOptions).toEqual(here)
+        session.setAdviserDiscardFirst(here[0])
+        expect(session.adviserPlayReason).toBeUndefined()
+
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.discardFirstCardId).toBe(here[0])
+        expect(action.toSiteId).toBeUndefined()
+    })
 })
 
 describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', () => {
@@ -249,6 +289,61 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
             targetPlayerId: 'ann',
             take: { kind: 'relic', cardId: 'relic.cup-of-plenty' }
         })
+    })
+})
+
+describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup with no one to take from', () => {
+    it('says why where the take would be, then plays it with no take', async () => {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    secrets: 2,
+                    advisers: [
+                        { cardId: 'vision.conspiracy', faceUp: false },
+                        { cardId: 'denizen.hearth.wayside-inn', faceUp: true },
+                        { cardId: 'denizen.beast.rangers', faceUp: true }
+                    ]
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    relicIds: ['relic.cup-of-plenty'],
+                    advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+                })
+            ],
+            { machineState: MachineState.ActPhase }
+        )
+        openTurn(state, 'me')
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        session.chooseAdviser('vision.conspiracy')
+
+        await session.chooseAdviserPlay('vision.conspiracy', SearchPlay.Conspiracy)
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.adviserPlay).toBe(SearchPlay.Conspiracy)
+        expect(session.adviserConspiracyTargets).toEqual([])
+        expect(session.adviserConspiracyNoTake).toEqual([
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'text', text: 'Needs 2 advisers matching ' },
+                    { kind: 'seat', playerId: 'ann', possessive: true },
+                    { kind: 'text', text: '; you have 1.' }
+                ]
+            }
+        ])
+        expect(session.adviserPlayComplete).toBe(true)
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the flip is sent')
+        expect(action.play).toBe(SearchPlay.Conspiracy)
+        expect(action.conspiracy).toBeUndefined()
     })
 })
 
@@ -303,7 +398,7 @@ describe('the let-peek picker beside a staged Act Phase action', () => {
         return openSessionOn(tableOf(state))
     }
 
-    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and its Cancel leaves it', () => {
+    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and a second press leaves it', () => {
         const session = table('me')
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekIsStaged).toBe(true)
@@ -322,6 +417,15 @@ describe('the let-peek picker beside a staged Act Phase action', () => {
         session.toggleLetPeek()
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekOpen).toBe(false)
+    })
+
+    it('in your Act Phase, Undo closes the picker, as it puts down any staged action', async () => {
+        const session = table('me')
+        session.toggleLetPeek()
+        expect(session.hasManualDraft).toBe(true)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+        expect(session.selection.action).toBeUndefined()
     })
 })
 
@@ -375,5 +479,53 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
         assert(isLetPeek(action), 'the peek is sent')
         expect(action.outOfTurn).toBe(true)
         expect(session.letPeekOpen).toBe(false)
+    })
+})
+
+/** The Show menu takes the card first: a tap picks it, the only one starts picked, and Undo takes it back. */
+describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
+    const TUTOR = 'denizen.arcane.tutor'
+    const WOLVES = 'denizen.beast.wolves'
+    function table(myAdvisers: string[]) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: myAdvisers.map((cardId) => ({ cardId, faceUp: false }))
+                }),
+                testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1' })
+            ],
+            { machineState: MachineState.ActPhase }
+        )
+        openTurn(state, 'me')
+        return openSessionOn(tableOf(state))
+    }
+
+    it('in your Act Phase, two cards start unpicked; a tap picks one, a tap on another moves it, and Undo takes it back before the menu', async () => {
+        const session = table([TUTOR, WOLVES])
+        session.toggleLetPeek()
+        expect(session.letPeekPicked).toBeUndefined()
+
+        session.pickLetPeekSubject(TUTOR)
+        expect(session.letPeekPicked).toBe(TUTOR)
+        session.pickLetPeekSubject(WOLVES)
+        expect(session.letPeekPicked).toBe(WOLVES)
+
+        await session.undo()
+        expect(session.letPeekPicked).toBeUndefined()
+        expect(session.letPeekOpen).toBe(true)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+    })
+
+    it('one card to show starts picked and stores nothing, so Undo closes the menu', async () => {
+        const session = table([TUTOR])
+        session.toggleLetPeek()
+        expect(session.letPeekPicked).toBe(TUTOR)
+        await session.undo()
+        expect(session.letPeekOpen).toBe(false)
+        expect(session.hasManualDraft).toBe(false)
     })
 })

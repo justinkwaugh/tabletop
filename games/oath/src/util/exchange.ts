@@ -14,6 +14,7 @@ import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from './force.js'
 import {
     advisersTowardLimit,
+    cannotPlaceWarbandsAtSites,
     countsTowardAdviserLimit,
     effectiveAdviserLimit
 } from './continuous.js'
@@ -127,6 +128,15 @@ export function reasonTransferInvalid(
         }
         // Deed Writer's Q&A: "not zero unless they have the Bandit Crown" (R-7.6.5).
         const fewest = actsAsIfBanditsAreWarbands(state, toId) ? 0 : 1
+        // R-7.1.4-H1 Ring of Devotion: "You cannot place warbands at sites", and its Q&A covers
+        // "All of them!". Without the Bandit Crown every count places some, so no site is taken.
+        if (
+            isAtLeastOathRevision(state, OathRevision.EngineFixes5) &&
+            (fewest > 0 || site.warbands > 0) &&
+            cannotPlaceWarbandsAtSites(state, toId)
+        ) {
+            return `${toId} cannot place warbands at sites (Ring of Devotion)`
+        }
         if (!Number.isInteger(site.warbands) || site.warbands < fewest) {
             return fewest === 0
                 ? 'a promised amount cannot be negative'

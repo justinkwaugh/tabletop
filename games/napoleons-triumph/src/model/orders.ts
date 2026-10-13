@@ -7,7 +7,7 @@ import {
 import { frenchArrivalRound } from '../components/timeTrack.js'
 import { CommandKind, type MoveOrder, type RoadMarch } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import type { Commander, Position, ProjectedUnit } from './pieces.js'
+import { areTheUnits, type Commander, type Position, type ProjectedUnit } from './pieces.js'
 import { legal } from './legality.js'
 
 export interface ResolvedOrder {
@@ -17,6 +17,8 @@ export interface ResolvedOrder {
     units: ProjectedUnit[]
     leftBehind: ProjectedUnit[]
     start?: Position
+    /** Rule 10: the roads the units may leave by, when a road move brought them to the start this turn. */
+    startRoads?: number[]
     march?: RoadMarch
 }
 
@@ -36,6 +38,22 @@ export function canBeCommanded(
     unit: ProjectedUnit
 ): boolean {
     return (unit.movesThisTurn ?? 0) < commandAllowance(state, unit)
+}
+
+export function mayBeCommandedAgain(
+    state: HydratedNapoleonsTriumphGameState,
+    resolved: ResolvedOrder
+): boolean {
+    const entering = resolved.start === undefined
+    const spent = resolved.march ? 0 : 1
+    return resolved.units.some(
+        (unit) =>
+            (unit.movesThisTurn ?? 0) + spent <
+            commandAllowance(state, {
+                playerId: unit.playerId,
+                enteredThisTurn: entering ? true : unit.enteredThisTurn
+            })
+    )
 }
 
 /** The fixed battery takes commands to fire but never leaves its position (rule 6, step 9). */
@@ -139,6 +157,19 @@ export function assertArrived(state: HydratedNapoleonsTriumphGameState, resolved
     )
 }
 
+/** Rule 10: in a single turn a piece moves only along connected roads, so pieces a road move brought to their locale go on by the roads they came by. */
+function roadsToGoOnBy(
+    units: readonly ProjectedUnit[],
+    start: Position | undefined
+): number[] | undefined {
+    const [first, ...others] = units.flatMap((unit) =>
+        unit.arrivedByRoad !== undefined && unit.arrivedByRoad.locale === start?.locale
+            ? [unit.arrivedByRoad.roads]
+            : []
+    )
+    return first?.filter((road) => others.every((roads) => roads.includes(road)))
+}
+
 export function resolveOrder(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -166,7 +197,14 @@ export function resolveOrder(
                 'A commander cannot detach its last unit'
             )
         }
-        return { order, playerId, units, leftBehind: [], start: unit.position }
+        return {
+            order,
+            playerId,
+            units,
+            leftBehind: [],
+            start: unit.position,
+            startRoads: roadsToGoOnBy(units, unit.position)
+        }
     }
     legal(order.commanderId !== undefined, `A ${order.kind} command needs a commander`)
     const commander = state.commander(order.commanderId)
@@ -187,7 +225,15 @@ export function resolveOrder(
         units.every((unit) => !unit.fixed),
         'The fixed battery cannot march with its corps'
     )
-    return { order, playerId, commander, units, leftBehind, start: commander.position }
+    return {
+        order,
+        playerId,
+        commander,
+        units,
+        leftBehind,
+        start: commander.position,
+        startRoads: roadsToGoOnBy(units, commander.position)
+    }
 }
 
 function resolveContinuation(
@@ -201,8 +247,7 @@ function resolveContinuation(
         march !== undefined &&
             march.kind === order.kind &&
             march.commanderId === order.commanderId &&
-            march.unitIds.length === units.length &&
-            units.every((unit) => march.unitIds.includes(unit.id)),
+            areTheUnits(march.unitIds, units),
         'No road move by those pieces is in progress'
     )
     const commander =

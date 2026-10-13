@@ -1,9 +1,12 @@
 <script lang="ts">
     import { ActionType, CommandKind, commanderDefinition } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { RideChoice } from '$lib/model/moveCommands.js'
     import { marksOn } from '$lib/model/targets.js'
+    import { WayStepKind } from '$lib/model/ways.js'
     import { commandsLeft } from '$lib/utils/commandsLeft.js'
     import CommandSwitch from './CommandSwitch.svelte'
+    import RideSwitch from './RideSwitch.svelte'
     import TargetLegend from './TargetLegend.svelte'
     import UnitTile from './UnitTile.svelte'
 
@@ -18,6 +21,8 @@
     const reinforcements = $derived(gameSession.reinforcements)
 
     const ridingOn = $derived(gameSession.ridingOn)
+    const rideChoice = $derived(gameSession.rideChoice)
+    const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
     const title = $derived.by(() => {
         if (!group) {
@@ -42,12 +47,27 @@
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
 
+    const wayToChoose = $derived.by(() => {
+        if (stepsOfTheWay.length === 0) {
+            return undefined
+        }
+        return stepsOfTheWay.some((step) => step.kind === WayStepKind.Entry)
+            ? 'More than one road comes on there. Tap the one to come on by: this turn the pieces go on only by roads that join it.'
+            : 'More than one road leads there. Tap the locale to march through: a corps closes the reserves it marches into to other units this turn.'
+    })
+
     const aside = $derived.by(() => {
         if (!group || ridingOn) {
             return undefined
         }
+        if (rideChoice === RideChoice.NewCommand) {
+            return 'A new command ends the ride, and is the second these pieces may take in their turn of entry.'
+        }
         if (together && picked.length > 1) {
             return 'Tap units to send only some.'
+        }
+        if (kind === CommandKind.Unit && picked.length > 1) {
+            return 'The two fire together across their approach, each by its own independent command.'
         }
         return kind === CommandKind.Corps && picked.length < group.units.length
             ? 'The units left out stay behind, detached.'
@@ -134,6 +154,12 @@
                     </div>
                     <div class="nt-orders-row">
                         <div class="nt-orders-actions">
+                            {#if rideChoice}
+                                <RideSwitch
+                                    chosen={rideChoice}
+                                    onchoose={(ride) => gameSession.chooseRide(ride)}
+                                />
+                            {/if}
                             {#if options.length > 0}
                                 <span class="nt-orders-faint">Command</span>
                             {/if}
@@ -157,7 +183,9 @@
                         </div>
                     </div>
                     <div class="nt-orders-note">
-                        {#if problem}
+                        {#if wayToChoose}
+                            <span>{wayToChoose}</span>
+                        {:else if problem}
                             <span>{problem}</span>
                         {:else if ridingOn}
                             <span
@@ -172,7 +200,9 @@
                 </div>
                 {#if !problem}
                     <div class="nt-orders-key">
-                        <TargetLegend marks={marksOn(gameSession.targets)} />
+                        <TargetLegend
+                            marks={marksOn(gameSession.targets, gameSession.closedReserves)}
+                        />
                     </div>
                 {/if}
             </div>
@@ -301,9 +331,8 @@
 
     .nt-orders-note {
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0 16px;
+        flex-direction: column;
+        align-items: flex-start;
         font-size: 13px;
         line-height: 1.3;
     }

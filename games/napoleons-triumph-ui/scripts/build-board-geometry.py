@@ -2,8 +2,10 @@
 
 Usage: python3 -I scripts/build-board-geometry.py /workspace/artassets/napoleons-triumph
 
-Board units are half a pixel of the 5100x6600 scan. Locale outlines come from the union of the
-wedge zones around each locale; approach bars come from the fit against the printed bars.
+Board units are half a pixel of the 5100x6600 render of the public map file. Locale outlines are
+rebuilt from the file's printed bars, each side on the centre line of its bar, by
+scripts/pdf_locale_outlines.py in the source folder (public-map-derived/pdf-locale-outlines.json);
+approach bars are the file's own.
 """
 import json
 import math
@@ -13,7 +15,6 @@ from collections import deque
 
 SCALE = 0.5
 STEP = 4
-SIMPLIFY = 7
 
 
 def inside(x, y, polygon):
@@ -28,27 +29,17 @@ def inside(x, y, polygon):
     return result
 
 
-def rasterize(wedges):
-    xs = [p[0] for w in wedges for p in w]
-    ys = [p[1] for w in wedges for p in w]
+def rasterize(polygon):
+    xs = [p[0] for p in polygon]
+    ys = [p[1] for p in polygon]
     x0, y0 = min(xs) - 2 * STEP, min(ys) - 2 * STEP
     cols = int((max(xs) - x0) / STEP) + 4
     rows = int((max(ys) - y0) / STEP) + 4
     mask = [[False] * cols for _ in range(rows)]
-    for wedge in wedges:
-        wx = [p[0] for p in wedge]
-        wy = [p[1] for p in wedge]
-        for r in range(max(0, int((min(wy) - y0) / STEP)), min(rows, int((max(wy) - y0) / STEP) + 2)):
-            cy = y0 + (r + 0.5) * STEP
-            for c in range(max(0, int((min(wx) - x0) / STEP)), min(cols, int((max(wx) - x0) / STEP) + 2)):
-                if not mask[r][c] and inside(x0 + (c + 0.5) * STEP, cy, wedge):
-                    mask[r][c] = True
-    # close slivers between hand-drawn wedges: a cell with filled cells on opposite sides is filled
-    for _ in range(2):
-        for r in range(1, rows - 1):
-            for c in range(1, cols - 1):
-                if not mask[r][c] and ((mask[r][c - 1] and mask[r][c + 1]) or (mask[r - 1][c] and mask[r + 1][c])):
-                    mask[r][c] = True
+    for r in range(rows):
+        cy = y0 + (r + 0.5) * STEP
+        for c in range(cols):
+            mask[r][c] = inside(x0 + (c + 0.5) * STEP, cy, polygon)
     return mask, x0, y0
 
 
@@ -79,70 +70,28 @@ def largest_component(mask):
     return kept
 
 
-def trace(mask):
-    """Outline of the filled cells as corner points, walking with the region on the right."""
-    rows, cols = len(mask), len(mask[0])
-    filled = lambda r, c: 0 <= r < rows and 0 <= c < cols and mask[r][c]
-    edges = {}
-    for r in range(rows):
-        for c in range(cols):
-            if not mask[r][c]:
-                continue
-            if not filled(r - 1, c):
-                edges[(c, r)] = (c + 1, r)
-            if not filled(r, c + 1):
-                edges[(c + 1, r)] = (c + 1, r + 1)
-            if not filled(r + 1, c):
-                edges[(c + 1, r + 1)] = (c, r + 1)
-            if not filled(r, c - 1):
-                edges[(c, r + 1)] = (c, r)
-    start = min(edges)
-    path = [start]
-    current = edges[start]
-    while current != start and len(path) < len(edges) + 2:
-        path.append(current)
-        current = edges[current]
-    return path
-
-
-def simplify(points, epsilon):
-    if len(points) < 3:
-        return points
-    first, last = points[0], points[-1]
-    dx, dy = last[0] - first[0], last[1] - first[1]
-    norm = math.hypot(dx, dy) or 1
-    index, distance = 0, -1
-    for i in range(1, len(points) - 1):
-        d = abs((points[i][0] - first[0]) * dy - (points[i][1] - first[1]) * dx) / norm
-        if d > distance:
-            index, distance = i, d
-    if distance <= epsilon:
-        return [first, last]
-    return simplify(points[:index + 1], epsilon)[:-1] + simplify(points[index:], epsilon)
-
-
-def simplify_ring(points, epsilon):
-    far = max(range(len(points)), key=lambda i: math.dist(points[i], points[0]))
-    first = simplify(points[:far + 1], epsilon)
-    second = simplify(points[far:] + [points[0]], epsilon)
-    return first[:-1] + second[:-1]
-
-
-def interior_point(mask):
+def interior_point(mask, wanted=None):
+    """The cell furthest from the edge; among cells as good to within two steps, the one nearest `wanted`, or the middle."""
     rows, cols = len(mask), len(mask[0])
     distance = [[0 if not mask[r][c] else -1 for c in range(cols)] for r in range(rows)]
     queue = deque((r, c) for r in range(rows) for c in range(cols) if not mask[r][c])
-    best = (0, 0, 0)
+    deepest = 0
     while queue:
         r, c = queue.popleft()
         for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)):
             nr, nc = r + dr, c + dc
             if 0 <= nr < rows and 0 <= nc < cols and distance[nr][nc] == -1:
                 distance[nr][nc] = distance[r][c] + 1
-                if distance[nr][nc] > best[0]:
-                    best = (distance[nr][nc], nr, nc)
+                deepest = max(deepest, distance[nr][nc])
                 queue.append((nr, nc))
-    return best
+    filled = [(r, c) for r in range(rows) for c in range(cols) if mask[r][c]]
+    if wanted is None:
+        wanted = (sum(r for r, _ in filled) / len(filled), sum(c for _, c in filled) / len(filled))
+    r, c = min(
+        ((r, c) for r, c in filled if distance[r][c] >= deepest - 2),
+        key=lambda cell: (cell[0] - wanted[0]) ** 2 + (cell[1] - wanted[1]) ** 2,
+    )
+    return distance[r][c], r, c
 
 
 def fmt(value):
@@ -162,21 +111,20 @@ def main(source):
     printed = json.load(open(os.path.join(source, 'public-map-derived', 'pdf-approaches.json')))
     marks = json.load(open(os.path.join(source, 'public-map-derived', 'pdf-approach-marks.json')))
 
-    wedges = {}
-    for approach in skeleton['approaches']:
-        for side, wedge in enumerate(approach['wedges']):
-            wedges.setdefault(approach['locales'][side], []).append(wedge)
+    outlines = json.load(open(os.path.join(source, 'public-map-derived', 'pdf-locale-outlines.json')))
+    # Where reserve stacks stood before the outlines were rebuilt; a stack stays there while the spot is still as roomy as any.
+    stack_points = json.load(open(os.path.join(notes, 'stack-points.json')))
 
     locales = {}
-    for number, polygons in sorted(wedges.items()):
-        mask, x0, y0 = rasterize(polygons)
+    for number, outline in sorted((int(number), outline) for number, outline in outlines.items()):
+        mask, x0, y0 = rasterize([(x / SCALE, y / SCALE) for x, y in outline])
         mask = largest_component(mask)
-        ring = [(x0 + c * STEP, y0 + r * STEP) for c, r in trace(mask)]
-        outline = simplify_ring(ring, SIMPLIFY)
-        depth, r, c = interior_point(mask)
+        stood = stack_points.get(str(number))
+        wanted = ((stood[1] / SCALE - y0) / STEP - 0.5, (stood[0] / SCALE - x0) / STEP - 0.5) if stood else None
+        depth, r, c = interior_point(mask, wanted)
         anchor = (x0 + (c + 0.5) * STEP, y0 + (r + 0.5) * STEP)
         locales[number] = {
-            'outline': [(x * SCALE, y * SCALE) for x, y in outline],
+            'outline': [(x, y) for x, y in outline],
             'anchor': (anchor[0] * SCALE, anchor[1] * SCALE),
             'clearance': depth * STEP * SCALE,
         }

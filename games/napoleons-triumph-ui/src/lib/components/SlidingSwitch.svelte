@@ -1,4 +1,6 @@
 <script lang="ts" generics="Value extends string">
+    import type { Snippet } from 'svelte'
+
     interface Choice {
         value: Value
         name: string
@@ -9,18 +11,30 @@
         label,
         choices,
         chosen,
-        onchoose
+        onchoose,
+        mark,
+        chip = false
     }: {
         label: string
         choices: readonly Choice[]
         chosen?: Value
         onchoose: (value: Value) => void
+        /** Something drawn after a choice's name, for the choices that have it. */
+        mark?: Snippet<[Value]>
+        /** Drawn as one of the light chips of the map menu, its thumb a tint and never dark. */
+        chip?: boolean
     } = $props()
 
     const chosenIndex = $derived(choices.findIndex((choice) => choice.value === chosen))
 </script>
 
-<div class="nt-switch" role="group" aria-label={label} style:--count={choices.length}>
+<div
+    class="nt-switch"
+    class:nt-switch-chip={chip}
+    role="group"
+    aria-label={label}
+    style:--count={choices.length}
+>
     {#if chosenIndex >= 0}
         <span class="nt-switch-thumb" style:--index={chosenIndex} aria-hidden="true"></span>
     {/if}
@@ -29,7 +43,8 @@
             type="button"
             aria-pressed={choice.value === chosen}
             disabled={choice.unavailable}
-            onclick={() => onchoose(choice.value)}>{choice.name}</button
+            onclick={() => onchoose(choice.value)}
+            >{choice.name}{@render mark?.(choice.value)}</button
         >
     {/each}
 </div>
@@ -61,6 +76,10 @@
 
     button {
         position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35em;
         padding: 1px 12px;
         color: var(--nt-ink);
         text-align: center;
@@ -81,6 +100,26 @@
         opacity: 0.36;
     }
 
+    .nt-switch-chip {
+        border-radius: 7px;
+        background: var(--nt-ground);
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    .nt-switch-chip .nt-switch-thumb {
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--nt-ground) 78%, var(--nt-ink));
+    }
+
+    .nt-switch-chip button {
+        padding: 1px 9px;
+    }
+
+    .nt-switch-chip button[aria-pressed='true'] {
+        color: var(--nt-ink);
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .nt-switch-thumb,
         button {
@@ -95,6 +134,14 @@
 
         button {
             padding: 2px 8px;
+        }
+
+        .nt-switch-chip {
+            font-size: 13px;
+        }
+
+        .nt-switch-chip button {
+            padding: 3px 10px;
         }
     }
 </style>

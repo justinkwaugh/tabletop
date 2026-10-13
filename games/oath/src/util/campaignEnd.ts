@@ -4,9 +4,8 @@ import { MachineState } from '../definition/states.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { endCampaign } from './campaignRoll.js'
 import { afterCampaignPersistent } from './persistent.js'
-import { forfeitFreeActions } from './freeActions.js'
 import { orderTriggeredQuestions } from './questions.js'
-import { isCampaignOutOfTurn, resumeHeldTurn } from './sneakAttack.js'
+import { endStepOutOfTurn, isCampaignOutOfTurn } from './sneakAttack.js'
 
 export interface CampaignConclusion {
     notes: string[]
@@ -27,7 +26,7 @@ export function concludeCampaign(state: HydratedOathGameState): CampaignConclusi
     const notes = afterCampaignPersistent(state, attackerPlayerId, defenderPlayerId)
     orderTriggeredQuestions(state, attackerPlayerId, firstTriggered)
 
-    // A free action granted out of turn has no Act Phase of its player's to be used in.
-    if (outOfTurn) forfeitFreeActions(state, attackerPlayerId)
-    return { notes, pileDeposits, resumeMachineState: resumeHeldTurn(state) }
+    // Second Wind's free Travel and Campaign follow at once (revision 7), or the held turn resumes.
+    const resumeMachineState = outOfTurn ? endStepOutOfTurn(state, attackerPlayerId) : undefined
+    return { notes, pileDeposits, resumeMachineState }
 }

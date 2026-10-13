@@ -23,6 +23,7 @@ import {
 } from './blockShape.js'
 import { screenAxes, uprightAngle } from './boardView.js'
 import { insidePolygon } from './polygon.js'
+import { inReadingOrder } from './unitTypeOrder.js'
 
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
@@ -51,11 +52,24 @@ export interface PieceGroup {
 
 interface PlacedGroup extends PieceGroup {
     position: Position
+    /** Where its singled-out units are shown nearest, when the viewer does not read the stack. */
+    singledOutTowards?: Point
+}
+
+/**
+ * Units an attack or a history picture singles out, the ones to show outermost first, and the place
+ * they are shown nearest: the approach they fight at, or where they went.
+ */
+export interface SingledOut {
+    towards?: Point
+    unitIds: readonly string[]
 }
 
 export interface GroupSprite {
     group: PlacedGroup
     blocks: BlockSprite[]
+    /** Its blocks lie closer than a block is thick, so each lies over part of the next. */
+    closedUp: boolean
     flagFeetByPreference?: Point[]
     centre: Point
     radius: number
@@ -78,7 +92,31 @@ export function heldApproaches(sprites: readonly GroupSprite[]): HeldApproach[] 
 
 export type BoardPieces = Pick<HydratedNapoleonsTriumphGameState, 'units' | 'commander'>
 
-function placedGroups(state: BoardPieces): PlacedGroup[] {
+// Deliberate: where a singled-out unit really stands among the others of its stack is the owner's
+// to know. Anyone else sees those units at one end of the stack, whichever of it they are.
+function withTheSingledOutForward(
+    group: PlacedGroup,
+    singledOut: readonly SingledOut[]
+): PlacedGroup {
+    const here = singledOut.filter(({ unitIds }) =>
+        group.units.some((unit) => unitIds.includes(unit.id))
+    )
+    if (here.length === 0) {
+        return group
+    }
+    const forward = here.flatMap(({ unitIds }) => unitIds)
+    const place = (unit: ProjectedUnit) => {
+        const at = forward.indexOf(unit.id)
+        return at < 0 ? forward.length : at
+    }
+    return {
+        ...group,
+        singledOutTowards: here[0].towards,
+        units: group.units.toSorted((a, b) => place(a) - place(b))
+    }
+}
+
+function placedGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -94,12 +132,20 @@ function placedGroups(state: BoardPieces): PlacedGroup[] {
         const commander = unit.commanderId ? state.commander(unit.commanderId) : undefined
         groups.set(key, { key, playerId: unit.playerId, position, commander, units: [unit] })
     }
-    return [...groups.values()]
+    return [...groups.values()].map((group) =>
+        group.playerId === options.readBy
+            ? { ...group, units: inReadingOrder(group.units) }
+            : withTheSingledOutForward(group, options.singledOut ?? [])
+    )
 }
 
 export interface LayoutOptions {
     rotation: number
     looseLocales?: readonly number[]
+    /** The player looking at the board, whose own stacks are put in reading order. */
+    readBy?: string
+    /** Units that stacks the viewer does not read show at one end, so their place in the stack tells nothing. */
+    singledOut?: readonly SingledOut[]
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -130,7 +176,12 @@ function flagFeetOnTopOfStack(blocks: BlockSprite[], rotation: number): Point[] 
     return level(top, shoulder) ? [midpoint([top, shoulder]), top, shoulder] : [top, shoulder]
 }
 
-function sprite(group: PlacedGroup, blocks: BlockSprite[], rotation: number): GroupSprite {
+function sprite(
+    group: PlacedGroup,
+    blocks: BlockSprite[],
+    spacing: number,
+    rotation: number
+): GroupSprite {
     const xs = blocks.map((block) => block.centre.x)
     const ys = blocks.map((block) => block.centre.y)
     const centre = {
@@ -143,7 +194,8 @@ function sprite(group: PlacedGroup, blocks: BlockSprite[], rotation: number): Gr
     const flagFeetByPreference = group.commander
         ? flagFeetOnTopOfStack(blocks, rotation)
         : undefined
-    return { group, blocks, flagFeetByPreference, centre, radius }
+    const closedUp = blocks.length > 1 && spacing < BLOCK_THICKNESS
+    return { group, blocks, closedUp, flagFeetByPreference, centre, radius }
 }
 
 function angleFacingAcross(bar: ApproachGeometry): number {
@@ -172,6 +224,28 @@ function fileGroups(groups: PlacedGroup[], files: number): FiledGroup[] {
 // Rule 4: a wide approach is as wide as two pieces, so two groups can front it side by side.
 function filesAcross(bar: ApproachGeometry): number {
     return bar.length > BLOCK_LENGTH * 2 ? 2 : 1
+}
+
+/**
+ * A file the viewer reads runs Guard to artillery from the top of the screen down where it stands
+ * more upright than level on screen, and from inside its locale out to the bar where it lies level.
+ */
+function ranksFromTheBar(
+    group: PlacedGroup,
+    bar: ApproachGeometry,
+    options: LayoutOptions
+): ProjectedUnit[] {
+    if (group.playerId !== options.readBy) {
+        return group.units
+    }
+    const { right, down } = screenAxes(options.rotation)
+    const intoTheLocale = {
+        across: bar.inward.x * right.x + bar.inward.y * right.y,
+        down: bar.inward.x * down.x + bar.inward.y * down.y
+    }
+    const upright = Math.abs(intoTheLocale.down) >= Math.abs(intoTheLocale.across)
+    const barIsTheTop = upright && intoTheLocale.down > 0
+    return barIsTheTop ? group.units : group.units.toReversed()
 }
 
 function layoutBlockers(
@@ -203,7 +277,7 @@ function layoutBlockers(
     const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
         const sideways =
             files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
-        const fromTheBar = group.units.map((unit, place) => {
+        const fromTheBar = ranksFromTheBar(group, bar, options).map((unit, place) => {
             const inward = first + (ranksAhead + place) * spacing + groupsAhead * GROUP_GAP
             return {
                 unit,
@@ -214,7 +288,7 @@ function layoutBlockers(
                 }
             }
         })
-        return sprite(group, fromTheBar.toReversed(), options.rotation)
+        return sprite(group, fromTheBar.toReversed(), spacing, options.rotation)
     })
     return frontToRear.toReversed()
 }
@@ -249,6 +323,11 @@ function clearestFiles(
 interface PlacedBlocks {
     group: PlacedGroup
     blocks: BlockSprite[]
+    spacing: number
+}
+
+function isBelow(place: Point, locale: LocaleGeometry, down: Point): boolean {
+    return (place.x - locale.anchor.x) * down.x + (place.y - locale.anchor.y) * down.y > 0
 }
 
 function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
@@ -276,7 +355,10 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
             GROUP_GAP +
             BLOCK_THICKNESS / 2 +
             ((tallest - group.units.length) * spacing) / 2
-        const blocks = group.units.map((unit, rank) => {
+        const singledOutAtTheBottom =
+            group.singledOutTowards !== undefined && isBelow(group.singledOutTowards, locale, down)
+        const fromTheTop = singledOutAtTheBottom ? group.units.toReversed() : group.units
+        const topToBottom = fromTheTop.map((unit, rank) => {
             const along = top + rank * spacing
             return {
                 unit,
@@ -287,7 +369,7 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
                 }
             }
         })
-        return { group, blocks }
+        return { group, blocks: topToBottom.toReversed(), spacing }
     })
 }
 
@@ -357,7 +439,7 @@ export function layoutPieces(
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of placedGroups(state)) {
+    for (const group of placedGroups(state, options)) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)
@@ -383,10 +465,11 @@ export function layoutPieces(
             const reserve = arrangeReserve(sortGroups(groups), options)
             const locale = LOCALE_GEOMETRY[groups[0].position.locale]
             const shift = shiftClearOf(reserve, locale, placed)
-            const settled = reserve.map(({ group, blocks }) =>
+            const settled = reserve.map(({ group, blocks, spacing }) =>
                 sprite(
                     group,
                     blocks.map((block) => ({ ...block, centre: moved(block.centre, shift) })),
+                    spacing,
                     options.rotation
                 )
             )

@@ -180,6 +180,13 @@ function replaceWarbands(
     return moved
 }
 
+/** A card's "if you're an Exile, you may become a Citizen": why the may is not open. */
+export function exileRefusal(state: HydratedOathGameState, playerId: string): string | undefined {
+    return state.getPlayerState(playerId).status === PlayerStatus.Exile
+        ? undefined
+        : 'only an Exile can become a Citizen'
+}
+
 export function becomeCitizenByPower(
     state: HydratedOathGameState,
     playerId: string

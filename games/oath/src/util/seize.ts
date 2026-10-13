@@ -7,15 +7,19 @@ import { isAtLeastOathRevision, OathRevision } from './revision.js'
 export const SEIZE_BURN = 2
 export const SEIZE_MINIMUM = 1
 
+/** R-2.5.3 — what a burn may take from a banner: all but its last. */
+export function burnableFromBanner(state: HydratedOathGameState, banner: Banner): number {
+    return Math.max(0, state.banners[banner].value - SEIZE_MINIMUM)
+}
+
 /** R-2.5.3 */
 export function burnFromBanner(
     state: HydratedOathGameState,
     banner: Banner,
     count: number
 ): number {
-    const bannerState = state.banners[banner]
-    const burned = Math.max(0, Math.min(count, bannerState.value - SEIZE_MINIMUM))
-    bannerState.value -= burned
+    const burned = Math.max(0, Math.min(count, burnableFromBanner(state, banner)))
+    state.banners[banner].value -= burned
     return burned
 }
 

@@ -60,7 +60,7 @@
         fill={paint.block}
     ></rect>
     {#if face}
-        <g transform="translate(0 {-EDGE / 2})">
+        <g transform="translate(0 {-EDGE / 2})" data-unit-face>
             <UnitFace
                 {face}
                 ink={paint.ink}

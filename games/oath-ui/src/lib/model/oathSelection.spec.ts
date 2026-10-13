@@ -18,7 +18,7 @@ describe('Oath staged selection (docs/user-interactions.md)', () => {
         expect(sel.value('action')).toBe(ActionType.Trade)
     })
 
-    it('Back pops the highest manual stage, one at a time', () => {
+    it('Undo pops the highest manual stage, one at a time', () => {
         const sel = new OathSelection()
         sel.set('action', ActionType.Travel)
         sel.set('site', 'slot.hinterland.2')
@@ -135,7 +135,7 @@ describe('modifiers in the staged selection (docs/user-interactions.md)', () => 
         expect(sel.value('card')).toBeUndefined()
     })
 
-    it('Back takes the last modifier declared, one at a time, then the action', () => {
+    it('Undo takes the last modifier declared, one at a time, then the action', () => {
         const sel = new OathSelection()
         sel.set('action', ActionType.Travel)
         sel.set('modifiers', [{ use: LONGBOWS }])
@@ -184,7 +184,7 @@ describe('the warband move in the staged selection (docs/user-interactions.md)',
         expect(sel.value('amount')).toBeUndefined()
     })
 
-    it('Back returns from the count to the direction, then to the grid', () => {
+    it('Undo returns from the count to the direction, then to the grid', () => {
         const sel = new OathSelection()
         sel.set('action', ActionType.MoveWarbands)
         sel.set('warbandMove', TO_SITE)

@@ -15,7 +15,7 @@ import {
     retreatSelection,
     setAttackCommand,
     setAttackWidth,
-    setCommandersStaying,
+    setCommandersGoing,
     setKeptInCorps,
     sendRetreating,
     setRetreatLosses,
@@ -24,30 +24,38 @@ import {
     type BattleSelections
 } from './battleSelection.js'
 import {
+    addWayStep,
     chooseCorpsUnit,
+    chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
+    destinationOf,
     guardAttackAnnounced,
     hasManualCommandSelection,
     noCommandSelection,
     pickedUpOf,
+    rideOf,
     setCommand,
-    setDetachedUnit,
+    setDestination,
     setGuardAttack,
     setPickedUp,
+    setRide,
     undoCommandSelection,
-    unitsPickedUpWith
+    unitsPickedUpWith,
+    wayStepsOf,
+    type CommandSelection
 } from './commandSelection.js'
+import { RideChoice } from './moveCommands.js'
+import type { ArmySetup } from './armySetup.js'
 import {
-    editedDeployment,
+    DestinationKind,
     hasManualSetupSelection,
+    latestArrangement,
     noSetupSelection,
-    pickedSetupCorps,
-    pickedSetupUnit,
-    recordSetupEdit,
-    toggleSetupCorps,
-    toggleSetupUnit,
-    undoSetupSelection
+    recordArrangement,
+    sameDestination,
+    undoSetupSelection,
+    type SetupDestination
 } from './setupSelection.js'
 import { stagedSelection } from './stagedSelection.js'
 
@@ -80,11 +88,23 @@ describe('command selection', () => {
     })
 
     it('returns to the units a pick-up starts with when leaving some out is undone', () => {
-        const thinned = setDetachedUnit(corpsPickedUp(), 'F01')
+        const thinned = chooseDetachedUnit(corpsPickedUp(), 'F01', ['F02'], false)
         expect(chosenUnitsOf(thinned)).toEqual(['F01'])
         const restored = undoCommandSelection(thinned)
         expect(chosenUnitsOf(restored)).toBeUndefined()
         expect(pickedUpOf(restored)).toEqual({ groupKey: 'corps' })
+    })
+
+    it('commands detached units one at a time, or two together where they may be', () => {
+        const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [], false)
+        expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01'], false))).toEqual(['F02'])
+
+        const two = chooseDetachedUnit(one, 'F02', ['F01'], true)
+        expect(chosenUnitsOf(two)).toEqual(['F01', 'F02'])
+        expect(chosenUnitsOf(chooseDetachedUnit(two, 'F01', ['F01', 'F02'], false))).toEqual([
+            'F02'
+        ])
+        expect(chooseDetachedUnit(one, 'F01', ['F01'], false)).toEqual(noCommandSelection())
     })
 
     it('leaves Undo to the last action when nothing has been chosen', () => {
@@ -182,30 +202,102 @@ describe('choosing units of a corps', () => {
         expect(chosenCommandOf(whole)).toBe(CommandKind.Corps)
         expect(guardAttackAnnounced(whole)).toBe(true)
 
-        const another = setDetachedUnit(setCommand(corpsPickedUp(), CommandKind.Unit), 'F02')
+        const another = chooseDetachedUnit(
+            setCommand(corpsPickedUp(), CommandKind.Unit),
+            'F02',
+            ['F01'],
+            false
+        )
         expect(chosenCommandOf(another)).toBe(CommandKind.Unit)
     })
 })
 
 describe('what a pick-up starts with', () => {
     const MOVABLE = ['F02', 'F03']
+    const NO_RIDERS: string[] = []
 
     it('is every unit of a corps that can still move', () => {
-        expect(unitsPickedUpWith({ groupKey: 'corps' }, MOVABLE, true)).toEqual(MOVABLE)
+        expect(unitsPickedUpWith({ groupKey: 'corps' }, MOVABLE, true, NO_RIDERS)).toEqual(MOVABLE)
     })
 
     it('is the detached unit that was tapped, when it can still move', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, NO_RIDERS)
         ).toEqual(['F03'])
     })
 
     it('is the first detached unit that can move when the tapped one cannot, or none was tapped', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, NO_RIDERS)
         ).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false)).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false)).toEqual([])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, NO_RIDERS)).toEqual(['F02'])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS)).toEqual([])
+    })
+
+    it('is the cavalry riding on in the group, unless another unit that can move was tapped', () => {
+        const RIDERS = ['F01']
+        expect(unitsPickedUpWith(undefined, MOVABLE, false, RIDERS)).toEqual(RIDERS)
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, RIDERS)).toEqual(RIDERS)
+        expect(
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, RIDERS)
+        ).toEqual(RIDERS)
+        expect(
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, RIDERS)
+        ).toEqual(['F03'])
+        expect(unitsPickedUpWith({ groupKey: 'corps' }, [], true, ['F01', 'F02'])).toEqual([
+            'F01',
+            'F02'
+        ])
+    })
+})
+
+describe('a new command for cavalry riding on', () => {
+    it('is the player’s own choice, taken back by Undo or by choosing riding on again', () => {
+        expect(rideOf(noCommandSelection())).toBe(RideChoice.RidingOn)
+        const anew = setRide(noCommandSelection(), RideChoice.NewCommand)
+        expect(rideOf(anew)).toBe(RideChoice.NewCommand)
+        expect(hasManualCommandSelection(anew)).toBe(true)
+        expect(rideOf(undoCommandSelection(anew))).toBe(RideChoice.RidingOn)
+        expect(setRide(anew, RideChoice.RidingOn)).toEqual(noCommandSelection())
+    })
+
+    it('keeps the command chosen for it, and is dropped when other units are chosen', () => {
+        const commanded = setCommand(
+            setRide(noCommandSelection(), RideChoice.NewCommand),
+            CommandKind.Unit
+        )
+        const otherUnits = [
+            chooseDetachedUnit(commanded, 'F02', ['F01'], false),
+            chooseCorpsUnit(commanded, 'F01', ['F01', 'F02'])
+        ]
+        expect(rideOf(commanded)).toBe(RideChoice.NewCommand)
+        expect(chosenCommandOf(commanded)).toBe(CommandKind.Unit)
+        expect(otherUnits.map(rideOf)).toEqual([RideChoice.RidingOn, RideChoice.RidingOn])
+    })
+})
+
+describe('the place a march is bound for', () => {
+    function bound(): CommandSelection {
+        return addWayStep(setDestination(setPickedUp({ groupKey: 'corps' }), 'Reserve:53:r'), 'a')
+    }
+
+    it('is kept with the steps of the way tapped so far, and Undo takes them back one at a time', () => {
+        expect(destinationOf(bound())).toBe('Reserve:53:r')
+        const twoSteps = addWayStep(bound(), 'b')
+        expect(wayStepsOf(twoSteps)).toEqual(['a', 'b'])
+        expect(wayStepsOf(undoCommandSelection(twoSteps))).toEqual(['a'])
+        const steppedBack = undoCommandSelection(bound())
+        expect(wayStepsOf(steppedBack)).toEqual([])
+        expect(destinationOf(steppedBack)).toBe('Reserve:53:r')
+        expect(destinationOf(undoCommandSelection(steppedBack))).toBeUndefined()
+    })
+
+    it('is forgotten when the order changes, since the places on offer change with it', () => {
+        expect(destinationOf(setCommand(bound(), CommandKind.Detach))).toBeUndefined()
+        expect(destinationOf(chooseCorpsUnit(bound(), 'F01', ['F01', 'F02']))).toBeUndefined()
+        expect(destinationOf(chooseDetachedUnit(bound(), 'F02', ['F01'], false))).toBeUndefined()
+        expect(destinationOf(setGuardAttack(bound(), true))).toBeUndefined()
+        expect(wayStepsOf(setCommand(bound(), CommandKind.Detach))).toEqual([])
     })
 })
 
@@ -266,7 +358,7 @@ describe('battle selections', () => {
             retreat: setKeptInCorps(setRetreatLosses(start.retreat, { A01: 1 }), {
                 langeron: 'A01'
             }),
-            advance: setCommandersStaying(start.advance, ['lannes'])
+            advance: setCommandersGoing(start.advance, ['lannes'])
         }
         const undone = undoBattleSelection(everyStep, StageKind.Declaration)
         expect(undone.defence).toEqual(everyStep.defence)
@@ -370,47 +462,43 @@ describe('battle selections', () => {
 })
 
 describe('set-up selection', () => {
-    const first = { corps: [], detachments: [] }
-    const second = { corps: [], detachments: [{ unitId: 'F01', position: { locale: 53 } }] }
+    const lannes: SetupDestination = { kind: DestinationKind.Corps, commanderId: 'lannes' }
+    const detached: SetupDestination = { kind: DestinationKind.Detached }
+    const posted: ArmySetup = {
+        corps: [],
+        detached: [{ unitId: 'F01', position: { locale: 53 } }]
+    }
+    const onTheApproach: ArmySetup = {
+        corps: [],
+        detached: [{ unitId: 'F01', position: { locale: 53, approach: 7 } }]
+    }
 
-    it('steps back one arrangement at a time, the picked unit first', () => {
-        const edited = recordSetupEdit(recordSetupEdit(noSetupSelection(), first), second)
-        const picked = toggleSetupUnit(edited, 'F02')
-        expect(pickedSetupUnit(picked)).toBe('F02')
+    it('takes back one change to the army at a time: the approach blocked, then the place given', () => {
+        const placed = recordArrangement(noSetupSelection(), posted)
+        const blocking = recordArrangement(placed, onTheApproach)
+        expect(latestArrangement(blocking)).toEqual(onTheApproach)
 
-        const unpicked = undoSetupSelection(picked)
-        expect(pickedSetupUnit(unpicked)).toBeUndefined()
-        expect(editedDeployment(unpicked)).toEqual(second)
+        const inReserveAgain = undoSetupSelection(blocking)
+        expect(latestArrangement(inReserveAgain)).toEqual(posted)
 
-        const earlier = undoSetupSelection(unpicked)
-        expect(editedDeployment(earlier)).toEqual(first)
-
-        const untouched = undoSetupSelection(earlier)
-        expect(editedDeployment(untouched)).toBeUndefined()
+        const untouched = undoSetupSelection(inReserveAgain)
+        expect(latestArrangement(untouched)).toBeUndefined()
         expect(hasManualSetupSelection(untouched)).toBe(false)
     })
 
-    it('holds a unit or a corps, never both, and Undo puts either down before any arrangement', () => {
-        const edited = recordSetupEdit(noSetupSelection(), first)
-        const corps = toggleSetupCorps(toggleSetupUnit(edited, 'F02'), 'lannes')
-        expect(pickedSetupCorps(corps)).toBe('lannes')
-        expect(pickedSetupUnit(corps)).toBeUndefined()
-
-        const unit = toggleSetupUnit(corps, 'F03')
-        expect(pickedSetupUnit(unit)).toBe('F03')
-        expect(pickedSetupCorps(unit)).toBeUndefined()
-
-        expect(pickedSetupCorps(toggleSetupCorps(corps, 'lannes'))).toBeUndefined()
-        expect(pickedSetupCorps(recordSetupEdit(corps, second))).toBeUndefined()
-
-        const putDown = undoSetupSelection(corps)
-        expect(pickedSetupCorps(putDown)).toBeUndefined()
-        expect(editedDeployment(putDown)).toEqual(first)
+    it('is a manual selection from the first change to the army, so Undo is offered for it', () => {
+        expect(hasManualSetupSelection(noSetupSelection())).toBe(false)
+        expect(hasManualSetupSelection(recordArrangement(noSetupSelection(), posted))).toBe(true)
     })
 
-    it('puts a picked unit down when it is tapped again or the arrangement changes', () => {
-        const picked = toggleSetupUnit(noSetupSelection(), 'F02')
-        expect(pickedSetupUnit(toggleSetupUnit(picked, 'F02'))).toBeUndefined()
-        expect(pickedSetupUnit(recordSetupEdit(picked, first))).toBeUndefined()
+    it('tells one corps from another and a corps from the units set up on their own', () => {
+        expect(
+            sameDestination(lannes, { kind: DestinationKind.Corps, commanderId: 'lannes' })
+        ).toBe(true)
+        expect(sameDestination(lannes, { kind: DestinationKind.Corps, commanderId: 'murat' })).toBe(
+            false
+        )
+        expect(sameDestination(lannes, detached)).toBe(false)
+        expect(sameDestination(detached, { kind: DestinationKind.Detached })).toBe(true)
     })
 })

@@ -40,6 +40,8 @@ function clearTurnState(state: HydratedNapoleonsTriumphGameState) {
         unit.movesThisTurn = undefined
         unit.enteredThisTurn = undefined
         unit.enteredReserveThisTurn = undefined
+        unit.marchedReserves = undefined
+        unit.arrivedByRoad = undefined
         unit.defendedApproach = undefined
         unit.retreatedAfterCombat = undefined
     }

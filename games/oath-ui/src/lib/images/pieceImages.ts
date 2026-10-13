@@ -47,4 +47,4 @@ export function pawnImageKeys(): string[] {
     return [...pawnsByColor.keys()]
 }
 
-export { banditWarbandImage } from './banditFigure.js'
+export { banditWarbandImage, imperialBanditWarbandImage, siteBanditsImage } from './banditFigure.js'

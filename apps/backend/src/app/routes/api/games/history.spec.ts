@@ -4,6 +4,7 @@ import { Role, UserStatus, type User } from '@tabletop/common'
 import { describe, expect, it, vi } from 'vitest'
 import historyRoute from './history.js'
 import mineRoute from './mine.js'
+import statsRoute from './stats.js'
 
 const user: User = {
     id: 'history-user',
@@ -21,14 +22,23 @@ async function createServer() {
     const getActiveGamesForUser = vi.fn(async () => [])
     const getCompletedGamesForUser = vi.fn(async () => [])
     const getGameHistoryForUser = vi.fn(async () => ({ games: [], nextCursor: 'next' }))
+    const getGameStatsForUser = vi.fn(async () => ({ titles: [], countedGames: [] }))
     Reflect.set(server, 'gameService', {
         getActiveGamesForUser,
         getCompletedGamesForUser,
-        getGameHistoryForUser
+        getGameHistoryForUser,
+        getGameStatsForUser
     })
     await server.register(historyRoute)
     await server.register(mineRoute)
-    return { server, getActiveGamesForUser, getCompletedGamesForUser, getGameHistoryForUser }
+    await server.register(statsRoute)
+    return {
+        server,
+        getActiveGamesForUser,
+        getCompletedGamesForUser,
+        getGameHistoryForUser,
+        getGameStatsForUser
+    }
 }
 
 describe('dashboard game requests', () => {
@@ -54,6 +64,17 @@ describe('dashboard game requests', () => {
             expect(response.statusCode).toBe(200)
             expect(getGameHistoryForUser).toHaveBeenCalledWith(user, cursor)
             expect(response.json().payload.nextCursor).toBe('next')
+        } finally {
+            await server.close()
+        }
+    })
+    it("returns the authenticated user's game stats", async () => {
+        const { server, getGameStatsForUser } = await createServer()
+        try {
+            const response = await server.inject('/stats')
+            expect(response.statusCode).toBe(200)
+            expect(getGameStatsForUser).toHaveBeenCalledWith(user)
+            expect(response.json().payload).toEqual({ titles: [], countedGames: [] })
         } finally {
             await server.close()
         }

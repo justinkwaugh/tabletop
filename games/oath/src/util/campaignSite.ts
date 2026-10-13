@@ -15,8 +15,11 @@ export function attackingSiteOf(state: HydratedOathGameState, playerId: string):
 }
 
 /** Wild Allies, Captains — acting from elsewhere, with the warbands there in the force; Vow of Union — the warbands at every site you rule. */
-export function forceSitesOf(state: HydratedOathGameState, playerId: string): string[] {
-    const asIfSiteId = campaignAsIfSiteNow(state, playerId)
+export function forceSitesOf(
+    state: HydratedOathGameState,
+    playerId: string,
+    asIfSiteId = campaignAsIfSiteNow(state, playerId)
+): string[] {
     const sites = new Set<string>(asIfSiteId ? [asIfSiteId] : [])
     for (const siteId of persistentForceSites(state, playerId)) sites.add(siteId)
     return [...sites]

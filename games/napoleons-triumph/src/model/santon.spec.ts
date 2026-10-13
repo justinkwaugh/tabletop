@@ -91,6 +91,22 @@ describe('setting up the fixed battery on the Santon (rules 6 and 18)', () => {
         expect(fixed.shown).toEqual(artillery())
     })
 
+    it('must stand on the Santon when the Santon rule is in use', () => {
+        const game = new TestGame(santonRule)
+        game.deploy(Side.Allied)
+        expect(() =>
+            game.deploy(Side.French, (deployment) => {
+                const named = deployment.fixedBattery
+                assertExists(named, 'The suggested deployment names a fixed battery')
+                deployment.detachments = []
+                deployment.fixedBattery = {
+                    unitId: named.unitId,
+                    approach: game.hydrated.map.passableApproachesOf(64)[0].id
+                }
+            })
+        ).toThrow('With the Santon in use the fixed battery sets up on the Santon')
+    })
+
     it('puts it on an approach, as anywhere else, when the rule is not in use', () => {
         const game = new TestGame()
         game.deploy(Side.Allied)
@@ -357,5 +373,41 @@ describe('artillery attacking from the Santon (rule 18)', () => {
         ).toThrow(/Santon/)
         defending.act(ActionType.DeclareDefense, french, { unitIds: ['F-art'], leaderIds: [] })
         expect(defending.state.machineState).toBe(MachineState.FeintDecision)
+    })
+})
+
+describe('artillery on the Santon other than the fixed battery (rule 18)', () => {
+    it('cannot hold its ground after a retreat before combat, since it could not have led', () => {
+        const game = frenchTurn(
+            [
+                {
+                    id: 'F-gun',
+                    side: Side.French,
+                    face: artillery(),
+                    locale: SANTON_LOCALE,
+                    facing: BELOW
+                },
+                allied('A-inf', infantry(3))
+            ],
+            santonRule
+        )
+        threaten(game, Side.French, SANTON_LOCALE, BELOW)
+        const [refuge] = AUSTERLITZ.reachableNeighbours(BELOW).filter(
+            (locale) => locale !== SANTON_LOCALE
+        )
+        const loss = AUSTERLITZ.approachBetween(BELOW, SANTON_LOCALE).wide ? 2 : 1
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: { 'A-inf': loss },
+            destinations: { 'A-inf': refuge },
+            kept: {}
+        })
+        expect(() =>
+            game.act(ActionType.Occupy, game.playerOf(Side.French), {
+                orders: [unitMove('F-gun')],
+                artilleryStays: true
+            })
+        ).toThrow(/could have led/)
+        game.act(ActionType.Occupy, game.playerOf(Side.French), { orders: [unitMove('F-gun')] })
+        expect(game.hydrated.unit('F-gun').position).toEqual({ locale: BELOW })
     })
 })

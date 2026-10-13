@@ -1,5 +1,6 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import type { CommandKind } from '@tabletop/napoleons-triumph'
+import type { RideChoice } from './moveCommands.js'
 import { stagedSelection } from './stagedSelection.js'
 
 export enum StageKind {
@@ -83,6 +84,7 @@ export function setKeptInCorps(
 export type AttackerValues = {
     feinting: true
     attackers: string[]
+    ride: RideChoice
     command: CommandKind
     leaders: string[]
     width: AttackWidth
@@ -91,6 +93,7 @@ export type AttackerValues = {
 export const attackerSelection = stagedSelection<AttackerValues>()([
     'feinting',
     'attackers',
+    'ride',
     'command',
     'leaders',
     'width',
@@ -108,6 +111,10 @@ export function setAttackCommand(
     kind: CommandKind
 ): AttackerSelection {
     return attackerSelection.revise(attackers, 'command', kind, 'manual')
+}
+
+export function setAttackRide(attackers: AttackerSelection, ride: RideChoice): AttackerSelection {
+    return attackerSelection.revise(attackers, 'ride', ride, 'manual')
 }
 
 export function setAttackWidth(
@@ -142,17 +149,17 @@ export const regroupSelection = stagedSelection<RegroupValues>()(['kept'])
 
 export type AdvanceValues = {
     advancing: string[]
-    commandersStaying: string[]
+    commandersGoing: string[]
 }
-export const advanceSelection = stagedSelection<AdvanceValues>()(['advancing', 'commandersStaying'])
+export const advanceSelection = stagedSelection<AdvanceValues>()(['advancing', 'commandersGoing'])
 
 type AdvanceSelection = StagedSelectionState<AdvanceValues>
 
-export function setCommandersStaying(
+export function setCommandersGoing(
     advance: AdvanceSelection,
     commanderIds: string[]
 ): AdvanceSelection {
-    return advanceSelection.set(advance, 'commandersStaying', commanderIds, 'manual')
+    return advanceSelection.set(advance, 'commandersGoing', commanderIds, 'manual')
 }
 
 export interface BattleSelections {

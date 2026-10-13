@@ -35,12 +35,16 @@
                 {/if}
             </span>
             {#if inPlay && !gameSession.gameState.result}
-                <span class="nt-masthead-time"
-                    >{roundLabel(
-                        gameSession.gameState.currentRound,
-                        gameSession.gameState.scenario === Scenario.December1
-                    )}</span
-                >
+                {@const round = gameSession.gameState.currentRound}
+                <span class="nt-masthead-time">
+                    {#if gameSession.gameState.scenario === Scenario.December1}
+                        {round.day}
+                        <span class="max-sm:hidden">December</span><span class="sm:hidden">Dec</span
+                        >
+                        ·
+                    {/if}
+                    {roundLabel(round)}
+                </span>
             {/if}
         </div>
         <div class="nt-masthead-side">
@@ -59,16 +63,14 @@
 </div>
 
 <style>
-    /* The negative margin lets the tint fade out under the panel below without moving that panel. */
     .nt-masthead-block {
-        --fade-below: 10px;
         --tint: color-mix(in srgb, var(--nt-turn-colour, var(--nt-ground)) 28%, var(--nt-ground));
-        margin-bottom: calc(-1 * var(--fade-below));
-        padding-bottom: var(--fade-below);
+        padding-bottom: 6px;
         background: linear-gradient(to bottom, var(--tint), var(--nt-ground));
     }
 
     .nt-masthead {
+        --nt-masthead-size: 21px;
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -85,12 +87,12 @@
     }
 
     .nt-masthead-turn {
-        font-size: 21px;
+        font-size: var(--nt-masthead-size);
         font-style: italic;
     }
 
     .nt-masthead-time {
-        font-size: 21px;
+        font-size: var(--nt-masthead-size);
         font-weight: 700;
     }
 
@@ -111,7 +113,7 @@
         gap: 0.32em;
         padding: 0 2px 0 6px;
         line-height: 1.2;
-        font-size: 17px;
+        font-size: var(--nt-masthead-size);
         font-style: italic;
     }
 
@@ -137,20 +139,13 @@
     }
 
     @media (max-width: 639px) {
+        .nt-masthead-block {
+            padding-bottom: 4px;
+        }
+
         .nt-masthead {
+            --nt-masthead-size: 16px;
             padding: 6px 6px 3px;
-        }
-
-        .nt-masthead-turn {
-            font-size: 16px;
-        }
-
-        .nt-masthead-time {
-            font-size: 16px;
-        }
-
-        .nt-undo {
-            font-size: 14px;
         }
 
         .nt-masthead-rule {

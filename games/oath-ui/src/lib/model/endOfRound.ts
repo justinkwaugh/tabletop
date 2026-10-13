@@ -6,7 +6,6 @@ import {
 
 /** R-3.3, R-3.3.1 — what the end die decides, read from the engine's own rules. */
 export interface EndDieStakes {
-    round: number
     threshold: string
     winnerId: string
     as: string
@@ -28,7 +27,6 @@ export function endDieStakes(
               ? 'as your Successor'
               : 'as the Successor'
     return {
-        round: state.round,
         threshold: endDieRollWords(threshold),
         winnerId,
         as

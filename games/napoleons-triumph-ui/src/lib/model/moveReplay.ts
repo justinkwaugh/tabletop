@@ -6,7 +6,18 @@ import {
     type Point
 } from '@tabletop/common'
 import {
+    AUSTERLITZ,
+    isAdvance,
+    isAssignLosses,
+    isAttach,
+    isCounterAttack,
+    isDeclareAttack,
+    isDeclareDefense,
+    isDeclareFeint,
     isMove,
+    isOccupy,
+    isPressAttack,
+    isRegroup,
     isOnMap,
     samePosition,
     type Commander,
@@ -16,6 +27,7 @@ import {
     type ProjectedUnit
 } from '@tabletop/napoleons-triumph'
 import {
+    APPROACH_GEOMETRY,
     BOARD_HEIGHT,
     BOARD_WIDTH,
     ENTRY_GEOMETRY,
@@ -29,15 +41,25 @@ import {
     layoutPieces,
     midpoint,
     type BlockSprite,
+    type BoardPieces,
     type GroupSprite,
     type HeldApproach,
-    type PieceGroup
+    type PieceGroup,
+    type SingledOut
 } from '$lib/utils/pieceLayout.js'
 import { arrowAlong, drawnArrow, lineSamples, type DrawnArrow } from '$lib/utils/wayArrow.js'
+import {
+    committedRoles,
+    committedUnits,
+    type BattleRole,
+    type VisibleAttack
+} from './battleStage.js'
+import { belongsToAnAttack } from './historyChapters.js'
 
 export interface Standing {
     units: ProjectedUnit[]
     commanders: Commander[]
+    attack?: VisibleAttack
 }
 
 export interface MoveReplay {
@@ -60,7 +82,7 @@ export interface Caption {
     text: string
 }
 
-interface Movement {
+export interface Movement {
     unitIds: string[]
     to: Position
     from?: Position
@@ -68,15 +90,26 @@ interface Movement {
     road: LocaleId[]
 }
 
-function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
-    return { units: state.units, commanders: state.commanders }
+export function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
+    return { units: state.units, commanders: state.commanders, attack: state.attack }
+}
+
+export function piecesOf(standing: Standing, units = standing.units): BoardPieces {
+    return {
+        units,
+        commander: (id) => {
+            const commander = standing.commanders.find((candidate) => candidate.id === id)
+            assertExists(commander, `Unknown commander ${id}`)
+            return commander
+        }
+    }
 }
 
 function positionKey(position: Position | undefined): string {
     return position ? `${position.locale}:${position.approach ?? 'reserve'}` : 'off the map'
 }
 
-function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
+export function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
     const stood = new Map(before.units.map((unit) => [unit.id, unit.position]))
     const marched = isMove(action) ? action.order : undefined
     const entry = marched?.entryId ? ENTRY_GEOMETRY[marched.entryId].at : undefined
@@ -101,6 +134,71 @@ function movementsOf(action: GameAction, before: Standing, after: Standing): Mov
     return [...movements.values()]
 }
 
+/** What an action did that can be seen on the map: pieces moved, set down or lost, the attack it was a step of, and the units it was about. */
+interface Subject {
+    movements: Movement[]
+    lost: ProjectedUnit[]
+    attack?: VisibleAttack
+    locales: LocaleId[]
+    unitIds: string[]
+}
+
+function unitsNamedBy(action: GameAction, attack: VisibleAttack | undefined): string[] {
+    if (isDeclareDefense(action) || isCounterAttack(action) || isAdvance(action)) {
+        return action.unitIds
+    }
+    if (isDeclareAttack(action) || isDeclareFeint(action) || isOccupy(action)) {
+        return action.orders.flatMap((order) => order.unitIds)
+    }
+    if (isAssignLosses(action)) {
+        return Object.keys(action.allocation)
+    }
+    if (isRegroup(action)) {
+        return Object.values(action.keep)
+    }
+    if (isAttach(action)) {
+        return [action.unitId]
+    }
+    return isPressAttack(action) ? (attack?.defenseLeaderIds ?? []) : []
+}
+
+function subjectOf(action: GameAction, before: Standing, after: Standing): Subject {
+    const movements = movementsOf(action, before, after)
+    const stood = new Map(before.units.map((unit) => [unit.id, unit.position]))
+    const remaining = new Set(after.units.map((unit) => unit.id))
+    const lost = before.units.filter((unit) => isOnMap(unit) && !remaining.has(unit.id))
+    const setDown = after.units.filter((unit) => isOnMap(unit) && !stood.get(unit.id))
+    const attack = belongsToAnAttack(action) ? (after.attack ?? before.attack) : undefined
+    const joined = isAttach(action)
+        ? after.commanders.find((commander) => commander.id === action.commanderId)
+        : undefined
+    return {
+        movements,
+        lost,
+        attack,
+        unitIds: [
+            ...movements.flatMap((movement) => movement.unitIds),
+            ...lost.map((unit) => unit.id),
+            ...setDown.map((unit) => unit.id),
+            ...unitsNamedBy(action, attack)
+        ],
+        locales: [
+            ...movements.flatMap((movement) => [
+                ...(movement.from ? [movement.from.locale] : []),
+                ...movement.road,
+                movement.to.locale
+            ]),
+            ...[...lost, ...setDown].flatMap((unit) => unit.position?.locale ?? []),
+            ...(attack
+                ? [attack.attackApproach, attack.defenseApproach].map(
+                      (approach) => AUSTERLITZ.approach(approach).locale
+                  )
+                : []),
+            ...(joined?.position ? [joined.position.locale] : [])
+        ]
+    }
+}
+
 export function moveReplayOf(
     game: RecordedGame,
     actionId: string,
@@ -118,16 +216,31 @@ export function moveReplayOf(
         return undefined
     }
     const { before, after } = transition
-    return movementsOf(action, before, after).length > 0
+    return subjectOf(action, before, after).locales.length > 0
         ? { actionId, index: action.index ?? position, ...caption, action, before, after }
         : undefined
+}
+
+export enum AttackMarkKind {
+    Attack = 'attack',
+    Feint = 'feint'
+}
+
+export interface AttackMark {
+    approach: number
+    kind: AttackMarkKind
 }
 
 export interface MoveReplayScene {
     sprites: GroupSprite[]
     held: HeldApproach[]
+    /** Places left and pieces lost, drawn washed out where they stood. */
     left: BlockSprite[]
     arrows: DrawnArrow[]
+    attackMark?: AttackMark
+    roles: Record<string, BattleRole>
+    /** Where nothing moved, the units of a stack the action named others of: drawn washed out, so the ones it meant stand out. */
+    bystanderIds: string[]
     keptClear: Point[]
     focus: BoundingBox
 }
@@ -154,7 +267,7 @@ function within(value: number, low: number, high: number): number {
     return Math.min(Math.max(value, low), high)
 }
 
-function onBoard(point: Point): Point {
+export function onBoard(point: Point): Point {
     return {
         x: within(point.x, BOARD_MARGIN, BOARD_WIDTH - BOARD_MARGIN),
         y: within(point.y, BOARD_MARGIN, BOARD_HEIGHT - BOARD_MARGIN)
@@ -196,28 +309,75 @@ function arrowLine(
     return tail ? [onBoard(tail), ...onwards] : []
 }
 
-export function moveReplayScene(replay: MoveReplay, rotation: number): MoveReplayScene {
+// The arrow belongs to the attack while it is being made; pieces crossing to the approach or over it afterwards are shown by where they went.
+function attackMarkOf(
+    action: GameAction,
+    attack: VisibleAttack | undefined
+): AttackMark | undefined {
+    const crossesAfterwards = isAdvance(action) || (isOccupy(action) && !action.artilleryStays)
+    if (!attack || crossesAfterwards) {
+        return undefined
+    }
+    return {
+        approach: attack.attackApproach,
+        kind: attack.feint || isDeclareFeint(action) ? AttackMarkKind.Feint : AttackMarkKind.Attack
+    }
+}
+
+function firstPlaceOnTheWay(movement: Movement): Point {
+    const [next] = movement.road
+    if (next !== undefined) {
+        return LOCALE_GEOMETRY[next].anchor
+    }
+    return movement.to.approach === undefined
+        ? LOCALE_GEOMETRY[movement.to.locale].anchor
+        : APPROACH_GEOMETRY[movement.to.approach].centre
+}
+
+// Deliberate: a picture must not tell anyone but the owner which of a stack a unit was. The places
+// left stand at the end of their stack towards where the pieces went, units lost and units the
+// action names at the end towards the attack's approach, whichever of the stack they really were.
+function singledOutBy(
+    movements: readonly Movement[],
+    lost: readonly ProjectedUnit[],
+    attack: VisibleAttack | undefined,
+    namedIds: readonly string[]
+): SingledOut[] {
+    const fought = attack ? APPROACH_GEOMETRY[attack.attackApproach].centre : undefined
+    return [
+        ...movements.map((movement) => ({
+            towards: firstPlaceOnTheWay(movement),
+            unitIds: movement.unitIds.map(placeLeftId)
+        })),
+        { towards: fought, unitIds: lost.map((unit) => placeLeftId(unit.id)) },
+        ...committedUnits(attack),
+        { towards: fought, unitIds: namedIds }
+    ]
+}
+
+export function moveReplayScene(
+    replay: MoveReplay,
+    rotation: number,
+    readBy?: string
+): MoveReplayScene {
     const { action, before, after } = replay
-    const movements = movementsOf(action, before, after)
+    const { movements, lost, attack, locales, unitIds } = subjectOf(action, before, after)
     const movedIds = movements.flatMap((movement) => movement.unitIds)
     const stood = new Map(
-        before.units
-            .filter((unit) => movedIds.includes(unit.id) && isOnMap(unit))
-            .map((unit) => [placeLeftId(unit.id), unit])
+        [
+            ...before.units.filter((unit) => movedIds.includes(unit.id) && isOnMap(unit)),
+            ...lost
+        ].map((unit) => [placeLeftId(unit.id), unit])
     )
     const laidOut = layoutPieces(
-        {
-            units: after.units.flatMap((unit) => {
+        piecesOf(after, [
+            ...after.units.flatMap((unit) => {
                 const was = stood.get(placeLeftId(unit.id))
                 return was ? [{ ...was, id: placeLeftId(unit.id) }, unit] : [unit]
             }),
-            commander: (id) => {
-                const commander = after.commanders.find((candidate) => candidate.id === id)
-                assertExists(commander, `Unknown commander ${id}`)
-                return commander
-            }
-        },
-        { rotation }
+            ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
+        ]),
+        { rotation, readBy, singledOut: singledOutBy(movements, lost, attack, unitIds) }
     )
     const left = laidOut
         .flatMap((sprite) => sprite.blocks)
@@ -241,11 +401,6 @@ export function moveReplayScene(replay: MoveReplay, rotation: number): MoveRepla
         )
     )
     const arrived = standing.filter((block) => movedIds.includes(block.unit.id))
-    const locales = movements.flatMap((movement) => [
-        ...(movement.from ? [movement.from.locale] : []),
-        ...movement.road,
-        movement.to.locale
-    ])
     const shown = [
         ...locales.flatMap((locale) => LOCALE_GEOMETRY[locale].outline),
         ...[...left, ...arrived].flatMap(blockCorners),
@@ -256,6 +411,16 @@ export function moveReplayScene(replay: MoveReplay, rotation: number): MoveRepla
         held: heldApproaches(sprites),
         left,
         arrows: lines.flatMap((line) => drawnArrow(line) ?? []),
+        attackMark: attackMarkOf(action, attack),
+        roles: attack ? committedRoles(attack) : {},
+        bystanderIds:
+            movements.length > 0
+                ? []
+                : sprites
+                      .map((sprite) => sprite.group.units.map((unit) => unit.id))
+                      .filter((stack) => stack.some((id) => unitIds.includes(id)))
+                      .flat()
+                      .filter((id) => !unitIds.includes(id)),
         keptClear: [...lines.flatMap(lineSamples), ...left.flatMap(blockSamples)],
         focus: framed(boundsOf(shown, rotation), rotation)
     }

@@ -1,10 +1,8 @@
 import type { Point } from '@tabletop/common'
 import { Side, type HydratedNapoleonsTriumphGameState } from '@tabletop/napoleons-triumph'
-import { MAP_FILE_WIDTH } from '$lib/map/battlefield.js'
-import { BOARD_WIDTH } from '$lib/map/boardGeometry.js'
+import { mapFilePoint } from '$lib/map/battlefield.js'
+import { TRACK_COLUMN_PITCH } from './trackMarker.js'
 
-// Measured on the designer's public map file, in its points; measure again if the board art changes.
-const COLUMN_PITCH = 63.72
 const INDEPENDENT = undefined
 
 interface CommandTrack {
@@ -12,6 +10,7 @@ interface CommandTrack {
     rows: { y: number; boxes: (string | typeof INDEPENDENT)[] }[]
 }
 
+// Measured on the designer's public map file, in its points; measure again if the board art changes.
 const TRACKS: Record<Side, CommandTrack> = {
     [Side.French]: {
         firstColumn: 2045.6,
@@ -55,29 +54,14 @@ const TRACKS: Record<Side, CommandTrack> = {
     }
 }
 
-export const COMMAND_DISC_RADIUS = (13 * BOARD_WIDTH) / MAP_FILE_WIDTH
-
 function boxesOf(side: Side): { commanderId: string | typeof INDEPENDENT; at: Point }[] {
     const track = TRACKS[side]
     return track.rows.flatMap((row) =>
         row.boxes.map((commanderId, column) => ({
             commanderId,
-            at: {
-                x: ((track.firstColumn + column * COLUMN_PITCH) * BOARD_WIDTH) / MAP_FILE_WIDTH,
-                y: (row.y * BOARD_WIDTH) / MAP_FILE_WIDTH
-            }
+            at: mapFilePoint(track.firstColumn + column * TRACK_COLUMN_PITCH, row.y)
         }))
     )
-}
-
-const BOX_HALF_SIZE = COLUMN_PITCH / 2
-
-export function commandTrackCorners(side: Side): Point[] {
-    const reach = (BOX_HALF_SIZE * BOARD_WIDTH) / MAP_FILE_WIDTH
-    return boxesOf(side).flatMap(({ at }) => [
-        { x: at.x - reach, y: at.y - reach },
-        { x: at.x + reach, y: at.y + reach }
-    ])
 }
 
 export function commandDiscs(state: HydratedNapoleonsTriumphGameState): Point[] {

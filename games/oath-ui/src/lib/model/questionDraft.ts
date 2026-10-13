@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type Color } from '@tabletop/common'
 import {
     ActionType,
     HydratedAnswerQuestion,
@@ -6,35 +6,51 @@ import {
     SearchPlay,
     Suit,
     banksWithFavor,
+    cardPower,
     currentQuestion,
     heldRelicsToBottom,
+    payableWoodPicks,
     playersAt,
+    powerMoveToll,
     shroudedWoodDestinations,
     usableFavor,
+    warbandOwnerGainedByPower,
     type ConspiracyPlay,
-    type ExchangeTerms,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
     type QuestionAnswer
 } from '@tabletop/oath'
+import { answerCostText } from './actionCards.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
+import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
 import {
+    advisersToDiscardForConspiracy,
     advisersToDiscardForVision,
+    conspiracyFacedownAnswer,
     playVisionAnswer,
     stackOrderAnswer
 } from './questionChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
-import { conspiracyPrizes, conspiracyTargets, type TakePrizeOption } from './conspiracyTake.js'
+import {
+    conspiracyNoTake,
+    conspiracyPrizes,
+    conspiracyTargets,
+    type ConspiracyNoTakeLine,
+    type TakePrizeOption
+} from './conspiracyTake.js'
+import { woodRegions, type WoodRegion } from './woodTravel.js'
 import type { OathGameSession } from './session.svelte.js'
 
 // Only the stages of the open question's kind are ever set.
 type QuestionValueByStage = {
     burn: number
     floorWith: string
-    floorTerms: ExchangeTerms
+    floorTerms: ExchangePicks
+    conspiracyPlay: ConspiracyStepPlay
     takeTarget: string
     takePrize: number
+    conspiracyDiscard: string
     visionDiscard: string
     instead: string
     stackOrder: string[]
@@ -44,8 +60,10 @@ const QUESTION_STAGE_ORDER = [
     'burn',
     'floorWith',
     'floorTerms',
+    'conspiracyPlay',
     'takeTarget',
     'takePrize',
+    'conspiracyDiscard',
     'visionDiscard',
     'instead',
     'stackOrder'
@@ -53,6 +71,14 @@ const QUESTION_STAGE_ORDER = [
 const _questionStagesAreCovered: StagesCover<QuestionValueByStage, typeof QUESTION_STAGE_ORDER> =
     true
 void _questionStagesAreCovered
+
+// R-5.1.4 — False Prophet's plays, in the order the Search offers them.
+const VISION_PLAYS = [SearchPlay.RevealedVision, SearchPlay.Adviser, SearchPlay.Discard] as const
+
+// R-5.1.4-H1 — Inquisitor's plays of the Conspiracy, in the order the Search offers them for it:
+// facedown as an adviser, faceup ("Play it", with the take), or discarded.
+const CONSPIRACY_PLAYS = [SearchPlay.Adviser, SearchPlay.Conspiracy, SearchPlay.Discard] as const
+type ConspiracyStepPlay = SearchPlay.Adviser | SearchPlay.Conspiracy
 
 /** R-X.1 — the asked player's picks for the open question, before the answer is sent. */
 export class QuestionDraft implements PanelDraft {
@@ -97,8 +123,9 @@ export class QuestionDraft implements PanelDraft {
         return banksWithFavor(this.session.gameState)
     }
 
-    get burn() {
-        return this.question ? (this.flow.value('burn') ?? 0) : 0
+    /** Revelation's count, from 1; none until the player picks one ("None" sends 0). */
+    get burn(): number | undefined {
+        return this.question ? this.flow.value('burn') : undefined
     }
 
     get floorCandidates(): string[] {
@@ -115,14 +142,30 @@ export class QuestionDraft implements PanelDraft {
             : undefined
     }
 
-    get floorTerms() {
-        return this.floorWith ? (this.flow.value('floorTerms') ?? {}) : {}
+    get floorTerms(): ExchangePicks {
+        const terms = this.floorWith ? this.flow.value('floorTerms') : undefined
+        return terms ?? noExchangePicks()
     }
 
+    /** The Gathering — a proposal is a player and complete terms. */
+    get floorProposed(): boolean {
+        return this.floorWith !== undefined && exchangeComplete(this.floorTerms)
+    }
+
+    /** The players here the take can reach: a secret to burn, the match, and a prize. */
     get takeTargets(): string[] {
         const playerId = this.playerId
-        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return []
-        return playerId ? conspiracyTargets(this.session.gameState, playerId) : []
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
+            return []
+        return conspiracyTargets(this.session.gameState, playerId)
+    }
+
+    /** When no one here can be taken from, why: one line per player here. */
+    get takeNoTake(): ConspiracyNoTakeLine[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
+            return []
+        return conspiracyNoTake(this.session.gameState, playerId)
     }
 
     get takeTarget(): string | undefined {
@@ -151,6 +194,57 @@ export class QuestionDraft implements PanelDraft {
         const target = this.takeTarget
         const take = this.takePrize
         return target && take ? { targetPlayerId: target, take } : undefined
+    }
+
+    /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
+    get conspiracyComplete(): boolean {
+        return this.takeTarget === undefined || this.conspiracy !== undefined
+    }
+
+    /** Inquisitor — the plays the engine accepts with some pick; a refused one is not offered. */
+    get conspiracyPlays(): SearchPlay[] {
+        return CONSPIRACY_PLAYS.filter((play) => {
+            if (play === SearchPlay.Adviser)
+                return (
+                    this.reasonCannot(conspiracyFacedownAnswer()) === undefined ||
+                    this.conspiracyDiscards.length > 0
+                )
+            return this.reasonCannot(this.conspiracyAnswer(play)) === undefined
+        })
+    }
+
+    /** The play chosen whose picks come after it: the take, or the adviser to discard. */
+    get conspiracyStep(): ConspiracyStepPlay | undefined {
+        return this.question?.kind === PowerQuestionKind.PlayOrDiscardConspiracy
+            ? this.flow.value('conspiracyPlay')
+            : undefined
+    }
+
+    // R-5.1.4.II — at the adviser limit the Conspiracy goes facedown only over a discarded adviser.
+    get conspiracyDiscards(): string[] {
+        const playerId = this.playerId
+        return this.question?.kind === PowerQuestionKind.PlayOrDiscardConspiracy && playerId
+            ? advisersToDiscardForConspiracy(this.session.gameState, playerId)
+            : []
+    }
+
+    get conspiracyDiscard(): string | undefined {
+        const cardId = this.flow.value('conspiracyDiscard')
+        return cardId !== undefined && this.conspiracyDiscards.includes(cardId) ? cardId : undefined
+    }
+
+    /** The step's picks are made: the take whole, or the adviser to discard picked. */
+    get conspiracyStepComplete(): boolean {
+        const step = this.conspiracyStep
+        if (step === SearchPlay.Conspiracy) return this.conspiracyComplete
+        return step === SearchPlay.Adviser && this.conspiracyDiscard !== undefined
+    }
+
+    /** Why the engine refuses the step's play as picked, read only once it is complete. */
+    get conspiracyRefusedBecause(): string | undefined {
+        const step = this.conspiracyStep
+        if (step === undefined || !this.conspiracyStepComplete) return undefined
+        return this.reasonCannot(this.conspiracyAnswer(step))
     }
 
     // R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser.
@@ -208,36 +302,68 @@ export class QuestionDraft implements PanelDraft {
             : undefined
     }
 
-    get acceptBlockedBecause(): string | undefined {
+    /** The yes answer has every pick it needs; until then it is not offered. */
+    get acceptComplete(): boolean {
         const question = this.mine
         assertExists(question, 'A question is answered only by the seat it is put to')
         switch (question.kind) {
-            case PowerQuestionKind.SneakAttack:
-                return this.session.validActionTypes.includes(ActionType.Campaign)
-                    ? undefined
-                    : 'a Campaign is not open to you now'
+            case PowerQuestionKind.BurnFavorForSecrets:
+                return this.burn !== undefined
             case PowerQuestionKind.DiscardInstead:
-                return this.instead
-                    ? this.reasonCannot(this.answer(question, true))
-                    : 'choose a card'
+                return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
-                return this.floorWith
-                    ? this.reasonCannot(this.answer(question, true))
-                    : 'choose a player'
+                return this.floorProposed
+            // Second Wind out of turn — a free action the engine does not open is not offered.
+            case PowerQuestionKind.FreeActionOutOfTurn:
+                return this.session.validActionTypes.includes(question.action)
             default:
-                return this.reasonCannot(this.answer(question, true))
+                return true
         }
+    }
+
+    /** Why the engine refuses the yes answer as picked, read only once it is complete. */
+    get acceptRefusedBecause(): string | undefined {
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
+        if (!this.acceptComplete) return undefined
+        if (question.kind === PowerQuestionKind.SneakAttack) {
+            return this.session.validActionTypes.includes(ActionType.Campaign)
+                ? undefined
+                : 'a Campaign is not open to you now'
+        }
+        if (question.kind === PowerQuestionKind.FreeActionOutOfTurn) return undefined
+        return this.reasonCannot(this.answer(question, true))
+    }
+
+    /** Jinx, Relic Thief — the card's printed cost, paid by the yes answer whatever the roll. */
+    get acceptCost(): string | undefined {
+        const question = this.mine
+        if (
+            question?.kind !== PowerQuestionKind.RerollDice &&
+            question?.kind !== PowerQuestionKind.RelicThiefRoll
+        )
+            return undefined
+        const power = cardPower(question.cardId, question.powerIndex)
+        assertExists(power, `${question.cardId} prints no power ${question.powerIndex}`)
+        return answerCostText(power.cost)
     }
 
     visionBlockedBecause(play: SearchPlay): string | undefined {
         return this.reasonCannot(this.visionAnswer(play))
     }
 
+    /** False Prophet — the plays the engine accepts as picked; a refused one is not offered. */
+    get visionPlays(): SearchPlay[] {
+        return VISION_PLAYS.filter((play) => this.visionBlockedBecause(play) === undefined)
+    }
+
     async accept(): Promise<void> {
         const question = this.mine
         assertExists(question, 'A question is answered only by the seat it is put to')
         if (question.kind === PowerQuestionKind.SneakAttack) this.session.startSneakAttack()
-        else await this.send(this.answer(question, true))
+        else if (question.kind === PowerQuestionKind.FreeActionOutOfTurn) {
+            this.session.chooseAction(question.action)
+        } else await this.send(this.answer(question, true))
     }
 
     async decline(): Promise<void> {
@@ -262,6 +388,33 @@ export class QuestionDraft implements PanelDraft {
         await this.send({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId })
     }
 
+    /** Toll Roads — Brass Horse's user pays at a toll site, so its button says so. */
+    travelTollAt(siteId: string): boolean {
+        const question = this.question
+        return (
+            question?.kind === PowerQuestionKind.TravelFreeTo &&
+            powerMoveToll(this.session.gameState, question.askedPlayerId, siteId) !== undefined
+        )
+    }
+
+    /** Toll Roads — the Shrouded Wood's traveller would be asked to pay at that site, so its pick says so. */
+    woodTollAt(siteId: string): boolean {
+        const question = this.question
+        return (
+            question?.kind === PowerQuestionKind.ShroudedWoodDestination &&
+            powerMoveToll(this.session.gameState, question.travelerPlayerId, siteId) !== undefined
+        )
+    }
+
+    /** Dragonskin Drum — the warband it would gain, in its owner's colour: the Empire's for a Citizen (R-10.13). */
+    get drumWarbandColor(): Color {
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
+        return this.session.warbandColor(
+            warbandOwnerGainedByPower(this.session.gameState, question.askedPlayerId)
+        )
+    }
+
     async travelTo(siteId: string): Promise<void> {
         await this.send({ kind: PowerQuestionKind.TravelFreeTo, siteId })
     }
@@ -270,11 +423,23 @@ export class QuestionDraft implements PanelDraft {
     get woodDestinations(): string[] {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return []
+        if (question.travel) return this.woodRegions.flatMap((row) => row.siteIds)
         return shroudedWoodDestinations(
             this.session.gameState,
             question.travelerPlayerId,
             question.fromSiteId
         )
+    }
+
+    /** R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price. */
+    get woodRegions(): WoodRegion[] {
+        const question = this.question
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
+            return []
+        }
+        const state = this.session.gameState
+        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel.free)
+        return woodRegions(state, picks)
     }
 
     async sendThrough(siteId: string): Promise<void> {
@@ -286,8 +451,38 @@ export class QuestionDraft implements PanelDraft {
         await this.send(this.visionAnswer(play))
     }
 
+    /**
+     * Inquisitor — a play with nothing to pick is sent at once; the take and the room come after.
+     * The take is asked even with no one to take from: its step then says why (R-5.1.4.IV).
+     */
+    async chooseConspiracyPlay(play: SearchPlay): Promise<void> {
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return
+        if (play === SearchPlay.Conspiracy) this.flow.set('conspiracyPlay', play)
+        else if (play === SearchPlay.Adviser && this.conspiracyDiscards.length > 0)
+            this.flow.set('conspiracyPlay', play)
+        else await this.send(this.conspiracyAnswer(play))
+    }
+
+    async playConspiracy(): Promise<void> {
+        const step = this.conspiracyStep
+        if (step === undefined || !this.conspiracyStepComplete) return
+        await this.send(this.conspiracyAnswer(step))
+    }
+
     async stack(): Promise<void> {
         await this.send(stackOrderAnswer(this.stackKind, this.stackCards, this.stackOrder))
+    }
+
+    private conspiracyAnswer(play: SearchPlay): QuestionAnswer {
+        if (play === SearchPlay.Adviser) return conspiracyFacedownAnswer(this.conspiracyDiscard)
+        if (play === SearchPlay.Discard)
+            return { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false }
+        const conspiracy = this.conspiracy
+        return {
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            play: true,
+            ...(conspiracy ? { conspiracy } : {})
+        }
     }
 
     private visionAnswer(play: SearchPlay): QuestionAnswer {
@@ -296,8 +491,12 @@ export class QuestionDraft implements PanelDraft {
 
     private answer(question: PowerQuestion, yes: boolean): QuestionAnswer {
         switch (question.kind) {
-            case PowerQuestionKind.BurnFavorForSecrets:
-                return { kind: question.kind, favor: yes ? this.burn : 0 }
+            case PowerQuestionKind.BurnFavorForSecrets: {
+                if (!yes) return { kind: question.kind, favor: 0 }
+                const favor = this.burn
+                assertExists(favor, 'Burning needs the count picked')
+                return { kind: question.kind, favor }
+            }
             case PowerQuestionKind.PayOrLoseRelic:
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
@@ -312,10 +511,6 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, take: yes }
             case PowerQuestionKind.RelicThiefRoll:
                 return { kind: question.kind, roll: yes }
-            case PowerQuestionKind.PlayOrDiscardConspiracy:
-                return yes
-                    ? { kind: question.kind, play: true, conspiracy: this.conspiracy }
-                    : { kind: question.kind, play: false }
             case PowerQuestionKind.DiscardInstead: {
                 if (!yes) return { kind: question.kind }
                 const insteadCardId = this.instead
@@ -326,11 +521,21 @@ export class QuestionDraft implements PanelDraft {
                 if (!yes) return { kind: question.kind }
                 const withPlayerId = this.floorWith
                 assertExists(withPlayerId, 'A proposal needs the player chosen')
-                return { kind: question.kind, proposal: { withPlayerId, terms: this.floorTerms } }
+                return {
+                    kind: question.kind,
+                    proposal: { withPlayerId, terms: this.floorTerms.terms }
+                }
             }
+            case PowerQuestionKind.PayTravelToll:
+                return { kind: question.kind, pay: yes }
+            case PowerQuestionKind.DragonskinDrum:
+                return { kind: question.kind, gain: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }
+            case PowerQuestionKind.FreeActionOutOfTurn:
+                assert(!yes, 'A free action out of turn is taken by the action itself')
+                return { kind: question.kind, take: false }
             default:
                 throw Error(`A ${question.kind} question is not answered yes or no`)
         }
@@ -347,10 +552,11 @@ export class QuestionDraft implements PanelDraft {
         await this.session.answerQuestion(answer)
     }
 
+    /** Revelation's count from its favor; 0 picks none again ("None" is the answer that sends 0). */
     setBurn(favor: number): void {
-        if (this.question?.kind === PowerQuestionKind.BurnFavorForSecrets) {
-            this.flow.set('burn', Math.max(0, favor))
-        }
+        if (this.question?.kind !== PowerQuestionKind.BurnFavorForSecrets) return
+        if (favor < 1) this.flow.clearFrom('burn')
+        else this.flow.set('burn', favor)
     }
 
     chooseFloorWith(playerId: string | undefined): void {
@@ -358,7 +564,7 @@ export class QuestionDraft implements PanelDraft {
         else if (this.floorCandidates.includes(playerId)) this.flow.set('floorWith', playerId)
     }
 
-    setFloorTerms(terms: ExchangeTerms): void {
+    setFloorTerms(terms: ExchangePicks): void {
         if (this.floorWith) this.flow.set('floorTerms', terms)
     }
 
@@ -370,6 +576,12 @@ export class QuestionDraft implements PanelDraft {
     chooseTakePrize(index: number | undefined): void {
         if (index === undefined) this.flow.clearFrom('takePrize')
         else if (index < this.takePrizes.length) this.flow.set('takePrize', index)
+    }
+
+    chooseConspiracyDiscard(cardId: string | undefined): void {
+        if (cardId === undefined) this.flow.clearFrom('conspiracyDiscard')
+        else if (this.conspiracyDiscards.includes(cardId))
+            this.flow.set('conspiracyDiscard', cardId)
     }
 
     chooseVisionDiscard(cardId: string | undefined): void {

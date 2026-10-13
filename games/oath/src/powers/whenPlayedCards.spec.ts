@@ -10,6 +10,9 @@ import { buildAction } from '../testing/actions.js'
 import { bank, card } from '../testing/choices.js'
 import { discardInListedOrder, playDrawnCard } from '../testing/steps.js'
 import { FILLER } from '../testing/cards.js'
+import { OathRevision } from '../util/revision.js'
+
+const SALAD_DAYS = 'denizen.hearth.salad-days'
 
 /** `away` stands at h1, in the Hinterland, a region apart from `ruler` and `other` at c1. */
 function board(over: Record<string, Record<string, unknown>> = {}, denizens: Record<string, string[]> = {}) {
@@ -55,6 +58,49 @@ describe('Hearth', () => {
             playDrawnCard(s, 'denizen.hearth.salad-days', SearchPlay.Site, [bank(Suit.Beast), bank(Suit.Beast), bank(Suit.Order)])
         ).toThrow(/three favor banks must be different/)
         expect(s.denizensBySite['c1']).toEqual([])
+    })
+
+    describe('Salad Days — "one each from three different favor banks", as far as the banks hold favor (R-7.1.3)', () => {
+        /** Every bank holds 3 but those named in `empty`. */
+        const table = (revision: OathRevision, empty: Suit[]) => {
+            const s = board()
+            s.oathRevision = revision
+            for (const suit of empty) s.favorBank[suit] = 0
+            return s
+        }
+        const play = (s: ReturnType<typeof table>, suits: Suit[]) => playDrawnCard(s, SALAD_DAYS, SearchPlay.Adviser, suits.map(bank))
+
+        it('from revision 8, an empty bank named while three banks hold favor is refused; before it, accepted for 2', () => {
+            const picks = [Suit.Beast, Suit.Order, Suit.Nomad]
+            const now = table(OathRevision.EngineFixes4, [Suit.Nomad])
+            expect(() => play(now, picks)).toThrow(/the banks named yield 2, and 3 can be had/)
+            expect(now.getPlayerState('ruler').favor).toBe(3)
+
+            const before = table(OathRevision.EngineFixes3, [Suit.Nomad])
+            const a = play(before, picks)
+            expect(before.getPlayerState('ruler').favor).toBe(5)
+            expect(a.metadata?.whenPlayed).toMatch(/gained 2 favor/)
+        })
+
+        it('from revision 8, with two banks holding favor, both are named and an empty one makes the third', () => {
+            const two = () => table(OathRevision.EngineFixes4, [Suit.Discord, Suit.Hearth, Suit.Arcane, Suit.Nomad])
+            const s = two()
+            const a = play(s, [Suit.Beast, Suit.Order, Suit.Nomad])
+            expect(s.getPlayerState('ruler').favor).toBe(5)
+            expect(a.metadata?.whenPlayed).toMatch(/gained 2 favor/)
+            expect(() => play(two(), [Suit.Beast, Suit.Nomad, Suit.Arcane])).toThrow(/the banks named yield 1, and 2 can be had/)
+        })
+
+        it('from revision 8, with one bank holding favor it gives 1, and with none the play gains nothing', () => {
+            const one = table(OathRevision.EngineFixes4, [Suit.Discord, Suit.Hearth, Suit.Arcane, Suit.Nomad, Suit.Order])
+            play(one, [Suit.Beast, Suit.Nomad, Suit.Arcane])
+            expect(one.getPlayerState('ruler').favor).toBe(4)
+
+            const none = table(OathRevision.EngineFixes4, Object.values(Suit))
+            const a = play(none, [Suit.Beast, Suit.Nomad, Suit.Arcane])
+            expect(none.getPlayerState('ruler').favor).toBe(3)
+            expect(a.metadata?.whenPlayed).toMatch(/gained 0 favor/)
+        })
     })
 
     it('Fabled Feast — X = hearth cards you rule, itself included', () => {
