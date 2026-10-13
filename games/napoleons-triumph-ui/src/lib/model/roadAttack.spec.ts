@@ -7,7 +7,8 @@ import {
     RIDDEN_IN,
     infantry,
     reinforcementCavalryRiddenIn,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '@tabletop/napoleons-triumph/testing'
 import {
     StageKind,
@@ -106,10 +107,7 @@ describe('the command a road attack is made by', () => {
             approach: game.hydrated.map.approachBetween(NEAR, TAKEN).id,
             plan
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-line'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-line'])
         return stageOf(game)
     }
 
@@ -170,10 +168,7 @@ describe('cavalry riding on', () => {
             expect.arrayContaining([{ locale: TAKEN, approach: facing }])
         )
         game.act(ActionType.ThreatenAttack, french, { approach: facing, plan: rider })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-line'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-line'])
         expect(stageOf(game)).toMatchObject({
             kind: StageKind.Feint,
             attackers: ['F-cav'],
@@ -200,10 +195,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
 
     function standing(plan: { continues?: true }): TestGame {
         const game = threatening(plan)
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-line'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-line'])
         return game
     }
 
@@ -274,6 +266,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
     it('presses an attack only by a new command, whatever it meant when it threatened', () => {
         const game = standing({ continues: true })
         game.act(ActionType.PressAttack, game.playerOf(Side.French))
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         const stage = stageOf(game)
         expect(stage).toMatchObject({
             kind: StageKind.Declaration,

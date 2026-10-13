@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { AUSTERLITZ } from '../components/austerlitz.js'
 import { Side } from '../components/pieces.js'
-import { CommandKind } from '../model/attack.js'
+import { CommandKind, DefenseAwaits } from '../model/attack.js'
 import { FeintEnd } from '../model/attackDeclaration.js'
 import {
     NapoleonsTriumphGameStateValidator,
@@ -17,7 +17,8 @@ import {
     infantry,
     passTurns,
     playOut,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { ActionType } from './actions.js'
 import { SideSelection } from './config.js'
@@ -92,12 +93,9 @@ const skirmish: Step[] = [
             approach: approach(FROM, INTO),
             plan: { kind: CommandKind.Corps, unitIds: ['F-lead', 'F-2'] }
         }),
-    (game) =>
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-1', 'A-2', 'A-3'],
-            leaderIds: ['A-1']
-        }),
+    (game) => defendWith(game, game.playerOf(Side.Allied), ['A-1', 'A-2', 'A-3']),
     (game) => game.act(ActionType.PressAttack, game.playerOf(Side.French)),
+    (game) => game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-1'] }),
     (game) =>
         game.act(ActionType.DeclareAttack, game.playerOf(Side.French), {
             orders: [lannes],
@@ -142,8 +140,7 @@ const opening: Step[] = [
         }),
     (game) =>
         game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: game.hydrated.reserveUnits(94).map((unit) => unit.id),
-            leaderIds: []
+            unitIds: game.hydrated.reserveUnits(94).map((unit) => unit.id)
         }),
     (game) =>
         game.act(ActionType.DeclareFeint, game.playerOf(Side.French), {
@@ -190,11 +187,9 @@ function beaten(): TestGame {
     ])
     const french = game.playerOf(Side.French)
     game.act(ActionType.ThreatenAttack, french, { approach: approach(FROM, INTO) })
-    game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-        unitIds: ['A-inf'],
-        leaderIds: []
-    })
+    defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
     game.act(ActionType.PressAttack, french)
+    game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
     game.act(ActionType.DeclareAttack, french, {
         orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
         wide: false,
@@ -252,19 +247,24 @@ const moments: [string, MachineState, () => TestGame][] = [
         () => played(frenchTurn(skirmishers), skirmish, 2)
     ],
     [
+        'while the defender names the leading units of a defence that has been pressed',
+        MachineState.DefenseDeclaration,
+        () => played(frenchTurn(skirmishers), skirmish, 3)
+    ],
+    [
         'while the attack is being declared',
         MachineState.AttackDeclaration,
-        () => played(frenchTurn(skirmishers), skirmish, 3)
+        () => played(frenchTurn(skirmishers), skirmish, 4)
     ],
     [
         'while the defender weighs a counter-attack',
         MachineState.CounterAttackDecision,
-        () => played(frenchTurn(skirmishers), skirmish, 4)
+        () => played(frenchTurn(skirmishers), skirmish, 5)
     ],
     [
         'while the attacker regroups and the defender has yet to advance',
         MachineState.ResolvingAttack,
-        () => played(frenchTurn(skirmishers), skirmish, 5)
+        () => played(frenchTurn(skirmishers), skirmish, 6)
     ],
     ['while a beaten defender has yet to retreat', MachineState.Retreating, beaten],
     ['while the attacker follows up a retreat', MachineState.Occupying, givingGround],
@@ -308,9 +308,11 @@ describe('dehydrating and hydrating the game state', () => {
             unitIds: ['F-lead', 'F-2']
         })
 
-        const defended = played(frenchTurn(skirmishers), skirmish, 2)
-        expect(again(defended, Side.French)?.defensePlan).not.toHaveProperty('leaderIds')
-        expect(again(defended, Side.Allied)?.defensePlan?.leaderIds).toEqual(['A-1'])
+        const pressed = played(frenchTurn(skirmishers), skirmish, 3)
+        for (const side of [Side.French, Side.Allied]) {
+            expect(again(pressed, side)?.defenseLeaderIds).toEqual([])
+            expect(again(pressed, side)?.awaits).toBe(DefenseAwaits.Leaders)
+        }
     })
 })
 

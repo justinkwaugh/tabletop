@@ -51,30 +51,53 @@ describe('taking an action back', () => {
         expect(barred(moved)).toBe(false)
     })
 
-    it('stays possible after a threat and after the defence is declared, its leading units still unseen', () => {
+    it('stays possible after a threat, which names the pieces blocking the approach as its defenders', () => {
         const game = frenchTurn()
         const threat = game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
             approach: game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
         })
-        const defence = game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
+        expect(threat.map((action) => action.type)).toEqual([
+            ActionType.ThreatenAttack,
+            ActionType.DeclareDefense
+        ])
+        expect(game.state.attack?.defendingUnitIds).toEqual(['A-inf'])
         expect(barred(threat)).toBe(false)
-        expect(barred(defence)).toBe(false)
     })
 
-    it('is barred once pressing the attack has shown the defence’s leading units', () => {
+    it('stays possible after pressing the attack, which shows the attacker nothing: the leading units are the defender’s to name', () => {
         const game = frenchTurn()
         const french = game.playerOf(Side.French)
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
-        expect(barred(game.act(ActionType.PressAttack, french))).toBe(true)
+        expect(barred(game.act(ActionType.PressAttack, french))).toBe(false)
+        expect(game.hydrated.unit('A-inf').shown).toBeUndefined()
+    })
+
+    it('is barred once naming the leading units has turned one face-up, and not by naming none: only what is shown is secret', () => {
+        const pressed = () => {
+            const game = frenchTurn()
+            const french = game.playerOf(Side.French)
+            game.act(ActionType.ThreatenAttack, french, {
+                approach: game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
+            })
+            game.act(ActionType.PressAttack, french)
+            return game
+        }
+        const shown = pressed()
+        expect(
+            barred(
+                shown.act(ActionType.LeadDefense, shown.playerOf(Side.Allied), {
+                    leaderIds: ['A-inf']
+                })
+            )
+        ).toBe(true)
+        const unled = pressed()
+        expect(
+            barred(
+                unled.act(ActionType.LeadDefense, unled.playerOf(Side.Allied), { leaderIds: [] })
+            )
+        ).toBe(false)
     })
 
     it('is barred once an attack’s losses have shown an enemy block that was hidden', () => {
@@ -83,11 +106,8 @@ describe('taking an action back', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
-        expect(barred(game.act(ActionType.PressAttack, french))).toBe(false)
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         const fired = game.act(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-art'] }],
             wide: false,

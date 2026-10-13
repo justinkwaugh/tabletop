@@ -77,7 +77,7 @@
                     y={block.centre.y}
                     angle={block.angle}
                     {colors}
-                    face={gameSession.faceOnTheMap(block.unit)}
+                    {...gameSession.lookOnTheMap(block.unit)}
                     {dimmed}
                     {moved}
                     {roleMark}

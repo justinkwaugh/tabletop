@@ -14,6 +14,7 @@
         face,
         dimmed = false,
         moved = false,
+        seen = false,
         roleMark
     }: {
         x: number
@@ -23,6 +24,8 @@
         face?: Face
         dimmed?: boolean
         moved?: boolean
+        /** The viewer's own unit that the enemy has seen: its owner sees every face, so this one is marked. */
+        seen?: boolean
         roleMark?: RoleMark
     } = $props()
 
@@ -32,6 +35,8 @@
     // A loss stands clear of both the end of the block and the symbols of the strongest unit, the same place on every block.
     const HEAVY_MARK_AT = (faceWidth(STRONGEST, SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
     const MOVED_DOT_AT = BLOCK_LENGTH / 2 - 8
+    const SEEN_MARK_AT = -BLOCK_LENGTH / 2 + 11
+    const SEEN_MARK_LIDS = 'M-6.5 0 Q0 -5.6 6.5 0 Q0 5.6 -6.5 0 Z'
     const LETTERLESS_ROLE_LOZENGE = 'M0 -4.6 L4.2 0 L0 4.6 L-4.2 0 Z'
     const EDGE = 3
     // Workaround: stacked blocks leave slivers between them, so each takes taps a little beyond its edges.
@@ -91,6 +96,19 @@
             {:else}
                 <path d={LETTERLESS_ROLE_LOZENGE} fill={paint.ink}></path>
             {/if}
+        </g>
+    {/if}
+    {#if seen}
+        <g transform="translate({SEEN_MARK_AT} {-EDGE / 2})" data-seen-by-the-enemy>
+            <title>Seen by the enemy until the turn ends</title>
+            <path
+                d={SEEN_MARK_LIDS}
+                fill="none"
+                stroke={paint.ink}
+                stroke-width="1.3"
+                stroke-linejoin="round"
+            ></path>
+            <circle r="2" fill={paint.ink}></circle>
         </g>
     {/if}
     {#if moved}

@@ -9,7 +9,8 @@ import {
     artillery,
     cavalry,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { CommandKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
@@ -59,11 +60,9 @@ describe('the Allied limit of five corps commands', () => {
         game.act(ActionType.ThreatenAttack, allied, {
             approach: game.hydrated.map.approachBetween(EAST, WEST).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: ['F-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.French), ['F-inf'])
         game.act(ActionType.PressAttack, allied)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.French), { leaderIds: [] })
         return game
     }
 
@@ -142,10 +141,7 @@ describe('a corps is never just a commander', () => {
         game.act(ActionType.ThreatenAttack, allied, {
             approach: game.hydrated.map.approachBetween(EAST, WEST).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: ['F-1', 'F-2'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.French), ['F-1', 'F-2'])
         game.act(ActionType.DeclareFeint, allied, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
             end: FeintEnd.Reserve
@@ -189,10 +185,7 @@ describe('an advance that leaves nothing to choose', () => {
         game.act(ActionType.ThreatenAttack, allied, {
             approach: game.hydrated.map.approachBetween(EAST, WEST).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: named,
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.French), named)
         const processed = game.act(ActionType.DeclareFeint, allied, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
             end: FeintEnd.Reserve
@@ -280,11 +273,11 @@ describe('elite commitment of defense leading units', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(WEST, EAST).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-heavy', 'A-light'],
+        defendWith(game, game.playerOf(Side.Allied), ['A-heavy', 'A-light'])
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), {
             leaderIds: ['A-heavy', 'A-light']
         })
-        game.act(ActionType.PressAttack, french)
         expect(game.hydrated.unit('A-heavy').shown).toEqual(cavalry(3))
         game.act(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],

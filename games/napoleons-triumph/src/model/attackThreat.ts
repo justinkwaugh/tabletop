@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import type { ApproachId } from '../components/battleMap.js'
 import { isGuard } from '../components/pieces.js'
-import type { ThreatOrder } from './attack.js'
+import { DefenseAwaits, type ThreatOrder } from './attack.js'
 import { canThreaten, mayAttackInPlace } from './attackOrders.js'
 import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
@@ -85,8 +85,7 @@ export function threatenAttack(
 }
 
 export function mustDefend(state: HydratedNapoleonsTriumphGameState): boolean {
-    const attack = currentAttack(state)
-    return state.blockers(attack.defenseApproach, attack.defenderId).length > 0
+    return forcedDefense(state) !== undefined
 }
 
 export function eligibleReserveDefenders(
@@ -103,21 +102,26 @@ export function eligibleReserveDefenders(
         )
 }
 
-/** Rule 11, steps 2 and 4: the defending pieces, and the leading units held back until step 4. */
+/** The defence when pieces block the defense approach: all of them and no others, with no choice in it. */
+export function forcedDefense(state: HydratedNapoleonsTriumphGameState): string[] | undefined {
+    const attack = currentAttack(state)
+    const blockers = state.blockers(attack.defenseApproach, attack.defenderId)
+    return blockers.length > 0 ? blockers.map((unit) => unit.id) : undefined
+}
+
+/** Rule 11, step 2: the defending pieces. Their leading units are named later, in step 4. */
 export function declareDefense(
     state: HydratedNapoleonsTriumphGameState,
-    unitIds: readonly string[],
-    leaderIds: readonly string[]
+    unitIds: readonly string[]
 ) {
     const attack = currentAttack(state)
     legal(unitIds.length > 0, 'A defense names at least one unit')
     legal(new Set(unitIds).size === unitIds.length, 'A defending unit is named once')
     const units = unitIds.map((id) => state.unit(id))
-    const blockers = state.blockers(attack.defenseApproach, attack.defenderId)
-    const blocking = blockers.length > 0
-    if (blocking) {
+    const forced = forcedDefense(state)
+    if (forced) {
         legal(
-            blockers.length === units.length && blockers.every((unit) => unitIds.includes(unit.id)),
+            forced.length === unitIds.length && forced.every((id) => unitIds.includes(id)),
             'Every piece blocking the defense approach defends, and no other'
         )
     } else {
@@ -131,8 +135,36 @@ export function declareDefense(
             'At most one detached unit defends from reserve'
         )
     }
+    attack.defendingUnitIds = [...unitIds]
+    attack.defendingCommanderIds = [
+        ...new Set(units.flatMap((unit) => (unit.commanderId ? [unit.commanderId] : [])))
+    ]
+    attack.defendersBlocking = forced !== undefined
+    // Rule 15: a Guard Attack cannot be called off, so it goes straight to the defence's leading units.
+    attack.awaits = attack.guardAttack ? DefenseAwaits.Leaders : DefenseAwaits.Feint
+    for (const unit of units) {
+        unit.defendedApproach = attack.defenseApproach
+    }
+}
+
+/** Rule 11, step 3, when the attack is not called off: it is now the defender's to name the leading units. */
+export function pressAttack(state: HydratedNapoleonsTriumphGameState) {
+    const attack = currentAttack(state)
+    if (attack.defensePlan !== undefined) {
+        revealDefenseLeaders(state)
+        return
+    }
+    legal(attack.awaits === DefenseAwaits.Feint, 'The attack is not waiting to be pressed')
+    attack.awaits = DefenseAwaits.Leaders
+}
+
+export function checkDefenseLeaders(
+    state: HydratedNapoleonsTriumphGameState,
+    leaderIds: readonly string[]
+) {
+    const attack = currentAttack(state)
     legal(
-        leaderIds.every((id) => unitIds.includes(id)),
+        leaderIds.every((id) => attack.defendingUnitIds.includes(id)),
         'Leading units are defending pieces'
     )
     legal(new Set(leaderIds).size === leaderIds.length, 'A leading unit is named once')
@@ -140,20 +172,28 @@ export function declareDefense(
         state,
         leaderIds.map((id) => state.unit(id)),
         attack.defenseApproach,
-        blocking
+        attack.defendersBlocking === true
     )
-    attack.defendingUnitIds = [...unitIds]
-    attack.defendingCommanderIds = [
-        ...new Set(units.flatMap((unit) => (unit.commanderId ? [unit.commanderId] : [])))
-    ]
-    attack.defendersBlocking = blocking
-    attack.defensePlan = { playerId: attack.defenderId, leaderIds: [...leaderIds] }
-    for (const unit of units) {
-        unit.defendedApproach = attack.defenseApproach
-    }
-    if (attack.guardAttack) {
-        revealDefenseLeaders(state)
-    }
+}
+
+/** Rule 11, step 4: the defense leading units, turned face-up as they are named. */
+export function leadDefense(
+    state: HydratedNapoleonsTriumphGameState,
+    leaderIds: readonly string[]
+) {
+    const attack = currentAttack(state)
+    legal(attack.awaits === DefenseAwaits.Leaders, 'The defense is not waiting to name its leaders')
+    checkDefenseLeaders(state, leaderIds)
+    attack.awaits = undefined
+    showDefenseLeaders(state, leaderIds)
+}
+
+function showDefenseLeaders(
+    state: HydratedNapoleonsTriumphGameState,
+    leaderIds: readonly string[]
+) {
+    currentAttack(state).defenseLeaderIds = [...leaderIds]
+    state.revealAll(leaderIds.map((id) => state.unit(id)))
 }
 
 export function canPressAttack(state: HydratedNapoleonsTriumphGameState): boolean {
@@ -165,13 +205,12 @@ export function canPressAttack(state: HydratedNapoleonsTriumphGameState): boolea
     ].some((unit) => mayAttackInPlace(state, unit, attack.attackApproach))
 }
 
-/** Rule 11, step 4 made public once the attacker presses on. */
-export function revealDefenseLeaders(state: HydratedNapoleonsTriumphGameState) {
+/** For an attack whose defence named its leading units with its pieces: they are shown as the attacker presses on. */
+function revealDefenseLeaders(state: HydratedNapoleonsTriumphGameState) {
     const attack = currentAttack(state)
     assertExists(attack.defensePlan, 'The defense has not been declared')
     const leaderIds = attack.defensePlan.leaderIds
     assertExists(leaderIds, 'The defense leading units are not known here')
-    attack.defenseLeaderIds = [...leaderIds]
     attack.defensePlan = undefined
-    state.revealAll(leaderIds.map((id) => state.unit(id)))
+    showDefenseLeaders(state, leaderIds)
 }

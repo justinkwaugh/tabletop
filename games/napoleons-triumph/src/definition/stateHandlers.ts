@@ -3,6 +3,7 @@ import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import {
     AttackDeclarationStateHandler,
     CounterAttackDecisionStateHandler,
+    DefenseDeclarationStateHandler,
     DefenseResponseStateHandler,
     FeintDecisionStateHandler,
     OccupyingStateHandler,
@@ -30,6 +31,7 @@ export const NapoleonsTriumphStateHandlers: Record<
     [MachineState.Commanding]: new CommandingStateHandler(),
     [MachineState.DefenseResponse]: new DefenseResponseStateHandler(),
     [MachineState.FeintDecision]: new FeintDecisionStateHandler(),
+    [MachineState.DefenseDeclaration]: new DefenseDeclarationStateHandler(),
     [MachineState.AttackDeclaration]: new AttackDeclarationStateHandler(),
     [MachineState.CounterAttackDecision]: new CounterAttackDecisionStateHandler(),
     [MachineState.ResolvingAttack]: new ResolvingAttackStateHandler(),

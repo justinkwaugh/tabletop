@@ -15,6 +15,7 @@ import {
     isDeclareFeint,
     isDeployArmy,
     isEndTurn,
+    isLeadDefense,
     isMove,
     isOccupy,
     isPassBid,
@@ -186,7 +187,12 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         return `${army} retreat from ${from}${when}${cost}.${committed}${broken}`
     }
     if (isPressAttack(action)) {
-        return `${army} press the attack; the defense leading units are shown.`
+        return `${army} press the attack.`
+    }
+    if (isLeadDefense(action)) {
+        return action.leaderIds.length === 0
+            ? `${army} name no leading unit.`
+            : `${army} lead the defence with ${count(action.leaderIds.length)}, now shown.`
     }
     if (isDeclareFeint(action)) {
         const stance = action.end === FeintEnd.Approach ? 'on the approach' : 'in reserve'

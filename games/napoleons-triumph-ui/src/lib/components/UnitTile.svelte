@@ -12,6 +12,7 @@
         dimmed = false,
         marker,
         roleMark,
+        seen = false,
         label,
         scale = 1,
         onclick
@@ -22,6 +23,7 @@
         dimmed?: boolean
         marker?: string
         roleMark?: RoleMark
+        seen?: boolean
         label: string
         scale?: number
         onclick?: () => void
@@ -54,6 +56,7 @@
             {face}
             {dimmed}
             {roleMark}
+            {seen}
         />
     </svg>
     {#if marker}

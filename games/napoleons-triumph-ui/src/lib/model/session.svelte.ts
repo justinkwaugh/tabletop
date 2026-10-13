@@ -9,6 +9,7 @@ import {
     CounterAttack,
     DeclareAttack,
     DeclareDefense,
+    LeadDefense,
     DeclareFeint,
     DeployArmy,
     EndTurn,
@@ -99,7 +100,8 @@ import {
     blockMarkOf,
     shownMovedInUnitStrip,
     type BlockMark,
-    type BlockMarkContext
+    type BlockMarkContext,
+    type UnitLook
 } from './blockMark.js'
 import {
     chooseCorpsUnit,
@@ -633,6 +635,21 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return this.facesCoveredForPicture ? undefined : this.visibleFace(unit)
     }
 
+    /** The viewer's own unit standing face-up to the enemy, as it does until the end-of-turn shuffle hides it again (rule 7). */
+    seenByTheEnemy(unit: ProjectedUnit): boolean {
+        return unit.playerId === this.myPlayerId && unit.shown !== undefined
+    }
+
+    /** How a unit is drawn for the viewer: the face they may see, and the mark on their own unit the enemy has seen. */
+    lookOf(unit: ProjectedUnit): UnitLook {
+        return { face: this.visibleFace(unit), seen: this.seenByTheEnemy(unit) }
+    }
+
+    /** Neither face nor mark while faces are covered for a picture saved without unit types. */
+    lookOnTheMap(unit: ProjectedUnit): UnitLook {
+        return this.facesCoveredForPicture ? { face: undefined, seen: false } : this.lookOf(unit)
+    }
+
     visibleFace(unit: ProjectedUnit): Face | undefined {
         return unit.playerId === this.myPlayerId ? (unit.face ?? unit.shown) : unit.shown
     }
@@ -1017,10 +1034,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(DeclareDefense, {
-                    unitIds: stage.defenders,
-                    leaderIds: stage.leaders
-                })
+                this.createPlayerAction(DeclareDefense, { unitIds: stage.defenders })
+            )
+        }
+    }
+
+    async leadDefense() {
+        const stage = this.battleStage
+        if (stage?.kind === StageKind.DefenceLeaders && !stage.problem) {
+            await this.applyAction(
+                this.createPlayerAction(LeadDefense, { leaderIds: stage.leaders })
             )
         }
     }

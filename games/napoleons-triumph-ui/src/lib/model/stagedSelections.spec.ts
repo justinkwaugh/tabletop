@@ -8,6 +8,7 @@ import {
     chooseFeint,
     chooseRetreat,
     defenceSelection,
+    leadSelection,
     emptyBattleSelections,
     hasManualBattleSelection,
     nameAttackers,
@@ -335,6 +336,19 @@ describe('battle selections', () => {
 
         const afterThird = undoBattleSelection(afterSecond, StageKind.Defence)
         expect(hasManualBattleSelection(afterThird, StageKind.Defence)).toBe(false)
+    })
+
+    it('takes back the naming of a leading unit and nothing of the defence it was named from', () => {
+        const leading = {
+            ...defended(),
+            lead: leadSelection.set(leadSelection.empty(), 'leaders', ['A01'], 'manual')
+        }
+        expect(hasManualBattleSelection(leading, StageKind.DefenceLeaders)).toBe(true)
+        const unnamed = undoBattleSelection(leading, StageKind.DefenceLeaders)
+        expect(leadSelection.value(unnamed.lead, 'leaders')).toBeUndefined()
+        expect(defenceSelection.value(unnamed.defence, 'defenders')).toEqual(['A01'])
+        expect(hasManualBattleSelection(unnamed, StageKind.DefenceLeaders)).toBe(false)
+        expect(undoBattleSelection(unnamed, StageKind.DefenceLeaders)).toEqual(unnamed)
     })
 
     it('pops exactly one manual stage with each press of Undo: the highest of the step in front of the player', () => {

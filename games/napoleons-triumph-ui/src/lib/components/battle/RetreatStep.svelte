@@ -88,7 +88,7 @@
     <div class="flex flex-wrap items-center gap-2">
         <UnitTile
             playerId={unit.playerId}
-            face={gameSession.visibleFace(unit)}
+            {...gameSession.lookOf(unit)}
             label="Move a step of the loss onto this unit"
             roleMark={lossMark(retreating.loss)}
             selected={stage.alone === unit.id}

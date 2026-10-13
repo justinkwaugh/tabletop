@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
     NapoleonsTriumphGameStateValidator,
     type NapoleonsTriumphGameState
@@ -130,7 +130,19 @@ export async function deployBothArmies(page: Page) {
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 }
 
-// Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
+/** Rule 11, step 4 at the table: once the attack is pressed, the defender names this many leading units. */
+export async function leadDefence(page: Page, leaders = 0) {
+    const tiles = page.locator('.nt-turn button[aria-label="Choose this unit"]:not([disabled])')
+    for (let named = 0; named < leaders; named++) {
+        await tiles.nth(named).click()
+    }
+    await leadButton(page).click()
+}
+
+export function leadButton(page: Page): Locator {
+    return page.getByRole('button', { name: /^(Lead with|Defend with no leading unit)/ })
+}
+
 export async function openMapMenu(page: Page) {
     const menu = page.getByRole('button', { name: 'Map', exact: true })
     if ((await menu.getAttribute('aria-expanded')) === 'false') {
@@ -138,6 +150,7 @@ export async function openMapMenu(page: Page) {
     }
 }
 
+// Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
 }

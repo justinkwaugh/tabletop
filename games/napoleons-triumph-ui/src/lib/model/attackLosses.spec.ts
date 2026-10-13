@@ -62,11 +62,8 @@ describe('what an attack has cost each side', () => {
 
     it('follows rule 11’s fourth example: the loser pays morale for its steps, the winner only for what it committed', () => {
         const { french, allied, actions, act, attack } = threatened()
-        act(ActionType.DeclareDefense, allied, {
-            unitIds: ['A-inf', 'A-cav'],
-            leaderIds: ['A-inf']
-        })
         act(ActionType.PressAttack, french)
+        act(ActionType.LeadDefense, allied, { leaderIds: ['A-inf'] })
         act(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             wide: false,

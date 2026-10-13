@@ -32,7 +32,7 @@
         {@const role = roles[unit.id]}
         <UnitTile
             playerId={unit.playerId}
-            face={gameSession.visibleFace(unit)}
+            {...gameSession.lookOf(unit)}
             selected={selected.includes(unit.id)}
             dimmed={onlyPickableIds !== undefined && !onlyPickableIds.includes(unit.id)}
             marker={role ?? markers[unit.id]}

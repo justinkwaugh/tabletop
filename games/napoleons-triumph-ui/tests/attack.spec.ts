@@ -1,11 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
-    FRENCH_ARMY,
     createGame,
     deployAllies,
     deployBothArmies,
     failOnPageErrors,
     fillCorps,
+    FRENCH_ARMY,
+    leadButton,
+    leadDefence,
     openSeat,
     pickUp,
     placeFixedBattery,
@@ -195,6 +197,7 @@ test('when the defence stands the attacker is asked only to press or feint', asy
     await page.getByRole('button', { name: 'Undo' }).click()
     await expect(pieces).toHaveCount(0)
     await press.click()
+    await leadDefence(page)
     await expect(page.getByRole('button', { name: /^Attack/ })).toBeVisible()
     await expect(pieces).toHaveCount(4)
     await expect(commands).toBeVisible()
@@ -267,6 +270,7 @@ test('the pieces that made the threat are still named after the page is reloaded
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: 'Austerlitz' }).click()
     await press.click()
+    await leadDefence(page)
     await expect(
         page.getByText('the pieces that made the threat are named to start with')
     ).toBeVisible()
@@ -309,7 +313,7 @@ test('two artillery units on a wide approach are picked together and fire by a U
 
     const batteries = page
         .locator('[data-commander="detached"][aria-label="Select these pieces"]')
-        .filter({ has: page.locator('g:nth-of-type(2)') })
+        .filter({ has: page.locator(':scope > g:nth-of-type(2)') })
     await batteries.dispatchEvent('click')
     const strip = page.getByRole('group', { name: 'Detached units' })
     const units = strip.getByRole('button', { name: 'Include this unit in the command' })
@@ -336,6 +340,7 @@ test('two artillery units on a wide approach are picked together and fire by a U
     await tap(page, 'svg [aria-label="Choose this unit"]')
     await page.getByRole('button', { name: /^Defend/ }).click()
     await page.getByRole('button', { name: 'Press the attack' }).click()
+    await leadDefence(page)
 
     const pieces = page.locator('button[aria-label="Choose this unit"]:not([disabled])')
     const attack = page.getByRole('button', { name: /^Attack/ })
@@ -450,6 +455,7 @@ test('the results of an attack are set in a rule of their own in the action area
     const arrow = page.locator('svg[data-board] [data-attack-arrow]')
     await expect(arrow).toHaveAttribute('data-attack-arrow', 'threat')
     await page.getByRole('button', { name: 'Press the attack' }).click()
+    await leadDefence(page)
     await expect(arrow).toHaveAttribute('data-attack-arrow', 'attack')
     await expect(result).toHaveText(/Initial result\s+[+-]?\d+/)
     await expect(result).not.toContainText('Final result')
@@ -554,4 +560,90 @@ test('an attack already under way when the table opens ends on the whole board, 
     await expect.poll(acrossTheMapArea).toBe(true)
     await page.waitForTimeout(800)
     expect(await acrossTheMapArea()).toBe(true)
+})
+
+test('a player’s own units that the enemy has seen carry a mark, on the map and in the panels', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    const onTheMap = page.locator('svg[data-board] [data-seen-by-the-enemy]')
+    const inThePanel = page
+        .locator('section.nt-army')
+        .filter({ hasText: 'Allied Army' })
+        .locator('[data-seen-by-the-enemy]')
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await expect(page.locator('.nt-masthead-turn')).toHaveText('Allies’ turn')
+    await expect(onTheMap).toHaveCount(0)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    const choices = page.locator('svg [aria-label="Choose this unit"]')
+    await choices.first().dispatchEvent('click')
+    await choices.last().dispatchEvent('click')
+    await expect(onTheMap).toHaveCount(0)
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Press the attack' }).click()
+    await expect(onTheMap).toHaveCount(0)
+    await leadDefence(page, 1)
+    const attacker = page
+        .locator('.nt-turn button[aria-label="Choose this unit"]:not([disabled])')
+        .first()
+    await attacker.click()
+    await attacker.click()
+    await page.getByRole('button', { name: /^Attack/ }).click()
+    await expect(page.locator('.nt-masthead-turn')).toHaveText('Allies’ turn')
+    await expect(onTheMap).toHaveCount(1)
+    await expect(inThePanel).toHaveCount(1)
+})
+
+test('pressing an attack shows nothing and can be taken back until the defender has named the leading units', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    const turn = page.locator('.nt-masthead-turn')
+    const choices = page.locator('svg [aria-label="Choose this unit"]')
+    await choices.first().dispatchEvent('click')
+    await choices.last().dispatchEvent('click')
+    const defend = page.getByRole('button', { name: 'Defend', exact: true })
+    await expect(page.locator('.nt-turn').getByText('leads')).toHaveCount(0)
+    await defend.click()
+
+    const press = page.getByRole('button', { name: 'Press the attack' })
+    const undo = page.getByRole('button', { name: 'Undo' })
+    const shown = page.locator('svg[data-board] [data-commander="langeron"] [data-unit-face]')
+    await expect(turn).toHaveText('French turn')
+    await expect(shown).toHaveCount(0)
+    await press.click()
+    await expect(turn).toHaveText('Allies’ turn')
+    await expect(page.getByText('The attack is pressed.')).toBeVisible()
+    const lead = leadButton(page)
+    await expect(lead).toHaveText('Defend with no leading unit')
+
+    await undo.click()
+    await expect(turn).toHaveText('French turn')
+    await expect(press).toBeVisible()
+    await expect(shown).toHaveCount(0)
+
+    await press.click()
+    const tiles = page.locator('.nt-turn button[aria-label="Choose this unit"]:not([disabled])')
+    await expect(tiles).toHaveCount(2)
+    await tiles.first().click()
+    await expect(lead).toHaveText('Lead with this unit')
+    await undo.click()
+    await expect(lead).toHaveText('Defend with no leading unit')
+    await tiles.first().click()
+    await lead.click()
+
+    await expect(turn).toHaveText('French turn')
+    await expect(page.getByRole('button', { name: /^Attack/ })).toBeVisible()
+    await expect(shown).toHaveCount(1)
+    await expect(undo).toBeHidden()
 })

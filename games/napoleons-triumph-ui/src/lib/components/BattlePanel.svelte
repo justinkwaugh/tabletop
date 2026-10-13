@@ -16,6 +16,7 @@
     import DeclareStep from './battle/DeclareStep.svelte'
     import DefenseStep from './battle/DefenseStep.svelte'
     import FeintStep from './battle/FeintStep.svelte'
+    import LeadStep from './battle/LeadStep.svelte'
     import Force from './battle/Force.svelte'
     import OccupyStep from './battle/OccupyStep.svelte'
     import LossRule from './battle/LossRule.svelte'
@@ -34,8 +35,9 @@
     }
 
     const WAITING: Record<AttackStep, string> = {
-        [MachineState.DefenseResponse]: 'to defend or give ground',
+        [MachineState.DefenseResponse]: 'to defend or retreat',
         [MachineState.FeintDecision]: 'to press the attack or call it a feint',
+        [MachineState.DefenseDeclaration]: 'to name the leading units of the defence',
         [MachineState.AttackDeclaration]: 'to declare the attack',
         [MachineState.CounterAttackDecision]: 'to counter-attack or hold',
         [MachineState.ResolvingAttack]: 'to settle the outcome',
@@ -122,6 +124,8 @@
             </div>
         {:else if stage.kind === StageKind.Defence}
             <DefenseStep {stage} />
+        {:else if stage.kind === StageKind.DefenceLeaders}
+            <LeadStep {stage} />
         {:else if stage.kind === StageKind.Retreat}
             <RetreatStep {stage} />
         {:else if stage.kind === StageKind.Feint}

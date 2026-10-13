@@ -36,8 +36,13 @@
     </div>
 {:else}
     <div class="nt-battle-prompt">
-        The defence stands. Press the attack to see its leading units and then declare your attack,
-        or call it a feint.
+        {#if stage.pressShowsLeaders}
+            The defence stands and has named its leading units. Press the attack, and they are shown
+            to you; or call it a feint.
+        {:else}
+            The defence stands. Press the attack, and the defender names the leading units before
+            you declare it; or call it a feint.
+        {/if}
     </div>
     <div class="flex flex-wrap gap-2 pt-1">
         <button type="button" class="nt-plain-button" onclick={() => gameSession.pressAttack()}

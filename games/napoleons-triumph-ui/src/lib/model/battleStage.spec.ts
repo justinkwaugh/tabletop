@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { ActionType, CommandKind, FeintEnd, Side } from '@tabletop/napoleons-triumph'
+import { ActionType, CommandKind, FeintEnd, MachineState, Side } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
     artillery,
     cavalry,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '@tabletop/napoleons-triumph/testing'
 import { advancePrompt } from '$lib/utils/advancePrompt.js'
 import {
@@ -130,7 +131,7 @@ function tap(game: TestGame, selections: BattleSelections, ...unitIds: string[])
 }
 
 describe('naming a defence', () => {
-    it('takes a reserve unit from standing by, to defending, to leading, and back', () => {
+    it('takes a reserve unit from standing by to defending, and back', () => {
         const game = threatened()
         expect(stageOf(game, StageKind.Defence).pickableIds).toEqual([
             'A-inf-a',
@@ -142,33 +143,9 @@ describe('naming a defence', () => {
         expect(stageOf(game, StageKind.Defence, defending).roles).toEqual({
             'A-inf-a': BattleRole.Defends
         })
-
-        const leading = tap(game, defending, 'A-inf-a')
-        expect(stageOf(game, StageKind.Defence, leading).roles).toEqual({
-            'A-inf-a': BattleRole.Leads
-        })
-
-        expect(stageOf(game, StageKind.Defence, tap(game, leading, 'A-inf-a')).defenders).toEqual(
+        expect(stageOf(game, StageKind.Defence, tap(game, defending, 'A-inf-a')).defenders).toEqual(
             []
         )
-    })
-
-    it('keeps no more leading units than the approach is wide', () => {
-        const game = threatened()
-        const wide = game.hydrated.map.approachBetween(DEFEND_IN, ATTACK_FROM).wide
-        const all = tap(
-            game,
-            emptyBattleSelections(),
-            'A-inf-a',
-            'A-inf-a',
-            'A-inf-b',
-            'A-inf-b',
-            'A-cav',
-            'A-cav'
-        )
-        const stage = stageOf(game, StageKind.Defence, all)
-        expect(stage.defenders).toEqual(['A-inf-a', 'A-inf-b', 'A-cav'])
-        expect(stage.leaders).toEqual(wide ? ['A-inf-b', 'A-cav'] : ['A-cav'])
     })
 
     it('says in the rules’ words why a pick cannot be declared', () => {
@@ -178,13 +155,11 @@ describe('naming a defence', () => {
         ])
         const twoDetached = tap(game, emptyBattleSelections(), 'A-cav', 'A-cav-b')
         expect(stageOf(game, StageKind.Defence, twoDetached).problem).toMatch(/one detached unit/)
-        const weakLeader = tap(game, emptyBattleSelections(), 'A-cav-b', 'A-cav-b')
-        expect(stageOf(game, StageKind.Defence, weakLeader).problem).toMatch(/one-strength/)
-        const sound = tap(game, emptyBattleSelections(), 'A-inf-a', 'A-inf-a', 'A-cav')
+        const sound = tap(game, emptyBattleSelections(), 'A-inf-a', 'A-cav')
         expect(stageOf(game, StageKind.Defence, sound).problem).toBeUndefined()
     })
 
-    it('names every piece on the approach without being asked', () => {
+    it('is not asked of pieces on the approach, which all defend: the attacker is asked at once', () => {
         const game = threatened([
             ...PLACEMENTS,
             {
@@ -195,12 +170,91 @@ describe('naming a defence', () => {
                 facing: ATTACK_FROM
             }
         ])
+        expect(game.hydrated.attack?.defendingUnitIds).toEqual(['A-block'])
+        expect(stageOf(game, StageKind.Feint).kind).toBe(StageKind.Feint)
+    })
+})
+
+describe('a defence by pieces on the approach that was still waiting to be named', () => {
+    it('is named for the defender, who can only confirm it, as it was before the game named it itself', () => {
+        const game = threatened([
+            ...PLACEMENTS,
+            {
+                id: 'A-block',
+                side: Side.Allied,
+                face: infantry(2),
+                locale: DEFEND_IN,
+                facing: ATTACK_FROM
+            }
+        ])
+        const allied = game.playerOf(Side.Allied)
+        game.arrange((state) => {
+            const attack = state.attack
+            if (attack) {
+                attack.defendingUnitIds = []
+                attack.defendingCommanderIds = []
+                attack.defendersBlocking = undefined
+                attack.awaits = undefined
+            }
+            state.unit('A-block').defendedApproach = undefined
+            state.machineState = MachineState.DefenseResponse
+            state.activePlayerIds = [allied]
+        })
         const stage = stageOf(game, StageKind.Defence)
-        expect(stage.forced).toBe(true)
-        expect(stage.defenders).toEqual(['A-block'])
+        expect(stage).toMatchObject({ forced: true, defenders: ['A-block'], pickableIds: [] })
+        expect(stage.problem).toBeUndefined()
+
+        game.act(ActionType.DeclareDefense, allied, { unitIds: stage.defenders })
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+    })
+})
+
+describe('naming the leading units of a defence that has been pressed', () => {
+    function pressed(placements: readonly PiecePlacement[] = PLACEMENTS, defenders = ALL) {
+        const game = threatened(placements)
+        defendWith(game, game.playerOf(Side.Allied), defenders)
+        game.act(ActionType.PressAttack, game.playerOf(Side.French))
+        return game
+    }
+    const ALL = ['A-inf-a', 'A-inf-b', 'A-cav']
+
+    it('offers the defending pieces, each a defender until it is tapped to lead and again to stand back', () => {
+        const game = pressed()
+        const stage = stageOf(game, StageKind.DefenceLeaders)
+        expect(stage.pickableIds).toEqual(ALL)
+        expect(stage.leaders).toEqual([])
+        expect(stage.problem).toBeUndefined()
+
+        const leading = tap(game, emptyBattleSelections(), 'A-inf-a')
+        expect(stageOf(game, StageKind.DefenceLeaders, leading).roles).toEqual({
+            'A-inf-a': BattleRole.Leads,
+            'A-inf-b': BattleRole.Defends,
+            'A-cav': BattleRole.Defends
+        })
         expect(
-            stageOf(game, StageKind.Defence, tap(game, emptyBattleSelections(), 'A-block')).leaders
-        ).toEqual(['A-block'])
+            stageOf(game, StageKind.DefenceLeaders, tap(game, leading, 'A-inf-a')).leaders
+        ).toEqual([])
+    })
+
+    it('keeps no more leading units than the approach is wide', () => {
+        const game = pressed()
+        const wide = game.hydrated.map.approachBetween(DEFEND_IN, ATTACK_FROM).wide
+        const all = tap(game, emptyBattleSelections(), 'A-inf-a', 'A-inf-b', 'A-cav')
+        expect(stageOf(game, StageKind.DefenceLeaders, all).leaders).toEqual(
+            wide ? ['A-inf-b', 'A-cav'] : ['A-cav']
+        )
+    })
+
+    it('says in the rules’ words why a unit cannot lead', () => {
+        const weak = { id: 'A-cav-b', side: Side.Allied, face: cavalry(1), locale: DEFEND_IN }
+        const game = pressed(
+            [...PLACEMENTS.filter((piece) => piece.id !== 'A-cav'), weak],
+            ['A-inf-a', 'A-cav-b']
+        )
+        const weakLeader = tap(game, emptyBattleSelections(), 'A-cav-b')
+        expect(stageOf(game, StageKind.DefenceLeaders, weakLeader).problem).toMatch(/one-strength/)
+        const sound = tap(game, emptyBattleSelections(), 'A-inf-a')
+        expect(stageOf(game, StageKind.DefenceLeaders, sound).problem).toBeUndefined()
     })
 })
 
@@ -361,10 +415,7 @@ describe('arranging a retreat', () => {
 
 function standing(plan?: typeof WITH_LANNES): TestGame {
     const game = threatened(PLACEMENTS, plan)
-    game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-        unitIds: ['A-inf-a'],
-        leaderIds: ['A-inf-a']
-    })
+    defendWith(game, game.playerOf(Side.Allied), ['A-inf-a'])
     return game
 }
 
@@ -384,6 +435,19 @@ describe('when the defence stands', () => {
         expect(stage.pickableIds).toEqual([])
         expect(stage.roles).toEqual({})
         expect(stage.ends).toEqual([])
+        expect(stage.pressShowsLeaders).toBe(false)
+    })
+
+    it('says that pressing shows the leading units when the defence named them with its pieces', () => {
+        const game = standing(WITH_LANNES)
+        game.arrange((state) => {
+            const attack = state.attack
+            if (attack) {
+                attack.awaits = undefined
+                attack.defensePlan = { playerId: attack.defenderId, leaderIds: [] }
+            }
+        })
+        expect(stageOf(game, StageKind.Feint).pressShowsLeaders).toBe(true)
     })
 
     it('offers the pieces once a feint is called, and Undo takes that back last', () => {
@@ -415,6 +479,9 @@ describe('naming the attack command', () => {
     it('starts the declaration from them too, however the game was loaded, and from nothing when none were given', () => {
         const planned = standing(WITH_LANNES)
         planned.act(ActionType.PressAttack, planned.playerOf(Side.French))
+        planned.act(ActionType.LeadDefense, planned.playerOf(Side.Allied), {
+            leaderIds: ['A-inf-a']
+        })
         const stage = stageOf(planned, StageKind.Declaration)
         expect(stage.startsFromThreat).toBe(true)
         expect(stage.attackers).toEqual(['F-inf-a', 'F-inf-b'])
@@ -422,6 +489,9 @@ describe('naming the attack command', () => {
 
         const unplanned = standing()
         unplanned.act(ActionType.PressAttack, unplanned.playerOf(Side.French))
+        unplanned.act(ActionType.LeadDefense, unplanned.playerOf(Side.Allied), {
+            leaderIds: ['A-inf-a']
+        })
         const bare = stageOf(unplanned, StageKind.Declaration)
         expect(bare.startsFromThreat).toBe(false)
         expect(bare.attackers).toEqual([])
@@ -485,11 +555,9 @@ describe('the width of an attack and its leading units', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         return game
     }
 
@@ -524,11 +592,9 @@ describe('the width of an attack and its leading units', () => {
 function struck(leaderId: string): TestGame {
     const game = threatened()
     const french = game.playerOf(Side.French)
-    game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-        unitIds: ['A-inf-a', 'A-inf-b', 'A-cav'],
-        leaderIds: ['A-inf-a']
-    })
+    defendWith(game, game.playerOf(Side.Allied), ['A-inf-a', 'A-inf-b', 'A-cav'])
     game.act(ActionType.PressAttack, french)
+    game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-inf-a'] })
     game.act(ActionType.DeclareAttack, french, {
         orders: [
             { kind: CommandKind.Corps, commanderId: 'lannes', unitIds: ['F-inf-a', 'F-inf-b'] }
@@ -569,11 +635,9 @@ describe('the leading unit a narrow attack strikes', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-1', 'A-2'],
-            leaderIds: ['A-1', 'A-2']
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-1', 'A-2'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-1', 'A-2'] })
         return game
     }
 
@@ -679,11 +743,9 @@ describe('guns picked to fire', () => {
 
     function pressed(): TestGame {
         const game = threatened(GUNS)
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, game.playerOf(Side.French))
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         return game
     }
 
@@ -727,11 +789,9 @@ describe('guns picked to fire', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         const stage = stageOf(
             game,
             StageKind.Declaration,
@@ -771,12 +831,10 @@ describe('guns picked to fire', () => {
             approach: game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id,
             plan: { kind: CommandKind.Corps, unitIds: ['F-a1', 'F-a2', 'F-inf'] }
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, french)
 
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         expect(stageOf(game, StageKind.Declaration).command).toBe(CommandKind.Corps)
         const gunsOnly = stageOf(
             game,
@@ -830,10 +888,7 @@ describe('the forced advance', () => {
         game.act(ActionType.ThreatenAttack, allied, {
             approach: game.hydrated.map.approachBetween(DEFEND_IN, ATTACK_FROM).id
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: defenderIds,
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.French), defenderIds)
         game.act(ActionType.DeclareFeint, allied, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
             end: FeintEnd.Reserve

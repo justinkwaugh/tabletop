@@ -2,6 +2,7 @@ import type { GameAction } from '@tabletop/common'
 import {
     isCounterAttack,
     isDeclareAttack,
+    DefenseAwaits,
     isDeclareFeint,
     type Attack
 } from '@tabletop/napoleons-triumph'
@@ -32,18 +33,20 @@ type MarkedAttack = Pick<
     | 'defendingUnitIds'
     | 'retreatBeforeCombat'
     | 'guardAttack'
+    | 'awaits'
 > & {
-    /** Held from the defence's declaration until the attacker presses on; only its presence is read. */
+    /** Held by an attack whose defence named its leaders with its pieces, until the attacker pressed on; only its presence is read. */
     defensePlan?: unknown
 }
 
-// Rule 11, step 4: once the defence has stood and its plan is no longer held back, the attacker has
-// pressed on. A Guard Attack cannot be called off, so it is an attack from the moment it is announced.
+// Rule 11, step 3: once the defence has stood and the attack no longer waits on the choice to feint,
+// the attacker has pressed on. A Guard Attack cannot be called off, so it is an attack from the moment it is announced.
 function pressed(attack: MarkedAttack): boolean {
     return (
         attack.guardAttack === true ||
         (attack.defendingUnitIds.length > 0 &&
             attack.defensePlan === undefined &&
+            attack.awaits !== DefenseAwaits.Feint &&
             attack.retreatBeforeCombat !== true)
     )
 }

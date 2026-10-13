@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, Visibility, assertExists } from '@tabletop/common'
+import { GameAction, Visibility } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
 import { declareDefense } from '../model/attackThreat.js'
@@ -14,10 +14,13 @@ export const DeclareDefense = Type.Evaluate(
             type: Type.Literal(ActionType.DeclareDefense),
             playerId: Type.String(),
             unitIds: Type.Array(Type.String(), { minItems: 1 }),
-            /** Rule 11, step 4: kept from the attacker until the attack is pressed. */
-            leaderIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 2 }), {
-                policy: Visibility.Policy.Actor
-            })
+            /** Kept so that records from before leaders were named in a step of their own stay hidden from the attacker. */
+            leaderIds: Visibility.protect(
+                Type.Optional(Type.Array(Type.String(), { maxItems: 2 })),
+                {
+                    policy: Visibility.Policy.Actor
+                }
+            )
         })
     ])
 )
@@ -35,14 +38,13 @@ export class HydratedDeclareDefense
     declare type: ActionType.DeclareDefense
     declare playerId: string
     declare unitIds: string[]
-    declare leaderIds: string[]
+    declare leaderIds?: string[]
 
     constructor(data: DeclareDefense) {
         super(data, DeclareDefenseValidator)
     }
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
-        assertExists(this.leaderIds, 'The defense leading units are not known here')
-        declareDefense(state, this.unitIds, this.leaderIds)
+        declareDefense(state, this.unitIds)
     }
 }

@@ -128,7 +128,7 @@
                             <div class="nt-orders-unit">
                                 <UnitTile
                                     playerId={unit.playerId}
-                                    face={gameSession.visibleFace(unit)}
+                                    {...gameSession.lookOf(unit)}
                                     selected={!together && picked.includes(unit.id)}
                                     dimmed={moved}
                                     marker={unit.fixed

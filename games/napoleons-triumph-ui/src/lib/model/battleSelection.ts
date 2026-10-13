@@ -5,6 +5,7 @@ import { stagedSelection } from './stagedSelection.js'
 
 export enum StageKind {
     Defence = 'Defence',
+    DefenceLeaders = 'DefenceLeaders',
     Retreat = 'Retreat',
     Feint = 'Feint',
     Declaration = 'Declaration',
@@ -23,14 +24,12 @@ export enum AttackWidth {
 
 export type DefenceValues = {
     defenders: string[]
-    leaders: string[]
     retreating: true
 }
-export const defenceSelection = stagedSelection<DefenceValues>()([
-    'defenders',
-    'leaders',
-    'retreating'
-])
+export const defenceSelection = stagedSelection<DefenceValues>()(['defenders', 'retreating'])
+
+export type LeadValues = { leaders: string[] }
+export const leadSelection = stagedSelection<LeadValues>()(['leaders'])
 
 type DefenceSelection = StagedSelectionState<DefenceValues>
 
@@ -164,6 +163,7 @@ export function setCommandersGoing(
 
 export interface BattleSelections {
     defence: DefenceSelection
+    lead: StagedSelectionState<LeadValues>
     retreat: RetreatSelection
     attackers: AttackerSelection
     counter: StagedSelectionState<CounterValues>
@@ -175,6 +175,7 @@ export interface BattleSelections {
 export function emptyBattleSelections(): BattleSelections {
     return {
         defence: defenceSelection.empty(),
+        lead: leadSelection.empty(),
         retreat: retreatSelection.empty(),
         attackers: attackerSelection.empty(),
         counter: counterSelection.empty(),
@@ -192,6 +193,11 @@ interface StepSelection {
 const DEFENCE: StepSelection = {
     hasManual: (selections) => defenceSelection.hasManual(selections.defence),
     undo: (selections) => ({ ...selections, defence: defenceSelection.undo(selections.defence) })
+}
+
+const LEAD: StepSelection = {
+    hasManual: (selections) => leadSelection.hasManual(selections.lead),
+    undo: (selections) => ({ ...selections, lead: leadSelection.undo(selections.lead) })
 }
 
 const RETREAT: StepSelection = {
@@ -232,6 +238,7 @@ const ADVANCE: StepSelection = {
 
 const SELECTIONS_BY_STEP_EARLIEST_FIRST: Record<StageKind, readonly StepSelection[]> = {
     [StageKind.Defence]: [DEFENCE],
+    [StageKind.DefenceLeaders]: [LEAD],
     [StageKind.Retreat]: [DEFENCE, RETREAT],
     [StageKind.Feint]: [ATTACKERS],
     [StageKind.Declaration]: [ATTACKERS],

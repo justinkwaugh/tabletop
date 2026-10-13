@@ -9,6 +9,7 @@ export enum ActionType {
     DeclareDefense = 'DeclareDefense',
     DeclareFeint = 'DeclareFeint',
     PressAttack = 'PressAttack',
+    LeadDefense = 'LeadDefense',
     DeclareAttack = 'DeclareAttack',
     CounterAttack = 'CounterAttack',
     AssignLosses = 'AssignLosses',

@@ -50,7 +50,7 @@
     {#snippet title()}Losses{/snippet}
     {#snippet description()}
         What the attack has cost each army so far, in steps and in morale. Only the army that loses
-        the fight, or gives ground, pays morale for the steps it loses.
+        the fight, or retreats, pays morale for the steps it loses.
     {/snippet}
     {#each [losses.attacker, losses.defender] as side (side.playerId)}
         {@const owed = owedBy(side)}

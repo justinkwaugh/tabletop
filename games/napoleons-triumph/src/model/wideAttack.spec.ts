@@ -7,7 +7,8 @@ import {
     arrangeBattlefield,
     artillery,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { CommandKind, DecisionKind } from './attack.js'
 
@@ -23,11 +24,9 @@ function pressed(placements: readonly PiecePlacement[], defenders: string[], lea
     game.act(ActionType.ThreatenAttack, french, {
         approach: game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
     })
-    game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-        unitIds: defenders,
-        leaderIds: leaders
-    })
+    defendWith(game, game.playerOf(Side.Allied), defenders)
     game.act(ActionType.PressAttack, french)
+    game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: leaders })
     return game
 }
 

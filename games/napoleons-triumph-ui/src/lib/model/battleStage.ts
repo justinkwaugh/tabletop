@@ -6,16 +6,17 @@ import {
     attackerLeadsInitially,
     canPressAttack,
     checkAttackDeclaration,
+    checkDefenseLeaders,
     counterAttackAccountWith,
     counterAttackCandidates,
     declareDefense,
     declareFeint,
     eligibleReserveDefenders,
     finalResultWith,
+    forcedDefense,
     initialAccountOf,
     initialResultOf,
     isLegal,
-    mustDefend,
     nextDecision,
     occupyAfterRetreat,
     samePosition,
@@ -43,6 +44,7 @@ import {
     counterSelection,
     defenceSelection,
     excessLossSelection,
+    leadSelection,
     nameAttackers,
     nameLeaders,
     regroupSelection,
@@ -54,15 +56,18 @@ import {
     setRetreatLosses,
     type BattleSelections
 } from './battleSelection.js'
+import type { StagedSelectionState } from '@tabletop/frontend-components'
 import { sameIds } from '$lib/utils/ids.js'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { SingledOut } from '$lib/utils/pieceLayout.js'
 import { RideChoice } from './moveCommands.js'
 import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
+import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
 
 export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
     attackPlan?: { order?: ThreatOrder }
+    defensePlan?: { playerId: string }
 }
 
 export enum BattleRole {
@@ -83,9 +88,17 @@ interface Picking {
 
 export interface DefenceStage extends Picking {
     kind: StageKind.Defence
+    /** Pieces block the approach, so they all defend and cannot retreat. The game names them itself; this is only met in an attack that was already waiting on its defender before it did. */
     forced: boolean
     candidates: ProjectedUnit[]
     defenders: string[]
+    problem?: string
+}
+
+/** Rule 11, step 4: the attack has been pressed, and the defender names which of the defending pieces lead. */
+export interface DefenceLeadersStage extends Picking {
+    kind: StageKind.DefenceLeaders
+    defenders: ProjectedUnit[]
     leaders: string[]
     leaderLimit: number
     problem?: string
@@ -109,6 +122,8 @@ interface AttackerPicking extends Picking {
 export interface FeintStage extends AttackerPicking {
     kind: StageKind.Feint
     canPress: boolean
+    /** An attack whose defence named its leading units with its pieces: pressing it turns them face-up at once. */
+    pressShowsLeaders: boolean
     feinting: boolean
     ends: FeintEnd[]
 }
@@ -171,6 +186,7 @@ export interface AdvanceStage extends Picking {
 
 export type BattleStage =
     | DefenceStage
+    | DefenceLeadersStage
     | RetreatStage
     | FeintStage
     | DeclarationStage
@@ -201,32 +217,47 @@ function toggled(list: readonly string[], id: string, limit = Number.POSITIVE_IN
 
 function defenceStage(
     state: HydratedNapoleonsTriumphGameState,
-    attack: VisibleAttack,
     selections: BattleSelections
 ): DefenceStage {
-    const forced = mustDefend(state)
-    const candidates = forced
-        ? state.blockers(attack.defenseApproach, attack.defenderId)
+    const blockers = forcedDefense(state)
+    const candidates = blockers
+        ? blockers.map((id) => state.unit(id))
         : eligibleReserveDefenders(state)
     const candidateIds = idsOf(candidates)
     const named = defenceSelection.value(selections.defence, 'defenders') ?? []
-    const defenders = forced ? candidateIds : named.filter((id) => candidateIds.includes(id))
-    const leaders = (defenceSelection.value(selections.defence, 'leaders') ?? []).filter((id) =>
-        defenders.includes(id)
-    )
+    const defenders = blockers ?? named.filter((id) => candidateIds.includes(id))
     return {
         kind: StageKind.Defence,
-        forced,
+        forced: blockers !== undefined,
         candidates,
         defenders,
-        leaders,
-        leaderLimit: state.map.approach(attack.defenseApproach).wide ? 2 : 1,
         problem:
             defenders.length === 0
                 ? undefined
-                : whyIllegal(() => declareDefense(copyOf(state), defenders, leaders)),
-        pickableIds: candidateIds,
-        roles: rolesOf(defenders, leaders, BattleRole.Defends)
+                : whyIllegal(() => declareDefense(copyOf(state), defenders)),
+        pickableIds: blockers ? [] : candidateIds,
+        roles: rolesOf(defenders, [], BattleRole.Defends)
+    }
+}
+
+function defenceLeadersStage(
+    state: HydratedNapoleonsTriumphGameState,
+    attack: VisibleAttack,
+    selections: BattleSelections
+): DefenceLeadersStage {
+    const defenders = attack.defendingUnitIds.map((id) => state.unit(id))
+    const defenderIds = idsOf(defenders)
+    const leaders = (leadSelection.value(selections.lead, 'leaders') ?? []).filter((id) =>
+        defenderIds.includes(id)
+    )
+    return {
+        kind: StageKind.DefenceLeaders,
+        defenders,
+        leaders,
+        leaderLimit: state.map.approach(attack.defenseApproach).wide ? 2 : 1,
+        problem: whyIllegal(() => checkDefenseLeaders(state, leaders)),
+        pickableIds: defenderIds,
+        roles: rolesOf(defenderIds, leaders, BattleRole.Defends)
     }
 }
 
@@ -302,6 +333,7 @@ function feintStage(
         ...picking,
         kind: StageKind.Feint,
         canPress,
+        pressShowsLeaders: attack.defensePlan !== undefined,
         feinting,
         pickableIds: feinting ? picking.pickableIds : [],
         roles: feinting ? rolesOf(picking.attackers, [], BattleRole.Attacks) : {},
@@ -526,7 +558,9 @@ export function battleStageOf(
         case MachineState.DefenseResponse:
             return defenceSelection.value(selections.defence, 'retreating')
                 ? retreatStage(state, selections)
-                : defenceStage(state, attack, selections)
+                : defenceStage(state, selections)
+        case MachineState.DefenseDeclaration:
+            return defenceLeadersStage(state, attack, selections)
         case MachineState.Retreating:
             return retreatStage(state, selections)
         case MachineState.FeintDecision:
@@ -565,31 +599,48 @@ function standingWith(
     return picked.filter((id) => samePosition(state.unit(id).position, position))
 }
 
+/** Taking back the last unit named leaves no choice of the player's behind, so Undo then leaves the step. */
+function namedOrNone<
+    Values extends Record<string, unknown>,
+    Current extends Extract<keyof Values, string>
+>(
+    step: StagedSelection<Values>,
+    selection: StagedSelectionState<Values>,
+    stage: Current,
+    unitIds: Values[Current] & readonly string[]
+): StagedSelectionState<Values> {
+    return unitIds.length > 0 ? step.set(selection, stage, unitIds, 'manual') : step.empty()
+}
+
 function pickDefender(
     stage: DefenceStage,
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
-    const { defenders, leaders } = stage
-    const named = defenders.includes(unitId)
-    const leading = leaders.includes(unitId)
-    const nextDefenders =
-        named && leading && !stage.forced
-            ? defenders.filter((id) => id !== unitId)
-            : [...new Set([...defenders, unitId])]
-    const nextLeaders = !named ? leaders : toggled(leaders, unitId, stage.leaderLimit)
-    const withDefenders = defenceSelection.set(
-        selections.defence,
-        'defenders',
-        nextDefenders,
-        'manual'
-    )
     return {
         ...selections,
-        defence:
-            nextLeaders.length > 0
-                ? defenceSelection.set(withDefenders, 'leaders', nextLeaders, 'manual')
-                : withDefenders
+        defence: namedOrNone(
+            defenceSelection,
+            selections.defence,
+            'defenders',
+            toggled(stage.defenders, unitId)
+        )
+    }
+}
+
+function pickDefenceLeader(
+    stage: DefenceLeadersStage,
+    selections: BattleSelections,
+    unitId: string
+): BattleSelections {
+    return {
+        ...selections,
+        lead: namedOrNone(
+            leadSelection,
+            selections.lead,
+            'leaders',
+            toggled(stage.leaders, unitId, stage.leaderLimit)
+        )
     }
 }
 
@@ -651,6 +702,8 @@ export function pickUnit(
     switch (stage.kind) {
         case StageKind.Defence:
             return pickDefender(stage, selections, unitId)
+        case StageKind.DefenceLeaders:
+            return pickDefenceLeader(stage, selections, unitId)
         case StageKind.Retreat:
             return pickRetreatingUnit(stage, selections, unitId)
         case StageKind.Feint:

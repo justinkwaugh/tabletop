@@ -12,7 +12,8 @@ import {
     cavalry,
     frenchTurn,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { CommandKind, type MoveOrder } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
@@ -142,19 +143,20 @@ describe('the fixed battery defending from the reserve of the Santon (rule 18)',
     it.each(NEIGHBOURS)('may lead the defence against an attack from locale %i', (neighbour) => {
         const game = attacked([allied('A-lead', infantry(3), neighbour)])
         threaten(game, Side.Allied, neighbour, SANTON_LOCALE)
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: ['F-fixed'],
-            leaderIds: ['F-fixed']
-        })
+        defendWith(game, game.playerOf(Side.French), ['F-fixed'])
         expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        game.act(ActionType.PressAttack, game.playerOf(Side.Allied))
+        game.act(ActionType.LeadDefense, game.playerOf(Side.French), { leaderIds: ['F-fixed'] })
+        expect(game.hydrated.attack?.defenseLeaderIds).toEqual(['F-fixed'])
     })
 
     it('may not lead from reserve when the rule is not in use', () => {
         const game = attacked([allied('A-lead', infantry(3))], {})
         threaten(game, Side.Allied, BELOW, SANTON_LOCALE)
+        defendWith(game, game.playerOf(Side.French), ['F-fixed'])
+        game.act(ActionType.PressAttack, game.playerOf(Side.Allied))
         expect(() =>
-            game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-                unitIds: ['F-fixed'],
+            game.act(ActionType.LeadDefense, game.playerOf(Side.French), {
                 leaderIds: ['F-fixed']
             })
         ).toThrow(/cannot lead/)
@@ -226,7 +228,7 @@ describe('the fixed battery defending from the reserve of the Santon (rule 18)',
         const french = game.playerOf(Side.French)
         const attacker = game.playerOf(Side.Allied)
         threaten(game, Side.Allied, BELOW, SANTON_LOCALE)
-        game.act(ActionType.DeclareDefense, french, { unitIds: ['F-fixed'], leaderIds: [] })
+        defendWith(game, french, ['F-fixed'])
         game.act(ActionType.DeclareFeint, attacker, {
             orders: [unitMove('A-foot')],
             end: FeintEnd.Reserve
@@ -239,7 +241,7 @@ describe('the fixed battery defending from the reserve of the Santon (rule 18)',
             ActionType.Retreat
         ])
         expect(() =>
-            game.act(ActionType.DeclareDefense, french, { unitIds: ['F-fixed'], leaderIds: [] })
+            game.act(ActionType.DeclareDefense, french, { unitIds: ['F-fixed'] })
         ).toThrow()
         game.act(ActionType.Retreat, french, { losses: {}, destinations: {}, kept: {} })
         game.act(ActionType.Occupy, attacker, { orders: [unitMove('A-horse')] })
@@ -365,14 +367,14 @@ describe('artillery attacking from the Santon (rule 18)', () => {
         const defending = alliedTurn([other, allied('A-inf', infantry(2))], santonRule)
         threaten(defending, Side.Allied, BELOW, SANTON_LOCALE)
         const french = defending.playerOf(Side.French)
-        expect(() =>
-            defending.act(ActionType.DeclareDefense, french, {
-                unitIds: ['F-art'],
-                leaderIds: ['F-art']
-            })
-        ).toThrow(/Santon/)
-        defending.act(ActionType.DeclareDefense, french, { unitIds: ['F-art'], leaderIds: [] })
+        defendWith(defending, french, ['F-art'])
         expect(defending.state.machineState).toBe(MachineState.FeintDecision)
+        defending.act(ActionType.PressAttack, defending.playerOf(Side.Allied))
+        expect(() =>
+            defending.act(ActionType.LeadDefense, french, { leaderIds: ['F-art'] })
+        ).toThrow(/Santon/)
+        defending.act(ActionType.LeadDefense, french, { leaderIds: [] })
+        expect(defending.state.machineState).toBe(MachineState.AttackDeclaration)
     })
 })
 

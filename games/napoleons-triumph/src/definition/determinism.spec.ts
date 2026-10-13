@@ -95,7 +95,7 @@ describe('playing the same actions from the same seed', () => {
         play(ActionType.ThreatenAttack, french, {
             approach: AUSTERLITZ.approachBetween(ST_HILAIRE, BETWEEN).id
         })
-        play(ActionType.DeclareDefense, allied, { unitIds: [picket.id], leaderIds: [] })
+        play(ActionType.DeclareDefense, allied, { unitIds: [picket.id] })
         play(ActionType.DeclareFeint, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: [feinter.id] }],
             end: FeintEnd.Reserve

@@ -192,8 +192,7 @@ describe('what the history can replay', () => {
         const approach = recorded.game.hydrated.map.approachBetween(53, 63).id
         recorded.act(ActionType.ThreatenAttack, Side.French, { approach })
         const defence = recorded.act(ActionType.DeclareDefense, Side.Allied, {
-            unitIds: defenders,
-            leaderIds: defenders.slice(0, 1)
+            unitIds: defenders
         })
         return { recorded, approach, defence }
     }
@@ -283,6 +282,7 @@ describe('what the history can replay', () => {
     it('shows a unit destroyed in the fight washed out where it stood', () => {
         const { recorded } = standsAgainstAThreat(['A-1'])
         recorded.act(ActionType.PressAttack, Side.French)
+        recorded.act(ActionType.LeadDefense, Side.Allied, { leaderIds: ['A-1'] })
         const fight = recorded.act(ActionType.DeclareAttack, Side.French, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             wide: false,

@@ -8,7 +8,8 @@ import {
     artillery,
     cavalry,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { CommandKind, ResultTermKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
@@ -28,6 +29,127 @@ function threaten(game: TestGame) {
     const approach = game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
     game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), { approach })
 }
+
+describe('rule 11, steps 2 to 4: the defence is named, then pressed, then led', () => {
+    const reserve: PiecePlacement[] = [
+        { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
+        {
+            id: 'A-big',
+            side: Side.Allied,
+            face: infantry(3),
+            locale: DEFEND_IN,
+            commanderId: 'langeron'
+        },
+        {
+            id: 'A-small',
+            side: Side.Allied,
+            face: infantry(2),
+            locale: DEFEND_IN,
+            commanderId: 'langeron'
+        },
+        { id: 'A-out', side: Side.Allied, face: infantry(2), locale: DEFEND_IN }
+    ]
+
+    function stood() {
+        const game = frenchTurn(reserve)
+        const french = game.playerOf(Side.French)
+        const allied = game.playerOf(Side.Allied)
+        threaten(game)
+        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-big', 'A-small'] })
+        return { game, french, allied }
+    }
+
+    it('asks the defender only for the defending pieces, and then the attacker whether to press', () => {
+        const { game, french } = stood()
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        expect(game.state.activePlayerIds).toEqual([french])
+        expect(game.state.attack?.defenseLeaderIds).toEqual([])
+    })
+
+    it('shows nothing when the attack is pressed, and passes to the defender to name the leading units', () => {
+        const { game, french, allied } = stood()
+        const pressed = game.act(ActionType.PressAttack, french)
+        expect(pressed.some((action) => action.revealsInfo === true)).toBe(false)
+        expect(game.state.machineState).toBe(MachineState.DefenseDeclaration)
+        expect(game.state.activePlayerIds).toEqual([allied])
+        expect(game.hydrated.unitsHiddenFrom(french).map((unit) => unit.id)).toEqual(
+            expect.arrayContaining(['A-big', 'A-small'])
+        )
+    })
+
+    it('turns the leading units face-up as the defender names them, and passes to the attack declaration', () => {
+        const { game, french, allied } = stood()
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-big'] })
+        expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
+        expect(game.state.activePlayerIds).toEqual([french])
+        expect(game.state.attack?.defenseLeaderIds).toEqual(['A-big'])
+        expect(game.hydrated.unit('A-big').shown).toEqual(infantry(3))
+        expect(game.hydrated.unit('A-small').shown).toBeUndefined()
+    })
+
+    it('lets the defence name no leading unit', () => {
+        const { game, french, allied } = stood()
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: [] })
+        expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
+        expect(game.state.attack?.defenseLeaderIds).toEqual([])
+    })
+
+    it('takes leading units only from the defending pieces, each once, and only when it is time', () => {
+        const { game, french, allied } = stood()
+        expect(() => game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-big'] })).toThrow()
+        game.act(ActionType.PressAttack, french)
+        expect(() => game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-out'] })).toThrow(
+            /defending pieces/
+        )
+        expect(() =>
+            game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-big', 'A-big'] })
+        ).toThrow(/named once/)
+        expect(() => game.act(ActionType.LeadDefense, french, { leaderIds: [] })).toThrow()
+    })
+
+    it('names pieces blocking the approach as the defenders without asking, since they must all defend', () => {
+        const game = frenchTurn([
+            { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
+            {
+                id: 'A-front',
+                side: Side.Allied,
+                face: infantry(2),
+                locale: DEFEND_IN,
+                facing: ATTACK_FROM
+            },
+            { id: 'A-back', side: Side.Allied, face: infantry(2), locale: DEFEND_IN }
+        ])
+        const approach = game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
+        const threat = game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach
+        })
+        expect(threat.map((action) => action.type)).toEqual([
+            ActionType.ThreatenAttack,
+            ActionType.DeclareDefense
+        ])
+        expect(game.state.attack?.defendingUnitIds).toEqual(['A-front'])
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        expect(game.state.activePlayerIds).toEqual([game.playerOf(Side.French)])
+    })
+
+    it('still shows the leading units as it is pressed, for an attack whose defence named them with its pieces', () => {
+        const { game, french } = stood()
+        game.arrange((state) => {
+            const attack = state.attack
+            if (attack) {
+                attack.awaits = undefined
+                attack.defensePlan = { playerId: attack.defenderId, leaderIds: ['A-small'] }
+            }
+        })
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        game.act(ActionType.PressAttack, french)
+        expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
+        expect(game.state.attack?.defenseLeaderIds).toEqual(['A-small'])
+        expect(game.hydrated.unit('A-small').shown).toEqual(infantry(2))
+    })
+})
 
 describe('rule 11 attack example 3: artillery against artillery', () => {
     const placements: PiecePlacement[] = [
@@ -59,16 +181,13 @@ describe('rule 11 attack example 3: artillery against artillery', () => {
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
         threaten(game)
-        expect(game.state.machineState).toBe(MachineState.DefenseResponse)
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
         expect(() =>
             game.act(ActionType.Retreat, allied, { losses: {}, destinations: {}, kept: {} })
         ).toThrow()
-        game.act(ActionType.DeclareDefense, allied, {
-            unitIds: ['A-art', 'A-inf'],
-            leaderIds: ['A-art']
-        })
-        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        defendWith(game, allied, ['A-art', 'A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-art'] })
         expect(game.hydrated.unit('A-art').shown).toEqual(artillery())
         const declared = game.outcome(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-art'] }],
@@ -114,11 +233,9 @@ describe('rule 11 attack example 4: infantry repulsed by a cavalry counter-attac
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
         threaten(game)
-        game.act(ActionType.DeclareDefense, allied, {
-            unitIds: ['A-inf', 'A-cav'],
-            leaderIds: ['A-inf']
-        })
+        defendWith(game, allied, ['A-inf', 'A-cav'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-inf'] })
         const declared = game.outcome(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             wide: false,
@@ -176,7 +293,7 @@ describe('feints', () => {
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
         threaten(game)
-        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-one', 'A-two'], leaderIds: [] })
+        defendWith(game, allied, ['A-one', 'A-two'])
         game.act(ActionType.DeclareFeint, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             end: FeintEnd.Approach
@@ -201,7 +318,7 @@ describe('feints', () => {
 })
 
 describe('retreats', () => {
-    it('lets a reserve defender give ground before combat, at a cost to its idle infantry', () => {
+    it('lets a reserve defender retreat before combat, at a cost to its idle infantry', () => {
         const game = frenchTurn([
             { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
             {
@@ -256,8 +373,9 @@ describe('retreats', () => {
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
         threaten(game)
-        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-inf'], leaderIds: ['A-inf'] })
+        defendWith(game, allied, ['A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-inf'] })
         game.act(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             wide: false,
@@ -305,14 +423,12 @@ describe('errata and designer rulings', () => {
         const french = game.playerOf(Side.French)
         const approach = game.hydrated.map.approachBetween(WIDE_FROM, WIDE_INTO).id
         game.act(ActionType.ThreatenAttack, french, { approach })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         expect(() =>
             game.act(ActionType.DeclareFeint, french, { orders: pair, end: FeintEnd.Approach })
         ).toThrow(/lead an attack together/)
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         expect(() =>
             game.act(ActionType.DeclareAttack, french, {
                 orders: pair,
@@ -354,10 +470,7 @@ describe('errata and designer rulings', () => {
         }
 
         game.act(ActionType.ThreatenAttack, allied, { approach })
-        game.act(ActionType.DeclareDefense, french, {
-            unitIds: ['F-fixed', 'F-inf'],
-            leaderIds: []
-        })
+        defendWith(game, french, ['F-fixed', 'F-inf'])
         game.act(ActionType.DeclareFeint, allied, feint)
         const state = game.hydrated
         expect(state.attack).toBeUndefined()
@@ -381,10 +494,7 @@ describe('errata and designer rulings', () => {
         const allied = game.playerOf(Side.Allied)
         const approach = game.hydrated.map.approachBetween(WIDE_INTO, WIDE_FROM).id
         game.act(ActionType.ThreatenAttack, allied, { approach })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.French), {
-            unitIds: ['F-fixed'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.French), ['F-fixed'])
         game.act(ActionType.DeclareFeint, allied, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
             end: FeintEnd.Reserve
@@ -420,19 +530,17 @@ describe('Guard infantry beside line infantry', () => {
         const allied = game.playerOf(Side.Allied)
         const approach = game.hydrated.map.approachBetween(93, 94).id
         game.act(ActionType.ThreatenAttack, french, { approach })
-        game.act(ActionType.DeclareDefense, allied, {
-            unitIds: ['A-guard', 'A-line'],
-            leaderIds: ['A-guard', 'A-line']
-        })
+        defendWith(game, allied, ['A-guard', 'A-line'])
         expect(game.state.machineState).toBe(MachineState.FeintDecision)
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-guard', 'A-line'] })
+        expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
 
         const second = frenchTurn(placements)
         second.act(ActionType.ThreatenAttack, second.playerOf(Side.French), { approach })
-        second.act(ActionType.DeclareDefense, second.playerOf(Side.Allied), {
-            unitIds: ['A-guard', 'A-line'],
-            leaderIds: []
-        })
+        defendWith(second, second.playerOf(Side.Allied), ['A-guard', 'A-line'])
         second.act(ActionType.PressAttack, second.playerOf(Side.French))
+        second.act(ActionType.LeadDefense, second.playerOf(Side.Allied), { leaderIds: [] })
         second.act(ActionType.DeclareAttack, second.playerOf(Side.French), {
             orders: [
                 { kind: CommandKind.Corps, commanderId: 'lannes', unitIds: ['F-inf', 'F-inf-b'] }

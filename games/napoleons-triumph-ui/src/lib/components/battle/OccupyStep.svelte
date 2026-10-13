@@ -9,7 +9,7 @@
 </script>
 
 <div class="nt-battle-prompt">
-    The defender has given ground. Name the units that made the threat; they move into the locale.
+    The defender has retreated. Name the units that made the threat; they move into the locale.
     {#if stage.roadOrders || stage.byRoad}
         Cavalry that rides in by road may ride on or threaten again, and is shown when its move
         ends.

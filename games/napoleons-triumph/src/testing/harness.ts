@@ -197,6 +197,18 @@ export interface Assault {
     target?: string
 }
 
+/** Rule 11, step 2: the defender names these units to defend. Pieces blocking the approach are named for it, so then this only checks them. */
+export function defendWith(game: TestGame, defenderId: string, unitIds: readonly string[]) {
+    if (game.state.machineState === MachineState.DefenseResponse) {
+        game.act(ActionType.DeclareDefense, defenderId, { unitIds })
+        return
+    }
+    const standing = game.state.attack?.defendingUnitIds ?? []
+    if (standing.length !== unitIds.length || !unitIds.every((id) => standing.includes(id))) {
+        throw new Error(`Expected ${unitIds.join()} to defend, not ${standing.join()}`)
+    }
+}
+
 /** Rule 11, steps 1 to 6: a threat the defender stands against and the attacker presses home. */
 export function assault(game: TestGame, plan: Assault): unknown {
     const attacker = game.playerOf(plan.attacker)
@@ -206,13 +218,12 @@ export function assault(game: TestGame, plan: Assault): unknown {
         attacker,
         plan.guardUnitId === undefined ? { approach } : { approach, guardUnitId: plan.guardUnitId }
     )
-    game.act(ActionType.DeclareDefense, game.playerOf(opposingSide(plan.attacker)), {
-        unitIds: plan.defenders,
-        leaderIds: plan.defenseLeaders
-    })
+    const defender = game.playerOf(opposingSide(plan.attacker))
+    defendWith(game, defender, plan.defenders)
     if (game.state.machineState === MachineState.FeintDecision) {
         game.act(ActionType.PressAttack, attacker)
     }
+    game.act(ActionType.LeadDefense, defender, { leaderIds: plan.defenseLeaders })
     const declaration = { orders: plan.orders, wide: plan.wide ?? false, leaderIds: plan.leaders }
     return game.outcome(
         ActionType.DeclareAttack,

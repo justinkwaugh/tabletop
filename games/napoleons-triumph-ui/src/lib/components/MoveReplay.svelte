@@ -125,7 +125,7 @@
                                     y={block.centre.y}
                                     angle={block.angle}
                                     colors={gameSession.armyColors(block.unit.playerId)}
-                                    face={gameSession.visibleFace(block.unit)}
+                                    {...gameSession.lookOf(block.unit)}
                                     dimmed
                                 />
                             {/each}
@@ -139,7 +139,7 @@
                                         y={block.centre.y}
                                         angle={block.angle}
                                         colors={gameSession.armyColors(block.unit.playerId)}
-                                        face={gameSession.visibleFace(block.unit)}
+                                        {...gameSession.lookOf(block.unit)}
                                         roleMark={role && roleMarkOf(role)}
                                         dimmed={scene.bystanderIds.includes(block.unit.id)}
                                     />
