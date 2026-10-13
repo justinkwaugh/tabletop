@@ -5,7 +5,7 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
-import { ownWarbandOwner, rulersOfSite, sitesRuledBy } from '../util/rule.js'
+import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, registerModifier, chosen } from './registry.js'
@@ -16,6 +16,7 @@ import {
     discardDenizensAtSites,
     gainFavorFromBank,
     gainSecrets,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     killWarbandGroup,
     killWarbandsAtSite,
@@ -27,7 +28,8 @@ import {
     warbandGroupsInRegion,
     siteHasCardOfSuit,
     hasFaceupAdviserOfSuit,
-    denizensAtYourSite
+    denizensAtYourSite,
+    warbandOwnerGainedByPower
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
@@ -63,6 +65,7 @@ const groupsInRegion: ChoiceDomain = (state, playerId) =>
         kind: PowerChoiceKind.Warbands,
         group
     }))
+const TERROR_SPELLS_KILLS = 2
 
 registerEffect(
     'denizen.arcane.terror-spells',
@@ -71,11 +74,13 @@ registerEffect(
         choices: [
             one(PowerChoiceKind.Warbands, {
                 what: 'warbands in your region to kill',
-                domain: groupsInRegion
+                domain: groupsInRegion,
+                together: TERROR_SPELLS_KILLS
             }),
             optional(PowerChoiceKind.Warbands, {
                 what: 'more warbands in your region to kill',
-                domain: groupsInRegion
+                domain: groupsInRegion,
+                together: TERROR_SPELLS_KILLS
             })
         ],
         reasonCannotResolve: (ctx) => {
@@ -89,7 +94,7 @@ registerEffect(
                 (n, g) => n + g.count,
                 0
             )
-            const required = Math.min(2, available)
+            const required = Math.min(TERROR_SPELLS_KILLS, available)
             return named === required
                 ? undefined
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
@@ -179,8 +184,9 @@ registerEffect(
                     targetPlayerId: target.playerId
                 }
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+            const words = gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ?? gained
             return {
-                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`,
+                summary: `killed a warband on ${target.playerId}'s board and gained ${words}`,
                 targetPlayerId: target.playerId,
                 warbandOwner: owner
             }
@@ -273,15 +279,16 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
             killWarbandsAtSite(ctx.state, site, Number.MAX_SAFE_INTEGER)
         ).reduce((n, k) => n + k, 0)
         const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+        const words = gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? gained
         if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
             return {
-                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — ${ctx.playerId} cannot place warbands at sites`
+                summary: `Key to the City: killed ${killed} at ${site}, gained ${words}; placed none — ${ctx.playerId} cannot place warbands at sites`
             }
         }
-        const own = ownWarbandOwner(ctx.state, ctx.playerId)
-        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, own, site, gained)
+        const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
+        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, site, gained)
         return {
-            summary: `Key to the City: killed ${killed} at ${site}, gained ${gained} and placed ${placed} there`
+            summary: `Key to the City: killed ${killed} at ${site}, gained ${words} and placed ${placed} there`
         }
     }
 })
@@ -407,18 +414,22 @@ registerModifier(
 
 // "Action: Sacrifice an even number of warbands on your board. For every two
 // you sacrifice, gain a secret."
+const BLOOD_PACT_STEP = 2
 registerEffect(
     'denizen.arcane.blood-pact',
     powerIndexOf('denizen.arcane.blood-pact', PowerTiming.Action),
     {
         choices: [
-            one(PowerChoiceKind.Warbands, { what: 'an even number of warbands on your board' })
+            one(PowerChoiceKind.Warbands, {
+                what: 'an even number of warbands on your board',
+                step: BLOOD_PACT_STEP
+            })
         ],
         reasonCannotResolve: (ctx) => {
             const [c] = chosen(ctx, PowerChoiceKind.Warbands)
             if (c.group.at.kind !== 'board' || c.group.at.playerId !== ctx.playerId)
                 return 'the warbands must be on your board'
-            if (c.group.count < 2 || c.group.count % 2 !== 0)
+            if (c.group.count < BLOOD_PACT_STEP || c.group.count % BLOOD_PACT_STEP !== 0)
                 return `sacrifice an even number of warbands, not ${c.group.count}`
             return undefined
         },

@@ -3,8 +3,9 @@ import type { BoardSquare, Intersection } from '@tabletop/santiago'
 import { BORDER_X, BORDER_Y, CELL_H, CELL_W, COL_STARTS, H, ROW_STARTS, W } from '$lib/utils/boardGeometry.js'
 import {
     adjacentCandidates,
-    candidateFields,
     isCandidateField,
+    isDesertField,
+    plantedFields,
     nearbyCandidates
 } from './candidateFields.js'
 import { Flock, type BirdPose } from './flock.js'
@@ -24,9 +25,17 @@ export interface Ticker {
     remove(callback: TickCallback): void
 }
 
+type BoardHolder = { readonly board: { readonly squares: BoardSquare[][] } }
+
+// The part of a bird's SVG node the director writes.
+export type BirdNode = Pick<SVGGElement, 'setAttribute' | 'dataset'>
+
 export type BirdHost = {
     readonly isViewingHistory: boolean
-    readonly gameState: { readonly board: { readonly squares: BoardSquare[][] } }
+    readonly gameState: BoardHolder
+    // The state the visible state is moving to: birds leave as soon as a transition begins to
+    // change their field, rather than once it publishes.
+    readonly incomingGameState: BoardHolder
 }
 
 export type BirdEnvironment = {
@@ -92,7 +101,7 @@ export function browserBirdEnvironment(): BirdEnvironment {
 export class BirdDirector {
     private flock: Flock | undefined
     private fields: Intersection[] = []
-    private readonly nodes = new Map<number, SVGGElement>()
+    private readonly nodes = new Map<number, BirdNode>()
     private readonly poses = new Map<number, BirdPose>()
     private idleTimer: ReturnType<typeof setTimeout> | undefined
     private publish: PresenceListener = () => {}
@@ -127,7 +136,7 @@ export class BirdDirector {
         return this.tryVisit()
     }
 
-    setBirdNode(id: number, element?: SVGGElement) {
+    setBirdNode(id: number, element?: BirdNode) {
         if (element) this.nodes.set(id, element)
         else this.nodes.delete(id)
     }
@@ -148,12 +157,15 @@ export class BirdDirector {
             this.host.isViewingHistory ||
             this.env.isHidden() ||
             this.env.prefersReducedMotion()
-        const candidates = suppressed ? [] : candidateFields(this.host.gameState.board.squares)
-        if (candidates.length === 0) {
+        const squares = this.host.gameState.board.squares
+        const targets = suppressed ? [] : plantedFields(squares)
+        if (targets.length === 0) {
             this.scheduleVisit()
             return false
         }
-        this.spawn(candidates[Math.floor(this.env.random() * candidates.length)])
+        const target = targets[Math.floor(this.env.random() * targets.length)]
+        if (isCandidateField(squares[target.col][target.row])) this.spawn(target)
+        else this.spawnFlyover(target)
         return true
     }
 
@@ -171,6 +183,26 @@ export class BirdDirector {
                 size: MIN_FLOCK + Math.floor(this.env.random() * (MAX_FLOCK - MIN_FLOCK + 1)),
                 boardWidth: W,
                 boardHeight: H
+            },
+            this.env.random
+        )
+        this.publish(this.flock.birds.map((bird) => bird.id))
+        this.env.ticker.add(this.tick)
+    }
+
+    // The birds came for a field that has dried out: they circle it a while without landing.
+    private spawnFlyover(target: Intersection) {
+        this.fields = [target]
+        this.flock = new Flock(
+            {
+                cells: [this.cellRect(target)],
+                nearbyCells: [],
+                entrySide: this.env.random() < 0.5 ? 'left' : 'right',
+                exitSide: this.env.random() < 0.5 ? 'left' : 'right',
+                size: MIN_FLOCK + Math.floor(this.env.random() * (MAX_FLOCK - MIN_FLOCK + 1)),
+                boardWidth: W,
+                boardHeight: H,
+                lands: false
             },
             this.env.random
         )
@@ -207,7 +239,11 @@ export class BirdDirector {
 
     private shouldStartle(flock: Flock): boolean {
         if (this.host.isViewingHistory) return true
-        const squares = this.host.gameState.board.squares
+        const squares = this.host.incomingGameState.board.squares
+        if (!flock.lands) {
+            const field = this.fields[0]
+            return !isDesertField(squares[field.col][field.row])
+        }
         for (const index of flock.occupiedZoneIndexes()) {
             const field = this.fields[index]
             if (!isCandidateField(squares[field.col][field.row])) return true

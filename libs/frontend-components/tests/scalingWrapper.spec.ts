@@ -69,6 +69,24 @@ test('full screen keeps the table and page behind it from scrolling', async ({ p
     await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBeLessThan(400)
 })
 
+for (const focus of [undefined, { x: 200, y: 200, width: 300, height: 200 }]) {
+    test(`the scale read as reactive state follows the view ${focus ? 'focused on a region' : 'fitted whole'}, then zoomed`, async ({ page }) => {
+        await mountWrapper(page, { maxScale: 2, focus })
+        const board = page.getByTestId('board')
+        const read = async () => Number(await page.getByTestId('scale').textContent())
+        const drawn = async () => ((await board.boundingBox())?.width ?? 0) / 1000
+        const fitted = 0.375
+        if (focus) await expect.poll(read).toBeGreaterThan(fitted)
+        else await expect.poll(read).toBe(fitted)
+        const rested = await read()
+        expect(rested).toBeCloseTo(await drawn(), 3)
+        await page.mouse.move(200, 150)
+        await page.mouse.wheel(0, -100)
+        await expect.poll(read).toBeGreaterThan(rested)
+        await expect.poll(async () => Math.abs((await read()) - (await drawn()))).toBeLessThan(0.001)
+    })
+}
+
 test('mouse wheel zooms and dragging pans without clicking the board', async ({ page }) => {
     await mountWrapper(page)
     const board = page.getByTestId('board')

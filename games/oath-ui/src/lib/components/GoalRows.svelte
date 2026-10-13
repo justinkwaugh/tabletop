@@ -47,20 +47,15 @@
                     class="disc"
                     class:disc--ring={playerId === value.ringedId}
                     style={discStyle(playerId)}
-                    title={words}
                     aria-label={words}>{count}</span
                 >
             {/each}
         {:else if value.holderId}
             {@const words = `${gameSession.getPlayerName(value.holderId)} holds ${standingWords(kind)}`}
-            <span
-                class="disc disc--ring"
-                style={discStyle(value.holderId)}
-                title={words}
-                aria-label={words}
+            <span class="disc disc--ring" style={discStyle(value.holderId)} aria-label={words}
             ></span>
         {:else}
-            <span class="disc disc--empty" title="{standingWords(kind)}: unclaimed"></span>
+            <span class="disc disc--empty"></span>
             <span class="unclaimed">unclaimed</span>
         {/if}
     </div>

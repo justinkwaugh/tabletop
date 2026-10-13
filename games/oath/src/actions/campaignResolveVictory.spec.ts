@@ -225,10 +225,13 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
         const state = won({ targets: [siteTarget('c1'), pawnAndFavor] })
         const supplyBefore = state.getPlayerState(DEFENDER).supply
 
-        resolve({ banishToSiteId: 'p1' }).apply(state)
+        const banished = resolve({ banishToSiteId: 'p1' })
+        banished.apply(state)
 
         expect(state.getPlayerState(DEFENDER).siteId).toBe('p1')
         expect(state.getPlayerState(DEFENDER).supply).toBe(supplyBefore)
+        // The History names whom it banished and whose favor burned.
+        expect(banished.metadata?.defenderPlayerId).toBe(DEFENDER)
     })
 
     it('burns half the favor, rounded down, to the shared bank (R-10.4)', () => {
@@ -340,12 +343,12 @@ describe('a bandit victory', () => {
             targets: [siteTarget('p1')],
             defendingBandits: 1
         })
-        expectWarbandsConserved(state, () =>
-            resolve({ placements: [{ siteId: 'p1', owner: ATTACKER, count: 2 }] }).apply(state)
-        )
+        const victory = resolve({ placements: [{ siteId: 'p1', owner: ATTACKER, count: 2 }] })
+        expectWarbandsConserved(state, () => victory.apply(state))
 
         expect(state.warbandsBySite['p1'][ATTACKER]).toBe(2)
         expect(state.getPlayerState(ATTACKER).relicIds).toEqual([])
+        expect(victory.metadata?.defenderPlayerId).toBeUndefined()
     })
 })
 

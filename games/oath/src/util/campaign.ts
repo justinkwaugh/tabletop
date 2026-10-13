@@ -1,6 +1,6 @@
 import { bannerHolder } from './oathkeeper.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { attackingSiteOf, targetedSiteIds } from './campaignSite.js'
+import { attackingSiteOf, forceSitesOf, targetedSiteIds } from './campaignSite.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { reasonSitesForbidTargets, targetsNeedFlip } from './siteTravel.js'
 import { relicDefenseDice } from '../data/cardRegistry.js'
@@ -11,6 +11,7 @@ import {
     type WarbandGroup
 } from '../model/campaign.js'
 import { banditsPerSite } from './bandits.js'
+import type { CampaignDefender } from '../actions/campaign.js'
 import {
     persistentPawnDefenseBonus,
     persistentRelicDefenseBonus,
@@ -20,17 +21,21 @@ import {
     reasonPersistentForbidsTargets
 } from './persistent.js'
 import {
+    banditsHoldSiteFor,
     banditsRuleSite,
-    banditsServe,
     isImperialPlayer,
     rulersOfSite,
     rulesSite,
     rulingWarbandOwners,
     type ImperialScope
 } from './rule.js'
-import { boardWarbandGroups, warbandGroupsAtSites } from './force.js'
+import { boardOwnersOwnFirst, boardWarbandGroups, warbandGroupsAtSites } from './force.js'
+import { countOf } from './warbands.js'
 import { pawnSiteId } from './pawn.js'
 import { siteLockedFor } from './locked.js'
+import { campaignAsIfSiteNow } from './freeActions.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-5.5.1, R-5.5.2 */
 export interface CampaignParties {
@@ -42,10 +47,24 @@ export interface CampaignParties {
     /** R-5.5.1.a */
     nonImperialPlayerIds: readonly string[]
     targets: readonly CampaignTarget[]
+    /** R-5.5.1's "your site": the pawn's, or the one Wild Allies or Captains names. */
+    attackerSiteId: string
+    /** Wild Allies, Captains, Vow of Union — sites whose warbands of the attacker's join their force. */
+    forceSiteIds: readonly string[]
+    /** Wild Allies, Captains — the site named, one of `forceSiteIds`; absent when no card named one. */
+    asIfSiteId?: string
 }
 
-export function scopeOf(parties: CampaignParties): ImperialScope {
+export function scopeOf(parties: Pick<CampaignParties, 'nonImperialPlayerIds'>): ImperialScope {
     return { nonImperialPlayerIds: parties.nonImperialPlayerIds }
+}
+
+/** R-5.5.1.a for battle plans and the attacking force; R-X.4 — before revision 5 they ignored it. */
+export function battleScopeOf(
+    state: HydratedOathGameState,
+    parties: Pick<CampaignParties, 'nonImperialPlayerIds'>
+): ImperialScope | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes2) ? scopeOf(parties) : undefined
 }
 
 /** R-5.5.1.a */
@@ -70,29 +89,63 @@ export function suspendedImperialsFor(
     return []
 }
 
-/** R-5.5.1, R-5.5.2 — a defender with no declarable targets is no defender. */
+/**
+ * R-5.5.1.a, R-5.5.2.a — the sides as declared, before any Citizen joins. `asIfSiteId` is the site
+ * Wild Allies or Captains would name, judged before the card names it.
+ */
+export function declaredParties(
+    state: HydratedOathGameState,
+    attackerPlayerId: string,
+    defenderPlayerId: string | undefined,
+    targets: readonly CampaignTarget[],
+    asIfSiteId?: string
+): CampaignParties {
+    const base: CampaignParties = {
+        attackerPlayerId,
+        defenderPlayerId,
+        allyPlayerIds: [],
+        nonImperialPlayerIds: suspendedImperialsFor(state, attackerPlayerId, defenderPlayerId),
+        targets,
+        attackerSiteId: asIfSiteId ?? attackingSiteOf(state, attackerPlayerId),
+        forceSiteIds: forceSitesOf(state, attackerPlayerId, asIfSiteId),
+        asIfSiteId: asIfSiteId ?? campaignAsIfSiteNow(state, attackerPlayerId)
+    }
+    return { ...base, allyPlayerIds: compulsoryAllies(state, base) }
+}
+
+/** R-5.5.2.a — "the Chancellor joins as an Ally" when an Imperial player defends. */
+function compulsoryAllies(state: HydratedOathGameState, parties: CampaignParties): string[] {
+    const defenderId = parties.defenderPlayerId
+    if (!defenderId || !isImperialPlayer(state, defenderId, scopeOf(parties))) return []
+    const chancellorId = state.chancellorId()
+    return chancellorId !== defenderId && chancellorId !== parties.attackerPlayerId
+        ? [chancellorId]
+        : []
+}
+
+/** R-5.5.1, R-5.5.2 — a defender with no declarable targets is no defender. `secretsPaid` as for `reasonFlipInvalid`. */
 export function reasonNoCampaignAgainst(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderPlayerId: string | undefined
+    defenderPlayerId: string | undefined,
+    asIfSiteId?: string,
+    secretsPaid = 0
 ): string | undefined {
-    const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId)
+    const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId, asIfSiteId)
     if (reason) return reason
 
-    const parties: CampaignParties = {
-        attackerPlayerId: attackerId,
-        defenderPlayerId,
-        allyPlayerIds: [],
-        nonImperialPlayerIds: suspendedImperialsFor(state, attackerId, defenderPlayerId),
-        targets: []
-    }
+    const parties = declaredParties(state, attackerId, defenderPlayerId, [], asIfSiteId)
     const candidates = targetableBy(state, parties)
     const declarable = (targets: CampaignTarget[]) => {
         const declared = { ...parties, targets }
         return (
             reasonCannotDeclareTargets(state, declared) === undefined &&
-            reasonSitesForbidTargets(state, declared, targetsNeedFlip(state, declared)) ===
-                undefined
+            reasonSitesForbidTargets(
+                state,
+                declared,
+                targetsNeedFlip(state, declared),
+                secretsPaid
+            ) === undefined
         )
     }
     // R-7.1.4 — Giant Python's even total can need a second target; no rule needs a third.
@@ -104,6 +157,48 @@ export function reasonNoCampaignAgainst(
     return found
         ? undefined
         : `no targets can be declared against ${defenderPlayerId ?? 'the bandits'}`
+}
+
+/** R-5.5.1, R-5.5.2 — the other players, and the bandits, a Campaign from the attacker's site may declare. */
+export function defendersOpenTo(state: HydratedOathGameState, attackerId: string): CampaignDefender[] {
+    return defendersOpenFrom(state, attackerId)
+}
+
+/**
+ * Wild Allies, Captains — those a Campaign acting as if from `siteId` may declare, before the card
+ * names it, once its cost has taken `secretsPaid` faceup secrets (R-7.1.2).
+ */
+export function defendersOpenToAt(
+    state: HydratedOathGameState,
+    attackerId: string,
+    siteId: string,
+    secretsPaid: number
+): CampaignDefender[] {
+    return defendersOpenFrom(state, attackerId, siteId, secretsPaid)
+}
+
+function defendersOpenFrom(
+    state: HydratedOathGameState,
+    attackerId: string,
+    asIfSiteId?: string,
+    secretsPaid = 0
+): CampaignDefender[] {
+    const defenders: CampaignDefender[] = [
+        ...state.players
+            .filter((other) => other.playerId !== attackerId)
+            .map((other) => ({ kind: 'player' as const, playerId: other.playerId })),
+        { kind: 'bandits' }
+    ]
+    return defenders.filter(
+        (defender) =>
+            reasonNoCampaignAgainst(
+                state,
+                attackerId,
+                defender.kind === 'player' ? defender.playerId : undefined,
+                asIfSiteId,
+                secretsPaid
+            ) === undefined
+    )
 }
 
 /** R-5.5.1, R-5.5.2 — Sneak Attack gives the opportunity, not an exemption. */
@@ -128,9 +223,10 @@ function targetableBy(state: HydratedOathGameState, parties: CampaignParties): C
     const held: CampaignTarget[] = defender
         ? [
               { kind: CampaignTargetKind.PawnAndFavor },
-              ...defender.relicIds.map(
-                  (cardId): CampaignTarget => ({ kind: CampaignTargetKind.Relic, cardId })
-              ),
+              ...defender.relicIds.map((cardId): CampaignTarget => ({
+                  kind: CampaignTargetKind.Relic,
+                  cardId
+              })),
               ...Object.values(Banner)
                   .filter((banner) => bannerHolder(state, banner) === defender.playerId)
                   .map((banner): CampaignTarget => ({ kind: CampaignTargetKind.Banner, banner }))
@@ -141,13 +237,14 @@ function targetableBy(state: HydratedOathGameState, parties: CampaignParties): C
     )
 }
 
-/** R-5.5.1 — an undefined defender is the bandits. */
+/** R-5.5.1 — an undefined defender is the bandits; `asIfSiteId` as for `declaredParties`. */
 export function reasonCannotChooseDefender(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderPlayerId: string | undefined
+    defenderPlayerId: string | undefined,
+    asIfSiteId?: string
 ): string | undefined {
-    const siteId = attackingSiteOf(state, attackerId)
+    const siteId = asIfSiteId ?? attackingSiteOf(state, attackerId)
 
     if (defenderPlayerId === undefined) {
         if (!banditsRuleSite(state, siteId)) {
@@ -169,8 +266,13 @@ export function reasonCannotChooseDefender(
     return undefined
 }
 
-/** R-5.5.2, R-2.8.3 — a site's printed shield is a reminder, not a number. */
+/** R-5.5.2 */
 export function collectDefensePool(state: HydratedOathGameState, parties: CampaignParties): number {
+    return targetDefenseDice(state, parties) + titleDefenseDice(state, parties)
+}
+
+/** R-5.5.2, R-2.8.3 — a site's printed shield is a reminder, not a number. */
+export function targetDefenseDice(state: HydratedOathGameState, parties: CampaignParties): number {
     let dice = 0
 
     for (const target of parties.targets) {
@@ -207,7 +309,7 @@ export function collectDefensePool(state: HydratedOathGameState, parties: Campai
         }
     }
 
-    return dice + titleDefenseDice(state, parties)
+    return dice
 }
 
 /** R-2.11.c, R-2.11.d — the Chancellor's title covers a defending Citizen unless R-5.5.1.a suspends them. */
@@ -235,16 +337,20 @@ export function collectDefendingForce(
     if (!defenderId) return []
 
     const sites = targetedSiteIds(parties)
-    const force = warbandGroupsAtSites(
-        state,
-        sites,
-        rulingWarbandOwners(state, defenderId, scopeOf(parties))
-    )
+    const owners = rulingWarbandOwners(state, defenderId, scopeOf(parties))
+    // R-5.5.1.a-H1 — the warbands at the site Captains or Wild Allies names join the attacking
+    // force and "do not get added to the defending force"; before revision 5 they were in both.
+    const ownersAt = (siteId: string): WarbandOwner[] => {
+        if (siteId !== parties.asIfSiteId) return owners
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes2)) return owners
+        const attacking = forceSiteOwners(state, parties, siteId)
+        return owners.filter((owner) => !attacking.includes(owner))
+    }
+    const force = sites.flatMap((siteId) => warbandGroupsAtSites(state, [siteId], ownersAt(siteId)))
 
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
     const inTheBattle = (playerId: string) => {
         const siteId = pawnSiteId(state, playerId)
-        return siteId === attackerSiteId || sites.includes(siteId)
+        return siteId === parties.attackerSiteId || sites.includes(siteId)
     }
 
     const boards = [defenderId, ...parties.allyPlayerIds.filter((id) => id !== defenderId)]
@@ -253,6 +359,52 @@ export function collectDefendingForce(
     }
 
     return force
+}
+
+/**
+ * R-5.5.2, R-10.9 — whose warbands at a site the force reaches join it. The site Wild Allies or
+ * Captains names gives "your warbands there" whatever R-5.5.1.a's scope (R-5.5.1.a-H1, Captains'
+ * Q&A). Vow of Union's "sites you rule" are judged in the Campaign's scope (battleScopeOf), as its
+ * Q&A rules. A site that is both is the named one. Before revision 5 there is no scope, so every
+ * site gives the same owners.
+ */
+export function forceSiteOwners(
+    state: HydratedOathGameState,
+    parties: Pick<CampaignParties, 'attackerPlayerId' | 'asIfSiteId' | 'nonImperialPlayerIds'>,
+    siteId: string
+): WarbandOwner[] {
+    const attackerId = parties.attackerPlayerId
+    return siteId === parties.asIfSiteId
+        ? rulingWarbandOwners(state, attackerId)
+        : rulingWarbandOwners(state, attackerId, battleScopeOf(state, parties))
+}
+
+/**
+ * R-5.5.2, R-10.9 — the sites the force reaches (forceSiteOwners), then the board with the
+ * attacker's own warbands first.
+ */
+export function collectAttackingForce(
+    state: HydratedOathGameState,
+    parties: Pick<
+        CampaignParties,
+        'attackerPlayerId' | 'forceSiteIds' | 'asIfSiteId' | 'nonImperialPlayerIds'
+    >
+): WarbandGroup[] {
+    const attackerId = parties.attackerPlayerId
+    const board = state.getPlayerState(attackerId).warbandsOnBoard
+    const onBoard = boardOwnersOwnFirst(state, attackerId)
+        .map((owner): WarbandGroup => ({
+            at: { kind: 'board', playerId: attackerId },
+            owner,
+            count: countOf(board, owner)
+        }))
+        .filter((group) => group.count > 0)
+    return [
+        ...parties.forceSiteIds.flatMap((siteId) =>
+            warbandGroupsAtSites(state, [siteId], forceSiteOwners(state, parties, siteId))
+        ),
+        ...onBoard
+    ]
 }
 
 // R-2.8.3, R-10.3, R-5.5.6, R-7.6.5 — bandits are counted apart from warbands and never killed.
@@ -267,7 +419,7 @@ export function collectDefendingBandits(
     const scope = scopeOf(parties)
     const defenders = [defenderId, ...parties.allyPlayerIds]
     const served = sites.filter((siteId) =>
-        defenders.some((playerId) => banditsServe(state, playerId, siteId, scope))
+        defenders.some((playerId) => banditsHoldSiteFor(state, playerId, siteId, scope))
     )
     return served.length * banditsPerSite(state)
 }
@@ -304,7 +456,7 @@ export function reasonCannotDeclareTargets(
     state: HydratedOathGameState,
     parties: CampaignParties
 ): string | undefined {
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
+    const attackerSiteId = parties.attackerSiteId
 
     const seen = new Set<string>()
     for (const target of parties.targets) {
@@ -335,8 +487,12 @@ export function reasonCannotDeclareTargets(
         return `the defender rules ${attackerSiteId}, so you must target your site`
     }
 
-    // R-7.1.4 — Giant Python: the targets must add an even total of defense dice.
-    return reasonPersistentForbidsTargets(state, parties, collectDefensePool(state, parties))
+    // R-7.1.4 — Giant Python: the targets must add an even total of defense dice; its Q&A
+    // counts only the dice the targets add, not the Oathkeeper's.
+    const targetDice = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+        ? targetDefenseDice(state, parties)
+        : collectDefensePool(state, parties)
+    return reasonPersistentForbidsTargets(state, parties, targetDice)
 }
 
 function reasonCannotTarget(
@@ -344,7 +500,7 @@ function reasonCannotTarget(
     parties: CampaignParties,
     target: CampaignTarget
 ): string | undefined {
-    const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)
+    const attackerSiteId = parties.attackerSiteId
     const defenderId = parties.defenderPlayerId
     const defender = defenderId ? state.getPlayerState(defenderId) : undefined
 

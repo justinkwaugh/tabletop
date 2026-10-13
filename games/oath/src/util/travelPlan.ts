@@ -1,0 +1,238 @@
+import { HydratedOathGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+import { reasonPersistentForbidsTravel } from './persistent.js'
+import { reasonTollsUnpaid, tollsFor, travelFreeByToll, wayStationRuled } from './tolls.js'
+import {
+    reasonFlipInvalid,
+    reasonSitesForbidTravel,
+    shroudedWoodChooser,
+    siteTravelTerms
+} from './siteTravel.js'
+import { baseTravelCost } from './travelCost.js'
+import { foldSupplyCost, resolveModifiers, type ActionPlan, type ModifierUse } from './modifiers.js'
+import {
+    isFreeTravelNow,
+    payableWoodPicks,
+    tollPayableWoodSites,
+    woodPick,
+    woodTravelPaysAtPick
+} from './shroudedWood.js'
+import { usableFavor } from './favor.js'
+import { pawnSiteId, regionOfPawn } from './pawn.js'
+import {
+    modifierPayment,
+    reasonCannotPayInAll,
+    secretPayment,
+    tollPayment
+} from './actionPayment.js'
+
+/** The optional payments a Travel carries: the tolls paid and the Buried Giant's flip. */
+export type TravelTerms = { tolls: string[]; flipSecret: boolean }
+
+/** R-11.7 — before `UiBatch1`: 2 Supply to leave, or none on a free Travel. */
+export function shroudedWoodTravelCost(state: HydratedOathGameState, playerId: string): number {
+    return isFreeTravelNow(state, playerId)
+        ? 0
+        : siteTravelTerms(state, pawnSiteId(state, playerId), pawnSiteId(state, playerId), 0, false)
+              .cost
+}
+
+/**
+ * R-11.7 — leaving an enemy's Shrouded Wood names no destination and declares nothing on it,
+ * and the ruler must have a site the traveller can pay for.
+ */
+export function reasonCannotLeaveShroudedWood(
+    state: HydratedOathGameState,
+    playerId: string,
+    choice: {
+        siteId?: string
+        modifiers?: readonly ModifierUse[]
+        tolls?: readonly string[]
+        flipSecret?: boolean
+    }
+): string | undefined {
+    const chooser = shroudedWoodChooser(state, playerId)
+    if (chooser === undefined) {
+        return 'no enemy rules the Shrouded Wood you stand at'
+    }
+    if (choice.siteId !== undefined) return "the Shrouded Wood's ruler chooses where you go"
+    if (
+        (choice.modifiers?.length ?? 0) > 0 ||
+        (choice.tolls?.length ?? 0) > 0 ||
+        choice.flipSecret
+    ) {
+        return "nothing is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
+    }
+    const supply = state.getPlayerState(playerId).supply
+    if (!woodTravelPaysAtPick(state)) {
+        const cost = shroudedWoodTravelCost(state, playerId)
+        return supply < cost ? `costs ${cost} Supply, player has ${supply}` : undefined
+    }
+    const free = isFreeTravelNow(state, playerId)
+    if (payableWoodPicks(state, playerId, free).length > 0) return undefined
+    const sites = tollPayableWoodSites(state, playerId)
+    if (sites.length === 0) {
+        const favor = usableFavor(state, playerId)
+        return `${chooser} would pick where you go, and every site takes a favor for its toll: you have ${favor}`
+    }
+    const cheapest = Math.min(...sites.map((siteId) => woodPick(state, playerId, siteId, free).cost))
+    return `${chooser} would pick where you go, and you can pay for no site: the cheapest is ${cheapest} Supply, you have ${supply}`
+}
+
+export function travelPlan(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    modifiers?: readonly ModifierUse[],
+    tolls?: readonly string[],
+    flipSecret = false
+): ActionPlan & { siteNotes: string[] } {
+    const player = state.getPlayerState(playerId)
+    if (shroudedWoodChooser(state, playerId) !== undefined) {
+        return {
+            reason: "the Shrouded Wood's ruler chooses where you go",
+            cost: 0,
+            active: [],
+            siteNotes: []
+        }
+    }
+    const base = travelCostFor(state, playerId, siteId)
+    if (base === undefined) {
+        return {
+            reason: `${siteId} is not a site on the map`,
+            cost: 0,
+            active: [],
+            siteNotes: []
+        }
+    }
+    const here = pawnSiteId(state, playerId)
+    if (here === siteId) {
+        return {
+            reason: 'your pawn already occupies that site',
+            cost: base,
+            active: [],
+            siteNotes: []
+        }
+    }
+    // R-7.1.4 — Vow of Union's "cannot travel from a site you rule".
+    const sworn = reasonPersistentForbidsTravel(state, playerId, here, siteId)
+    if (sworn) return { reason: sworn, cost: base, active: [], siteNotes: [] }
+    const resolved = resolveModifiers(state, playerId, ActionType.Travel, modifiers, {
+        destinationSiteId: siteId
+    })
+    if (resolved.reason) return { reason: resolved.reason, cost: base, active: [], siteNotes: [] }
+    // Forest Paths, Portal — "ignore the powers of sites", which then ask no secret either.
+    const sitesIgnored = resolved.active.some((m) => m.hooks.ignoresSitePowers === true)
+    // R-11.8, R-11.13 — the Narrow Pass's must and The Hidden Place's cannot.
+    const barred = sitesIgnored
+        ? reasonFlipInvalid(state, playerId, false, flipSecret)
+        : reasonSitesForbidTravel(state, playerId, here, siteId, flipSecret)
+    if (barred) return { reason: barred, cost: base, active: [], siteNotes: [] }
+    // R-11.3, R-11.6, R-11.7, R-11.12 — the sites' own prices.
+    const siteTerms = sitesIgnored
+        ? { cost: base, spendsNoSupply: false, notes: [] }
+        : siteTravelTerms(state, here, siteId, base, flipSecret)
+    let cost = foldSupplyCost(
+        siteTerms.cost,
+        state,
+        playerId,
+        resolved.active,
+        { destinationSiteId: siteId },
+        siteTerms.spendsNoSupply
+    )
+    // R-7.1.4 — Toll Roads' demand, Way Station's offer (`util/tolls.ts`).
+    const unpaid = reasonTollsUnpaid(state, playerId, { kind: 'travel', toSiteId: siteId }, tolls)
+    if (unpaid) return { reason: unpaid, cost, active: resolved.active, siteNotes: siteTerms.notes }
+    const unaffordable = reasonCannotPayInAll(state, playerId, [
+        modifierPayment(resolved.active),
+        tollPayment(tolls),
+        secretPayment(flipSecret ? 1 : 0)
+    ])
+    if (unaffordable)
+        return {
+            reason: unaffordable,
+            cost,
+            active: resolved.active,
+            siteNotes: siteTerms.notes
+        }
+    if (
+        travelFreeByToll(state, playerId, siteId, tolls) ||
+        wayStationRuled(state, playerId, siteId)
+    )
+        cost = 0
+    // Second Wind — "you may travel … spending no Supply" as the very next action.
+    if (player.freeTravelAtAction === state.actionCount) cost = 0
+    if (player.supply < cost) {
+        return {
+            reason: `costs ${cost} Supply, player has ${player.supply}`,
+            cost,
+            active: resolved.active,
+            siteNotes: siteTerms.notes
+        }
+    }
+    return { cost, active: resolved.active, siteNotes: siteTerms.notes }
+}
+
+export function reasonCannotTravel(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    modifiers?: readonly ModifierUse[],
+    tolls?: readonly string[],
+    flipSecret = false
+): string | undefined {
+    return travelPlan(state, playerId, siteId, modifiers, tolls, flipSecret).reason
+}
+
+export function travelCostFor(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string
+): number | undefined {
+    if (!state.allSiteIds().includes(siteId)) return undefined
+    return baseTravelCost(regionOfPawn(state, playerId), state.regionOf(siteId))
+}
+
+/**
+ * R-7.1.4, R-11.12, R-X.1 — every legal pairing of the player's optional travel payments:
+ * Way Station's favor instead of Supply, and the Buried Giant's flipped secret. Demanded
+ * tolls are in every pairing.
+ */
+export function legalTravelTerms(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    modifiers?: readonly ModifierUse[]
+): TravelTerms[] {
+    const available = tollsFor(state, playerId, { kind: 'travel', toSiteId: siteId })
+    const demanded = available.filter((t) => !t.discount).map((t) => t.cardId)
+    const tollSets = [
+        demanded,
+        ...available.filter((t) => t.discount).map((t) => [...demanded, t.cardId])
+    ]
+    return tollSets
+        .flatMap((tolls) => [false, true].map((flipSecret) => ({ tolls, flipSecret })))
+        .filter(
+            (terms) =>
+                travelPlan(state, playerId, siteId, modifiers, terms.tolls, terms.flipSecret)
+                    .reason === undefined
+        )
+}
+
+/** R-5.6.1 */
+export function legalTravelDestinations(
+    state: HydratedOathGameState,
+    playerId: string,
+    modifiers?: readonly ModifierUse[]
+): string[] {
+    return state
+        .allSiteIds()
+        .filter((siteId) => legalTravelTerms(state, playerId, siteId, modifiers).length > 0)
+}
+
+export function canTravel(state: HydratedOathGameState, playerId: string): boolean {
+    if (shroudedWoodChooser(state, playerId) !== undefined) {
+        return reasonCannotLeaveShroudedWood(state, playerId, {}) === undefined
+    }
+    return legalTravelDestinations(state, playerId).length > 0
+}

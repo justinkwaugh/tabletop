@@ -3,7 +3,12 @@ import { PowerTiming, TRIBUNAL_ID, powerIndexOf } from '../data/cardPowers.js'
 import { isVision } from '../data/cardRegistry.js'
 import { PowerQuestionKind, type ExchangeAllowance } from '../model/question.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
-import { askQuestion, scheduleGatheringFloor, turnOrderFrom } from '../util/questions.js'
+import {
+    askQuestion,
+    gatheringTurnOrder,
+    scheduleGatheringFloor,
+    turnOrderFrom
+} from '../util/questions.js'
 import {
     DEED_WRITER_ALLOWS,
     reasonExchangeInvalid,
@@ -100,7 +105,7 @@ registerPersistent(HERALD, powerIndexOf(HERALD, PowerTiming.Persistent), {
                 askedPlayerId: owner,
                 amount: 1
             })
-            notes.push(note ?? `${owner} gains a favor from a bank of their choice`)
+            notes.push(note ?? `${owner} may gain 1 favor from a bank of their choice`)
         }
         return notes.length ? `Herald: ${notes.join('; ')}` : undefined
     }
@@ -183,7 +188,7 @@ registerEffect(GATHERING, powerIndexOf(GATHERING, PowerTiming.WhenPlayed), {
     choices: [],
     resolve: (ctx) => {
         const siteId = pawnSiteId(ctx.state, ctx.playerId)
-        for (const playerId of turnOrderFrom(ctx.state, ctx.playerId)) {
+        for (const playerId of gatheringTurnOrder(ctx.state, ctx.playerId)) {
             if (playerId === ctx.playerId) continue
             askQuestion(ctx.state, ctx.playerId, {
                 kind: PowerQuestionKind.JoinSite,

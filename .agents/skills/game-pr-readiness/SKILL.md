@@ -36,19 +36,21 @@ A gate marked **whole-title** judges the title as it stands, including code and 
 
 ### 1. Image assets (whole-title)
 
-Inventory every raster and SVG asset in the UI module. For each raster, record file bytes, natural dimensions, transparency, every usage site, and its ordinary/default rendered dimensions across responsive layouts.
+Inventory every raster and SVG asset in the UI module. For each raster, record file bytes, encoding, natural dimensions, transparency, every usage site, and its ordinary/default rendered dimensions across responsive layouts.
+
+Opaque raster artwork belongs in lossy WebP (`encoding` of `webp-lossy`). Transparency belongs in PNG or WebP with alpha, and only where the artwork genuinely needs it.
 
 Fail any of these:
 
-- a PNG has no actual transparency; opaque raster artwork belongs in JPEG;
-- a large raster is stored in a format other than JPEG unless transparency genuinely requires PNG;
+- an opaque raster has any other encoding: JPEG, GIF, lossless WebP, or a PNG or WebP whose alpha channel no pixel uses. An existing JPEG passes: one whose bytes the title already carried at the merge base (`existed_at_base`). List the existing JPEGs together as one **strong recommendation** to re-encode them;
+- a large raster keeps transparency its artwork does not need;
 - a raster's natural dimensions materially exceed the high-density budget for its largest ordinary rendered dimensions. Treat approximately 2x the rendered width and height as desirable HiDPI resolution. Allow modest headroom above 2x for rounding, source aspect ratio, or avoiding a redundant asset variant; a ratio around 2.5x is not a violation by itself. Investigate ratios approaching 3x and fail only when the excess beyond the 2x target is meaningful and avoidable. An 800x400 image rendered only at 200x100 is a clear 4x violation;
 - an image remains oversized after the 2x HiDPI allowance because CSS, SVG attributes, transforms, canvas drawing, or runtime code consistently scales it down. Check indirect component usage and responsive variants rather than relying only on `<img width>` attributes;
 - an asset is unused, duplicated at unnecessary resolutions/formats, or otherwise ships avoidable image weight.
 
 Record raster artwork that can reasonably be represented as SVG as a **strong recommendation**, because SVG is preferred for scalable shapes, masks, and line art. SVG suitability alone is not a violation, does not fail the gate, and does not contribute to the violation count. If the same asset independently violates a blocking rule above, report that violation separately.
 
-Do not treat an alpha-capable PNG as transparent without checking actual pixels. When render size is dynamic, determine the normal maximum from the containing layout, aspect ratio, CSS, and component call sites. Judge excess resolution against that maximum after allowing for HiDPI density; do not fail an asset merely because its natural dimensions are a little more than 2x. Explain the concrete evidence and the appropriately sized or reformatted replacement in each violation.
+Call a raster transparent only after checking actual pixels; `has_actual_transparency` is `null` where the collector could not decode them, as for a WebP with an alpha channel. When render size is dynamic, determine the normal maximum from the containing layout, aspect ratio, CSS, and component call sites. Judge excess resolution against that maximum after allowing for HiDPI density; do not fail an asset merely because its natural dimensions are a little more than 2x. Explain the concrete evidence and the appropriately sized or reformatted replacement in each violation.
 
 ### 2. Catalog title image (whole-title)
 

@@ -41,7 +41,6 @@
     <img
         {src}
         alt={name}
-        title={name}
         class="rounded-[4px] shadow-md object-cover {className}"
         style="width:{width}px; height:{height}px;"
         use:inspectImage={{ preview, enabled: inspectable }}
@@ -51,7 +50,6 @@
         class="rounded-[4px] border border-dashed border-oath-text-muted/50 bg-oath-surface-raised
                flex items-center justify-center p-1 {className}"
         style="width:{width}px; height:{height}px;"
-        title={name}
     >
         <span class="text-oath-text-muted text-[9px] leading-tight text-center break-all">
             {name}

@@ -71,9 +71,56 @@ export class StagedFlow<V extends Record<string, unknown>> {
     }
 }
 
-/** A panel's draft as the session sees it: Back unwinds it, Undo waits for it, a new state ends it. */
+/** A panel's draft as the session sees it: Undo unwinds it before any sent action, and a new state ends it. */
 export interface PanelDraft {
     hasManualSelection(): boolean
     back(): boolean
     reset(): void
+}
+
+const TAP_STAGE_ORDER = ['taps'] as const
+const _tapStagesAreCovered: StagesCover<{ taps: unknown[] }, typeof TAP_STAGE_ORDER> = true
+void _tapStagesAreCovered
+
+/**
+ * A panel draft that keeps its value after each tap, so Undo takes back the last tap, then the one
+ * before; Undo that lands on a value with nothing picked leaves the panel as it opened.
+ */
+export abstract class TapHistoryDraft<V> implements PanelDraft {
+    private flow = new StagedFlow<{ taps: V[] }>(TAP_STAGE_ORDER)
+
+    /** `opened` is the value before any tap. */
+    constructor(private readonly opened: V) {}
+
+    /** The value after the last tap. */
+    protected get current(): V {
+        return this.flow.value('taps')?.at(-1) ?? this.opened
+    }
+
+    /** Nothing in the value is picked. */
+    protected abstract isBare(value: V): boolean
+
+    // A tap that changes nothing is no pick for Undo to take back.
+    protected tap(next: V): void {
+        if (JSON.stringify(this.current) === JSON.stringify(next)) return
+        this.flow.set('taps', [...(this.flow.value('taps') ?? []), next])
+    }
+
+    hasManualSelection(): boolean {
+        return this.flow.hasManualSelection()
+    }
+
+    back(): boolean {
+        const taps = this.flow.value('taps')
+        const before = taps?.at(-2)
+        if (taps === undefined || before === undefined || this.isBare(before)) {
+            return this.flow.back() !== undefined
+        }
+        this.flow.set('taps', taps.slice(0, -1))
+        return true
+    }
+
+    reset(): void {
+        this.flow.reset()
+    }
 }

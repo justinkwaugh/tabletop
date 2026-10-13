@@ -78,6 +78,16 @@ export function isFieldSquare(sq: BoardSquare): sq is FieldSquare {
     return sq.type === SquareType.Field
 }
 
+// The squares above, below, left and right of a square, some of which may be off the board.
+export function orthogonalNeighbors(col: number, row: number): [number, number][] {
+    return [
+        [col - 1, row],
+        [col + 1, row],
+        [col, row - 1],
+        [col, row + 1]
+    ]
+}
+
 export function isEmptySquare(sq: BoardSquare): sq is EmptySquare {
     return sq.type === SquareType.Empty
 }

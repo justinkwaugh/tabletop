@@ -22,6 +22,8 @@ export type TollOccasion =
     | { kind: 'search' }
     /** R-6.1 — "as if you searched". */
     | { kind: 'facedownPlay' }
+    /** Oracle — "play or discard it as if you searched". */
+    | { kind: 'asIfSearched' }
 
 /** R-10.4 — "Give it to Chancellor if Empire, burn it if bandits". */
 export function payeeFor(ctx: PersistentContext): string | undefined {
@@ -74,6 +76,11 @@ export function tollsFor(
                     isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays) &&
                     hooks.tollToSearch?.(ctx, actorId) === true
                 break
+            case 'asIfSearched':
+                demanded =
+                    isAtLeastOathRevision(state, OathRevision.UiBatch1) &&
+                    hooks.tollToSearch?.(ctx, actorId) === true
+                break
         }
         if (demanded) tolls.push({ cardId: ctx.cardId, payeeId: payeeFor(ctx) })
         else if (discount)
@@ -117,16 +124,24 @@ export function payTolls(
     for (const cardId of new Set(tolls)) {
         const toll = available.find((t) => t.cardId === cardId)
         assertExists(toll, `${cardId} demands a toll here, as reasonTollsUnpaid checked`)
-        if (toll.payeeId) {
-            giveFavor(state, actorId, toll.payeeId, 1)
-            notes.push(`${cardId}: gave a favor to ${toll.payeeId}`)
-        } else {
-            spendFavor(state, actorId, 1)
-            burnFavor(state, 1)
-            notes.push(`${cardId}: burned a favor for the bandits`)
-        }
+        payToll(state, actorId, toll)
+        notes.push(
+            toll.payeeId
+                ? `${cardId}: gave a favor to ${toll.payeeId}`
+                : `${cardId}: burned a favor for the bandits`
+        )
     }
     return notes
+}
+
+/** R-10.4 — "Give it to Chancellor if Empire, burn it if bandits". */
+export function payToll(state: HydratedOathGameState, actorId: string, toll: Toll): void {
+    if (toll.payeeId) {
+        giveFavor(state, actorId, toll.payeeId, 1)
+        return
+    }
+    spendFavor(state, actorId, 1)
+    burnFavor(state, 1)
 }
 
 /** Way Station's other clause: free for whoever rules the card. */
@@ -163,5 +178,7 @@ function describeOccasion(occasion: TollOccasion): string {
             return 'search from here'
         case 'facedownPlay':
             return 'play or discard a facedown adviser here'
+        case 'asIfSearched':
+            return 'draw as if you searched here'
     }
 }

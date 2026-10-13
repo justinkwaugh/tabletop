@@ -6,20 +6,24 @@ import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, chosen } from './registry.js'
-import { ownWarbandOwner, sitesRuledBy } from '../util/rule.js'
+import { sitesRuledBy } from '../util/rule.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
+    favorObtainableFromPicks,
     gainFavorFromBank,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     moveWarbandsBoardToSite,
     regionOfPawn,
     pawnSiteId,
     ruledCardsOfSuit,
     swapPlayedCardWithSiteCard,
-    takeFavorFromPlayer
+    takeFavorFromPlayer,
+    warbandOwnerGainedByPower
 } from './vocabulary.js'
 
 // "When played, gain [favor][favor][favor]—one each from three different favor banks."
@@ -32,9 +36,16 @@ registerEffect(
         ),
         reasonCannotResolve: (ctx) => {
             const suits = chosen(ctx, PowerChoiceKind.FavorBank).map((b) => b.suit)
-            return new Set(suits).size === suits.length
-                ? undefined
-                : 'the three favor banks must be different'
+            if (new Set(suits).size !== suits.length)
+                return 'the three favor banks must be different'
+            if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4)) return undefined
+            // R-7.1.3 — a favor from each of three banks that hold favor, or from every one that does.
+            const holding = Object.values(ctx.state.favorBank).filter((n) => n > 0).length
+            const required = Math.min(3, holding)
+            const obtainable = favorObtainableFromPicks(ctx.state, suits)
+            return obtainable < required
+                ? `Salad Days gains a favor from each of three banks: the banks named yield ${obtainable}, and ${required} can be had`
+                : undefined
         },
         resolve: (ctx) => {
             let gained = 0
@@ -102,7 +113,9 @@ registerEffect(
             // Played as an adviser it is not "at a site"; the card still counts itself.
             const x = onMap.includes('denizen.beast.animal-host') ? onMap.length : onMap.length + 1
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, x)
-            return { summary: `gained ${gained} warbands (${x} beast cards at sites)` }
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+            return { summary: `gained ${words} (${x} beast cards at sites)` }
         }
     }
 )
@@ -136,9 +149,12 @@ registerEffect(
     powerIndexOf('denizen.discord.a-small-favor', PowerTiming.WhenPlayed),
     {
         choices: [],
-        resolve: (ctx) => ({
-            summary: `gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 4)} warbands`
-        })
+        resolve: (ctx) => {
+            const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 4)
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+            return { summary: `gained ${words}` }
+        }
     }
 )
 
@@ -205,19 +221,21 @@ registerEffect(
         resolve: (ctx) => {
             const ruled = sitesRuledBy(ctx.state, ctx.playerId)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, ruled.length)
-            const own = ownWarbandOwner(ctx.state, ctx.playerId)
+            const owner = warbandOwnerGainedByPower(ctx.state, ctx.playerId)
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
             // Ring of Devotion: "You cannot place warbands at sites" (R-9.2).
             if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
                 return {
-                    summary: `gained ${gained} warbands; placed none — ${ctx.playerId} cannot place warbands at sites`
+                    summary: `gained ${words}; placed none — ${ctx.playerId} cannot place warbands at sites`
                 }
             }
             let placed = 0
             for (const siteId of ruled) {
-                placed += moveWarbandsBoardToSite(ctx.state, ctx.playerId, own, siteId, 1)
+                placed += moveWarbandsBoardToSite(ctx.state, ctx.playerId, owner, siteId, 1)
             }
             return {
-                summary: `gained ${gained} warbands and placed ${placed} across ${ruled.length} ruled sites`
+                summary: `gained ${words} and placed ${placed} across ${ruled.length} ruled sites`
             }
         }
     }

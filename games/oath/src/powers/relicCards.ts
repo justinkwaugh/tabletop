@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { Banner } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -22,22 +22,26 @@ import {
     registerEffect,
     registerModifier,
     registerPersistent,
-    chosen
+    chosen,
+    type PlayerPlanContext
 } from './registry.js'
 import {
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     pawnSiteId,
     swapPlayedCardWithSiteCard,
     hasFaceupAdviserOfSuit
 } from './vocabulary.js'
 import { cardChoicesAtYourSite } from './choiceDomains.js'
-import { opposingLeadId } from '../util/battlePlans.js'
+import { ignoresKillAll, opposingLeadId } from '../util/battlePlans.js'
 import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { releaseRelic } from '../util/relics.js'
-import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { askPowerMoveToll, giveWhistleSecret, powerMoveToll } from '../util/powerMoveTolls.js'
+import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
+import { WHISTLE_ID } from '../data/relics.js'
 import { seeWorldDeckTop } from '../util/knowledge.js'
 
 // "Action: Put this relic on the bottom of the relic deck to gain 4 Supply."
@@ -58,16 +62,21 @@ registerModifier(
     'relic.dragonskin-drum',
     powerIndexOf('relic.dragonskin-drum', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
-            after: (ctx) => ({
-                summary: `Dragonskin Drum: gained ${gainWarbandsToBoard(ctx.state, ctx.playerId, 1)} warband`
-            })
+            after: (ctx) => {
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warband`
+                return { summary: `Dragonskin Drum: gained ${words}` }
+            }
         }
     }
 )
 
 // "Spend no Supply if you're trading with a card that matches any of your advisers."
 registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', PowerTiming.Modifier), {
+    freeGain: true,
     hooks: {
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
@@ -160,7 +169,7 @@ registerEffect(ORACULAR_PIG, powerIndexOf(ORACULAR_PIG, PowerTiming.Action), {
 
 // "Action: Choose a pawn at another site. They must travel to your site if able, spending no Supply.
 //  If they do, give them the [secret] here." Cost: place 1 secret.
-const WHISTLE = 'relic.whistle'
+const WHISTLE = WHISTLE_ID
 const pawnsElsewhere: ChoiceDomain = (state, playerId) => {
     const here = pawnSiteId(state, playerId)
     return state.players
@@ -177,7 +186,6 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
     resolve: (ctx) => {
         const [them] = chosen(ctx, PowerChoiceKind.Player)
         const here = pawnSiteId(ctx.state, ctx.playerId)
-        const other = ctx.state.getPlayerState(them.playerId)
         // "If able" — its Q&A: the Travel rules bind (Narrow Pass, The Hidden Place, Vow of Union); unable, nothing happens.
         const unable = reasonCannotTravelByPower(ctx.state, them.playerId, here)
         if (unable) {
@@ -186,12 +194,31 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
                 targetPlayerId: them.playerId
             }
         }
-        const { notes } = travelByPower(ctx.state, them.playerId, here)
-        // Vow of Silence — "cannot give anyone secrets": the pull still happens.
-        const silenced = reasonPersistentForbidsGivingSecrets(ctx.state, ctx.playerId)
-        const given = silenced ? 0 : Math.min(1, ctx.state.tokensOn(WHISTLE).secrets)
-        ctx.state.addTokensOn(WHISTLE, { secrets: -given })
-        other.secrets += given
+        // Toll Roads — the pulled player gives the favor or refuses, and a refusal leaves them where they are.
+        const toll = powerMoveToll(ctx.state, them.playerId, here)
+        if (toll) {
+            const move = {
+                move: PowerMoveKind.Whistle,
+                powerCardId: WHISTLE,
+                moverPlayerId: ctx.playerId,
+                movedPlayerId: them.playerId,
+                toSiteId: here
+            }
+            const tollMove = askPowerMoveToll(ctx.state, move, toll, ctx.playerId)
+            return {
+                summary:
+                    tollMove.outcome === PowerMoveTollOutcome.Asked
+                        ? `Whistle: ${them.playerId} is asked for ${toll.cardId}'s favor`
+                        : `Whistle: ${them.playerId} had no favor for ${toll.cardId} and stayed`,
+                targetPlayerId: them.playerId,
+                tollMove
+            }
+        }
+        const { notes } = travelByPower(ctx.state, them.playerId, here, {
+            playerId: ctx.playerId,
+            next: false
+        })
+        const given = giveWhistleSecret(ctx.state, ctx.playerId, them.playerId)
         return {
             summary: `Whistle: ${them.playerId} travelled to ${here}, gaining ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
             targetPlayerId: them.playerId
@@ -326,13 +353,25 @@ registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.Ba
                 ? enemyWarbandsKilledFor(ctx.state, campaign, ctx.campaign.side)
                 : (campaign.defeatKilled ?? 0)
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, killed)
-            return `Cursed Cauldron: gained ${gained} warbands, one per enemy warband killed`
+            const words =
+                gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
+                `${gained} warbands`
+            return `Cursed Cauldron: ${ctx.playerId} gained ${words}, one per enemy warband killed`
         }
     }
 })
 
 // "If you're victorious, you may kill all the warbands in your enemy's force. If you do, you must give them [favor] if able." Either side.
 const STICKY_FIRE = 'relic.sticky-fire'
+function stickyFireIgnored(ctx: PlayerPlanContext): boolean {
+    const campaign = ctx.state.campaign
+    assertExists(campaign, 'an outcome hook runs inside a Campaign')
+    const enemySide =
+        ctx.campaign.side === BattlePlanSide.Attacker
+            ? BattlePlanSide.Defender
+            : BattlePlanSide.Attacker
+    return ignoresKillAll(ctx.state, campaign, enemySide)
+}
 registerBattlePlan(STICKY_FIRE, powerIndexOf(STICKY_FIRE, PowerTiming.BattlePlan), {
     hooks: {
         killsEnemyForce: true,
@@ -341,9 +380,13 @@ registerBattlePlan(STICKY_FIRE, powerIndexOf(STICKY_FIRE, PowerTiming.BattlePlan
             const campaign = ctx.campaign
             const enemyId = opposingLeadId(campaign.parties, campaign.side)
             if (!enemyId) return 'Sticky Fire: the bandits have nobody to pay'
+            // Its Q&A — the favor is given even when the enemy ignores the kill.
             const given = Math.min(1, usableFavor(ctx.state, ctx.playerId))
             giveFavor(ctx.state, ctx.playerId, enemyId, given)
-            return `Sticky Fire: the enemy force was killed entirely; gave ${enemyId} ${given} favor`
+            const killed = stickyFireIgnored(ctx)
+                ? 'its kill was ignored'
+                : 'the enemy force was killed entirely'
+            return `Sticky Fire: ${killed}; ${ctx.playerId} gave ${enemyId} ${given} favor`
         }
     }
 })

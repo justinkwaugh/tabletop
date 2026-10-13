@@ -8,7 +8,7 @@ import { IMPERIAL_WARBANDS, WarbandOwner } from '../model/warbandCounts.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import {
-    banditsServe,
+    banditsHoldSiteFor,
     isImperialPlayer,
     rulesSite,
     rulingWarbandOwners,
@@ -203,7 +203,7 @@ export class HydratedMoveWarbands
         if (choice.count > max) {
             const lastMustStay =
                 choice.move.kind === WarbandMoveKind.SiteToBoard &&
-                !banditsServe(state, playerId, pawnSiteId(state, playerId))
+                !banditsHoldSiteFor(state, playerId, pawnSiteId(state, playerId))
             const limit = lastMustStay
                 ? `${max} (the last one must stay to keep rule of the site)`
                 : `${max}`

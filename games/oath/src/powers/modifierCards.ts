@@ -5,10 +5,11 @@ import { kindOf, suitOf } from '../data/cardRegistry.js'
 import { warbandsOnBoardOf } from '../util/force.js'
 import { gainSupply } from '../util/rest.js'
 import { totalWarbandsAt } from '../util/rule.js'
-import { totalWarbands } from '../util/warbands.js'
+import { soleOwnerOf, totalWarbands } from '../util/warbands.js'
 import { registerModifier, type EffectContext } from './registry.js'
 import {
     gainFavorFromBank,
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     killWarbandsAtSite,
     killWarbandsOnBoard,
@@ -16,6 +17,7 @@ import {
     regionOfPawn
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
+import { CARELESS, hasTrait, reasonTradeForSecretsGainsNoFavor } from '../util/reliquaryTraits.js'
 
 function player(ctx: EffectContext) {
     return ctx.state.getPlayerState(ctx.playerId)
@@ -106,9 +108,15 @@ registerModifier(
             after: (ctx) => {
                 const to = ctx.particulars?.destinationSiteId
                 assertExists(to, 'Tyrant applies to a Travel, which always names a destination')
-                const killed = totalWarbands(killWarbandsAtSite(ctx.state, to, 1))
-                assert(killed === 1, "Tyrant's condition found a warband at the destination")
-                return { summary: `Tyrant killed a warband at ${to}` }
+                const killed = killWarbandsAtSite(ctx.state, to, 1)
+                assert(
+                    totalWarbands(killed) === 1,
+                    "Tyrant's condition found a warband at the destination"
+                )
+                return {
+                    summary: `Tyrant killed a warband at ${to}`,
+                    warbandOwner: soleOwnerOf(killed)
+                }
             }
         }
     }
@@ -119,6 +127,7 @@ registerModifier(
     'denizen.hearth.rowdy-pub',
     powerIndexOf('denizen.hearth.rowdy-pub', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 ctx.particulars?.cardId === 'denizen.hearth.rowdy-pub'
@@ -134,6 +143,7 @@ registerModifier(
     'denizen.beast.animal-playmates',
     powerIndexOf('denizen.beast.animal-playmates', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 suitOf(ctx.particulars?.cardId ?? '') === Suit.Beast
@@ -150,6 +160,7 @@ registerModifier(
     'denizen.discord.downtrodden',
     powerIndexOf('denizen.discord.downtrodden', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 const suit = suitOf(ctx.particulars?.cardId ?? '')
@@ -200,6 +211,7 @@ registerModifier(
     'denizen.beast.birdsong',
     powerIndexOf('denizen.beast.birdsong', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 const suit = suitOf(ctx.particulars?.cardId ?? '')
@@ -217,12 +229,46 @@ registerModifier(
     'denizen.arcane.secret-signal',
     powerIndexOf('denizen.arcane.secret-signal', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
-            condition: (ctx) =>
-                ctx.particulars?.tradeOption === 'forFavor'
-                    ? undefined
-                    : 'you are not trading for favor',
-            tradeFavor: (base) => (base === 1 ? 2 : base)
+            // Its Q&A: under Careless a Trade for secrets gains one favor, so it may be used there too,
+            // unless Vow of Poverty withholds that favor and the Trade gains none.
+            condition: (ctx) => {
+                if (ctx.particulars?.tradeOption === 'forFavor') return undefined
+                if (!hasTrait(ctx.state, ctx.playerId, CARELESS))
+                    return 'you are not trading for favor'
+                return reasonTradeForSecretsGainsNoFavor(
+                    ctx.state,
+                    ctx.playerId,
+                    ctx.particulars?.advisersOf
+                )
+            },
+            tradeFavor: (base) => (base === 1 ? 2 : base),
+            // Its after-hook below gains one more beside a Trade for secrets; the count shown before
+            // the Trade reads it here, capped with Careless's at the bank (R-9.3).
+            tradeSideFavor: (base, ctx) =>
+                ctx.particulars?.tradeOption === 'forSecrets' ? base + 1 : base,
+            // Careless gave this Trade for secrets its one favor first; a bank that had none to give has none now (R-9.3).
+            after: (ctx) => {
+                if (ctx.particulars?.tradeOption !== 'forSecrets') return undefined
+                const withheld = reasonTradeForSecretsGainsNoFavor(
+                    ctx.state,
+                    ctx.playerId,
+                    ctx.particulars.advisersOf
+                )
+                if (withheld) return { summary: `Secret Signal: ${withheld}` }
+                const cardId = ctx.particulars.cardId
+                assertExists(cardId, 'A Trade names the card it is made with')
+                const suit = suitOf(cardId)
+                assertExists(suit, 'A Trade is made with a card of a suit')
+                const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
+                return {
+                    summary:
+                        gained > 0
+                            ? 'Secret Signal: gained 1 more favor'
+                            : 'Secret Signal: the bank had no favor to give'
+                }
+            }
         }
     }
 )
@@ -233,6 +279,7 @@ registerModifier(
     'denizen.beast.the-old-oak',
     powerIndexOf('denizen.beast.the-old-oak', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 if (ctx.particulars?.cardId !== 'denizen.beast.the-old-oak') {
@@ -271,6 +318,7 @@ registerModifier(
     'denizen.hearth.welcoming-party',
     powerIndexOf('denizen.hearth.welcoming-party', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 ctx.particulars?.facedownAdviserPlay === true
@@ -291,12 +339,15 @@ registerModifier(
     'denizen.beast.wild-cry',
     powerIndexOf('denizen.beast.wild-cry', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             after: (ctx) => {
                 if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
-                const warbands = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
-                return { summary: `Wild Cry: gained ${supply} Supply and ${warbands} warbands` }
+                const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
+                const words =
+                    gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`
+                return { summary: `Wild Cry: gained ${supply} Supply and ${words}` }
             }
         }
     }

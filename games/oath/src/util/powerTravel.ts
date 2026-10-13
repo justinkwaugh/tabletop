@@ -3,6 +3,7 @@ import { pawnSiteId } from './pawn.js'
 import { afterTravelPersistent, reasonPersistentForbidsTravel } from './persistent.js'
 import { reasonSitesForbidTravel } from './siteTravel.js'
 import { flipSiteFromVault, type SiteFlip } from './hiddenInputs.js'
+import { askDragonskinDrum } from './dragonskinDrum.js'
 
 /** R-5.5.7.III "a site they are able to travel to" — a move a power calls travel: every restriction but the price binds. */
 export function reasonCannotTravelByPower(
@@ -19,14 +20,21 @@ export function reasonCannotTravelByPower(
     )
 }
 
-/** R-5.6.2 — the pawn arrives, a facedown site is revealed, and the after-travel powers fire (Grasping Vines, Boiling Lake). */
+/**
+ * R-5.6.2 — the pawn arrives, a facedown site is revealed, and the after-travel powers fire (Grasping
+ * Vines, Boiling Lake); then the Dragonskin Drum's holder is asked. `asking` is whose action the
+ * question belongs to; `next` puts it before any already waiting, as when an answer made the move.
+ */
 export function travelByPower(
     state: HydratedOathGameState,
     playerId: string,
-    siteId: string
+    siteId: string,
+    asking: { playerId: string; next: boolean }
 ): { notes: string[]; revealed?: SiteFlip } {
     const fromSiteId = pawnSiteId(state, playerId)
     state.getPlayerState(playerId).siteId = siteId
     const revealed = state.isSiteFaceup(siteId) ? undefined : flipSiteFromVault(state, siteId)
-    return { notes: afterTravelPersistent(state, playerId, fromSiteId, siteId), revealed }
+    const notes = afterTravelPersistent(state, playerId, fromSiteId, siteId)
+    askDragonskinDrum(state, playerId, asking.playerId, asking.next)
+    return { notes, revealed }
 }

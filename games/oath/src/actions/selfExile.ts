@@ -20,8 +20,12 @@ export const SelfExileMetadata = Type.Object({
     replacedCount: Type.Number(),
     // R-9.3 — Imperial warbands left for want of their own.
     unreplacedCount: Type.Number(),
+    /** R-6.7-H1 — the shortfall went back to the Chancellor's bank instead of staying Imperial. */
+    unreplacedReturned: Type.Optional(Type.Boolean()),
     // R-6.8 — applied by the Act Phase state handler.
-    endsActPhase: Type.Boolean()
+    endsActPhase: Type.Boolean(),
+    // R-10.11 — who received the favor; absent from records made before it was kept.
+    scepterHolderId: Type.Optional(Type.String())
 })
 
 export type SelfExile = Type.Static<typeof SelfExile>
@@ -77,7 +81,9 @@ export class HydratedSelfExile extends HydratableAction<typeof SelfExile> implem
             warbandsOnBoard: price.warbandsOnBoard,
             replacedCount: conversion.replacedCount,
             unreplacedCount: conversion.unreplacedCount,
-            endsActPhase
+            unreplacedReturned: conversion.unreplacedReturned,
+            endsActPhase,
+            scepterHolderId: holderId
         }
     }
 

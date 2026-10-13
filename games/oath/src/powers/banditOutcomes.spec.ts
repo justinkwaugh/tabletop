@@ -22,18 +22,19 @@ const PARADE = 'denizen.order.military-parade'
 const DOCTOR = 'denizen.hearth.traveling-doctor'
 const RENEWAL = 'denizen.discord.vow-of-renewal'
 const CHANCELLOR = 'chancellor'
+const MARRIAGE = 'denizen.hearth.marriage'
 
 const atRevision = OathRevision.CardFixes1
 const before = OathRevision.PlanCostsAndSearchPlays
 
 /** The attacker, with a hearth and a nomad adviser, campaigns against the bandits at c1; the Chancellor holds Vow of Renewal. */
-function table(oathRevision: number, banditCards: string[], seed = 1) {
+function table(oathRevision: number, banditCards: string[], seed = 1, attackerAdvisers = [INN, TENTS]) {
     const s = testState(
         [
             testPlayer({
                 playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
                 warbandsOnBoard: { [ATTACKER]: 4 }, warbandsInPersonalBank: { [ATTACKER]: 6 },
-                advisers: [{ cardId: INN, faceUp: true }, { cardId: TENTS, faceUp: true }]
+                advisers: attackerAdvisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({
                 playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2,
@@ -109,6 +110,20 @@ describe('R-10.3-H1 — favor a bank would pay the victorious bandits is burned 
         expect(s.favorSupply).toBe(supply)
     })
 
+    it('Military Parade burns two hearth favor for the attacker’s Marriage, its Q&A’s count (revision 5)', () => {
+        const burned = (oathRevision: number) => {
+            const s = table(oathRevision, [PARADE], 1, [MARRIAGE, TENTS])
+            attackBandits(s, true)
+            const was = banks(s)
+            const sacrifice = finishCampaign(s)
+            return { hearth: was[Suit.Hearth] - s.favorBank[Suit.Hearth], notes: sacrifice.metadata?.planNotes }
+        }
+        expect(burned(OathRevision.EngineFixes2)).toEqual({
+            hearth: 2,
+            notes: ["Military Parade: burned 3 favor from the banks matching the attacker's advisers, the bandits being victorious"]
+        })
+        expect(burned(atRevision).hearth).toBe(1)
+    })
 })
 
 describe('R-5.5.6 — defeated bandits resolve their "If you\'re defeated" plans (revision 4)', () => {

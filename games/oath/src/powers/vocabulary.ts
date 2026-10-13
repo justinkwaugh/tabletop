@@ -25,7 +25,12 @@ import { pawnSiteId, playersAt, regionOfPawn } from '../util/pawn.js'
 
 export { gainFavorFromBank, takeFavorFromPlayer } from '../util/favor.js'
 export { pawnSiteId, regionOfPawn } from '../util/pawn.js'
-export { gainWarbandsToBoard, gainWarbandsWithOwner } from '../util/force.js'
+export {
+    gainedWarbandsWords,
+    gainWarbandsToBoard,
+    gainWarbandsWithOwner,
+    warbandOwnerGainedByPower
+} from '../util/force.js'
 export { denizensOnMap } from '../util/access.js'
 export { rollDefenseShields } from '../data/dice.js'
 
@@ -91,6 +96,24 @@ export function burnSecretsFromPlayer(
     const player = state.getPlayerState(playerId)
     const burned = Math.max(0, Math.min(count, player.secrets))
     player.secrets -= burned
+    return burned
+}
+
+/**
+ * "All of the secrets on their board except their last", face up or down (Book Burning's Q&A,
+ * which Ancient Binding's same words share); a faceup secret is kept before a facedown one.
+ */
+export function burnSecretsDownTo(
+    state: HydratedOathGameState,
+    playerId: string,
+    kept: number
+): number {
+    const player = state.getPlayerState(playerId)
+    const keptFaceup = Math.min(kept, player.secrets)
+    const keptFacedown = Math.min(kept - keptFaceup, player.secretsFacedown)
+    const burned = player.secrets - keptFaceup + player.secretsFacedown - keptFacedown
+    player.secrets = keptFaceup
+    player.secretsFacedown = keptFacedown
     return burned
 }
 

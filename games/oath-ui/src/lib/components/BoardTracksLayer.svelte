@@ -8,8 +8,8 @@
         type Region,
         SearchSource
     } from '@tabletop/oath'
-    import { worldDeckPrice } from '$lib/model/searchCost.js'
     import CardImage from '$lib/components/CardImage.svelte'
+    import { regionName } from '$lib/model/names.js'
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
     import BankCount from '$lib/components/BankCount.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -55,6 +55,14 @@
 
     const worldDeckCenter = centerOf(WORLD_DECK_RECT)
 
+    // The kind of card the world deck's top back shows, named as the card types are printed.
+    const BACK_NAMES: Record<CardKind, string> = {
+        [CardKind.Denizen]: 'Denizen',
+        [CardKind.Vision]: 'Vision',
+        [CardKind.Relic]: 'Relic',
+        [CardKind.Site]: 'Site'
+    }
+
     let roundCenter = $derived(roundMarkerCenter(gameState.round))
 
     // R-5.1.1, R-7.4 — the board lights each source the Search menu lists, at its price.
@@ -71,7 +79,6 @@
     {@const center = FAVOR_BANK_CENTERS[suit]}
     <span
         class="bank"
-        title="{gameState.favorBank[suit]} favor in the {suit} bank"
         style="left:{center.x - FAVOR_BANK_RADIUS}px; top:{center.y - FAVOR_BANK_RADIUS}px;
                width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
     >
@@ -82,7 +89,6 @@
 <!-- R-2.1.7 — the shared favor supply, a seventh disc beside the banks. -->
 <span
     class="bank bank--shared"
-    title="{gameState.favorSupply} favor in the shared supply"
     style="left:{SHARED_FAVOR_CENTER.x - FAVOR_BANK_RADIUS}px; top:{SHARED_FAVOR_CENTER.y -
         FAVOR_BANK_RADIUS}px;
            width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
@@ -99,7 +105,6 @@
 <span
     class="round"
     class:round--last={gameState.round >= FINAL_ROUND}
-    title="Round {gameState.round} of {FINAL_ROUND}"
     style="left:{roundCenter.x}px; top:{roundCenter.y}px;"
 >
     {gameState.round}
@@ -108,9 +113,6 @@
 <!-- R-2.1.6 — the Visions Drawn marker; the Search price is on the deck while a Search is chosen. -->
 <span
     class="visions"
-    title="{gameState.visionsDrawn} Visions drawn — Searching the world deck costs {worldDeckPrice(
-        gameState.visionsDrawn
-    )}"
     style="left:{visionsCell.x}px; top:{visionsCell.y}px;
            width:{visionsCell.width}px; height:{visionsCell.height}px;"
 >
@@ -130,9 +132,6 @@
         class:empty={count === 0}
         class:pickable
         class:pointed={menuPointer.is({ kind: 'pile', region })}
-        title={pickable
-            ? `Search this discard pile — ${row.cost} Supply`
-            : `${count} cards in the ${region} discard pile`}
         style="left:{box.x}px; top:{box.y}px; width:{box.width}px; height:{box.height}px;"
     >
         {#if count > 0 && back}
@@ -142,7 +141,7 @@
                 class:discard__pile--laid={DISCARD_ROTATED}
                 style="left:{pile.center.x - box.x}px; top:{pile.center.y - box.y}px;"
             >
-                <CardImage {back} width={pile.width} label="{region} discard pile" />
+                <CardImage {back} width={pile.width} label="{regionName(region)} discard pile" />
             </span>
         {/if}
         <span class="discard__count">{count}</span>
@@ -151,7 +150,7 @@
 {/each}
 
 <!-- R-2.7 — the Relic Deck; R-9.4 makes its count private. -->
-<div class="deck" style="left:{relicDeckCard.x}px; top:{relicDeckCard.y}px;" title="The relic deck">
+<div class="deck" style="left:{relicDeckCard.x}px; top:{relicDeckCard.y}px;">
     <CardImage back={CardKind.Relic} width={relicDeckCard.width} label="Relic deck" />
 </div>
 
@@ -167,7 +166,7 @@
         <CardImage
             back={gameState.topCardBackType}
             width={worldDeckCard.width}
-            label="World deck — next card is a {gameState.topCardBackType}"
+            label="World deck — next card is a {BACK_NAMES[gameState.topCardBackType]}"
         />
     {/if}
 {/snippet}
@@ -175,7 +174,6 @@
     class="deck deck--laid"
     class:pickable={worldDeckPickable}
     class:pointed={menuPointer.is({ kind: 'deck' })}
-    title={worldDeckRow ? `Search the world deck — ${worldDeckRow.cost} Supply` : 'The world deck'}
     style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
 >
     {@render worldDeckFace()}

@@ -15,6 +15,7 @@ import type { RollRules, WarbandGroup } from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
+import type { TollOccasion } from '../util/tolls.js'
 import { assert } from '@tabletop/common'
 import type { ChoiceSpec, PowerChoice, PowerChoiceKind } from '../util/powerChoice.js'
 export interface ModifierParticulars {
@@ -22,6 +23,8 @@ export interface ModifierParticulars {
     cardId?: string
     /** `TradeOption`'s value. */
     tradeOption?: string
+    /** Master of Disguise — the player whose advisers a Trade acts with. */
+    advisersOf?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string
@@ -94,6 +97,8 @@ export interface ModifierHooks {
     tradeFavor?: (base: number, ctx: EffectContext) => number
     /** R-5.3.2 */
     tradeSecrets?: (base: number, ctx: EffectContext) => number
+    /** Careless — favor a Trade gains beside its own gain, before the bank cap (R-9.3). */
+    tradeSideFavor?: (base: number, ctx: EffectContext) => number
     /** Magician's Code — beyond those paid. */
     recoverSecrets?: (base: number, ctx: EffectContext) => number
     /** R-5.1.2 — the Vision stop still applies. */
@@ -132,8 +137,10 @@ export interface ModifierHooks {
     secondPlay?: boolean
     /** Part of the price: runs after costs, before the action. */
     before?: (ctx: EffectContext) => string | undefined
-    /** R-4.2 — runs once the action has finished. */
-    after?: (ctx: EffectContext) => { summary?: string; endsActPhase?: boolean } | undefined
+    /** R-4.2 — runs once the action has finished; `warbandOwner` is whose warbands it killed. */
+    after?: (
+        ctx: EffectContext
+    ) => { summary?: string; endsActPhase?: boolean; warbandOwner?: WarbandOwner } | undefined
     /** Portal */
     ignoresSitePowers?: boolean
 }
@@ -249,11 +256,11 @@ export interface PersistentHooks {
         parties: CampaignParties,
         side: BattlePlanSide
     ) => string | undefined
-    /** Giant Python */
+    /** Giant Python — the dice the targets add; before revision 5, the whole pool (R-X.4). */
     forbidsTargets?: (
         ctx: PersistentContext,
         parties: CampaignParties,
-        defensePool: number
+        targetDice: number
     ) => string | undefined
     /** Gleaming Armor, Insect Swarm */
     battlePlanExtraCost?: (
@@ -342,6 +349,8 @@ export interface EffectDefinition {
     /** The vault's answer reaches `resolve` as `ctx.reveal`. */
     hidden?: (ctx: EffectContext) => HiddenRequest | undefined
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
+    /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
+    tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
     /** A copy of the state as `ctx.choices` leave it, which `sequential` choices are read on. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
@@ -349,6 +358,11 @@ export interface EffectDefinition {
     modifier?: ModifierHooks
     /** R-7.4.1's "must": applied unasked, never declared. */
     mandatory?: boolean
+    /**
+     * An optional modifier that costs nothing, asks nothing and only gains, so a menu may start it
+     * in use. Nothing in play reads it: a modifier applies only when declared (R-7.4.1).
+     */
+    freeGain?: boolean
     /** R-7.5 */
     battlePlan?: BattlePlanHooks
     /** R-7.1.4-H1 */
@@ -388,6 +402,7 @@ export function registerModifier(
         choices?: ChoiceSpec[]
         reasonCannotResolve?: (ctx: EffectContext) => string | undefined
         mandatory?: boolean
+        freeGain?: boolean
     }
 ): void {
     registerEffect(cardId, index, {
@@ -399,7 +414,8 @@ export function registerModifier(
             )
         },
         modifier: definition.hooks,
-        mandatory: definition.mandatory
+        mandatory: definition.mandatory,
+        freeGain: definition.freeGain
     })
 }
 
@@ -409,6 +425,8 @@ export function registerBattlePlan(
     definition: {
         hooks: BattlePlanHooks
         choices?: ChoiceSpec[]
+        /** Warning Signals — the state its `sequential` choices are read on. */
+        stateAfter?: EffectDefinition['stateAfter']
     }
 ): void {
     registerEffect(cardId, index, {
@@ -418,6 +436,7 @@ export function registerBattlePlan(
                 `${cardId} is a battle plan: it is used in a Campaign's battle-plan step (R-5.5.3), not on its own`
             )
         },
+        stateAfter: definition.stateAfter,
         battlePlan: definition.hooks
     })
 }

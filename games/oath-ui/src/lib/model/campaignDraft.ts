@@ -3,7 +3,9 @@ import {
     BattlePlanSide,
     CampaignTargetKind,
     HydratedCampaign,
+    OathRevision,
     attackingForceSources,
+    isAtLeastOathRevision,
     campaignTargetOptions,
     forceSitesOf,
     reasonCannotDeclareTargets,
@@ -23,7 +25,7 @@ import {
 import { campaignDraftOpens } from './campaignTurn.js'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, planChoices } from './planChoices.js'
-import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
+import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -35,9 +37,18 @@ export function sameDefender(a: CampaignDefender, b: CampaignDefender): boolean 
     return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** R-5.5.3, R-7.5.1 */
-export function attackerPlans(state: HydratedOathGameState, playerId: string): CardPower[] {
-    return usableBattlePlans(state, playerId, BattlePlanSide.Attacker)
+/** R-5.5.3, R-7.5.1 — R-5.5.1.a's scope depends on the defender. */
+export function attackerPlans(
+    state: HydratedOathGameState,
+    playerId: string,
+    defender: CampaignDefender
+): CardPower[] {
+    return usableBattlePlans(
+        state,
+        playerId,
+        BattlePlanSide.Attacker,
+        partiesOf(state, playerId, defender, [])
+    )
 }
 
 function partiesOf(
@@ -135,7 +146,7 @@ export class CampaignDraft implements PanelDraft {
         return this.playerId !== undefined
     }
 
-    // Sneak Attack — the card names the defender, so it is never a pick.
+    // Sneak Attack names the defender, or the rules allow only one: either way it is never a pick.
     get defenderFixed(): boolean {
         return this.open && this.flow.sourceOf('defender') === 'auto'
     }
@@ -143,8 +154,12 @@ export class CampaignDraft implements PanelDraft {
     /** What the rules leave no choice over is taken for the player when the Campaign is chosen. */
     begin(): void {
         const named = this.session.sneakAttackDefenderId
-        if (named !== undefined)
+        const [lone, ...others] = this.defenderOptions
+        if (named !== undefined) {
             this.flow.autoSelect('defender', { kind: 'player', playerId: named })
+        } else if (lone !== undefined && others.length === 0) {
+            this.flow.autoSelect('defender', lone)
+        }
         this.autoSelectDice()
     }
 
@@ -188,8 +203,9 @@ export class CampaignDraft implements PanelDraft {
 
     get planOptions(): CardPower[] {
         const playerId = this.playerId
-        return playerId && this.defender && !this.plansWaitForAllies
-            ? attackerPlans(this.session.gameState, playerId)
+        const defender = this.defender
+        return playerId && defender && !this.plansWaitForAllies
+            ? attackerPlans(this.session.gameState, playerId, defender)
             : []
     }
 
@@ -269,7 +285,7 @@ export class CampaignDraft implements PanelDraft {
         const playerId = this.playerId
         const plans =
             playerId && this.plansWaitForAllies
-                ? attackerPlans(this.session.gameState, playerId)
+                ? attackerPlans(this.session.gameState, playerId, defender)
                 : this.plans
         return campaignTargetOptions(
             this.session.gameState,
@@ -316,7 +332,10 @@ export class CampaignDraft implements PanelDraft {
     // R-5.5.2 — one attack die per warband in the force.
     get maxDice(): number {
         const playerId = this.playerId
-        return playerId ? HydratedCampaign.maxAttackDice(this.session.gameState, playerId) : 0
+        const defender = this.defender
+        if (!playerId || !defender) return 0
+        const state = this.session.gameState
+        return HydratedCampaign.maxAttackDice(state, partiesOf(state, playerId, defender, []))
     }
 
     get attackDice(): number | undefined {
@@ -329,12 +348,22 @@ export class CampaignDraft implements PanelDraft {
         this.keepingLossOrder(() => this.flow.set('dice', this.clampDice(count)))
     }
 
-    /** R-5.5.5, R-10.22 — where the skulls' kills come from, asked when the force holds more than one kind. */
+    /**
+     * R-5.5.5, R-10.22 — where the skulls' kills come from, asked when the force holds more than one kind.
+     * From revision 7 they are picked after the roll instead (R-X.4).
+     */
     get lossSources(): LossSource[] {
         const playerId = this.playerId
-        if (!playerId || !this.defender) return []
+        const defender = this.defender
         const state = this.session.gameState
-        return attackingForceSources(state, playerId, forceSitesOf(state, playerId))
+        if (!playerId || !defender || isAtLeastOathRevision(state, OathRevision.EngineFixes3)) {
+            return []
+        }
+        return attackingForceSources(
+            state,
+            partiesOf(state, playerId, defender, []),
+            forceSitesOf(state, playerId)
+        )
     }
 
     // The engine's order is shown until the player moves a source.
@@ -375,28 +404,33 @@ export class CampaignDraft implements PanelDraft {
         }
     }
 
-    get blockedBecause(): string | undefined {
-        const playerId = this.playerId
-        const defender = this.defender
-        const targets = this.targets
-        if (!playerId || !defender || targets.length === 0) return undefined
-        const state = this.session.gameState
-        const targetReason = reasonCampaignTargetsInvalid(state, playerId, defender, targets)
-        if (targetReason) return targetReason
-        // R-7.1.2 — the declared plans are paid from one holding, so the engine judges them together.
-        const declaration = this.declaration
-        return declaration
-            ? HydratedCampaign.reasonCannotCampaign(state, playerId, declaration)
-            : undefined
+    /** A defender, a target and the dice are picked, and every declared plan has its picks. */
+    get complete(): boolean {
+        return (
+            this.declaration !== undefined &&
+            this.planOptions
+                .filter((power) => this.isPlanDeclared(power))
+                .every((power) => picksComplete(this.planChoicesOf(power), this.planPicksOf(power)))
+        )
     }
 
-    get declarable(): boolean {
-        return this.declaration !== undefined && this.blockedBecause === undefined
+    /** Why the engine refuses the declaration as picked, read only once it is complete. */
+    get refusedBecause(): string | undefined {
+        const playerId = this.playerId
+        const declaration = this.declaration
+        if (!playerId || !declaration || !this.complete) return undefined
+        const state = this.session.gameState
+        const { defender, targets } = declaration
+        // R-7.1.2 — the declared plans are paid from one holding, so the engine judges them together.
+        return (
+            reasonCampaignTargetsInvalid(state, playerId, defender, targets) ??
+            HydratedCampaign.reasonCannotCampaign(state, playerId, declaration)
+        )
     }
 
     async declare(): Promise<void> {
         const declaration = this.declaration
-        if (!declaration || !this.declarable) return
+        if (!declaration || !this.complete || this.refusedBecause !== undefined) return
         await this.session.declareCampaign(declaration)
     }
 
@@ -404,7 +438,7 @@ export class CampaignDraft implements PanelDraft {
         return this.flow.hasManualSelection()
     }
 
-    // Back takes one target or one plan at a time, the last one chosen first.
+    // Undo takes one target or one plan at a time, the last one chosen first.
     back(): boolean {
         const top = this.flow.highestManualStage()
         if (top === 'targets' && this.targets.length > 1) {

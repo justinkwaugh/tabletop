@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CardKind, PowerChoiceKind, Region } from '@tabletop/oath'
-import { powerChoiceCard, powerChoiceCards, powerUseCards, toggleSingle, togglePick, type CardResolvers } from './cardChoice.js'
+import { powerChoiceCard, powerChoiceCards, toggleSingle, togglePick, type CardResolvers } from './cardChoice.js'
 
 const resolve: CardResolvers = {
     knownRelicAt: (slotId) => (slotId === 'c1.relic.0' ? 'relic.map' : undefined),
@@ -49,17 +49,5 @@ describe('a power choice drawn as cards', () => {
         const card = { kind: PowerChoiceKind.Card, cardId: 'denizen.nomad.tents' } as const
         expect(powerChoiceCards([card, card], resolve)?.map((c) => c.key)).toEqual(['0', '1'])
         expect(powerChoiceCards([card, { kind: PowerChoiceKind.Region, region: Region.Cradle }], resolve)).toBeUndefined()
-    })
-})
-
-describe('a power offered for use drawn as its card', () => {
-    it('is keyed by card and power, so one card with two powers gives two picks, and captioned with its text', () => {
-        const cards = powerUseCards([
-            { cardId: 'denizen.nomad.tents', powerIndex: 0, text: 'first' },
-            { cardId: 'denizen.nomad.tents', powerIndex: 1, text: 'second' }
-        ])
-        expect(new Set(cards.map((card) => card.key)).size).toBe(2)
-        expect(cards.map((card) => card.caption)).toEqual(['first', 'second'])
-        expect(cards.every((card) => card.cardId === 'denizen.nomad.tents')).toBe(true)
     })
 })

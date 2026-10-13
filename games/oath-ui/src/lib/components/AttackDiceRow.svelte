@@ -16,7 +16,7 @@
 </script>
 
 {#if maxDice > 0}
-    <div class="dice" title="Up to the warbands in your force. Tap a die to set the pool.">
+    <div class="dice">
         {#each range(0, maxDice) as index (index)}
             <button
                 type="button"
@@ -55,6 +55,13 @@
         line-height: 0;
         cursor: pointer;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+    }
+    /* A phone, as max-sm: a 44 px tap target. */
+    @media (max-width: 639px) {
+        .die {
+            width: 44px;
+            height: 44px;
+        }
     }
     .die img {
         display: block;

@@ -18,12 +18,23 @@
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
-    import VisionSeenOverlay from '$lib/components/VisionSeenOverlay.svelte'
+    import SinceLastTurn from '$lib/components/SinceLastTurn.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import FocusChooser from '$lib/components/FocusChooser.svelte'
+    import MapPickFraming from '$lib/components/MapPickFraming.svelte'
     import { MachineState } from '@tabletop/oath'
     import type { BoundingBox } from '@tabletop/common'
-    import { focusRect, siteFocusRect, type FocusView } from '$lib/definitions/boardFocusAreas.js'
+    import {
+        allSitesFrameRect,
+        focusRect,
+        siteFocusRect,
+        siteRowsFrameRect,
+        travelFrameRect,
+        type FocusView
+    } from '$lib/definitions/boardFocusAreas.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import type { MapPick } from '$lib/model/actionOffers.js'
+    import type { MapFrame } from '$lib/model/travelOnTheMap.js'
 
     import type { HydratedOathGameState, OathProjectedState } from '@tabletop/oath'
     import { setGameSession, toOathSession } from '$lib/model/sessionContext.svelte.js'
@@ -40,6 +51,8 @@
     let boardFocus = $state<{
         key: string
         view: FocusView | undefined
+        /** What a pick on the map framed on a phone: its step, not the player, chose this focus. */
+        mapPick?: MapFrame
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
 
@@ -71,6 +84,38 @@
         focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
     }
 
+    // A pick on the map on a phone (Travel, Setup's start site, the spoils' banish) frames the lit
+    // map while the step is open (upright one region, sideways every site or Setup's rows of start
+    // sites),
+    // and gives back the view it found when the step closes, unless a pan or zoom by hand took
+    // the view over first. A desktop frames nothing: the whole board stays in view.
+    const layout = new PhoneLayout()
+    let mapPick = $derived(layout.phone ? oath.mapPick : undefined)
+
+    function frameRect(pick: MapPick, frame: MapFrame): BoundingBox {
+        if (frame !== 'all') return travelFrameRect(frame)
+        return pick.kind === 'start' ? siteRowsFrameRect(pick.sites) : allSitesFrameRect()
+    }
+
+    function frameMapPick(pick: MapPick, frame: MapFrame) {
+        if (!wrapper) return
+        const restore =
+            boardFocus?.mapPick !== undefined ? boardFocus.restore : wrapper.captureView()
+        boardFocus = { key: `map-pick:${frame}`, view: undefined, mapPick: frame, restore }
+        wrapper.focusRect(frameRect(pick, frame), {
+            animate: true,
+            maxScale: FOCUS_MAX_SCALE,
+            padding: FOCUS_PADDING
+        })
+    }
+
+    function releaseMapPickFrame() {
+        if (boardFocus?.mapPick === undefined) return
+        const { restore } = boardFocus
+        boardFocus = undefined
+        restore({ animate: true })
+    }
+
     let windowHeight = $state(0)
 
     // The shared wrapper exposes full screen only as its dialog's role (contract rule 6).
@@ -88,16 +133,16 @@
     }
 
     // Rule 7 — Escape closes the topmost layer only: the enlarged card, the open goals or seat, then
-    // a Vision seen (never from a text field, as clearing it is remembered); with none open it is
-    // left to the board's wrapper, which leaves full screen.
+    // the "Since your last turn" card (never from a text field, as clearing it is remembered); with
+    // none open it is left to the board's wrapper, which leaves full screen.
     const closesTopLayer: Attachment = () => {
         const escape = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return
             if (cardPreview.open) cardPreview.dismiss()
             else if (oath.goalsView.open) oath.goalsView.close()
             else if (oath.seatDetail.openPlayerId) oath.seatDetail.close()
-            else if (oath.visionsSeen.draws.length > 0 && !typedInTextField(event)) {
-                oath.visionsSeen.clear()
+            else if (oath.turnNotice.open && !typedInTextField(event)) {
+                oath.turnNotice.clear()
             } else return
             event.preventDefault()
             event.stopPropagation()
@@ -184,7 +229,7 @@
                 <ScalingWrapper
                     bind:this={wrapper}
                     justify="center"
-                    controls="bottom-left"
+                    controls="bottom-right"
                     coverBelowScale={0.3}
                     maxScale={FOCUS_MAX_SCALE}
                     expandable
@@ -193,7 +238,19 @@
                     <Board />
                     {#snippet overlay()}
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
-                        <VisionSeenOverlay />
+                        {#if mapPick}
+                            {@const pick = mapPick}
+                            {#key `${layout.upright}:${pick.kind}`}
+                                <MapPickFraming
+                                    {pick}
+                                    upright={layout.upright}
+                                    framed={boardFocus?.mapPick}
+                                    onframe={(frame) => frameMapPick(pick, frame)}
+                                    onrelease={releaseMapPickFrame}
+                                />
+                            {/key}
+                        {/if}
+                        <SinceLastTurn />
                     {/snippet}
                     {#snippet toolbar()}
                         <!-- Rule 6 — full screen is a modal dialog; anything outside it is behind it. -->
@@ -232,8 +289,8 @@
     .info-wrap {
         display: contents;
     }
-    /* On a phone held sideways the Act Phase header already says what the
-       information line says; its height goes to the buttons. */
+    /* On a phone held sideways, in your own Act Phase the grid's End button already
+       names the phase the information line names; its height goes to the buttons. */
     @media (max-height: 520px) and (orientation: landscape) {
         .info-wrap--redundant {
             display: none;

@@ -4,7 +4,9 @@ import { Color } from '@tabletop/common'
 import { OathColors } from '@tabletop/oath'
 import {
     banditWarbandImage,
+    imperialBanditWarbandImage,
     pawnImage,
+    siteBanditsImage,
     pawnImageKeys,
     warbandFigure,
     warbandImage,
@@ -51,6 +53,31 @@ describe('warband figure coverage', () => {
         const detail = (figure: string) => figure.slice(figure.lastIndexOf('<path'))
         expect(new Set(figures.map(detail)).size).toBe(1)
         expect(() => banditWarbandImage(Color.Green)).toThrow()
+    })
+
+    it('R-7.6.5, R-6.6.3 — the bandits serving an Imperial holder take the body of the Empire’s purple warband', () => {
+        const purpleWarband = readFileSync(new URL('./pieces/warband.purple.svg', import.meta.url), 'utf8')
+        const imperial = decodeURIComponent(imperialBanditWarbandImage())
+        const body = imperial.match(/<path fill="(#[0-9a-f]{6})"/)?.[1]
+        expect(body).toBe('#943c80')
+        expect(purpleWarband).toContain(`fill="${body}"`)
+        const seats = OathColors.map((color) => decodeURIComponent(banditWarbandImage(color)))
+        expect(seats).not.toContain(imperial)
+        const detail = (figure: string) => figure.slice(figure.lastIndexOf('<path'))
+        expect(detail(imperial)).toBe(detail(seats[0]))
+    })
+
+    it('a site’s bandits: green with no holder, the holder’s colour, or the Empire’s purple when they are Imperial warbands', () => {
+        const colorOf = (playerId: string) => (playerId === 'ann' ? Color.Blue : Color.Purple)
+        expect(siteBanditsImage({ banditsImperial: false }, colorOf)).toBe(banditWarbandImage())
+        expect(siteBanditsImage({ banditsHolderId: 'ann', banditsImperial: false }, colorOf)).toBe(
+            banditWarbandImage(Color.Blue)
+        )
+        for (const holderId of ['ann', 'dana']) {
+            expect(siteBanditsImage({ banditsHolderId: holderId, banditsImperial: true }, colorOf)).toBe(
+                imperialBanditWarbandImage()
+            )
+        }
     })
 
     it('an unused colour is a broken invariant, not a missing picture', () => {

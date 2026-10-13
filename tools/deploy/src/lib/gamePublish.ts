@@ -5,6 +5,7 @@ import {
     buildGameUiCommand,
     buildGameUiPackageCommand,
     deployGameLogicCommand,
+    deployGameUiBrotliScriptCommands,
     deployGameUiCommand,
     gameVersionFile,
     writeGameVersionCommand
@@ -144,7 +145,20 @@ const buildAndUpload = async (
               ]
             : []),
         ...(pendingKinds.includes('ui')
-            ? [deployGameUiCommand(context.repoRoot, packageId, versions.ui, context.deployConfig)]
+            ? [
+                  deployGameUiCommand(
+                      context.repoRoot,
+                      packageId,
+                      versions.ui,
+                      context.deployConfig
+                  ),
+                  ...deployGameUiBrotliScriptCommands(
+                      context.repoRoot,
+                      packageId,
+                      versions.ui,
+                      context.deployConfig
+                  )
+              ]
             : [])
     ]
     await runDeploysWithDirectoryPlaceholders(context, deploySpecs)

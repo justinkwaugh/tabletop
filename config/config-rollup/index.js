@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
+import { publishCssAssets } from './css-assets.js'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
@@ -147,6 +148,7 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
     const uiVersion = process.env.ROLLUP_UI_VERSION ?? packageVersion
     const publicAssetsPath = `/games/${gameId}/ui/${uiVersion}/assets/`
+    const assetsDirectory = path.join(packageRoot, 'bundle/assets')
     const analyze = process.env.ROLLUP_ANALYZE === '1'
     const minify = process.env.ROLLUP_TERSER !== '0'
     const terserWorkers = process.env.ROLLUP_TERSER_WORKERS
@@ -190,17 +192,22 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
                 exportConditions: ['svelte'],
                 extensions: ['.ts', '.js', '.mjs', '.svelte']
             }),
-            postcss({ inject: true }),
+            postcss({
+                inject: true,
+                plugins: [
+                    publishCssAssets({ destDir: assetsDirectory, publicPath: publicAssetsPath })
+                ]
+            }),
             url({
                 include: modelAssetExtensions,
-                destDir: path.join(packageRoot, 'bundle/assets'),
+                destDir: assetsDirectory,
                 publicPath: publicAssetsPath,
                 fileName: '[name][extname]',
                 limit: 0
             }),
             url({
                 include: assetExtensions,
-                destDir: path.join(packageRoot, 'bundle/assets'),
+                destDir: assetsDirectory,
                 publicPath: publicAssetsPath,
                 fileName: '[name]-[hash][extname]',
                 limit: 0

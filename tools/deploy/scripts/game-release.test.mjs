@@ -420,6 +420,100 @@ test('revision suffixes are valid Cloud Run names', async () => {
     assert.equal(revisionSuffixForVersion('2.10.3-rc.1'), 'v2-10-3-rc-1')
 })
 
+test('uploads set the cache headers the public bucket serves', async () => {
+    const { deployGameUiCommand, deployManifestCommand, directoryPlaceholderSpecs } =
+        await import('../esm/lib/commands.js')
+    const config = { gcsBucket: 'b' }
+
+    const ui = deployGameUiCommand('/repo', 'a', '2.1.0', config)
+    assert.deepEqual(ui.args, [
+        'storage',
+        'rsync',
+        '--recursive',
+        '--cache-control=public, max-age=31536000, immutable',
+        '/repo/games/a-ui/bundle',
+        'gs://b/games/a/ui/2.1.0'
+    ])
+    assert.deepEqual(
+        directoryPlaceholderSpecs('/repo', ui).map((spec) => spec.args.at(-1)),
+        ['gs://b/games/', 'gs://b/games/a/', 'gs://b/games/a/ui/', 'gs://b/games/a/ui/2.1.0/']
+    )
+
+    const manifest = deployManifestCommand('/tmp/site-manifest.json', config)
+    assert.deepEqual(manifest.args, [
+        'storage',
+        'cp',
+        '--cache-control=no-store',
+        '/tmp/site-manifest.json',
+        'gs://b/config/site-manifest.json'
+    ])
+})
+
+test('each bundled script is re-uploaded from its Brotli file under the script name', async () => {
+    const { deployGameUiBrotliScriptCommands, directoryPlaceholderSpecs } =
+        await import('../esm/lib/commands.js')
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), 'deploy-brotli-'))
+    try {
+        const bundle = path.join(repoRoot, 'games', 'a-ui', 'bundle')
+        await mkdir(path.join(bundle, 'assets'), { recursive: true })
+        await mkdir(path.join(bundle, 'workers'), { recursive: true })
+        for (const file of [
+            'index.js',
+            'index.js.br',
+            'index.js.map',
+            'runtime-abc.js',
+            'runtime-abc.js.br',
+            'workers/route.worker-def.js',
+            'workers/route.worker-def.js.br',
+            'uncompressed.js',
+            'catalog.json',
+            'assets/cover-123.svg'
+        ]) {
+            await writeFile(path.join(bundle, file), file)
+        }
+
+        const specs = deployGameUiBrotliScriptCommands(repoRoot, 'a', '2.1.0', { gcsBucket: 'b' })
+
+        const flags = [
+            'storage',
+            'cp',
+            '--content-encoding=br',
+            '--content-type=text/javascript',
+            '--cache-control=public, max-age=31536000, immutable'
+        ]
+        assert.deepEqual(
+            specs.map((spec) => spec.args),
+            [
+                [...flags, path.join(bundle, 'index.js.br'), 'gs://b/games/a/ui/2.1.0/index.js'],
+                [
+                    ...flags,
+                    path.join(bundle, 'runtime-abc.js.br'),
+                    'gs://b/games/a/ui/2.1.0/runtime-abc.js'
+                ],
+                [
+                    ...flags,
+                    path.join(bundle, 'workers', 'route.worker-def.js.br'),
+                    'gs://b/games/a/ui/2.1.0/workers/route.worker-def.js'
+                ]
+            ]
+        )
+        assert.equal(new Set(specs.map((spec) => spec.logPath)).size, specs.length)
+        assert.ok(specs.every((spec) => spec.requiresDeploy))
+        assert.deepEqual(
+            directoryPlaceholderSpecs(repoRoot, specs[2]).map((spec) => spec.args.at(-1)),
+            [
+                'gs://b/games/',
+                'gs://b/games/a/',
+                'gs://b/games/a/ui/',
+                'gs://b/games/a/ui/2.1.0/',
+                'gs://b/games/a/ui/2.1.0/workers/'
+            ]
+        )
+    } finally {
+        await rm(repoRoot, { recursive: true, force: true })
+    }
+})
+
 test('backend services roll out tasks first, then backend', async () => {
     const { orderServices } = await import('../esm/lib/backendPublish.js')
     assert.deepEqual(orderServices(['backend', 'tasks']), ['tasks', 'backend'])

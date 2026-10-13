@@ -31,7 +31,7 @@ import { giveBanner } from '../util/seize.js'
 import { reasonTermsInvalid } from './offerCitizenship.js'
 import { commitHiddenOutputs, takeRelicFromVault } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
-import { moveRelic, takeRelic, clearReliquarySlot } from '../util/relics.js'
+import { giveRelic, takeRelic, clearReliquarySlot } from '../util/relics.js'
 
 export type CitizenshipOutcome = Type.Static<typeof CitizenshipOutcome>
 export const CitizenshipOutcome = Type.Object({
@@ -227,7 +227,7 @@ export class HydratedResolveCitizenshipOffer
             to.secrets += secrets
 
             for (const cardId of transfer.relicCardIds ?? []) {
-                moveRelic(state, fromId, toId, cardId)
+                giveRelic(state, fromId, toId, cardId)
             }
 
             for (const banner of transfer.banners ?? []) {

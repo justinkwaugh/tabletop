@@ -1,4 +1,8 @@
 <script lang="ts">
+    // Instance-scoped SVG ids, so two of these on one page never resolve each other's defs.
+    const uid = $props.id()
+    const svgId = (name: string) => `${uid}-${name}`
+
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { W, H } from '$lib/utils/boardGeometry.js'
 
@@ -20,11 +24,11 @@
     {@attach () => director.attach((ids) => { birdIds = ids })}
 >
     <defs>
-        <clipPath id="bird-layer-clip">
+        <clipPath id={svgId('bird-layer-clip')}>
             <rect width={W} height={H} rx="14" />
         </clipPath>
     </defs>
-    <g clip-path="url(#bird-layer-clip)">
+    <g clip-path="url(#{svgId('bird-layer-clip')})">
     {#each birdIds as id (id)}
         <g
             class="bird"

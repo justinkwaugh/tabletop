@@ -4,7 +4,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { sitePowerCategory, siteRecord } from '../data/sites.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { rulesSite } from './rule.js'
-import { gainWarbandsToBoard } from './force.js'
+import { gainedWarbandsWords, gainWarbandsToBoard } from './force.js'
 import { afterRelicsTakenPersistent } from './persistent.js'
 import { takeRelic, clearSiteRelicSlot } from './relics.js'
 import { homelandLedgerKey } from './discard.js'
@@ -97,7 +97,8 @@ export function homelandPayout(
         }
         case 'warbands': {
             const gained = gainWarbandsToBoard(state, playerId, record.homeland.amount)
-            return `${record.name} (Homeland): gained ${gained} warbands`
+            const words = gainedWarbandsWords(state, playerId, gained) ?? `${gained} warbands`
+            return `${record.name} (Homeland): gained ${words}`
         }
         case 'relic': {
             // The resolver's reveal; absent on the client's optimistic run, which is discarded.

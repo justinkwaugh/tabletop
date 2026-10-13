@@ -2,6 +2,7 @@ import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { GRAND_SCEPTER_ID, RELIQUARY_SIZE } from '../data/relics.js'
 import { countOf } from './warbands.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-2.3, R-1.17 */
 export const RELIQUARY_SPACES = RELIQUARY_SIZE
@@ -16,12 +17,21 @@ export function canUseGrandScepter(state: HydratedOathGameState, playerId: strin
     if (!holdsGrandScepter(state, playerId)) return false
     // R-1.8's setup grant stamps no marker, and two undefineds must not read as "locked".
     if (state.grandScepterTakenOnTurnStart === undefined) return true
-    return state.grandScepterTakenOnTurnStart !== state.turnManager.currentTurn()?.start
+    if (state.grandScepterTakenOnTurnStart !== state.turnManager.currentTurn()?.start) return true
+    // R-X.4 — a take before revision 5 named no taker, so it locks whoever holds it, as recorded.
+    return state.grandScepterTakenBy !== undefined && !state.grandScepterTakenBy.includes(playerId)
 }
 
 /** R-1.8 — the setup grant does not call this. */
-export function recordGrandScepterTaken(state: HydratedOathGameState): void {
-    state.grandScepterTakenOnTurnStart = state.turnManager.currentTurn()?.start
+export function recordGrandScepterTaken(state: HydratedOathGameState, playerId: string): void {
+    const start = state.turnManager.currentTurn()?.start
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes2)) {
+        // The Scepter's Q&A: a holder it was given to did not take it, so the lock is the takers' alone.
+        const earlier =
+            state.grandScepterTakenOnTurnStart === start ? (state.grandScepterTakenBy ?? []) : []
+        state.grandScepterTakenBy = [...earlier, playerId]
+    }
+    state.grandScepterTakenOnTurnStart = start
 }
 
 export function grandScepterHolderId(state: HydratedOathGameState): string | undefined {

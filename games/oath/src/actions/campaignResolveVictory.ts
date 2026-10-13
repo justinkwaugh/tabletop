@@ -1,5 +1,4 @@
-import { removeFavorFromBoard } from '../util/favor.js'
-import { burnFavor } from '../util/burn.js'
+import { burnHalfTheirFavor } from '../util/burn.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -11,9 +10,8 @@ import {
 } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PileDeposit } from '../model/hidden.js'
-import { concludeCampaign } from '../util/campaignEnd.js'
-import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
-import { isCampaignOutOfTurn } from '../util/sneakAttack.js'
+import { concludeVictory } from '../util/campaignVictory.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { MachineState } from '../definition/states.js'
 import { afterRelicsTakenPersistent } from '../util/persistent.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
@@ -26,7 +24,7 @@ import { addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import { seizeBanner } from '../util/seize.js'
 import { commitHiddenOutputs, takeRelicFromVault, type SiteFlip } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
-import { moveRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
+import { releaseRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
 import { countOf, describeWarbands } from '../util/warbands.js'
 import { WarbandOwner } from '../model/warbandCounts.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
@@ -34,6 +32,8 @@ import { pawnSiteId } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { askPowerMoveToll, powerMoveToll } from '../util/powerMoveTolls.js'
+import { PowerMoveKind, PowerMoveToll, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 
 /** R-5.5.7.I */
 export type CampaignPlacement = Type.Static<typeof CampaignPlacement>
@@ -57,6 +57,8 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     seizeBurned: Type.Number(),
     banishedToSiteId: Type.Optional(Type.String()),
     favorBurned: Type.Number(),
+    /** R-5.5.7.III — whose pawn the banish moved and whose favor burned; absent against the bandits. */
+    defenderPlayerId: Type.Optional(Type.String()),
     /** R-5.6.2 via R-5.5.7.III */
     revealedSiteCardId: Type.Optional(Type.String()),
     relicsRevealed: Type.Optional(Type.Number()),
@@ -67,7 +69,9 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
-    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
+    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** Toll Roads on the banish. */
+    tollMove: Type.Optional(PowerMoveToll)
 })
 
 export type CampaignResolveVictory = Type.Static<typeof CampaignResolveVictory>
@@ -137,31 +141,15 @@ export class HydratedCampaignResolveVictory
         )
         // R-7.1.4 — "after a player takes any relics" (Relic Thief).
         const relicNotes = afterRelicsTakenPersistent(state, campaign.attackerPlayerId, relicsTaken)
-        const { banishedToSiteId, favorBurned, revealed, banishNotes } = this.banishAndBurn(
-            state,
-            campaign
-        )
-        // R-5.5.8 — the victorious attacker's "if you're victorious" plans, after R-5.5.7.
-        const victoryPlans = HydratedCampaignSacrifice.runOutcomeHooks(
-            state,
-            campaign,
-            true,
-            (victorious) => victorious
-        )
-
-        // Martial Culture's "end your Act Phase" ends nothing for an attacker who is not in theirs.
-        const endsActPhase = campaign.endsActPhaseAfter === true && !isCampaignOutOfTurn(state)
-        const conclusion = concludeCampaign(state)
-        const triggered = [
-            ...relicNotes,
-            ...banishNotes,
-            ...victoryPlans.notes,
-            ...conclusion.notes
-        ]
-        const pileDeposits = [...victoryPlans.pileDeposits, ...conclusion.pileDeposits]
+        const { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove } =
+            this.banishAndBurn(state, campaign)
+        // R-5.5.8, after R-5.5.7: a banish waiting on an answer runs it there (`settleBanishedVictory`).
+        const conclusion = campaign.banishPending ? undefined : concludeVictory(state)
+        const triggered = [...relicNotes, ...banishNotes, ...(conclusion?.notes ?? [])]
+        const pileDeposits = conclusion?.pileDeposits ?? []
 
         this.metadata = {
-            endsActPhase: endsActPhase || undefined,
+            endsActPhase: conclusion?.endsActPhase || undefined,
             triggered: triggered.length > 0 ? triggered : undefined,
             warbandsPlaced,
             relicsTaken,
@@ -169,11 +157,13 @@ export class HydratedCampaignResolveVictory
             seizeBurned,
             banishedToSiteId,
             favorBurned,
+            defenderPlayerId: campaign.defenderPlayerId,
             relicsToDeckBottom: toBottom.length > 0 ? toBottom : undefined,
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
-            resumeMachineState: conclusion.resumeMachineState,
-            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined
+            resumeMachineState: conclusion?.resumeMachineState,
+            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
+            tollMove
         }
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
         if (this.metadata.pileDeposits) this.revealsInfo = true
@@ -210,7 +200,8 @@ export class HydratedCampaignResolveVictory
 
         for (const target of campaign.targets) {
             if (target.kind === CampaignTargetKind.Relic && defender) {
-                moveRelic(state, defender.playerId, attacker.playerId, target.cardId)
+                releaseRelic(state, defender.playerId, target.cardId)
+                takeRelic(state, attacker.playerId, target.cardId)
                 relicsTaken.push(target.cardId)
             }
             if (target.kind === CampaignTargetKind.Banner) {
@@ -244,23 +235,42 @@ export class HydratedCampaignResolveVictory
                 banishedToSiteId: undefined,
                 favorBurned: 0,
                 revealed: undefined,
-                banishNotes: []
+                banishNotes: [],
+                tollMove: undefined
             }
         }
 
         let banishedToSiteId: string | undefined
         let revealed: SiteFlip | undefined
         let banishNotes: string[] = []
-        if (this.banishToSiteId) {
+        // Toll Roads — the banished player gives the favor or refuses, and refusing keeps them here.
+        const toll = this.banishToSiteId
+            ? powerMoveToll(state, defender.playerId, this.banishToSiteId)
+            : undefined
+        let tollMove: PowerMoveToll | undefined
+        if (this.banishToSiteId && toll) {
+            const move = {
+                move: PowerMoveKind.Banish,
+                moverPlayerId: campaign.attackerPlayerId,
+                movedPlayerId: defender.playerId,
+                toSiteId: this.banishToSiteId,
+                burnFavor: this.burnFavor || undefined
+            }
+            tollMove = askPowerMoveToll(state, move, toll, campaign.attackerPlayerId)
+        } else if (this.banishToSiteId) {
             // R-5.6.2 via R-5.5.7.III; Grasping Vines, Boiling Lake.
-            const moved = travelByPower(state, defender.playerId, this.banishToSiteId)
+            const moved = travelByPower(state, defender.playerId, this.banishToSiteId, {
+                playerId: campaign.attackerPlayerId,
+                next: false
+            })
             revealed = moved.revealed
             if (revealed) this.revealsInfo = true
             banishNotes = moved.notes
             banishedToSiteId = this.banishToSiteId
         }
         const chooser = shroudedWoodChooser(state, defender.playerId)
-        if (this.banish && chooser !== undefined) {
+        const woodPicks = this.banish === true && chooser !== undefined
+        if (woodPicks) {
             const fromSiteId = pawnSiteId(state, defender.playerId)
             askQuestion(state, campaign.attackerPlayerId, {
                 kind: PowerQuestionKind.ShroudedWoodDestination,
@@ -271,18 +281,18 @@ export class HydratedCampaignResolveVictory
             })
         }
 
-        let favorBurned = 0
-        if (this.burnFavor) {
-            favorBurned = removeFavorFromBoard(
-                state,
-                defender.playerId,
-                HydratedCampaignResolveVictory.favorToBurn(state)
-            )
-            // R-10.4 — burned favor goes to the shared bank, not a suit bank.
-            burnFavor(state, favorBurned)
-        }
+        // R-5.5.7.III — the travel, then the burn, then R-5.5.8: an asked toll's answer comes first,
+        // and from `UiBatch1` the Wood ruler's pick does too (R-X.4).
+        const tollWaits = tollMove?.outcome === PowerMoveTollOutcome.Asked
+        const woodWaits = woodPicks && isAtLeastOathRevision(state, OathRevision.UiBatch1)
+        if (tollWaits) campaign.banishPending = {}
+        if (woodWaits) campaign.banishPending = this.burnFavor ? { burnFavor: true } : {}
+        const favorBurned =
+            this.burnFavor && !tollWaits && !woodWaits
+                ? burnHalfTheirFavor(state, defender.playerId)
+                : 0
 
-        return { banishedToSiteId, favorBurned, revealed, banishNotes }
+        return { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove }
     }
 
     static reasonCannotResolveVictory(
@@ -309,6 +319,7 @@ export class HydratedCampaignResolveVictory
         if (playerId !== campaign.attackerPlayerId) {
             return 'only the attacker resolves their own victory'
         }
+        if (campaign.banishPending) return 'the banish waits on an answer'
 
         const placementReason = HydratedCampaignResolveVictory.reasonCannotPlace(
             state,
@@ -341,7 +352,7 @@ export class HydratedCampaignResolveVictory
         campaign: CampaignState,
         placements: readonly CampaignPlacement[]
     ): string | undefined {
-        const sites = targetedSiteIds(partiesOf(campaign))
+        const sites = targetedSiteIds(partiesOf(state, campaign))
         const board = state.getPlayerState(campaign.attackerPlayerId).warbandsOnBoard
 
         const wanted = new Map<WarbandOwner, number>()

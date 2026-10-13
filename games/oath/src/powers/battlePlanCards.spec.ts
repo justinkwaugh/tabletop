@@ -77,6 +77,7 @@ describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
         action.apply(s)
         expect(s.getPlayerState(ATTACKER).supply).toBe(5 - 2 + 1)
         expect(action.metadata?.battle?.plansUsed).toEqual([SCOUTS])
+        expect(action.metadata?.battle?.planNotes).toEqual([`Scouts: ${ATTACKER} gained 1 Supply`])
         expect(action.metadata?.battle?.awaitingDefender).toBeUndefined()
         expect(s.campaign?.attackRoll.length).toBe(3)
     })
@@ -248,6 +249,21 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
         action.apply(s)
         expect(action.metadata?.battle?.plansUsed).toBeUndefined()
         expect(s.campaign?.defensePool).toBe(1)
+    })
+})
+
+describe("Great Crusade for the bandits (R-5.5.3-H1)", () => {
+    it('counts the nomad cards at the sites the bandits rule, in their favour', () => {
+        const GREAT_CRUSADE = 'denizen.nomad.great-crusade'
+        const s = table({
+            warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
+            denizensBySite: { c1: [GREAT_CRUSADE], p1: ['denizen.nomad.elders'], h1: ['denizen.nomad.tents'] }
+        })
+        const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
+        action.apply(s)
+        expect(action.metadata?.battle?.plansUsed).toEqual([GREAT_CRUSADE])
+        // Great Crusade and Tents; Elders is at a site the defender rules.
+        expect(s.campaign?.attackPool).toBe(3 - 2)
     })
 })
 

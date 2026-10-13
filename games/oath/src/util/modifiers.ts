@@ -23,6 +23,7 @@ import { effectFor, type EffectContext, type ModifierHooks } from '../powers/reg
 import { traitModifiers } from './reliquaryTraits.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import type { DiscardTarget } from './discard.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 
 // R-7.4.1, R-7.4.2, R-X.1 — one use per action; a costed modifier pays at declaration.
 
@@ -103,6 +104,20 @@ export function mandatoryModifiers(
     // R-6.6.2.a — uncovered Reliquary traits are mandatory modifiers with no card behind them.
     found.push(...traitModifiers(state, playerId, action))
     return found
+}
+
+/** R-7.4.1 — a modifier the engine applies by itself: it is never declared. */
+export function isMandatoryModifier(power: CardPower): boolean {
+    return effectFor(power)?.mandatory === true
+}
+
+/**
+ * A free gain (Dragonskin Drum, Rowdy Pub, Wild Cry …): an optional modifier that costs nothing,
+ * asks nothing and only gains, so a menu may start it in use. Read by no rule: a modifier applies
+ * only when it is declared (R-7.4.1).
+ */
+export function isFreeGain(power: CardPower): boolean {
+    return effectFor(power)?.freeGain === true
 }
 
 /** A printed condition depends on the action's particulars, so it is checked at declaration. */
@@ -351,6 +366,7 @@ export function foldNumber(
         | 'musterWarbands'
         | 'tradeFavor'
         | 'tradeSecrets'
+        | 'tradeSideFavor'
         | 'drawCount'
         | 'recoverSecrets',
     base: number,
@@ -411,16 +427,18 @@ export function runAfter(
     playerId: string,
     active: readonly ActiveModifier[],
     particulars: Partial<EffectContext['particulars']> = {}
-): { notes: string[]; endsActPhase: boolean } {
+): { notes: string[]; endsActPhase: boolean; warbandOwners: WarbandOwner[] } {
     const notes: string[] = []
+    const warbandOwners: WarbandOwner[] = []
     let endsActPhase = false
     for (const m of active) {
         const r = m.hooks.after?.({ ...modifierContext(state, playerId, m), particulars })
         if (!r) continue
         if (r.summary) notes.push(r.summary)
         if (r.endsActPhase) endsActPhase = true
+        if (r.warbandOwner !== undefined) warbandOwners.push(r.warbandOwner)
     }
-    return { notes, endsActPhase }
+    return { notes, endsActPhase, warbandOwners }
 }
 
 export function modifierSummary(active: readonly ActiveModifier[]): string[] {

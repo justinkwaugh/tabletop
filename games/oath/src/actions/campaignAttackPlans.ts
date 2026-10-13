@@ -90,7 +90,12 @@ export class HydratedCampaignAttackPlans
     static usablePlans(state: HydratedOathGameState, playerId: string): CardPower[] {
         const held = state.pendingCampaign
         return held?.awaitingAttackerPlans && held.declaration.attackerPlayerId === playerId
-            ? usableBattlePlans(state, playerId, BattlePlanSide.Attacker)
+            ? usableBattlePlans(
+                  state,
+                  playerId,
+                  BattlePlanSide.Attacker,
+                  HydratedCampaign.partiesOfDeclaration(state, held.declaration)
+              )
             : []
     }
 

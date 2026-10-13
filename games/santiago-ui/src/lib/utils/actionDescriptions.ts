@@ -195,27 +195,14 @@ function getAllProposalsThisRound(decision: OverseerDecision, allActions: GameAc
         .filter(t => t < decisionTime)
         .reduce((max, t) => Math.max(max, t), 0)
 
-    return allActions.filter(a =>
-        isProposeCanal(a) &&
-        (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-        (a.createdAt?.getTime() ?? 0) < decisionTime
-    ) as ProposeCanal[]
+    return allActions
+        .filter(isProposeCanal)
+        .filter(a =>
+            (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+            (a.createdAt?.getTime() ?? 0) < decisionTime
+        )
 }
 
 function getProposalsForDecision(decision: OverseerDecision, allActions: GameAction[]): ProposeCanal[] {
-    const decisionTime = decision.createdAt?.getTime() ?? 0
-
-    // Only look at proposals from the same canal-building phase (after the last round end)
-    const lastRoundEndTime = allActions
-        .filter(a => isEndRoundEvent(a))
-        .map(a => a.createdAt?.getTime() ?? 0)
-        .filter(t => t < decisionTime)
-        .reduce((max, t) => Math.max(max, t), 0)
-
-    return allActions.filter(a =>
-        isProposeCanal(a) &&
-        isSameSegment((a as ProposeCanal).segment, decision.segment) &&
-        (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-        (a.createdAt?.getTime() ?? 0) < decisionTime
-    ) as ProposeCanal[]
+    return getAllProposalsThisRound(decision, allActions).filter(a => isSameSegment(a.segment, decision.segment))
 }

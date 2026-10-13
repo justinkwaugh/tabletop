@@ -1,6 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
+import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from './campaign.js'
 import { areEnemies, rulersOfSite, rulesSite } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
@@ -57,15 +58,28 @@ export function persistentsInPlay(state: HydratedOathGameState): PersistentInPla
     return found
 }
 
+/** A persistent power's refusal, with the card it is on. */
+export interface PersistentRefusal {
+    cardId: string
+    reason: string
+}
+
+export function firstPersistentRefusal(
+    state: HydratedOathGameState,
+    ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined
+): PersistentRefusal | undefined {
+    for (const { ctx, hooks } of persistentsInPlay(state)) {
+        const reason = ask(hooks, ctx)
+        if (reason) return { cardId: ctx.cardId, reason }
+    }
+    return undefined
+}
+
 export function firstPersistentReason(
     state: HydratedOathGameState,
     ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined
 ): string | undefined {
-    for (const { ctx, hooks } of persistentsInPlay(state)) {
-        const reason = ask(hooks, ctx)
-        if (reason) return reason
-    }
-    return undefined
+    return firstPersistentRefusal(state, ask)?.reason
 }
 
 export function runPersistent(
@@ -116,6 +130,17 @@ export function reasonPersistentForbidsFaceupVision(
 ) {
     return firstPersistentReason(state, (h, ctx) => h.forbidsFaceupVision?.(ctx, actorId, cardId))
 }
+export function persistentRefusesBannerTake(
+    state: HydratedOathGameState,
+    actorId: string,
+    banner: Banner,
+    how: BannerTake,
+    holderId?: string
+) {
+    return firstPersistentRefusal(state, (h, ctx) =>
+        h.forbidsBannerTake?.(ctx, actorId, banner, how, holderId)
+    )
+}
 export function reasonPersistentForbidsBannerTake(
     state: HydratedOathGameState,
     actorId: string,
@@ -123,8 +148,16 @@ export function reasonPersistentForbidsBannerTake(
     how: BannerTake,
     holderId?: string
 ) {
-    return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsBannerTake?.(ctx, actorId, banner, how, holderId)
+    return persistentRefusesBannerTake(state, actorId, banner, how, holderId)?.reason
+}
+export function persistentRefusesRelicTake(
+    state: HydratedOathGameState,
+    actorId: string,
+    holderId: string,
+    relicCardId: string
+) {
+    return firstPersistentRefusal(state, (h, ctx) =>
+        h.forbidsRelicTake?.(ctx, actorId, holderId, relicCardId)
     )
 }
 export function reasonPersistentForbidsRelicTake(
@@ -133,12 +166,13 @@ export function reasonPersistentForbidsRelicTake(
     holderId: string,
     relicCardId: string
 ) {
-    return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsRelicTake?.(ctx, actorId, holderId, relicCardId)
-    )
+    return persistentRefusesRelicTake(state, actorId, holderId, relicCardId)?.reason
+}
+export function persistentRefusesSecretCost(state: HydratedOathGameState, actorId: string) {
+    return firstPersistentRefusal(state, (h, ctx) => h.forbidsSecretCosts?.(ctx, actorId))
 }
 export function reasonPersistentForbidsSecretCost(state: HydratedOathGameState, actorId: string) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsSecretCosts?.(ctx, actorId))
+    return persistentRefusesSecretCost(state, actorId)?.reason
 }
 export function reasonPersistentForbidsGivingSecrets(
     state: HydratedOathGameState,
@@ -175,9 +209,9 @@ export function reasonPersistentForbidsBattlePlan(
 export function reasonPersistentForbidsTargets(
     state: HydratedOathGameState,
     parties: CampaignParties,
-    defensePool: number
+    targetDice: number
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, defensePool))
+    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, targetDice))
 }
 
 /** Gleaming Armor, Insect Swarm */
@@ -214,6 +248,20 @@ export function persistentMatchingAdvisers(
     suit: Suit
 ): number {
     return sumPersistent(state, (h, ctx) => h.extraMatchingAdvisers?.(ctx, holderId, suit))
+}
+
+/** R-5.1.4.IV, R-5.3.2 — a player's faceup advisers of a suit, Marriage counting as two hearth advisers. */
+export function advisersOfSuit(
+    state: HydratedOathGameState,
+    holderId: string,
+    suit: Suit,
+    suitIn: (cardId: string) => Suit | undefined = suitOf
+): number {
+    const faceup = state
+        .getPlayerState(holderId)
+        .faceupAdviserIds()
+        .filter((cardId) => suitIn(cardId) === suit).length
+    return faceup + persistentMatchingAdvisers(state, holderId, suit)
 }
 
 export function afterTravelPersistent(

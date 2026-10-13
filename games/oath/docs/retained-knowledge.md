@@ -12,7 +12,7 @@ Each field records a fact the player saw, kept in step with later public events 
 | Ivory Eye, a relic | one facedown relic | `peekedRelics`, as now | as now |
 | Ivory Eye, an adviser (another player's) | one facedown adviser | the row's `shownTo` gains the viewer; `shownCardId` reaches them by `oath.adviserShownTo` | as any shown row: gone when the card flips faceup or leaves play |
 | Inquisitor, not the Conspiracy | one facedown adviser | the same row mechanism | the same |
-| Inquisitor, the Conspiracy | — | nothing: the card is played or discarded at once | — |
+| Inquisitor, the Conspiracy | — | nothing: the card is played or discarded at once; played facedown, its row is `seen` by all | as any seen row |
 | Dream Thief, The Gathering | each holder knows the card they gave | the moved row keeps its card's `shownTo` and adds the player who gave it | the same |
 | Oracular Pig | the world deck's top three | new `knownWorldDeckTop: cardId[]`, Owner, index 0 the top | a draw of n drops the first n; Oracle's draw removes the first Vision in the list, if any; a new look replaces it |
 | Scryer | one discard pile, whole | new `knownDiscardPiles: Record<Region, (cardId \| null)[]>`, Owner, indexed from the pile's bottom, `null` where unknown | a top draw truncates to the new public count; Mushrooms' bottom draw shifts it; Convoys moves it onto the target pile above that pile's count; a deposit changes nothing |

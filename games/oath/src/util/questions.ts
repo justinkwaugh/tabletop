@@ -3,12 +3,21 @@ import { HydratedOathGameState, type ProjectedPowerQuestion } from '../model/gam
 import { MachineState } from '../definition/states.js'
 import type { PowerQuestion } from '../model/question.js'
 import { forcedOutcome } from './forcedOutcomes.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 export function turnOrderFrom(state: HydratedOathGameState, fromPlayerId: string): string[] {
     const order = state.turnManager.turnOrder
     const start = order.indexOf(fromPlayerId)
     if (start < 0) return [...order]
     return [...order.slice(start), ...order.slice(0, start)]
+}
+
+/** The Gathering's Q&A: its rounds go in turn order from the Chancellor (R-X.4: before revision 5, from its player). */
+export function gatheringTurnOrder(state: HydratedOathGameState, playedById: string): string[] {
+    const first = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
+        ? state.chancellorId()
+        : playedById
+    return turnOrderFrom(state, first)
 }
 
 export function askQuestion(

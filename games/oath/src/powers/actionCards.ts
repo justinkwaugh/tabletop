@@ -1,12 +1,19 @@
 import { assertExists } from '@tabletop/common'
-import { Suit } from '../model/oathEnums.js'
+import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { citizenshipEndsActPhase } from '../util/citizenship.js'
-import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
+import {
+    one,
+    optional,
+    PowerChoiceKind,
+    type ChoiceDomain,
+    type FavorTotal
+} from '../util/powerChoice.js'
 import { registerEffect, type EffectContext, chosen } from './registry.js'
 import {
+    burnSecretsDownTo,
     burnSecretsFromDarkestSecret,
     burnSecretsFromPlayer,
     discardAdviser,
@@ -33,12 +40,16 @@ import {
 import { rulesSite, rulingWarbandOwners, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { totalWarbands, countOf, soleOwnerOf } from '../util/warbands.js'
-import { playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
+import { ANY_WARBANDS_MOVES, playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
 import { RerolledRollKind } from '../model/question.js'
 import { offerReroll, settleRoll } from '../util/reroll.js'
 import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
+import { MAX_SITE_CAPACITY } from '../data/sites.js'
+import { SEIZE_MINIMUM, burnableFromBanner } from '../util/seize.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -121,18 +132,24 @@ registerEffect(
 )
 
 // "Action: Gain [favor][favor][favor][favor] from any favor bank or banks."
+function alchemistFavor(state: HydratedOathGameState): FavorTotal {
+    const inBanks = Object.values(state.favorBank).reduce((n, v) => n + v, 0)
+    return { sources: Object.values(Suit), total: Math.min(4, inBanks) }
+}
 registerEffect(
     'denizen.arcane.alchemist',
     powerIndexOf('denizen.arcane.alchemist', PowerTiming.Action),
     {
         choices: Array.from({ length: 4 }, () =>
-            optional(PowerChoiceKind.FavorBank, { what: 'a favor bank' })
+            optional(PowerChoiceKind.FavorBank, {
+                what: 'a favor bank',
+                favorTotal: alchemistFavor
+            })
         ),
         // R-7.1.3 — "Gain four": as many as the banks can give, not fewer by choice.
         reasonCannotResolve: (ctx) => {
             const picks = chosen(ctx, PowerChoiceKind.FavorBank).map((b) => b.suit)
-            const inBanks = Object.values(ctx.state.favorBank).reduce((n, v) => n + v, 0)
-            const required = Math.min(4, inBanks)
+            const required = alchemistFavor(ctx.state).total
             const obtainable = favorObtainableFromPicks(ctx.state, picks)
             return obtainable < required
                 ? `Alchemist gains four favor: the banks named yield ${obtainable}, and ${required} can be had`
@@ -165,12 +182,26 @@ registerEffect(
 )
 
 // "Action: Place [secret] from the shared bank on the Darkest Secret, or burn
-// [secret] from the Darkest Secret."
+// [secret] from the Darkest Secret (not last [secret])."
 registerEffect(
     'denizen.arcane.forgotten-vault',
     powerIndexOf('denizen.arcane.forgotten-vault', PowerTiming.Action),
     {
-        choices: [optional(PowerChoiceKind.Yes, { what: 'burning instead of placing' })],
+        choices: [
+            optional(PowerChoiceKind.Yes, {
+                what: 'burning instead of placing',
+                or: true,
+                // "(not last [secret])": the burn is offered only while it burns one.
+                offered: (state) => burnableFromBanner(state, Banner.DarkestSecret) > 0
+            })
+        ],
+        // "Not last": at its last secret the burn has nothing to do (R-2.5.3's floor), so it is no choice.
+        reasonCannotResolve: (ctx) =>
+            chosen(ctx, PowerChoiceKind.Yes).length > 0 &&
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4) &&
+            ctx.state.banners[Banner.DarkestSecret].value <= SEIZE_MINIMUM
+                ? 'the Darkest Secret holds only its last secret, which cannot be burned'
+                : undefined,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length > 0) {
                 const burned = burnSecretsFromDarkestSecret(ctx.state, 1)
@@ -386,16 +417,18 @@ registerEffect(
     {
         choices: [],
         resolve: (ctx) => {
+            const burnsFacedown = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes2)
             let burned = 0
             for (const p of ctx.state.players) {
                 // "(The only secret you keep is the one here)": the actor keeps none on their board.
-                const keepFaceup =
-                    p.playerId === ctx.playerId ? 0 : Math.max(0, 1 - p.secretsFacedown)
-                burned += burnSecretsFromPlayer(
-                    ctx.state,
-                    p.playerId,
-                    Math.max(0, p.secrets - keepFaceup)
-                )
+                const kept = p.playerId === ctx.playerId ? 0 : 1
+                burned += burnsFacedown
+                    ? burnSecretsDownTo(ctx.state, p.playerId, kept)
+                    : burnSecretsFromPlayer(
+                          ctx.state,
+                          p.playerId,
+                          Math.max(0, p.secrets - Math.max(0, kept - p.secretsFacedown))
+                      )
             }
             return { summary: `every player burned down to one secret (${burned} burned)` }
         }
@@ -422,26 +455,40 @@ registerEffect(
     }
 )
 
+/**
+ * One favor per pick, as many picks as X can reach: every card the map holds (R-2.1.1's slots, each
+ * holding no more than the largest capacity a site prints, R-2.8.1).
+ */
+const MEMORY_OF_NATURE_PICKS = TOTAL_MAP_SLOTS * MAX_SITE_CAPACITY
+
 // "Action: Move a total of X[favor] from any favor banks to the [suit:beast] bank. X is the number of [suit:beast] cards on the map."
+function beastCardsOnMap(state: HydratedOathGameState): number {
+    return denizensOnMap(state, Suit.Beast).length
+}
+// R-7.1.3 — "Move a total of X": all X if the other banks hold them.
+function memoryOfNatureFavor(state: HydratedOathGameState): FavorTotal {
+    const sources = Object.values(Suit).filter((suit) => suit !== Suit.Beast)
+    const elsewhere = sources.reduce((n, suit) => n + state.favorBank[suit], 0)
+    return { sources, total: Math.min(beastCardsOnMap(state), elsewhere) }
+}
 registerEffect(
     'denizen.beast.memory-of-nature',
     powerIndexOf('denizen.beast.memory-of-nature', PowerTiming.Action),
     {
-        choices: Array.from({ length: 8 }, () =>
-            optional(PowerChoiceKind.FavorBank, { what: 'a source bank' })
+        choices: Array.from({ length: MEMORY_OF_NATURE_PICKS }, () =>
+            optional(PowerChoiceKind.FavorBank, {
+                what: 'a source bank',
+                favorTotal: memoryOfNatureFavor
+            })
         ),
         reasonCannotResolve: (ctx) => {
-            const x = denizensOnMap(ctx.state, Suit.Beast).length
+            const x = beastCardsOnMap(ctx.state)
             const picks = chosen(ctx, PowerChoiceKind.FavorBank)
             if (picks.length > x)
                 return `${picks.length} favor named to move, but only ${x} beast cards are on the map`
             if (picks.some((b) => b.suit === Suit.Beast))
                 return 'the beast bank cannot be a source for itself'
-            // R-7.1.3 — "Move a total of X": all X if the other banks hold them.
-            const elsewhere = Object.entries(ctx.state.favorBank)
-                .filter(([suit]) => suit !== Suit.Beast)
-                .reduce((n, [, v]) => n + v, 0)
-            const required = Math.min(x, elsewhere)
+            const required = memoryOfNatureFavor(ctx.state).total
             const obtainable = favorObtainableFromPicks(
                 ctx.state,
                 picks.map((b) => b.suit)
@@ -466,7 +513,7 @@ registerEffect(
     'denizen.order.messenger',
     powerIndexOf('denizen.order.messenger', PowerTiming.Action),
     {
-        choices: Array.from({ length: 4 }, (_, i) => [
+        choices: Array.from({ length: ANY_WARBANDS_MOVES }, (_, i) => [
             i === 0
                 ? one(PowerChoiceKind.Warbands, {
                       what: 'warbands to move',

@@ -3,7 +3,7 @@ import { Color, assert } from '@tabletop/common'
 import { ActionType, MachineState, PowerChoiceKind, PowerTiming, Region, SearchSource, isSearch, powerIndexOf } from '@tabletop/oath'
 import { openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
-import { emptyPicks, withOptionPick } from './powerChoices.js'
+import { withBranch, withOptionPick } from './powerChoices.js'
 import type { OathGameSession } from './session.svelte.js'
 
 afterEach(() => {
@@ -50,20 +50,44 @@ function pickRegion(session: OathGameSession, cardId: string, region: Region) {
     const power = required(session.modifiers.options.find((p) => p.cardId === cardId), `${cardId} is usable`)
     const choice = required(session.modifiers.choicesOf(power)[0], `${cardId} asks for a region`)
     const pick = choice.options.findIndex((o) => o.kind === PowerChoiceKind.Region && o.region === region)
-    session.modifiers.setPicks(use(cardId), withOptionPick(emptyPicks(), choice, 0, pick))
+    session.modifiers.setPicks(use(cardId), withOptionPick(session.modifiers.picksOf(use(cardId)), choice, 0, pick))
+}
+
+/** Bracken's "or": the top of the pile (its first branch) or the bottom. */
+function pickSide(session: OathGameSession, bottom: boolean) {
+    session.modifiers.setPicks(use(BRACKEN), withBranch(session.modifiers.picksOf(use(BRACKEN)), 1, bottom))
 }
 
 describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
-    it('lists the pawn’s pile once when the only region named is where the discards go (Bracken)', () => {
+    it('lists no source until Bracken’s pile and side are both picked, then the pawn’s pile once (Bracken names where the discards go)', () => {
         const { session } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
+        expect(session.searchRows).toEqual([])
+        pickRegion(session, BRACKEN, Region.Hinterland)
+        expect(session.searchRows).toEqual([])
+        pickSide(session, false)
         expect(piles(session)).toEqual([Region.Cradle])
+    })
+
+    it('a side picked first still waits for the pile; Bottom sends Bracken’s yes', async () => {
+        const { session, sent } = searching([BRACKEN])
+        session.modifiers.declare(use(BRACKEN), true)
+        pickSide(session, true)
+        expect(session.searchRows).toEqual([])
+        pickRegion(session, BRACKEN, Region.Cradle)
+        await session.searchFrom(required(session.searchRows.find((row) => row.region === Region.Cradle), 'the Cradle pile is listed'))
+        const action = sent.mock.calls[0][0]
+        assert(isSearch(action), 'a Search is sent')
+        expect(action.modifiers).toEqual([
+            { ...use(BRACKEN), choices: [{ kind: PowerChoiceKind.Region, region: Region.Cradle }, { kind: PowerChoiceKind.Yes }] }
+        ])
     })
 
     it('a Search from a pile Observatory names keeps the pile Bracken sends the discards to', async () => {
         const { session, sent } = searching([BRACKEN])
         session.modifiers.declare(use(BRACKEN), true)
         pickRegion(session, BRACKEN, Region.Hinterland)
+        pickSide(session, false)
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
 
@@ -79,7 +103,7 @@ describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
     it('one Search draws from one pile, so declaring a second modifier that names it puts the first down', () => {
         const { session } = searching([ERRAND_BOY])
         session.modifiers.declare(use(ERRAND_BOY), true)
-        expect(piles(session)).toEqual([Region.Provinces, Region.Hinterland])
+        expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
 
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(session.modifiers.isDeclared(use(ERRAND_BOY))).toBe(false)
@@ -87,7 +111,20 @@ describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
 
         session.modifiers.declare(use(ERRAND_BOY), true)
         expect(session.modifiers.isDeclared(use(OBSERVATORY))).toBe(false)
-        expect(piles(session)).toEqual([Region.Provinces, Region.Hinterland])
+        expect(piles(session)).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
+    })
+
+    it('with Errand Boy in use, the seat’s own pile stays and is sent without it; another pile is sent with it and its cost', async () => {
+        const { session, sent } = searching([ERRAND_BOY])
+        session.modifiers.declare(use(ERRAND_BOY), true)
+        const rows = session.searchRows.filter((row) => row.source === SearchSource.Discard)
+        expect(rows.map((row) => row.cardCost?.placeFavor)).toEqual([undefined, 1, 1])
+        expect(session.modifiers.picksInMenu(required(session.modifiers.options.find((p) => p.cardId === ERRAND_BOY), 'Errand Boy is usable'))).toBe(true)
+
+        await session.searchFrom(required(rows[0], 'the Cradle pile is listed'))
+        const own = sent.mock.calls[0][0]
+        assert(isSearch(own), 'a Search is sent')
+        expect(own.modifiers).toEqual([])
     })
 })
 
@@ -127,17 +164,17 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(action.modifiers).toEqual([use(MUSHROOMS)])
     })
 
-    it('keeps the card in use while nothing else makes the menu possible, and Back returns to the powers', () => {
+    it('keeps the card in use while nothing else makes the menu possible, and Undo returns to the powers', async () => {
         const { session } = withMushrooms(1)
         session.openActionWithCard(session.actionCards[0])
 
         session.modifiers.declare(use(MUSHROOMS), false)
         expect(session.modifiers.isDeclared(use(MUSHROOMS))).toBe(true)
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
         expect(session.selection.modifiers).toEqual([])
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBeUndefined()
     })
 
@@ -145,7 +182,8 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         const { session } = withMushrooms(2)
         expect(session.actionCards[0]).toMatchObject({ cardId: MUSHROOMS, kind: 'changes' })
         session.openActionWithCard(session.actionCards[0])
-        expect(rows(session)).toEqual([[SearchSource.Discard, 0, 1]])
+        // Mushrooms fits the discard pile alone; the world deck is listed and sent without it.
+        expect(rows(session)).toEqual([[SearchSource.WorldDeck, 2, 3], [SearchSource.Discard, 0, 1]])
 
         session.modifiers.declare(use(MUSHROOMS), false)
         expect(session.modifiers.isDeclared(use(MUSHROOMS))).toBe(false)
@@ -174,7 +212,7 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(piles(session)).toEqual([Region.Hinterland])
     })
 
-    it('Back takes a card added in the menu first, then returns the opened one to the powers', () => {
+    it('Undo takes a card added in the menu first, then returns the opened one to the powers', async () => {
         const state = testState(
             [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 0, secrets: 1, supply: 1, advisers: [{ cardId: BRACKEN, faceUp: true }] })],
             {
@@ -189,14 +227,14 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         session.modifiers.declare(use(BRACKEN), true)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([MUSHROOMS, BRACKEN])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.Search)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([MUSHROOMS])
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 
-    it('with two cards that each make the Travel possible, either may be put down but not both, and Back still returns to the powers', () => {
+    it('with two cards that each make the Travel possible, either may be put down but not both, and Undo still returns to the powers', async () => {
         const TENTS = 'denizen.nomad.tents'
         const SPECIAL_ENVOY = 'denizen.nomad.special-envoy'
         const state = testState(
@@ -214,19 +252,19 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         session.modifiers.declare(use(SPECIAL_ENVOY), false)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([SPECIAL_ENVOY])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 
-    it('Back returns to the powers after the opened card gives way to another that names the pile', () => {
+    it('Undo returns to the powers after the opened card gives way to another that names the pile', async () => {
         const { session } = searching([ERRAND_BOY])
-        session.back()
+        await session.undo()
         const errandBoy = required(session.actionCards.find((card) => card.cardId === ERRAND_BOY), 'Errand Boy changes the Search')
         session.openActionWithCard(errandBoy)
         session.modifiers.declare(use(OBSERVATORY), true)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([OBSERVATORY])
 
-        session.back()
+        await session.undo()
         expect(session.selection.action).toBe(ActionType.UseActionPower)
     })
 })

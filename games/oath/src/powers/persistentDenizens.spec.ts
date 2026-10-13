@@ -415,3 +415,22 @@ describe('Saddle Makers pays before the played card’s When Played (its Q&A)', 
         }
     })
 })
+
+describe("Marriage — two hearth advisers for the Conspiracy's match too (R-5.1.4.IV)", () => {
+    const CUP = 'relic.cup-of-plenty'
+    const conspire = (advisers: Record<string, string[]>) =>
+        reasonCannotPlayConspiracy(board({}, advisers, { other: { relicIds: [CUP] } }), 'ruler', {
+            keptCardId: CONSPIRACY_ID,
+            conspiracy: { targetPlayerId: 'other', take: { kind: 'relic', cardId: CUP } }
+        })
+
+    it('Marriage alone matches a hearth adviser of theirs as two advisers', () => {
+        expect(conspire({ ruler: [MARRIAGE], other: [INN] })).toBeUndefined()
+        expect(conspire({ ruler: [MARRIAGE, WOLVES], other: [RANGERS, INN] })).toBeUndefined()
+    })
+
+    it('only for a suit of theirs, and only on the conspirer’s side', () => {
+        expect(conspire({ ruler: [MARRIAGE], other: [WOLVES] })).toBe('needs two faceup advisers whose suits each match one of theirs')
+        expect(conspire({ ruler: [INN], other: [MARRIAGE] })).toBe('needs two faceup advisers whose suits each match one of theirs')
+    })
+})

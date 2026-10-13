@@ -19,6 +19,7 @@ import {
 import { HydratedCampaign } from '../actions/campaign.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import type { CampaignTarget } from '../model/campaign.js'
+import { OathRevision } from './revision.js'
 import '../powers/index.js'
 
 const CHANCELLOR = 'chancellor'
@@ -244,6 +245,88 @@ describe('the Bandit Crown at the rule seam (R-7.6.5)', () => {
         expect(rulesSite(state, OTHER_EXILE, 'p1')).toBe(false)
         expect(banditsServe(state, CHANCELLOR, 'p1')).toBe(false)
         expect(banditsRuleSite(table(), 'p1')).toBe(true)
+    })
+})
+
+describe('the Bandit Crown for an Imperial holder: the bandits are the Empire\'s warbands (R-7.6.5, R-6.6.3)', () => {
+    const CROWN = 'relic.bandit-crown'
+    const IMPERIAL = [CHANCELLOR, CITIZEN]
+    function crowned(
+        oathRevision: OathRevision,
+        holderId: string,
+        warbandsBySite: Record<string, Record<string, number>> = {}
+    ) {
+        const state = table(warbandsBySite)
+        state.oathRevision = oathRevision
+        state.getPlayerState(holderId).relicIds = [CROWN]
+        return state
+    }
+    const atRevision = OathRevision.EngineFixes2
+    const before = OathRevision.CardFixes1
+
+    it('a Citizen holder: every Imperial player rules the empty sites, and they are Imperial sites', () => {
+        const state = crowned(atRevision, CITIZEN, { c1: { [EXILE]: 1 } })
+        for (const siteId of ['c2', 'p1', 'h3']) {
+            expect(rulersOfSite(state, siteId), siteId).toEqual(IMPERIAL)
+            expect(isImperialSite(state, siteId), siteId).toBe(true)
+        }
+        expect(sitesRuledBy(state, CHANCELLOR)).toEqual(['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3'])
+    })
+
+    it('a Chancellor holder: the same', () => {
+        const state = crowned(atRevision, CHANCELLOR)
+        expect(rulersOfSite(state, 'p1')).toEqual(IMPERIAL)
+        expect(isImperialSite(state, 'p1')).toBe(true)
+        expect(sitesRuledBy(state, CITIZEN)).toHaveLength(8)
+    })
+
+    it('a Citizen suspended for a Campaign (R-5.5.1.a) has them in their own colour, alone', () => {
+        const state = crowned(atRevision, CITIZEN)
+        const scope = { nonImperialPlayerIds: [CITIZEN] }
+        expect(rulersOfSite(state, 'p1')).toEqual(IMPERIAL)
+        expect(rulersOfSite(state, 'p1', scope)).toEqual([CITIZEN])
+        expect(isImperialSite(state, 'p1', scope)).toBe(false)
+        expect(rulesSite(state, CHANCELLOR, 'p1', scope)).toBe(false)
+
+        // The Chancellor's bandits are the Empire's still, and the suspended Citizen shares none.
+        const chancellors = crowned(atRevision, CHANCELLOR)
+        expect(rulersOfSite(chancellors, 'p1', scope)).toEqual([CHANCELLOR])
+        expect(isImperialSite(chancellors, 'p1', scope)).toBe(true)
+    })
+
+    it('an Exile holder is unchanged: their own colour, theirs alone', () => {
+        const state = crowned(atRevision, EXILE)
+        expect(rulersOfSite(state, 'p1')).toEqual([EXILE])
+        expect(isImperialSite(state, 'p1')).toBe(false)
+        expect(rulesSite(state, CHANCELLOR, 'p1')).toBe(false)
+    })
+
+    it("an enemy Exile's warbands still keep the bandits out", () => {
+        const state = crowned(atRevision, CITIZEN, { c1: { [EXILE]: 1 } })
+        expect(rulersOfSite(state, 'c1')).toEqual([EXILE])
+        expect(isImperialSite(state, 'c1')).toBe(false)
+    })
+
+    it("a fellow Imperial player's last warband may leave a served site, which stays the Empire's (R-6.5)", () => {
+        const state = crowned(atRevision, CITIZEN, { c2: { [IMPERIAL_WARBANDS]: 1 } })
+        expect(warbandsFreeToLeave(state, CHANCELLOR, 'c2', IMPERIAL_WARBANDS)).toBe(1)
+        state.warbandsBySite.c2 = {}
+        expect(rulersOfSite(state, 'c2')).toEqual(IMPERIAL)
+
+        // An Exile's bandits are no Imperial player's: the Chancellor's last warband stays.
+        const exiles = crowned(atRevision, EXILE, { c2: { [IMPERIAL_WARBANDS]: 1 } })
+        expect(warbandsFreeToLeave(exiles, CHANCELLOR, 'c2', IMPERIAL_WARBANDS)).toBe(0)
+    })
+
+    it('R-X.4 — before the revision the empty sites were the holder\'s alone, and not Imperial', () => {
+        for (const holderId of IMPERIAL) {
+            const state = crowned(before, holderId, { c2: { [IMPERIAL_WARBANDS]: 1 } })
+            expect(rulersOfSite(state, 'p1'), holderId).toEqual([holderId])
+            expect(isImperialSite(state, 'p1'), holderId).toBe(false)
+        }
+        const citizens = crowned(before, CITIZEN, { c2: { [IMPERIAL_WARBANDS]: 1 } })
+        expect(warbandsFreeToLeave(citizens, CHANCELLOR, 'c2', IMPERIAL_WARBANDS)).toBe(0)
+        expect(warbandsFreeToLeave(citizens, CITIZEN, 'c2', IMPERIAL_WARBANDS)).toBe(1)
     })
 })
 
