@@ -273,8 +273,8 @@ describe('Reversing the Main Line to the start of a Branch', () => {
             state: inBranch.state,
             history: inBranch.processedActions
         })
-        expect(landed?.state).toEqual(resting)
-        expect(summary(landed?.reversed ?? [])).toEqual(['openBranch:p3', 'work:p3', 'work:p3'])
+        expect(landed.state).toEqual(resting)
+        expect(summary(landed.reversed)).toEqual(['openBranch:p3', 'work:p3', 'work:p3'])
     })
 
     it('reverses nothing when the Main Line is not inside a Branch', () => {
@@ -286,13 +286,13 @@ describe('Reversing the Main Line to the start of a Branch', () => {
 
     it('reports when the history given does not reach the start of the Branch', () => {
         const { spanGame, inBranch } = played()
-        expect(
+        expect(() =>
             reverseToBranchStart({
                 engine: spanGame.engine,
                 state: inBranch.state,
                 history: inBranch.processedActions.slice(-1)
             })
-        ).toBeUndefined()
+        ).toThrow('does not reach the start of the Branch')
     })
 })
 

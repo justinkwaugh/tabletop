@@ -43,6 +43,7 @@ export type ReconciliationUpdate =
     | {
           kind: 'branch'
           unmergedBranch: UnmergedBranch
+          undoneActionIds: readonly string[]
           game: Game
           perspective: Visibility.Perspective
       }
@@ -53,7 +54,7 @@ export interface ReconciliationRemote<T extends GameState, U extends HydratedGam
     reload(): Promise<LoadedGame<T, U>>
     branchPosition(): ActionHistoryPosition | undefined
     adoptBranch(unmergedBranch: UnmergedBranch | undefined): void
-    followBranch(unmergedBranch: UnmergedBranch): boolean
+    followBranch(unmergedBranch: UnmergedBranch, undoneActionIds: readonly string[]): boolean
     isPaused(): boolean
     recover(): Promise<void>
     acceptsPerspective(perspective: Visibility.Perspective): boolean
@@ -130,7 +131,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                         if (
                             update.game.id === this.context.game.id &&
                             remote.acceptsPerspective(update.perspective) &&
-                            !remote.followBranch(update.unmergedBranch)
+                            !remote.followBranch(update.unmergedBranch, update.undoneActionIds)
                         ) {
                             await remote.recover()
                         }

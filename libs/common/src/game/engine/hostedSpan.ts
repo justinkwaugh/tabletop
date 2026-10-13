@@ -29,11 +29,8 @@ export function createMissingBranches<T extends GameState, U extends HydratedGam
     unmergedBranches: readonly UnmergedBranch[]
 }): UnmergedBranch[] {
     if (!isRestingInSpan(state)) return []
-    const span = restingSpan(state)
-    const held = unmergedBranches
-        .filter(({ branch }) => belongsToSpan(branch, span))
-        .map(({ branch }) => branch.playerId)
-    return unmergedPlayerIds(span)
+    const held = unmergedBranches.map(({ branch }) => branch.playerId)
+    return unmergedPlayerIds(restingSpan(state))
         .filter((playerId) => !held.includes(playerId))
         .map((playerId) => {
             const started = engine.createBranch({ state, game, playerId })
@@ -96,22 +93,19 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
             continue
         }
 
-        const ready = engine.branchesReadyToMerge({ state: current })
-        if (ready.length === 0) break
-        for (const playerId of ready) {
-            const record = known.get(playerId)
-            assertExists(record, `The Branch of ${playerId} is ready to merge but unknown`)
-            try {
-                const merged = engine.mergeBranch({ state: current, game, ...record })
-                steps.push(merged)
-                current = merged.updatedState
-                mergedPlayerIds.push(playerId)
-                known.delete(playerId)
-            } catch (error) {
-                if (!(error instanceof BranchMergeError)) throw error
-                refusal = { playerId, reason: error.message }
-                break
-            }
+        const playerId = engine.nextBranchToMerge({ state: current })
+        if (playerId === undefined) break
+        const record = known.get(playerId)
+        assertExists(record, `The Branch of ${playerId} is ready to merge but unknown`)
+        try {
+            const merged = engine.mergeBranch({ state: current, game, ...record })
+            steps.push(merged)
+            current = merged.updatedState
+            mergedPlayerIds.push(playerId)
+            known.delete(playerId)
+        } catch (error) {
+            if (!(error instanceof BranchMergeError)) throw error
+            refusal = { playerId, reason: error.message }
         }
     }
 
@@ -132,13 +126,13 @@ interface Reversal<T extends GameState, U extends HydratedGameState<T>> {
 function reverseUntil<T extends GameState, U extends HydratedGameState<T>>(
     { engine, state, history }: Reversal<T, U>,
     landed: (state: T) => boolean
-): { state: T; reversed: GameAction[] } | undefined {
+): { state: T; reversed: GameAction[] } {
     const remaining = [...history]
     const reversed: GameAction[] = []
     let current = state
     while (!landed(current)) {
         const action = remaining.pop()
-        if (action === undefined) return undefined
+        assertExists(action, 'The Action History given does not reach the start of the Branch')
         current = engine.undoProcessedAction({ action, state: current })
         reversed.unshift(action)
     }
@@ -192,13 +186,13 @@ export function removeBranchCloses<T extends GameState, U extends HydratedGameSt
 
 export function reverseToBranchStart<T extends GameState, U extends HydratedGameState<T>>(
     reversal: Reversal<T, U>
-): { state: T; reversed: GameAction[] } | undefined {
+): { state: T; reversed: GameAction[] } {
     return reverseUntil(reversal, isOutsideEveryBranch)
 }
 
 export function reverseToForkPosition<T extends GameState, U extends HydratedGameState<T>>(
     reversal: Reversal<T, U>
-): { state: T; reversed: GameAction[] } | undefined {
+): { state: T; reversed: GameAction[] } {
     return reverseUntil(
         reversal,
         (state) => isOutsideEveryBranch(state) && holdsNoUnmergedClose(state)

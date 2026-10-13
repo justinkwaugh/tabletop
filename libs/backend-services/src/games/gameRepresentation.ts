@@ -105,33 +105,48 @@ export interface BranchRepresentationInput {
     user: User
 }
 
-export function createBranchRepresentation({
-    game,
-    state,
-    branch,
-    actions,
-    visibility,
-    user
-}: BranchRepresentationInput): UnmergedBranch | undefined {
+export interface ProjectedBranchInput {
+    game: Game
+    user: User
+    unmergedBranch: UnmergedBranch
+}
+
+function playsBranch({ game, user }: { game: Game; user: User }, branch: Branch): boolean {
     const perspective = derivePerspective({ game, user })
-    if (perspective.kind !== 'player' || perspective.playerId !== branch.playerId) {
-        return undefined
-    }
-    return Visibility.projectUnmergedBranch({ game, state, branch, actions, visibility })
+    return perspective.kind === 'player' && perspective.playerId === branch.playerId
+}
+
+export function withProjectedBranch<Representation extends object>(
+    representation: Representation,
+    input: ProjectedBranchInput
+): Representation & { unmergedBranch?: UnmergedBranch } {
+    return playsBranch(input, input.unmergedBranch.branch)
+        ? { ...representation, unmergedBranch: input.unmergedBranch }
+        : representation
 }
 
 export function withUnmergedBranch<Representation extends object>(
     representation: Representation,
     input: BranchRepresentationInput | undefined
 ): Representation & { unmergedBranch?: UnmergedBranch } {
-    const unmergedBranch = input === undefined ? undefined : createBranchRepresentation(input)
-    return unmergedBranch === undefined ? representation : { ...representation, unmergedBranch }
+    if (input === undefined || !playsBranch(input, input.branch)) return representation
+    const { game, state, branch, actions, visibility } = input
+    return {
+        ...representation,
+        unmergedBranch: Visibility.projectUnmergedBranch({
+            game,
+            state,
+            branch,
+            actions,
+            visibility
+        })
+    }
 }
 
 export function createBranchResultsRepresentation(
-    input: BranchRepresentationInput
+    input: ProjectedBranchInput
 ): ActionResultsRepresentation {
-    return withUnmergedBranch(
+    return withProjectedBranch(
         {
             game: omitGameState(input.game),
             actions: [],
@@ -143,10 +158,10 @@ export function createBranchResultsRepresentation(
 }
 
 export function createBranchUndoRepresentation(
-    input: BranchRepresentationInput
+    input: ProjectedBranchInput & { state: GameState }
 ): UndoResultsRepresentation {
     const actionReplay = { startIndex: input.state.actionCount, actions: [] }
-    return withUnmergedBranch(
+    return withProjectedBranch(
         {
             game: omitGameState(input.game),
             actionReplay,

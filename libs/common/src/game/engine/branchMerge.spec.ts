@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GameAction } from './gameAction.js'
-import { branchUndoWindow, branchView } from './branch.js'
+import { branchView } from './branch.js'
 import { isBranchClose } from './parallelSpan.js'
 import { createSpanGame, spanAction, type SpanGameState } from './tests/spanGame.js'
 import {
@@ -36,13 +36,14 @@ function undo(
     actionId: string,
     asAdministrator = false
 ) {
-    return spanGame.engine.undoBranchAction({
+    const undone = spanGame.engine.undoBranchAction({
         state,
         branch: play.branch,
         actions: play.actions,
         actionId,
         asAdministrator
     })
+    return { ...undone, view: branchView(state, undone.branch) }
 }
 
 describe('Branch Undo', () => {
@@ -148,48 +149,30 @@ describe('Branch Undo', () => {
 
     describe('what a Player may undo', () => {
         const spanGame = createSpanGame()
-        const play = playPrivately(spanGame, beginSpan(spanGame), 'p2', [
+        const state = beginSpan(spanGame)
+        const play = playPrivately(spanGame, state, 'p2', [
             spanAction('w1', 'work', 'p2'),
             spanAction('r1', 'roll', 'p2'),
             spanAction('w2', 'work', 'p2'),
             spanAction('w3', 'work', 'p2')
         ])
 
-        it('is an Action and everything after it', () => {
-            expect(branchUndoWindow(play.actions, 'w2')).toEqual({
-                kind: 'undo',
-                actions: play.actions.slice(-2)
-            })
-        })
-
-        it('stops at an Information-Revealing Action', () => {
-            const refusal = {
-                kind: 'refused',
-                reason: 'it would undo an Action that revealed information'
-            }
-            expect(branchUndoWindow(play.actions, 'r1')).toEqual(refusal)
-            expect(branchUndoWindow(play.actions, 'w1')).toEqual(refusal)
+        it('stops at the Information-Revealing Action itself', () => {
+            expect(() => undo(spanGame, state, play, 'r1')).toThrow(
+                'it would undo an Action that revealed information'
+            )
         })
 
         it('reaches past an Information-Revealing Action for an administrator', () => {
-            expect(branchUndoWindow(play.actions, 'w1', { asAdministrator: true })).toEqual({
-                kind: 'undo',
-                actions: play.actions.slice(1)
-            })
-        })
-
-        it('is never Branch Start', () => {
-            expect(branchUndoWindow(play.actions, play.actions[0].id)).toEqual({
-                kind: 'refused',
-                reason: 'only a User Action can be undone'
-            })
+            expect(undo(spanGame, state, play, 'w1', true).undoneActions).toEqual(
+                play.actions.slice(1)
+            )
         })
 
         it('is never an Action outside the Branch', () => {
-            expect(branchUndoWindow(play.actions, 'missing')).toEqual({
-                kind: 'refused',
-                reason: 'the Action is not in this Branch'
-            })
+            expect(() => undo(spanGame, state, play, 'missing')).toThrow(
+                'Undo refused in the Branch of p2: the Action is not in this Branch'
+            )
         })
     })
 })
@@ -234,7 +217,7 @@ describe('Merge', () => {
         const second = playPrivately(spanGame, state, 'p2', secondPlayerActions)
         const third = playPrivately(spanGame, state, 'p3', thirdPlayerActions)
         const secondClosed = closeOnMainLine(spanGame, state, 'p2')
-        expect(spanGame.engine.branchesReadyToMerge({ state: secondClosed })).toEqual([])
+        expect(spanGame.engine.nextBranchToMerge({ state: secondClosed })).toBeUndefined()
         const afterThird = mergePrivatePlay(spanGame, secondClosed, third).updatedState
         expect(afterThird.parallelSpan?.closedPlayerIds).toEqual(['p2', 'p3'])
         const afterSecond = mergePrivatePlay(spanGame, afterThird, second)
@@ -270,7 +253,11 @@ describe('Merge', () => {
             }
             for (const playerId of closes) {
                 record(spanGame.engine.closeBranch({ state: mainLine, playerId }))
-                for (const ready of spanGame.engine.branchesReadyToMerge({ state: mainLine })) {
+                for (
+                    let ready = spanGame.engine.nextBranchToMerge({ state: mainLine });
+                    ready !== undefined;
+                    ready = spanGame.engine.nextBranchToMerge({ state: mainLine })
+                ) {
                     record(mergePrivatePlay(spanGame, mainLine, plays[ready]))
                 }
             }
@@ -389,10 +376,10 @@ describe('Merge', () => {
     })
 })
 
-describe('Branches ready to merge', () => {
-    function ready(merge: 'barrier' | 'ordered', closedPlayerIds: readonly string[]) {
+describe('The next Branch to merge', () => {
+    function next(merge: 'barrier' | 'ordered', closedPlayerIds: readonly string[]) {
         const spanGame = createSpanGame({ merge })
-        return spanGame.engine.branchesReadyToMerge({
+        return spanGame.engine.nextBranchToMerge({
             state: closedPlayerIds.reduce(
                 (state, playerId) => closeOnMainLine(spanGame, state, playerId),
                 beginSpan(spanGame)
@@ -400,15 +387,15 @@ describe('Branches ready to merge', () => {
         })
     }
 
-    it('under an Ordered Merge are the Closed Branches with nobody open ahead of them', () => {
-        expect(ready('ordered', ['p2'])).toEqual([])
-        expect(ready('ordered', ['p3'])).toEqual(['p3'])
-        expect(ready('ordered', ['p3', 'p1'])).toEqual(['p3'])
-        expect(ready('ordered', ['p2', 'p3'])).toEqual(['p3', 'p2'])
+    it('under an Ordered Merge is the first in Merge Order, once it has closed', () => {
+        expect(next('ordered', ['p2'])).toBeUndefined()
+        expect(next('ordered', ['p3'])).toBe('p3')
+        expect(next('ordered', ['p3', 'p1'])).toBe('p3')
+        expect(next('ordered', ['p2', 'p3'])).toBe('p3')
     })
 
-    it('under a Barrier Merge are none until every Branch is closed, then all in Merge Order', () => {
-        expect(ready('barrier', ['p3', 'p2'])).toEqual([])
-        expect(ready('barrier', ['p1', 'p2', 'p3'])).toEqual(['p3', 'p2', 'p1'])
+    it('under a Barrier Merge is nobody until every Branch has closed', () => {
+        expect(next('barrier', ['p3', 'p2'])).toBeUndefined()
+        expect(next('barrier', ['p1', 'p2', 'p3'])).toBe('p3')
     })
 })

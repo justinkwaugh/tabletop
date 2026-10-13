@@ -70,7 +70,8 @@ import {
     type SpanHold,
     type Tournament,
     type TournamentSchedule,
-    type UnmergedBranch
+    type UnmergedBranch,
+    sameHistoryPosition
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -120,6 +121,7 @@ import {
     createGameRepresentationEtag,
     createGameSyncRepresentation,
     createUndoResultsRepresentation,
+    withProjectedBranch,
     withUnmergedBranch,
     type ActionResultsRepresentation,
     type GameRepresentation,
@@ -170,15 +172,9 @@ import {
     readAtOneMainLinePosition,
     spanVisibility
 } from './spanReads.js'
-import { settleAfterReversal, type ReopenedBranch } from './spanReversal.js'
-import {
-    assertBranchesUnmoved,
-    assertGameUnmoved,
-    fillGameUpdatesAfterActions,
-    freshBranchWrite,
-    submitBranchAction,
-    undoBranchAction
-} from './spanSubmission.js'
+import { settleAfterReversal, undoBranchAction, type ReopenedBranch } from './spanReversal.js'
+import { fillGameUpdatesAfterActions, submitBranchAction } from './spanSubmission.js'
+import { assertGameUnmoved, freshBranchWrite } from './spanWrites.js'
 
 export class GameService {
     constructor(
@@ -414,23 +410,28 @@ export class GameService {
         for (const player of fork.game.players) {
             player.status = player.userId === owner.id ? PlayerStatus.Joined : PlayerStatus.Reserved
         }
-        const { storedGame } = await this.gameStore.writeFullGameData(
-            fork.game,
-            fork.state,
-            fork.actions
-        )
-        for (const fresh of createMissingBranches({
+        const settlement = settleSpan({
             engine: new GameEngine(definition.runtime),
-            game: storedGame,
+            game: fork.game,
             state: fork.state,
             unmergedBranches: []
-        })) {
-            await this.gameStore.writeUnmergedBranch({
-                gameId: storedGame.id,
-                write: freshBranchWrite(fresh),
-                validator: async () => UpdateValidationResult.Proceed
-            })
-        }
+        })
+        fork.game.activePlayerIds = [...settlement.updatedState.activePlayerIds]
+        fork.game.spanHold = settlement.refusal
+        const { storedGame } = await this.gameStore.writeFullGameData(
+            fork.game,
+            settlement.updatedState,
+            [
+                ...fork.actions,
+                ...settlement.processedActions.map((action) => ({
+                    ...action,
+                    createdAt: fork.game.createdAt,
+                    updatedAt: fork.game.createdAt
+                }))
+            ],
+            settlement.createdBranches.map(freshBranchWrite)
+        )
+        this.reportRefusedMerge(storedGame.id, settlement.refusal)
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
         return storedGame
     }
@@ -611,8 +612,18 @@ export class GameService {
             throw new GameNotFoundError({ id: state.gameId })
         }
         assertOrdinaryGame(game)
-        new GameEngine(this.getRequiredTitle(game).runtime).validateCanonicalState(state)
-        await this.gameStore.setGameState({ gameId: state.gameId, state })
+        const engine = new GameEngine(this.getRequiredTitle(game).runtime)
+        engine.validateCanonicalState(state)
+        await this.gameStore.setGameState({
+            gameId: state.gameId,
+            state,
+            unmergedBranches: createMissingBranches({
+                engine,
+                game,
+                state,
+                unmergedBranches: []
+            }).map(freshBranchWrite)
+        })
     }
 
     async checkSync({
@@ -1324,7 +1335,7 @@ export class GameService {
             priorState,
             user,
             actingPlayerId: action.playerId,
-            unmergedBranch: settlement?.createdBranches.find(
+            freshBranch: settlement?.createdBranches.find(
                 ({ branch }) => branch.playerId === action.playerId
             )
         })
@@ -1341,54 +1352,83 @@ export class GameService {
         action: GameAction
         user: User
     }): Promise<ActionResultsRepresentation> {
-        const visibility = spanVisibility(definition, game)
+        const state = game.state
+        assertExists(state, 'A Branch Action requires current Game State')
+        spanVisibility(definition, game)
         const submission = await submitBranchAction({
             gameStore: this.gameStore,
             definition,
             game,
             action
         })
-        if (submission.kind === 'mainLine') {
-            this.reportRefusedMerge(game.id, submission.settlement.refusal)
-            const closed = submission.unmergedBranch
-            if (closed?.branch.closed) {
-                await publishBranchUpdate({
-                    game: submission.updatedGame,
-                    state: submission.settlement.updatedState,
-                    unmergedBranch: closed,
-                    visibility,
-                    notificationService: this.notificationService
-                })
-            }
-            return this.finishActionApplication({
+        if (submission.kind === 'branch') {
+            const unmergedBranch = await this.publishBranch({
                 definition,
                 game,
-                updatedGame: submission.updatedGame,
-                result: submission.settlement,
-                storedActions: submission.storedActions,
-                relatedActions: submission.relatedActions,
-                priorState: submission.priorState,
-                user,
-                actingPlayerId: action.playerId,
+                state,
                 unmergedBranch: submission.unmergedBranch
             })
+            return createBranchResultsRepresentation({ game, user, unmergedBranch })
         }
 
-        const results = createBranchResultsRepresentation({
-            game: submission.game,
-            state: submission.state,
-            ...submission.unmergedBranch,
-            visibility,
-            user
+        this.reportRefusedMerge(game.id, submission.settlement.refusal)
+        const { updatedGame, unmergedBranch } = submission
+        const closedBranch =
+            unmergedBranch?.branch.closed === true
+                ? await this.publishBranch({
+                      definition,
+                      game: updatedGame,
+                      state: submission.settlement.updatedState,
+                      unmergedBranch
+                  })
+                : undefined
+        const representation = await this.finishActionApplication({
+            definition,
+            game,
+            updatedGame,
+            result: submission.settlement,
+            storedActions: submission.storedActions,
+            relatedActions: submission.relatedActions,
+            priorState: submission.priorState,
+            user,
+            actingPlayerId: action.playerId,
+            freshBranch: closedBranch === undefined ? unmergedBranch : undefined
+        })
+        return closedBranch === undefined
+            ? representation
+            : withProjectedBranch(representation, {
+                  game: updatedGame,
+                  user,
+                  unmergedBranch: closedBranch
+              })
+    }
+
+    private async publishBranch({
+        definition,
+        game,
+        state,
+        unmergedBranch,
+        undoneActions = []
+    }: {
+        definition: GameDefinition
+        game: Game
+        state: GameState
+        unmergedBranch: UnmergedBranch
+        undoneActions?: readonly GameAction[]
+    }): Promise<UnmergedBranch> {
+        const projected = Visibility.projectUnmergedBranch({
+            game,
+            state,
+            ...unmergedBranch,
+            visibility: spanVisibility(definition, game)
         })
         await publishBranchUpdate({
-            game: submission.game,
-            state: submission.state,
-            unmergedBranch: submission.unmergedBranch,
-            visibility,
+            game,
+            unmergedBranch: projected,
+            undoneActionIds: undoneActions.map((action) => action.id),
             notificationService: this.notificationService
         })
-        return results
+        return projected
     }
 
     private reportRefusedMerge(gameId: string, refusal: SpanHold | undefined): void {
@@ -1407,7 +1447,7 @@ export class GameService {
         priorState,
         user,
         actingPlayerId,
-        unmergedBranch
+        freshBranch
     }: {
         definition: GameDefinition
         game: Game
@@ -1418,7 +1458,7 @@ export class GameService {
         priorState: GameState
         user: User
         actingPlayerId: string | undefined
-        unmergedBranch?: UnmergedBranch
+        freshBranch?: UnmergedBranch
     }): Promise<ActionResultsRepresentation> {
         const updatedState = result.updatedState
         if (!priorState.result && updatedGame.result && updatedGame.tournament) {
@@ -1485,10 +1525,10 @@ export class GameService {
 
         return withUnmergedBranch(
             representation,
-            unmergedBranch && {
+            freshBranch && {
                 game: updatedGame,
                 state: updatedState,
-                ...unmergedBranch,
+                ...freshBranch,
                 visibility: spanVisibility(definition, updatedGame),
                 user
             }
@@ -1595,9 +1635,7 @@ export class GameService {
             retainedActions: undoWindow.actions.slice(0, targetPosition),
             actions: window,
             redoneActions: outcome.redone,
-            updatedState: outcome.state,
-            priorActionCount: state.actionCount,
-            priorChecksum: state.actionChecksum
+            updatedState: outcome.state
         })
         const reloaded = await this.getGame({ gameId: game.id, withState: true })
         const reloadedState = reloaded?.state
@@ -2024,8 +2062,6 @@ export class GameService {
     }): Promise<UndoResultsRepresentation> {
         const { actionToUndo, actions } = plan
         let gameState = plan.state
-        const priorActionCount = gameState.actionCount
-        const priorChecksum = gameState.actionChecksum
 
         const redoActions = []
         for (const action of actions.slice(1)) {
@@ -2079,8 +2115,6 @@ export class GameService {
             actions,
             redoneActions,
             updatedState: gameState,
-            priorActionCount,
-            priorChecksum,
             resolvingVoteId
         })
     }
@@ -2122,26 +2156,17 @@ export class GameService {
                 actions: [],
                 redoneActions: [],
                 updatedState: state,
-                priorActionCount: state.actionCount,
-                priorChecksum: state.actionChecksum,
                 reopened: undone.reopened
             })
         }
-        const branchUpdate = {
+        const unmergedBranch = await this.publishBranch({
+            definition,
             game,
             state,
             unmergedBranch: undone.unmergedBranch,
-            visibility: spanVisibility(definition, game)
-        }
-        await publishBranchUpdate({
-            ...branchUpdate,
-            notificationService: this.notificationService
+            undoneActions: undone.undoneActions
         })
-        return createBranchUndoRepresentation({
-            ...branchUpdate,
-            ...undone.unmergedBranch,
-            user
-        })
+        return createBranchUndoRepresentation({ game, state, user, unmergedBranch })
     }
 
     private async persistReversal({
@@ -2154,8 +2179,6 @@ export class GameService {
         actions,
         redoneActions,
         updatedState,
-        priorActionCount,
-        priorChecksum,
         resolvingVoteId,
         reopened
     }: {
@@ -2168,13 +2191,13 @@ export class GameService {
         actions: GameAction[]
         redoneActions: GameAction[]
         updatedState: GameState
-        priorActionCount: number
-        priorChecksum: number
         resolvingVoteId?: string
         reopened?: ReopenedBranch
     }): Promise<UndoResultsRepresentation> {
         const undoneFromIndex = actionToUndo.index
         assertExists(undoneFromIndex, 'Undo target has no index')
+        const priorState = game.state
+        assertExists(priorState, 'An Undo requires current Game State')
         const gameEngine = new GameEngine(definition.runtime)
         measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
         const gameId = game.id
@@ -2195,9 +2218,7 @@ export class GameService {
             actions: [...settled.removedActions, ...actions],
             redoneActions: reappliedActions,
             state: settled.state,
-            removeUnmergedBranches: settled.leavesSpan,
-            setUnmergedBranches: settled.branchWrites,
-            watchBranchesOf: settled.watchedPlayerIds,
+            unmergedBranchWrites: settled.branchWrites,
             validator: async (
                 existingGame,
                 existingState,
@@ -2206,10 +2227,7 @@ export class GameService {
                 gameUpdates,
                 existingBranches
             ) => {
-                if (
-                    existingState.actionCount !== priorActionCount ||
-                    existingState.actionChecksum !== priorChecksum
-                ) {
+                if (!sameHistoryPosition(existingState, priorState)) {
                     throw new GameUpdateCollisionError({ id: gameId })
                 }
 
@@ -2236,12 +2254,7 @@ export class GameService {
                     throw new GameUpdateCollisionError({ id: gameId })
                 }
 
-                assertBranchesUnmoved(
-                    gameId,
-                    settled.watchedPlayerIds,
-                    existingBranches,
-                    settled.storedBranches
-                )
+                settled.assertBranchesUnmoved(existingBranches)
                 gameUpdates.activePlayerIds = newState.activePlayerIds
                 if (settled.leavesSpan) gameUpdates.spanHold = undefined
                 if (resolvingVoteId !== undefined && existingGame.vote?.id !== resolvingVoteId) {
@@ -2290,21 +2303,14 @@ export class GameService {
         })
 
         if (reopened === undefined) return representation
-        const branchUpdate = {
+        const unmergedBranch = await this.publishBranch({
+            definition,
             game: updatedGame,
             state: settled.state,
-            unmergedBranch: { branch: reopened.branch, actions: [] },
-            visibility: spanVisibility(definition, updatedGame)
-        }
-        await publishBranchUpdate({
-            ...branchUpdate,
-            notificationService: this.notificationService
+            unmergedBranch: { branch: reopened.reopened, actions: [] },
+            undoneActions: reopened.undoneActions
         })
-        return withUnmergedBranch(representation, {
-            ...branchUpdate,
-            ...branchUpdate.unmergedBranch,
-            user
-        })
+        return withProjectedBranch(representation, { game: updatedGame, user, unmergedBranch })
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {

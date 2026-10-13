@@ -508,10 +508,6 @@ export function spanGameRuntime(
     }
 }
 
-export function spanGameDefinition(options: SpanGameOptions = {}) {
-    return { info: spanGameInfo, runtime: spanGameRuntime(options) }
-}
-
 export const spanGameInfo = {
     id: 'span-game',
     metadata: {

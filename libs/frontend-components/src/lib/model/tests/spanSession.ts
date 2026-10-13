@@ -12,13 +12,16 @@ import { settle, uiRuntime } from './privateHandSession.fixture.js'
 export class SpanSession extends GameSession<GameState, HydratedGameState> {
     readonly shown: string[] = []
     animationMilliseconds = 0
+    readonly animationMillisecondsFor: Record<string, number> = {}
 
     constructor(...args: ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>) {
         super(...args)
         this.addGameStateChangeListener(async ({ action }) => {
-            this.shown.push(action ? summary([action])[0] : 'state')
-            if (this.animationMilliseconds > 0) {
-                await new Promise((resolve) => setTimeout(resolve, this.animationMilliseconds))
+            const step = action ? summary([action])[0] : 'state'
+            this.shown.push(step)
+            const milliseconds = this.animationMillisecondsFor[step] ?? this.animationMilliseconds
+            if (milliseconds > 0) {
+                await new Promise((resolve) => setTimeout(resolve, milliseconds))
             }
         })
     }

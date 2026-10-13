@@ -14,7 +14,11 @@ const scenarios = {
         'runHostedSpanSecondSession',
         'runHostedSpanReopen',
         'runHostedSpanClosesCross',
-        'runJoinedHistoryGrowth'
+        'runJoinedHistoryGrowth',
+        'runHostedSpanBeginsWhileAnimating',
+        'runHostedSpanLateBranchUpdates',
+        'runHostedSpanUndoBehindTheMainLine',
+        'runHostedSpanReopenBehindTheMainLine'
     ]
 }
 
