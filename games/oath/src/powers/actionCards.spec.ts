@@ -16,7 +16,8 @@ import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
 import { actionPowerUse, bank, boardWarbands, card, player, site, siteWarbands } from '../testing/choices.js'
 import { OathVisibility } from '../definition/runtime.js'
-import { spectator } from '../testing/projection.js'
+import { served, spectator } from '../testing/projection.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 import { OathRevision } from '../util/revision.js'
 
 const JINX = 'denizen.arcane.jinx'
@@ -666,6 +667,22 @@ describe('Messenger — each move is read on the state the earlier moves leave',
         expect(sources([fromSite('c2', 2)])).toEqual([fromBoard(2)])
         expect(sources([fromSite('c2', 1), site('c1')])).toEqual([fromSite('c1', 1), fromSite('c2', 1)])
         expect(s.dehydrate()).toEqual(before)
+    })
+
+    // The table reads the next move's sources, and checks the moves before sending, on the player's own
+    // view: the projected state, which holds no host-only values and none of another player's hidden ones.
+    it("Messenger reads the moves on the player's own view as the server does", () => {
+        const s = board([MESSENGER], { ruler: { warbandsOnBoard: {} } })
+        s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
+        const own = new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+        const power = cardPowers(MESSENGER)[powerIndexOf(MESSENGER, PowerTiming.Action)]
+        const chains: PowerChoice[][] = [[fromSite('c2', 2)], [fromSite('c2', 1), site('c1')], [fromSite('c2', 2), fromBoard(2), site('c1')], [fromSite('c2', 2), fromBoard(3), site('c1')]]
+        for (const earlier of chains) {
+            expect(legalChoices(own, 'ruler', power, earlier)).toEqual(legalChoices(s, 'ruler', power, earlier))
+            const reason = (state: HydratedOathGameState) => HydratedUseActionPower.reasonCannotUse(state, 'ruler', MESSENGER, power.powerIndex, earlier)
+            expect(reason(own), JSON.stringify(earlier)).toEqual(reason(s))
+        }
+        expect(HydratedUseActionPower.reasonCannotUse(own, 'ruler', MESSENGER, power.powerIndex, chains[3])).toMatch(/not among the options|only 2/)
     })
 
     it('Messenger replays every four-pair list the old check accepted unchanged', () => {

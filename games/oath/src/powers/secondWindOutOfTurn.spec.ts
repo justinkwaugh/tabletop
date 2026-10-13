@@ -17,6 +17,7 @@ import { testGame } from '../testing/game.js'
 import { adviser } from '../testing/tables.js'
 import { OathRevision } from '../util/revision.js'
 import { defendersOpenTo } from '../util/campaign.js'
+import { served } from '../testing/projection.js'
 import '../powers/index.js'
 
 /**
@@ -69,6 +70,7 @@ function board({ revision, seed, x = {}, y = {}, h = {}, state = {} }: Scene) {
 }
 
 const game = testGame([X, Y, H])
+const protectedGame = { ...game, hotseat: false, protectedInformation: true as const }
 
 /** Every step goes through `GameEngine`, so the machine state and the clock are the engine's. */
 class Table {
@@ -134,6 +136,12 @@ class Table {
         return engine.getValidActionTypesForPlayer(game, this.state, playerId)
     }
 
+    /** The offer the seat's own screen computes, on its projected view. */
+    ownOffer(playerId: string) {
+        const view = { kind: 'player', playerId } as const
+        return engine.getValidActionTypesForPlayer(protectedGame, served(this.state, view), playerId, { perspective: view })
+    }
+
     get question() {
         return this.state.pendingQuestions?.queue[0]
     }
@@ -178,6 +186,15 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Travel])
         expect(t.offered(X)).toEqual([])
         expect(() => t.campaign(Y, X, [PAWN], 0)).toThrow(/not valid in state PowerQuestion/)
+    })
+
+    it("while the Travel, then the Campaign, is asked, each seat's own view offers what the server does", () => {
+        const t = yWinsOutOfTurn({ revision: atRevision }, { banishToSiteId: 'p2' })
+        for (const playerId of [X, Y, H]) expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
+        expect(t.ownOffer(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Travel])
+        t.travel(Y, 'p2')
+        for (const playerId of [X, Y, H]) expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
+        expect(t.ownOffer(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
     })
 
     it('the Travel spends no Supply; then "Campaign now?"; the free Campaign is ordinary, from the new site, and spends no Supply; then the paused turn resumes', () => {

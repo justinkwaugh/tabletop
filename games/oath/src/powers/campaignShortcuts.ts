@@ -21,7 +21,12 @@ import { siteChoicesYouRule } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { collectDefensePool, defendersOpenToAt } from '../util/campaign.js'
-import { addCosts, favorNeeded, payPowerCost, reasonCannotPayPowerCost } from '../util/powerCost.js'
+import {
+    addCosts,
+    favorNeeded,
+    reasonCannotPayPowerCost,
+    secretsNeeded
+} from '../util/powerCost.js'
 import { extraBattlePlanCost, reasonPersistentForbidsCampaign } from '../util/persistent.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
@@ -106,31 +111,32 @@ registerBattlePlan(PEACE_ENVOY, powerIndexOf(PEACE_ENVOY, PowerTiming.BattlePlan
  * before it, every site was, and the free Campaign from one without a defender could only be given up.
  * The Campaign is declared after the power's cost is paid (R-7.1.2), so it is judged from there:
  * Wild Allies' secret can be the one The Hidden Place asks its attacker to flip.
+ *
+ * Of what the cost changes, only the faceup secrets bear on a defender, so the board is judged as it
+ * stands, less the secrets the cost takes, never on a copy: the table judges these choices on a
+ * player's own view, where host-only values cannot be read, so the whole state cannot be copied.
  */
 function withDefender(domain: ChoiceDomain): ChoiceDomain {
     return (state, playerId, power) => {
         const sites = domain(state, playerId, power)
         if (!isAtLeastOathRevision(state, OathRevision.EngineFixes4)) return sites
-        const paid = afterCostPaid(state, playerId, power)
-        if (reasonPersistentForbidsCampaign(paid, playerId)) return []
+        if (reasonPersistentForbidsCampaign(state, playerId)) return []
+        const secretsPaid = secretsTakenByCost(state, playerId, power)
         return sites.filter(
             (choice) =>
                 choice.kind === PowerChoiceKind.Site &&
-                defendersOpenToAt(paid, playerId, choice.siteId).length > 0
+                defendersOpenToAt(state, playerId, choice.siteId, secretsPaid).length > 0
         )
     }
 }
 
-/** A copy of the board with the power's cost paid; a cost that cannot be paid refuses the power before its choice. */
-function afterCostPaid(
+/** A cost that cannot be paid refuses the power before its choice, so it takes nothing here. */
+function secretsTakenByCost(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower
-): HydratedOathGameState {
-    if (reasonCannotPayPowerCost(state, playerId, power)) return state
-    const paid = new HydratedOathGameState(state.dehydrate())
-    payPowerCost(paid, playerId, power)
-    return paid
+): number {
+    return reasonCannotPayPowerCost(state, playerId, power) ? 0 : secretsNeeded(power.cost)
 }
 
 /** "Action: Campaign at <site>. Act as if your pawn is there. Spend no Supply and add your warbands there to your force." */

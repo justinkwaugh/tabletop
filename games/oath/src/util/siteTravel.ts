@@ -85,16 +85,18 @@ export function narrowPassIn(state: HydratedOathGameState, region: Region): stri
         )
 }
 
+/** `secretsPaid`: faceup secrets a power's cost takes first, as Wild Allies' does before its Campaign is declared. */
 export function reasonFlipInvalid(
     state: HydratedOathGameState,
     playerId: string,
     offered: boolean,
-    flipSecret: boolean
+    flipSecret: boolean,
+    secretsPaid = 0
 ): string | undefined {
     if (!flipSecret) return undefined
     if (!offered) return 'no site here asks for a secret to be flipped'
     const player = state.getPlayerState(playerId)
-    if (player.secrets < 1) return 'you have no faceup secret to flip'
+    if (player.secrets - secretsPaid < 1) return 'you have no faceup secret to flip'
     // Spell Breaker — its Q&A names the secret flipped to travel or to target.
     return reasonPersistentForbidsSecretCost(state, playerId)
 }
@@ -140,15 +142,16 @@ export function flipOfferedForTravel(
     return undefined
 }
 
-/** R-11.8, R-11.13 */
+/** R-11.8, R-11.13 — `secretsPaid` as for `reasonFlipInvalid`. */
 export function reasonSitesForbidTargets(
     state: HydratedOathGameState,
     parties: CampaignParties,
-    flipSecret: boolean
+    flipSecret: boolean,
+    secretsPaid = 0
 ): string | undefined {
     const sites = targetedSiteIds(parties)
     const hidden = targetsNeedFlip(state, parties)
-    const flip = reasonFlipInvalid(state, parties.attackerPlayerId, hidden, flipSecret)
+    const flip = reasonFlipInvalid(state, parties.attackerPlayerId, hidden, flipSecret, secretsPaid)
     if (flip) return flip
     if (hidden && !flipSecret)
         return 'The Hidden Place: you cannot declare targets here unless you flip a secret facedown'

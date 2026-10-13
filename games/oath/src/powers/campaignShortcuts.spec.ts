@@ -35,6 +35,11 @@ import { askQuestion } from '../util/questions.js'
 import { answerQuestion } from '../testing/steps.js'
 import { playConspiracy } from '../util/cardPlay.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
+import { served } from '../testing/projection.js'
+import { OathVisibility } from '../definition/runtime.js'
+import { payPowerCost, reasonCannotPayPowerCost } from '../util/powerCost.js'
+import { reasonPersistentForbidsCampaign } from '../util/persistent.js'
+import { defendersOpenToAt } from '../util/campaign.js'
 
 const HEARTS = 'denizen.hearth.hearts-and-minds'
 const ENVOY = 'denizen.order.peace-envoy'
@@ -340,16 +345,16 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
      * Chancellor, stands. Rhys, an Exile, rules p1 and stands there unless moved. Wild Allies, when
      * Dana holds it, reaches the beast cards at c2 (Dana's), p1 (Rhys's) and h2 (no warbands).
      */
-    function exiles({ oathRevision = fixed, rhysAt = 'p1', danaAdvisers = [] as string[] } = {}) {
+    function exiles({ oathRevision = fixed, rhysAt = 'p1', annAt = 'p2', danaAdvisers = [] as string[], atC1 = [CAPTAINS] } = {}) {
         const s = testState(
             [
                 testPlayer({ playerId: DANA, color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [DANA]: 4 }, advisers: danaAdvisers.map((cardId) => ({ cardId, faceUp: true })) }),
                 testPlayer({ playerId: RHYS, color: Color.Blue, siteId: rhysAt, favor: 3, secrets: 1, supply: 4, warbandsOnBoard: { [RHYS]: 2 } }),
-                testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p2', favor: 3, supply: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+                testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: annAt, favor: 3, supply: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
             ],
             {
                 oathRevision,
-                denizensBySite: { c1: [CAPTAINS], c2: [WOLVES], p1: [BRACKEN], p2: [], h1: [], h2: [BIRDSONG] },
+                denizensBySite: { c1: atC1, c2: [WOLVES], p1: [BRACKEN], p2: [], h1: [], h2: [BIRDSONG] },
                 warbandsBySite: { c1: { [DANA]: 1 }, c2: { [DANA]: 2 }, p1: { [RHYS]: 2 }, p2: { [DANA]: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } }
             }
         )
@@ -507,6 +512,87 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
         usedOn(s, DANA, CAPTAINS, 'p2')
         expect(s.getPlayerState(DANA)).toMatchObject({ favor: 0, secrets: 1 })
         expect(HydratedCampaign.legalDefenders(s, DANA)).toEqual([{ kind: 'player', playerId: ANN }])
+    })
+
+    it('names exactly the sites a copy of the board with the cost paid would, without copying it', () => {
+        const SPELL_BREAKER = 'denizen.nomad.spell-breaker'
+        /** The judgment as made on a copy before: pay the cost there, then ask for a defender from each site. */
+        function onPaidCopy(s: HydratedOathGameState, cardId: string, candidates: string[]): string[] {
+            const power = required(cardPowers(cardId)[indexOf(cardId)], `${cardId}'s Action power`)
+            const paid = new HydratedOathGameState(structuredClone(s.dehydrate()))
+            if (!reasonCannotPayPowerCost(paid, DANA, power)) payPowerCost(paid, DANA, power)
+            if (reasonPersistentForbidsCampaign(paid, DANA)) return []
+            return candidates.filter((siteId) => defendersOpenToAt(paid, DANA, siteId, 0).length > 0)
+        }
+        const named = { all: 0, some: 0, none: 0 }
+        for (const rhysAt of ['p1', 'c2'])
+            for (const secrets of [0, 1, 2])
+                for (const favor of [0, 1, 4])
+                    for (const hiddenAt of [undefined, 'c2', 'p1', 'p2', 'h2'])
+                        for (const danaAdvisers of [[], [SPELL_BREAKER]]) {
+                            const s = exiles({ rhysAt, danaAdvisers, atC1: [CAPTAINS, WILD_ALLIES] })
+                            Object.assign(s.getPlayerState(DANA), { secrets, favor })
+                            if (hiddenAt) s.siteCards = { ...s.siteCards, [hiddenAt]: HIDDEN_PLACE }
+                            for (const [cardId, candidates] of [
+                                [CAPTAINS, sitesRuledBy(s, DANA)],
+                                [WILD_ALLIES, faceupSitesWithCardOfSuit(s, Suit.Beast)]
+                            ] as const) {
+                                const sites = offered(s, DANA, cardId)
+                                expect(sites, `${cardId}, ${secrets} secrets, ${favor} favor, Hidden Place at ${hiddenAt}`).toEqual(onPaidCopy(s, cardId, [...candidates]))
+                                named[sites.length === 0 ? 'none' : sites.length === candidates.length ? 'all' : 'some'] += 1
+                            }
+                        }
+        expect(named.some).toBeGreaterThan(0)
+        expect(named.none).toBeGreaterThan(0)
+    })
+
+    describe("on the player's own view, where host-only values cannot be read", () => {
+        const game = { ...testGame([DANA, RHYS, ANN]), hotseat: false, protectedInformation: true as const }
+        const dana = { kind: 'player', playerId: DANA } as const
+
+        /** Dana's own view as her table executes on it: projected, then guarded. */
+        const ownView = (s: HydratedOathGameState) =>
+            OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
+
+        /** The Act Phase offer Dana's own screen computes, and the one the server computes. */
+        function offers(s: HydratedOathGameState) {
+            return {
+                own: engine.getValidActionTypesForPlayer(game, served(s, dana), DANA, { perspective: dana }),
+                server: engine.getValidActionTypesForPlayer(game, s.dehydrate(), DANA)
+            }
+        }
+        /** Revision 8, one secret: the table names the same sites as the server, and offers what it offers, End turn included. */
+        function expectSameOnOwnView(s: HydratedOathGameState, cardId: string, sites: string[]) {
+            s.getPlayerState(DANA).secrets = 1
+            expect(offered(s, DANA, cardId)).toEqual(sites)
+            expect(offered(ownView(s), DANA, cardId)).toEqual(sites)
+            const { own, server } = offers(s)
+            expect(own).toContain(ActionType.EndActPhase)
+            expect(own).toEqual(server)
+            return own
+        }
+
+        it('Wild Allies at her own site: the beast sites with a defender, and Use a power and End turn', () => {
+            expect(expectSameOnOwnView(exiles({ atC1: [WILD_ALLIES] }), WILD_ALLIES, ['p1', 'h2'])).toContain(ActionType.UseActionPower)
+        })
+
+        it('Wild Allies with no beast site that has a defender: no site, and End turn still offered', () => {
+            expectSameOnOwnView(exiles({ atC1: [WILD_ALLIES], danaAdvisers: [PEACE] }), WILD_ALLIES, [])
+        })
+
+        it('Wild Allies at her own site, The Hidden Place asking for the secret its cost takes: that site is left out', () => {
+            const s = exiles({ atC1: [WILD_ALLIES] })
+            s.siteCards = { ...s.siteCards, p1: HIDDEN_PLACE }
+            expect(expectSameOnOwnView(s, WILD_ALLIES, ['h2'])).toContain(ActionType.UseActionPower)
+        })
+
+        it('Captains at her own site: the ruled site with a defender, and Use a power and End turn', () => {
+            expect(expectSameOnOwnView(exiles(), CAPTAINS, ['p2'])).toContain(ActionType.UseActionPower)
+        })
+
+        it('Captains with no ruled site that has a defender: no site, and End turn still offered', () => {
+            expectSameOnOwnView(exiles({ annAt: 'h1' }), CAPTAINS, [])
+        })
     })
 
     it('every site the two cards offer has a legal defender from there, and every site they leave out has none', () => {
