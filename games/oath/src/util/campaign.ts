@@ -123,12 +123,13 @@ function compulsoryAllies(state: HydratedOathGameState, parties: CampaignParties
         : []
 }
 
-/** R-5.5.1, R-5.5.2 — a defender with no declarable targets is no defender. */
+/** R-5.5.1, R-5.5.2 — a defender with no declarable targets is no defender. `secretsPaid` as for `reasonFlipInvalid`. */
 export function reasonNoCampaignAgainst(
     state: HydratedOathGameState,
     attackerId: string,
     defenderPlayerId: string | undefined,
-    asIfSiteId?: string
+    asIfSiteId?: string,
+    secretsPaid = 0
 ): string | undefined {
     const reason = reasonCannotChooseDefender(state, attackerId, defenderPlayerId, asIfSiteId)
     if (reason) return reason
@@ -139,8 +140,12 @@ export function reasonNoCampaignAgainst(
         const declared = { ...parties, targets }
         return (
             reasonCannotDeclareTargets(state, declared) === undefined &&
-            reasonSitesForbidTargets(state, declared, targetsNeedFlip(state, declared)) ===
-                undefined
+            reasonSitesForbidTargets(
+                state,
+                declared,
+                targetsNeedFlip(state, declared),
+                secretsPaid
+            ) === undefined
         )
     }
     // R-7.1.4 — Giant Python's even total can need a second target; no rule needs a third.
@@ -159,19 +164,24 @@ export function defendersOpenTo(state: HydratedOathGameState, attackerId: string
     return defendersOpenFrom(state, attackerId)
 }
 
-/** Wild Allies, Captains — those a Campaign acting as if from `siteId` may declare, before the card names it. */
+/**
+ * Wild Allies, Captains — those a Campaign acting as if from `siteId` may declare, before the card
+ * names it, once its cost has taken `secretsPaid` faceup secrets (R-7.1.2).
+ */
 export function defendersOpenToAt(
     state: HydratedOathGameState,
     attackerId: string,
-    siteId: string
+    siteId: string,
+    secretsPaid: number
 ): CampaignDefender[] {
-    return defendersOpenFrom(state, attackerId, siteId)
+    return defendersOpenFrom(state, attackerId, siteId, secretsPaid)
 }
 
 function defendersOpenFrom(
     state: HydratedOathGameState,
     attackerId: string,
-    asIfSiteId?: string
+    asIfSiteId?: string,
+    secretsPaid = 0
 ): CampaignDefender[] {
     const defenders: CampaignDefender[] = [
         ...state.players
@@ -185,7 +195,8 @@ function defendersOpenFrom(
                 state,
                 attackerId,
                 defender.kind === 'player' ? defender.playerId : undefined,
-                asIfSiteId
+                asIfSiteId,
+                secretsPaid
             ) === undefined
     )
 }
@@ -212,9 +223,10 @@ function targetableBy(state: HydratedOathGameState, parties: CampaignParties): C
     const held: CampaignTarget[] = defender
         ? [
               { kind: CampaignTargetKind.PawnAndFavor },
-              ...defender.relicIds.map(
-                  (cardId): CampaignTarget => ({ kind: CampaignTargetKind.Relic, cardId })
-              ),
+              ...defender.relicIds.map((cardId): CampaignTarget => ({
+                  kind: CampaignTargetKind.Relic,
+                  cardId
+              })),
               ...Object.values(Banner)
                   .filter((banner) => bannerHolder(state, banner) === defender.playerId)
                   .map((banner): CampaignTarget => ({ kind: CampaignTargetKind.Banner, banner }))
