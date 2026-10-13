@@ -27,6 +27,7 @@ import {
     type ProjectedUnit
 } from '@tabletop/napoleons-triumph'
 import {
+    APPROACH_GEOMETRY,
     BOARD_HEIGHT,
     BOARD_WIDTH,
     ENTRY_GEOMETRY,
@@ -43,7 +44,8 @@ import {
     type BoardPieces,
     type GroupSprite,
     type HeldApproach,
-    type PieceGroup
+    type PieceGroup,
+    type SingledOut
 } from '$lib/utils/pieceLayout.js'
 import { arrowAlong, drawnArrow, lineSamples, type DrawnArrow } from '$lib/utils/wayArrow.js'
 import {
@@ -322,6 +324,37 @@ function attackMarkOf(
     }
 }
 
+function firstPlaceOnTheWay(movement: Movement): Point {
+    const [next] = movement.road
+    if (next !== undefined) {
+        return LOCALE_GEOMETRY[next].anchor
+    }
+    return movement.to.approach === undefined
+        ? LOCALE_GEOMETRY[movement.to.locale].anchor
+        : APPROACH_GEOMETRY[movement.to.approach].centre
+}
+
+// Deliberate: a picture must not tell anyone but the owner which of a stack a unit was. The places
+// left stand at the end of their stack towards where the pieces went, units lost and units the
+// action names at the end towards the attack's approach, whichever of the stack they really were.
+function singledOutBy(
+    movements: readonly Movement[],
+    lost: readonly ProjectedUnit[],
+    attack: VisibleAttack | undefined,
+    namedIds: readonly string[]
+): SingledOut[] {
+    const fought = attack ? APPROACH_GEOMETRY[attack.attackApproach].centre : undefined
+    return [
+        ...movements.map((movement) => ({
+            towards: firstPlaceOnTheWay(movement),
+            unitIds: movement.unitIds.map(placeLeftId)
+        })),
+        { towards: fought, unitIds: lost.map((unit) => placeLeftId(unit.id)) },
+        ...committedUnits(attack),
+        { towards: fought, unitIds: namedIds }
+    ]
+}
+
 export function moveReplayScene(
     replay: MoveReplay,
     rotation: number,
@@ -344,7 +377,7 @@ export function moveReplayScene(
             }),
             ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
         ]),
-        { rotation, readBy, chosen: committedUnits(attack) }
+        { rotation, readBy, singledOut: singledOutBy(movements, lost, attack, unitIds) }
     )
     const left = laidOut
         .flatMap((sprite) => sprite.blocks)

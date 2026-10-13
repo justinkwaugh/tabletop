@@ -1,5 +1,5 @@
 import { RecordedHistory, type Point } from '@tabletop/common'
-import { isEndTurn, samePosition } from '@tabletop/napoleons-triumph'
+import { isEndTurn, samePosition, standingGroupKey } from '@tabletop/napoleons-triumph'
 import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { screenAxes } from '$lib/utils/boardView.js'
 import {
@@ -35,9 +35,25 @@ function blocksOf(standing: Standing, view: LayoutOptions): BlockSprite[] {
     return layoutPieces(piecesOf(standing), view).flatMap((sprite) => sprite.blocks)
 }
 
-function centreOf(blocks: readonly BlockSprite[], unitIds: readonly string[]): Point | undefined {
-    const centres = blocks.filter((block) => unitIds.includes(block.unit.id))
-    return centres.length > 0 ? midpoint(centres.map((block) => block.centre)) : undefined
+function centreOf(blocks: readonly BlockSprite[]): Point | undefined {
+    return blocks.length > 0 ? midpoint(blocks.map((block) => block.centre)) : undefined
+}
+
+// Deliberate: an arrow must not tell anyone but the owner which of a stack its pieces were, so in a
+// stack the viewer does not read it starts from, and ends at, the stack as a whole.
+function asSeen(
+    movers: readonly BlockSprite[],
+    among: readonly BlockSprite[],
+    readBy: string | undefined
+): BlockSprite[] {
+    const stacks = new Set(
+        movers
+            .filter((block) => block.unit.playerId !== readBy)
+            .map((block) => standingGroupKey(block.unit))
+    )
+    return among.filter(
+        (block) => movers.includes(block) || stacks.has(standingGroupKey(block.unit))
+    )
 }
 
 function span(from: Point, to: Point): number {
@@ -102,14 +118,19 @@ export function turnTrails(
         const stopped = blocksOf(transition.after, view)
         for (const movement of movements) {
             const moved = (block: BlockSprite) => movement.unitIds.includes(block.unit.id)
-            const here = standing.filter(
+            const arrived = standing.filter(
                 (block) => moved(block) && samePosition(block.unit.position, movement.to)
             )
+            const here = asSeen(arrived, standing, view.readBy)
             const stayed = standing.filter(
                 (block) => !moved(block) && samePosition(block.unit.position, movement.from)
             )
-            const start = movement.from ? centreOf(left, movement.unitIds) : movement.entry
-            const end = centreOf(here.length > 0 ? here : stopped, movement.unitIds)
+            const start = movement.from
+                ? centreOf(asSeen(left.filter(moved), left, view.readBy))
+                : movement.entry
+            const end = centreOf(
+                here.length > 0 ? here : asSeen(stopped.filter(moved), stopped, view.readBy)
+            )
             if (!start || !end) {
                 continue
             }

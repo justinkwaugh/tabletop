@@ -414,7 +414,7 @@ describe('the units an opponent has committed to an attack', () => {
         const [stack] = layoutPieces(game.hydrated, {
             rotation,
             readBy: game.playerOf(readBy),
-            chosen: [{ approach, unitIds: CHOSEN }]
+            singledOut: [{ towards: APPROACH_GEOMETRY[approach].centre, unitIds: CHOSEN }]
         })
         return { stack, bar: APPROACH_GEOMETRY[approach], rotation }
     }

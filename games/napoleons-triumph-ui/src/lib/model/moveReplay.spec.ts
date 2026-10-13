@@ -13,7 +13,7 @@ import {
     cavalry,
     infantry
 } from '@tabletop/napoleons-triumph/testing'
-import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
+import { APPROACH_GEOMETRY, BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
 import { coveredBy } from '$lib/utils/blockShape.js'
 import { BoardView, toView, viewRotation } from '$lib/utils/boardView.js'
 import { layoutPieces } from '$lib/utils/pieceLayout.js'
@@ -222,6 +222,45 @@ describe('what the history can replay', () => {
         expect(idsOf(scene.left)).toEqual(['A-1'])
         expect(scene.arrows).toHaveLength(1)
         expect(scene.bystanderIds).toEqual([])
+    })
+
+    it('shows the opponent the place a unit stepped up from at the end of its stack towards the approach, whichever unit it was', () => {
+        const steppedUp = (unitId: string, reader: Side) => {
+            const { recorded, approach } = standsAgainstAThreat([unitId])
+            recorded.act(ActionType.DeclareFeint, Side.French, {
+                orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+                end: FeintEnd.Reserve
+            })
+            const advance = recorded.act(ActionType.Advance, Side.Allied, {
+                unitIds: [unitId],
+                commanderIds: []
+            })
+            const scene = moveReplayScene(
+                recorded.replay(advance),
+                NORTH,
+                recorded.game.playerOf(reader)
+            )
+            const { map } = recorded.game.hydrated
+            const bar = APPROACH_GEOMETRY[map.approachBetween(63, 53).id].centre
+            const fromTheBar = (block: { centre: Point }) =>
+                Math.hypot(block.centre.x - bar.x, block.centre.y - bar.y)
+            const stayed = scene.sprites
+                .filter(({ group }) => group.position.approach === undefined)
+                .flatMap((sprite) => sprite.blocks)
+                .filter((block) => ['A-1', 'A-2'].includes(block.unit.id))
+            expect(approach).toBeDefined()
+            return { left: scene.left[0], stayed, fromTheBar }
+        }
+        const first = steppedUp('A-1', Side.French)
+        const second = steppedUp('A-2', Side.French)
+        expect(second.left.centre).toEqual(first.left.centre)
+        for (const { left, stayed, fromTheBar } of [first, second]) {
+            expect(stayed).toHaveLength(1)
+            expect(fromTheBar(left)).toBeLessThan(fromTheBar(stayed[0]))
+        }
+        expect(steppedUp('A-2', Side.Allied).left.centre).not.toEqual(
+            steppedUp('A-1', Side.Allied).left.centre
+        )
     })
 
     it('is a step of an attack that moves nothing, with each piece marked for what it was doing', () => {

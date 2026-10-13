@@ -300,7 +300,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         layoutPieces(this.arrayedArmy ?? this.gameState, {
             rotation: this.boardRotation,
             readBy: this.myPlayerId,
-            chosen: committedUnits(this.attack),
+            singledOut: committedUnits(this.attack),
             looseLocales: [
                 ...this.battleLocales,
                 ...[this.spreadLocale, this.pickedUpLocale].filter((locale) => locale !== undefined)

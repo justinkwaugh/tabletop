@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GameAction, Point } from '@tabletop/common'
-import { ActionType, CommandKind, Side } from '@tabletop/napoleons-triumph'
+import { ActionType, CommandKind, FeintEnd, Side } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
@@ -115,6 +115,49 @@ describe('the trails of the turn in progress', () => {
         expect(near(first.line[0], 63)).toBe(true)
         expect(near(second.line[0], 64)).toBe(true)
         expect(near(second.line[second.line.length - 1], 65)).toBe(true)
+    })
+
+    it('start from an opponent’s stack as a whole, whichever of its units moved', () => {
+        const trailOf = (unitId: string, reader: Side) => {
+            const recorded = new Recorded()
+            recorded.act(ActionType.EndTurn, Side.Allied)
+            arrangeBattlefield(recorded.game, [
+                { id: 'F-inf', side: Side.French, face: infantry(3), locale: 53 },
+                ...['A-1', 'A-2', 'A-3'].map((id) => ({
+                    id,
+                    side: Side.Allied,
+                    face: cavalry(2),
+                    locale: 63,
+                    commanderId: 'langeron'
+                }))
+            ])
+            recorded.actions.length = 0
+            recorded.act(ActionType.ThreatenAttack, Side.French, {
+                approach: recorded.game.hydrated.map.approachBetween(53, 63).id
+            })
+            recorded.act(ActionType.DeclareDefense, Side.Allied, {
+                unitIds: [unitId],
+                leaderIds: [unitId]
+            })
+            recorded.act(ActionType.DeclareFeint, Side.French, {
+                orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+                end: FeintEnd.Reserve
+            })
+            recorded.act(ActionType.Advance, Side.Allied, { unitIds: [unitId], commanderIds: [] })
+            const view = { ...VIEW, readBy: recorded.game.playerOf(reader) }
+            const standing = layoutPieces(recorded.game.hydrated, view).flatMap(
+                (sprite) => sprite.blocks
+            )
+            const [trail, ...others] = turnTrails(
+                { state: recorded.game.state, actions: recorded.actions },
+                standing,
+                view
+            )
+            expect(others).toEqual([])
+            return trail.line
+        }
+        expect(trailOf('A-3', Side.French)).toEqual(trailOf('A-1', Side.French))
+        expect(trailOf('A-3', Side.Allied)).not.toEqual(trailOf('A-1', Side.Allied))
     })
 
     it('stand each number beside its arrow, on the upper side as the board is turned', () => {

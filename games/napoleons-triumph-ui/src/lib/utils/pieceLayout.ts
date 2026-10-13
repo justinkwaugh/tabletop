@@ -52,13 +52,16 @@ export interface PieceGroup {
 
 interface PlacedGroup extends PieceGroup {
     position: Position
-    /** The approach its chosen units are shown nearest, when the viewer does not read the stack. */
-    chosenFor?: number
+    /** Where its singled-out units are shown nearest, when the viewer does not read the stack. */
+    singledOutTowards?: Point
 }
 
-/** Units chosen for an approach in the attack in progress, the ones to show nearest it first. */
-export interface ChosenUnits {
-    approach: number
+/**
+ * Units an attack or a history picture singles out, the ones to show outermost first, and the place
+ * they are shown nearest: the approach they fight at, or where they went.
+ */
+export interface SingledOut {
+    towards?: Point
     unitIds: readonly string[]
 }
 
@@ -89,20 +92,26 @@ export function heldApproaches(sprites: readonly GroupSprite[]): HeldApproach[] 
 
 export type BoardPieces = Pick<HydratedNapoleonsTriumphGameState, 'units' | 'commander'>
 
-// Deliberate: where a chosen unit really stands among the others of its stack is the owner's to
-// know. Anyone else sees the chosen ones at the end nearest their approach, whichever they are.
-function withTheChosenForward(group: PlacedGroup, chosen: readonly ChosenUnits[]): PlacedGroup {
-    const here = chosen.find(({ unitIds }) => group.units.some((unit) => unitIds.includes(unit.id)))
-    if (!here) {
+// Deliberate: where a singled-out unit really stands among the others of its stack is the owner's
+// to know. Anyone else sees those units at one end of the stack, whichever of it they are.
+function withTheSingledOutForward(
+    group: PlacedGroup,
+    singledOut: readonly SingledOut[]
+): PlacedGroup {
+    const here = singledOut.filter(({ unitIds }) =>
+        group.units.some((unit) => unitIds.includes(unit.id))
+    )
+    if (here.length === 0) {
         return group
     }
+    const forward = here.flatMap(({ unitIds }) => unitIds)
     const place = (unit: ProjectedUnit) => {
-        const at = here.unitIds.indexOf(unit.id)
-        return at < 0 ? here.unitIds.length : at
+        const at = forward.indexOf(unit.id)
+        return at < 0 ? forward.length : at
     }
     return {
         ...group,
-        chosenFor: here.approach,
+        singledOutTowards: here[0].towards,
         units: group.units.toSorted((a, b) => place(a) - place(b))
     }
 }
@@ -126,7 +135,7 @@ function placedGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[]
     return [...groups.values()].map((group) =>
         group.playerId === options.readBy
             ? { ...group, units: inReadingOrder(group.units) }
-            : withTheChosenForward(group, options.chosen ?? [])
+            : withTheSingledOutForward(group, options.singledOut ?? [])
     )
 }
 
@@ -135,8 +144,8 @@ export interface LayoutOptions {
     looseLocales?: readonly number[]
     /** The player looking at the board, whose own stacks are put in reading order. */
     readBy?: string
-    /** The units committed to the attack in progress, which every other stack shows nearest their approach. */
-    chosen?: readonly ChosenUnits[]
+    /** Units that stacks the viewer does not read show at one end, so their place in the stack tells nothing. */
+    singledOut?: readonly SingledOut[]
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -317,9 +326,8 @@ interface PlacedBlocks {
     spacing: number
 }
 
-function isBelow(approachId: number, locale: LocaleGeometry, down: Point): boolean {
-    const bar = APPROACH_GEOMETRY[approachId].centre
-    return (bar.x - locale.anchor.x) * down.x + (bar.y - locale.anchor.y) * down.y > 0
+function isBelow(place: Point, locale: LocaleGeometry, down: Point): boolean {
+    return (place.x - locale.anchor.x) * down.x + (place.y - locale.anchor.y) * down.y > 0
 }
 
 function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
@@ -347,9 +355,9 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
             GROUP_GAP +
             BLOCK_THICKNESS / 2 +
             ((tallest - group.units.length) * spacing) / 2
-        const chosenAtTheBottom =
-            group.chosenFor !== undefined && isBelow(group.chosenFor, locale, down)
-        const fromTheTop = chosenAtTheBottom ? group.units.toReversed() : group.units
+        const singledOutAtTheBottom =
+            group.singledOutTowards !== undefined && isBelow(group.singledOutTowards, locale, down)
+        const fromTheTop = singledOutAtTheBottom ? group.units.toReversed() : group.units
         const topToBottom = fromTheTop.map((unit, rank) => {
             const along = top + rank * spacing
             return {

@@ -53,7 +53,8 @@ import {
     type BattleSelections
 } from './battleSelection.js'
 import { sameIds } from '$lib/utils/ids.js'
-import type { ChosenUnits } from '$lib/utils/pieceLayout.js'
+import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
+import type { SingledOut } from '$lib/utils/pieceLayout.js'
 import { RideChoice } from './moveCommands.js'
 import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import { copyOf } from './stateCopy.js'
@@ -781,15 +782,15 @@ export function sendCommander(
 }
 
 /** The units each side has committed to the attack, leaders first, with the approach they fight at. */
-export function committedUnits(attack: VisibleAttack | undefined): ChosenUnits[] {
+export function committedUnits(attack: VisibleAttack | undefined): SingledOut[] {
     return attack
         ? [
               {
-                  approach: attack.attackApproach,
+                  towards: APPROACH_GEOMETRY[attack.attackApproach].centre,
                   unitIds: [...attack.attackLeaderIds, ...attack.attackingUnitIds]
               },
               {
-                  approach: attack.defenseApproach,
+                  towards: APPROACH_GEOMETRY[attack.defenseApproach].centre,
                   unitIds: [
                       ...attack.defenseLeaderIds,
                       ...attack.counterAttackingUnitIds,
