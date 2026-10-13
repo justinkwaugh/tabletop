@@ -6,7 +6,8 @@ import { ChooseSurveyWorld } from '../actions/chooseSurveyWorld.js'
 import { ChooseTerraformWorld } from '../actions/chooseTerraformWorld.js'
 import { CloneSettlement } from '../actions/cloneSettlement.js'
 import { DevelopTech } from '../actions/developTech.js'
-import { EndStep } from '../actions/endStep.js'
+import { CompletePhase } from '../actions/completePhase.js'
+import { EndPhase } from '../actions/endPhase.js'
 import { EndTurn } from '../actions/endTurn.js'
 import { Explore } from '../actions/explore.js'
 import { MoveShip } from '../actions/moveShip.js'
@@ -16,6 +17,9 @@ import { RepairShip } from '../actions/repairShip.js'
 import { ResolveAnomaly } from '../actions/resolveAnomaly.js'
 import { ResolveSurvey } from '../actions/resolveSurvey.js'
 import { ScrapShip } from '../actions/scrapShip.js'
+import { SettleExplorations } from '../actions/settleExplorations.js'
+import { SkipPhase } from '../actions/skipPhase.js'
+import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
@@ -24,6 +28,11 @@ export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
     [ActionType.PlaceStartingBase]: PlaceStartingBase,
     [ActionType.StartTurn]: StartTurn,
+    [ActionType.StartPhase]: StartPhase,
+    [ActionType.CompletePhase]: CompletePhase,
+    [ActionType.SkipPhase]: SkipPhase,
+    [ActionType.EndPhase]: EndPhase,
+    [ActionType.SettleExplorations]: SettleExplorations,
     [ActionType.BuildShip]: BuildShip,
     [ActionType.RepairShip]: RepairShip,
     [ActionType.ScrapShip]: ScrapShip,
@@ -33,7 +42,6 @@ export const StellarHorizonsApiActions = {
     [ActionType.Explore]: Explore,
     [ActionType.AttemptAnomaly]: AttemptAnomaly,
     [ActionType.DevelopTech]: DevelopTech,
-    [ActionType.EndStep]: EndStep,
     [ActionType.ResolveAnomaly]: ResolveAnomaly,
     [ActionType.ResolveSurvey]: ResolveSurvey,
     [ActionType.ChooseSurveyWorld]: ChooseSurveyWorld,

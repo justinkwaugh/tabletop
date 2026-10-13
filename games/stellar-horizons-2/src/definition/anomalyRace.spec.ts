@@ -13,13 +13,18 @@ import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
+import { TurnPhase } from '../model/turn.js'
+import { playPhase } from '../model/turnPlan.js'
 import {
     VOYAGES_CONFIG,
+    advanceTo,
     edit,
-    engine,
+    endPhase,
+    endPhaseWithActions,
     execute,
+    finishDecade,
     hydrate,
+    placeShip,
     startedGame,
     userAction
 } from '../testing/fixtures.js'
@@ -37,7 +42,7 @@ interface Table {
     givers: string
 }
 
-function exploring(change: (state: HydratedStellarHorizonsGameState, table: Table) => void) {
+function decadeWith(change: (state: HydratedStellarHorizonsGameState, table: Table) => void) {
     const { game, state: started } = startedGame(2, VOYAGES_CONFIG)
     const placed = ['luhman-16', 'alpha-centauri'].reduce((current, systemId) => {
         const [playerId] = current.activePlayerIds
@@ -49,13 +54,13 @@ function exploring(change: (state: HydratedStellarHorizonsGameState, table: Tabl
     }, started)
     const [starfarers, givers] = placed.turnManager.turnOrder
     const table: Table = { game, state: placed, starfarers, givers }
-    table.state = edit(placed, (hydrated) => {
-        for (const player of hydrated.players) {
-            player.step = TurnStep.Exploration
-        }
-        change(hydrated, table)
-    })
+    table.state = edit(placed, (hydrated) => change(hydrated, table))
     return table
+}
+
+function exploring(change: (state: HydratedStellarHorizonsGameState, table: Table) => void) {
+    const table = decadeWith(change)
+    return { ...table, state: advanceTo(table.game, table.state, TurnPhase.Exploration) }
 }
 
 function ship(
@@ -65,17 +70,7 @@ function ship(
     systemId: string,
     damage = 0
 ) {
-    state.ships.push({
-        shipId,
-        playerId,
-        systemId,
-        transit: 0,
-        damage,
-        settlements: 0,
-        loadedFromBase: false,
-        explored: false
-    })
-    return state.ship(shipId)
+    return placeShip(state, playerId, shipId, systemId, { damage })
 }
 
 function attempt(table: Table, playerId: string, systemId: string, shipIds: string[]) {
@@ -86,19 +81,9 @@ function attempt(table: Table, playerId: string, systemId: string, shipIds: stri
     )
 }
 
-function finishDecade(game: Game, state: StellarHorizonsProjectedState) {
-    let current = state
-    while (current.machineState === MachineState.PlayingTurn && current.year === state.year) {
-        const [playerId] = current.activePlayerIds
-        const step = hydrate(current).getPlayerState(playerId).step
-        current = execute(game, current, userAction(game, playerId, ActionType.EndStep, { step }))
-    }
-    return current
-}
-
 describe('strength against an anomaly', () => {
     it('is the ship’s own exploration value, plus one for a research ship, on science', () => {
-        const { state, starfarers } = exploring((hydrated, table) => {
+        const { state, starfarers } = decadeWith((hydrated, table) => {
             hydrated.systemState('vega').anomaly = SCIENCE_FOUR
             ship(hydrated, table.starfarers, 'starfarers-kepler', 'vega')
             ship(hydrated, table.starfarers, 'starfarers-orion', 'vega')
@@ -111,11 +96,11 @@ describe('strength against an anomaly', () => {
         expect(anomalyStrength(hydrated.ship('starfarers-orion'), AnomalyChallenge.Science)).toBe(6)
         expect(
             anomalyAttemptShips(hydrated, starfarers, 'vega').map((entry) => entry.shipId)
-        ).toEqual(['starfarers-kepler', 'starfarers-orion', 'starfarers-andromeda'])
+        ).toEqual(['starfarers-andromeda', 'starfarers-kepler', 'starfarers-orion'])
     })
 
     it('is the combat value less damage on combat, and unarmed ships cannot join', () => {
-        const { state, starfarers } = exploring((hydrated, table) => {
+        const { state, starfarers } = decadeWith((hydrated, table) => {
             hydrated.systemState('vega').anomaly = COMBAT_THREE
             ship(hydrated, table.starfarers, 'starfarers-kepler', 'vega')
             ship(hydrated, table.starfarers, 'starfarers-voyager', 'vega', 2)
@@ -131,7 +116,7 @@ describe('strength against an anomaly', () => {
     })
 
     it('leaves out crippled ships, ships in transit and ships that already acted', () => {
-        const { state, starfarers } = exploring((hydrated, table) => {
+        const { state, starfarers } = decadeWith((hydrated, table) => {
             hydrated.systemState('vega').anomaly = SCIENCE_FOUR
             ship(hydrated, table.starfarers, 'starfarers-orion', 'vega', 1)
             ship(hydrated, table.starfarers, 'starfarers-kepler', 'vega').transit = 2
@@ -143,7 +128,7 @@ describe('strength against an anomaly', () => {
 
 describe('committing ships to an anomaly', () => {
     it('needs enough strength and only ships at the anomaly', () => {
-        const { state, starfarers } = exploring((hydrated, table) => {
+        const { state, starfarers } = decadeWith((hydrated, table) => {
             hydrated.systemState('vega').anomaly = SCIENCE_FOUR
             ship(hydrated, table.starfarers, 'starfarers-kepler', 'vega')
             ship(hydrated, table.starfarers, 'starfarers-orion', 'vega')
@@ -167,19 +152,15 @@ describe('committing ships to an anomaly', () => {
             ship(hydrated, current.starfarers, 'starfarers-kepler', 'vega')
             ship(hydrated, current.starfarers, 'starfarers-orion', 'vega')
         })
+        expect(table.state.activePlayerIds).toEqual([table.starfarers])
         const committed = attempt(table, table.starfarers, 'vega', ['starfarers-orion'])
         const hydrated = hydrate(committed)
         expect(hydrated.ship('starfarers-orion').explored).toBe(true)
         expect(canExplore(hydrated, hydrated.ship('starfarers-kepler'))).toBe(true)
         expect(hydrated.systemState('vega').anomaly).toBe(SCIENCE_FOUR)
         expect(hydrated.getPlayerState(table.starfarers).anomalies).toEqual([])
-        expect(committed.pendingAnomalyAttempts).toEqual([
-            {
-                playerId: table.starfarers,
-                systemId: 'vega',
-                anomalyId: SCIENCE_FOUR,
-                shipIds: ['starfarers-orion']
-            }
+        expect(hydrated.getPlayerState(table.starfarers).anomalyAttempts).toEqual([
+            { systemId: 'vega', anomalyId: SCIENCE_FOUR, shipIds: ['starfarers-orion'] }
         ])
         expect(() =>
             attempt({ ...table, state: committed }, table.starfarers, 'vega', ['starfarers-kepler'])
@@ -194,22 +175,15 @@ describe('committing ships to an anomaly', () => {
         expect(() => attempt(table, table.starfarers, 'vega', ['starfarers-kepler'])).toThrow()
     })
 
-    it('keeps the exploration step open while an anomaly can be resolved', () => {
-        const table = exploring((hydrated, current) => {
+    it('keeps the exploration phase open while an anomaly can be resolved', () => {
+        const table = decadeWith((hydrated, current) => {
             hydrated.systemState('vega').anomaly = 'rescue-scout-ship'
-            hydrated.getPlayerState(current.starfarers).step = TurnStep.Movement
             ship(hydrated, current.starfarers, 'starfarers-kepler', 'vega')
         })
-        const afterMovement = execute(
-            table.game,
-            table.state,
-            userAction(table.game, table.starfarers, ActionType.EndStep, {
-                step: TurnStep.Movement
-            })
-        )
-        expect(hydrate(afterMovement).getPlayerState(table.starfarers).step).toBe(
-            TurnStep.Exploration
-        )
+        const moving = advanceTo(table.game, table.state, TurnPhase.Movement, table.starfarers)
+        const afterMovement = endPhase(table.game, moving)
+        expect(playPhase(afterMovement)).toBe(TurnPhase.Exploration)
+        expect(afterMovement.activePlayerIds).toEqual([table.starfarers])
     })
 })
 
@@ -222,8 +196,8 @@ describe('resolving anomalies at the end of the decade', () => {
         const committed = attempt(table, table.starfarers, 'vega', ['starfarers-orion'])
         const next = finishDecade(table.game, committed)
         expect(next.year).toBe(2260)
-        expect(next.pendingAnomalyAttempts).toEqual([])
         const hydrated = hydrate(next)
+        expect(hydrated.getPlayerState(table.starfarers).anomalyAttempts).toEqual([])
         expect(hydrated.systemState('vega').anomaly).toBeUndefined()
         expect(hydrated.getPlayerState(table.starfarers).anomalies).toEqual([SCIENCE_FOUR])
     })
@@ -235,23 +209,20 @@ describe('resolving anomalies at the end of the decade', () => {
             ship(hydrated, current.givers, 'givers-darwin', 'vega')
             ship(hydrated, current.givers, 'givers-mendel', 'vega')
         })
-        const giversFirst = attempt(table, table.givers, 'vega', ['givers-darwin', 'givers-mendel'])
-        const both = attempt({ ...table, state: giversFirst }, table.starfarers, 'vega', [
-            'starfarers-orion'
+        const starfarersCommitted = attempt(table, table.starfarers, 'vega', ['starfarers-orion'])
+        const giversTurn = endPhase(table.game, starfarersCommitted)
+        expect(giversTurn.activePlayerIds).toEqual([table.givers])
+        const both = attempt({ ...table, state: giversTurn }, table.givers, 'vega', [
+            'givers-darwin',
+            'givers-mendel'
         ])
 
         let current = both
         const resolutions = []
-        while (current.machineState === MachineState.PlayingTurn && current.year === 2250) {
-            const [playerId] = current.activePlayerIds
-            const step = hydrate(current).getPlayerState(playerId).step
-            const result = engine.executeCanonicalAction({
-                game: table.game,
-                state: current,
-                action: userAction(table.game, playerId, ActionType.EndStep, { step })
-            })
+        while (playPhase(current) !== undefined && current.year === 2250) {
+            const result = endPhaseWithActions(table.game, current)
             resolutions.push(...result.processedActions.filter(isResolveAnomaly))
-            current = result.updatedState
+            current = result.state
         }
         expect(
             resolutions.map((action) => [action.metadata?.playerId, action.metadata?.resolved])
@@ -295,7 +266,7 @@ describe('winning the anomaly race', () => {
         })
         const committed = attempt(table, table.starfarers, 'vega', ['starfarers-orion'])
         const next = finishDecade(table.game, committed)
-        expect(next.machineState).toBe(MachineState.PlayingTurn)
+        expect(next.year).toBe(2260)
         expect(hydrate(next).getPlayerState(table.starfarers).anomalies).toHaveLength(4)
     })
 
@@ -317,7 +288,8 @@ describe('winning the anomaly race', () => {
             ship(hydrated, current.givers, 'givers-darwin', 'altair')
         })
         const first = attempt(table, table.starfarers, 'vega', ['starfarers-orion'])
-        const second = attempt({ ...table, state: first }, table.givers, 'altair', [
+        const giversTurn = endPhase(table.game, first)
+        const second = attempt({ ...table, state: giversTurn }, table.givers, 'altair', [
             'givers-darwin'
         ])
         const ended = finishDecade(table.game, second)
@@ -335,7 +307,7 @@ describe('when nobody can still win the anomaly race', () => {
     }
 
     it('ends without a winner once every system is surveyed and too few anomalies remain', () => {
-        const table = exploring((hydrated, current) => {
+        const table = decadeWith((hydrated, current) => {
             surveyedOut(hydrated)
             hydrated.getPlayerState(current.starfarers).anomalies = [SCIENCE_THREE, COMBAT_THREE]
             hydrated.systemState('vega').anomaly = SCIENCE_FOUR
@@ -347,7 +319,7 @@ describe('when nobody can still win the anomaly race', () => {
     })
 
     it('ends when only one kind of anomaly is left for a player who needs the other', () => {
-        const table = exploring((hydrated, current) => {
+        const table = decadeWith((hydrated, current) => {
             surveyedOut(hydrated)
             hydrated.getPlayerState(current.starfarers).anomalies = [
                 SCIENCE_THREE,
@@ -360,7 +332,7 @@ describe('when nobody can still win the anomaly race', () => {
     })
 
     it('goes on while the anomalies on the map are enough for someone', () => {
-        const table = exploring((hydrated, current) => {
+        const table = decadeWith((hydrated, current) => {
             surveyedOut(hydrated)
             hydrated.getPlayerState(current.starfarers).anomalies = [
                 SCIENCE_THREE,
@@ -369,17 +341,17 @@ describe('when nobody can still win the anomaly race', () => {
             ]
             hydrated.systemState('vega').anomaly = SCIENCE_FOUR
         })
-        expect(finishDecade(table.game, table.state).machineState).toBe(MachineState.PlayingTurn)
+        expect(finishDecade(table.game, table.state).year).toBe(2260)
     })
 
     it('goes on while a system can still be surveyed, unless the tiles have run out', () => {
-        const open = exploring((hydrated) => {
+        const open = decadeWith((hydrated) => {
             surveyedOut(hydrated)
             hydrated.systemState('vega').explorationMarker = 1
         })
-        expect(finishDecade(open.game, open.state).machineState).toBe(MachineState.PlayingTurn)
+        expect(finishDecade(open.game, open.state).year).toBe(2260)
 
-        const exhausted = exploring((hydrated) => {
+        const exhausted = decadeWith((hydrated) => {
             hydrated.anomalyPool = []
         })
         expect(finishDecade(exhausted.game, exhausted.state).machineState).toBe(

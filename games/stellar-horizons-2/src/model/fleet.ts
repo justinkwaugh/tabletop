@@ -2,15 +2,15 @@ import { ShipKind, shipDefinition, type ShipDefinition } from '../components/shi
 import { TechField } from '../components/techFields.js'
 import { playerCapabilities, type Capabilities } from './capabilities.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { CompensationMarkers } from './exploration.js'
-import type { ShipState } from './pieces.js'
-import { awardTechMarkers } from './pools.js'
+import type { CompensationCounts } from './exploration.js'
+import { MarkerReason, type ShipState } from './pieces.js'
+import { earnMarkers } from './pools.js'
 import { roundHalfUp } from './turn.js'
 
 export interface ShipLoss {
     shipId: string
     settlementsLost: number
-    compensation: CompensationMarkers
+    compensation: CompensationCounts
 }
 
 export function capabilitiesOf(
@@ -55,24 +55,26 @@ export function currentCombat(ship: ShipState): number {
 }
 
 export function removeShip(state: HydratedStellarHorizonsGameState, shipId: string) {
-    state.ships = state.ships.filter((ship) => ship.shipId !== shipId)
+    delete state.ships[shipId]
 }
 
 export function loseShip(state: HydratedStellarHorizonsGameState, ship: ShipState): ShipLoss {
     const definition = shipDefinition(ship.shipId)
-    const compensation: CompensationMarkers = {}
-    const award = (field: TechField.Biology | TechField.Engineering, count: number) => {
-        const { markers, cash } = awardTechMarkers(state, ship.playerId, field, count)
-        compensation[field] = markers
-        if (cash > 0) {
-            compensation.cash = (compensation.cash ?? 0) + cash
+    const compensation: CompensationCounts =
+        definition.kind === ShipKind.RE
+            ? { [TechField.Engineering]: 1 }
+            : { [TechField.Biology]: 1, [TechField.Engineering]: roundHalfUp(definition.size / 4) }
+    for (const field of [TechField.Biology, TechField.Engineering] as const) {
+        const count = compensation[field]
+        if (count !== undefined) {
+            earnMarkers(state, ship.playerId, {
+                shipId: ship.shipId,
+                systemId: ship.systemId,
+                field,
+                count,
+                reason: MarkerReason.Loss
+            })
         }
-    }
-    if (definition.kind === ShipKind.RE) {
-        award(TechField.Engineering, 1)
-    } else {
-        award(TechField.Biology, 1)
-        award(TechField.Engineering, roundHalfUp(definition.size / 4))
     }
     removeShip(state, ship.shipId)
     return { shipId: ship.shipId, settlementsLost: ship.settlements, compensation }

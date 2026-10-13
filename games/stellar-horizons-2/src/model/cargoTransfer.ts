@@ -12,7 +12,8 @@ import {
     removeBaseSettlement,
     settlementPurchaseLimit
 } from './settling.js'
-import { TurnStep } from './turn.js'
+import { TurnPhase } from './turn.js'
+import { playPhase } from './turnPlan.js'
 
 export enum CargoPartnerKind {
     Earth = 'Earth',
@@ -55,13 +56,13 @@ export function carriesCargo(state: HydratedStellarHorizonsGameState, ship: Ship
 }
 
 // Rule 1.8: settlements move between a player's ships at any time in their turn; buying,
-// loading from a base and unloading belong to the cargo step.
+// loading from a base and unloading belong to the cargo phase.
 export function cargoPartners(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState
 ): CargoPartner[] {
-    const step = state.getPlayerState(ship.playerId).step
-    if (!hasArrived(ship) || step === TurnStep.Done) {
+    const phase = playPhase(state)
+    if (!hasArrived(ship) || phase === undefined) {
         return []
     }
     const ships: CargoPartner[] = state
@@ -74,7 +75,7 @@ export function cargoPartners(
                 carriesCargo(state, other)
         )
         .map((other) => ({ kind: CargoPartnerKind.Ship, shipId: other.shipId }))
-    if (step !== TurnStep.Cargo) {
+    if (phase !== TurnPhase.Cargo) {
         return ships
     }
     const places: CargoPartner[] = []

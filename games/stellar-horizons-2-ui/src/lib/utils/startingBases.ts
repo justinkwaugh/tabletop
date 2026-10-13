@@ -21,7 +21,8 @@ export function startingBaseOptions(state: HydratedStellarHorizonsGameState): St
         habitability: starSystemDefinition(systemId).habitability,
         population: systemPopulation(state, systemId),
         worlds: state.systemState(systemId).worlds,
-        neighbours: state.bases
+        neighbours: state
+            .allBases()
             .filter((base) => base.systemId === systemId)
             .flatMap((base) => state.getPlayerState(base.playerId).faction ?? [])
     }))

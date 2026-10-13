@@ -9,6 +9,7 @@ import { shipDefinition } from '../components/ships.js'
 import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { PendingAnomalyAttempt, ShipState } from './pieces.js'
+import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 
 export const RESEARCH_SHIP_BONUS = 1
 
@@ -117,9 +118,9 @@ export function hasPendingAttempt(
     playerId: string,
     systemId: string
 ): boolean {
-    return state.pendingAnomalyAttempts.some(
-        (attempt) => attempt.playerId === playerId && attempt.systemId === systemId
-    )
+    return state
+        .getPlayerState(playerId)
+        .anomalyAttempts.some((attempt) => attempt.systemId === systemId)
 }
 
 export function isValidAnomalyAttempt(
@@ -170,9 +171,21 @@ export function commitAnomalyAttempt(
     for (const shipId of shipIds) {
         state.ship(shipId).explored = true
     }
-    const attempt = { playerId, systemId, anomalyId: anomaly.id, shipIds: [...shipIds] }
-    state.pendingAnomalyAttempts.push(attempt)
+    const attempt = { systemId, anomalyId: anomaly.id, shipIds: [...shipIds] }
+    state.getPlayerState(playerId).anomalyAttempts.push(attempt)
     return attempt
+}
+
+export function anyAnomalyAttempts(state: HydratedStellarHorizonsGameState): boolean {
+    return state.players.some((player) => player.anomalyAttempts.length > 0)
+}
+
+function nextAttempter(state: HydratedStellarHorizonsGameState): HydratedStellarHorizonsPlayerState {
+    const playerId = state
+        .initiativeOrder()
+        .find((candidate) => state.getPlayerState(candidate).anomalyAttempts.length > 0)
+    assertExists(playerId, 'No anomaly attempt to resolve')
+    return state.getPlayerState(playerId)
 }
 
 // Attempts resolve in initiative order; whoever comes after the anomaly has been taken has
@@ -180,22 +193,14 @@ export function commitAnomalyAttempt(
 export function resolveNextAnomalyAttempt(
     state: HydratedStellarHorizonsGameState
 ): AnomalyResolution {
-    const order = state.initiativeOrder()
-    const [first, ...others] = state.pendingAnomalyAttempts
-    assertExists(first, 'No anomaly attempt to resolve')
-    const attempt = others.reduce(
-        (best, candidate) =>
-            order.indexOf(candidate.playerId) < order.indexOf(best.playerId) ? candidate : best,
-        first
-    )
-    state.pendingAnomalyAttempts = state.pendingAnomalyAttempts.filter(
-        (pending) => pending !== attempt
-    )
+    const player = nextAttempter(state)
+    const [attempt, ...remaining] = player.anomalyAttempts
+    player.anomalyAttempts = remaining
     const system = state.systemState(attempt.systemId)
     const resolved = system.anomaly === attempt.anomalyId
     if (resolved) {
         system.anomaly = undefined
-        state.getPlayerState(attempt.playerId).anomalies.push(attempt.anomalyId)
+        player.anomalies.push(attempt.anomalyId)
     }
-    return { ...attempt, resolved }
+    return { playerId: player.playerId, ...attempt, resolved }
 }

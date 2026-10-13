@@ -3,7 +3,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState, isEvenDecade } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { STEP_LABELS } from '$lib/utils/presentation.js'
+    import { PHASE_LABELS } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -20,8 +20,8 @@
             gameState.machineState === MachineState.ResolvingSurveys
         )
             return 'SURVEYS'
-        if (gameSession.myStep && gameSession.canAct) {
-            return STEP_LABELS[gameSession.myStep].toUpperCase()
+        if (gameSession.actingPhase) {
+            return PHASE_LABELS[gameSession.actingPhase].toUpperCase()
         }
         return undefined
     })

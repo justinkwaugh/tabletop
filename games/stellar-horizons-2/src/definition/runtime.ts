@@ -10,6 +10,7 @@ import { StellarHorizonsColors } from './colors.js'
 import { StellarHorizonsGameExploration } from './exploration.js'
 import { StellarHorizonsHydrator } from './hydrator.js'
 import { StellarHorizonsGameInitializer } from './initializer.js'
+import { StellarHorizonsParallelSpans } from './parallelSpans.js'
 import { StellarHorizonsStateHandlers } from './stateHandlers.js'
 
 export const StellarHorizonsRuntime = {
@@ -19,6 +20,7 @@ export const StellarHorizonsRuntime = {
     canonicalStateValidator: StellarHorizonsGameStateValidator,
     hydrator: new StellarHorizonsHydrator(),
     stateHandlers: StellarHorizonsStateHandlers,
+    parallelSpans: StellarHorizonsParallelSpans,
     apiActions: StellarHorizonsApiActions,
     playerColors: StellarHorizonsColors,
     stateLogger: new DefaultStateLogger(),

@@ -54,11 +54,13 @@ describe('anomaly opportunities', () => {
         const [first, second] = state.initiativeOrder()
         state.systemState('vega').anomaly = 'stellar-chart'
         state.systemState('altair').anomaly = 'pirate-lair'
-        state.ships.push(
+        for (const entry of [
             ship('starfarers-orion', first, 'vega'),
             ship('starfarers-kuiper', first, 'vega'),
             ship('givers-darwin', second, 'altair')
-        )
+        ]) {
+            state.ships[entry.shipId] = entry
+        }
         const [opportunity, ...others] = anomalyOpportunities(state, first, {
             systemId: 'vega',
             shipIds: ['starfarers-orion']
@@ -69,8 +71,8 @@ describe('anomaly opportunities', () => {
         expect(
             opportunity.ships.map((entry) => [entry.ship.shipId, entry.strength, entry.chosen])
         ).toEqual([
-            ['starfarers-orion', 6, true],
-            ['starfarers-kuiper', 2, false]
+            ['starfarers-kuiper', 2, false],
+            ['starfarers-orion', 6, true]
         ])
         expect(opportunity.chosenStrength).toBe(6)
         expect(opportunity.availableStrength).toBe(8)
@@ -81,25 +83,23 @@ describe('anomaly opportunities', () => {
         const state = voyages()
         const [first, second] = state.initiativeOrder()
         state.systemState('vega').anomaly = 'stellar-chart'
-        state.ships.push(
+        for (const entry of [
             { ...ship('starfarers-orion', first, 'vega'), explored: true },
             { ...ship('givers-darwin', second, 'vega'), explored: true },
             ship('givers-mendel', second, 'vega')
-        )
-        state.pendingAnomalyAttempts.push(
-            {
-                playerId: first,
-                systemId: 'vega',
-                anomalyId: 'stellar-chart',
-                shipIds: ['starfarers-orion']
-            },
-            {
-                playerId: second,
-                systemId: 'vega',
-                anomalyId: 'stellar-chart',
-                shipIds: ['givers-darwin']
-            }
-        )
+        ]) {
+            state.ships[entry.shipId] = entry
+        }
+        state.getPlayerState(first).anomalyAttempts.push({
+            systemId: 'vega',
+            anomalyId: 'stellar-chart',
+            shipIds: ['starfarers-orion']
+        })
+        state.getPlayerState(second).anomalyAttempts.push({
+            systemId: 'vega',
+            anomalyId: 'stellar-chart',
+            shipIds: ['givers-darwin']
+        })
         const [mine] = anomalyOpportunities(state, first, undefined)
         expect(mine.committedShipIds).toEqual(['starfarers-orion'])
         expect(mine.ships).toEqual([])

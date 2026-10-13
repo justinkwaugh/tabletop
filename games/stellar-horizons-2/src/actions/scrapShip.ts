@@ -5,7 +5,6 @@ import { ActionType } from '../definition/actions.js'
 import { scrapRefund } from '../model/building.js'
 import { removeShip } from '../model/fleet.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
 
 export type ScrapShipMetadata = Type.Static<typeof ScrapShipMetadata>
 export const ScrapShipMetadata = Type.Object({
@@ -45,7 +44,7 @@ export class HydratedScrapShip extends HydratableAction<typeof ScrapShip> implem
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const ship = state.playerShip(this.playerId, this.shipId)
-        if (!ship || state.getPlayerState(this.playerId).step === TurnStep.Done) {
+        if (!ship) {
             throw Error('Invalid ScrapShip action')
         }
         const refund = scrapRefund(ship)
@@ -55,9 +54,6 @@ export class HydratedScrapShip extends HydratableAction<typeof ScrapShip> implem
     }
 
     static canScrapShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
-        return (
-            state.getPlayerState(playerId).step !== TurnStep.Done &&
-            state.shipsOf(playerId).length > 0
-        )
+        return state.shipsOf(playerId).length > 0
     }
 }

@@ -50,18 +50,20 @@ describe('system summary', () => {
 
     it('lists each faction present with its base and ships, the viewer first', () => {
         const state = startedState()
-        state.ships.push(
+        for (const entry of [
             ship('starfarers-kepler', 'p0', 'alpha-centauri'),
             ship('givers-humboldt', 'p1', 'alpha-centauri', 2),
             ship('givers-mendel', 'p1', 'sol')
-        )
-        state.bases.push({
+        ]) {
+            state.ships[entry.shipId] = entry
+        }
+        state.bases['p1:alpha-centauri'] = {
             playerId: 'p1',
             systemId: 'alpha-centauri',
             settlements: 3,
             spent: 0,
             cloned: false
-        })
+        }
         const { fleets } = systemSummary(state, 'alpha-centauri', 'p0')
         const mine = fleets.find((fleet) => fleet.playerId === 'p0')
         const theirs = fleets.find((fleet) => fleet.playerId === 'p1')

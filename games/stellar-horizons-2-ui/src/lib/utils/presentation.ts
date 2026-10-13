@@ -2,27 +2,57 @@ import {
     Faction,
     TechField,
     TechId,
-    TurnStep,
+    TurnPhase,
     factionDefinition,
     systemDefinition
 } from '@tabletop/stellar-horizons-2'
 
-export const STEP_LABELS: Record<TurnStep, string> = {
-    [TurnStep.Build]: 'Build & repair',
-    [TurnStep.Cargo]: 'Cargo',
-    [TurnStep.Movement]: 'Movement',
-    [TurnStep.Exploration]: 'Exploration',
-    [TurnStep.Development]: 'Develop techs',
-    [TurnStep.Done]: 'Done'
+export const PHASE_LABELS: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'Build & repair',
+    [TurnPhase.Cargo]: 'Cargo',
+    [TurnPhase.Movement]: 'Movement',
+    [TurnPhase.Exploration]: 'Exploration',
+    [TurnPhase.Development]: 'Develop techs'
 }
 
-export const STEP_DONE_LABELS: Record<TurnStep, string> = {
-    [TurnStep.Build]: 'Done building',
-    [TurnStep.Cargo]: 'Done with cargo',
-    [TurnStep.Movement]: 'Done moving',
-    [TurnStep.Exploration]: 'Done exploring',
-    [TurnStep.Development]: 'End turn',
-    [TurnStep.Done]: 'Done'
+export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'Done building',
+    [TurnPhase.Cargo]: 'Done with cargo',
+    [TurnPhase.Movement]: 'Done moving',
+    [TurnPhase.Exploration]: 'Done exploring',
+    [TurnPhase.Development]: 'Done developing'
+}
+
+export const PHASE_STARTED: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'starts building',
+    [TurnPhase.Cargo]: 'starts transferring cargo',
+    [TurnPhase.Movement]: 'starts moving',
+    [TurnPhase.Exploration]: 'starts exploring',
+    [TurnPhase.Development]: 'starts developing techs'
+}
+
+export const PHASE_FINISHED: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'finished building',
+    [TurnPhase.Cargo]: 'finished with cargo',
+    [TurnPhase.Movement]: 'finished moving',
+    [TurnPhase.Exploration]: 'finished exploring',
+    [TurnPhase.Development]: 'finished developing techs'
+}
+
+export const PHASE_SKIPPED: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'has nothing more to build',
+    [TurnPhase.Cargo]: 'has no cargo to move',
+    [TurnPhase.Movement]: 'has no ships to move',
+    [TurnPhase.Exploration]: 'has nothing to explore',
+    [TurnPhase.Development]: 'has no tech to develop'
+}
+
+export const PHASE_OVER: Record<TurnPhase, string> = {
+    [TurnPhase.Build]: 'Everyone has finished building.',
+    [TurnPhase.Cargo]: 'Cargo transfers are over.',
+    [TurnPhase.Movement]: 'Everyone has finished moving.',
+    [TurnPhase.Exploration]: 'Everyone has finished exploring.',
+    [TurnPhase.Development]: 'Everyone has finished developing techs.'
 }
 
 export const FIELD_COLORS: Record<TechField, string> = {

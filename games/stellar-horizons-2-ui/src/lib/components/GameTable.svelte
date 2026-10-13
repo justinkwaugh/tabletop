@@ -15,7 +15,7 @@
         HydratedStellarHorizonsGameState,
         StellarHorizonsProjectedState
     } from '@tabletop/stellar-horizons-2'
-    import { TECH_FIELDS, TurnStep, type TechField } from '@tabletop/stellar-horizons-2'
+    import { TECH_FIELDS, TurnPhase, type TechField } from '@tabletop/stellar-horizons-2'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
@@ -50,11 +50,11 @@
     type TableView = 'map' | 'techs'
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
-    let chosenView: { step: TurnStep | undefined; view: TableView } | undefined = $state()
+    let chosenView: { phase: TurnPhase | undefined; view: TableView } | undefined = $state()
     const view: TableView = $derived(
-        chosenView && chosenView.step === session.actingStep
+        chosenView && chosenView.phase === session.actingPhase
             ? chosenView.view
-            : session.actingStep === TurnStep.Development
+            : session.actingPhase === TurnPhase.Development
               ? 'techs'
               : 'map'
     )
@@ -168,7 +168,7 @@
     })
 
     function choose(next: TableView) {
-        chosenView = { step: session.actingStep, view: next }
+        chosenView = { phase: session.actingPhase, view: next }
     }
 </script>
 

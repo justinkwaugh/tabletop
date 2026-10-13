@@ -1,6 +1,5 @@
 import {
     AnomalyChallenge,
-    MachineState,
     ShipKind,
     TECHS,
     TECH_FIELDS,
@@ -16,8 +15,9 @@ import {
     type SettlementVictory,
     type ShipState,
     type TechField,
-    type TurnStep
+    type TurnPhase
 } from '@tabletop/stellar-horizons-2'
+import { phaseOfMachineState } from '@tabletop/stellar-horizons-2'
 
 // Progress in a scenario won by resolving anomalies.
 export interface AnomalyTally {
@@ -26,12 +26,20 @@ export interface AnomalyTally {
     goal: AnomalyVictory
 }
 
+export type PhaseProgress = 'done' | 'playing' | 'pending'
+
+// Where a player is in the phase of the decade in progress.
+export interface PhaseStanding {
+    phase: TurnPhase
+    progress: PhaseProgress
+}
+
 // One row of the standings: who a player is and the counts worth comparing at a glance.
 export interface Standing {
     playerId: string
     faction?: Faction
     initiative: number
-    step?: TurnStep
+    phase?: PhaseStanding
     explorers: number
     crewVehicles: number
     settlements: number
@@ -80,7 +88,7 @@ export function standings(state: HydratedStellarHorizonsGameState): Standing[] {
             playerId,
             faction: player.faction,
             initiative: index + 1,
-            step: state.machineState === MachineState.PlayingTurn ? player.step : undefined,
+            phase: phaseStanding(state, playerId),
             explorers,
             crewVehicles: ships.length - explorers,
             settlements: state
@@ -90,6 +98,21 @@ export function standings(state: HydratedStellarHorizonsGameState): Standing[] {
             anomalies: anomalyTally(state, player)
         }
     })
+}
+
+function phaseStanding(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): PhaseStanding | undefined {
+    const phase = phaseOfMachineState(state.machineState)
+    const span = state.parallelSpan
+    if (phase === undefined || span === undefined || !span.playerIds.includes(playerId)) {
+        return undefined
+    }
+    const done =
+        span.mergedPlayerIds.includes(playerId) || span.closedPlayerIds.includes(playerId)
+    const playing = span.branchPlayerId === undefined || span.branchPlayerId === playerId
+    return { phase, progress: done ? 'done' : playing ? 'playing' : 'pending' }
 }
 
 function anomalyTally(

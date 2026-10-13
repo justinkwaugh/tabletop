@@ -3,6 +3,7 @@ import {
     GameEngine,
     PlayerStatus,
     assertExists,
+    executeInLocalGame,
     type Game,
     type GameAction,
     type GameConfig
@@ -16,6 +17,9 @@ import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
+import { baseKey, type Base, type ShipState } from '../model/pieces.js'
+import type { TurnPhase } from '../model/turn.js'
+import { playPhase } from '../model/turnPlan.js'
 
 export const engine = new GameEngine(StellarHorizonsRuntime)
 export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
@@ -63,7 +67,24 @@ export function userAction<T extends Record<string, unknown>>(
     }
 }
 
+export function executeAll(
+    game: Game,
+    state: StellarHorizonsProjectedState,
+    action: GameAction
+): { state: StellarHorizonsProjectedState; processedActions: GameAction[] } {
+    const result = executeInLocalGame({ engine, game, state, action })
+    return { state: result.updatedState, processedActions: result.processedActions }
+}
+
 export function execute(
+    game: Game,
+    state: StellarHorizonsProjectedState,
+    action: GameAction
+): StellarHorizonsProjectedState {
+    return executeAll(game, state, action).state
+}
+
+export function executeWithoutAdvancing(
     game: Game,
     state: StellarHorizonsProjectedState,
     action: GameAction
@@ -90,6 +111,82 @@ export function takeTile(
     return tileId
 }
 
+export function placeShip(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    shipId: string,
+    systemId: string,
+    overrides: Partial<ShipState> = {}
+): ShipState {
+    const ship: ShipState = {
+        shipId,
+        playerId,
+        systemId,
+        transit: 0,
+        damage: 0,
+        settlements: 0,
+        loadedFromBase: false,
+        explored: false,
+        ...overrides
+    }
+    state.ships[shipId] = ship
+    return ship
+}
+
+export function placeBase(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    settlements: number
+): Base {
+    const base: Base = { playerId, systemId, settlements, spent: 0, cloned: false }
+    state.bases[baseKey(playerId, systemId)] = base
+    return base
+}
+
+export function endPhase(
+    game: Game,
+    state: StellarHorizonsProjectedState
+): StellarHorizonsProjectedState {
+    return endPhaseWithActions(game, state).state
+}
+
+export function endPhaseWithActions(game: Game, state: StellarHorizonsProjectedState) {
+    const [playerId] = state.activePlayerIds
+    const phase = playPhase(state)
+    assertExists(phase, `Nobody is playing a phase in ${state.machineState}`)
+    return executeAll(game, state, userAction(game, playerId, ActionType.EndPhase, { phase }))
+}
+
+export function finishDecade(
+    game: Game,
+    state: StellarHorizonsProjectedState
+): StellarHorizonsProjectedState {
+    let current = state
+    while (playPhase(current) !== undefined && current.year === state.year) {
+        current = endPhase(game, current)
+    }
+    return current
+}
+
+export function advanceTo(
+    game: Game,
+    state: StellarHorizonsProjectedState,
+    phase: TurnPhase,
+    playerId?: string
+): StellarHorizonsProjectedState {
+    let current = state
+    for (let guard = 0; guard < 100; guard++) {
+        const active = playPhase(current)
+        if (active === phase && (playerId === undefined || current.activePlayerIds[0] === playerId)) {
+            return current
+        }
+        assertExists(active, `${phase} was not reached before ${current.machineState}`)
+        current = endPhase(game, current)
+    }
+    throw new Error(`${phase} was not reached`)
+}
+
 export const FACTION_PICKS: readonly Faction[] = [
     Faction.Starfarers,
     Faction.Givers,
@@ -99,20 +196,23 @@ export const FACTION_PICKS: readonly Faction[] = [
 
 export function startedGame(
     playerCount: number,
-    config: GameConfig = {}
+    config: GameConfig = {},
+    { resting = false }: { resting?: boolean } = {}
 ): {
     game: Game
     state: StellarHorizonsProjectedState
 } {
     const game = createGame(playerCount, config)
     let state = engine.startGame(game, { masterSeed: MASTER_SEED }).initialState
-    for (const faction of FACTION_PICKS.slice(0, playerCount)) {
+    const picks = FACTION_PICKS.slice(0, playerCount)
+    picks.forEach((faction, index) => {
         const [playerId] = state.activePlayerIds
-        state = execute(
-            game,
-            state,
-            userAction(game, playerId, ActionType.ChooseFaction, { faction })
-        )
-    }
+        const action = userAction(game, playerId, ActionType.ChooseFaction, { faction })
+        const last = index === picks.length - 1
+        state =
+            resting && last
+                ? executeWithoutAdvancing(game, state, action)
+                : execute(game, state, action)
+    })
     return { game, state }
 }

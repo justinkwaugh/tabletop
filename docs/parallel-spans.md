@@ -1,6 +1,6 @@
 # Parallel Spans: working design
 
-**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host is built. The Game Client is built for Local and Hosted Games. Stellar Horizons is not started. The [build order](#build-order) has the detail. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
+**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host is built. The Game Client is built for Local and Hosted Games. Stellar Horizons has adopted it, one span per phase of the decade. The [build order](#build-order) has the detail. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
 
 ## The model in brief
 
@@ -166,18 +166,13 @@ _Avoid_: presented state
 
 ## Stellar Horizons
 
-A decade stays one Parallel Span, with no deviation from the rules and no Player disadvantaged.
+Decided 2026-10-13, replacing the earlier plan of one span per decade with dealt tech markers: **each phase of the decade is a Parallel Span of its own.** The rulebook orders the phases in different directions, build and movement in reverse initiative order and cargo in initiative order, and a Player who wants to wait for those ahead of them needs the Merge Order of that phase; one span cannot serve both directions.
 
-- **The steps of a decade become Machine States.** Today one Machine State covers the decade and each Player's step is a field on their Player State. A dedicated Branching Machine State marks the decade. A Branch leaves it, moves through build, cargo, movement, exploration and development as Machine States, and returns when the Player is done.
-- **What each Player could draw can be bounded when the decade starts.** A move takes at least one decade, so a ship moved this decade cannot explore this decade. The bound has to cover everything else a Player can do before exploring in the same decade: build, repair, scrap and rebuild, and clone settlements. It also has to cover markers awarded when an exploring ship is lost, which for a colony ship is one biology marker and several engineering markers. The bound must never be too low; the looser it is, the more often a decade counts as scarce.
-- **Dealing.** On the Main Line at the start of the decade, before the Branching Machine State is entered, each field's pool is shuffled and each Player is dealt a hidden pile of that bound for the field. Exploring draws from the Player's own pile with Starting Position Randomness, so marker values show at once. Pile sizes do not depend on which markers land in them, so the odds match drawing from one pool.
-- **Hidden piles.** A pile is hidden from everyone, its Player included. Only the host can resolve an exploration.
-- **End of the decade.** On the Main Line, undrawn piles and the markers spent on techs return to the pool. Spent markers are held by the Player until then.
-- **Surveys** stay queued and are resolved in initiative order, with the queue entry held in the Player's own state.
-- **A scarce decade splits at exploration.** When a pool cannot cover every Player's bound, Branches for that decade end after exploring, draws settle from the real pool in initiative order, and development is a second Parallel Span. This is the rulebook's own resolution order. The rules give no order for marker draws, but cards are drawn in initiative order when there are not enough for every Player, which is the closest ruling.
-- **Why not the alternatives.** Splitting every decade at exploration adds a second wait per decade, which in asynchronous play roughly doubles its length. Playing exploration in initiative order gives up the simultaneity players credit for the game's speed.
-
-Working out the bound in full, and measuring how often it makes a decade scarce, is part of adoption. Record the dealing in the title's rules interpretations when it is built.
+- **Phases as spans.** Build, Cargo, Movement, Exploration and Development each have a Branching Machine State and a Machine State of play. Build, Cargo and Movement are Ordered Merges in the rulebook's direction; Exploration and Development are simultaneous in the rulebook and merge as a Barrier. A phase declares its direction and form; the scenario's plan lists its phases, so a scenario can leave phases out, play a contested phase in turn on the Main Line, or group consecutive phases into one span later.
+- **Branch Scope.** Ships and bases are keyed by identity. Surveys and anomaly attempts are queued in the Player's own state and settled in initiative order on the Main Line. Markers spent on techs are held by the Player until the end of the turn. Exploration dice come from the Player's hidden Starting Position stream.
+- **Marker draws settle after the Exploration span.** An exploration records how many markers it earned; once every Branch has merged, the markers are drawn from the real pool in initiative order, which is the rulebook's own resolution order, and surveys are decided then. No dealing, no bound and no scarce-decade fallback are needed, because Development is a span of its own after the draws. Dealing remains a possible later opt-in that would let a scenario's plan group Exploration with Development and save one wait per decade; a decade the pool could not cover would fall back to the split that exists now.
+- **Phases end by themselves** once the Player can do nothing more in them, through a System Action the Machine State of play queues on entry, except that exploring never ends the Exploration phase.
+- **Cost.** Five waits per decade in asynchronous play instead of one. Accepted for fidelity to the rulebook's order; the plan being data leaves room to fold phases per scenario.
 
 ## Build order
 
@@ -192,7 +187,7 @@ Working out the bound in full, and measuring how often it makes a decade scarce,
     1. Local Games. Done, as rule 6 says: the Game Session executes a Local Game's Action through `executeInLocalGame`, which executes it and then advances the span, and the dev harness's stand-in host does the same. Specs: `libs/common/src/game/engine/localSpan.spec.ts` and, through a Game Session in a browser, `libs/frontend-components/tests/spanSession.spec.ts`. Not yet: a Local Game whose Main Line is already resting in the Branching Machine State when the Game Client receives it, which is a Game that starts there or an Exploration opened from a Hosted Game between Branches; and the check that finds how far Undo may reach in an Exploration opened from a projected Game, which replays each Action without advancing the span.
     2. Hosted Games: the Branch View. Built: the Game Session holds the Player's Branch as a second context beside the Main Line and shows it in place of the Main Line while the Player has an Unmerged Branch. Play in it is optimistic, as on the Main Line, and numbered by its place in the Branch. Undo, sync, reload and deferred history load all carry the Branch, and History View runs from the present back through the Branch to the start of the game. When the Main Line moves under it, the view is rebuilt with the function the host uses and the arriving Actions are animated; the Player's own Actions are skipped at their own Merge. The Site Frontend's API client passes the Branch through, and the game page hands it to the session. Specs: `libs/frontend-components/tests/spanSession.spec.ts`, against an in-memory host for the toy title (`libs/common/src/game/engine/tests/spanHost.ts`). A Fork asked for from inside the Player's own Branch is taken at the Main Line's latest Action, or at the position being viewed when History View is on the Main Line's part of the history. Not yet: an Exploration started from inside a Branch, and what an administrator's Host View shows, neither of which has a spec. Every session of a Player follows that Player's Branch as its Actions are published: a session one step behind applies them as it applies Actions arriving on the Main Line, and one further out of step falls back to a sync check. What is published can arrive late, after the session has moved on, so a session ignores an Action it already holds or has since undone, and applies an Undo only when it still holds one of the Actions that Undo names. Which other Players have closed reaches every table as a Branch Close on the Main Line.
 5. Branch Close on the Main Line. Built across the engine, the host and the Game Client: `libs/common/src/game/engine/parallelSpan.spec.ts`, `hostedSpan.spec.ts` and `branchMerge.spec.ts`; `libs/backend-services/src/games/gameSpans.spec.ts`; and `libs/frontend-components/tests/spanSession.spec.ts`.
-6. Stellar Horizons adoption.
+6. Stellar Horizons adoption. Done: the logic package (`games/stellar-horizons-2`, `src/definition/spans.spec.ts` for the spans, private play merged against play in turn, the Barrier and the settlement of draws) and the UI (`games/stellar-horizons-2-ui`). Not yet: cooperative Voyages and the later scenarios, which only need plan data and queues.
 
 The host is deployed first, then the Site Frontend, and only then does a title adopt this by republishing its UI Artifact. A Game Session reaches its Player's Branch only through the Site Frontend's API client, which before this change dropped it; a session that is sent no Branch asks for it with a sync check, once for each position the Main Line reaches, so a newer session on an older Site Frontend would be left on the Main Line unable to act. Titles that do not adopt it are unaffected: every field added to the Game UI Host Bridge Contract is optional, and an older session ignores them.
 
@@ -201,10 +196,6 @@ The host is deployed first, then the Site Frontend, and only then does a title a
 To measure:
 
 - **Cost of the replaying Merge** on production hardware.
-
-Title decisions:
-
-- **Stellar Horizons' form of Merge and Merge Order** for the decade. The rulebook gives build and movement in reverse initiative order when order matters, and exploration as simultaneous.
 
 Not yet examined:
 
@@ -236,7 +227,7 @@ Numbers refer to the list at the end of the exploration.
 | #   | Question                                               | Status                                                                          |
 | --- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | 1   | What a Branch may change                               | Agreed: Branch Scope by ownership, with stable addresses                        |
-| 2   | Shared things touched inside a Branch                  | Agreed: deal, queue, or keep ordered. Stellar Horizons deals its tech markers   |
+| 2   | Shared things touched inside a Branch                  | Agreed: deal, queue, or keep ordered. Stellar Horizons queues its marker draws  |
 | 3   | Form of the stored net change                          | Agreed: patch operations                                                        |
 | 4   | Where a Branch's Machine State and bookkeeping sit     | Agreed: on the Branch; the engine runs on the Branch View unchanged             |
 | 5   | The Merge in detail                                    | Agreed: replay on the Main Line, then Span Completion                           |

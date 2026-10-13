@@ -4,8 +4,9 @@ import {
     CargoPartnerKind,
     Definition,
     Faction,
+    MachineState,
     StellarHorizonsRuntime,
-    TurnStep,
+    baseKey,
     type CargoPartner,
     type HydratedStellarHorizonsGameState,
     type ShipState
@@ -35,9 +36,8 @@ function cargoState(): HydratedStellarHorizonsGameState {
         masterSeed: '0123456789abcdef0123456789abcdef'
     })
     const state = StellarHorizonsRuntime.hydrator.hydrateState(initialState)
-    const player = state.getPlayerState('p0')
-    player.faction = Faction.Starfarers
-    player.step = TurnStep.Cargo
+    state.getPlayerState('p0').faction = Faction.Starfarers
+    state.machineState = MachineState.TransferringCargo
     return state
 }
 
@@ -57,7 +57,7 @@ function place(
         loadedFromBase: false,
         explored: false
     }
-    state.ships.push(ship)
+    state.ships[shipId] = ship
     return ship
 }
 
@@ -118,13 +118,13 @@ describe('cargo transfer view', () => {
     it('loads at most one settlement a turn from a base', () => {
         const state = cargoState()
         const ship = place(state, 'starfarers-andromeda', 'alpha-centauri')
-        state.bases.push({
+        state.bases[baseKey('p0', 'alpha-centauri')] = {
             playerId: 'p0',
             systemId: 'alpha-centauri',
             settlements: 3,
             spent: 0,
             cloned: false
-        })
+        }
         expect(cargoTransferView(state, ship, BASE, 0)).toMatchObject({
             shipSettlements: 0,
             partnerSettlements: 3,

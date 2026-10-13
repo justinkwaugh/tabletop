@@ -21,10 +21,9 @@ import {
     type StellarHorizonsGameState,
     type StellarHorizonsProjectedState
 } from '../model/gameState.js'
-import { HydratedStellarHorizonsPlayerState } from '../model/playerState.js'
+import { HydratedStellarHorizonsPlayerState, emptyTechMarkers } from '../model/playerState.js'
 import { drawTechMarkers, fullTechPool } from '../model/pools.js'
 import { fillWorldSlots } from '../model/surveys.js'
-import { TurnStep } from '../model/turn.js'
 import { DECADE } from '../model/turnCycle.js'
 import { configuredScenario } from './config.js'
 import { MachineState } from './states.js'
@@ -60,11 +59,14 @@ export class StellarHorizonsGameInitializer
                     playerId: player.id,
                     color: colors[index],
                     cash: scenario.startingCash,
-                    techMarkers: { Biology: [], Physics: [], Engineering: [] },
+                    techMarkers: emptyTechMarkers(),
+                    spentMarkers: emptyTechMarkers(),
+                    earnedMarkers: [],
                     techs: structuredClone(startingTechs),
-                    step: TurnStep.Build,
                     remoteRepairUsed: false,
                     fieldsDeveloped: [],
+                    pendingSurveys: [],
+                    anomalyAttempts: [],
                     anomalies: []
                 })
         )
@@ -85,8 +87,8 @@ export class StellarHorizonsGameInitializer
                         : 0,
                 worlds: []
             })),
-            ships: [],
-            bases: [],
+            ships: {},
+            bases: {},
             worldPool: [...ALL_WORLD_TILE_IDS],
             removedWorlds: [],
             techPools: {
@@ -96,8 +98,6 @@ export class StellarHorizonsGameInitializer
             },
             anomalyPool:
                 scenario.anomalies === undefined ? [] : ANOMALIES.map((anomaly) => anomaly.id),
-            pendingAnomalyAttempts: [],
-            pendingSurveys: [],
             terraformQueue: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)

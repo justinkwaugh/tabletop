@@ -40,8 +40,10 @@ export function anomalyOpportunities(
         if (!summary) {
             return []
         }
-        const attempts = state.pendingAnomalyAttempts.filter(
-            (attempt) => attempt.systemId === system.systemId
+        const attempts = state.players.flatMap((player) =>
+            player.anomalyAttempts
+                .filter((attempt) => attempt.systemId === system.systemId)
+                .map((attempt) => ({ playerId: player.playerId, ...attempt }))
         )
         const committed = attempts.find((attempt) => attempt.playerId === playerId)
         const chosenIds = draft?.systemId === system.systemId ? draft.shipIds : []

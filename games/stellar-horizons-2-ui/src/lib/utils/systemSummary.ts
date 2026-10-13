@@ -64,9 +64,11 @@ function fleets(
 ): FleetSummary[] {
     const present = state.players.filter(
         (player) =>
-            state.ships.some(
-                (ship) => ship.systemId === systemId && ship.playerId === player.playerId
-            ) || state.base(player.playerId, systemId) !== undefined
+            state
+                .allShips()
+                .some(
+                    (ship) => ship.systemId === systemId && ship.playerId === player.playerId
+                ) || state.base(player.playerId, systemId) !== undefined
     )
     const order = (playerId: string, faction?: Faction) =>
         playerId === viewerId
@@ -80,8 +82,8 @@ function fleets(
             playerId: player.playerId,
             faction: player.faction,
             settlements: state.base(player.playerId, systemId)?.settlements ?? 0,
-            ships: state.ships.filter(
-                (ship) => ship.systemId === systemId && ship.playerId === player.playerId
-            )
+            ships: state
+                .allShips()
+                .filter((ship) => ship.systemId === systemId && ship.playerId === player.playerId)
         }))
 }

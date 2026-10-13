@@ -10,7 +10,8 @@ import {
 } from '../components/worlds.js'
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { PendingSurvey, WorldPlacement } from './pieces.js'
+import type { WorldPlacement } from './pieces.js'
+import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 import { drawWorldTile, returnWorldTile } from './pools.js'
 
 export const SURVEY_REPLACEMENT_POPULATION = 12
@@ -48,20 +49,25 @@ export function fillWorldSlots(state: HydratedStellarHorizonsGameState, systemId
     }
 }
 
-export function nextPendingSurvey(state: HydratedStellarHorizonsGameState): PendingSurvey {
-    const order = state.initiativeOrder()
-    const next = state.pendingSurveys.reduce((best, survey) =>
-        order.indexOf(survey.playerId) < order.indexOf(best.playerId) ? survey : best
-    )
-    assertExists(next, 'No pending survey to resolve')
-    return next
+export function anyPendingSurveys(state: HydratedStellarHorizonsGameState): boolean {
+    return state.players.some((player) => player.pendingSurveys.length > 0)
+}
+
+function nextSurveyor(state: HydratedStellarHorizonsGameState): HydratedStellarHorizonsPlayerState {
+    const playerId = state
+        .initiativeOrder()
+        .find((candidate) => state.getPlayerState(candidate).pendingSurveys.length > 0)
+    assertExists(playerId, 'No pending survey to resolve')
+    return state.getPlayerState(playerId)
 }
 
 export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): SurveyResolution {
-    const survey = nextPendingSurvey(state)
-    state.pendingSurveys = state.pendingSurveys.filter((pending) => pending !== survey)
+    const player = nextSurveyor(state)
+    const [survey, ...remaining] = player.pendingSurveys
+    player.pendingSurveys = remaining
     const system = state.systemState(survey.systemId)
     const resolution: SurveyResolution = {
+        playerId: player.playerId,
         ...survey,
         completed: false,
         explorationMarker: system.explorationMarker,
@@ -73,20 +79,19 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     system.explorationMarker -= 1
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
-    drawSurveyWorld(state, survey, resolution)
+    drawSurveyWorld(state, resolution)
     resolution.anomaly = searchForAnomaly(state, survey.systemId)
     return resolution
 }
 
 function drawSurveyWorld(
     state: HydratedStellarHorizonsGameState,
-    survey: PendingSurvey,
     resolution: SurveyResolution
 ) {
-    const system = state.systemState(survey.systemId)
-    const isLegal = (tileId: string) => canStartInSystem(survey.systemId, tileId)
+    const system = state.systemState(resolution.systemId)
+    const isLegal = (tileId: string) => canStartInSystem(resolution.systemId, tileId)
 
-    if (system.worlds.length < starSystemDefinition(survey.systemId).worldSlots) {
+    if (system.worlds.length < starSystemDefinition(resolution.systemId).worldSlots) {
         const tileId = drawWorldTile(state, isLegal)
         if (tileId) {
             system.worlds.push({ tileId, side: WorldSide.I })
@@ -107,10 +112,10 @@ function drawSurveyWorld(
         return
     }
     resolution.drawnTileId = tileId
-    if (surveySwapSlots(state, survey.systemId, tileId).length > 0) {
+    if (surveySwapSlots(state, resolution.systemId, tileId).length > 0) {
         state.surveyChoice = {
-            playerId: survey.playerId,
-            systemId: survey.systemId,
+            playerId: resolution.playerId,
+            systemId: resolution.systemId,
             drawnTileId: tileId
         }
         resolution.awaitingChoice = true

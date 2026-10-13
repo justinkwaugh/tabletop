@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MachineState, TurnStep } from '@tabletop/stellar-horizons-2'
+    import { MachineState, TurnPhase } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import LastActionDescription from './LastActionDescription.svelte'
     import FactionPicker from './steps/FactionPicker.svelte'
@@ -21,7 +21,7 @@
 
 <div class="panel">
     {#if !gameSession.canAct}
-        {#if machineState === MachineState.PlayingTurn && gameSession.myStep}
+        {#if gameSession.currentPhase}
             <StepTracker />
         {/if}
         <WaitingPanel />
@@ -29,17 +29,17 @@
         <FactionPicker />
     {:else if machineState === MachineState.PlacingStartingBases}
         <StartingBasePicker />
-    {:else if machineState === MachineState.PlayingTurn}
+    {:else if gameSession.actingPhase}
         <StepTracker />
-        {#if gameSession.actingStep === TurnStep.Build}
+        {#if gameSession.actingPhase === TurnPhase.Build}
             <BuildStep />
-        {:else if gameSession.actingStep === TurnStep.Cargo}
+        {:else if gameSession.actingPhase === TurnPhase.Cargo}
             <CargoStep />
-        {:else if gameSession.actingStep === TurnStep.Movement}
+        {:else if gameSession.actingPhase === TurnPhase.Movement}
             <MovementStep />
-        {:else if gameSession.actingStep === TurnStep.Exploration}
+        {:else if gameSession.actingPhase === TurnPhase.Exploration}
             <ExplorationStep />
-        {:else if gameSession.actingStep === TurnStep.Development}
+        {:else if gameSession.actingPhase === TurnPhase.Development}
             <DevelopmentStep />
         {/if}
     {:else if machineState === MachineState.ChoosingSurveyWorld}

@@ -1,11 +1,10 @@
 <script lang="ts">
     // One aligned row per player, in initiative order. Clicking a row shows that player in the
     // console below.
-    import { TurnStep } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { standings } from '$lib/utils/playerArea.js'
-    import { FACTION_FILL, STEP_LABELS, factionName } from '$lib/utils/presentation.js'
+    import { FACTION_FILL, PHASE_LABELS, factionName } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
     const rows = $derived(standings(gameSession.gameState))
@@ -47,9 +46,13 @@
             {/if}
             <span class="who">
                 <span class="name">{name(row.playerId)}</span>
-                {#if row.step}
-                    <span class="step" class:done={row.step === TurnStep.Done}
-                        >{row.step === TurnStep.Done ? 'Done' : STEP_LABELS[row.step]}</span
+                {#if row.phase}
+                    <span class="step" class:done={row.phase.progress === 'done'}
+                        >{row.phase.progress === 'done'
+                            ? 'Done'
+                            : row.phase.progress === 'pending'
+                              ? 'Waiting'
+                              : PHASE_LABELS[row.phase.phase]}</span
                     >
                 {:else if !row.faction}
                     <span class="step">Choosing a faction</span>

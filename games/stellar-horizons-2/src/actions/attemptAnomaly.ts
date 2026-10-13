@@ -11,7 +11,6 @@ import {
 } from '../model/anomalies.js'
 import { anomalyDefinition } from '../components/anomalies.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
 
 export type AttemptAnomalyMetadata = Type.Static<typeof AttemptAnomalyMetadata>
 export const AttemptAnomalyMetadata = Type.Object({
@@ -55,10 +54,7 @@ export class HydratedAttemptAnomaly
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        if (
-            state.getPlayerState(this.playerId).step !== TurnStep.Exploration ||
-            !isValidAnomalyAttempt(state, this.playerId, this.systemId, this.shipIds)
-        ) {
+        if (!isValidAnomalyAttempt(state, this.playerId, this.systemId, this.shipIds)) {
             throw Error('Invalid AttemptAnomaly action')
         }
         const ships = this.shipIds.map((shipId) => state.ship(shipId))
@@ -71,9 +67,6 @@ export class HydratedAttemptAnomaly
     }
 
     static canAttemptAnomaly(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
-        return (
-            state.getPlayerState(playerId).step === TurnStep.Exploration &&
-            attemptableSystemIds(state, playerId).length > 0
-        )
+        return attemptableSystemIds(state, playerId).length > 0
     }
 }

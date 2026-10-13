@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ANOMALIES, AnomalyChallenge } from '../components/anomalies.js'
 import { TechId } from '../components/techs.js'
-import { VOYAGES_CONFIG, hydrate, startedGame } from '../testing/fixtures.js'
+import { VOYAGES_CONFIG, hydrate, placeBase, placeShip, startedGame } from '../testing/fixtures.js'
 import { anomalyDifficulty, searchForAnomaly } from './anomalies.js'
 import { cloningBases } from './building.js'
 import { canExplore } from './exploration.js'
@@ -17,19 +17,13 @@ function voyages(playerCount = 2): HydratedStellarHorizonsGameState {
     return hydrate(startedGame(playerCount, VOYAGES_CONFIG).state)
 }
 
-function placeShip(state: HydratedStellarHorizonsGameState, shipId: string, systemId: string) {
+function placeFirstPlayerShip(
+    state: HydratedStellarHorizonsGameState,
+    shipId: string,
+    systemId: string
+) {
     const [playerId] = state.initiativeOrder()
-    state.ships.push({
-        shipId,
-        playerId,
-        systemId,
-        transit: 0,
-        damage: 0,
-        settlements: 0,
-        loadedFromBase: false,
-        explored: false
-    })
-    return state.ship(shipId)
+    return placeShip(state, playerId, shipId, systemId)
 }
 
 describe('anomaly tiles', () => {
@@ -115,13 +109,13 @@ describe('finding anomalies', () => {
     it('rolls when a survey is completed, and only then', () => {
         const state = voyages()
         const [playerId] = state.initiativeOrder()
-        state.pendingSurveys.push({ playerId, shipId: 'ship', systemId: 'vega' })
+        state.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId: 'vega' })
         const completed = resolveNextSurvey(state)
         expect(completed.completed).toBe(true)
         expect(completed.anomaly?.roll).toBeGreaterThanOrEqual(1)
 
         state.systemState('altair').explorationMarker = 0
-        state.pendingSurveys.push({ playerId, shipId: 'ship', systemId: 'altair' })
+        state.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId: 'altair' })
         const wasted = resolveNextSurvey(state)
         expect(wasted.completed).toBe(false)
         expect(wasted.anomaly).toBeUndefined()
@@ -137,7 +131,7 @@ describe('finding anomalies', () => {
 describe('restrictive anomalies', () => {
     it('stop exploration where the tile shows no exploration', () => {
         const state = voyages()
-        const ship = placeShip(state, 'starfarers-kepler', 'vega')
+        const ship = placeFirstPlayerShip(state, 'starfarers-kepler', 'vega')
         expect(canExplore(state, ship)).toBe(true)
 
         state.systemState('vega').anomaly = NO_BASES_ONLY
@@ -164,13 +158,7 @@ describe('restrictive anomalies', () => {
         const [playerId] = state.initiativeOrder()
         const player = state.getPlayerState(playerId)
         player.techs.push({ techId: TechId.Cloning, year: 2240 })
-        state.bases.push({
-            playerId,
-            systemId: 'alpha-centauri',
-            settlements: 25,
-            spent: 0,
-            cloned: false
-        })
+        placeBase(state, playerId, 'alpha-centauri', 25)
         expect(cloningBases(state, playerId)).toEqual(['alpha-centauri'])
 
         state.systemState('alpha-centauri').anomaly = NO_BASES_ONLY

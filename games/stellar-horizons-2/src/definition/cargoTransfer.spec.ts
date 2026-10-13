@@ -11,33 +11,24 @@ import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
-import { edit, execute, hydrate, startedGame, takeTile, userAction } from '../testing/fixtures.js'
+import { TurnPhase } from '../model/turn.js'
+import {
+    advanceTo,
+    edit,
+    execute,
+    hydrate,
+    placeShip,
+    startedGame,
+    takeTile,
+    userAction
+} from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
+import { MachineState } from './states.js'
 
 const EARTH: CargoPartner = { kind: CargoPartnerKind.Earth }
 const BASE: CargoPartner = { kind: CargoPartnerKind.Base }
 const POLARIS = 'starfarers-polaris'
 const ANDROMEDA = 'starfarers-andromeda'
-
-function place(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    shipId: string,
-    systemId: string,
-    settlements = 0
-) {
-    state.ships.push({
-        shipId,
-        playerId,
-        systemId,
-        transit: 0,
-        damage: 0,
-        settlements,
-        loadedFromBase: false,
-        explored: false
-    })
-}
 
 function revealWorld(state: HydratedStellarHorizonsGameState, systemId: string) {
     state.systemState(systemId).worlds = [
@@ -48,14 +39,22 @@ function revealWorld(state: HydratedStellarHorizonsGameState, systemId: string) 
     ]
 }
 
-function cargoStep(change: (state: HydratedStellarHorizonsGameState, playerId: string) => void) {
+function cargoPhase(change: (state: HydratedStellarHorizonsGameState, playerId: string) => void) {
     const { game, state: started } = startedGame(2)
     const [playerId] = started.turnManager.turnOrder
-    const state = edit(started, (hydrated) => {
-        hydrated.getPlayerState(playerId).step = TurnStep.Cargo
-        change(hydrated, playerId)
-    })
-    return { game, state, playerId }
+    const prepared = edit(started, (hydrated) => change(hydrated, playerId))
+    return { game, state: advanceTo(game, prepared, TurnPhase.Cargo, playerId), playerId }
+}
+
+function inCargoPhase(
+    change: (state: HydratedStellarHorizonsGameState, playerId: string) => void
+): HydratedStellarHorizonsGameState {
+    const { state: started } = startedGame(2)
+    const [playerId] = started.turnManager.turnOrder
+    const hydrated = hydrate(started)
+    hydrated.machineState = MachineState.TransferringCargo
+    change(hydrated, playerId)
+    return hydrated
 }
 
 function transfer(
@@ -75,8 +74,8 @@ function transfer(
 
 describe('cargo transfers', () => {
     it('buys settlements at Earth into a ship at Sol', () => {
-        const { game, state, playerId } = cargoStep((hydrated, id) =>
-            place(hydrated, id, POLARIS, 'sol')
+        const { game, state, playerId } = cargoPhase((hydrated, id) =>
+            placeShip(hydrated, id, POLARIS, 'sol')
         )
         const after = hydrate(transfer(game, state, playerId, POLARIS, EARTH, 3))
         expect(after.ship(POLARIS).settlements).toBe(3)
@@ -84,8 +83,8 @@ describe('cargo transfers', () => {
     })
 
     it('never takes settlements back at Earth or sells more than the hold or cash allow', () => {
-        const { game, state, playerId } = cargoStep((hydrated, id) =>
-            place(hydrated, id, POLARIS, 'sol', 1)
+        const { game, state, playerId } = cargoPhase((hydrated, id) =>
+            placeShip(hydrated, id, POLARIS, 'sol', { settlements: 1 })
         )
         expect(() => transfer(game, state, playerId, POLARIS, EARTH, -1)).toThrow()
         expect(() => transfer(game, state, playerId, POLARIS, EARTH, 4)).toThrow()
@@ -93,9 +92,9 @@ describe('cargo transfers', () => {
     })
 
     it('unloads to found a base, then loads at most one settlement a turn from it', () => {
-        const { game, state, playerId } = cargoStep((hydrated, id) => {
+        const { game, state, playerId } = cargoPhase((hydrated, id) => {
             revealWorld(hydrated, 'alpha-centauri')
-            place(hydrated, id, POLARIS, 'alpha-centauri', 3)
+            placeShip(hydrated, id, POLARIS, 'alpha-centauri', { settlements: 3 })
         })
         let current = transfer(game, state, playerId, POLARIS, BASE, -3)
         let hydrated = hydrate(current)
@@ -111,17 +110,16 @@ describe('cargo transfers', () => {
     })
 
     it('offers no base where the player can neither settle nor has one', () => {
-        const { state } = cargoStep((hydrated, id) =>
-            place(hydrated, id, POLARIS, 'alpha-centauri', 1)
+        const hydrated = inCargoPhase((state, id) =>
+            placeShip(state, id, POLARIS, 'alpha-centauri', { settlements: 1 })
         )
-        const hydrated = hydrate(state)
         expect(cargoPartners(hydrated, hydrated.ship(POLARIS))).toEqual([])
     })
 
     it('moves settlements between two of a player’s ships in either direction', () => {
-        const { game, state, playerId } = cargoStep((hydrated, id) => {
-            place(hydrated, id, POLARIS, 'sol', 2)
-            place(hydrated, id, ANDROMEDA, 'sol')
+        const { game, state, playerId } = cargoPhase((hydrated, id) => {
+            placeShip(hydrated, id, POLARIS, 'sol', { settlements: 2 })
+            placeShip(hydrated, id, ANDROMEDA, 'sol')
         })
         const toAndromeda: CargoPartner = { kind: CargoPartnerKind.Ship, shipId: ANDROMEDA }
         let current = transfer(game, state, playerId, POLARIS, toAndromeda, -2)
@@ -133,18 +131,16 @@ describe('cargo transfers', () => {
         expect(hydrated.ship(ANDROMEDA).settlements).toBe(1)
     })
 
-    it('still moves settlements between ships outside the cargo step, but nothing else', () => {
+    it('still moves settlements between ships outside the cargo phase, but nothing else', () => {
         const {
             game,
             state: inCargo,
             playerId
-        } = cargoStep((hydrated, id) => {
-            place(hydrated, id, POLARIS, 'sol', 1)
-            place(hydrated, id, ANDROMEDA, 'sol')
+        } = cargoPhase((hydrated, id) => {
+            placeShip(hydrated, id, POLARIS, 'sol', { settlements: 1 })
+            placeShip(hydrated, id, ANDROMEDA, 'sol')
         })
-        const state = edit(inCargo, (hydrated) => {
-            hydrated.getPlayerState(playerId).step = TurnStep.Movement
-        })
+        const state = advanceTo(game, inCargo, TurnPhase.Movement, playerId)
         const hydrated = hydrate(state)
         const toAndromeda: CargoPartner = { kind: CargoPartnerKind.Ship, shipId: ANDROMEDA }
         expect(cargoPartners(hydrated, hydrated.ship(POLARIS))).toEqual([toAndromeda])
@@ -154,11 +150,10 @@ describe('cargo transfers', () => {
     })
 
     it('limits a purchase by the free hold and by cash', () => {
-        const { state } = cargoStep((hydrated, id) => {
-            place(hydrated, id, POLARIS, 'sol', 1)
-            hydrated.getPlayerState(id).cash = 11
+        const hydrated = inCargoPhase((state, id) => {
+            placeShip(state, id, POLARIS, 'sol', { settlements: 1 })
+            state.getPlayerState(id).cash = 11
         })
-        const hydrated = hydrate(state)
         expect(cargoTransferLimits(hydrated, hydrated.ship(POLARIS), EARTH)).toEqual({
             load: 2,
             unload: 0,

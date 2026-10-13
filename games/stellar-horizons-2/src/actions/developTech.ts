@@ -2,17 +2,16 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { TECHS, TechId, techDefinition } from '../components/techs.js'
+import { TechId, techDefinition } from '../components/techs.js'
 import {
-    canAffordTech,
+    canDevelopAnyTech,
     isTechAvailable,
     isValidTechPayment,
     removeMarkers,
     techCost
 } from '../model/development.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { returnTechMarkers } from '../model/pools.js'
-import { TurnStep } from '../model/turn.js'
+import { holdSpentMarkers } from '../model/settlement.js'
 
 export type DevelopTechMetadata = Type.Static<typeof DevelopTechMetadata>
 export const DevelopTechMetadata = Type.Object({
@@ -58,7 +57,6 @@ export class HydratedDevelopTech
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const player = state.getPlayerState(this.playerId)
         if (
-            player.step !== TurnStep.Development ||
             !isTechAvailable(state, this.playerId, this.techId) ||
             !isValidTechPayment(state, this.playerId, this.techId, this.markers, this.cash)
         ) {
@@ -67,7 +65,7 @@ export class HydratedDevelopTech
         const field = techDefinition(this.techId).field
         const cost = techCost(state, this.playerId, this.techId)
         removeMarkers(player.techMarkers[field], this.markers)
-        returnTechMarkers(state, field, this.markers)
+        holdSpentMarkers(state, this.playerId, field, this.markers)
         player.cash -= this.cash
         player.techs.push({ techId: this.techId, year: state.year })
         player.fieldsDeveloped.push(field)
@@ -75,13 +73,6 @@ export class HydratedDevelopTech
     }
 
     static canDevelopTech(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
-        return (
-            state.getPlayerState(playerId).step === TurnStep.Development &&
-            TECHS.some(
-                (definition) =>
-                    isTechAvailable(state, playerId, definition.id) &&
-                    canAffordTech(state, playerId, definition.id)
-            )
-        )
+        return canDevelopAnyTech(state, playerId)
     }
 }

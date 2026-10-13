@@ -1,5 +1,6 @@
 import { TechField } from '../components/techFields.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import type { EarnedMarkers } from './pieces.js'
 
 export const TECH_MARKER_VALUES: readonly number[] = [1, 2, 3, 4, 5]
 export const TECH_MARKERS_PER_VALUE = 13
@@ -33,6 +34,14 @@ export function drawTechMarkers(
         drawn.push(TECH_MARKER_VALUES[index])
     }
     return drawn
+}
+
+export function earnMarkers(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    earned: EarnedMarkers
+) {
+    state.getPlayerState(playerId).earnedMarkers.push(earned)
 }
 
 export const EMPTY_POOL_CASH = 1

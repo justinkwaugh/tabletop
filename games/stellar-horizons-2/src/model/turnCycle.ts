@@ -1,6 +1,5 @@
 import { isEvenDecade } from '../components/scenarios.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { TurnStep } from './turn.js'
 
 export const DECADE = 10
 
@@ -11,7 +10,7 @@ export interface TurnStart {
 
 export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
     const arrivedShipIds: string[] = []
-    for (const ship of state.ships) {
+    for (const ship of state.allShips()) {
         if (ship.transit > 0) {
             ship.transit -= 1
             if (ship.transit === 0) {
@@ -21,14 +20,13 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
         ship.loadedFromBase = false
         ship.explored = false
     }
-    for (const base of state.bases) {
+    for (const base of state.allBases()) {
         base.spent = 0
         base.cloned = false
     }
     const income = isEvenDecade(state.year) ? state.scenarioDefinition().evenDecadeIncome : 0
     for (const player of state.players) {
         player.cash += income
-        player.step = TurnStep.Build
         player.remoteRepairUsed = false
         player.fieldsDeveloped = []
     }
@@ -38,10 +36,4 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
 export function isFinalTurn(state: HydratedStellarHorizonsGameState): boolean {
     const endYear = state.scenarioDefinition().endYear
     return endYear !== undefined && state.year >= endYear
-}
-
-export function activeTurnPlayers(state: HydratedStellarHorizonsGameState): string[] {
-    return state
-        .initiativeOrder()
-        .filter((playerId) => state.getPlayerState(playerId).step !== TurnStep.Done)
 }

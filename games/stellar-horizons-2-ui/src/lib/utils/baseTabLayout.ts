@@ -43,7 +43,7 @@ export function systemTabBases(
     state: HydratedStellarHorizonsGameState,
     systemId: string
 ): TabBase[] {
-    const here = state.bases.filter((base) => base.systemId === systemId)
+    const here = state.allBases().filter((base) => base.systemId === systemId)
     return FACTIONS.flatMap(({ faction }) =>
         here
             .filter((base) => state.getPlayerState(base.playerId).faction === faction)

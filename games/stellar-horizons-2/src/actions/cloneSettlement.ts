@@ -4,7 +4,6 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { CLONING_COST, cloningBases } from '../model/building.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
 
 export type CloneSettlement = Type.Static<typeof CloneSettlement>
 export const CloneSettlement = Type.Evaluate(
@@ -39,11 +38,7 @@ export class HydratedCloneSettlement
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const player = state.getPlayerState(this.playerId)
         const base = state.base(this.playerId, this.systemId)
-        if (
-            !base ||
-            player.step !== TurnStep.Build ||
-            !cloningBases(state, this.playerId).includes(this.systemId)
-        ) {
+        if (!base || !cloningBases(state, this.playerId).includes(this.systemId)) {
             throw Error('Invalid CloneSettlement action')
         }
         player.cash -= CLONING_COST
@@ -52,9 +47,6 @@ export class HydratedCloneSettlement
     }
 
     static canCloneSettlement(state: HydratedStellarHorizonsGameState, playerId: string) {
-        return (
-            state.getPlayerState(playerId).step === TurnStep.Build &&
-            cloningBases(state, playerId).length > 0
-        )
+        return cloningBases(state, playerId).length > 0
     }
 }

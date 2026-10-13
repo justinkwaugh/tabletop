@@ -8,6 +8,7 @@ import { HydratedChooseSurveyWorld, isChooseSurveyWorld } from '../actions/choos
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { anyPendingSurveys } from '../model/surveys.js'
 import { stateAfterSurveys } from './transitions.js'
 
 export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
@@ -39,7 +40,7 @@ export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        return state.pendingSurveys.length > 0
+        return anyPendingSurveys(state)
             ? MachineState.ResolvingSurveys
             : stateAfterSurveys(state)
     }

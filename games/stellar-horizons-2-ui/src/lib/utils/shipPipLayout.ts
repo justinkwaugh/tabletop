@@ -42,7 +42,7 @@ export function factionShipGroups(
     state: HydratedStellarHorizonsGameState,
     systemId: string
 ): ShipState[][] {
-    const here = state.ships.filter((ship) => ship.systemId === systemId)
+    const here = state.allShips().filter((ship) => ship.systemId === systemId)
     return FACTIONS.flatMap(({ faction }) => {
         const ships = here.filter((ship) => state.getPlayerState(ship.playerId).faction === faction)
         return ships.length > 0 ? [ships] : []

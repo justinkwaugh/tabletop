@@ -7,9 +7,8 @@
         type Explore
     } from '@tabletop/stellar-horizons-2'
     import type { GameAction } from '@tabletop/common'
-    import { plural } from '$lib/utils/presentation.js'
+    import { FIELD_COLORS, plural } from '$lib/utils/presentation.js'
     import DieFace from '../DieFace.svelte'
-    import TechMarker from '../TechMarker.svelte'
 
     const DIE_SIZE = 40
     const CHIT_SIZE = 36
@@ -31,16 +30,10 @@
     const malfunctioned = $derived(result ? result.destroyed || result.damage > 0 : false)
     const salvage = $derived(
         result
-            ? [
-                  ...(result.compensation[TechField.Biology] ?? []).map((value) => ({
-                      field: TechField.Biology,
-                      value
-                  })),
-                  ...(result.compensation[TechField.Engineering] ?? []).map((value) => ({
-                      field: TechField.Engineering,
-                      value
-                  }))
-              ]
+            ? ([TechField.Biology, TechField.Engineering] as const).flatMap((field) => {
+                  const count = result.compensation[field] ?? 0
+                  return count > 0 ? [{ field, count }] : []
+              })
             : []
     )
 </script>
@@ -50,9 +43,7 @@
         <span class="head">
             <span class="ship">{shipDefinition(explore.shipId).name}</span>
             <span class="status">
-                {#if result.survey}
-                    <span class="tag good">Survey</span>
-                {:else if result.markers.length === 0 && !result.cash}
+                {#if result.markerCount === 0}
                     <span class="tag quiet">Failed</span>
                 {/if}
                 {#if malfunctioned}
@@ -79,14 +70,15 @@
             {/if}
         </span>
         <span class="found">
-            {#each result.markers as value, index (index)}
-                <TechMarker field={result.field} {value} size={CHIT_SIZE} />
-            {/each}
-            {#if result.cash}
-                <span class="cash" title="The pool was empty, so each missing marker paid $1B"
-                    >${result.cash}B</span
+            {#each { length: result.markerCount } as _, index (index)}
+                <span
+                    class="pending"
+                    style:--field={FIELD_COLORS[result.field]}
+                    style:--size="{CHIT_SIZE}px"
+                    title="A {result.field.toLowerCase()} marker, drawn once everyone has explored"
+                    >?</span
                 >
-            {/if}
+            {/each}
         </span>
         <span class="malfunction">
             <DieFace
@@ -103,12 +95,17 @@
             />
         </span>
         <span class="outcome">
-            {#each salvage as marker, index (index)}
-                <TechMarker field={marker.field} value={marker.value} size={CHIT_SIZE} />
+            {#each salvage as entry (entry.field)}
+                {#each { length: entry.count } as _, index (index)}
+                    <span
+                        class="pending"
+                        style:--field={FIELD_COLORS[entry.field]}
+                        style:--size="{CHIT_SIZE}px"
+                        title="A {entry.field.toLowerCase()} marker in compensation, drawn once everyone has explored"
+                        >?</span
+                    >
+                {/each}
             {/each}
-            {#if result.compensation.cash}
-                <span class="cash">${result.compensation.cash}B</span>
-            {/if}
         </span>
     </div>
 {/if}
@@ -191,10 +188,6 @@
         white-space: nowrap;
     }
 
-    .tag.good {
-        color: #7fe08a;
-    }
-
     .tag.bad {
         color: #ff8a7a;
     }
@@ -203,9 +196,17 @@
         color: #6f84a3;
     }
 
-    .cash {
-        font-size: 15px;
+    /* A marker earned but not yet drawn: the field's colour with its value still unknown. */
+    .pending {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--size);
+        height: var(--size);
+        border-radius: 6px;
+        border: 2px dashed var(--field);
+        color: var(--field);
+        font-size: 16px;
         font-weight: 700;
-        color: #f2c94c;
     }
 </style>

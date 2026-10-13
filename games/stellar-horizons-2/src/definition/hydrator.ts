@@ -13,7 +13,8 @@ import {
 } from '../actions/chooseTerraformWorld.js'
 import { HydratedCloneSettlement, isCloneSettlement } from '../actions/cloneSettlement.js'
 import { HydratedDevelopTech, isDevelopTech } from '../actions/developTech.js'
-import { HydratedEndStep, isEndStep } from '../actions/endStep.js'
+import { HydratedCompletePhase, isCompletePhase } from '../actions/completePhase.js'
+import { HydratedEndPhase, isEndPhase } from '../actions/endPhase.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedMoveShip, isMoveShip } from '../actions/moveShip.js'
@@ -23,6 +24,9 @@ import { HydratedRepairShip, isRepairShip } from '../actions/repairShip.js'
 import { HydratedResolveAnomaly, isResolveAnomaly } from '../actions/resolveAnomaly.js'
 import { HydratedResolveSurvey, isResolveSurvey } from '../actions/resolveSurvey.js'
 import { HydratedScrapShip, isScrapShip } from '../actions/scrapShip.js'
+import { HydratedSettleExplorations, isSettleExplorations } from '../actions/settleExplorations.js'
+import { HydratedSkipPhase, isSkipPhase } from '../actions/skipPhase.js'
+import { HydratedStartPhase, isStartPhase } from '../actions/startPhase.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
@@ -39,6 +43,16 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedPlaceStartingBase(data)
             case isStartTurn(data):
                 return new HydratedStartTurn(data)
+            case isStartPhase(data):
+                return new HydratedStartPhase(data)
+            case isCompletePhase(data):
+                return new HydratedCompletePhase(data)
+            case isSkipPhase(data):
+                return new HydratedSkipPhase(data)
+            case isEndPhase(data):
+                return new HydratedEndPhase(data)
+            case isSettleExplorations(data):
+                return new HydratedSettleExplorations(data)
             case isBuildShip(data):
                 return new HydratedBuildShip(data)
             case isRepairShip(data):
@@ -59,8 +73,6 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedResolveAnomaly(data)
             case isDevelopTech(data):
                 return new HydratedDevelopTech(data)
-            case isEndStep(data):
-                return new HydratedEndStep(data)
             case isResolveSurvey(data):
                 return new HydratedResolveSurvey(data)
             case isChooseSurveyWorld(data):

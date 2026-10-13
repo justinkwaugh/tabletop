@@ -5,7 +5,7 @@ import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
-import { TurnStep } from './turn.js'
+import { EarnedMarkers, PendingAnomalyAttempt, PendingSurvey } from './pieces.js'
 
 export type TechMarkers = Type.Static<typeof TechMarkers>
 export const TechMarkers = Type.Object({
@@ -13,6 +13,10 @@ export const TechMarkers = Type.Object({
     [TechField.Physics]: Type.Array(Type.Number()),
     [TechField.Engineering]: Type.Array(Type.Number())
 })
+
+export function emptyTechMarkers(): TechMarkers {
+    return { Biology: [], Physics: [], Engineering: [] }
+}
 
 export type OwnedTech = Type.Static<typeof OwnedTech>
 export const OwnedTech = Type.Object({
@@ -28,10 +32,13 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             faction: Type.Optional(Type.Enum(Faction)),
             cash: Type.Number(),
             techMarkers: TechMarkers,
+            spentMarkers: TechMarkers,
+            earnedMarkers: Type.Array(EarnedMarkers),
             techs: Type.Array(OwnedTech),
-            step: Type.Enum(TurnStep),
             remoteRepairUsed: Type.Boolean(),
             fieldsDeveloped: Type.Array(Type.Enum(TechField)),
+            pendingSurveys: Type.Array(PendingSurvey),
+            anomalyAttempts: Type.Array(PendingAnomalyAttempt),
             anomalies: Type.Array(Type.String())
         })
     ])
@@ -48,10 +55,13 @@ export class HydratedStellarHorizonsPlayerState
     declare faction?: Faction
     declare cash: number
     declare techMarkers: TechMarkers
+    declare spentMarkers: TechMarkers
+    declare earnedMarkers: EarnedMarkers[]
     declare techs: OwnedTech[]
-    declare step: TurnStep
     declare remoteRepairUsed: boolean
     declare fieldsDeveloped: TechField[]
+    declare pendingSurveys: PendingSurvey[]
+    declare anomalyAttempts: PendingAnomalyAttempt[]
     declare anomalies: string[]
 
     constructor(data: StellarHorizonsPlayerState) {

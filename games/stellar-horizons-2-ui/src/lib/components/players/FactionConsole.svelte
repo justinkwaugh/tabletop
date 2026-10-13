@@ -1,18 +1,13 @@
 <script lang="ts">
     // Everything about the player chosen in the standings, in plain labelled sections.
-    import {
-        TECH_FIELDS,
-        TurnStep,
-        anomalyDefinition,
-        shipDefinition
-    } from '@tabletop/stellar-horizons-2'
+    import { TECH_FIELDS, anomalyDefinition, shipDefinition } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { factionConsole } from '$lib/utils/playerArea.js'
     import {
         FACTION_FILL,
         FIELD_COLORS,
-        STEP_LABELS,
+        PHASE_LABELS,
         factionName,
         plural,
         systemName
@@ -48,11 +43,13 @@
             </div>
             <div class="turn">
                 <span>Initiative {standing.initiative}</span>
-                {#if standing.step}
+                {#if standing.phase}
                     <span
-                        >{standing.step === TurnStep.Done
+                        >{standing.phase.progress === 'done'
                             ? 'Done'
-                            : STEP_LABELS[standing.step]}</span
+                            : standing.phase.progress === 'pending'
+                              ? 'Waiting'
+                              : PHASE_LABELS[standing.phase.phase]}</span
                     >
                 {/if}
             </div>

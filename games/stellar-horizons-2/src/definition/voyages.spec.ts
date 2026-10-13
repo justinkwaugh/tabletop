@@ -10,6 +10,7 @@ import {
     createGame,
     engine,
     execute,
+    finishDecade,
     hydrate,
     startedGame,
     userAction
@@ -30,16 +31,6 @@ function placeBases(game: Game, state: StellarHorizonsProjectedState, systemIds:
             userAction(game, playerId, ActionType.PlaceStartingBase, { systemId })
         )
     }, state)
-}
-
-function finishDecade(game: Game, state: StellarHorizonsProjectedState) {
-    let current = state
-    while (current.machineState === MachineState.PlayingTurn && current.year === state.year) {
-        const [playerId] = current.activePlayerIds
-        const step = hydrate(current).getPlayerState(playerId).step
-        current = execute(game, current, userAction(game, playerId, ActionType.EndStep, { step }))
-    }
-    return current
 }
 
 describe('These are the Voyages setup', () => {
@@ -110,10 +101,15 @@ describe('These are the Voyages starting bases', () => {
         expect(afterFirst.activePlayerIds).toEqual([order[1]])
 
         const placed = placeBases(game, afterFirst, ['luhman-16', 'alpha-centauri'])
-        expect(placed.machineState).toBe(MachineState.PlayingTurn)
-        expect(placed.bases).toEqual([
-            { playerId: order[2], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false },
-            { playerId: order[1], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false },
+        expect(placed.machineState).toBe(MachineState.Building)
+        const hydrated = hydrate(placed)
+        expect(hydrated.basesOf(order[2])).toEqual([
+            { playerId: order[2], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false }
+        ])
+        expect(hydrated.basesOf(order[1])).toEqual([
+            { playerId: order[1], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false }
+        ])
+        expect(hydrated.basesOf(order[0])).toEqual([
             {
                 playerId: order[0],
                 systemId: 'alpha-centauri',
@@ -132,7 +128,7 @@ describe('These are the Voyages starting bases', () => {
 
     it('are not part of Footfall', () => {
         const { game, state } = startedGame(2)
-        expect(state.machineState).toBe(MachineState.PlayingTurn)
+        expect(state.machineState).toBe(MachineState.Building)
         expect(() => placeBases(game, state, ['alpha-centauri'])).toThrow()
     })
 })
@@ -150,7 +146,7 @@ describe('These are the Voyages decades', () => {
 
         const in2270 = finishDecade(game, in2260)
         expect(in2270.year).toBe(2270)
-        expect(in2270.machineState).toBe(MachineState.PlayingTurn)
+        expect(in2270.machineState).toBe(MachineState.Building)
         expect(in2270.players.map((player) => player.cash)).toEqual([30, 30])
     })
 

@@ -1,3 +1,4 @@
+import { TURN_PHASES, type TurnPhase } from '../model/turn.js'
 import { Sector } from './systems.js'
 
 export enum ScenarioId {
@@ -39,6 +40,7 @@ export interface ScenarioDefinition {
     name: string
     minPlayers: number
     sectors: readonly Sector[]
+    phases: readonly TurnPhase[]
     startYear: number
     endYear?: number
     techColumns: number
@@ -59,6 +61,7 @@ export const FOOTFALL: ScenarioDefinition = {
     name: 'Footfall among the Stars',
     minPlayers: 1,
     sectors: [Sector.Sol, Sector.AlphaCentauri],
+    phases: TURN_PHASES,
     startYear: 2150,
     endYear: 2300,
     techColumns: 1,
@@ -84,6 +87,7 @@ export const VOYAGES: ScenarioDefinition = {
         Sector.GammaSerpentis,
         Sector.BetaAquilae
     ],
+    phases: TURN_PHASES,
     startYear: 2250,
     techColumns: 3,
     explorationMarkerValue: 5,

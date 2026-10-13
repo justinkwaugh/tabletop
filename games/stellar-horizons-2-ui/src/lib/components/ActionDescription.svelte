@@ -2,7 +2,9 @@
     import type { GameAction } from '@tabletop/common'
     import {
         CargoPartnerKind,
+        MarkerReason,
         RepairMethod,
+        TechField,
         anomalyDefinition,
         isAttemptAnomaly,
         isBuildShip,
@@ -10,8 +12,9 @@
         isChooseSurveyWorld,
         isChooseTerraformWorld,
         isCloneSettlement,
+        isCompletePhase,
         isDevelopTech,
-        isEndStep,
+        isEndPhase,
         isEndTurn,
         isExplore,
         isMoveShip,
@@ -21,21 +24,58 @@
         isResolveAnomaly,
         isResolveSurvey,
         isScrapShip,
+        isSettleExplorations,
+        isSkipPhase,
+        isStartPhase,
         isStartTurn,
         isTerraform,
         isTransferCargo,
         shipDefinition,
         techDefinition,
-        TurnStep
+        type CompensationCounts,
+        type SettledMarkers
     } from '@tabletop/stellar-horizons-2'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { STEP_LABELS, factionName, plural, systemName } from '$lib/utils/presentation.js'
+    import {
+        PHASE_FINISHED,
+        PHASE_OVER,
+        PHASE_SKIPPED,
+        PHASE_STARTED,
+        factionName,
+        plural,
+        systemName
+    } from '$lib/utils/presentation.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
 
     function shipName(shipId: string): string {
         return shipDefinition(shipId).name
+    }
+
+    function markers(field: TechField, count: number): string {
+        return plural(count, `${field.toLowerCase()} marker`)
+    }
+
+    function compensationText(compensation: CompensationCounts): string {
+        const parts = [
+            ...(compensation.Biology ? [markers(TechField.Biology, compensation.Biology)] : []),
+            ...(compensation.Engineering
+                ? [markers(TechField.Engineering, compensation.Engineering)]
+                : [])
+        ]
+        return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
+    }
+
+    function settledText(entry: SettledMarkers): string {
+        const drawn = entry.markers.length > 0 ? ` (${entry.markers.join(', ')})` : ''
+        const cash = entry.cash ? ` and $${entry.cash}B from the empty pool` : ''
+        const reason =
+            entry.reason === MarkerReason.Loss
+                ? `for the loss of ${shipName(entry.shipId)}`
+                : `for ${shipName(entry.shipId)}'s exploration of ${systemName(entry.systemId)}`
+        const survey = entry.survey ? ', enough for a survey' : ''
+        return `${markers(entry.field, entry.markers.length)}${drawn}${cash} ${reason}${survey}`
     }
 </script>
 
@@ -121,21 +161,29 @@
             explored {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
                 action.shipId
             )}{action.metadata
-                ? `: ${plural(action.metadata.markers.length, `${action.metadata.field.toLowerCase()} marker`)}${action.metadata.markers.length > 0 ? ` (${action.metadata.markers.join(', ')})` : ''}${action.metadata.cash ? ` and $${action.metadata.cash}B from the empty pool` : ''}`
+                ? `: ${markers(action.metadata.field, action.metadata.markerCount)} earned`
                 : ''}{action.metadata?.destroyed
-                ? '; the ship was lost to a malfunction'
+                ? `; the ship was lost to a malfunction${compensationText(action.metadata.compensation)}`
                 : action.metadata?.damage
                   ? `; a malfunction caused ${action.metadata.damage} damage`
                   : ''}
         </span>
+    {:else if isSettleExplorations(action)}
+        <span
+            >{action.metadata?.settled.length
+                ? `received ${action.metadata.settled.map(settledText).join('; ')}`
+                : 'received no markers'}</span
+        >
     {:else if isDevelopTech(action)}
         <span>developed {techDefinition(action.techId).name}</span>
-    {:else if isEndStep(action)}
-        <span
-            >{action.step === TurnStep.Development
-                ? 'ended their turn'
-                : `finished ${STEP_LABELS[action.step].toLowerCase()}`}</span
-        >
+    {:else if isStartPhase(action)}
+        <span>{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}</span>
+    {:else if isEndPhase(action)}
+        <span>{PHASE_FINISHED[action.phase]}</span>
+    {:else if isSkipPhase(action)}
+        <span>{action.metadata ? PHASE_SKIPPED[action.metadata.phase] : 'has nothing to do'}</span>
+    {:else if isCompletePhase(action)}
+        <span>{action.metadata ? PHASE_OVER[action.metadata.phase] : 'The phase is over.'}</span>
     {:else if isAttemptAnomaly(action)}
         <span>
             sent {action.shipIds.map(shipName).join(', ')} to resolve {action.metadata

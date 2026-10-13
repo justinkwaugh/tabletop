@@ -3,9 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { shipDefinition } from '../components/ships.js'
-import { canBuildShip, shipsAvailableToBuild } from '../model/building.js'
+import { canBuildAnyShip, canBuildShip } from '../model/building.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
 
 export type BuildShip = Type.Static<typeof BuildShip>
 export const BuildShip = Type.Evaluate(
@@ -37,10 +36,7 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        if (
-            state.getPlayerState(this.playerId).step !== TurnStep.Build ||
-            !canBuildShip(state, this.playerId, this.shipId, this.systemId)
-        ) {
+        if (!canBuildShip(state, this.playerId, this.shipId, this.systemId)) {
             throw Error('Invalid BuildShip action')
         }
         const cost = shipDefinition(this.shipId).cost
@@ -49,7 +45,7 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
         if (base) {
             base.spent += cost
         }
-        state.ships.push({
+        state.ships[this.shipId] = {
             shipId: this.shipId,
             playerId: this.playerId,
             systemId: this.systemId,
@@ -58,16 +54,10 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
             settlements: 0,
             loadedFromBase: false,
             explored: false
-        })
+        }
     }
 
     static canBuildShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
-        const player = state.getPlayerState(playerId)
-        return (
-            player.step === TurnStep.Build &&
-            shipsAvailableToBuild(state, playerId).some(
-                (definition) => definition.cost <= player.cash
-            )
-        )
+        return canBuildAnyShip(state, playerId)
     }
 }

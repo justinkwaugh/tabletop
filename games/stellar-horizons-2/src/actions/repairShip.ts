@@ -2,9 +2,8 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { RepairMethod, canRepair, repairCost } from '../model/building.js'
+import { RepairMethod, canRepair, canRepairAnyShip, repairCost } from '../model/building.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnStep } from '../model/turn.js'
 
 export type RepairShipMetadata = Type.Static<typeof RepairShipMetadata>
 export const RepairShipMetadata = Type.Object({
@@ -47,10 +46,7 @@ export class HydratedRepairShip extends HydratableAction<typeof RepairShip> impl
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const player = state.getPlayerState(this.playerId)
-        if (
-            player.step !== TurnStep.Build ||
-            !canRepair(state, this.playerId, this.shipId, this.method, this.points)
-        ) {
+        if (!canRepair(state, this.playerId, this.shipId, this.method, this.points)) {
             throw Error('Invalid RepairShip action')
         }
         const ship = state.ship(this.shipId)
@@ -75,15 +71,6 @@ export class HydratedRepairShip extends HydratableAction<typeof RepairShip> impl
     }
 
     static canRepairShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
-        if (state.getPlayerState(playerId).step !== TurnStep.Build) {
-            return false
-        }
-        return state
-            .shipsOf(playerId)
-            .some((ship) =>
-                Object.values(RepairMethod).some((method) =>
-                    canRepair(state, playerId, ship.shipId, method, 1)
-                )
-            )
+        return canRepairAnyShip(state, playerId)
     }
 }

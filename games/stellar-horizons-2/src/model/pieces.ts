@@ -37,6 +37,10 @@ export const Base = Type.Object({
     cloned: Type.Boolean()
 })
 
+export function baseKey(playerId: string, systemId: string): string {
+    return `${playerId}:${systemId}`
+}
+
 export type TechPools = Type.Static<typeof TechPools>
 export const TechPools = Type.Object({
     [TechField.Biology]: Type.Array(Type.Number()),
@@ -44,16 +48,28 @@ export const TechPools = Type.Object({
     [TechField.Engineering]: Type.Array(Type.Number())
 })
 
+export enum MarkerReason {
+    Exploration = 'Exploration',
+    Loss = 'Loss'
+}
+
+export type EarnedMarkers = Type.Static<typeof EarnedMarkers>
+export const EarnedMarkers = Type.Object({
+    shipId: Type.String(),
+    systemId: Type.String(),
+    field: Type.Enum(TechField),
+    count: Type.Number(),
+    reason: Type.Enum(MarkerReason)
+})
+
 export type PendingSurvey = Type.Static<typeof PendingSurvey>
 export const PendingSurvey = Type.Object({
-    playerId: Type.String(),
     shipId: Type.String(),
     systemId: Type.String()
 })
 
 export type PendingAnomalyAttempt = Type.Static<typeof PendingAnomalyAttempt>
 export const PendingAnomalyAttempt = Type.Object({
-    playerId: Type.String(),
     systemId: Type.String(),
     anomalyId: Type.String(),
     shipIds: Type.Array(Type.String())

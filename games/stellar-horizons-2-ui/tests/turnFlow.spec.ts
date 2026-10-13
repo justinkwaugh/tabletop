@@ -49,10 +49,22 @@ async function createGame(page: Page) {
     }
     await expect
         .poll(() => page.evaluate(() => window.stellarSession.gameState.machineState))
-        .toBe('PlayingTurn')
-    await page.evaluate(() =>
-        window.stellarSession.setActingPlayer(window.stellarSession.gameState.initiativeOrder()[0])
-    )
+        .toBe('Building')
+}
+
+const activePlayerIsFirstInInitiative = (page: Page) =>
+    page.evaluate(() => {
+        const state = window.stellarSession.gameState
+        return state.activePlayerIds[0] === state.initiativeOrder()[0]
+    })
+
+// Building goes in reverse initiative order, so the Starfarers, first in initiative, build last.
+async function reachStarfarersBuild(page: Page) {
+    for (let others = 0; others < 2; others++) {
+        await page.getByRole('button', { name: 'Done building' }).click()
+    }
+    await expect.poll(() => activePlayerIsFirstInInitiative(page)).toBe(true)
+    await expect(page.getByRole('button', { name: /^Build Kepler at Sol/ })).toBeVisible()
 }
 
 function shipTile(page: Page, name: string) {
@@ -61,14 +73,51 @@ function shipTile(page: Page, name: string) {
 
 const selectedShipId = (page: Page) =>
     page.evaluate(() => window.stellarSession.selectedShip?.shipId)
-const actionCount = (page: Page) => page.evaluate(() => window.stellarSession.actions.length)
+// Phases end by themselves with a run of system actions, so only the players' own are counted.
+const actionCount = (page: Page) =>
+    page.evaluate(
+        (source) =>
+            window.stellarSession.actions.filter((action) => action.source === source).length,
+        ActionSource.User
+    )
 
+// With only a probe, the Starfarers have no cargo to move, so the next phase they play is movement.
 async function buildProbeAndReachMovement(page: Page) {
+    await reachStarfarersBuild(page)
     await page.getByRole('button', { name: 'Build Kepler at Sol for $5B' }).click()
     await expect(clump(page, /^The Starfarers at Sol: 1 ship$/)).toBeVisible()
     await page.getByRole('button', { name: 'Done building' }).click()
     await expect(page.getByRole('button', { name: 'Done moving' })).toBeVisible()
 }
+
+// The harness plays hotseat, so the viewer is whoever is acting, shown as "you" in the order.
+test('the phases of a decade are played one player at a time, in the order the rules give', async ({
+    page
+}) => {
+    await createGame(page)
+    const names = await page.evaluate(() => {
+        const session = window.stellarSession
+        return session.gameState.initiativeOrder().map((playerId) => session.getPlayerName(playerId))
+    })
+    const order = page.getByRole('list', { name: 'Order of play this phase' })
+    const entries = order.getByRole('listitem')
+    await expect(entries).toHaveCount(3)
+    await expect(entries.first()).toContainText('you')
+    await expect(entries.first()).toHaveAttribute('data-progress', 'playing')
+    await expect(entries.last()).toContainText(names[0])
+    await expect(page.getByRole('button', { name: 'Done building' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Done building' }).click()
+    await expect(entries.first()).toContainText('✓')
+    await expect(entries.nth(1)).toContainText('you')
+    await page.getByRole('button', { name: 'Done building' }).click()
+    await expect.poll(() => activePlayerIsFirstInInitiative(page)).toBe(true)
+    await expect(entries.last()).toContainText('you')
+    await page.getByRole('button', { name: 'Done building' }).click()
+    await expect(page.getByRole('button', { name: 'Done developing' })).toBeVisible()
+    await expect(entries.first()).toContainText('you')
+    await expect(entries.last()).toContainText(names[2])
+})
 
 test('a chosen ship shows its destinations and moves from the map', async ({ page }) => {
     await createGame(page)
@@ -86,7 +135,7 @@ test('a chosen ship shows its destinations and moves from the map', async ({ pag
         .toBe(2)
     await expect.poll(() => selectedShipId(page)).toBeUndefined()
     await expect(page.getByRole('button', { name: 'Move to Alpha Centauri' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'End turn' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Done developing' })).toBeVisible()
 })
 
 test('Undo clears a chosen ship before undoing any action', async ({ page }) => {
@@ -114,7 +163,11 @@ test('history hides a chosen ship and live view restores it', async ({ page }) =
 
 test('a tech chosen on the chart is paid for with suggested markers', async ({ page }) => {
     await createGame(page)
-    await page.getByRole('button', { name: 'Done building' }).click()
+    for (let players = 0; players < 3; players++) {
+        await page.getByRole('button', { name: 'Done building' }).click()
+    }
+    await expect(page.getByRole('button', { name: 'Done developing' })).toBeVisible()
+    await expect.poll(() => activePlayerIsFirstInInitiative(page)).toBe(true)
     await page
         .getByRole('button', { name: 'Improved Interstellar Settlement', exact: true })
         .click()
@@ -133,32 +186,6 @@ test('a tech chosen on the chart is paid for with suggested markers', async ({ p
         .toBe(true)
 })
 
-test("another player's action keeps the chosen ship", async ({ page }) => {
-    await createGame(page)
-    await buildProbeAndReachMovement(page)
-    await page.getByRole('button', { name: 'Kepler', exact: true }).first().click()
-    await expect.poll(() => selectedShipId(page)).toBe('starfarers-kepler')
-    const before = await actionCount(page)
-    await page.evaluate(async (source) => {
-        const session = window.stellarSession
-        const state = session.gameState
-        const other = state.initiativeOrder()[1]
-        const action = {
-            id: 'other-player-step',
-            gameId: state.gameId,
-            source,
-            playerId: other,
-            type: 'EndStep',
-            step: state.getPlayerState(other).step,
-            simultaneousGroupId: `turn-${state.year}`
-        }
-        await session.applyAction(action)
-    }, ActionSource.User)
-    await expect.poll(() => actionCount(page)).toBe(before + 1)
-    await expect.poll(() => selectedShipId(page)).toBe('starfarers-kepler')
-    await expect(page.getByRole('button', { name: 'Move to Alpha Centauri' })).toBeVisible()
-})
-
 function clump(page: Page, label: RegExp) {
     return page.locator('svg[aria-label="Star map"]').getByRole('button', { name: label })
 }
@@ -167,6 +194,7 @@ const strip = (page: Page) => page.locator('[aria-label="Ships here"]')
 
 test('clicking a clump shows all its ships in a strip, and closes again', async ({ page }) => {
     await createGame(page)
+    await reachStarfarersBuild(page)
     await page.getByRole('button', { name: 'Build Kepler at Sol for $5B' }).click()
     await page.getByRole('button', { name: 'Build Andromeda at Sol for $7B' }).click()
     const starfarers = clump(page, /^The Starfarers at Sol: 2 ships$/)
@@ -238,6 +266,7 @@ test('clicking a system name zooms into it with a details panel, and Back return
     page
 }) => {
     await createGame(page)
+    await reachStarfarersBuild(page)
     await shipTile(page, 'Kepler').getByRole('button', { name: '$5B' }).click()
     const panel = page.getByRole('complementary', { name: 'Sol details' })
     await expect(panel).toHaveCount(0)
@@ -276,7 +305,9 @@ test('a ship can be chosen from the zoomed system panel', async ({ page }) => {
     await expect(panel).toBeVisible()
 })
 
+// Cargo goes in initiative order, so the Starfarers play it first once everyone has built.
 async function buildAndReachCargo(page: Page, ...ships: string[]) {
+    await reachStarfarersBuild(page)
     for (const ship of ships) {
         const build = page.getByRole('button', { name: new RegExp(`^Build ${ship} at Sol`) })
         await build.click()
@@ -308,7 +339,7 @@ test('cargo is drafted with the arrows and committed as one transfer', async ({ 
     expect(await actionCount(page)).toBe(before + 1)
 })
 
-test('the cargo step stays open while more can be done, then ends by itself', async ({ page }) => {
+test('the cargo phase stays open while more can be done, then ends by itself', async ({ page }) => {
     await createGame(page)
     await buildAndReachCargo(page, 'Andromeda')
     await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()
@@ -355,7 +386,7 @@ test('choosing another destination discards the cargo draft', async ({ page }) =
     await expect(page.getByTestId('cargo-at-partner')).toHaveText('0')
 })
 
-test('entering the movement step zooms back out to the whole map', async ({ page }) => {
+test('entering the movement phase zooms back out to the whole map', async ({ page }) => {
     await createGame(page)
     await buildAndReachCargo(page, 'Andromeda')
     await page.getByRole('button', { name: 'Transfer cargo on Andromeda at Sol' }).click()

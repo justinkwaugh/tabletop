@@ -1,7 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { PHASE_LABELS } from '$lib/utils/presentation.js'
     import LastActionDescription from '../LastActionDescription.svelte'
 
     const gameSession = getGameSession()
@@ -12,13 +12,14 @@
 </script>
 
 <div class="waiting">
-    {#if gameState.machineState === MachineState.PlayingTurn && waitingOn.length > 0}
+    {#if gameSession.currentPhase && waitingOn.length > 0}
+        {@const phase = PHASE_LABELS[gameSession.currentPhase].toLowerCase()}
         <span class="inline-flex flex-wrap items-center gap-x-1">
             Waiting for
             {#each waitingOn as playerId, index (playerId)}
                 <PlayerName {playerId} />{index < waitingOn.length - 1 ? ',' : ''}
             {/each}
-            to finish {gameState.year}.
+            to finish {phase}.
         </span>
     {:else}
         <LastActionDescription />

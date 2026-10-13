@@ -1,25 +1,18 @@
-export enum TurnStep {
+export enum TurnPhase {
     Build = 'Build',
     Cargo = 'Cargo',
     Movement = 'Movement',
     Exploration = 'Exploration',
-    Development = 'Development',
-    Done = 'Done'
+    Development = 'Development'
 }
 
-export const TURN_STEPS: readonly TurnStep[] = [
-    TurnStep.Build,
-    TurnStep.Cargo,
-    TurnStep.Movement,
-    TurnStep.Exploration,
-    TurnStep.Development,
-    TurnStep.Done
+export const TURN_PHASES: readonly TurnPhase[] = [
+    TurnPhase.Build,
+    TurnPhase.Cargo,
+    TurnPhase.Movement,
+    TurnPhase.Exploration,
+    TurnPhase.Development
 ]
-
-export function nextTurnStep(step: TurnStep): TurnStep {
-    const index = TURN_STEPS.indexOf(step)
-    return TURN_STEPS[Math.min(index + 1, TURN_STEPS.length - 1)]
-}
 
 export function roundHalfUp(value: number): number {
     return Math.floor(value + 0.5)

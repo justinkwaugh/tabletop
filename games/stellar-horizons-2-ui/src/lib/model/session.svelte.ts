@@ -9,9 +9,8 @@ import {
     ChooseTerraformWorld,
     CloneSettlement,
     DevelopTech,
-    EndStep,
+    EndPhase,
     Explore,
-    MachineState,
     MoveShip,
     PassTerraform,
     PlaceStartingBase,
@@ -20,7 +19,7 @@ import {
     ScrapShip,
     Terraform,
     TransferCargo,
-    TurnStep,
+    TurnPhase,
     anomalyAttemptShips,
     canExplore,
     cargoPartners,
@@ -30,6 +29,8 @@ import {
     isTechAvailable,
     isValidAnomalyAttempt,
     moveOptions,
+    phaseOfMachineState,
+    playPhase,
     sameCargoPartner,
     type CargoPartner,
     type Faction,
@@ -51,12 +52,19 @@ import {
     type Selection
 } from './selection.js'
 
-const SHIP_SELECTION_STEPS: readonly TurnStep[] = [
-    TurnStep.Build,
-    TurnStep.Cargo,
-    TurnStep.Movement,
-    TurnStep.Exploration
+const SHIP_SELECTION_PHASES: readonly TurnPhase[] = [
+    TurnPhase.Build,
+    TurnPhase.Cargo,
+    TurnPhase.Movement,
+    TurnPhase.Exploration
 ]
+
+export type PhaseProgress = 'done' | 'playing' | 'pending'
+
+export interface PhaseOrderEntry {
+    playerId: string
+    progress: PhaseProgress
+}
 
 interface CargoDraft {
     partner: CargoPartner
@@ -83,21 +91,43 @@ export class StellarHorizonsGameSession extends GameSession<
 
     canAct: boolean = $derived(this.isMyTurn && !this.isViewingHistory)
 
-    myStep: TurnStep | undefined = $derived.by(() => {
+    // The phase of the decade in progress, whether the viewer is playing it or waiting on others.
+    currentPhase: TurnPhase | undefined = $derived(
+        phaseOfMachineState(this.gameState.machineState)
+    )
+
+    // The phase the viewer is playing in their own branch.
+    myPhase: TurnPhase | undefined = $derived.by(() => {
         const playerId = this.myPlayerId
-        if (!playerId || this.gameState.machineState !== MachineState.PlayingTurn) {
-            return undefined
-        }
-        return this.gameState.findPlayerState(playerId)?.step
+        return playerId && this.gameState.isActivePlayer(playerId)
+            ? playPhase(this.gameState)
+            : undefined
     })
 
-    actingStep: TurnStep | undefined = $derived(this.canAct ? this.myStep : undefined)
+    actingPhase: TurnPhase | undefined = $derived(this.canAct ? this.myPhase : undefined)
+
+    // Who plays the phase, in the order their play lands on the main line, and how far each is.
+    phaseOrder: PhaseOrderEntry[] = $derived.by(() => {
+        const span = this.gameState.parallelSpan
+        if (!span || this.currentPhase === undefined) {
+            return []
+        }
+        return span.playerIds.map((playerId) => ({
+            playerId,
+            progress:
+                span.mergedPlayerIds.includes(playerId) || span.closedPlayerIds.includes(playerId)
+                    ? 'done'
+                    : span.branchPlayerId === undefined || span.branchPlayerId === playerId
+                      ? 'playing'
+                      : 'pending'
+        }))
+    })
 
     selectedShip: ShipState | undefined = $derived.by(() => {
         const shipId = selectedShipId(this.selection)
         const playerId = this.myPlayerId
-        const step = this.actingStep
-        if (!shipId || !playerId || !step || !SHIP_SELECTION_STEPS.includes(step)) {
+        const phase = this.actingPhase
+        if (!shipId || !playerId || !phase || !SHIP_SELECTION_PHASES.includes(phase)) {
             return undefined
         }
         return this.gameState.playerShip(playerId, shipId)
@@ -106,7 +136,7 @@ export class StellarHorizonsGameSession extends GameSession<
     selectedTech: TechId | undefined = $derived.by(() => {
         const techId = selectedTechId(this.selection)
         const playerId = this.myPlayerId
-        if (!techId || !playerId || this.actingStep !== TurnStep.Development) {
+        if (!techId || !playerId || this.actingPhase !== TurnPhase.Development) {
             return undefined
         }
         return isTechAvailable(this.gameState, playerId, techId) ? techId : undefined
@@ -116,7 +146,7 @@ export class StellarHorizonsGameSession extends GameSession<
     anomalyDraft: AnomalyDraft | undefined = $derived.by(() => {
         const draft = selectedAnomalyDraft(this.selection)
         const playerId = this.myPlayerId
-        if (!draft || !playerId || this.actingStep !== TurnStep.Exploration) {
+        if (!draft || !playerId || this.actingPhase !== TurnPhase.Exploration) {
             return undefined
         }
         if (!this.gameState.isSystemInPlay(draft.systemId)) {
@@ -131,7 +161,7 @@ export class StellarHorizonsGameSession extends GameSession<
 
     cargoShip: ShipState | undefined = $derived.by(() => {
         const ship = this.selectedShip
-        return ship && this.actingStep === TurnStep.Cargo && carriesCargo(this.gameState, ship)
+        return ship && this.actingPhase === TurnPhase.Cargo && carriesCargo(this.gameState, ship)
             ? ship
             : undefined
     })
@@ -160,7 +190,7 @@ export class StellarHorizonsGameSession extends GameSession<
 
     moveTargets: MoveOption[] = $derived.by(() => {
         const ship = this.selectedShip
-        if (!ship || this.actingStep !== TurnStep.Movement) {
+        if (!ship || this.actingPhase !== TurnPhase.Movement) {
             return []
         }
         return moveOptions(this.gameState, ship)
@@ -168,21 +198,21 @@ export class StellarHorizonsGameSession extends GameSession<
 
     selectableShipIds: string[] = $derived.by(() => {
         const playerId = this.myPlayerId
-        const step = this.actingStep
-        if (!playerId || !step || !SHIP_SELECTION_STEPS.includes(step)) {
+        const phase = this.actingPhase
+        if (!playerId || !phase || !SHIP_SELECTION_PHASES.includes(phase)) {
             return []
         }
         return this.gameState
             .shipsOf(playerId)
-            .filter((ship) => this.isShipActionable(ship, step))
+            .filter((ship) => this.isShipActionable(ship, phase))
             .map((ship) => ship.shipId)
     })
 
-    private isShipActionable(ship: ShipState, step: TurnStep): boolean {
-        switch (step) {
-            case TurnStep.Movement:
+    private isShipActionable(ship: ShipState, phase: TurnPhase): boolean {
+        switch (phase) {
+            case TurnPhase.Movement:
                 return hasArrived(ship)
-            case TurnStep.Exploration:
+            case TurnPhase.Exploration:
                 return canExplore(this.gameState, ship)
             default:
                 return true
@@ -194,9 +224,12 @@ export class StellarHorizonsGameSession extends GameSession<
         if (!inspected) {
             return undefined
         }
-        const ships = this.gameState.ships.filter(
-            (ship) => ship.systemId === inspected.systemId && ship.playerId === inspected.playerId
-        )
+        const ships = this.gameState
+            .allShips()
+            .filter(
+                (ship) =>
+                    ship.systemId === inspected.systemId && ship.playerId === inspected.playerId
+            )
         return ships.length > 0 ? { ...inspected, ships } : undefined
     })
 
@@ -294,10 +327,7 @@ export class StellarHorizonsGameSession extends GameSession<
             return
         }
         this.clearSelection()
-        await this.commit(
-            ActionType.AttemptAnomaly,
-            this.inTurn(this.createPlayerAction(AttemptAnomaly, draft))
-        )
+        await this.commit(ActionType.AttemptAnomaly, this.createPlayerAction(AttemptAnomaly, draft))
     }
 
     selectTech(techId: TechId) {
@@ -334,17 +364,15 @@ export class StellarHorizonsGameSession extends GameSession<
         this.cargoDraft = { partner, settlements: 0 }
         await this.commit(
             ActionType.TransferCargo,
-            this.inTurn(
-                this.createPlayerAction(TransferCargo, {
-                    shipId: ship.shipId,
-                    partner,
-                    settlements
-                })
-            )
+            this.createPlayerAction(TransferCargo, {
+                shipId: ship.shipId,
+                partner,
+                settlements
+            })
         )
-        if (this.myStep !== TurnStep.Cargo) {
+        if (this.myPhase !== TurnPhase.Cargo) {
             this.clearSelection()
-            this.enterStep()
+            this.enterPhase()
         }
     }
 
@@ -361,8 +389,8 @@ export class StellarHorizonsGameSession extends GameSession<
     }
 
     // Movement starts from the whole map, so every destination is in view.
-    private enterStep() {
-        if (this.myStep === TurnStep.Movement) {
+    private enterPhase() {
+        if (this.myPhase === TurnPhase.Movement) {
             this.leaveFocus()
         }
     }
@@ -379,11 +407,6 @@ export class StellarHorizonsGameSession extends GameSession<
     ): boolean {
         const limits = cargoTransferLimits(this.gameState, ship, partner)
         return settlements <= limits.load && -settlements <= limits.unload
-    }
-
-    private inTurn(action: GameAction): GameAction {
-        action.simultaneousGroupId = `turn-${this.gameState.year}`
-        return action
     }
 
     private async commit(type: ActionType, action: GameAction) {
@@ -410,29 +433,26 @@ export class StellarHorizonsGameSession extends GameSession<
     async buildShip(shipId: string, systemId: string) {
         await this.commit(
             ActionType.BuildShip,
-            this.inTurn(this.createPlayerAction(BuildShip, { shipId, systemId }))
+            this.createPlayerAction(BuildShip, { shipId, systemId })
         )
     }
 
     async repairShip(shipId: string, method: RepairMethod, points: number) {
         await this.commit(
             ActionType.RepairShip,
-            this.inTurn(this.createPlayerAction(RepairShip, { shipId, method, points }))
+            this.createPlayerAction(RepairShip, { shipId, method, points })
         )
     }
 
     async scrapShip(shipId: string) {
         this.clearSelection()
-        await this.commit(
-            ActionType.ScrapShip,
-            this.inTurn(this.createPlayerAction(ScrapShip, { shipId }))
-        )
+        await this.commit(ActionType.ScrapShip, this.createPlayerAction(ScrapShip, { shipId }))
     }
 
     async cloneSettlement(systemId: string) {
         await this.commit(
             ActionType.CloneSettlement,
-            this.inTurn(this.createPlayerAction(CloneSettlement, { systemId }))
+            this.createPlayerAction(CloneSettlement, { systemId })
         )
     }
 
@@ -444,37 +464,31 @@ export class StellarHorizonsGameSession extends GameSession<
         this.clearSelection()
         await this.commit(
             ActionType.MoveShip,
-            this.inTurn(this.createPlayerAction(MoveShip, { shipId: ship.shipId, systemId }))
+            this.createPlayerAction(MoveShip, { shipId: ship.shipId, systemId })
         )
     }
 
     async explore(shipId: string) {
         this.clearSelection()
-        await this.commit(
-            ActionType.Explore,
-            this.inTurn(this.createPlayerAction(Explore, { shipId }))
-        )
+        await this.commit(ActionType.Explore, this.createPlayerAction(Explore, { shipId }))
     }
 
     async developTech(techId: TechId, markers: number[], cash: number) {
         this.clearSelection()
         await this.commit(
             ActionType.DevelopTech,
-            this.inTurn(this.createPlayerAction(DevelopTech, { techId, markers, cash }))
+            this.createPlayerAction(DevelopTech, { techId, markers, cash })
         )
     }
 
-    async endStep() {
-        const step = this.myStep
-        if (!step) {
+    async endPhase() {
+        const phase = this.myPhase
+        if (!phase) {
             return
         }
         this.clearSelection()
-        await this.commit(
-            ActionType.EndStep,
-            this.inTurn(this.createPlayerAction(EndStep, { step }))
-        )
-        this.enterStep()
+        await this.commit(ActionType.EndPhase, this.createPlayerAction(EndPhase, { phase }))
+        this.enterPhase()
     }
 
     async chooseSurveyWorld(slot: number | undefined) {

@@ -3,9 +3,10 @@ import { GameEngine, PlayerStatus } from '@tabletop/common'
 import {
     Definition,
     Faction,
+    MachineState,
     StellarHorizonsRuntime,
     TechField,
-    TurnStep,
+    baseKey,
     type HydratedStellarHorizonsGameState,
     type ShipState
 } from '@tabletop/stellar-horizons-2'
@@ -47,26 +48,40 @@ function ship(shipId: string, playerId: string, systemId: string, transit = 0): 
     }
 }
 
+function place(state: HydratedStellarHorizonsGameState, ...ships: ShipState[]) {
+    for (const entry of ships) {
+        state.ships[entry.shipId] = entry
+    }
+}
+
+function settle(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    settlements: number
+) {
+    state.bases[baseKey(playerId, systemId)] = {
+        playerId,
+        systemId,
+        settlements,
+        spent: 0,
+        cloned: false
+    }
+}
+
 describe('player area', () => {
     it('lists players in initiative order with their ships, settlements and cash', () => {
         const state = startedState()
         const [first, second] = state.initiativeOrder()
         state.getPlayerState(first).faction = Faction.Starfarers
-        state.ships.push(
+        place(
+            state,
             ship('starfarers-kepler', first, 'sol'),
             ship('starfarers-copernicus', first, 'alpha-centauri', 2),
             ship('starfarers-andromeda', first, 'sol')
         )
-        state.bases.push(
-            {
-                playerId: first,
-                systemId: 'alpha-centauri',
-                settlements: 3,
-                spent: 0,
-                cloned: false
-            },
-            { playerId: first, systemId: 'luhman-16', settlements: 4, spent: 0, cloned: false }
-        )
+        settle(state, first, 'alpha-centauri', 3)
+        settle(state, first, 'luhman-16', 4)
         const rows = standings(state)
         expect(rows.map((row) => row.playerId)).toEqual([first, second])
         expect(rows[0]).toMatchObject({
@@ -85,10 +100,32 @@ describe('player area', () => {
         })
     })
 
-    it('shows a step only while turns are being played', () => {
+    it('shows a phase only while one is being played', () => {
         const state = startedState()
         const rows = standings(state)
-        expect(rows.every((row) => row.step === undefined)).toBe(true)
+        expect(rows.every((row) => row.phase === undefined)).toBe(true)
+    })
+
+    it('shows how far each player is through the phase in play', () => {
+        const state = startedState()
+        const [first, second] = state.initiativeOrder()
+        state.machineState = MachineState.Building
+        state.parallelSpan = {
+            machineState: MachineState.BuildPhase,
+            branchPoint: { actionCount: 0, actionChecksum: 0 },
+            playerIds: [second, first],
+            closedPlayerIds: [second],
+            mergedPlayerIds: [second],
+            branchPlayerId: first,
+            branchStartIds: {},
+            branchCloseIds: {},
+            completionId: 'completion'
+        }
+        const rows = standings(state)
+        expect(rows.map((row) => [row.playerId, row.phase?.phase, row.phase?.progress])).toEqual([
+            [first, 'Build', 'playing'],
+            [second, 'Build', 'done']
+        ])
     })
 
     it('describes one player for the console', () => {
@@ -96,23 +133,15 @@ describe('player area', () => {
         const [first] = state.initiativeOrder()
         const player = state.getPlayerState(first)
         player.faction = Faction.Starfarers
-        player.step = TurnStep.Development
         player.fieldsDeveloped = [TechField.Physics]
-        state.ships.push(
+        place(
+            state,
             ship('starfarers-copernicus', first, 'alpha-centauri', 2),
             ship('starfarers-kepler', first, 'alpha-centauri'),
             ship('starfarers-andromeda', first, 'sol')
         )
-        state.bases.push(
-            {
-                playerId: first,
-                systemId: 'alpha-centauri',
-                settlements: 3,
-                spent: 0,
-                cloned: false
-            },
-            { playerId: first, systemId: 'luhman-16', settlements: 4, spent: 0, cloned: false }
-        )
+        settle(state, first, 'alpha-centauri', 3)
+        settle(state, first, 'luhman-16', 4)
         const view = factionConsole(state, first)
         expect(view?.bases.map((base) => [base.systemId, base.settlements])).toEqual([
             ['luhman-16', 4],

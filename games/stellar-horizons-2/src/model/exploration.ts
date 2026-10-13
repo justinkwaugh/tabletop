@@ -12,17 +12,16 @@ import {
     loseShip
 } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { ShipState } from './pieces.js'
-import { awardTechMarkers } from './pools.js'
+import { MarkerReason, type ShipState } from './pieces.js'
+import { earnMarkers } from './pools.js'
 
 export const SEVERE_MALFUNCTION_ROLL = 10
 export const EXPLORATION_STEP = 10
 
-export type CompensationMarkers = Type.Static<typeof CompensationMarkers>
-export const CompensationMarkers = Type.Object({
-    [TechField.Biology]: Type.Optional(Type.Array(Type.Number())),
-    [TechField.Engineering]: Type.Optional(Type.Array(Type.Number())),
-    cash: Type.Optional(Type.Number())
+export type CompensationCounts = Type.Static<typeof CompensationCounts>
+export const CompensationCounts = Type.Object({
+    [TechField.Biology]: Type.Optional(Type.Number()),
+    [TechField.Engineering]: Type.Optional(Type.Number())
 })
 
 export type ExplorationResult = Type.Static<typeof ExplorationResult>
@@ -31,16 +30,14 @@ export const ExplorationResult = Type.Object({
     field: Type.Enum(TechField),
     explorationValue: Type.Number(),
     rewardRoll: Type.Optional(Type.Number()),
-    markers: Type.Array(Type.Number()),
-    cash: Type.Optional(Type.Number()),
+    markerCount: Type.Number(),
     malfunctionRate: Type.Number(),
     malfunctionRoll: Type.Number(),
     damage: Type.Number(),
     destroyed: Type.Boolean(),
     crippled: Type.Boolean(),
     settlementsLost: Type.Number(),
-    compensation: CompensationMarkers,
-    survey: Type.Boolean()
+    compensation: CompensationCounts
 })
 
 export function surveyThreshold(playerCount: number): number {
@@ -66,6 +63,13 @@ export function canExplore(state: HydratedStellarHorizonsGameState, ship: ShipSt
     )
 }
 
+export function canExploreAnyShip(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): boolean {
+    return state.shipsOf(playerId).some((ship) => canExplore(state, ship))
+}
+
 export function explorationValue(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
     const definition = shipDefinition(ship.shipId)
     const capabilities = capabilitiesOf(state, ship.playerId)
@@ -88,6 +92,7 @@ export function malfunctionRate(state: HydratedStellarHorizonsGameState, ship: S
         : capabilities.reMalfunction
 }
 
+// The markers are drawn once every player has explored; the exploration only records how many.
 export function explore(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState
@@ -95,7 +100,7 @@ export function explore(
     const definition = shipDefinition(ship.shipId)
     const field = starSystemDefinition(ship.systemId).exploration.field
     const value = explorationValue(state, ship)
-    const random = state.getProtectedPrng()
+    const random = state.getPlayerPrng(ship.playerId)
     const remainder = value % EXPLORATION_STEP
     const rewardRoll = remainder > 0 ? random.dieRoll(10) : undefined
     const rate = malfunctionRate(state, ship)
@@ -103,25 +108,28 @@ export function explore(
     const markerCount =
         Math.floor(value / EXPLORATION_STEP) +
         (rewardRoll !== undefined && rewardRoll <= remainder ? 1 : 0)
-    const { markers, cash } = awardTechMarkers(state, ship.playerId, field, markerCount)
+    earnMarkers(state, ship.playerId, {
+        shipId: ship.shipId,
+        systemId: ship.systemId,
+        field,
+        count: markerCount,
+        reason: MarkerReason.Exploration
+    })
     ship.explored = true
 
-    const surveyTotal = markers.reduce((total, marker) => total + marker, 0)
     const result: ExplorationResult = {
         systemId: ship.systemId,
         field,
         explorationValue: value,
         rewardRoll,
-        markers,
-        ...(cash > 0 ? { cash } : {}),
+        markerCount,
         malfunctionRate: rate,
         malfunctionRoll,
         damage: 0,
         destroyed: false,
         crippled: false,
         settlementsLost: 0,
-        compensation: {},
-        survey: surveyTotal >= surveyThreshold(state.numPlayers)
+        compensation: {}
     }
 
     if (malfunctionRoll > rate) {

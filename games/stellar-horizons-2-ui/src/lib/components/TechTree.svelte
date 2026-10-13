@@ -1,7 +1,7 @@
 <script lang="ts">
     import {
         TECH_FIELDS,
-        TurnStep,
+        TurnPhase,
         techDefinition,
         type TechDefinition,
         type TechField
@@ -29,7 +29,7 @@
         techViews(
             gameSession.gameState,
             gameSession.myPlayerId,
-            gameSession.actingStep === TurnStep.Development
+            gameSession.actingPhase === TurnPhase.Development
         ).filter((view) => fields.includes(view.tech.field))
     )
     const ownedIds = $derived(

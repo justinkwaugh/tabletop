@@ -1,19 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { Color, assertExists } from '@tabletop/common'
 import { Faction } from '../components/factions.js'
+import { shipDefinition } from '../components/ships.js'
 import { TechField } from '../components/techFields.js'
 import { STAR_MAP } from '../components/starMap.js'
 import { TechId } from '../components/techs.js'
 import { WorldSide, maxPopulation, worldTile } from '../components/worlds.js'
 import { MachineState } from '../definition/states.js'
-import { hydrate, startedGame } from '../testing/fixtures.js'
+import { hydrate, placeBase, placeShip, startedGame } from '../testing/fixtures.js'
 import { RepairMethod, buildLocations, canRepair, shipsAvailableToBuild } from './building.js'
 import { capabilitiesOf, loseShip } from './fleet.js'
 import { isTechAvailable, isValidTechPayment, techCost } from './development.js'
 import { explorationValue, surveyThreshold } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { moveOptions } from './movement.js'
+import { MarkerReason } from './pieces.js'
 import { awardTechMarkers } from './pools.js'
+import { settleEarnedMarkers } from './settlement.js'
 import { canSettleSystem } from './settling.js'
 import { applySurveyChoice, resolveNextSurvey } from './surveys.js'
 import {
@@ -22,30 +25,11 @@ import {
     removalOptions,
     terraform
 } from './terraforming.js'
-import { TurnStep } from './turn.js'
+import { roundHalfUp } from './turn.js'
 import { victoriousPlayerIds } from './victory.js'
 
 function freshState(playerCount = 2): HydratedStellarHorizonsGameState {
     return hydrate(startedGame(playerCount).state)
-}
-
-function placeShip(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    shipId: string,
-    systemId: string
-) {
-    state.ships.push({
-        shipId,
-        playerId,
-        systemId,
-        transit: 0,
-        damage: 0,
-        settlements: 0,
-        loadedFromBase: false,
-        explored: false
-    })
-    return state.ship(shipId)
 }
 
 function factionPlayerId(state: HydratedStellarHorizonsGameState, faction: Faction): string {
@@ -66,7 +50,7 @@ function firstTile(state: HydratedStellarHorizonsGameState, predicate: (id: stri
 describe('Footfall setup', () => {
     it('lays out the Sol and Alpha Centauri sectors with five-point exploration markers', () => {
         const state = freshState()
-        expect(state.machineState).toBe(MachineState.PlayingTurn)
+        expect(state.machineState).toBe(MachineState.Building)
         expect(state.year).toBe(2150)
         expect(state.systems.map((system) => system.systemId).toSorted()).toEqual(
             [
@@ -94,7 +78,6 @@ describe('Footfall setup', () => {
             expect(player.techMarkers.Physics).toHaveLength(1)
             expect(player.techMarkers.Engineering).toHaveLength(1)
             expect(player.techs).toHaveLength(7)
-            expect(player.step).toBe(TurnStep.Build)
         }
         const drawn = 3 * 3
         const pooled = Object.values(state.techPools).flat()
@@ -161,13 +144,7 @@ describe('movement', () => {
         const playerId = factionPlayerId(state, Faction.Starfarers)
         const pytheas = placeShip(state, playerId, 'starfarers-pytheas', 'alpha-centauri')
         expect(moveOptions(state, pytheas).map((option) => option.systemId)).not.toContain('sirius')
-        state.bases.push({
-            playerId,
-            systemId: 'alpha-centauri',
-            settlements: 9,
-            spent: 0,
-            cloned: false
-        })
+        placeBase(state, playerId, 'alpha-centauri', 9)
         expect(moveOptions(state, pytheas)).toContainEqual({ systemId: 'sirius', turns: 4 })
     })
 })
@@ -186,19 +163,44 @@ describe('exploration and surveys', () => {
         expect(player.cash).toBe(before.cash + 2)
     })
 
-    it('compensates a lost ship in cash when the pools are empty', () => {
+    it('queues compensation for a lost ship, paid in cash when the pools are empty', () => {
         const state = freshState()
         const playerId = factionPlayerId(state, Faction.Starfarers)
         const ship = placeShip(state, playerId, 'starfarers-andromeda', 'alpha-centauri')
-        assertExists(ship, 'The ship was placed')
+        const engineering = roundHalfUp(shipDefinition('starfarers-andromeda').size / 4)
         state.techPools[TechField.Biology] = [0, 0, 0, 0, 0]
         state.techPools[TechField.Engineering] = [0, 0, 0, 0, 0]
         const cash = state.getPlayerState(playerId).cash
 
         const loss = loseShip(state, ship)
 
-        expect(loss.compensation).toEqual({ Biology: [], Engineering: [], cash: 2 })
-        expect(state.getPlayerState(playerId).cash).toBe(cash + 2)
+        expect(loss.compensation).toEqual({ Biology: 1, Engineering: engineering })
+        expect(state.findShip('starfarers-andromeda')).toBeUndefined()
+        expect(state.getPlayerState(playerId).earnedMarkers).toEqual([
+            {
+                shipId: 'starfarers-andromeda',
+                systemId: 'alpha-centauri',
+                field: TechField.Biology,
+                count: 1,
+                reason: MarkerReason.Loss
+            },
+            {
+                shipId: 'starfarers-andromeda',
+                systemId: 'alpha-centauri',
+                field: TechField.Engineering,
+                count: engineering,
+                reason: MarkerReason.Loss
+            }
+        ])
+
+        const settled = settleEarnedMarkers(state, playerId)
+
+        expect(settled.map((entry) => [entry.markers, entry.cash, entry.survey])).toEqual([
+            [[], 1, false],
+            [[], engineering, false]
+        ])
+        expect(state.getPlayerState(playerId).earnedMarkers).toEqual([])
+        expect(state.getPlayerState(playerId).cash).toBe(cash + 1 + engineering)
     })
 
     it('sums marker, ship and system bonus', () => {
@@ -217,7 +219,7 @@ describe('exploration and surveys', () => {
     it('lowers the marker and fills an empty world slot on a completed survey', () => {
         const state = freshState()
         const [first] = state.initiativeOrder()
-        state.pendingSurveys.push({ playerId: first, shipId: 'x', systemId: 'alpha-centauri' })
+        state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'alpha-centauri' })
         const resolution = resolveNextSurvey(state)
         expect(resolution.completed).toBe(true)
         expect(state.systemState('alpha-centauri').explorationMarker).toBe(4)
@@ -230,8 +232,8 @@ describe('exploration and surveys', () => {
         const state = freshState()
         const [first, second] = state.initiativeOrder()
         state.systemState('luhman-16').explorationMarker = 1
-        state.pendingSurveys.push({ playerId: second, shipId: 'b', systemId: 'luhman-16' })
-        state.pendingSurveys.push({ playerId: first, shipId: 'a', systemId: 'luhman-16' })
+        state.getPlayerState(second).pendingSurveys.push({ shipId: 'b', systemId: 'luhman-16' })
+        state.getPlayerState(first).pendingSurveys.push({ shipId: 'a', systemId: 'luhman-16' })
         expect(resolveNextSurvey(state)).toMatchObject({ playerId: first, completed: true })
         expect(resolveNextSurvey(state)).toMatchObject({ playerId: second, completed: false })
     })
@@ -244,7 +246,7 @@ describe('exploration and surveys', () => {
             system.explorationMarker = 5
             system.worlds.forEach((world) => state.worldPool.push(world.tileId))
             system.worlds = []
-            state.pendingSurveys.push({ playerId: first, shipId: 'x', systemId: 'sirius' })
+            state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'sirius' })
             resolveNextSurvey(state)
             const placed = system.worlds[0]
             expect(['M', 'O']).not.toContain(worldTile(placed.tileId).worldClass)
@@ -262,7 +264,7 @@ describe('exploration and surveys', () => {
             { tileId: giant, side: WorldSide.I }
         ]
         state.worldPool = state.worldPool.filter((id) => maxPopulation(id, WorldSide.I) === 10)
-        state.pendingSurveys.push({ playerId: first, shipId: 'x', systemId: 'luhman-16' })
+        state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'luhman-16' })
         const resolution = resolveNextSurvey(state)
         expect(resolution.awaitingChoice).toBe(true)
         expect(state.surveyChoice?.drawnTileId).toBe(resolution.drawnTileId)
@@ -332,13 +334,7 @@ describe('terraforming', () => {
         state.getPlayerState(a).techs.push({ techId: TechId.Terraforming, year: 2140 })
         const polar = firstTile(state, (id) => worldTile(id).worldClass === 'P')
         state.systemState('alpha-centauri').worlds = [{ tileId: polar, side: WorldSide.I }]
-        state.bases.push({
-            playerId: a,
-            systemId: 'alpha-centauri',
-            settlements: 1,
-            spent: 0,
-            cloned: false
-        })
+        placeBase(state, a, 'alpha-centauri', 1)
         const target = { systemId: 'alpha-centauri', slot: 0 }
         expect(terraform(state, a, target)).toMatchObject({ flipped: true })
         const current = maxPopulation(polar, WorldSide.II)
@@ -373,13 +369,7 @@ describe('victory', () => {
         const [a] = state.initiativeOrder()
         const small = firstTile(state, (id) => worldTile(id).worldClass === 'H')
         state.systemState('alpha-centauri').worlds = [{ tileId: small, side: WorldSide.I }]
-        state.bases.push({
-            playerId: a,
-            systemId: 'alpha-centauri',
-            settlements: 10,
-            spent: 0,
-            cloned: false
-        })
+        placeBase(state, a, 'alpha-centauri', 10)
         expect(victoriousPlayerIds(state)).toEqual([])
         const large = firstTile(state, (id) => worldTile(id).worldClass === 'L')
         state.systemState('alpha-centauri').worlds.push({ tileId: large, side: WorldSide.I })

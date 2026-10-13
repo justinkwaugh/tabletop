@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { returnSpentMarkers } from '../model/settlement.js'
 import { DECADE, isFinalTurn } from '../model/turnCycle.js'
 import { canStillBeWon, victoriousPlayerIds } from '../model/victory.js'
 
@@ -39,6 +40,7 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
+        returnSpentMarkers(state)
         const year = state.year
         const victorIds = victoriousPlayerIds(state)
         const gameOver = victorIds.length > 0 || isFinalTurn(state) || !canStillBeWon(state)

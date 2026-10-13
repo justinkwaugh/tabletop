@@ -1,42 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { GameResult, type Game } from '@tabletop/common'
+import { GameResult } from '@tabletop/common'
 import { TechId } from '../components/techs.js'
 import { WorldClass, WorldSide, maxPopulation, worldTile } from '../components/worlds.js'
-import type {
-    HydratedStellarHorizonsGameState,
-    StellarHorizonsProjectedState
-} from '../model/gameState.js'
+import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { CargoPartnerKind } from '../model/cargoTransfer.js'
-import { TurnStep } from '../model/turn.js'
-import { edit, execute, hydrate, startedGame, takeTile, userAction } from '../testing/fixtures.js'
+import { TurnPhase } from '../model/turn.js'
+import { playPhase } from '../model/turnPlan.js'
+import {
+    advanceTo,
+    edit,
+    endPhase,
+    execute,
+    finishDecade,
+    hydrate,
+    placeBase,
+    placeShip,
+    startedGame,
+    takeTile,
+    userAction
+} from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 
-function finishDecade(game: Game, state: StellarHorizonsProjectedState) {
-    let current = state
-    while (current.machineState === MachineState.PlayingTurn && current.year === state.year) {
-        const [playerId] = current.activePlayerIds
-        const step = hydrate(current).getPlayerState(playerId).step
-        current = execute(game, current, userAction(game, playerId, ActionType.EndStep, { step }))
-    }
-    return current
-}
-
-function settleAlphaCentauri(state: HydratedStellarHorizonsGameState, settlements: number) {
+function settleAlphaCentauri(
+    state: HydratedStellarHorizonsGameState,
+    settlements: number,
+    playerIds: readonly string[] = state.initiativeOrder()
+) {
     state.systemState('alpha-centauri').worlds = [
         {
             tileId: takeTile(state, (id) => worldTile(id).worldClass === WorldClass.M),
             side: WorldSide.I
         }
     ]
-    for (const playerId of state.initiativeOrder()) {
-        state.bases.push({
-            playerId,
-            systemId: 'alpha-centauri',
-            settlements,
-            spent: 0,
-            cloned: false
-        })
+    for (const playerId of playerIds) {
+        placeBase(state, playerId, 'alpha-centauri', settlements)
     }
 }
 
@@ -45,20 +43,12 @@ describe('Footfall turn flow', () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
-            settleAlphaCentauri(hydrated, 9)
-            hydrated.bases = hydrated.bases.filter((base) => base.playerId === first)
-            hydrated.ships.push({
-                shipId: 'starfarers-andromeda',
-                playerId: first,
-                systemId: 'alpha-centauri',
-                transit: 0,
-                damage: 0,
-                settlements: 1,
-                loadedFromBase: false,
-                explored: false
+            settleAlphaCentauri(hydrated, 9, [first])
+            placeShip(hydrated, first, 'starfarers-andromeda', 'alpha-centauri', {
+                settlements: 1
             })
-            hydrated.getPlayerState(first).step = TurnStep.Cargo
         })
+        state = advanceTo(game, state, TurnPhase.Cargo, first)
         state = execute(
             game,
             state,
@@ -97,25 +87,17 @@ describe('Footfall turn flow', () => {
 
     it('starts the next decade with arrivals, then pays income in even decades', () => {
         const { game, state: started } = startedGame(2)
-        const [first] = started.turnManager.turnOrder
+        const [first, second] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
-            hydrated.ships.push({
-                shipId: 'starfarers-kepler',
-                playerId: first,
-                systemId: 'alpha-centauri',
-                transit: 1,
-                damage: 0,
-                settlements: 0,
-                loadedFromBase: false,
-                explored: false
-            })
+            placeShip(hydrated, first, 'starfarers-kepler', 'alpha-centauri', { transit: 1 })
         })
         state = finishDecade(game, state)
         const next = hydrate(state)
         expect(next.year).toBe(2160)
         expect(next.ship('starfarers-kepler').transit).toBe(0)
         expect(next.players.every((player) => player.cash === 40)).toBe(true)
-        expect(next.players.every((player) => player.step === TurnStep.Build)).toBe(true)
+        expect(next.machineState).toBe(MachineState.Building)
+        expect(next.activePlayerIds).toEqual([second])
     })
 
     it('asks the surveyor whether to swap in a better small world', () => {
@@ -136,7 +118,7 @@ describe('Footfall turn flow', () => {
             hydrated.worldPool = hydrated.worldPool.filter(
                 (id) => maxPopulation(id, WorldSide.I) === 9
             )
-            hydrated.pendingSurveys.push({ playerId: first, shipId: 'x', systemId: 'luhman-16' })
+            hydrated.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'luhman-16' })
         })
         state = finishDecade(game, state)
         expect(state.machineState).toBe(MachineState.ChoosingSurveyWorld)
@@ -146,14 +128,15 @@ describe('Footfall turn flow', () => {
             state,
             userAction(game, first, ActionType.ChooseSurveyWorld, { slot: 0 })
         )
-        const after = hydrate(state)
-        expect(maxPopulation(after.systemState('luhman-16').worlds[0].tileId, WorldSide.I)).toBe(9)
-        expect(after.year).toBe(2160)
+        const chosen = hydrate(state)
+        expect(maxPopulation(chosen.systemState('luhman-16').worlds[0].tileId, WorldSide.I)).toBe(9)
+        expect(playPhase(state)).toBe(TurnPhase.Development)
+        expect(finishDecade(game, state).year).toBe(2160)
     })
 
     it('offers terraforming at the end of even decades to players with the tech and a base', () => {
         const { game, state: started } = startedGame(2)
-        const [first, second] = started.turnManager.turnOrder
+        const [first] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
             hydrated.year = 2160
             hydrated.getPlayerState(first).techs.push({ techId: TechId.Terraforming, year: 2150 })
@@ -170,26 +153,17 @@ describe('Footfall turn flow', () => {
         const after = hydrate(state)
         expect(after.systemState('alpha-centauri').worlds[0].side).toBe(WorldSide.II)
         expect(after.year).toBe(2170)
-        expect(after.getPlayerState(second).step).toBe(TurnStep.Build)
+        expect(playPhase(after)).toBe(TurnPhase.Build)
     })
 
     it("ends movement once none of the player's ships can move, and skips exploration with all of them in transit", () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
-        const probe = (shipId: string) => ({
-            shipId,
-            playerId: first,
-            systemId: 'sol',
-            transit: 0,
-            damage: 0,
-            settlements: 0,
-            loadedFromBase: false,
-            explored: false
-        })
         let state = edit(started, (hydrated) => {
-            hydrated.ships.push(probe('starfarers-kepler'), probe('starfarers-copernicus'))
-            hydrated.getPlayerState(first).step = TurnStep.Movement
+            placeShip(hydrated, first, 'starfarers-kepler', 'sol')
+            placeShip(hydrated, first, 'starfarers-copernicus', 'sol')
         })
+        state = advanceTo(game, state, TurnPhase.Movement, first)
         const move = (shipId: string) =>
             execute(
                 game,
@@ -197,79 +171,48 @@ describe('Footfall turn flow', () => {
                 userAction(game, first, ActionType.MoveShip, { shipId, systemId: 'alpha-centauri' })
             )
         state = move('starfarers-kepler')
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
+        expect(playPhase(state)).toBe(TurnPhase.Movement)
+        expect(state.activePlayerIds).toEqual([first])
         state = move('starfarers-copernicus')
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Development)
+        expect(playPhase(state)).toBe(TurnPhase.Development)
+        expect(state.activePlayerIds).toEqual([first])
     })
 
-    it('skips the cargo, movement and exploration steps for a player with nothing to do in them', () => {
+    it('skips the cargo, movement and exploration phases for a player with nothing to do in them', () => {
         const { game, state: started } = startedGame(2)
-        const [first] = started.turnManager.turnOrder
-        const state = execute(
-            game,
-            started,
-            userAction(game, first, ActionType.EndStep, { step: TurnStep.Build })
-        )
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Development)
+        const [first, second] = started.turnManager.turnOrder
+        expect(playPhase(started)).toBe(TurnPhase.Build)
+        expect(started.activePlayerIds).toEqual([second])
+        let state = endPhase(game, started)
+        expect(state.activePlayerIds).toEqual([first])
+        state = endPhase(game, state)
+        expect(playPhase(state)).toBe(TurnPhase.Development)
+        expect(state.activePlayerIds).toEqual([first])
     })
 
-    it('stops at the exploration step while a ship can explore, and stays there after it has', () => {
+    it('stops at the exploration phase while a ship can explore, and stays there after it has', () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
-            hydrated.ships.push({
-                shipId: 'starfarers-kepler',
-                playerId: first,
-                systemId: 'alpha-centauri',
-                transit: 0,
-                damage: 0,
-                settlements: 0,
-                loadedFromBase: false,
-                explored: false
-            })
-            hydrated.getPlayerState(first).step = TurnStep.Cargo
+            placeShip(hydrated, first, 'starfarers-kepler', 'alpha-centauri')
         })
-        state = execute(
-            game,
-            state,
-            userAction(game, first, ActionType.EndStep, { step: TurnStep.Cargo })
-        )
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
-        state = execute(
-            game,
-            state,
-            userAction(game, first, ActionType.EndStep, { step: TurnStep.Movement })
-        )
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+        state = advanceTo(game, state, TurnPhase.Exploration, first)
         state = execute(
             game,
             state,
             userAction(game, first, ActionType.Explore, { shipId: 'starfarers-kepler' })
         )
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Exploration)
+        expect(playPhase(state)).toBe(TurnPhase.Exploration)
+        expect(state.activePlayerIds).toEqual([first])
     })
 
-    it('stops at the cargo step while a ship can still buy, then ends it once nothing is left', () => {
+    it('stops at the cargo phase while a ship can still buy, then ends it once nothing is left', () => {
         const { game, state: started } = startedGame(2)
         const [first] = started.turnManager.turnOrder
         let state = edit(started, (hydrated) => {
-            hydrated.ships.push({
-                shipId: 'starfarers-andromeda',
-                playerId: first,
-                systemId: 'sol',
-                transit: 0,
-                damage: 0,
-                settlements: 0,
-                loadedFromBase: false,
-                explored: false
-            })
+            placeShip(hydrated, first, 'starfarers-andromeda', 'sol')
         })
-        state = execute(
-            game,
-            state,
-            userAction(game, first, ActionType.EndStep, { step: TurnStep.Build })
-        )
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Cargo)
+        state = advanceTo(game, state, TurnPhase.Cargo, first)
         const buy = (settlements: number) =>
             execute(
                 game,
@@ -281,8 +224,9 @@ describe('Footfall turn flow', () => {
                 })
             )
         state = buy(1)
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Cargo)
+        expect(playPhase(state)).toBe(TurnPhase.Cargo)
         state = buy(1)
-        expect(hydrate(state).getPlayerState(first).step).toBe(TurnStep.Movement)
+        expect(playPhase(state)).toBe(TurnPhase.Movement)
+        expect(state.activePlayerIds).toEqual([first])
     })
 })

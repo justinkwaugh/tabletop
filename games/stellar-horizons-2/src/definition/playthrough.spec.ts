@@ -22,7 +22,8 @@ import { canSettleSystem, canUnload, settlementPurchaseLimit } from '../model/se
 import { surveySwapSlots } from '../model/surveys.js'
 import { replacementOptions, terraformTargets } from '../model/terraforming.js'
 import { systemPopulation } from '../model/victory.js'
-import { TurnStep } from '../model/turn.js'
+import { TurnPhase } from '../model/turn.js'
+import { playPhase } from '../model/turnPlan.js'
 import { startingBaseSystemIds } from '../model/startingBases.js'
 import { VOYAGES_CONFIG, execute, hydrate, startedGame, userAction } from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
@@ -51,29 +52,30 @@ function botAction(game: Game, state: HydratedStellarHorizonsGameState): GameAct
             const [tileId] = choice ? replacementOptions(state, choice) : []
             return act(ActionType.ChooseTerraformWorld, { tileId, removedTileIds: [] })
         }
-        case MachineState.PlayingTurn:
+        default: {
+            const phase = playPhase(state)
+            if (phase === undefined) {
+                throw new Error(`Bot cannot act in ${state.machineState}`)
+            }
             return (
                 (state.scenario === ScenarioId.Voyages
-                    ? voyagesAction(state, playerId, act)
-                    : turnAction(state, playerId, act)) ??
-                act(ActionType.EndStep, {
-                    step: state.getPlayerState(playerId).step
-                })
+                    ? voyagesAction(state, playerId, phase, act)
+                    : turnAction(state, playerId, phase, act)) ?? act(ActionType.EndPhase, { phase })
             )
-        default:
-            throw new Error(`Bot cannot act in ${state.machineState}`)
+        }
     }
 }
 
 function turnAction(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
+    phase: TurnPhase,
     act: (type: ActionType, fields?: Record<string, unknown>) => GameAction
 ): GameAction | undefined {
     const player = state.getPlayerState(playerId)
     const ships = state.shipsOf(playerId)
-    switch (player.step) {
-        case TurnStep.Build: {
+    switch (phase) {
+        case TurnPhase.Build: {
             const damaged = ships.find((ship) =>
                 canRepair(state, playerId, ship.shipId, RepairMethod.RemotePoint, 1)
             )
@@ -96,7 +98,7 @@ function turnAction(
                 ? act(ActionType.BuildShip, { shipId: wanted.id, systemId: 'sol' })
                 : undefined
         }
-        case TurnStep.Cargo: {
+        case TurnPhase.Cargo: {
             const unloading = ships.find((ship) => canUnload(state, ship))
             if (unloading) {
                 return act(ActionType.TransferCargo, {
@@ -119,7 +121,7 @@ function turnAction(
                   })
                 : undefined
         }
-        case TurnStep.Movement: {
+        case TurnPhase.Movement: {
             for (const ship of ships.filter(hasArrived)) {
                 const options = moveOptions(state, ship)
                 const destination = shipDestination(state, playerId, ship.shipId, options)
@@ -129,11 +131,11 @@ function turnAction(
             }
             return undefined
         }
-        case TurnStep.Exploration: {
+        case TurnPhase.Exploration: {
             const explorer = ships.find((ship) => canExplore(state, ship))
             return explorer ? act(ActionType.Explore, { shipId: explorer.shipId }) : undefined
         }
-        case TurnStep.Development: {
+        case TurnPhase.Development: {
             const affordable = TECHS.filter(
                 (definition) =>
                     isTechAvailable(state, playerId, definition.id) &&
@@ -167,12 +169,13 @@ function turnAction(
 function voyagesAction(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
+    phase: TurnPhase,
     act: (type: ActionType, fields?: Record<string, unknown>) => GameAction
 ): GameAction | undefined {
     const player = state.getPlayerState(playerId)
     const ships = state.shipsOf(playerId)
-    switch (player.step) {
-        case TurnStep.Build: {
+    switch (phase) {
+        case TurnPhase.Build: {
             const probes = ships.filter((ship) => shipDefinition(ship.shipId).kind === ShipKind.RE)
             const affordable = shipsAvailableToBuild(state, playerId).filter(
                 (definition) => definition.cost <= player.cash
@@ -189,7 +192,7 @@ function voyagesAction(
                 ? act(ActionType.BuildShip, { shipId: wanted.id, systemId: 'sol' })
                 : undefined
         }
-        case TurnStep.Movement: {
+        case TurnPhase.Movement: {
             for (const ship of ships.filter(hasArrived)) {
                 const destination = voyagesDestination(state, ship.shipId)
                 if (destination) {
@@ -198,7 +201,7 @@ function voyagesAction(
             }
             return undefined
         }
-        case TurnStep.Exploration: {
+        case TurnPhase.Exploration: {
             const [systemId] = attemptableSystemIds(state, playerId)
             if (systemId) {
                 return act(ActionType.AttemptAnomaly, {
@@ -211,10 +214,10 @@ function voyagesAction(
             const explorer = ships.find((ship) => canExplore(state, ship))
             return explorer ? act(ActionType.Explore, { shipId: explorer.shipId }) : undefined
         }
-        case TurnStep.Cargo:
+        case TurnPhase.Cargo:
             return undefined
         default:
-            return turnAction(state, playerId, act)
+            return turnAction(state, playerId, phase, act)
     }
 }
 
@@ -233,7 +236,7 @@ function voyagesDestination(
         return undefined
     }
     const crowding = (systemId: string) =>
-        state.ships.filter((other) => other.systemId === systemId).length
+        state.allShips().filter((other) => other.systemId === systemId).length
     const anomalous = (systemId: string) => (state.systemState(systemId).anomaly ? 0 : 1)
     return moveOptions(state, ship)
         .map((option) => option.systemId)
@@ -270,7 +273,7 @@ function shipDestination(
         return undefined
     }
     const crowding = (systemId: string) =>
-        state.ships.filter((other) => other.systemId === systemId).length
+        state.allShips().filter((other) => other.systemId === systemId).length
     return reachable
         .filter((systemId) => state.systemState(systemId).explorationMarker > 0)
         .toSorted((a, b) => crowding(a) - crowding(b))[0]

@@ -14,13 +14,12 @@ import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../comp
 import { MachineState } from '../definition/states.js'
 import {
     Base,
-    PendingAnomalyAttempt,
-    PendingSurvey,
     ShipState,
     SurveyWorldChoice,
     SystemState,
     TechPools,
-    TerraformChoice
+    TerraformChoice,
+    baseKey
 } from './pieces.js'
 import { HydratedStellarHorizonsPlayerState, StellarHorizonsPlayerState } from './playerState.js'
 
@@ -32,14 +31,12 @@ export const StellarHorizonsGameState = Type.Object({
     scenario: Type.Enum(ScenarioId),
     year: Type.Number(),
     systems: Type.Array(SystemState),
-    ships: Type.Array(ShipState),
-    bases: Type.Array(Base),
+    ships: Type.Record(Type.String(), ShipState),
+    bases: Type.Record(Type.String(), Base),
     worldPool: Type.Array(Type.String()),
     removedWorlds: Type.Array(Type.String()),
     techPools: TechPools,
     anomalyPool: Type.Array(Type.String()),
-    pendingAnomalyAttempts: Type.Array(PendingAnomalyAttempt),
-    pendingSurveys: Type.Array(PendingSurvey),
     surveyChoice: Type.Optional(SurveyWorldChoice),
     terraformQueue: Type.Array(Type.String()),
     terraformChoice: Type.Optional(TerraformChoice)
@@ -50,6 +47,12 @@ export const StellarHorizonsProjectedState =
     Visibility.createProjectionSchema(StellarHorizonsGameState)
 export type StellarHorizonsProjectedState = Type.Static<typeof StellarHorizonsProjectedState>
 export const StellarHorizonsProjectedStateValidator = Compile(StellarHorizonsProjectedState)
+
+function sortedValues<T>(record: Record<string, T>): T[] {
+    return Object.keys(record)
+        .toSorted()
+        .map((key) => record[key])
+}
 
 export class HydratedStellarHorizonsGameState
     extends HydratableGameState<
@@ -73,14 +76,12 @@ export class HydratedStellarHorizonsGameState
     declare scenario: ScenarioId
     declare year: number
     declare systems: SystemState[]
-    declare ships: ShipState[]
-    declare bases: Base[]
+    declare ships: Record<string, ShipState>
+    declare bases: Record<string, Base>
     declare worldPool: string[]
     declare removedWorlds: string[]
     declare techPools: TechPools
     declare anomalyPool: string[]
-    declare pendingAnomalyAttempts: PendingAnomalyAttempt[]
-    declare pendingSurveys: PendingSurvey[]
     declare surveyChoice?: SurveyWorldChoice
     declare terraformQueue: string[]
     declare terraformChoice?: TerraformChoice
@@ -108,6 +109,10 @@ export class HydratedStellarHorizonsGameState
         return this.systems.some((system) => system.systemId === systemId)
     }
 
+    allShips(): ShipState[] {
+        return sortedValues(this.ships)
+    }
+
     ship(shipId: string): ShipState {
         const ship = this.findShip(shipId)
         assertExists(ship, `Ship ${shipId} is not in play`)
@@ -115,7 +120,7 @@ export class HydratedStellarHorizonsGameState
     }
 
     findShip(shipId: string): ShipState | undefined {
-        return this.ships.find((candidate) => candidate.shipId === shipId)
+        return Object.hasOwn(this.ships, shipId) ? this.ships[shipId] : undefined
     }
 
     playerShip(playerId: string, shipId: string): ShipState | undefined {
@@ -124,15 +129,20 @@ export class HydratedStellarHorizonsGameState
     }
 
     shipsOf(playerId: string): ShipState[] {
-        return this.ships.filter((ship) => ship.playerId === playerId)
+        return this.allShips().filter((ship) => ship.playerId === playerId)
+    }
+
+    allBases(): Base[] {
+        return sortedValues(this.bases)
     }
 
     base(playerId: string, systemId: string): Base | undefined {
-        return this.bases.find((base) => base.playerId === playerId && base.systemId === systemId)
+        const key = baseKey(playerId, systemId)
+        return Object.hasOwn(this.bases, key) ? this.bases[key] : undefined
     }
 
     basesOf(playerId: string): Base[] {
-        return this.bases.filter((base) => base.playerId === playerId)
+        return this.allBases().filter((base) => base.playerId === playerId)
     }
 
     otherPlayers(playerId: string): HydratedStellarHorizonsPlayerState[] {

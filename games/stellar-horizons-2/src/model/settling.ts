@@ -3,7 +3,7 @@ import { isRevealedWorld } from '../components/worlds.js'
 import { blocksBases } from './anomalies.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { ShipState } from './pieces.js'
+import { baseKey, type ShipState } from './pieces.js'
 
 export function hasRevealedWorld(state: HydratedStellarHorizonsGameState, systemId: string) {
     return state.systemState(systemId).worlds.some((world) => isRevealedWorld(world.tileId))
@@ -65,7 +65,13 @@ export function addSettlements(
         base.settlements += count
         return
     }
-    state.bases.push({ playerId, systemId, settlements: count, spent: 0, cloned: false })
+    state.bases[baseKey(playerId, systemId)] = {
+        playerId,
+        systemId,
+        settlements: count,
+        spent: 0,
+        cloned: false
+    }
 }
 
 export function removeBaseSettlement(
@@ -79,6 +85,6 @@ export function removeBaseSettlement(
     }
     base.settlements -= 1
     if (base.settlements === 0) {
-        state.bases = state.bases.filter((candidate) => candidate !== base)
+        delete state.bases[baseKey(playerId, systemId)]
     }
 }

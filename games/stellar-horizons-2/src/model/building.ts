@@ -59,6 +59,11 @@ export function canBuildShip(
     )
 }
 
+export function canBuildAnyShip(state: HydratedStellarHorizonsGameState, playerId: string) {
+    const cash = state.getPlayerState(playerId).cash
+    return shipsAvailableToBuild(state, playerId).some((definition) => definition.cost <= cash)
+}
+
 export function dockRepairCapacity(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState
@@ -114,6 +119,16 @@ export function canRepair(
         case RepairMethod.RemoteFull:
             return !player.remoteRepairUsed && player.cash >= remoteFullRepairCost(shipId)
     }
+}
+
+export function canRepairAnyShip(state: HydratedStellarHorizonsGameState, playerId: string) {
+    return state
+        .shipsOf(playerId)
+        .some((ship) =>
+            Object.values(RepairMethod).some((method) =>
+                canRepair(state, playerId, ship.shipId, method, 1)
+            )
+        )
 }
 
 export function scrapRefund(ship: ShipState): number {

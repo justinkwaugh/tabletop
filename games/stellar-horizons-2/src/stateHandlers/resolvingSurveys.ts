@@ -3,6 +3,7 @@ import { HydratedResolveSurvey, ResolveSurvey, isResolveSurvey } from '../action
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { anyPendingSurveys } from '../model/surveys.js'
 import { stateAfterSurveys } from './transitions.js'
 
 export class ResolvingSurveysStateHandler implements MachineStateHandler<
@@ -33,7 +34,7 @@ export class ResolvingSurveysStateHandler implements MachineStateHandler<
         if (state.surveyChoice) {
             return MachineState.ChoosingSurveyWorld
         }
-        return state.pendingSurveys.length > 0
+        return anyPendingSurveys(state)
             ? MachineState.ResolvingSurveys
             : stateAfterSurveys(state)
     }

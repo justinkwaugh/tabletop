@@ -1,5 +1,5 @@
 import { TechField } from '../components/techFields.js'
-import { TechId, techDefinition } from '../components/techs.js'
+import { TECHS, TechId, techDefinition } from '../components/techs.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 
 export const MIN_TECH_COST = 5
@@ -79,4 +79,12 @@ export function removeMarkers(held: number[], spent: readonly number[]) {
     for (const value of spent) {
         held.splice(held.indexOf(value), 1)
     }
+}
+
+export function canDevelopAnyTech(state: HydratedStellarHorizonsGameState, playerId: string) {
+    return TECHS.some(
+        (definition) =>
+            isTechAvailable(state, playerId, definition.id) &&
+            canAffordTech(state, playerId, definition.id)
+    )
 }
