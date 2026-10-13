@@ -22,6 +22,7 @@ import {
     BranchMergeError,
     branchUndoWindow,
     branchView,
+    firstActionWithAnotherResult,
     sameBranchOutcome,
     unopenedBranchView,
     type Branch,
@@ -494,7 +495,18 @@ export class GameEngine<
                 playerId,
                 'it reached a different Game State on the Main Line'
             )
-        return combineCascades(state, steps)
+        const merged = combineCascades(state, steps)
+        const changed = firstActionWithAnotherResult({
+            closedView: expected,
+            recorded: actions,
+            replayed: merged.actionCascade.transitions.map((transition) => transition.after)
+        })
+        if (changed !== undefined)
+            throw new BranchMergeError(
+                playerId,
+                `${changed.type} had a different result on the Main Line`
+            )
+        return merged
     }
 
     executeAction(input: {

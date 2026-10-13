@@ -618,6 +618,25 @@ describe('Unmerged Branch', () => {
         expect(() => branchViewDuringMerge(midway, theirs.branch)).toThrow()
     })
 
+    it('when closed, still shows who the Main Line waits on while another Player’s Branch is part-way onto it', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const mine = playPrivately(spanGame, state, 'p2', [spanAction('f2', 'finish', 'p2')])
+        const bothClosed = ['p2', 'p3'].reduce(
+            (current, playerId) =>
+                spanGame.engine.closeBranch({ state: current, playerId }).updatedState,
+            state
+        )
+        const midway = playLocally(spanGame, bothClosed, [spanAction('w3', 'work', 'p3')]).state
+        expect(midway.parallelSpan?.branchPlayerId).toBe('p3')
+        expect(midway.activePlayerIds).toEqual(['p3'])
+
+        const view = branchViewDuringMerge(midway, mine.branch)
+        expect(view.parallelSpan?.branchPlayerId).toBeUndefined()
+        expect(view.activePlayerIds).toEqual(['p1'])
+        expect(playerOf(view, 'p3').work).toBe(1)
+    })
+
     it('refuses a Branch for a Player whose Branch is already on the Main Line', () => {
         const spanGame = createSpanGame()
         const moved = execute(

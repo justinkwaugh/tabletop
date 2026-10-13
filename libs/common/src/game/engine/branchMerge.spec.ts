@@ -324,6 +324,26 @@ describe('Merge', () => {
         )
     })
 
+    it('refuses a Branch in which one Action’s result depended on a Branch ahead of it, though it ended the same', () => {
+        const spanGame = createSpanGame()
+        const state = beginSpan(spanGame)
+        const dependent = playPrivately(spanGame, state, 'p2', [
+            spanAction('k3', 'peek', 'p2', { otherPlayerId: 'p3' }),
+            spanAction('q2', 'queue', 'p2', { amount: 2 }),
+            spanAction('k1', 'peek', 'p2', { otherPlayerId: 'p1' }),
+            spanAction('f2', 'finish', 'p2')
+        ])
+        const ahead = playPrivately(spanGame, state, 'p3', [
+            spanAction('w3', 'work', 'p3'),
+            spanAction('f3', 'finish', 'p3')
+        ])
+        const afterAhead = mergePrivatePlay(spanGame, state, ahead).updatedState
+        expect(playerOf(dependent.view, 'p2').work).toBe(0)
+        expect(() => mergePrivatePlay(spanGame, afterAhead, dependent)).toThrow(
+            'The Branch of p2 cannot be merged: peek had a different result on the Main Line'
+        )
+    })
+
     it('accepts a Branch that read only what a Player had before the span began', () => {
         const spanGame = createSpanGame()
         const state = beginSpan(spanGame)
