@@ -11,14 +11,17 @@ import { CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import { hasEffect } from '../powers/registry.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { legalPowers } from '../util/powerDoorway.js'
 import '../powers/index.js'
 
 const SEATS = ['me', 'foe', 'chan']
 const game = { ...testGame(SEATS), hotseat: false, protectedInformation: true as const }
 
 /**
- * Me to act, with the card held or at my site; the foe holds a facedown adviser and the vault holds
- * facedown relics, so each view lacks something the server has.
+ * Me to act, with the card held or at my site, and enough favor and secrets for any card's cost (the
+ * dearest takes two secrets); the foe holds a facedown adviser and the vault holds facedown relics, so
+ * each view lacks something the server has.
  */
 function table(machineState: MachineState, cardId: string, at: 'held' | 'site') {
     const held =
@@ -29,7 +32,7 @@ function table(machineState: MachineState, cardId: string, at: 'held' | 'site') 
               : { advisers: [{ cardId, faceUp: true }] }
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 1, supply: 6, warbandsOnBoard: { me: 3 }, warbandsInPersonalBank: { me: 6 }, relicIds: ['relic.cup-of-plenty'], ...held }),
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 3, supply: 6, warbandsOnBoard: { me: 3 }, warbandsInPersonalBank: { me: 6 }, relicIds: ['relic.cup-of-plenty'], ...held }),
             testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }], relicIds: ['relic.map'] }),
             testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 3, secrets: 3, supply: 4, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } })
         ],
@@ -69,18 +72,26 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
         const places = cardId.startsWith('relic.') ? (['held'] as const) : (['held', 'site'] as const)
         for (const at of places) {
             it(`${name} (${at})`, () => {
-                let offered = 0
                 for (const phase of [MachineState.ActPhase, MachineState.RestPhase]) {
                     const state = table(phase, cardId, at)
+                    // A power the server skips (unaffordable, out of reach) never runs its checks,
+                    // so each must be offered there before the views are compared.
+                    const timing = phase === MachineState.ActPhase ? PowerTiming.Action : PowerTiming.Rest
+                    const offered = legalPowers(new HydratedOathGameState(state), 'me', timing)
+                    for (const power of cardPowers(cardId)) {
+                        if (!hasEffect(power) || power.timing !== timing) continue
+                        expect(
+                            offered.some((use) => use.cardId === cardId && use.powerIndex === power.powerIndex),
+                            `${phase}: power ${power.powerIndex} offered on the server`
+                        ).toBe(true)
+                    }
                     for (const playerId of SEATS) {
                         const view: Visibility.Perspective = { kind: 'player', playerId }
                         const server = engine.getValidActionTypesForPlayer(game, state, playerId)
                         const own = engine.getValidActionTypesForPlayer(game, served(state, view), playerId, { perspective: view })
                         expect(own, `${phase}, ${playerId}`).toEqual(server)
-                        offered += own.length
                     }
                 }
-                expect(offered).toBeGreaterThan(0)
             })
         }
     }
