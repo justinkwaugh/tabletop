@@ -24,6 +24,7 @@ import {
 } from './exchangeTerms.js'
 
 const CROWN = 'relic.bandit-crown'
+const RING = 'relic.ring-of-devotion'
 const CUP = 'relic.cup-of-plenty'
 const TENTS = 'denizen.nomad.tents'
 const VOW_OF_PEACE = 'denizen.hearth.vow-of-peace'
@@ -93,6 +94,21 @@ describe('exchangeOffers — Deed Writer’s sites, read from the engine’s own
 
     it('no site goes to a receiver with no warbands on their board and no Crown', () => {
         expect(sitesOffered(table({ rhys: { warbandsOnBoard: {} } }), 'dana', 'rhys')).toEqual([])
+    })
+
+    it('no site goes to a holder of Ring of Devotion, who cannot place warbands at sites (from revision 9)', () => {
+        expect(sitesOffered(table({ rhys: { relicIds: [RING] } }, OathRevision.EngineFixes5), 'dana', 'rhys')).toEqual([])
+        expect(sitesOffered(table({ rhys: { relicIds: [RING] } }, OathRevision.EngineFixes4), 'dana', 'rhys')).toEqual([
+            { siteId: 'c1', counts: [1, 2] },
+            { siteId: 'c2', counts: [1, 2] }
+        ])
+    })
+
+    it('a holder of the Ring and the Crown is offered 0 alone, placing nothing (from revision 9)', () => {
+        expect(sitesOffered(table({ rhys: { relicIds: [RING, CROWN] } }, OathRevision.EngineFixes5), 'dana', 'rhys')).toEqual([
+            { siteId: 'c1', counts: [0] },
+            { siteId: 'c2', counts: [0] }
+        ])
     })
 
     it('a site row names its faceup card for its picture', () => {

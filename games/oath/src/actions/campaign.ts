@@ -328,6 +328,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const plansUsed = [...attackerPlans.used, ...(bandits?.used ?? [])]
         const discardAtEnd = [...attackerPlans.discardAtEnd, ...(bandits?.discardAtEnd ?? [])]
         const rollRules = { ...attackerPlans.rollRules, ...(bandits?.rollRules ?? {}) }
+        const planNotes = [...attackerPlans.notes, ...(bandits?.notes ?? [])]
 
         const campaign: CampaignState = {
             attackerPlayerId,
@@ -392,7 +393,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             skullsKilled: forceTotal(skullKills),
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
-            planNotes: attackerPlans.notes.length > 0 ? attackerPlans.notes : undefined,
+            planNotes: planNotes.length > 0 ? planNotes : undefined,
             awaitingDefender: awaitingDefender || undefined
         }
     }
