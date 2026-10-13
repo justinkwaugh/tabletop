@@ -67,6 +67,10 @@ Full screen is a modal dialog, so everything outside the wrapper sits behind it 
 
 `ScalingWrapper` can zoom to a region: bind the wrapper and call `focusRect(rect, { animate, maxScale, padding })`, and `fitToContent()` to return to the whole board. Offer focus controls sparingly. They earn their place when the map is too big to read at a fitted scale, or when the game has distinct areas players repeatedly inspect. Render the controls in the `overlay` snippet so they stay over the board in full screen too; `games/oath-ui` does this with its focus chooser over named board areas. When controls overlay the board's top edge, set `insetTop` so fitting and focusing keep content clear of them.
 
+### Reading the scale
+
+`viewScale()` on the bound wrapper is reactive state. Read it in a `$derived` or the template to size markings that must stay readable at any zoom, as `games/napoleons-triumph-ui` does for its flags and attack markers.
+
 ## Small screens
 
 A large share of players play on phones with very small screens. Treat every region as a phone design too, and check each change at a phone-sized viewport before calling it done. The right answer differs by title, so this section names where the work lands rather than a recipe.

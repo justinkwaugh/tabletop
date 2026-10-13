@@ -20,6 +20,16 @@ export function playVisionAnswer(
     }
 }
 
+// R-5.1.4-H1 — Inquisitor's finder plays the Conspiracy facedown to their advisers.
+export function conspiracyFacedownAnswer(discardedAdviserCardId?: string): QuestionAnswer {
+    return {
+        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+        play: true,
+        facedown: true,
+        ...(discardedAdviserCardId !== undefined ? { discardedAdviserCardId } : {})
+    }
+}
+
 // Law Glossary "Discard" — the cards go down in the order given, the last on top. The answer
 // names positions, not cards, because every player receives its record.
 export function stackOrderAnswer(
@@ -45,6 +55,20 @@ export function advisersToDiscardForVision(
         .getPlayerState(playerId)
         .knownAdviserIds()
         .filter((cardId) => reasonFor(playVisionAnswer(SearchPlay.Adviser, cardId)) === undefined)
+}
+
+// R-5.1.4.II — at the adviser limit the Conspiracy goes facedown only over a discarded adviser.
+export function advisersToDiscardForConspiracy(
+    state: HydratedOathGameState,
+    playerId: string
+): string[] {
+    const reasonFor = (answer: QuestionAnswer) =>
+        HydratedAnswerQuestion.reasonCannotAnswer(state, playerId, answer)
+    if (reasonFor(conspiracyFacedownAnswer()) === undefined) return []
+    return state
+        .getPlayerState(playerId)
+        .knownAdviserIds()
+        .filter((cardId) => reasonFor(conspiracyFacedownAnswer(cardId)) === undefined)
 }
 
 export type AdviserRowOffer = { row: number; label: string; cardId?: string; back: CardKind }

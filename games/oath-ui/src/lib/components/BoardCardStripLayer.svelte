@@ -78,7 +78,7 @@
                        width:${placed.width}px; height:${placed.height}px;`}
         {#if space.kind === 'relic'}
             {#if space.slotId === undefined}
-                <span class="space space--relic" title="Empty relic space" style={box}></span>
+                <span class="space space--relic" style={box}></span>
             {:else}
                 {@const relicSlotId = space.slotId}
                 <BoardCard
@@ -94,7 +94,7 @@
                 />
             {/if}
         {:else if space.cardId === undefined}
-            <span class="space space--denizen" title="Empty denizen space" style={box}></span>
+            <span class="space space--denizen" style={box}></span>
         {:else}
             {@const denizenCardId = space.cardId}
             {@const tokens = gameState.tokensOn(denizenCardId)}
@@ -122,7 +122,6 @@
                         favor={tokens.favor}
                         secrets={tokens.secrets}
                         size={SITE_TOKEN_RADIUS * 2}
-                        on={cardName(denizenCardId)}
                     />
                 </span>
             {/if}

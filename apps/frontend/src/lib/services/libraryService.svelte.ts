@@ -2,13 +2,17 @@ import { type GameUiDefinition } from '@tabletop/frontend-components'
 import { GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
 import { availableLibraryTitles } from '$lib/utils/libraryTitles.js'
+import { gameUiEntryUrl } from '$lib/utils/gameUiEntryUrl.js'
 
 export class LibraryService {
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>> = $state({})
     loading = $state(true)
     private loadPromise?: Promise<void>
 
-    constructor(private readonly manifestService: ManifestService) {}
+    constructor(
+        private readonly manifestService: ManifestService,
+        private readonly gameUiBaseUrl: string
+    ) {}
 
     async whenReady(): Promise<void> {
         await (this.loadPromise ??= this.loadDefinitions())
@@ -40,11 +44,8 @@ export class LibraryService {
             const definitions = await Promise.all(
                 manifest.games.map(async (game) => {
                     try {
-                        const url = new URL(
-                            /* @vite-ignore */ `/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
-                            import.meta.url
-                        )
-                        const gameModule = await import(url.href)
+                        const entryUrl = gameUiEntryUrl(game, this.gameUiBaseUrl, import.meta.url)
+                        const gameModule = await import(/* @vite-ignore */ entryUrl)
                         const gameDefinition = gameModule[
                             `UiDefinition` as keyof typeof gameModule
                         ] as GameUiDefinition<GameState, HydratedGameState> | undefined

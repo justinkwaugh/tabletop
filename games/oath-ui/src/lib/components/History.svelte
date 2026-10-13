@@ -4,6 +4,7 @@
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import MajorEventRow from './MajorEventRow.svelte'
+    import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { rowActorOf } from '$lib/model/actionDescription.js'
 
@@ -13,6 +14,8 @@
 
     let rows = $derived(gameSession.historyRows)
     let ending = $derived(gameSession.isViewingHistory ? undefined : gameSession.gameEndRow)
+    // The winner the game-end row names is their chip.
+    let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
     // The engine stamps every action it applies.
     function whenOf(action: GameAction): string {
@@ -52,7 +55,9 @@
                         date={timeAgo.format(gameSession.game.finishedAt)}
                     >
                         {#if ending}
-                            <MajorEventRow event={ending}>{ending.sentence}</MajorEventRow>
+                            <MajorEventRow event={ending}
+                                ><TokenText text={ending.sentence} {seats} /></MajorEventRow
+                            >
                         {:else}
                             <p
                                 class="mt-1 text-left text-sm text-base font-normal text-oath-heading"

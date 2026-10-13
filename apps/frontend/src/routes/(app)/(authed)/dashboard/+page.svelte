@@ -2,10 +2,18 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from '$lib/components/DashboardGameList.svelte'
     import DashboardHistory from '$lib/components/DashboardHistory.svelte'
+    import DashboardStats from '$lib/components/DashboardStats.svelte'
     import { currentDashboardGames, isUsersGameTurn } from '$lib/utils/dashboardGames'
 
     const { gameService, authorizationService } = getAppContext()
-    let tab = $state<'current' | 'history'>('current')
+    const TABS = [
+        { id: 'current', label: 'Current' },
+        { id: 'history', label: 'History' },
+        { id: 'stats', label: 'Stats' }
+    ] as const
+    type Tab = (typeof TABS)[number]['id']
+
+    let tab = $state<Tab>('current')
     let historyOpened = $state(false)
     let onlyMyTurn = $state(false)
     const userId = $derived(authorizationService.getSessionUser()?.id)
@@ -15,22 +23,21 @@
     const turnCount = $derived(games.filter((game) => isUsersGameTurn(game, userId)).length)
     const visible = $derived(games.filter((game) => !onlyMyTurn || isUsersGameTurn(game, userId)))
 
-    function selectTab(selected: 'current' | 'history') {
+    function selectTab(selected: Tab) {
         tab = selected
         if (selected === 'history') historyOpened = true
     }
     function moveTab(event: KeyboardEvent) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
         event.preventDefault()
-        selectTab(
+        const current = TABS.findIndex((choice) => choice.id === tab)
+        const target =
             event.key === 'Home'
-                ? 'current'
+                ? 0
                 : event.key === 'End'
-                  ? 'history'
-                  : tab === 'current'
-                    ? 'history'
-                    : 'current'
-        )
+                  ? TABS.length - 1
+                  : (current + (event.key === 'ArrowLeft' ? -1 : 1) + TABS.length) % TABS.length
+        selectTab(TABS[target].id)
         document.getElementById(`dashboard-tab-${tab}`)?.focus()
     }
 </script>
@@ -43,20 +50,19 @@
     </header>
     <div class="navigation">
         <div class="collection-tabs" role="tablist" aria-label="My games">
-            {#each ['current', 'history'] as choice (choice)}
-                {@const selected = choice === 'current' ? 'current' : 'history'}
+            {#each TABS as choice (choice.id)}
                 <button
                     class="collection-tab"
-                    id={`dashboard-tab-${selected}`}
+                    id={`dashboard-tab-${choice.id}`}
                     role="tab"
-                    aria-selected={tab === selected}
-                    aria-controls={`dashboard-panel-${selected}`}
-                    tabindex={tab === selected ? 0 : -1}
-                    onclick={() => selectTab(selected)}
+                    aria-selected={tab === choice.id}
+                    aria-controls={`dashboard-panel-${choice.id}`}
+                    tabindex={tab === choice.id ? 0 : -1}
+                    onclick={() => selectTab(choice.id)}
                     onkeydown={moveTab}
                 >
-                    {selected === 'current' ? 'Current' : 'History'}
-                    {#if selected === 'current'}<span class="count">{games.length}</span>{/if}
+                    {choice.label}
+                    {#if choice.id === 'current'}<span class="count">{games.length}</span>{/if}
                 </button>
             {/each}
         </div>
@@ -101,6 +107,15 @@
         hidden={tab !== 'history'}
     >
         {#if historyOpened}<DashboardHistory />{/if}
+    </div>
+    <div
+        class="panel"
+        role="tabpanel"
+        id="dashboard-panel-stats"
+        aria-labelledby="dashboard-tab-stats"
+        hidden={tab !== 'stats'}
+    >
+        {#if tab === 'stats'}<DashboardStats />{/if}
     </div>
 </main>
 

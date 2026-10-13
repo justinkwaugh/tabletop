@@ -39,11 +39,9 @@ test('choosing a fountain raises it and its destinations without mounting a basi
     expect(mounted).toBe(0)
 })
 
-test('starting an auction keeps every fountain above the overlay without mounting a basin', async ({
-    page
-}) => {
+test('starting an auction dims the board without mounting a basin', async ({ page }) => {
     await createGame(page)
     const mounted = await basinsMountedBy(page, () => auctionFirstShop(page))
-    await expect(board(page).locator('g[opacity="0.25"]')).toHaveCount(1)
+    await expect(board(page).locator('g[opacity="0.4"]')).toHaveCount(1)
     expect(mounted).toBe(0)
 })

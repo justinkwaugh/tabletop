@@ -276,6 +276,30 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_WARBANDS]: 3 })
     })
 
+    it('records whom the favor went to, the Grand Scepter’s holder (R-6.8)', () => {
+        const state = table({ favor: 20, secrets: 2 })
+        const action = selfExile('cit')
+        action.apply(state)
+
+        expect(action.metadata?.scepterHolderId).toBe('chan')
+    })
+
+    it('still reads a record made before the holder was recorded', () => {
+        const older = buildAction(SelfExile, {
+            playerId: 'cit',
+            metadata: {
+                favorGiven: 6,
+                secretsOnBoard: 2,
+                secretsOnCards: 0,
+                warbandsOnBoard: 4,
+                replacedCount: 4,
+                unreplacedCount: 0,
+                endsActPhase: true
+            }
+        })
+        expect(new HydratedSelfExile(older).metadata?.scepterHolderId).toBeUndefined()
+    })
+
     it('reports the end of the Act Phase — R-6.8 ends it, R-6.7 does not', () => {
         const state = table({ favor: 40 })
         state.turnManager.turnOrder = ['cit', 'chan']

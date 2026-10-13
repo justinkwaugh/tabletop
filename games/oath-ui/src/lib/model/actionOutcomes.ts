@@ -103,26 +103,14 @@ export function latestActorOnlyCards(
 }
 
 export interface ActorNotice {
-    /** The card whose power showed the actor these cards, when the record names one. */
-    shownBy?: string
     cards: string[]
-    relicToDeckBottom?: string
-}
-
-function shownBy(action: GameAction): string | undefined {
-    if (isUseActionPower(action) || isUseRestPower(action) || isPlayFacedownAdviser(action)) {
-        return action.cardId
-    }
-    if (isSearchResolve(action)) return action.keptCardId
-    if (isAnswerQuestion(action)) return action.metadata?.cardId
-    return undefined
 }
 
 /**
  * R-9.4 — the notice above the action panel shows only what the game showed its actor and
  * nobody else: a peek, or the relic they sent under the deck. Their own discards and kept
- * card are theirs to remember, and the history row pictures those. It shows for the game's
- * latest action alone, so any next action clears it.
+ * card are theirs to remember, and the history row pictures those, as it names the card that
+ * showed them. It shows for the game's latest action alone, so any next action clears it.
  */
 export function latestActorNotice(
     actions: readonly GameAction[],
@@ -137,9 +125,5 @@ export function latestActorNotice(
         ...(seen.relicToDeckBottom !== undefined ? [seen.relicToDeckBottom] : [])
     ]
     if (cards.length === 0) return undefined
-    return {
-        shownBy: shownBy(latest),
-        cards: [...new Set(cards)],
-        relicToDeckBottom: seen.relicToDeckBottom
-    }
+    return { cards: [...new Set(cards)] }
 }

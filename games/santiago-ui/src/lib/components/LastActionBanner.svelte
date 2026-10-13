@@ -8,7 +8,6 @@
     import SproutIcon from './SproutIcon.svelte'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
-    let { boardCenterX = null }: { boardCenterX?: number | null } = $props()
 
     const session = getGameSession()
 
@@ -26,42 +25,54 @@
     const descriptionSegments = $derived(
         lastAction ? getDescriptionSegments(lastAction, { allActions: session.actions }) : []
     )
+
+    // On your own turn, looking at the live state, the action bar below already says what to do.
+    const repeatsTheBar = $derived(session.isMyTurn && !session.isViewingHistory)
 </script>
 
-<!-- Only shown when it's not your turn, or while navigating history — when it IS your turn
-     (and you're looking at the live state), the action bar below already tells you what to
-     do, so this would just be repeating the previous entry from History for no reason. -->
-{#if !session.isMyTurn || session.isViewingHistory}
-    <div class="shrink-0 min-h-[44px] mt-2">
-        <div class="max-w-[90%] px-3 flex items-center gap-2"
-             style="margin-left: {boardCenterX !== null ? `${boardCenterX}px` : '50%'}; transform: translateX(-50%); width: fit-content">
-            <SproutIcon class="w-5 h-5 shrink-0" />
-            {#key lastAction?.id}
-                <div class="flex flex-col items-center"
-                     in:fade={{ duration: 200, easing: quartIn }}>
-                    {#if lastAction}
-                        {#each descriptionSegments as segment, i (i)}
-                            <p class="text-[16px] text-amber-200 truncate">
-                                {#if i === 0 && lastAction.playerId}
-                                    <PlayerNameChip playerId={lastAction.playerId} />
-                                {/if}
-                                {#each segment as part, j (j)}
-                                    {#if typeof part === 'string'}
-                                        {part}
-                                    {:else}
-                                        <PlayerNameChip playerId={part.playerId} />
-                                    {/if}
-                                {/each}
-                            </p>
-                        {/each}
-                    {:else}
+<!-- While it would repeat the action bar, the row stays, empty, at its one-line height, so the
+     board does not jump when the turn passes, and the action bar's own slide is the only
+     movement. -->
+<div class="shrink-0 min-h-[44px] mt-2" aria-hidden={repeatsTheBar}>
+    {#if !repeatsTheBar}
+    <div class="centered-line max-w-[90%] px-3 flex items-center gap-2">
+        <SproutIcon class="w-5 h-5 shrink-0" />
+        {#key lastAction?.id}
+            <div class="flex flex-col items-center"
+                 in:fade={{ duration: 200, easing: quartIn }}>
+                {#if lastAction}
+                    {#each descriptionSegments as segment, i (i)}
                         <p class="text-[16px] text-amber-200 truncate">
-                            <span class="text-amber-400">Welcome to Santiago!</span>
+                            {#if i === 0 && lastAction.playerId}
+                                <PlayerNameChip playerId={lastAction.playerId} />
+                            {/if}
+                            {#each segment as part, j (j)}
+                                {#if typeof part === 'string'}
+                                    {part}
+                                {:else}
+                                    <PlayerNameChip playerId={part.playerId} />
+                                {/if}
+                            {/each}
                         </p>
-                    {/if}
-                </div>
-            {/key}
-            <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
-        </div>
+                    {/each}
+                {:else}
+                    <p class="text-[16px] text-amber-200 truncate">
+                        <span class="text-amber-400">Welcome to Santiago!</span>
+                    </p>
+                {/if}
+            </div>
+        {/key}
+        <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
     </div>
-{/if}
+    {/if}
+</div>
+
+<style>
+    /* The board center is measured in screen pixels; dividing by the zoom applied to everything
+       above the board on phones keeps it in this element's own pixels. */
+    .centered-line {
+        margin-left: calc(var(--board-center, 50%) / var(--above-board-zoom, 1));
+        transform: translateX(-50%);
+        width: fit-content;
+    }
+</style>

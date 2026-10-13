@@ -1,6 +1,6 @@
 # Game Lifecycle
 
-Game Lifecycle governs a Game Instance from creation through participation, play, completion, Fork, and deletion. It owns canonical Action history and distinguishes Local authority from Hosted authority.
+Game Lifecycle governs a Game Instance from creation through participation, play, completion, Fork, and deletion. It owns canonical Action history, distinguishes Local authority from Hosted authority, and defines the stats a User accumulates over Finished games.
 
 ## Game instances
 
@@ -79,7 +79,7 @@ The lifecycle state of a Game Instance after it starts and before its Game State
 The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress, except that Players cannot reopen a Finished Tournament Game.
 
 **Delete Game**:
-Permanently remove a Game Instance, its Game State, and its Canonical Action History.
+Permanently remove a Game Instance, its Game State, and its Canonical Action History. A Game Owner may delete a Hosted Game only if it has never been Finished; once it has been Finished, even if an Authorized Undo later returns it to In Progress, deleting it requires an Administrator.
 _Avoid_: Archive, soft delete
 
 ## Action history and synchronization
@@ -114,3 +114,28 @@ A Game Owner has no elevated Undo authority. An administrator may bypass Player 
 **Fork**:
 A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
 _Avoid_: Exploration
+
+## Stats
+
+**Counted Game**:
+A Finished Hosted Game, other than a Fork or an Abandoned Game, that contributes to the stats of each User with a Player in it. Tournament Games are Counted Games.
+
+**Abandoned Game**:
+A Finished Game Instance whose result records that play was given up, with no winners.
+
+**Outcome**:
+A Player's result in one Counted Game: won as its only winner, tied as one of several winners, or lost.
+_Avoid_: Shared win, Draw
+
+**Win Rate**:
+The share of a User's Counted Games that they won, counting a tied Outcome as an equal fraction of a win among its winners.
+
+**Even Odds**:
+The Win Rate a User would have if every Player in each of their Counted Games were equally likely to win.
+
+**Opponent**:
+Another Player in one of a User's Counted Games. Opponents are told apart across games by their associated User.
+
+**Finish**:
+A Player's position in a Counted Game that recorded final scores: first for every recorded winner, then the remaining Players in order of final score, with equal scores sharing a position.
+_Avoid_: Rank, Placement

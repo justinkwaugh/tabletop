@@ -1,30 +1,31 @@
 import { CampaignTargetKind, type CampaignTarget, type HydratedOathGameState } from '@tabletop/oath'
 import { bannerName, cardName, plural, siteName } from './names.js'
 
+/** A line of the spoils: printed names, or the defender, whose name is their colour chip. */
+export type SpoilsItem = { kind: 'text'; text: string } | { kind: 'pawn'; playerId: string }
+
 /** R-5.5.7 resolves the targets in order — sites, then relics and banners, then the pawn. */
 export function spoilsSummary(
     state: HydratedOathGameState,
     targets: readonly CampaignTarget[],
-    placeCounts: Readonly<Record<string, number>>
-): string[] {
-    return targets.flatMap((target) => {
+    placeCounts: Readonly<Record<string, number>>,
+    defenderPlayerId: string | undefined
+): SpoilsItem[] {
+    return targets.flatMap((target): SpoilsItem[] => {
         switch (target.kind) {
             case CampaignTargetKind.Site: {
-                const placed = placeCounts[target.siteId] ?? 0
-                return [
-                    `rule of ${siteName(state, target.siteId)}${
-                        placed > 0
-                            ? ` with ${plural(placed, 'warband')} placed`
-                            : ' (no warbands placed — the bandits keep it)'
-                    }`
-                ]
+                // R-5.5.7.I — "even zero", so the real 0 is shown.
+                const placed = plural(placeCounts[target.siteId] ?? 0, 'warband')
+                return [{ kind: 'text', text: `${siteName(state, target.siteId)} · ${placed}` }]
             }
             case CampaignTargetKind.Relic:
-                return [cardName(target.cardId)]
+                return [{ kind: 'text', text: cardName(target.cardId) }]
             case CampaignTargetKind.Banner:
-                return [`the ${bannerName(target.banner)}`]
+                return [{ kind: 'text', text: `The ${bannerName(target.banner)}` }]
             case CampaignTargetKind.PawnAndFavor:
-                return ['their pawn sent away']
+                return defenderPlayerId === undefined
+                    ? []
+                    : [{ kind: 'pawn', playerId: defenderPlayerId }]
             case CampaignTargetKind.SiteRelic:
                 return []
         }

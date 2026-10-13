@@ -24,6 +24,7 @@ import {
     GameSyncStatus,
     GameValidator,
     GameHistoryPage,
+    UserGameStats,
     User,
     UserPreferences,
     Visibility,
@@ -373,6 +374,16 @@ export class TabletopApi {
         Value.Assert(Type.Object({ payload: Type.Unknown() }), response)
         Value.Convert(GameHistoryPage, response.payload)
         Value.Assert(GameHistoryPage, response.payload)
+        return response.payload
+    }
+
+    async getMyGameStats(): Promise<UserGameStats> {
+        const response = await this.wretch
+            .get('/games/stats')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: UserGameStats }), response)
         return response.payload
     }
 

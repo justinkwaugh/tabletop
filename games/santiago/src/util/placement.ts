@@ -1,4 +1,4 @@
-import { SantiagoBoard, CropType, SquareType, CanalSegment, isFieldSquare } from '../model/board.js'
+import { SantiagoBoard, CropType, SquareType, CanalSegment, isFieldSquare, orthogonalNeighbors } from '../model/board.js'
 import { isConnectedToSpring, isCanalPlaced } from './irrigation.js'
 
 // Returns true when (col, row) is a valid spot to plant — any empty square is valid.
@@ -43,7 +43,7 @@ export function validNeutralTilePlacements(board: SantiagoBoard): { col: number;
         for (let row = 0; row < 6; row++) {
             if (board.squares[col][row].type !== SquareType.Empty) continue
             anyEmpty.push({ col, row })
-            for (const [nc, nr] of [[col - 1, row], [col + 1, row], [col, row - 1], [col, row + 1]] as [number, number][]) {
+            for (const [nc, nr] of orthogonalNeighbors(col, row)) {
                 if (nc < 0 || nc >= 8 || nr < 0 || nr >= 6) continue
                 if (isFieldSquare(board.squares[nc][nr])) { adjacent.push({ col, row }); break }
             }

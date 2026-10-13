@@ -31,12 +31,16 @@ export class GameCacheKeys {
         return `games-public-${titleId}`
     }
 
-    static history(userId: string, older = false): string {
+    static finishedGamesGeneration(userId: string, older = false): string {
         return `game-history-${older ? 'older' : 'head'}-${userId}`
     }
 
     static historyPage(userId: string, cursor: string): string {
-        return `game-history-page-${userId}-${cursor}`
+        return `finished-games-history-${userId}-${cursor}`
+    }
+
+    static stats(userId: string): string {
+        return `finished-games-stats-${userId}`
     }
 
     static chatRevision(gameId: string): string {
@@ -67,9 +71,9 @@ export class GameCacheKeys {
             ...(after?.status === GameStatus.Finished ? gameUserIds(after) : [])
         ])
         const historyKeys = [...historyUsers].flatMap((userId) => [
-            this.history(userId),
+            this.finishedGamesGeneration(userId),
             ...(before?.status === GameStatus.Finished || before === undefined
-                ? [this.history(userId, true)]
+                ? [this.finishedGamesGeneration(userId, true)]
                 : [])
         ])
         return [

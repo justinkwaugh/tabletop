@@ -224,7 +224,7 @@ describe('moving a surviving force to boards (R-5.5.6)', () => {
         expect(state.getPlayerState(EXILE).warbandsOnBoard[EXILE]).toBe(6)
     })
 
-    /** R-5.5.7.I */
+    /** R-5.5.6 — a defending force's. */
     it('sends Imperial warbands off a site to the Chancellor, not to a defending Citizen', () => {
         const state = table()
         const force: WarbandGroup[] = [

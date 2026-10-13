@@ -181,7 +181,7 @@ describe('R-5.5.1.a — a Citizen the Chancellor attacks shares none of the Empi
 
         const killed = (s.getPlayerState('cit').warbandsInPersonalBank['cit'] ?? 0) - citizenBank
         expect(killed).toBeGreaterThan(0)
-        expect(victory.metadata?.triggered).toContain(`Cursed Cauldron: gained ${killed} warbands, one per enemy warband killed`)
+        expect(victory.metadata?.triggered).toContain(`Cursed Cauldron: chan gained ${killed} Imperial warbands, one per enemy warband killed`)
     })
 })
 

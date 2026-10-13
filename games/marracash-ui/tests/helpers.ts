@@ -47,6 +47,8 @@ export function destinationFountains(page: Page): Locator {
 }
 
 export async function finishBidding(page: Page) {
+    // The bid panel waits for the auction's announcement
+    await expect(actionPanel(page).getByText('Sealed bid')).toBeVisible()
     while (await actionPanel(page).getByText('Sealed bid').count()) {
         const place = page.getByRole('button', { name: 'Place bid' })
         const before = await actionPanel(page).innerText()

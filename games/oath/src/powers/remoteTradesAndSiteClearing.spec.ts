@@ -17,7 +17,9 @@ import { effectiveSiteCapacity } from '../util/capacity.js'
 import '../powers/index.js'
 import { ongoingCampaign } from '../testing/required.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
-import { actionPowerUse, facedown, modifierUse, player, battlePlanUse } from '../testing/choices.js'
+import { actionPowerUse, bargain, facedown, modifierUse, player, battlePlanUse } from '../testing/choices.js'
+import { OathRevision } from '../util/revision.js'
+import { witchsBargainBounds, type BargainEntry } from '../util/witchsBargain.js'
 import { rulerTable } from '../testing/tables.js'
 import { playDrawnCard } from '../testing/steps.js'
 import { INN, TENTS, FILLER } from '../testing/cards.js'
@@ -131,6 +133,120 @@ describe("Witch's Bargain — secrets for favor, favor for secrets, any number o
         expect(HydratedUseActionPower.reasonCannotUse(board([WITCHS_BARGAIN]), 'ruler', WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), [player('other'), count(0), count(0)])).toMatch(/at least one/)
         expect(HydratedUseActionPower.reasonCannotUse(board([WITCHS_BARGAIN]), 'ruler', WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), [player('other'), count(2), count(0)])).toMatch(/has 2 favor, not the 4/)
         expect(HydratedUseActionPower.reasonCannotUse(board([WITCHS_BARGAIN]), 'ruler', WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), [player('away'), count(1), count(0)])).toMatch(/not among the options/)
+    })
+})
+
+const SILENCE = 'denizen.arcane.vow-of-silence'
+
+/** Witch's Bargain with ruler, other and away all at c1, in a game created at `revision`. */
+function bargainTable(revision: OathRevision, over: Record<string, Record<string, unknown>> = {}, advisers: string[] = []) {
+    const s = board([WITCHS_BARGAIN], advisers, { ...over, away: { siteId: 'c1', ...over['away'] } })
+    s.oathRevision = revision
+    return s
+}
+const bargainRefusal = (s: ReturnType<typeof board>, choices: PowerChoice[]) =>
+    HydratedUseActionPower.reasonCannotUse(s, 'ruler', WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), choices)
+const entry = (playerId: string, secretsGiven: number, pairsGiven: number): BargainEntry => ({ kind: PowerChoiceKind.Bargain, playerId, secretsGiven, pairsGiven })
+
+describe("Witch's Bargain — the secret its cost places cannot be given (R-7.1.2, revision 7)", () => {
+    it('with 3 secrets, giving 3 is refused, since the cost places one first; giving 2 leaves none', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 }, other: { favor: 6, secrets: 2 } })
+        expect(bargainRefusal(s, [bargain('other', 3, 0)])).toBe('you have 2 secrets to give after the cost, not 3')
+        actionPowerUse('ruler', WITCHS_BARGAIN, [bargain('other', 2, 0)]).apply(s)
+        expect(s.getPlayerState('ruler')).toMatchObject({ favor: 8, secrets: 0 })
+        expect(s.getPlayerState('other')).toMatchObject({ favor: 2, secrets: 4 })
+        expect(s.tokensOn(WITCHS_BARGAIN).secrets).toBe(1)
+    })
+
+    it('in a game created before revision 7 the recorded shape replays as it did: 3 of 3 given, leaving -1', () => {
+        const s = bargainTable(OathRevision.UiBatch1, { ruler: { favor: 4, secrets: 3 }, other: { favor: 6, secrets: 2 } })
+        const old = [player('other'), count(3), count(0)]
+        expect(bargainRefusal(s, old)).toBeUndefined()
+        actionPowerUse('ruler', WITCHS_BARGAIN, old).apply(s)
+        expect(s.getPlayerState('ruler')).toMatchObject({ favor: 10, secrets: -1 })
+        expect(s.getPlayerState('other')).toMatchObject({ favor: 0, secrets: 5 })
+    })
+
+    it('each revision takes its own shape: one player and two counts before 7, a list of entries from 7', () => {
+        const before = bargainTable(OathRevision.UiBatch1)
+        const from = bargainTable(OathRevision.EngineFixes3)
+        expect(bargainRefusal(before, [bargain('other', 1, 0)])).toMatch(/no choice was made/)
+        expect(bargainRefusal(from, [player('other'), count(1), count(0)])).toMatch(/no choice was made/)
+        expect(bargainRefusal(from, [bargain('other', 1, 0)])).toBeUndefined()
+    })
+})
+
+describe("Witch's Bargain — several players at your site in one use (its Q&A, revision 7)", () => {
+    it('gives secrets to one player and takes the last secret of another, paying the cost once', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 }, other: { favor: 4, secrets: 2 }, away: { favor: 1, secrets: 1 } })
+        const use = actionPowerUse('ruler', WITCHS_BARGAIN, [bargain('other', 1, 0), bargain('away', 0, 1)])
+        use.apply(s)
+        expect(s.getPlayerState('ruler')).toMatchObject({ favor: 4, secrets: 2 })
+        expect(s.getPlayerState('other')).toMatchObject({ favor: 2, secrets: 3 })
+        // "Can I take someone's last secret? … Yup!"
+        expect(s.getPlayerState('away')).toMatchObject({ favor: 3, secrets: 0 })
+        expect(s.tokensOn(WITCHS_BARGAIN).secrets).toBe(1)
+        expect(use.metadata?.targetPlayerId).toBe('other')
+        expect(use.metadata?.summary).toBe(
+            "Witch's Bargain: with other, gave 1 secrets for 2 favor and 0 favor for 0 secrets; with away, gave 0 secrets for 0 favor and 2 favor for 1 secrets"
+        )
+    })
+
+    it("holds the totals together: yours against what you hold after the cost, each player's against theirs", () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 }, other: { favor: 4, secrets: 2 }, away: { favor: 2, secrets: 1 } })
+        expect(bargainRefusal(s, [bargain('other', 2, 0), bargain('away', 1, 0)])).toBe('you have 2 secrets to give after the cost, not 3')
+        expect(bargainRefusal(s, [bargain('other', 0, 2), bargain('away', 0, 1)])).toBe('you have 4 favor to give, not 6')
+        expect(bargainRefusal(s, [bargain('away', 2, 0)])).toBe('away has 2 favor, not the 4 you would take')
+        expect(bargainRefusal(s, [bargain('away', 0, 2)])).toBe('away has 1 secrets, not the 2 you would take')
+        expect(bargainRefusal(s, [bargain('other', 1, 1), bargain('away', 1, 1)])).toBeUndefined()
+    })
+
+    it('names each player once, at your site, with something exchanged', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 }, other: { favor: 4, secrets: 2 } })
+        expect(bargainRefusal(s, [bargain('other', 1, 0), bargain('other', 0, 1)])).toMatch(/chosen twice/)
+        expect(bargainRefusal(s, [bargain('other', 0, 0)])).toBe('name at least one exchange')
+        expect(bargainRefusal(s, [bargain('other', 1, 0), bargain('away', 0, 0)])).toBe('name at least one exchange with away')
+        const apart = board([WITCHS_BARGAIN], [], { ruler: { favor: 4, secrets: 3 } })
+        apart.oathRevision = OathRevision.EngineFixes3
+        expect(bargainRefusal(apart, [bargain('away', 0, 1)])).toMatch(/not among the options/)
+    })
+
+    it('Vow of Silence bars the secrets given, not the favor', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 } }, [SILENCE])
+        expect(bargainRefusal(s, [bargain('other', 1, 0)])).toMatch(/Vow of Silence/)
+        expect(bargainRefusal(s, [bargain('other', 0, 1)])).toBeUndefined()
+    })
+})
+
+describe('witchsBargainBounds — what the picker offers each player, read from the engine', () => {
+    it('holds the cost secret back, and halves the favor', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 5, secrets: 3 }, other: { favor: 4, secrets: 2 }, away: { favor: 1, secrets: 1 } })
+        expect(witchsBargainBounds(s, 'ruler', 'other')).toEqual({ secrets: 2, pairs: 2, silenced: false })
+        // Their last secret can be taken; their one favor buys none of your secrets.
+        expect(witchsBargainBounds(s, 'ruler', 'away')).toEqual({ secrets: 0, pairs: 1, silenced: false })
+    })
+
+    it("shares your holding with the other players named, and never counts a player's own entry", () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 5, secrets: 3 }, other: { favor: 4, secrets: 2 }, away: { favor: 4, secrets: 2 } })
+        expect(witchsBargainBounds(s, 'ruler', 'away', [entry('other', 2, 1)])).toEqual({ secrets: 0, pairs: 1, silenced: false })
+        expect(witchsBargainBounds(s, 'ruler', 'away', [entry('other', 1, 0), entry('away', 2, 2)])).toEqual({ secrets: 1, pairs: 2, silenced: false })
+    })
+
+    it('Vow of Silence leaves no secrets to give', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 4, secrets: 3 } }, [SILENCE])
+        expect(witchsBargainBounds(s, 'ruler', 'other')).toEqual({ secrets: 0, pairs: 2, silenced: true })
+    })
+
+    it('agrees with the engine for every count', () => {
+        const s = bargainTable(OathRevision.EngineFixes3, { ruler: { favor: 5, secrets: 3 }, other: { favor: 4, secrets: 2 }, away: { favor: 3, secrets: 1 } })
+        const named = entry('other', 1, 1)
+        const bounds = witchsBargainBounds(s, 'ruler', 'away', [named])
+        for (let give = 0; give <= 4; give++)
+            for (let pairs = 0; pairs <= 4; pairs++) {
+                if (give + pairs === 0) continue
+                const refused = bargainRefusal(s, [named, bargain('away', give, pairs)])
+                expect(refused === undefined, `give ${give}, pairs ${pairs}: ${refused}`).toBe(give <= bounds.secrets && pairs <= bounds.pairs)
+            }
     })
 })
 

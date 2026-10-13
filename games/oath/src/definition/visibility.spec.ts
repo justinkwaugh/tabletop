@@ -655,6 +655,60 @@ describe('Oath visibility', () => {
         }
     })
 
+    /** p1's Inquisitor finds the Conspiracy among p2's advisers; p1 holds `advisers`. */
+    function inquisitorFound(advisers: { cardId: string; faceUp: boolean }[]) {
+        const game = { ...buildGame(), status: GameStatus.Started, protectedInformation: true as const }
+        const before = relicBoard(MachineState.ActPhase, [], advisers)
+        before.players[1].advisers = [{ faceUp: false, vision: true }, { faceUp: false }]
+        before.players[1].adviserIds = [CONSPIRACY, 'denizen.nomad.tents']
+        const used = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: INQUISITOR, powerIndex: powerIndexOf(INQUISITOR, PowerTiming.Action), choices: [{ kind: 'facedownAdviser', playerId: 'p2', index: 0 }] }), state: before, game })
+        return { game, asked: canonical(used.updatedState) }
+    }
+
+    // R-5.1.4-H1, R-5.1.4.II — the discarded adviser may be facedown; the Conspiracy itself was public.
+    it('names the Conspiracy played facedown by its finder to every player, and the adviser discarded for it to the finder alone', () => {
+        const { game, asked } = inquisitorFound([{ cardId: INQUISITOR, faceUp: true }, { cardId: TUTOR, faceUp: false }, { cardId: FILLER, faceUp: true }])
+        const answer = { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true, discardedAdviserCardId: TUTOR }
+        const result = engine.executeCanonicalAction({ action: userAction(asked, { type: ActionType.AnswerQuestion, playerId: 'p1', answer }), state: asked, game })
+        const after = canonical(result.updatedState)
+        expect(after.players[0].adviserIds).toEqual([INQUISITOR, FILLER, CONSPIRACY])
+        expect(after.players[1].adviserIds).toEqual(['denizen.nomad.tents'])
+        expect(after.boxIds).not.toContain(CONSPIRACY)
+        const record = result.processedActions[0]
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('answer.discardedAdviserCardId', TUTOR)
+        const p3 = { kind: 'player', playerId: 'p3' } as const
+        for (const perspective of [p2, p3, spectator]) {
+            const theirs = OathVisibility.actions.project(record, perspective)
+            expect(theirs).toHaveProperty('answer.facedown', true)
+            expect(theirs).not.toHaveProperty('answer.discardedAdviserCardId')
+            expect(theirs).toHaveProperty('metadata.summary', 'played the Conspiracy as an adviser, facedown')
+            expect(JSON.stringify(theirs)).not.toContain(TUTOR)
+            const view = OathVisibility.state.project(after, perspective)
+            expect(view.players[0].advisers[2]).toEqual({ faceUp: false, vision: true, seen: true, shownCardId: CONSPIRACY })
+            expect(view.players[1].advisers).toEqual([{ faceUp: false }])
+            expect(JSON.stringify(view)).not.toContain(TUTOR)
+        }
+    })
+
+    // R-X.4 — the stored answers carry no `facedown`, so they replay as they were played.
+    it.each([
+        { name: 'played faceup', play: true, boxed: true, pile: 0, summary: 'played the Conspiracy' },
+        { name: 'discarded', play: false, boxed: false, pile: 1, summary: 'discarded the Conspiracy' }
+    ])('replays a stored Inquisitor answer without facedown as it was played: $name', ({ play, boxed, pile, summary }) => {
+        const { game, asked } = inquisitorFound([{ cardId: INQUISITOR, faceUp: true }])
+        const stored = userAction(asked, { type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play } })
+        const first = engine.executeCanonicalAction({ action: stored, state: asked, game })
+        const replayed = engine.executeCanonicalAction({ action: first.processedActions[0], state: structuredClone(asked), game })
+        expect(replayed.updatedState).toEqual(first.updatedState)
+        const after = canonical(first.updatedState)
+        expect(first.processedActions[0]).toHaveProperty('metadata.summary', summary)
+        expect(after.players[0].adviserIds).toEqual([INQUISITOR])
+        expect(after.players[1].adviserIds).toEqual(['denizen.nomad.tents'])
+        expect(after.boxIds.includes(CONSPIRACY)).toBe(boxed)
+        expect(Object.values(after.discardPileCounts).reduce((a, b) => a + b, 0)).toBe(pile)
+        expect(after.machineState).toBe(MachineState.ActPhase)
+    })
+
     // R-5.1.4.II — the discarded adviser may be facedown.
     it('names the adviser a False Prophet player discards to make room for the Vision to that player alone', () => {
         const game = { ...buildGame(), status: GameStatus.Started, protectedInformation: true as const }

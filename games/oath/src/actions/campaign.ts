@@ -26,16 +26,21 @@ import {
     collectAttackingForce,
     collectDefensePool,
     declaredParties,
+    defendersOpenTo,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
-    reasonNoCampaignAgainst,
     scopeOf,
     suspendedImperialsFor,
     type CampaignParties
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer } from '../util/rule.js'
-import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
+import {
+    freeActionOutOfTurnOfferedTo,
+    holdTurnForFreeActionOutOfTurn,
+    holdTurnForSneakAttack,
+    sneakAttackOfferedTo
+} from '../util/sneakAttack.js'
 import { reasonPersistentForbidsCampaign } from '../util/persistent.js'
 import { forceTotal } from '../util/force.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
@@ -124,6 +129,8 @@ export const CampaignBattleMetadata = Type.Object({
 export type CampaignMetadata = Type.Static<typeof CampaignMetadata>
 export const CampaignMetadata = Type.Object({
     supplySpent: Type.Number(),
+    /** Second Wind out of turn (revision 7) — the card whose free Campaign this was. */
+    freeActionOf: Type.Optional(Type.String()),
     /** R-5.5.2.a — Citizens are asked whether to join the defence before anything is mustered. */
     awaitingAllies: Type.Optional(Type.Boolean()),
     battle: Type.Optional(CampaignBattleMetadata)
@@ -145,7 +152,10 @@ export const Campaign = Type.Evaluate(
             attackDice: Type.Integer({ minimum: 0, maximum: 999 }),
             /** R-5.5.3 — used once each. */
             plans: BattlePlanUses,
-            /** R-5.5.5 — where the skulls' kills come from first; the rest follow the default. */
+            /**
+             * R-5.5.5 — where the skulls' kills come from first; the rest follow the default. From
+             * revision 7 a non-empty order is refused: the attacker picks after the roll.
+             */
             skullLossOrder: Type.Optional(Type.Array(LossSource, { maxItems: 16 })),
             metadata: Type.Optional(CampaignMetadata)
         })
@@ -189,7 +199,16 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         // R-5.5.1 — or nothing, right after a Knights Errant Muster / Hunting
         // Party Search, or as a Sneak Attack.
         const supplyCost = HydratedCampaign.supplyCostFor(state, this.playerId)
+        // Second Wind out of turn (revision 7) — the Campaign is the holder's answer to "Campaign now?".
+        const freeActionOf = freeActionOutOfTurnOfferedTo(
+            state,
+            this.playerId,
+            ActionType.Campaign
+        )?.cardId
         if (sneakAttackOfferedTo(state, this.playerId)) holdTurnForSneakAttack(state, this.playerId)
+        if (freeActionOf) {
+            holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Campaign)
+        }
         attacker.spendSupply(supplyCost)
         delete attacker.freeCampaignAtAction
         // Wild Allies, Captains — acting from elsewhere, with the warbands there
@@ -217,12 +236,13 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (toAsk.length > 0) {
             state.pendingCampaign = { declaration, toAsk }
             HydratedCampaign.askToJoinDefence(state)
-            this.metadata = { supplySpent: supplyCost, awaitingAllies: true }
+            this.metadata = { supplySpent: supplyCost, freeActionOf, awaitingAllies: true }
             return
         }
 
         this.metadata = {
             supplySpent: supplyCost,
+            freeActionOf,
             battle: HydratedCampaign.muster(state, declaration)
         }
     }
@@ -308,6 +328,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const plansUsed = [...attackerPlans.used, ...(bandits?.used ?? [])]
         const discardAtEnd = [...attackerPlans.discardAtEnd, ...(bandits?.discardAtEnd ?? [])]
         const rollRules = { ...attackerPlans.rollRules, ...(bandits?.rollRules ?? {}) }
+        const planNotes = [...attackerPlans.notes, ...(bandits?.notes ?? [])]
 
         const campaign: CampaignState = {
             attackerPlayerId,
@@ -372,7 +393,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             skullsKilled: forceTotal(skullKills),
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
-            planNotes: attackerPlans.notes.length > 0 ? attackerPlans.notes : undefined,
+            planNotes: planNotes.length > 0 ? planNotes : undefined,
             awaitingDefender: awaitingDefender || undefined
         }
     }
@@ -430,6 +451,13 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (choice.attackDice > most) {
             return `can add at most ${most} attack dice, one per warband in your force`
         }
+        // R-5.5.5 — from revision 7 the attacker picks where the skulls kill once they are rolled.
+        if (
+            isAtLeastOathRevision(state, OathRevision.EngineFixes3) &&
+            (choice.skullLossOrder?.length ?? 0) > 0
+        ) {
+            return 'the losses to skulls are picked after the roll, not declared'
+        }
         const lossOrderReason = reasonLossOrderOutsideForce(
             state,
             parties,
@@ -469,21 +497,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
 
     /** R-5.5.1, R-5.5.2 */
     static legalDefenders(state: HydratedOathGameState, playerId: string): CampaignDefender[] {
-        const defenders: CampaignDefender[] = [
-            ...state.players
-                .filter((other) => other.playerId !== playerId)
-                .map((other) => ({ kind: 'player' as const, playerId: other.playerId })),
-            { kind: 'bandits' }
-        ]
-        return defenders.filter(
+        return defendersOpenTo(state, playerId).filter(
             (defender) =>
-                HydratedCampaign.reasonCannotChooseDefender(state, playerId, defender) ===
-                    undefined &&
-                reasonNoCampaignAgainst(
-                    state,
-                    playerId,
-                    defender.kind === 'player' ? defender.playerId : undefined
-                ) === undefined
+                HydratedCampaign.reasonCannotChooseDefender(state, playerId, defender) === undefined
         )
     }
 

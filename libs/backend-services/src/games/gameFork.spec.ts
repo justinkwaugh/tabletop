@@ -127,6 +127,13 @@ describe('Canonical Fork', () => {
         }
     )
 
+    it('starts a Fork of a game that has been Finished as a game that never has', () => {
+        const source = createSource(3)
+        source.game.everFinished = true
+        const fork = createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: 0 })
+        expect(fork.game).not.toHaveProperty('everFinished')
+    })
+
     it('copies the current position without requiring old patches or old Action schemas', () => {
         const source = createSource()
         delete source.actions[0].undoPatch

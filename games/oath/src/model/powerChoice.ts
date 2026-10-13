@@ -20,7 +20,9 @@ export enum PowerChoiceKind {
     /** R-7.6.3 — the card's effect validates the terms. */
     Exchange = 'exchange',
     /** The card's effect bounds the number. */
-    Count = 'count'
+    Count = 'count',
+    /** Witch's Bargain, from revision 7: one player's exchanges, the card's effect bounds them. */
+    Bargain = 'bargain'
 }
 
 export type PowerChoice = Type.Static<typeof PowerChoice>
@@ -43,5 +45,13 @@ export const PowerChoice = Type.Union([
         withPlayerId: Type.String(),
         terms: ExchangeTerms
     }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Count), n: Type.Number() })
+    Type.Object({ kind: Type.Literal(PowerChoiceKind.Count), n: Type.Number() }),
+    Type.Object({
+        kind: Type.Literal(PowerChoiceKind.Bargain),
+        playerId: Type.String(),
+        /** Secrets given, two of their favor taken for each. */
+        secretsGiven: Type.Integer({ minimum: 0, maximum: 999 }),
+        /** Pairs of favor given, one of their secrets taken for each. */
+        pairsGiven: Type.Integer({ minimum: 0, maximum: 999 })
+    })
 ])

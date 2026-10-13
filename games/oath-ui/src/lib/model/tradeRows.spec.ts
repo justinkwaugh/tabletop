@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { PowerTiming, Suit, TradeOption, powerIndexOf } from '@tabletop/oath'
+import {
+    OathRevision,
+    PlayerStatus,
+    PowerChoiceKind,
+    PowerTiming,
+    Suit,
+    TradeOption,
+    powerIndexOf,
+    type PowerChoice,
+    reliquarySlotId
+} from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { tradeRows } from './tradeRows.js'
 
@@ -19,7 +29,11 @@ const banks = (over: Partial<Record<Suit, number>> = {}): Record<Suit, number> =
     [Suit.Nomad]: over[Suit.Nomad] ?? 3
 })
 
-function site(player: Record<string, unknown> = {}, state: Record<string, unknown> = {}) {
+function site(
+    player: Record<string, unknown> = {},
+    state: Record<string, unknown> = {},
+    others: ReturnType<typeof testPlayer>[] = []
+) {
     return testState(
         [
             testPlayer({
@@ -30,7 +44,8 @@ function site(player: Record<string, unknown> = {}, state: Record<string, unknow
                 favor: 3,
                 advisers: HEARTH_ADVISERS.map((cardId) => ({ cardId, faceUp: true })),
                 ...player
-            })
+            }),
+            ...others
         ],
         {
             denizensBySite: { c1: [BINDERS, SEAT, ASSASSIN] },
@@ -68,17 +83,18 @@ describe('the trades at your site (R-5.3.2)', () => {
         expect(tradeRows(site(), 'p1', []).map((row) => row.cardId)).not.toContain(SEAT)
     })
 
-    it('keeps a trade that gains nothing, and says why', () => {
+    it('keeps a trade that gains nothing, its gain 0: the token placed still blocks the card', () => {
         const assassin = tradeRows(site(), 'p1', []).find((row) => row.cardId === ASSASSIN)
-        const [forFavor, forSecrets] = assassin?.choices ?? []
-        // R-9.3 — an empty bank gives what it holds; the trade is still legal.
-        expect(forFavor).toMatchObject({ gain: 0, bankShort: true })
-        expect(forSecrets).toMatchObject({ gain: 0, bankShort: false, matchingAdvisers: 0 })
+        // R-9.3 — an empty bank gives what it holds; no faceup Discord adviser gives no secret. Both are legal.
+        expect(assassin?.choices).toEqual([
+            { option: TradeOption.ForFavor, pay: 1, gain: 0, sideFavor: 0, modifiers: [] },
+            { option: TradeOption.ForSecrets, pay: 2, gain: 0, sideFavor: 0, modifiers: [] }
+        ])
     })
 
     it('gains no more favor than the bank holds', () => {
         const binders = tradeRows(site({}, { favorBank: banks({ [Suit.Hearth]: 1 }) }), 'p1', [])
-        expect(binders[0].choices[0]).toMatchObject({ gain: 1, bankShort: true })
+        expect(binders[0].choices[0]).toMatchObject({ gain: 1 })
     })
 
     it('drops only the option the engine refuses', () => {
@@ -97,5 +113,113 @@ describe('the trades at your site (R-5.3.2)', () => {
         const binders = tradeRows(state, 'p1', declared).find((row) => row.cardId === BINDERS)
         // Secret Signal: "If you gain only one favor, gain one more favor."
         expect(binders?.choices[0]).toMatchObject({ option: TradeOption.ForFavor, gain: 2 })
+    })
+})
+
+describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () => {
+    const careless = (state: Record<string, unknown> = {}) =>
+        site(
+            { status: PlayerStatus.Chancellor },
+            {
+                chancellorPlayerId: 'p1',
+                favorBank: banks(),
+                reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) })),
+                ...state
+            }
+        )
+    const counts = (rows: ReturnType<typeof tradeRows>) =>
+        rows.map((row) => [row.cardId, row.choices.map((c) => [c.option, c.gain, c.sideFavor])])
+
+    it('counts the favor beside the secrets, with matching advisers (Hearth) and without (Discord)', () => {
+        expect(counts(tradeRows(careless(), 'p1', []))).toEqual([
+            [
+                BINDERS,
+                [
+                    [TradeOption.ForFavor, 3, 0],
+                    [TradeOption.ForSecrets, 1, 1]
+                ]
+            ],
+            [
+                ASSASSIN,
+                [
+                    [TradeOption.ForFavor, 2, 0],
+                    [TradeOption.ForSecrets, 0, 1]
+                ]
+            ]
+        ])
+    })
+
+    it('counts none from an empty bank (R-9.3)', () => {
+        const rows = tradeRows(careless({ favorBank: banks({ [Suit.Discord]: 0 }) }), 'p1', [])
+        expect(rows.find((row) => row.cardId === ASSASSIN)?.choices[1]).toMatchObject({
+            option: TradeOption.ForSecrets,
+            gain: 0,
+            sideFavor: 0
+        })
+    })
+
+    const POVERTY = 'denizen.beast.vow-of-poverty'
+    const declared = [{ cardId: SIGNAL, powerIndex: powerIndexOf(SIGNAL, PowerTiming.Modifier) }]
+    const withAdvisers = (
+        advisers: string[],
+        state: Record<string, unknown> = {},
+        others: ReturnType<typeof testPlayer>[] = []
+    ) =>
+        site(
+            {
+                status: PlayerStatus.Chancellor,
+                advisers: [...HEARTH_ADVISERS, ...advisers].map((cardId) => ({ cardId, faceUp: true }))
+            },
+            {
+                chancellorPlayerId: 'p1',
+                favorBank: banks(),
+                reliquary: [0, 1, 3].map((space) => ({ slotId: reliquarySlotId(space) })),
+                oathRevision: OathRevision.EngineFixes2,
+                ...state
+            },
+            others
+        )
+    const secretsAtBinders = (rows: ReturnType<typeof tradeRows>) =>
+        rows.find((row) => row.cardId === BINDERS)?.choices.find((c) => c.option === TradeOption.ForSecrets)
+
+    it('counts none for a Vow of Poverty holder, whom Careless gives nothing', () => {
+        expect(secretsAtBinders(tradeRows(withAdvisers([POVERTY]), 'p1', []))).toMatchObject({ sideFavor: 0 })
+    })
+
+    // Master of Disguise — the Trade acts with the other player's advisers, and so does the count.
+    const DISGUISE = 'denizen.arcane.master-of-disguise'
+    const borrowed: PowerChoice = { kind: PowerChoiceKind.Player, playerId: 'p2' }
+    const disguised = [
+        {
+            cardId: DISGUISE,
+            powerIndex: powerIndexOf(DISGUISE, PowerTiming.Modifier),
+            choices: [borrowed]
+        }
+    ]
+    const borrowing = (own: string[], theirs: string[]) =>
+        withAdvisers([...own, DISGUISE], {}, [
+            testPlayer({
+                playerId: 'p2',
+                color: Color.Blue,
+                siteId: 'p1',
+                advisers: theirs.map((cardId) => ({ cardId, faceUp: true }))
+            })
+        ])
+
+    it('counts none when Master of Disguise borrows a Vow of Poverty, and one when it borrows around one', () => {
+        expect(
+            secretsAtBinders(tradeRows(borrowing([], [POVERTY]), 'p1', disguised))
+        ).toMatchObject({ sideFavor: 0 })
+        expect(
+            secretsAtBinders(tradeRows(borrowing([POVERTY], [ASSASSIN]), 'p1', disguised))
+        ).toMatchObject({ sideFavor: 1 })
+    })
+
+    it('counts Secret Signal’s one more favor, as far as the bank holds (R-9.3)', () => {
+        expect(secretsAtBinders(tradeRows(withAdvisers([SIGNAL]), 'p1', declared))).toMatchObject({
+            sideFavor: 2
+        })
+        const bankOfOne = withAdvisers([SIGNAL], { favorBank: banks({ [Suit.Hearth]: 1 }) })
+        expect(secretsAtBinders(tradeRows(bankOfOne, 'p1', declared))).toMatchObject({ sideFavor: 1 })
     })
 })

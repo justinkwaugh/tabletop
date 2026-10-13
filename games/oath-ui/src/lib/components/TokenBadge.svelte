@@ -4,14 +4,13 @@
     let {
         kind,
         count,
-        size = 34,
-        title = undefined
-    }: { kind: 'favor' | 'secret'; count: number; size?: number; title?: string } = $props()
+        size = 34
+    }: { kind: 'favor' | 'secret'; count: number; size?: number } = $props()
 
     let src = $derived(kind === 'favor' ? favorTokenImage() : secretTokenImage())
 </script>
 
-<span class="token token--{kind}" style="width:{size}px; height:{size}px;" {title}>
+<span class="token token--{kind}" style="width:{size}px; height:{size}px;">
     <img {src} alt={kind === 'favor' ? 'favor' : 'secrets'} />
     <span class="token__count" style="font-size:{Math.round(size * 0.5)}px;">{count}</span>
 </span>

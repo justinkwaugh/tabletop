@@ -13,6 +13,7 @@ import {
     CampaignDefeatStateHandler,
     CampaignPlansStateHandler,
     CampaignSacrificeStateHandler,
+    CampaignSkullLossesStateHandler,
     CampaignVictoryStateHandler
 } from '../stateHandlers/campaigning.js'
 import { OathkeeperChoiceStateHandler } from '../stateHandlers/oathkeeperChoice.js'
@@ -157,6 +158,9 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.Searching]: withContinuousTitle(withPowerQuestions(new SearchingStateHandler())),
     [MachineState.CampaignPlans]: withContinuousTitle(
         withPowerQuestions(new CampaignPlansStateHandler())
+    ),
+    [MachineState.CampaignSkullLosses]: withContinuousTitle(
+        withPowerQuestions(new CampaignSkullLossesStateHandler())
     ),
     [MachineState.CampaignSacrifice]: withContinuousTitle(
         withPowerQuestions(new CampaignSacrificeStateHandler())

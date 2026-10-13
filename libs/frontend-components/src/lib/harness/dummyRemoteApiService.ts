@@ -5,6 +5,7 @@ import type {
     Bookmark,
     GameCatalogEntry,
     GameHistoryPage,
+    UserGameStats,
     CanonicalActionReplay,
     Game,
     PublicGamePreview,
@@ -53,6 +54,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getMyGameHistory(): Promise<GameHistoryPage> {
         return this.fail('getMyGameHistory')
+    }
+
+    async getMyGameStats(): Promise<UserGameStats> {
+        return this.fail('getMyGameStats')
     }
 
     async correctTournamentResult(): Promise<Tournament> {

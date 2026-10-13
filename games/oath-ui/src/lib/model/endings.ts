@@ -14,6 +14,12 @@ export const ENDINGS: Record<WinRule, string> = {
     'R-3.4.4': 'by War Exhaustion — the Empire endured, by the terminal fallback'
 }
 
+/** How the winner won ("as Usurper"), then why, as `ENDINGS` writes them either side of " — ". */
+export function endingParts(rule: WinRule): { how: string; why?: string } {
+    const [how, why] = ENDINGS[rule].split(' — ')
+    return { how, why }
+}
+
 export function isWinRule(value: string): value is WinRule {
     return WIN_RULES.some((rule) => rule === value)
 }

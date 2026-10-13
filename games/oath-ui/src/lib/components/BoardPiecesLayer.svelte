@@ -2,9 +2,8 @@
     import { CardKind } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardAspect } from '$lib/images/cardShape.js'
-    import { banditWarbandImage, pawnImage, warbandImage } from '$lib/images/pieceImages.js'
-    import { siteName } from '$lib/model/names.js'
-    import { sitePieces } from '$lib/model/siteRule.js'
+    import { pawnImage, siteBanditsImage, warbandImage } from '$lib/images/pieceImages.js'
+    import { sitePieces, type SiteRule } from '$lib/model/siteRule.js'
     import {
         PAWN_HEIGHT,
         PIECE_ROW_GAP,
@@ -22,17 +21,10 @@
 
     const SITE_ASPECT = cardAspect({ back: CardKind.Site })
 
-    function banditsTitle(slotId: string, servingIds: string[]): string {
-        const site = siteName(gameState, slotId)
-        if (servingIds.length === 0) return `Bandits rule ${site}`
-        return `Bandits serve ${servingIds.map((id) => gameSession.getPlayerName(id)).join(', ')} at ${site}`
-    }
-
-    // R-7.6.5 — bandits that act as the Crown holder's warbands keep their figure in that player's colour.
-    function servedWarbandImage(servingIds: string[]): string {
-        const [firstId] = servingIds
-        if (firstId === undefined) return banditWarbandImage()
-        return banditWarbandImage(gameSession.colors.getPlayerColor(firstId))
+    // R-7.6.5 — the figure's name says what its colour says; the enlarged site names the holder.
+    function banditsName(rule: SiteRule): string {
+        if (rule.banditsImperial) return 'Bandits serving as Imperial warbands'
+        return rule.banditsHolderId === undefined ? 'Bandits' : 'Bandits serving as warbands'
     }
 </script>
 
@@ -48,24 +40,18 @@
                    gap:{PIECE_ROW_GAP}px;"
         >
             {#if pieces.bandits}
-                <span
-                    class="warband bandits"
-                    title={banditsTitle(slotId, pieces.rule.banditsServeIds)}
-                >
+                <span class="warband bandits">
                     <img
-                        src={servedWarbandImage(pieces.rule.banditsServeIds)}
-                        alt={pieces.rule.banditsServeIds.length > 0
-                            ? 'Bandits serving as warbands'
-                            : 'Bandits'}
+                        src={siteBanditsImage(pieces.rule, (id) =>
+                            gameSession.colors.getPlayerColor(id)
+                        )}
+                        alt={banditsName(pieces.rule)}
                         style="height:{WARBAND_HEIGHT}px; width:auto;"
                     />
                 </span>
             {/if}
             {#each pieces.warbands as [owner, count] (owner)}
-                <span
-                    class="warband"
-                    title="{count} {gameSession.warbandOwnerName(owner)} warbands"
-                >
+                <span class="warband">
                     <img
                         src={warbandImage(gameSession.warbandColor(owner))}
                         alt=""
@@ -76,7 +62,7 @@
             {/each}
 
             {#each pieces.pawns as pawn (pawn.playerId)}
-                <span class="pawn-slot" title="{gameSession.getPlayerName(pawn.playerId)}'s pawn">
+                <span class="pawn-slot">
                     <img
                         src={pawnImage(gameSession.colors.getPlayerColor(pawn.playerId))}
                         alt=""

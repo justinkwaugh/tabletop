@@ -17,7 +17,6 @@
             class="die die--unrolled"
             class:die--attack={side === 'attack'}
             class:die--defense={side === 'defense'}
-            title="{side === 'attack' ? 'Attack' : 'Defense'} die, not yet rolled"
         ></span>
     {/each}
 {/snippet}
@@ -31,35 +30,37 @@
     </div>
     <div class="dice">
         {#if unrolled}
+            <!-- No totals until the roll; each slot keeps a total's room, so the row does not move. -->
             {@render unrolledDice(campaign.attackPool, 'attack')}
+            <span class="dice__total dice__total--unrolled"></span>
             <span class="dice__sep"></span>
             {@render unrolledDice(campaign.defensePool, 'defense')}
-            <span class="dice__total">waiting on the defender</span>
+            <span class="dice__total dice__total--unrolled"></span>
         {:else}
             {#each campaign.attackRoll as face, index (index)}
-                <span
-                    class="die"
-                    title={face.skulls > 0
-                        ? 'Skull and two swords — a warband of yours dies'
-                        : face.hollowSwords > 0
-                          ? 'Hollow sword — two make one sword'
-                          : 'Sword'}
-                >
-                    <img src={attackFaceImage(face)} alt="" />
+                <span class="die">
+                    <img
+                        src={attackFaceImage(face)}
+                        alt={face.skulls > 0
+                            ? 'Skull and two swords — a warband of yours dies'
+                            : face.hollowSwords > 0
+                              ? 'Hollow sword — two make one sword'
+                              : 'Sword'}
+                    />
                 </span>
             {/each}
             <span class="dice__total">{plural(campaign.swords, 'sword')}</span>
             <span class="dice__sep"></span>
             {#each campaign.defenseRoll as face, index (index)}
-                <span
-                    class="die"
-                    title={face.doubling
-                        ? 'Doubles the shields rolled'
-                        : face.shields === 0
-                          ? 'Blank'
-                          : plural(face.shields, 'shield')}
-                >
-                    <img src={defenseFaceImage(face)} alt="" />
+                <span class="die">
+                    <img
+                        src={defenseFaceImage(face)}
+                        alt={face.doubling
+                            ? 'Doubles the shields rolled'
+                            : face.shields === 0
+                              ? 'Blank'
+                              : plural(face.shields, 'shield')}
+                    />
                 </span>
             {/each}
             <span class="dice__total">{campaign.defense} defense</span>
@@ -106,5 +107,9 @@
         font-size: 13px;
         color: var(--oath-text-muted);
         white-space: nowrap;
+    }
+    .dice__total--unrolled {
+        min-width: 4.5em;
+        min-height: 1.5em;
     }
 </style>

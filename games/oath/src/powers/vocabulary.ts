@@ -26,6 +26,7 @@ import { pawnSiteId, playersAt, regionOfPawn } from '../util/pawn.js'
 export { gainFavorFromBank, takeFavorFromPlayer } from '../util/favor.js'
 export { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 export {
+    gainedWarbandsWords,
     gainWarbandsToBoard,
     gainWarbandsWithOwner,
     warbandOwnerGainedByPower
