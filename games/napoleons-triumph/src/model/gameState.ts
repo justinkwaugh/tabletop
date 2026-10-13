@@ -170,6 +170,11 @@ export class HydratedNapoleonsTriumphGameState
         return unit
     }
 
+    /** Rule 11: the cavalry whose move by road is still open. */
+    riders(): ProjectedUnit[] {
+        return (this.roadMarch?.unitIds ?? []).map((id) => this.unit(id))
+    }
+
     findUnit(id: string): ProjectedUnit | undefined {
         return this.units.find((candidate) => candidate.id === id)
     }

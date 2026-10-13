@@ -5,6 +5,7 @@ import {
     inReserve,
     isLegal,
     resolveAttackOrders,
+    rideOnAttackOrder,
     roadAttackOrder,
     roadAttackOrders,
     type HydratedNapoleonsTriumphGameState,
@@ -12,6 +13,7 @@ import {
     type ProjectedUnit
 } from '@tabletop/napoleons-triumph'
 import type { VisibleAttack } from './battleStage.js'
+import { RideChoice } from './moveCommands.js'
 
 export interface AttackerGroup {
     label: string
@@ -20,12 +22,14 @@ export interface AttackerGroup {
 
 export function attackerGroups(
     state: HydratedNapoleonsTriumphGameState,
-    attack: VisibleAttack
+    attack: VisibleAttack,
+    mayRide: boolean
 ): AttackerGroup[] {
     const locale = state.map.approach(attack.attackApproach).locale
+    const riders = state.riders()
+    const ridersListed = mayRide && rideOnAttackOrder(state, attack, riders) ? riders : []
     const commandable = (units: ProjectedUnit[]) =>
-        units.filter((unit) => hasUsableCommand(state, unit))
-    const riding = (state.roadMarch?.unitIds ?? []).map((id) => state.unit(id))
+        units.filter((unit) => hasUsableCommand(state, unit) && !ridersListed.includes(unit))
     const byRoad = state
         .unitsOf(attack.attackerId)
         .filter(
@@ -40,7 +44,7 @@ export function attackerGroups(
             units: commandable(state.blockers(attack.attackApproach, attack.attackerId))
         },
         { label: 'In reserve', units: commandable(state.reserveUnits(locale, attack.attackerId)) },
-        { label: 'Riding on by road', units: roadAttackOrder(state, attack, riding) ? riding : [] },
+        { label: 'Riding on by road', units: ridersListed },
         { label: 'Cavalry that can ride up by road', units: byRoad }
     ].filter((group) => group.units.length > 0)
 }
@@ -79,21 +83,29 @@ export interface AttackCommand {
     options: CommandKind[]
     chosen?: CommandKind
     orders?: MoveOrder[]
+    /** Present when the units named are cavalry riding on that could attack either way. */
+    ride?: RideChoice
+}
+
+export interface RideWanted {
+    /** Rule 11: an attack by road must be a feint, so there is no riding on where an attack is pressed. */
+    mayRide: boolean
+    ride: RideChoice
 }
 
 export function attackCommand(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
     pickedIds: readonly string[],
-    wanted?: CommandKind
+    wanted: CommandKind | undefined,
+    { mayRide, ride }: RideWanted
 ): AttackCommand {
     const picked = pickedIds.map((id) => state.unit(id))
     const attackLocale = state.map.approach(attack.attackApproach).locale
-    const riding = state.roadMarch?.unitIds.some((id) => pickedIds.includes(id)) === true
     if (picked.length === 0) {
         return { options: [] }
     }
-    if (riding || picked.some((unit) => unit.position?.locale !== attackLocale)) {
+    if (picked.some((unit) => unit.position?.locale !== attackLocale)) {
         const byRoad = roadAttackOrders(state, attack, picked)
         const order = byRoad.find((candidate) => candidate.kind === wanted) ?? byRoad.at(0)
         return {
@@ -113,11 +125,22 @@ export function attackCommand(
               isLegal(() => resolveAttackOrders(state, attack, inPlaceOrders(picked, kind)))
           )
         : []
+    const rideOrder = mayRide ? rideOnAttackOrder(state, attack, picked) : undefined
+    const eitherWay = rideOrder !== undefined && options.length > 0
+    if (rideOrder && !(eitherWay && ride === RideChoice.NewCommand)) {
+        return {
+            options: [rideOrder.kind],
+            chosen: rideOrder.kind,
+            orders: [rideOrder],
+            ride: eitherWay ? RideChoice.RidingOn : undefined
+        }
+    }
     const chosen = wanted !== undefined && options.includes(wanted) ? wanted : options[0]
     return {
         options,
         chosen,
-        orders: chosen === undefined ? undefined : inPlaceOrders(picked, chosen)
+        orders: chosen === undefined ? undefined : inPlaceOrders(picked, chosen),
+        ride: eitherWay ? RideChoice.NewCommand : undefined
     }
 }
 

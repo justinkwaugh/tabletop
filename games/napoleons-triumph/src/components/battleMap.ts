@@ -92,6 +92,9 @@ const PENALTY_LETTERS: Record<string, UnitType> = {
     A: UnitType.Artillery
 }
 
+/** A move by road starts at an entry, or in a locale: by any of its roads (rule 10) unless the pieces came there by road this turn. */
+export type RoadOrigin = { entryId: string } | { locale: LocaleId; roads?: readonly number[] }
+
 export interface RoadArrival {
     locale: LocaleId
     /** Absent before the first step, when the move may leave by any road of its start locale (rule 10). */
@@ -280,18 +283,21 @@ export class BattleMap {
         return [...new Set(this.entries(side).map((entry) => entry.locale))]
     }
 
-    traceRoad(start: LocaleId | { entryId: string }, path: LocaleId[]): RoadArrival[] {
+    traceRoad(start: RoadOrigin, path: LocaleId[]): RoadArrival[] {
         let arrivals: RoadArrival[]
         let remaining = path
-        if (typeof start === 'number') {
-            arrivals = [{ locale: start, main: true }]
-        } else {
+        if ('entryId' in start) {
             const entry = this.findEntry(start.entryId)
             if (!entry || path[0] !== entry.locale) {
                 return []
             }
             arrivals = [{ locale: entry.locale, group: entry.group, main: entry.main }]
             remaining = path.slice(1)
+        } else {
+            const { locale, roads } = start
+            arrivals = roads
+                ? roads.map((group) => ({ locale, group, main: true }))
+                : [{ locale, main: true }]
         }
         for (const next of remaining) {
             const stepped: RoadArrival[] = []

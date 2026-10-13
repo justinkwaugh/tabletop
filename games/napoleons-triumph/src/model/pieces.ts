@@ -29,6 +29,12 @@ export const Unit = Type.Object({
     movesThisTurn: Type.Optional(Type.Integer({ minimum: 1 })),
     enteredThisTurn: Type.Optional(Type.Literal(true)),
     enteredReserveThisTurn: Type.Optional(Type.Literal(true)),
+    /** Rule 10: the reserves this unit closed to other units this turn, marching into them in a corps of two or more. */
+    marchedReserves: Type.Optional(Type.Array(Type.Integer())),
+    /** Rule 10: where a road move brought the unit this turn and by which of that locale's roads; from there it goes on only by those. */
+    arrivedByRoad: Type.Optional(
+        Type.Object({ locale: Type.Integer(), roads: Type.Array(Type.Integer()) })
+    ),
     defendedApproach: Type.Optional(Type.Integer()),
     retreatedAfterCombat: Type.Optional(Type.Literal(true))
 })
@@ -54,6 +60,10 @@ export function faceOf(unit: ProjectedUnit): Face {
     const face = knownFace(unit)
     assertExists(face, `The face of unit ${unit.id} is not known`)
     return face
+}
+
+export function areTheUnits(unitIds: readonly string[], units: readonly ProjectedUnit[]): boolean {
+    return unitIds.length === units.length && units.every((unit) => unitIds.includes(unit.id))
 }
 
 export function standingGroupKey(unit: ProjectedUnit): string {

@@ -14,6 +14,12 @@ import {
     type Side
 } from '@tabletop/napoleons-triumph'
 
+/** Rule 10: cavalry reinforcements riding on in their turn of entry may go on under the command they ride by or take their second command. */
+export enum RideChoice {
+    RidingOn = 'RidingOn',
+    NewCommand = 'NewCommand'
+}
+
 export interface CommandedGroup {
     commander?: Commander
     units: readonly ProjectedUnit[]

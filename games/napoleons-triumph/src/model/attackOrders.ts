@@ -1,4 +1,4 @@
-import type { ApproachId } from '../components/battleMap.js'
+import type { ApproachId, RoadArrival } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
 import { CommandKind, type Attack, type MoveOrder } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
@@ -12,7 +12,14 @@ import {
     resolveOrder,
     type ResolvedOrder
 } from './orders.js'
-import { faceOf, inReserve, samePosition, type Position, type ProjectedUnit } from './pieces.js'
+import {
+    areTheUnits,
+    faceOf,
+    inReserve,
+    samePosition,
+    type Position,
+    type ProjectedUnit
+} from './pieces.js'
 
 export type AttackSite = Pick<Attack, 'attackerId' | 'attackApproach'>
 
@@ -222,6 +229,48 @@ function roadRoutes(
     })
 }
 
+/** Rule 11: cavalry riding on by road may threaten again under the command it rides by. */
+export function rideOnAttackOrder(
+    state: HydratedNapoleonsTriumphGameState,
+    site: AttackSite,
+    units: readonly ProjectedUnit[]
+): MoveOrder | undefined {
+    const ride = marchOrder(state)
+    return ride !== undefined &&
+        areTheUnits(ride.unitIds, units) &&
+        isLegal(() => resolveAttackOrders(state, site, [ride]))
+        ? ride
+        : undefined
+}
+
+function arrivalsBeyond(
+    state: HydratedNapoleonsTriumphGameState,
+    site: AttackSite,
+    order: MoveOrder
+): RoadArrival[] {
+    const { neighbour } = state.map.approach(site.attackApproach)
+    const origin = roadOrigin(resolveOrder(state, site.attackerId, order))
+    return state.map.traceRoad(origin, [...(order.road ?? []), neighbour])
+}
+
+function leavesOpenAll(open: readonly RoadArrival[], others: readonly RoadArrival[]): boolean {
+    return others.every((other) =>
+        open.some((arrival) => arrival.group === other.group && arrival.main === other.main)
+    )
+}
+
+/** More than one road carries an attack only for reinforcements coming on where entry roads meet. The road taken is one that leaves the cavalry every road beyond that the others do; `austerlitz.spec.ts` checks the map always has one. */
+function widestRoad(
+    state: HydratedNapoleonsTriumphGameState,
+    site: AttackSite,
+    orders: readonly MoveOrder[]
+): MoveOrder | undefined {
+    const beyond = orders.map((order) => arrivalsBeyond(state, site, order))
+    const widest = beyond.findIndex((open) => beyond.every((other) => leavesOpenAll(open, other)))
+    return orders.at(Math.max(widest, 0))
+}
+
+/** Rule 9: the commands by which cavalry not yet on the road could attack by road. */
 export function roadAttackOrders(
     state: HydratedNapoleonsTriumphGameState,
     site: AttackSite,
@@ -236,18 +285,15 @@ export function roadAttackOrders(
     ) {
         return []
     }
-    const riding = marchOrder(state)
     const mayAttack = (order: MoveOrder) => isLegal(() => resolveAttackOrders(state, site, [order]))
-    if (
-        riding &&
-        riding.unitIds.length === units.length &&
-        units.every((unit) => riding.unitIds.includes(unit.id))
-    ) {
-        return [riding].filter(mayAttack)
-    }
     const routes = roadRoutes(state, site, units)
     return roadCommands(state, units).flatMap(
-        (command) => routes.map((route) => ({ ...command, ...route })).find(mayAttack) ?? []
+        (command) =>
+            widestRoad(
+                state,
+                site,
+                routes.map((route) => ({ ...command, ...route })).filter(mayAttack)
+            ) ?? []
     )
 }
 
@@ -283,8 +329,6 @@ function roadThreats(
     attackApproach: ApproachId
 ): MoveOrder[] {
     const site = { attackerId: playerId, attackApproach }
-    const riding = marchOrder(state)
-    const ridingOn =
-        riding && isLegal(() => resolveAttackOrders(state, site, [riding])) ? [riding] : []
-    return [...ridingOn, ...loneRiders(state, site)]
+    const ride = rideOnAttackOrder(state, site, state.riders())
+    return [...(ride ? [ride] : []), ...loneRiders(state, site)]
 }

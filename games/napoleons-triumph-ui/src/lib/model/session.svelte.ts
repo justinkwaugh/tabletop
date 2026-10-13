@@ -33,6 +33,7 @@ import {
     type MoveOrder,
     type NapoleonsTriumphPreferences,
     type NapoleonsTriumphProjectedState,
+    type Position,
     type ProjectedUnit,
     type Side
 } from '@tabletop/napoleons-triumph'
@@ -40,6 +41,7 @@ import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
+import { sameIds } from '$lib/utils/ids.js'
 import {
     arrowsToKeepClear,
     flagMarks,
@@ -66,6 +68,7 @@ import {
     emptyBattleSelections,
     hasManualBattleSelection,
     setAttackCommand,
+    setAttackRide,
     setAttackWidth,
     undoBattleSelection,
     type BattleSelections
@@ -92,18 +95,24 @@ import {
 } from './blockMark.js'
 import {
     chooseCorpsUnit,
+    addWayStep,
     chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
+    destinationOf,
     guardAttackAnnounced,
     hasManualCommandSelection,
     noCommandSelection,
     pickedUpOf,
+    rideOf,
     setCommand,
+    setDestination,
+    setRide,
     setGuardAttack,
     setPickedUp,
     undoCommandSelection,
     unitsPickedUpWith,
+    wayStepsOf,
     type CommandSelection
 } from './commandSelection.js'
 import {
@@ -118,6 +127,7 @@ import {
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
 import type { HistoryLine } from './historyChapters.js'
 import {
+    RideChoice,
     mayFireTogether,
     moveCommandOptions,
     moveOrder,
@@ -159,11 +169,16 @@ import {
 import {
     TargetKind,
     moveTargets,
+    placeReachedSeveralWays,
     retreatTargets,
     threatenedApproaches,
+    wayTargets,
     type AttackTarget,
-    type MoveTarget
+    type MarchTarget,
+    type MoveTarget,
+    type WayTarget
 } from './targets.js'
+import { traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
 
 type ZoomSource = () => number | undefined
 
@@ -311,41 +326,35 @@ export class NapoleonsTriumphGameSession extends GameSession<
     // Rule 11: cavalry that has taken a locale by road may ride on.
     private openRoadMarch = $derived(this.isCommanding ? this.gameState.roadMarch : undefined)
 
-    private marchGroupKey: string | undefined = $derived.by(() => {
-        const march = this.openRoadMarch
-        return march
-            ? this.sprites.find((sprite) =>
-                  sprite.group.units.some((unit) => march.unitIds.includes(unit.id))
-              )?.group.key
-            : undefined
-    })
+    private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
+
+    private marchGroupKey: string | undefined = $derived(
+        this.sprites.find((sprite) =>
+            sprite.group.units.some((unit) => this.riderIds.includes(unit.id))
+        )?.group.key
+    )
 
     selectedGroupKey = $derived(
         this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
-    )
-
-    ridingOn = $derived(
-        this.marchGroupKey !== undefined && this.selectedGroupKey === this.marchGroupKey
     )
 
     reinforcements: Reinforcement[] = $derived(
         this.mySide && this.isCommanding ? reinforcementsOf(this.gameState, this.mySide) : []
     )
 
+    selectedSprite: GroupSprite | undefined = $derived(
+        this.sprites.find((sprite) => sprite.group.key === this.selectedGroupKey)
+    )
+
     ringedSprites: GroupSprite[] = $derived.by(() => {
         const step = this.setupStep
         if (!step) {
-            return this.sprites.filter((sprite) => sprite.group.key === this.selectedGroupKey)
+            return this.selectedSprite ? [this.selectedSprite] : []
         }
         const ofOpenSeat = unitsOfOpenSeat(step)
         return this.sprites.filter(({ group }) =>
             group.units.some((unit) => ofOpenSeat.includes(unit.id))
         )
-    })
-
-    selectedSprite: GroupSprite | undefined = $derived.by(() => {
-        const [only, ...others] = this.ringedSprites
-        return others.length === 0 ? only : undefined
     })
 
     selectedGroup: PieceGroup | undefined = $derived(
@@ -358,35 +367,51 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!group) {
             return []
         }
-        if (this.ridingOn) {
-            return [...(this.openRoadMarch?.unitIds ?? [])]
-        }
         const chosen = chosenUnitsOf(this.selection)
         return chosen
             ? chosen.filter((id) => group.units.some((unit) => unit.id === id))
             : this.startingUnits(group)
     })
 
-    wholeCorpsChosen = $derived(
-        this.selectedGroup?.commander !== undefined &&
-            !this.ridingOn &&
-            chosenUnitsOf(this.selection) === undefined
+    private ridersInHand = $derived(
+        this.riderIds.length > 0 && sameIds(this.pickedUnitIds, this.riderIds)
     )
 
-    commandOptions: CommandKind[] = $derived.by(() => {
+    private corpsTakenWhole = $derived(
+        this.selectedGroup?.commander !== undefined && chosenUnitsOf(this.selection) === undefined
+    )
+
+    private commandsForUnitsInHand: CommandKind[] = $derived.by(() => {
         const group = this.selectedGroup
         const playerId = this.myPlayerId
-        if (!group || !playerId || this.ridingOn) {
-            return []
-        }
-        return moveCommandOptions(
-            this.gameState,
-            playerId,
-            group,
-            this.pickedUnitIds,
-            this.wholeCorpsChosen
-        )
+        const picked = this.pickedUnitIds
+        const stillToMove = group?.units
+            .filter((unit) => picked.includes(unit.id))
+            .every((unit) => canStillMove(this.gameState, unit))
+        return group && playerId && stillToMove
+            ? moveCommandOptions(this.gameState, playerId, group, picked, this.corpsTakenWhole)
+            : []
     })
+
+    private ridersMayTakeNewCommand = $derived(
+        this.ridersInHand && this.commandsForUnitsInHand.length > 0
+    )
+
+    ridingOn = $derived(
+        this.ridersInHand &&
+            !(this.ridersMayTakeNewCommand && rideOf(this.selection) === RideChoice.NewCommand)
+    )
+
+    rideChoice: RideChoice | undefined = $derived.by(() => {
+        if (!this.ridersMayTakeNewCommand) {
+            return undefined
+        }
+        return this.ridingOn ? RideChoice.RidingOn : RideChoice.NewCommand
+    })
+
+    wholeCorpsChosen = $derived(this.corpsTakenWhole && !this.ridingOn)
+
+    commandOptions: CommandKind[] = $derived(this.ridingOn ? [] : this.commandsForUnitsInHand)
 
     commandKind: CommandKind | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
@@ -428,6 +453,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     guardAttack = $derived(guardAttackAnnounced(this.selection) && this.guardUnitId !== undefined)
 
+    destination: MarchTarget | undefined = $derived(
+        placeReachedSeveralWays(this.orderTargets, destinationOf(this.selection))
+    )
+
+    private wayChoice: WayChoice | undefined = $derived(
+        this.destination?.ways
+            ? traceWays(this.destination.ways, wayStepsOf(this.selection))
+            : undefined
+    )
+
+    stepsOfTheWay: WayStep[] = $derived(this.wayChoice?.next ?? [])
+
     private setupTargets: MoveTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
         const step = this.setupStep
@@ -441,6 +478,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
         if (stage?.kind === StageKind.Retreat) {
             return retreatTargets(stage.plan.room.keys())
+        }
+        if (this.wayChoice) {
+            return wayTargets(this.stepsOfTheWay)
         }
         return this.guardAttack
             ? targetsOfGuardAttack(this.gameState, this.orderTargets)
@@ -456,7 +496,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         roles: this.battleRoles,
         selectedGroupKey: this.selectedGroupKey,
         pickedUnitIds: this.pickedUnitIds,
-        ridingOn: this.ridingOn
+        riderIds: this.riderIds
     })
 
     armyColors(playerId: string): ArmyColors {
@@ -541,7 +581,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return !this.ridingOn && canStillMove(this.gameState, unit)
+        return this.ridesAlone(unit) ? !this.ridingOn : canStillMove(this.gameState, unit)
     }
 
     selectReinforcement(reinforcement: Reinforcement) {
@@ -583,15 +623,23 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!group || !unit || !this.mayChooseUnit(unit)) {
             return
         }
-        if (group.commander) {
-            this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.startingUnits(group)))
+        if (this.ridesAlone(unit)) {
+            this.stageCommand(noCommandSelection())
+        } else if (group.commander) {
+            this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.commandableIds(group)))
         } else {
-            const chosen = this.pickedUnitIds
+            const chosen = this.ridingOn ? [] : this.pickedUnitIds
             const playerId = this.myPlayerId
             const mayJoin =
                 playerId !== undefined &&
                 mayFireTogether(this.gameState, playerId, group, [...chosen, unitId])
             this.stageCommand(chooseDetachedUnit(this.selection, unitId, chosen, mayJoin))
+        }
+    }
+
+    chooseRide(ride: RideChoice) {
+        if (this.rideChoice !== undefined && ride !== this.rideChoice) {
+            this.stageCommand(setRide(this.selection, ride))
         }
     }
 
@@ -632,19 +680,22 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.stageBattle(sendRetreatTo(stage, this.battle, target.position.locale))
             return
         }
+        if (target.kind === TargetKind.Way) {
+            await this.takeStepOfTheWay(target)
+            return
+        }
         const order = this.order
         assertExists(order, 'Move targets are offered for an order')
         if (target.kind === TargetKind.Attack) {
             await this.threaten(target.position.approach, order)
             return
         }
-        this.stageCommand(noCommandSelection())
-        await this.applyAction(
-            this.createPlayerAction(Move, {
-                order: { ...order, road: target.road, entryId: target.entryId },
-                to: target.position
-            })
-        )
+        const [way, ...otherWays] = target.ways ?? []
+        if (otherWays.length > 0) {
+            this.stageCommand(setDestination(this.selection, target.key))
+            return
+        }
+        await this.move(order, target.position, way)
     }
 
     async tapThreatArrow(target: AttackTarget, at: Point) {
@@ -792,6 +843,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const choosing = stage && 'commandOptions' in stage && stage.commandOptions.includes(kind)
         if (choosing && stage.command !== kind) {
             this.stageBattle({ attackers: setAttackCommand(this.battle.attackers, kind) })
+        }
+    }
+
+    chooseAttackRide(ride: RideChoice) {
+        const stage = this.battleStage
+        const choosing = stage && 'ride' in stage && stage.ride !== undefined
+        if (choosing && stage.ride !== ride) {
+            this.stageBattle({ attackers: setAttackRide(this.battle.attackers, ride) })
         }
     }
 
@@ -1001,11 +1060,46 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )
     }
 
+    private commandableIds(group: PieceGroup): string[] {
+        return group.units
+            .filter((unit) => canStillMove(this.gameState, unit))
+            .map((unit) => unit.id)
+    }
+
+    private ridesAlone(unit: ProjectedUnit): boolean {
+        return this.riderIds.includes(unit.id) && unit.commanderId === undefined
+    }
+
     private startingUnits(group: PieceGroup): string[] {
         return unitsPickedUpWith(
             pickedUpOf(this.selection),
-            group.units.filter((unit) => canStillMove(this.gameState, unit)).map((unit) => unit.id),
-            group.commander !== undefined
+            this.commandableIds(group),
+            group.commander !== undefined,
+            group.key === this.marchGroupKey ? this.riderIds : []
+        )
+    }
+
+    private async takeStepOfTheWay(step: WayTarget) {
+        const destination = this.destination
+        const order = this.order
+        assertExists(destination?.ways, 'A step of the way is offered for a place already chosen')
+        assertExists(order, 'A way is chosen for an order')
+        const selection = addWayStep(this.selection, step.key)
+        const { settled } = traceWays(destination.ways, wayStepsOf(selection))
+        if (settled) {
+            await this.move(order, destination.position, settled)
+        } else {
+            this.stageCommand(selection)
+        }
+    }
+
+    private async move(order: MoveOrder, to: Position, way?: Way) {
+        this.stageCommand(noCommandSelection())
+        await this.applyAction(
+            this.createPlayerAction(Move, {
+                order: { ...order, road: way?.road, entryId: way?.entryId },
+                to
+            })
         )
     }
 
@@ -1014,7 +1108,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         const guardUnitId = this.guardAttack ? this.guardUnitId : undefined
-        const plan = { kind: order.kind, unitIds: [...order.unitIds] }
+        const plan = { kind: order.kind, unitIds: [...order.unitIds], continues: order.continues }
         this.stageCommand(noCommandSelection())
         await this.applyAction(
             this.createPlayerAction(

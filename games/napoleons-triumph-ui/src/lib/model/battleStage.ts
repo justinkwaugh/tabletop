@@ -52,6 +52,8 @@ import {
     setRetreatLosses,
     type BattleSelections
 } from './battleSelection.js'
+import { sameIds } from '$lib/utils/ids.js'
+import { RideChoice } from './moveCommands.js'
 import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import { copyOf } from './stateCopy.js'
 
@@ -95,6 +97,7 @@ export interface RetreatStage extends Picking {
 interface AttackerPicking extends Picking {
     groups: AttackerGroup[]
     attackers: string[]
+    ride?: RideChoice
     commandOptions: CommandKind[]
     command?: CommandKind
     orders?: MoveOrder[]
@@ -244,10 +247,11 @@ function retreatStage(
 function attackerPicking(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
-    selections: BattleSelections
+    selections: BattleSelections,
+    mayRide: boolean
 ): AttackerPicking & { leaders: string[] } {
     const planned = attack.attackPlan?.order
-    const groups = attackerGroups(state, attack)
+    const groups = attackerGroups(state, attack, mayRide)
     const pickableIds = groups.flatMap((group) => idsOf(group.units))
     const named =
         attackerSelection.value(selections.attackers, 'attackers') ?? planned?.unitIds ?? []
@@ -255,22 +259,24 @@ function attackerPicking(
     const leaders = (attackerSelection.value(selections.attackers, 'leaders') ?? []).filter((id) =>
         attackers.includes(id)
     )
-    const asPlanned =
-        planned !== undefined &&
-        planned.unitIds.length === attackers.length &&
-        planned.unitIds.every((id) => attackers.includes(id))
+    const asPlanned = planned !== undefined && sameIds(planned.unitIds, attackers)
+    const plannedRide =
+        asPlanned && planned.continues !== true ? RideChoice.NewCommand : RideChoice.RidingOn
+    const wantedRide = attackerSelection.value(selections.attackers, 'ride') ?? plannedRide
     const command = attackCommand(
         state,
         attack,
         attackers,
         attackerSelection.value(selections.attackers, 'command') ??
-            (asPlanned ? planned.kind : undefined)
+            (asPlanned ? planned.kind : undefined),
+        { mayRide, ride: wantedRide }
     )
     return {
         groups,
         pickableIds,
         attackers,
         leaders,
+        ride: command.ride,
         commandOptions: command.options,
         command: command.chosen,
         orders: command.orders,
@@ -283,7 +289,7 @@ function feintStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): FeintStage {
-    const picking = attackerPicking(state, attack, selections)
+    const picking = attackerPicking(state, attack, selections, true)
     const { orders } = picking
     const canPress = canPressAttack(state)
     // Rule 11, steps 3-5: a pressed attack names its pieces only after the defence's leading units are shown.
@@ -309,7 +315,8 @@ function declarationStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): DeclarationStage {
-    const picking = attackerPicking(state, attack, selections)
+    // Rule 11: an attack by road must be a feint, so cavalry riding on presses an attack only by a new command.
+    const picking = attackerPicking(state, attack, selections, false)
     const approachWide = state.map.approach(attack.attackApproach).wide
     const wide =
         approachWide &&
@@ -356,7 +363,7 @@ function occupationStage(
     attack: VisibleAttack,
     selections: BattleSelections
 ): OccupationStage {
-    const picking = attackerPicking(state, attack, selections)
+    const picking = attackerPicking(state, attack, selections, true)
     const { orders } = picking
     const byRoad = orders?.some((order) => order.road !== undefined) === true
     const legalWith = (candidate: MoveOrder[] | undefined, gunsStay: boolean) =>
@@ -521,10 +528,6 @@ export function battleStageOf(
         default:
             return undefined
     }
-}
-
-function sameIds(a: readonly string[], b: readonly string[]): boolean {
-    return a.length === b.length && a.every((id) => b.includes(id))
 }
 
 function withAttackers(

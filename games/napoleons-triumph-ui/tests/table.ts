@@ -1,4 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
+import {
+    NapoleonsTriumphGameStateValidator,
+    type NapoleonsTriumphGameState
+} from '@tabletop/napoleons-triumph'
+
+const GAME_NAME = 'Austerlitz'
+const HARNESS_STORE = { database: 'tabletop-local', positions: 'states' }
 
 export function failOnPageErrors() {
     const pageErrors = new WeakMap<Page, string[]>()
@@ -25,7 +32,7 @@ export async function createGame(
 ) {
     await page.goto('/')
     await page.getByRole('button', { name: 'New game', exact: true }).click()
-    await page.getByPlaceholder('choose a name for your game').fill('Austerlitz')
+    await page.getByPlaceholder('choose a name for your game').fill(GAME_NAME)
     await page.getByPlaceholder('optional reproduction seed').fill(seed)
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
@@ -126,4 +133,46 @@ export async function deployBothArmies(page: Page) {
 // Pieces carry role="button" only while the session takes choices, so Playwright waits out an action or Undo still settling.
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][role="button"]`)
+}
+
+// Workaround: a position that takes many turns to reach is written into the dev harness's own copy of the game, which is then opened again.
+export async function rearrange(page: Page, edit: (state: NapoleonsTriumphGameState) => void) {
+    const stored: unknown = await page.evaluate(async ({ database, positions }) => {
+        const opening = indexedDB.open(database)
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            opening.onsuccess = () => resolve(opening.result)
+            opening.onerror = () => reject(opening.error)
+        })
+        const reading = db.transaction(positions).objectStore(positions).getAll()
+        const rows = await new Promise<unknown[]>((resolve, reject) => {
+            reading.onsuccess = () => resolve(reading.result)
+            reading.onerror = () => reject(reading.error)
+        })
+        db.close()
+        return rows.at(0)
+    }, HARNESS_STORE)
+    if (!NapoleonsTriumphGameStateValidator.Check(stored)) {
+        throw new Error('Expected the harness to hold the whole position of one game')
+    }
+    edit(stored)
+    await page.evaluate(
+        async ({ store: { database, positions }, position }) => {
+            const opening = indexedDB.open(database)
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                opening.onsuccess = () => resolve(opening.result)
+                opening.onerror = () => reject(opening.error)
+            })
+            const writing = db.transaction(positions, 'readwrite').objectStore(positions)
+            await new Promise<void>((resolve, reject) => {
+                const put = writing.put(position)
+                put.onsuccess = () => resolve()
+                put.onerror = () => reject(put.error)
+            })
+            db.close()
+        },
+        { store: HARNESS_STORE, position: stored }
+    )
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: GAME_NAME }).click()
 }

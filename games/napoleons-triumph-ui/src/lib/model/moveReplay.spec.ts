@@ -230,9 +230,11 @@ describe('the scene of a move taken from the history', () => {
         const target = moveTargets(recorded.game.hydrated, french, order, entries).find(
             (candidate) => candidate.kind === TargetKind.Reserve
         )
+        const way = target?.ways?.at(0)
         assertExists(target, 'Expected somewhere for the reinforcements to enter')
+        assertExists(way, 'Expected the reinforcements to enter by road')
         const entered = recorded.act(ActionType.Move, Side.French, {
-            order: { ...order, road: target.road, entryId: target.entryId },
+            order: { ...order, ...way },
             to: target.position
         })
         const scene = moveReplayScene(recorded.replay(entered), NORTH)

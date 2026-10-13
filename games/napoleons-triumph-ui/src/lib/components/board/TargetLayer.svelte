@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+    import { APPROACH_GEOMETRY, ENTRY_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         TargetKind,
@@ -8,8 +8,10 @@
         type AttackTarget,
         type MoveTarget,
         type ReserveTarget,
-        type RetreatTarget
+        type RetreatTarget,
+        type WayTarget
     } from '$lib/model/targets.js'
+    import { WayStepKind } from '$lib/model/ways.js'
     import {
         ATTACK_ARROW_PATH,
         attackMarkerAngle,
@@ -27,6 +29,8 @@
         )
     )
     const approaches = $derived(targets.filter((target) => target.kind === TargetKind.Approach))
+    const steps = $derived(targets.filter((target) => target.kind === TargetKind.Way))
+    const destination = $derived(gameSession.destination)
     const attacks = $derived(targets.filter((target) => target.kind === TargetKind.Attack))
 
     const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
@@ -56,11 +60,64 @@
         if (target.kind === TargetKind.Retreat) {
             return `Retreat to ${place}`
         }
-        return target.road ? `March by road to ${place}` : `Move to ${place}`
+        return target.ways ? `March by road to ${place}` : `Move to ${place}`
+    }
+
+    function stepLabel({ step }: WayTarget): string {
+        return step.kind === WayStepKind.Entry
+            ? 'Come on by this road'
+            : `March by way of ${gameSession.gameState.map.label(step.locale)}`
     }
 </script>
 
+{#snippet approachBar(approach: number, look: string)}
+    {@const bar = APPROACH_GEOMETRY[approach]}
+    <rect
+        transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
+            bar.inward.y * 14}) rotate({bar.angle})"
+        x={-bar.length / 2}
+        y="-13"
+        width={bar.length}
+        height="26"
+        rx="3"
+        class={look}
+    ></rect>
+{/snippet}
+
 {#if !attacksOnly}
+    {#if destination?.kind === TargetKind.Reserve}
+        <polygon points={outline(destination.position.locale)} class="nt-target-chosen"></polygon>
+    {:else if destination}
+        {@render approachBar(destination.position.approach, 'nt-target-chosen')}
+    {/if}
+    {#each steps as target (target.key)}
+        {#if target.step.kind === WayStepKind.Entry}
+            {@const entry = ENTRY_GEOMETRY[target.step.entryId].at}
+            <circle
+                cx={entry.x}
+                cy={entry.y}
+                r="30"
+                class="nt-target-locale nt-target-road"
+                role="button"
+                tabindex="0"
+                aria-label={stepLabel(target)}
+                data-entry={target.step.entryId}
+                onclick={(event) => choose(event, target)}
+                onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
+            ></circle>
+        {:else}
+            <polygon
+                points={outline(target.step.locale)}
+                class="nt-target-locale nt-target-road"
+                role="button"
+                tabindex="0"
+                aria-label={stepLabel(target)}
+                data-way={target.step.locale}
+                onclick={(event) => choose(event, target)}
+                onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
+            ></polygon>
+        {/if}
+    {/each}
     {#each reserves as target (target.key)}
         <polygon
             points={outline(target.position.locale)}
@@ -75,10 +132,7 @@
         ></polygon>
     {/each}
     {#each approaches as target (target.key)}
-        {@const bar = APPROACH_GEOMETRY[target.position.approach]}
         <g
-            transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
-                bar.inward.y * 14}) rotate({bar.angle})"
             role="button"
             tabindex="0"
             aria-label="Block this approach"
@@ -86,14 +140,7 @@
             onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
-            <rect
-                x={-bar.length / 2}
-                y="-13"
-                width={bar.length}
-                height="26"
-                rx="3"
-                class="nt-target-approach"
-            ></rect>
+            {@render approachBar(target.position.approach, 'nt-target-approach')}
         </g>
     {/each}
 {:else}
@@ -128,6 +175,13 @@
     .nt-target-locale.nt-target-road {
         fill: var(--nt-road-fill);
         stroke: var(--nt-road-line);
+    }
+
+    .nt-target-chosen {
+        fill: var(--nt-road-fill);
+        stroke: var(--nt-road-line);
+        stroke-width: 5;
+        pointer-events: none;
     }
 
     .nt-target-locale:hover {
