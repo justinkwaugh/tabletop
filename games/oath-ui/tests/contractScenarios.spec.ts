@@ -5933,8 +5933,47 @@ test.describe('the Wake', () => {
         expect((await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me - 1)
     })
 
+    // R-4.1.1-H1: step 2 is judged on the banks as step 1's Return leaves them, and its badges count them so.
+    async function returnTwice(page: Page) {
+        await choice(page, 'Return a favor').click()
+        await expect(grid(page)).toContainText('People’s Favor (2 of 2)')
+        await expect(grid(page)).toContainText('Returned 1')
+        await choice(page, 'Return a favor').click()
+        const banks = choices(page).getByRole('button', { name: /bank, \d+ favor$/ })
+        await expect(banks).toHaveCount(3)
+        expect(await banks.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))).toEqual([
+            'Discord bank, 1 favor',
+            'Arcane bank, 1 favor',
+            'Order bank, 1 favor'
+        ])
+        await expect(banks.locator('.bank-empty')).toHaveCount(0)
+        return banks
+    }
+
+    test('step 2’s banks count the favor step 1 returned, as the table will hold it', async ({ page }) => {
+        await openTable(page, 'wakeMobReturn')
+        expect((await call(page, 'tableFacts')).favorBank.order).toBe(0)
+        await returnTwice(page)
+        expect((await call(page, 'tableFacts')).favorBank.order).toBe(0)
+        await choices(page).getByRole('button', { name: /^Order bank/ }).click()
+        await choice(page, 'Take nothing').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+        expect((await call(page, 'tableFacts')).favorBank.order).toBe(2)
+    })
+
     test.describe('on a phone', () => {
         test.use({ viewport: { width: 375, height: 812 } })
+
+        test('step 2’s banks count the favor step 1 returned, each 44 px square', async ({ page }) => {
+            await openTable(page, 'wakeMobReturn')
+            const banks = await returnTwice(page)
+            for (const box of await banks.evaluateAll((buttons) =>
+                buttons.map((button) => button.getBoundingClientRect()).map((box) => ({ width: box.width, height: box.height }))
+            )) {
+                expect(box.width).toBeGreaterThanOrEqual(44)
+                expect(box.height).toBeGreaterThanOrEqual(44)
+            }
+        })
 
         test('the choices keep one width, at least 44 px tall, never stretched across the panel', async ({ page }) => {
             await openTable(page, 'wakeSite')
@@ -5948,6 +5987,37 @@ test.describe('the Wake', () => {
             expect(boxes[0].width).toBeLessThan((panel?.width ?? 0) / 2)
         })
     })
+})
+
+/** Every other bank picker is judged on the table's banks, so its badges count those. */
+test('a bank picker outside the Wake counts each bank as the table holds it: the Rest, a question, Recover, a When Played bank, Salad Days', async ({ page }) => {
+    async function badgesReadTheTable(scene: string) {
+        const banks = grid(page).getByRole('button', { name: / bank, \d+ favor$/ })
+        await expect(banks.first()).toBeVisible()
+        const table = new Map(Object.entries((await call(page, 'tableFacts')).favorBank))
+        const shown = await banks.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''))
+        const expected = shown.map((label) => {
+            const suit = label.split(' ')[0]
+            return `${suit} bank, ${table.get(suit.toLowerCase())} favor`
+        })
+        expect(shown, scene).toEqual(expected)
+    }
+    await openTable(page, 'restBanks')
+    await badgesReadTheTable('Rest')
+    await openTable(page, 'askHerald')
+    await badgesReadTheTable('Herald')
+    await openTable(page, 'recover')
+    await tile(page, 'Recover').click()
+    await page.getByRole('button', { name: /^Recover the People’s Favor: pay/ }).click()
+    await badgesReadTheTable('Recover')
+    await openTable(page, 'fabledFeast')
+    await grid(page).getByRole('button', { name: 'Fabled Feast', exact: true }).click()
+    await grid(page).getByRole('button', { name: 'Adviser, faceup', exact: true }).click()
+    await badgesReadTheTable('Fabled Feast')
+    await openTable(page, 'pickerSalad')
+    await grid(page).getByRole('button', { name: 'Salad Days' }).first().click()
+    await grid(page).getByRole('button', { name: /adviser/i }).first().click()
+    await badgesReadTheTable('Salad Days')
 })
 
 test('scenario 60: between rounds the Chancellor rolls the end die; the last seat’s Undo stays until the roll; each seat reads the stakes', async ({ page }) => {

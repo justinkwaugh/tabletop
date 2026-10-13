@@ -110,6 +110,7 @@ export type TableName =
     | 'kinshipSeat'
     | 'restTurnFlow'
     | 'wakeMob'
+    | 'wakeMobReturn'
     | 'wakeSite'
     | 'wakeForced'
     | 'endOfRound'
@@ -721,18 +722,20 @@ function restTurnFlowTable(): PlayedTable {
     return tableOf(state)
 }
 
-type WakeScene = 'mob' | 'site' | 'forced'
+type WakeScene = 'mob' | 'mobReturn' | 'site' | 'forced'
 
 /**
  * R-4.1.1 to R-4.1.4: this seat's Wake at the Drowned City, which holds a secret. On the Mob side
  * it holds the People's Favor with the Discord and Order banks tied for least; at the site alone
  * it holds no banner; forced, the People's Favor holds 1 favor, so the one step is a Place, and
- * the site holds nothing to take.
+ * the site holds nothing to take. Mob, returning: the Order bank alone holds least, with the Discord
+ * and Arcane banks one above it, so a first Return goes to Order and a second finds all three tied.
  */
 function wakeTable(scene: WakeScene): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const peoplesFavor = {
         mob: { value: 3, mobSide: true, holderPlayerId: 'me' },
+        mobReturn: { value: 3, mobSide: true, holderPlayerId: 'me' },
         site: { value: 3, mobSide: false, holderPlayerId: 'ann' },
         forced: { value: 1, mobSide: false, holderPlayerId: 'me' }
     }[scene]
@@ -754,7 +757,10 @@ function wakeTable(scene: WakeScene): PlayedTable {
             siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.drowned-city' },
             cardTokens: { 'site.drowned-city': { favor: 0, secrets: scene === 'forced' ? 0 : 1 } },
             banners: { ...testBanners(), [Banner.PeoplesFavor]: peoplesFavor },
-            favorBank: { arcane: 2, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 1 }
+            favorBank:
+                scene === 'mobReturn'
+                    ? { arcane: 1, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 0 }
+                    : { arcane: 2, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 1 }
         }
     )
     openTurn(state, 'me')
@@ -4540,6 +4546,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     kinshipSeat: kinshipSeatTable,
     restTurnFlow: restTurnFlowTable,
     wakeMob: () => wakeTable('mob'),
+    wakeMobReturn: () => wakeTable('mobReturn'),
     wakeSite: () => wakeTable('site'),
     wakeForced: () => wakeTable('forced'),
     endOfRound: endOfRoundTable,
