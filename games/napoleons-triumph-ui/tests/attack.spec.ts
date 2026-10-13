@@ -370,3 +370,43 @@ test('a stack closed up for want of room spreads out when tapped, and when picke
     await expect(stack).toHaveAttribute('aria-label', 'Spread these pieces out')
     await expect.poll(extent).toBe(closedUpForTheFrench)
 })
+
+test('the attacker sees the defenders named at the end of their stack nearest the approach, whichever they are', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    const choices = page.locator('svg [aria-label="Choose this unit"]')
+    await choices.first().dispatchEvent('click')
+    await choices.last().dispatchEvent('click')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
+
+    const stack = await page.evaluate(() => {
+        const centreOf = (element: Element) => {
+            const box = element.getBoundingClientRect()
+            return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+        }
+        const arrow = document.querySelector('svg[data-board] [data-attack-arrow]')
+        const blocks = document.querySelectorAll('svg[data-board] [data-commander="langeron"] > g')
+        if (!arrow) {
+            return []
+        }
+        const at = centreOf(arrow)
+        return [...blocks]
+            .map((block) => {
+                const centre = centreOf(block)
+                return {
+                    named: block.querySelector('text')?.textContent === 'D',
+                    fromTheApproach: Math.hypot(centre.x - at.x, centre.y - at.y)
+                }
+            })
+            .toSorted((a, b) => a.fromTheApproach - b.fromTheApproach)
+    })
+    expect(stack.map((block) => block.named)).toEqual([true, true, false, false, false])
+})

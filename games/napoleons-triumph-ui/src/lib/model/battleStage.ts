@@ -53,6 +53,7 @@ import {
     type BattleSelections
 } from './battleSelection.js'
 import { sameIds } from '$lib/utils/ids.js'
+import type { ChosenUnits } from '$lib/utils/pieceLayout.js'
 import { RideChoice } from './moveCommands.js'
 import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import { copyOf } from './stateCopy.js'
@@ -777,6 +778,26 @@ export function sendCommander(
         .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
         .map((entry) => entry.commanderId)
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
+}
+
+/** The units each side has committed to the attack, leaders first, with the approach they fight at. */
+export function committedUnits(attack: VisibleAttack | undefined): ChosenUnits[] {
+    return attack
+        ? [
+              {
+                  approach: attack.attackApproach,
+                  unitIds: [...attack.attackLeaderIds, ...attack.attackingUnitIds]
+              },
+              {
+                  approach: attack.defenseApproach,
+                  unitIds: [
+                      ...attack.defenseLeaderIds,
+                      ...attack.counterAttackingUnitIds,
+                      ...attack.defendingUnitIds
+                  ]
+              }
+          ]
+        : []
 }
 
 export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {

@@ -46,7 +46,12 @@ import {
     type PieceGroup
 } from '$lib/utils/pieceLayout.js'
 import { arrowAlong, drawnArrow, lineSamples, type DrawnArrow } from '$lib/utils/wayArrow.js'
-import { committedRoles, type BattleRole, type VisibleAttack } from './battleStage.js'
+import {
+    committedRoles,
+    committedUnits,
+    type BattleRole,
+    type VisibleAttack
+} from './battleStage.js'
 import { belongsToAnAttack } from './historyChapters.js'
 
 export interface Standing {
@@ -339,7 +344,7 @@ export function moveReplayScene(
             }),
             ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
         ]),
-        { rotation, readBy }
+        { rotation, readBy, chosen: committedUnits(attack) }
     )
     const left = laidOut
         .flatMap((sprite) => sprite.blocks)

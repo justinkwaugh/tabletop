@@ -52,6 +52,14 @@ export interface PieceGroup {
 
 interface PlacedGroup extends PieceGroup {
     position: Position
+    /** The approach its chosen units are shown nearest, when the viewer does not read the stack. */
+    chosenFor?: number
+}
+
+/** Units chosen for an approach in the attack in progress, the ones to show nearest it first. */
+export interface ChosenUnits {
+    approach: number
+    unitIds: readonly string[]
 }
 
 export interface GroupSprite {
@@ -81,7 +89,25 @@ export function heldApproaches(sprites: readonly GroupSprite[]): HeldApproach[] 
 
 export type BoardPieces = Pick<HydratedNapoleonsTriumphGameState, 'units' | 'commander'>
 
-function placedGroups(state: BoardPieces, readBy: string | undefined): PlacedGroup[] {
+// Deliberate: where a chosen unit really stands among the others of its stack is the owner's to
+// know. Anyone else sees the chosen ones at the end nearest their approach, whichever they are.
+function withTheChosenForward(group: PlacedGroup, chosen: readonly ChosenUnits[]): PlacedGroup {
+    const here = chosen.find(({ unitIds }) => group.units.some((unit) => unitIds.includes(unit.id)))
+    if (!here) {
+        return group
+    }
+    const place = (unit: ProjectedUnit) => {
+        const at = here.unitIds.indexOf(unit.id)
+        return at < 0 ? here.unitIds.length : at
+    }
+    return {
+        ...group,
+        chosenFor: here.approach,
+        units: group.units.toSorted((a, b) => place(a) - place(b))
+    }
+}
+
+function placedGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -98,7 +124,9 @@ function placedGroups(state: BoardPieces, readBy: string | undefined): PlacedGro
         groups.set(key, { key, playerId: unit.playerId, position, commander, units: [unit] })
     }
     return [...groups.values()].map((group) =>
-        group.playerId === readBy ? { ...group, units: inReadingOrder(group.units) } : group
+        group.playerId === options.readBy
+            ? { ...group, units: inReadingOrder(group.units) }
+            : withTheChosenForward(group, options.chosen ?? [])
     )
 }
 
@@ -107,6 +135,8 @@ export interface LayoutOptions {
     looseLocales?: readonly number[]
     /** The player looking at the board, whose own stacks are put in reading order. */
     readBy?: string
+    /** The units committed to the attack in progress, which every other stack shows nearest their approach. */
+    chosen?: readonly ChosenUnits[]
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -287,6 +317,11 @@ interface PlacedBlocks {
     spacing: number
 }
 
+function isBelow(approachId: number, locale: LocaleGeometry, down: Point): boolean {
+    const bar = APPROACH_GEOMETRY[approachId].centre
+    return (bar.x - locale.anchor.x) * down.x + (bar.y - locale.anchor.y) * down.y > 0
+}
+
 function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
@@ -312,7 +347,10 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
             GROUP_GAP +
             BLOCK_THICKNESS / 2 +
             ((tallest - group.units.length) * spacing) / 2
-        const topToBottom = group.units.map((unit, rank) => {
+        const chosenAtTheBottom =
+            group.chosenFor !== undefined && isBelow(group.chosenFor, locale, down)
+        const fromTheTop = chosenAtTheBottom ? group.units.toReversed() : group.units
+        const topToBottom = fromTheTop.map((unit, rank) => {
             const along = top + rank * spacing
             return {
                 unit,
@@ -393,7 +431,7 @@ export function layoutPieces(
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of placedGroups(state, options.readBy)) {
+    for (const group of placedGroups(state, options)) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)

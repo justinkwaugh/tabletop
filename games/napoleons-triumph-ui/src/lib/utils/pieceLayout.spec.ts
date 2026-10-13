@@ -390,6 +390,83 @@ describe('the order of a player’s own pieces in a stack', () => {
     })
 })
 
+describe('the units an opponent has committed to an attack', () => {
+    const VIEWS = [BoardView.North, BoardView.French, BoardView.Allied]
+    const CHOSEN = ['unit-4', 'unit-1', 'unit-3']
+    const OTHERS = ['unit-0', 'unit-2', 'unit-5']
+
+    function corps(facing: number | undefined, view: BoardView, readBy: Side, towards: number) {
+        const game = new TestGame()
+        game.deployBoth()
+        arrangeBattlefield(
+            game,
+            Array.from({ length: 6 }, (_, index) => ({
+                id: `unit-${index}`,
+                side: Side.Allied,
+                face: infantry(2),
+                locale: LOCALE,
+                facing,
+                commanderId: 'langeron'
+            }))
+        )
+        const rotation = viewRotation(view)
+        const approach = game.hydrated.map.approachBetween(LOCALE, towards).id
+        const [stack] = layoutPieces(game.hydrated, {
+            rotation,
+            readBy: game.playerOf(readBy),
+            chosen: [{ approach, unitIds: CHOSEN }]
+        })
+        return { stack, bar: APPROACH_GEOMETRY[approach], rotation }
+    }
+
+    const neighboursOf = () => {
+        const game = new TestGame()
+        return game.hydrated.map.passableApproachesOf(LOCALE).map((approach) => approach.neighbour)
+    }
+    const idsOf = (blocks: BlockSprite[]) => blocks.map((block) => block.unit.id)
+
+    it('stand nearest the bar in a stack blocking the approach, in the order given, wherever they were', () => {
+        for (const view of VIEWS) {
+            for (const towards of neighboursOf()) {
+                const { stack, bar } = corps(towards, view, Side.French, towards)
+                const nearestFirst = stack.blocks.toSorted(
+                    (a, b) => fromTheBar(a, bar.centre) - fromTheBar(b, bar.centre)
+                )
+                expect(idsOf(nearestFirst)).toEqual([...CHOSEN, ...OTHERS])
+            }
+        }
+    })
+
+    it('stand at the end of a reserve stack that is towards the approach on screen, the first of them outermost', () => {
+        const seen = { top: 0, bottom: 0 }
+        for (const view of VIEWS) {
+            for (const towards of neighboursOf()) {
+                const { stack, bar, rotation } = corps(undefined, view, Side.French, towards)
+                const topDown = stack.blocks.toSorted(
+                    (a, b) => toView(a.centre, rotation).y - toView(b.centre, rotation).y
+                )
+                const anchor = toView(LOCALE_GEOMETRY[LOCALE].anchor, rotation)
+                const below = toView(bar.centre, rotation).y > anchor.y
+                expect(idsOf(below ? topDown.toReversed() : topDown)).toEqual([
+                    ...CHOSEN,
+                    ...OTHERS
+                ])
+                seen[below ? 'bottom' : 'top'] += 1
+            }
+        }
+        expect(seen.top).toBeGreaterThan(0)
+        expect(seen.bottom).toBeGreaterThan(0)
+    })
+
+    it('stay where the owner reads them in the owner’s own view', () => {
+        const [towards] = neighboursOf()
+        const { stack } = corps(undefined, BoardView.North, Side.Allied, towards)
+        expect(stack.group.units.map((unit) => unit.id)).toEqual(
+            Array.from({ length: 6 }, (_, index) => `unit-${index}`)
+        )
+    })
+})
+
 function fromTheBar(block: BlockSprite, barCentre: Point): number {
     return Math.hypot(block.centre.x - barCentre.x, block.centre.y - barCentre.y)
 }
