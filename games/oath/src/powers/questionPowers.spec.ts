@@ -677,3 +677,49 @@ describe('Deed Writer — its two Q&As (revision 5 for the first)', () => {
         }
     })
 })
+
+describe('Deed Writer — Ring of Devotion: "You cannot place warbands at sites" (revision 9)', () => {
+    const RING = 'relic.ring-of-devotion'
+    const deed = (s: ReturnType<typeof rulerTable>, from: string, to: string, terms: ExchangeTerms) =>
+        HydratedUseActionPower.reasonCannotUse(s, from, DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange(to, terms)])
+    const site = (warbands: number): ExchangeTerms => ({ fromProposer: { sites: [{ siteId: 'c2', warbands }] } })
+    /** 'ruler' rules c1 and c2; 'other' holds `relicIds` with two warbands on their board. */
+    const ringed = (oathRevision: OathRevision, relicIds: string[] = [RING]) =>
+        rulerTable([DEED_WRITER], [], { other: { relicIds } }, { oathRevision })
+
+    it('its holder cannot take a site, which they could rule only by placing warbands there (its Q&A: "All of them!")', () => {
+        const s = ringed(OathRevision.EngineFixes5)
+        expect(deed(s, 'ruler', 'other', site(1))).toBe('other cannot place warbands at sites (Ring of Devotion)')
+        expect(deed(s, 'ruler', 'other', site(0))).toBe('other cannot place warbands at sites (Ring of Devotion)')
+        // Giving a site away places nothing: the old ruler's warbands go to their own board.
+        expect(deed(s, 'ruler', 'other', { fromCounterparty: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBeUndefined()
+    })
+
+    it('an accepted exchange is re-checked: a Ring held since the proposal refuses the site', () => {
+        const s = ringed(OathRevision.EngineFixes5, [])
+        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })]).apply(s)
+        s.getPlayerState('other').relicIds = [RING]
+        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow('other cannot place warbands at sites (Ring of Devotion)')
+        expect(warbandsAt(s, 'c2')['other'] ?? 0).toBe(0)
+    })
+
+    it('with the Bandit Crown its holder may still take a site with no warbands, placing none (Deed Writer\'s Q&A: "not zero unless")', () => {
+        const s = ringed(OathRevision.EngineFixes5, [RING, BANDIT_CROWN])
+        expect(deed(s, 'ruler', 'other', site(1))).toBe('other cannot place warbands at sites (Ring of Devotion)')
+        expect(deed(s, 'ruler', 'other', site(0))).toBeUndefined()
+        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(0), fromCounterparty: { favor: 1 } })]).apply(s)
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(totalWarbandsAt(s, 'c2')).toBe(0)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(2)
+        expect(rulesSite(s, 'other', 'c2')).toBe(true)
+    })
+
+    it('R-X.4 — before revision 9 its holder still moves warbands onto a site they take', () => {
+        const s = ringed(OathRevision.EngineFixes4)
+        expect(deed(s, 'ruler', 'other', site(1))).toBeUndefined()
+        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })]).apply(s)
+        answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(warbandsAt(s, 'c2')['other']).toBe(1)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
+    })
+})

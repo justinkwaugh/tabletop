@@ -16,6 +16,7 @@ import { siteTarget } from '../testing/choices.js'
 import { ATTACKER, DEFENDER, campaign } from '../testing/steps.js'
 import { ConsentRequestKind } from '../model/consent.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import '../powers/index.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -441,6 +442,27 @@ describe('the defense total (R-5.5.4)', () => {
 
         expect(state.campaign?.defendingBandits).toBe(1)
         expect(state.campaign?.defendingForce).toEqual([])
+    })
+})
+
+describe('the bandits\' battle plans (R-5.5.3-H1)', () => {
+    it('records the note of a plan the bandits use (Bear Traps)', () => {
+        // Nobody rules h3, so the bandits do, and its faceup Bear Traps is theirs.
+        const state = table({ denizensBySite: { h3: ['denizen.order.bear-traps'] } })
+        state.getPlayerState(ATTACKER).siteId = 'h3'
+        const action = campaign({
+            defender: { kind: 'bandits' },
+            targets: [siteTarget('h3')],
+            attackDice: 4
+        })
+        action.apply(state)
+
+        const battle = action.metadata?.battle
+        expect(battle?.plansUsed).toEqual(['denizen.order.bear-traps'])
+        expect(battle?.attackPool).toBe(3)
+        expect(battle?.planNotes).toEqual([`Bear Traps: killed a warband on ${ATTACKER}'s board`])
+        const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(5 - 1 - skulls)
     })
 })
 

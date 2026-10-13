@@ -34,7 +34,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.
 - **Toll Roads:** in a game created before revision 6 (R-X.4), never asked or paid on travel a power causes (a banish, the Whistle, Palanquin's carried player, a Shrouded Wood ruler's pick, Brass Horse), nor on a Travel out of a Shrouded Wood an enemy rules, whose ruler may pick a Toll Roads site. In such a game a pawn banished from a Shrouded Wood also has its favor burned, and the victor's "if you're victorious" plans resolved, before the ruler picks the site (R-5.5.7.III travels first, R-5.5.8 follows). From revision 6, Palanquin's user has already moved when its carried player, leaving a Shrouded Wood, refuses the toll.
-- **Ring of Devotion:** its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
+- **Ring of Devotion:** in a game created before revision 9 (R-X.4) its holder still moves warbands from their board onto a site they take in a Deed Writer exchange; the Ring reads "You cannot place warbands at sites.", and its Q&A applies that to every case.
 - **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
 ## Rules
