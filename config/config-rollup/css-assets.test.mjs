@@ -60,3 +60,11 @@ test('a reference to a missing file fails the build', () => {
 
     assert.throws(() => publishedValue('url(./files/missing.woff2)', fixture), /missing\.woff2/)
 })
+
+test('a quoted data address is left alone even when it holds a url() of its own', () => {
+    const fixture = packageWithFontStylesheet()
+    const value = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect filter='url(%23n)'/%3E%3C/svg%3E")`
+
+    assert.equal(publishedValue(value, fixture), value)
+    assert.equal(fs.existsSync(fixture.destDir), false)
+})
