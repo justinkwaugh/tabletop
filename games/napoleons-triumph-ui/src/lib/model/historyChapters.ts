@@ -13,6 +13,8 @@ export interface HistoryLine {
     index: number
     playerId?: string
     text: string
+    /** Whether the action happened on the map, so that a picture of it can be opened. */
+    pictured: boolean
 }
 
 export interface HistoryEntry extends HistoryLine {
@@ -25,6 +27,13 @@ export interface HistoryChapter {
 }
 
 const BEFORE_THE_BATTLE = 'Before the battle'
+
+// Rule 17: the armies are bid for and chosen before a piece stands on the map.
+const OFF_THE_MAP: readonly string[] = [
+    ActionType.PlaceBid,
+    ActionType.PassBid,
+    ActionType.ChooseSide
+]
 
 // Rule 11: everything from the defender's answer to a threat until the attack is over is one attack.
 const ATTACK_STEPS: readonly string[] = [
@@ -39,6 +48,10 @@ const ATTACK_STEPS: readonly string[] = [
     ActionType.Advance,
     ActionType.Occupy
 ]
+
+export function belongsToAnAttack(action: GameAction): boolean {
+    return isThreatenAttack(action) || ATTACK_STEPS.includes(action.type)
+}
 
 export function historyChapters(
     actions: readonly GameAction[],
@@ -58,7 +71,13 @@ export function historyChapters(
             return
         }
         const index = action.index ?? position
-        const line = { actionId: action.id, index, playerId: action.playerId, text }
+        const line = {
+            actionId: action.id,
+            index,
+            playerId: action.playerId,
+            text,
+            pictured: !OFF_THE_MAP.includes(action.type)
+        }
         if (continuesAttack && attack) {
             attack.steps.push(line)
             return

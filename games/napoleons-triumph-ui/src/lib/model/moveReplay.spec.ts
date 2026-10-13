@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, type GameAction, type Point } from '@tabletop/common'
-import { ActionType, CommandKind, Side, type MoveOrder } from '@tabletop/napoleons-triumph'
+import {
+    ActionType,
+    CommandKind,
+    FeintEnd,
+    Side,
+    type MoveOrder
+} from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
@@ -11,7 +17,8 @@ import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
 import { coveredBy } from '$lib/utils/blockShape.js'
 import { BoardView, toView, viewRotation } from '$lib/utils/boardView.js'
 import { layoutPieces } from '$lib/utils/pieceLayout.js'
-import { moveReplayOf, moveReplayScene, type MoveReplay } from './moveReplay.js'
+import { BattleRole } from './battleStage.js'
+import { AttackMarkKind, moveReplayOf, moveReplayScene, type MoveReplay } from './moveReplay.js'
 import { TargetKind, moveTargets } from './targets.js'
 
 const NORTH = viewRotation(BoardView.North)
@@ -91,13 +98,21 @@ describe('what the history can replay', () => {
         expect(recorded.game.state).toEqual(standing)
     })
 
-    it('is not an action that leaves every piece where it stood, or one that only sets pieces out', () => {
+    it('is not an action that leaves every piece where it stood and belongs to no attack', () => {
         const recorded = deployed()
-        const [deployment] = recorded.actions
         langeronTo94(recorded)
         const turnEnd = recorded.act(ActionType.EndTurn, Side.Allied)
         expect(recorded.replayOf(turnEnd)).toBeUndefined()
-        expect(recorded.replayOf(deployment)).toBeUndefined()
+    })
+
+    it('is an army set out on the map, shown where it was set down with nothing moving', () => {
+        const recorded = deployed()
+        const [deployment] = recorded.actions
+        const scene = moveReplayScene(recorded.replay(deployment), NORTH)
+        expect(scene.arrows).toEqual([])
+        expect(scene.left).toEqual([])
+        expect(scene.attackMark).toBeUndefined()
+        expect(scene.sprites.length).toBeGreaterThan(0)
     })
 
     it('is not an action the record cannot be read back to, nor one that is not in it', () => {
@@ -136,13 +151,106 @@ describe('what the history can replay', () => {
         const occupation = recorded.act(ActionType.Occupy, Side.French, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }]
         })
-        expect(recorded.replayOf(threat)).toBeUndefined()
+        const threatened = moveReplayScene(recorded.replay(threat), NORTH)
+        expect(threatened.arrows).toEqual([])
+        expect(threatened.attackMark).toEqual({
+            approach: recorded.game.hydrated.map.approachBetween(53, 63).id,
+            kind: AttackMarkKind.Attack
+        })
         const scene = moveReplayScene(recorded.replay(retreat), NORTH)
         expect(idsOf(scene.left).toSorted()).toEqual(['A-1', 'A-2'])
         expect(scene.arrows).toHaveLength(2)
+        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Attack)
         const moved = moveReplayScene(recorded.replay(occupation), NORTH)
         expect(idsOf(moved.left)).toEqual(['F-inf'])
         expect(moved.arrows).toHaveLength(1)
+    })
+
+    function standsAgainstAThreat(defenders: string[]) {
+        const recorded = deployed()
+        recorded.act(ActionType.EndTurn, Side.Allied)
+        arrangeBattlefield(recorded.game, [
+            { id: 'F-inf', side: Side.French, face: infantry(3), locale: 53 },
+            {
+                id: 'A-1',
+                side: Side.Allied,
+                face: infantry(2),
+                locale: 63,
+                commanderId: 'langeron'
+            },
+            {
+                id: 'A-2',
+                side: Side.Allied,
+                face: infantry(2),
+                locale: 63,
+                commanderId: 'langeron'
+            }
+        ])
+        recorded.actions.length = 0
+        const approach = recorded.game.hydrated.map.approachBetween(53, 63).id
+        recorded.act(ActionType.ThreatenAttack, Side.French, { approach })
+        const defence = recorded.act(ActionType.DeclareDefense, Side.Allied, {
+            unitIds: defenders,
+            leaderIds: defenders.slice(0, 1)
+        })
+        return { recorded, approach, defence }
+    }
+
+    it('is a feint, with the arrow of the attack curled back', () => {
+        const { recorded, approach } = standsAgainstAThreat(['A-1'])
+        const feint = recorded.act(ActionType.DeclareFeint, Side.French, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+            end: FeintEnd.Reserve
+        })
+        const scene = moveReplayScene(recorded.replay(feint), NORTH)
+        expect(scene.attackMark).toEqual({ approach, kind: AttackMarkKind.Feint })
+    })
+
+    it('is the defender stepping up after a feint, shown by where it went: no arrow of the attack, the corps it left solid', () => {
+        const { recorded } = standsAgainstAThreat(['A-1'])
+        recorded.act(ActionType.DeclareFeint, Side.French, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+            end: FeintEnd.Reserve
+        })
+        const advance = recorded.act(ActionType.Advance, Side.Allied, {
+            unitIds: ['A-1'],
+            commanderIds: []
+        })
+        const scene = moveReplayScene(recorded.replay(advance), NORTH)
+        expect(scene.attackMark).toBeUndefined()
+        expect(idsOf(scene.left)).toEqual(['A-1'])
+        expect(scene.arrows).toHaveLength(1)
+        expect(scene.bystanderIds).toEqual([])
+    })
+
+    it('is a step of an attack that moves nothing, with each piece marked for what it was doing', () => {
+        const { recorded, defence } = standsAgainstAThreat(['A-1', 'A-2'])
+        const scene = moveReplayScene(recorded.replay(defence), NORTH)
+        expect(scene.arrows).toEqual([])
+        expect(scene.roles).toMatchObject({ 'A-1': BattleRole.Defends, 'A-2': BattleRole.Defends })
+        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Attack)
+    })
+
+    it('washes out only the units standing with those an action names, and none when it names no unit', () => {
+        const { recorded, defence } = standsAgainstAThreat(['A-1'])
+        const [threat] = recorded.actions
+        const defended = moveReplayScene(recorded.replay(defence), NORTH)
+        expect(defended.bystanderIds).toEqual(['A-2'])
+        expect(moveReplayScene(recorded.replay(threat), NORTH).bystanderIds).toEqual([])
+    })
+
+    it('shows a unit destroyed in the fight washed out where it stood', () => {
+        const { recorded } = standsAgainstAThreat(['A-1'])
+        recorded.act(ActionType.PressAttack, Side.French)
+        const fight = recorded.act(ActionType.DeclareAttack, Side.French, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+            wide: false,
+            leaderIds: ['F-inf']
+        })
+        const scene = moveReplayScene(recorded.replay(fight), NORTH)
+        expect(recorded.game.hydrated.findUnit('A-1')).toBeUndefined()
+        expect(idsOf(scene.left)).toContain('A-1')
+        expect(idsOf(scene.sprites.flatMap((sprite) => sprite.blocks))).not.toContain('A-1')
     })
 })
 

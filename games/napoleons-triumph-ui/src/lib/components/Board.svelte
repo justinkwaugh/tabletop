@@ -61,20 +61,23 @@
             height={BOARD_HEIGHT}
             viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
             font-family="'Libre Baskerville', Georgia, serif"
+            data-board
             onclick={() => gameSession.clearSelection()}
         >
             <defs>
                 <ContactShadow id="nt-contact-shadow" />
             </defs>
             <ApproachBars />
-            <TrackMarkers />
-            <HeldApproaches approaches={gameSession.heldApproaches} />
+            <g data-in-picture>
+                <TrackMarkers />
+                <HeldApproaches approaches={gameSession.heldApproaches} />
+            </g>
             <SetupLocales />
             <ClosedReserves />
             <TargetLayer />
-            <PiecesLayer />
+            <g data-in-picture><PiecesLayer /></g>
             <ApproachSymbols />
-            <FlagLayer />
+            <g data-in-picture><FlagLayer /></g>
             <TargetLayer overThePieces />
             <BattleMarker />
         </svg>

@@ -3,7 +3,15 @@
     import { BoardView } from '$lib/utils/boardView.js'
     import SlidingSwitch from './SlidingSwitch.svelte'
 
-    let { onview }: { onview: (view: BoardView) => void } = $props()
+    let {
+        onview,
+        onsavepicture,
+        savingPicture
+    }: {
+        onview: (view: BoardView) => void
+        onsavepicture: () => void
+        savingPicture: boolean
+    } = $props()
 
     const gameSession = getGameSession()
 
@@ -32,6 +40,22 @@
             onclick={() => gameSession.setDarkBorders(!gameSession.darkBorders)}
             >Darker borders</button
         >
+        <div class="nt-map-picture">
+            <button
+                type="button"
+                class="nt-map-chip"
+                disabled={savingPicture}
+                onclick={onsavepicture}>{savingPicture ? 'Saving…' : 'Save image'}</button
+            >
+            <button
+                type="button"
+                class="nt-map-chip"
+                aria-pressed={gameSession.pictureShowsUnitTypes}
+                onclick={() =>
+                    (gameSession.pictureShowsUnitTypes = !gameSession.pictureShowsUnitTypes)}
+                >with unit types</button
+            >
+        </div>
         <div class="nt-map-view">
             <SlidingSwitch
                 label="See the map from"
@@ -84,6 +108,11 @@
         color: var(--nt-ink);
     }
 
+    .nt-map-picture {
+        display: flex;
+        gap: 3px;
+    }
+
     .nt-map-view {
         display: flex;
         border-radius: 6px;
@@ -111,7 +140,7 @@
         display: none;
     }
 
-    .nt-map-chip:hover {
+    .nt-map-chip:hover:not([disabled]) {
         background: color-mix(in srgb, var(--nt-ground) 90%, var(--nt-ink));
     }
 

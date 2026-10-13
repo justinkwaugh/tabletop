@@ -40,6 +40,14 @@
         type BoardView,
         type Focus
     } from '$lib/utils/boardView.js'
+    import {
+        boardPicture,
+        boardPictureName,
+        picturedLayers,
+        saveToDevice
+    } from '$lib/utils/boardPicture.js'
+    import boardArt from '$lib/images/board.webp'
+    import setupMarks from '$lib/images/setup-marks.webp'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
 
@@ -242,6 +250,43 @@
         }
     }
 
+    let savingPicture = $state(false)
+
+    // The copy is taken in the same turn of the page as the faces are covered and shown again, so the board on screen never shows without them.
+    async function piecesForPicture(board: SVGSVGElement, showsUnitTypes: boolean) {
+        if (showsUnitTypes) {
+            return picturedLayers(board)
+        }
+        session.coverFacesOnTheMap(true)
+        try {
+            await tick()
+            return picturedLayers(board)
+        } finally {
+            session.coverFacesOnTheMap(false)
+        }
+    }
+
+    async function savePicture() {
+        const board = boardHost?.querySelector('svg[data-board]')
+        if (savingPicture || !(board instanceof SVGSVGElement)) return
+        savingPicture = true
+        try {
+            const showsUnitTypes = session.pictureShowsUnitTypes
+            const picture = await boardPicture({
+                pieces: await piecesForPicture(board, showsUnitTypes),
+                artUrls: session.settingUp ? [boardArt, setupMarks] : [boardArt],
+                fonts: [
+                    { url: LibreBaskervilleFont, style: 'normal' },
+                    { url: LibreBaskervilleItalicFont, style: 'italic' }
+                ],
+                rotation: session.boardRotation
+            })
+            saveToDevice(picture, boardPictureName(session.gameState, showsUnitTypes))
+        } finally {
+            savingPicture = false
+        }
+    }
+
     async function turnBoardTo(view: BoardView) {
         session.boardView = view
         await tick()
@@ -405,7 +450,11 @@
                         >
                             <Board />
                             {#snippet overlay()}
-                                <MapMenu onview={turnBoardTo} />
+                                <MapMenu
+                                    onview={turnBoardTo}
+                                    onsavepicture={savePicture}
+                                    {savingPicture}
+                                />
                             {/snippet}
                         </ScalingWrapper>
                     </div>

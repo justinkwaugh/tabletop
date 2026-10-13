@@ -42,6 +42,7 @@ import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
+import { describeAction } from '$lib/utils/describeAction.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
@@ -130,7 +131,7 @@ import {
     type ArmySetup
 } from './armySetup.js'
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
-import type { HistoryLine } from './historyChapters.js'
+import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
 import {
     RideChoice,
     mayFireTogether,
@@ -213,6 +214,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
     darkBorders = $derived(this.preferences.values.darkBorders)
 
     approachSymbolsShown = $state(false)
+
+    pictureShowsUnitTypes = $state(true)
+
+    private facesCoveredForPicture = $state(false)
 
     boardRotation = $derived(viewRotation(this.boardView))
 
@@ -333,6 +338,24 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )
     })
 
+    chapters: HistoryChapter[] = $derived(
+        historyChapters(
+            this.actions,
+            this.gameState.rounds.series,
+            this.gameState.scenario,
+            (action) => describeAction(action, this.gameState)
+        )
+    )
+
+    private picturedLines: { line: HistoryLine; time: string }[] = $derived(
+        this.chapters.flatMap((chapter) =>
+            chapter.entries
+                .flatMap((entry) => [entry, ...entry.steps])
+                .filter((line) => line.pictured)
+                .map((line) => ({ line, time: chapter.title }))
+        )
+    )
+
     private openedReplay: MoveReplay | undefined = $state.raw()
 
     moveReplay: MoveReplay | undefined = $derived.by(() => {
@@ -340,6 +363,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stillRecorded = this.actions.some((action) => action.id === opened?.actionId)
         return stillRecorded ? opened : undefined
     })
+
+    earlierReplay: MoveReplay | undefined = $derived(this.replayBeside(-1))
+
+    laterReplay: MoveReplay | undefined = $derived(this.replayBeside(1))
 
     moveReplayScene: MoveReplayScene | undefined = $derived(
         this.moveReplay
@@ -542,6 +569,15 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return playerId === this.myPlayerId ? inReadingOrder(units) : [...units]
     }
 
+    /** A picture without unit types is taken of the board as it stands while this is on, and it is on for no longer than that. */
+    coverFacesOnTheMap(covered: boolean) {
+        this.facesCoveredForPicture = covered
+    }
+
+    faceOnTheMap(unit: ProjectedUnit): Face | undefined {
+        return this.facesCoveredForPicture ? undefined : this.visibleFace(unit)
+    }
+
     visibleFace(unit: ProjectedUnit): Face | undefined {
         return unit.playerId === this.myPlayerId ? (unit.face ?? unit.shown) : unit.shown
     }
@@ -549,7 +585,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     flagBearer(group: PieceGroup, hasCommanded: boolean): FlagBearer {
         return {
             colors: this.armyColors(group.playerId),
-            visibleFaces: group.units.flatMap((unit) => this.visibleFace(unit) ?? []),
+            visibleFaces: group.units.flatMap((unit) => this.faceOnTheMap(unit) ?? []),
             hasCommanded
         }
     }
@@ -1046,16 +1082,38 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    async openHistoryLine(line: HistoryLine, time: string) {
-        const replay = moveReplayOf(this.history.visibleContext, line.actionId, {
-            time,
-            text: line.text
-        })
+    openHistoryLine(line: HistoryLine, time: string) {
+        const replay = this.replayOfLine(line, time)
         if (replay) {
             this.openedReplay = replay
-        } else {
-            await this.history.goToActionIndex(line.index)
         }
+    }
+
+    stepMoveReplay(step: -1 | 1) {
+        const beside = step < 0 ? this.earlierReplay : this.laterReplay
+        if (beside) {
+            this.openedReplay = beside
+        }
+    }
+
+    private replayOfLine(line: HistoryLine, time: string): MoveReplay | undefined {
+        return moveReplayOf(this.history.visibleContext, line.actionId, { time, text: line.text })
+    }
+
+    /** The nearest line of the history before or after the one opened that has a picture to show. */
+    private replayBeside(step: -1 | 1): MoveReplay | undefined {
+        const lines = this.picturedLines
+        const opened = lines.findIndex(({ line }) => line.actionId === this.moveReplay?.actionId)
+        if (opened < 0) {
+            return undefined
+        }
+        for (let at = opened + step; at >= 0 && at < lines.length; at += step) {
+            const replay = this.replayOfLine(lines[at].line, lines[at].time)
+            if (replay) {
+                return replay
+            }
+        }
+        return undefined
     }
 
     closeMoveReplay() {

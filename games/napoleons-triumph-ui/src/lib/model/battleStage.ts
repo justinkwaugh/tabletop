@@ -779,7 +779,7 @@ export function sendCommander(
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }
 
-function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
+export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
         ...Object.fromEntries(attack.defendingUnitIds.map((id) => [id, BattleRole.Defends])),

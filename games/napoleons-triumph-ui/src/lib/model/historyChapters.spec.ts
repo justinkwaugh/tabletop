@@ -40,6 +40,7 @@ describe('history chapters', () => {
             index: 2,
             playerId: 'p0',
             text: 'Move 2',
+            pictured: true,
             steps: []
         })
     })
