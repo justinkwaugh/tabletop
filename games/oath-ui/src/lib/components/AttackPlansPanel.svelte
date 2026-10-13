@@ -1,12 +1,12 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { powerKey } from '@tabletop/oath'
-    import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
-    import { powerUseCards } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.2.a then R-5.5.3 — the Citizens asked to join have answered; the attacker's plans come next.
@@ -30,17 +30,11 @@
             <p class="text-sm mb-2">Tap the plans to use.</p>
         {/if}
         <div class="mb-1">
-            <CardChoiceRow
-                choices={powerUseCards(draft.usable)}
-                picked={draft.usable
-                    .filter((power) => draft.isDeclared(power))
-                    .map((power) => powerKey(power.cardId, power.powerIndex))}
-                onpick={(key) => {
-                    const power = draft.usable.find((p) => powerKey(p.cardId, p.powerIndex) === key)
-                    if (power) draft.setPlan(power, !draft.isDeclared(power))
-                }}
+            <PlanRows
+                plans={draft.usable}
+                isOn={(power) => draft.isDeclared(power)}
+                toggle={(power) => draft.setPlan(power, !draft.isDeclared(power))}
                 {busy}
-                height={90}
             />
         </div>
         {#each draft.usable as power (powerKey(power.cardId, power.powerIndex))}
@@ -54,6 +48,7 @@
                             () => draft.planPicksOf(power),
                             (picks) => draft.setPlanPicks(power, picks)
                         }
+                        words={pickerWords(power.cardId)}
                     />
                 </div>
             {/if}

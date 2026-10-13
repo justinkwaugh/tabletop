@@ -10,8 +10,11 @@
         bannerTokenKind,
         cardName,
         reliquaryLabel,
-        siteName
+        siteName,
+        statusName,
+        suitName
     } from '$lib/model/names.js'
+    import { suitImage } from '$lib/images/suitImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { seatAdvisers } from '$lib/model/seatAdvisers.js'
     import { handBacks } from '$lib/model/cardBacks.js'
@@ -54,7 +57,7 @@
             <header class="head">
                 <h2>{gameSession.getPlayerName(playerId)}{isMe ? ' · you' : ''}</h2>
                 <span class="status"
-                    >{seat.status}{seat.siteId
+                    >{statusName(seat.status)}{seat.siteId
                         ? ` · at ${siteName(gameState, seat.siteId)}`
                         : ''}</span
                 >
@@ -70,8 +73,13 @@
                 <div>
                     <img src={favorTokenImage()} alt="" />
                     <dd>{facts.favor}</dd>
+                    <!-- The bank is its suit's symbol, the suit's name its accessible name. -->
                     <dt>
-                        {facts.favorBank ? `favor, kept in the ${facts.favorBank} bank` : 'favor'}
+                        {#if facts.favorBank}favor, in the <img
+                                class="bank-mark"
+                                src={suitImage(facts.favorBank)}
+                                alt={suitName(facts.favorBank)}
+                            /> bank{:else}favor{/if}
                     </dt>
                 </div>
                 <div>
@@ -276,7 +284,6 @@
     .status {
         color: #a8a29e;
         font-size: 13px;
-        text-transform: capitalize;
     }
     .close {
         margin-left: auto;
@@ -303,6 +310,12 @@
     .counters img {
         height: 22px;
         width: auto;
+    }
+    .counters img.bank-mark {
+        display: inline-block;
+        width: 1.2em;
+        height: 1.2em;
+        vertical-align: -0.25em;
     }
     .counters dd {
         margin: 0;

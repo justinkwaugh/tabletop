@@ -1,10 +1,4 @@
-import {
-    CardKind,
-    PowerChoiceKind,
-    powerKey,
-    type PowerChoice,
-    type WarbandOwner
-} from '@tabletop/oath'
+import { CardKind, PowerChoiceKind, type PowerChoice, type WarbandOwner } from '@tabletop/oath'
 import { cardName, reliquaryLabel } from './names.js'
 
 /**
@@ -19,20 +13,6 @@ export type CardChoice = { key: string; label: string; caption?: string } & (
 /** Cards named by id, each its own key. */
 export function cardChoices(cardIds: readonly string[]): CardChoice[] {
     return cardIds.map((cardId) => ({ key: cardId, cardId, label: cardName(cardId) }))
-}
-
-/**
- * A card's power offered for use (a modifier, a battle plan), keyed by card and power. It is named
- * by its card alone, with no printed text under it: the card is a magnifier press away.
- */
-export function powerUseCards(
-    powers: readonly { cardId: string; powerIndex: number }[]
-): CardChoice[] {
-    return powers.map((power) => ({
-        key: powerKey(power.cardId, power.powerIndex),
-        cardId: power.cardId,
-        label: cardName(power.cardId)
-    }))
 }
 
 /**

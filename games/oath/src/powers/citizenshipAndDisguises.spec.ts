@@ -224,6 +224,7 @@ describe('Citizenship routes', () => {
             const v = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'ruler', placements: [], burnFavor: false }))
             v.apply(s)
             expect(s.getPlayerState('ruler').status).toBe(PlayerStatus.Citizen)
+            expect(v.metadata?.triggered?.[0]).toMatch(/^Martial Culture: ruler became a Citizen \(/)
             expect(v.metadata?.endsActPhase).toBe(true)
             expect(new CampaignVictoryStateHandler().onAction(v, machineContext(s))).toBe(MachineState.RestPhase)
             return

@@ -77,8 +77,9 @@ registerPersistent(SNEAK_ATTACK, powerIndexOf(SNEAK_ATTACK, PowerTiming.Persiste
                     askedPlayerId: holderPlayerId,
                     defenderPlayerId: attackerId
                 })
+                // The refusal speaks to the holder ("you cannot campaign"), so the note leaves it out.
                 return refused
-                    ? `Sneak Attack: ${holderPlayerId} cannot campaign against ${attackerId} (${refused})`
+                    ? `Sneak Attack: ${holderPlayerId} cannot campaign against ${attackerId}`
                     : `Sneak Attack: ${holderPlayerId} may campaign against ${attackerId} for no Supply`
             })
         return notes.length > 0 ? notes.join('; ') : undefined

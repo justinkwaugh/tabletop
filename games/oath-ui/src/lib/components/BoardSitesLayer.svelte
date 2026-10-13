@@ -24,9 +24,9 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    // The lit map is Setup's start-site menu, the spoils' banish and Travel's, at every width: a
-    // tap on a lit site picks it. On a desktop it is the Shrouded Wood ruler's too; a phone keeps
-    // that pick in the panel, so its map lights nothing for it.
+    // The lit map is Setup's start-site menu, the spoils' banish, Travel's and the site of a power
+    // in Use a power, at every width: a tap on a lit site picks it. On a desktop it is the Shrouded
+    // Wood ruler's too; a phone keeps that pick in the panel, so its map lights nothing for it.
     const layout = new PhoneLayout()
     let offers = $derived(
         layout.phone
@@ -48,6 +48,9 @@
         if (offer?.intent === 'wood') {
             return () => void gameSession.question.sendThrough(offer.slotId)
         }
+        if (offer?.intent === 'power') {
+            return () => gameSession.actionPowers.pickSite(offer.slotId)
+        }
         return undefined
     }
 
@@ -59,57 +62,41 @@
             : `Facedown site — ${slotLabel(slotId)}`
     }
 
-    // One reading of the offer: the tooltip and the chip on the card.
-    function offerText(
-        slotId: string,
-        offer: SiteOffer | undefined
-    ): { title: string; chip: TravelChip | undefined } {
-        const resting = restingLabel(slotId)
+    // One reading of the offer: the chip on the card, and what the pick's accessible name adds
+    // after it.
+    function offerText(offer: SiteOffer | undefined): {
+        chip: TravelChip | undefined
+        note: string
+    } {
         switch (offer?.intent) {
             case 'start':
                 // "start here" marks the pick alone; the other start sites are lit with no chip.
-                return {
-                    title: `${siteName(gameState, slotId)} — a start site`,
-                    chip: offer.picked ? { words: offer.label } : undefined
-                }
+                return { chip: offer.picked ? { words: offer.label } : undefined, note: '' }
             case 'travel':
                 // R-5.6.1 prices by region, R-7.1.4 adds tolls, R-11.12 the Buried Giant's flip.
-                return offer.cost === undefined
-                    ? { title: resting, chip: undefined }
-                    : {
-                          title: `Travel here — ${offer.cost} Supply${offer.toll}`,
-                          chip: travelChip(offer.ways)
-                      }
+                return {
+                    chip: offer.cost === undefined ? undefined : travelChip(offer.ways),
+                    note: ''
+                }
             case 'target':
-                return offer.targeted
-                    ? {
-                          title: `${siteName(gameState, slotId)} — targeted`,
-                          chip: { words: '✓ target' }
-                      }
-                    : {
-                          title: `${siteName(gameState, slotId)} — a target`,
-                          chip: { words: 'target?' }
-                      }
-            case 'moveWarbands':
-                return {
-                    title: 'Warbands may move from your board onto this site',
-                    chip: undefined
-                }
+                return { chip: { words: offer.targeted ? '✓ target' : 'target?' }, note: '' }
             case 'banish':
-                return { title: resting, chip: { words: 'banish' } }
-            case 'wood': {
-                // R-11.7 — what the traveller pays there; the card that changed it is named here.
-                const note =
-                    offer.foldedBy.length > 0 ? ` (${offer.foldedBy.map(cardName).join(', ')})` : ''
+                return { chip: { words: 'banish' }, note: '' }
+            case 'power':
+                // What a tap there does: the words of every row it fills.
+                return { chip: { words: offer.rows.join(' · ') }, note: '' }
+            case 'wood':
+                // R-11.7 — what the traveller pays there; the card that changed it is named after it.
                 return {
-                    title: `${siteName(gameState, slotId)} — ${offer.cost} Supply${note}${
-                        offer.toll ? ' · toll 1 favor' : ''
-                    }`,
-                    chip: woodChip(offer.cost, offer.toll)
+                    chip: woodChip(offer.cost, offer.toll),
+                    note:
+                        offer.foldedBy.length > 0
+                            ? ` (${offer.foldedBy.map(cardName).join(', ')})`
+                            : ''
                 }
-            }
+            case 'moveWarbands':
             case undefined:
-                return { title: resting, chip: undefined }
+                return { chip: undefined, note: '' }
         }
     }
 </script>
@@ -135,13 +122,14 @@
     {@const offer = offers.find((o) => o.slotId === slotId)}
     {@const targeted = offer?.intent === 'target' && offer.targeted}
     {@const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }}
-    {@const text = offerText(slotId, offer)}
+    {@const text = offerText(offer)}
     {@const onpick = pickOnMap(offer)}
     {@const onMap =
         offer?.intent === 'travel' ||
         offer?.intent === 'start' ||
         offer?.intent === 'banish' ||
-        offer?.intent === 'wood'}
+        offer?.intent === 'wood' ||
+        offer?.intent === 'power'}
 
     <div
         class="site"
@@ -160,13 +148,15 @@
             width={rect.width}
             offered={offer !== undefined}
             pointed={menuPointer.is({ kind: 'site', slotId })}
-            picked={(offer?.intent === 'travel' || offer?.intent === 'start') && offer.picked}
+            picked={(offer?.intent === 'travel' ||
+                offer?.intent === 'start' ||
+                offer?.intent === 'power') &&
+                offer.picked}
             previewSlotId={slotId}
-            title={text.title}
             {onpick}
             pickLabel={text.chip === undefined
                 ? restingLabel(slotId)
-                : `${restingLabel(slotId)}, ${chipWords(text.chip)}`}
+                : `${restingLabel(slotId)}, ${chipWords(text.chip)}${text.note}`}
         />
 
         {#if text.chip !== undefined}

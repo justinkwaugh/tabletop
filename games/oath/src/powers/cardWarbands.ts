@@ -33,7 +33,7 @@ registerBattlePlan(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Battle
                 removeWarbandsFrom(ctx.state, group.at, group.owner, group.count)
                 addWarbandsToCard(ctx.state, OBSIDIAN_CAGE, group.owner, group.count)
             }
-            return `Obsidian Cage: moved the enemy's ${forceTotal(survivors)} unkilled warbands to the Cage`
+            return `Obsidian Cage: ${ctx.playerId} moved the enemy's ${forceTotal(survivors)} unkilled warbands to the Cage`
         }
     }
 })

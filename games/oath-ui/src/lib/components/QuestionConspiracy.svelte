@@ -3,6 +3,7 @@
     import AnswerButton from '$lib/components/AnswerButton.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
+    import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
     import QuestionForm from '$lib/components/QuestionForm.svelte'
     import { SearchPlay } from '@tabletop/oath'
@@ -49,7 +50,10 @@
             {/each}
         </div>
     {:else}
-        {#if step === SearchPlay.Conspiracy}
+        {#if step === SearchPlay.Conspiracy && draft.takeTargets.length === 0}
+            <!-- No one here can be taken from: why, in the take's place; "Play" takes nothing. -->
+            <ConspiracyNoTake lines={draft.takeNoTake} />
+        {:else if step === SearchPlay.Conspiracy}
             <!-- R-5.1.4.IV — burn one secret to take a relic or banner from a player at your site. -->
             <ConspiracyTakePicker
                 targets={draft.takeTargets}

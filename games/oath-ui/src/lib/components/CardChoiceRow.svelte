@@ -35,7 +35,6 @@
                     ? `ring-2 ${discard ? 'ring-oath-danger' : 'ring-oath-accent'}`
                     : 'ring-1 ring-oath-control-hover hover:ring-oath-accent'}"
                 aria-pressed={on}
-                title={choice.label}
                 disabled={busy}
                 onclick={() => onpick(choice.key)}
             >

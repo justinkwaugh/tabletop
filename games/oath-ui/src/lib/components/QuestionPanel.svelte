@@ -1,8 +1,8 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { assertExists, range } from '@tabletop/common'
-    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { assertExists } from '@tabletop/common'
+    import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
     import {
@@ -24,6 +24,8 @@
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
+    import { favorToken } from '$lib/images/tileImages.js'
+    import { tappedCount } from '$lib/model/exchangeTerms.js'
     import { cardName, listed, siteName, transferText } from '$lib/model/names.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -69,13 +71,18 @@
     {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}<TokenText text="Burn how many favor for as many secrets?" />{/snippet}
+            <!-- The favor held; the picked ones burn, so they are ringed rose. -->
+            {@const burn = draft.burn ?? 0}
             <div class="mb-2">
-                <CountPicker
-                    values={range(1, draft.myFavor)}
-                    picked={draft.burn}
+                <TokenRow
+                    image={favorToken()}
+                    held={draft.myFavor}
+                    addable={draft.myFavor}
+                    picked={burn}
                     label={(n) => `burn ${n} favor`}
-                    onpick={(n) => draft.setBurn(n)}
-                    disabled={busy}
+                    ontap={(n) => draft.setBurn(tappedCount(burn, n))}
+                    tone="rose"
+                    {busy}
                 />
             </div>
             <QuestionYesNo yes="Burn" no="None" />

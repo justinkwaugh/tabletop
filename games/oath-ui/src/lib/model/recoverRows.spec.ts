@@ -19,7 +19,7 @@ function atAncientCity(player: Record<string, unknown> = {}) {
 describe('the relics and banners a Recover can take (R-5.4)', () => {
     it('lists the relic at the site with the price the site prints', () => {
         expect(recoverRows(atAncientCity(), 'p1', []).relics).toEqual([
-            { slotId: 'slot-1', cost: { kind: 'placeFavorInBank', amount: 3, suit: Suit.Order } }
+            { slotId: 'slot-1', cost: { kind: 'placeFavorInBank', amount: 3, suit: Suit.Order }, modifiers: [] }
         ])
     })
 

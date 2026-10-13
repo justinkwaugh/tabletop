@@ -108,8 +108,9 @@ describe('Hearts and Minds and Peace Envoy — a battle decided without a roll',
 
     it("Peace Envoy: the user wins, pays the enemy a favor per defense die, and nobody's warbands die", () => {
         const s = board([], { att: { favor: 4, advisers: [{ cardId: ENVOY, faceUp: true }] } })
-        campaign(s, { plans: [battlePlanUse(ENVOY)] })
+        const declared = campaign(s, { plans: [battlePlanUse(ENVOY)] })
         expect(s.campaign?.decidedVictor).toBe('attacker')
+        expect(declared.metadata?.battle?.planNotes).toEqual(['Peace Envoy: att gave def 1 favor, one per defense die'])
         expect(s.getPlayerState('def').favor).toBe(4)
         expect(s.getPlayerState('att').favor).toBe(2)
         const sac = finish(s)

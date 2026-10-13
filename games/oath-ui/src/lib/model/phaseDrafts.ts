@@ -36,6 +36,7 @@ import {
     OathRevision,
     isAtLeastOathRevision,
     cardPower,
+    offeredChoices,
     powerMoveToll,
     powerTolls,
     type Toll
@@ -52,12 +53,36 @@ import {
 import {
     emptyPicks,
     favorBankSuits,
+    hasPicks,
     picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
 import { samePowerUse } from './powerUse.js'
-import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
+import { pickerWords } from './powerPickerWords.js'
+import {
+    openOnMap,
+    sitesOnMap,
+    powerSiteRows,
+    withMapTap,
+    type PowerMapSite,
+    type PowerSiteRow
+} from './powerSites.js'
+import {
+    isPowerMoves,
+    moveChoices,
+    powerMoves,
+    powerMovesComplete,
+    type MovePick,
+    type PowerMoves
+} from './powerMoves.js'
+import { addableCount, tappedCount } from './exchangeTerms.js'
+import {
+    StagedFlow,
+    TapHistoryDraft,
+    type PanelDraft,
+    type StagesCover
+} from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
 import { suitName } from './names.js'
@@ -330,6 +355,13 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
             : []
     }
 
+    /** R-4.3.5 — the powers the engine accepts with a bank that holds favor, as the turn-flow rows list them. */
+    get usablePowers() {
+        return this.playerId
+            ? HydratedUseRestPower.usableRestPowers(this.session.gameState, this.playerId)
+            : []
+    }
+
     bankOptions(power: LegalPowerUse): Suit[] {
         const bank = power.choices.find((c) => c.spec.kind === PowerChoiceKind.FavorBank)
         return favorBankSuits(bank?.options ?? [])
@@ -419,52 +451,128 @@ type PicksByPower = Record<string, PowerChoicePicks>
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
-export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
+export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
+    constructor(private readonly session: OathGameSession) {
+        super({})
+    }
+
     private get playerId(): string | undefined {
         return this.session.selection.action === ActionType.UseActionPower
             ? this.session.liveTurnSeatId
             : undefined
     }
 
-    get powers() {
-        return this.playerId
-            ? HydratedUseActionPower.legalActionPowers(this.session.gameState, this.playerId)
-            : []
+    /** Each power with the choices its card offers now (a bank the run cannot name is not one). */
+    get powers(): LegalPowerUse[] {
+        const playerId = this.playerId
+        if (!playerId) return []
+        const state = this.session.gameState
+        return HydratedUseActionPower.legalActionPowers(state, playerId).map((use) => {
+            const printed = cardPower(use.cardId, use.powerIndex)
+            assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
+            return { ...use, choices: offeredChoices(state, playerId, printed) }
+        })
     }
 
-    private get current(): PicksByPower | undefined {
-        return this.stored?.at(-1)
+    private storedOf(use: PowerUseKey): PowerChoicePicks {
+        return this.current[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
     }
 
-    picksOf(use: PowerUseKey): PowerChoicePicks {
-        return this.current?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+    /** A power whose site is picked on the lit map: its rows, and its picks as they read back. */
+    private sitesOf(
+        power: LegalPowerUse
+    ): { rows: PowerSiteRow[]; picks: PowerChoicePicks } | undefined {
+        const playerId = this.playerId
+        const stored = this.storedOf(power)
+        if (!playerId || pickerWords(power.cardId).site === undefined) return undefined
+        return powerSiteRows(this.session.gameState, playerId, power, stored)
     }
 
-    // A tap that changes nothing is no pick for Undo to take back.
+    /**
+     * The power's picks; a site on the map is read back only while the engine accepts it with
+     * the other picks, and a required site with one legal value starts made.
+     */
+    picksOf(use: PowerUseKey | LegalPowerUse): PowerChoicePicks {
+        const power = 'choices' in use ? use : this.powers.find((p) => samePowerUse(p, use))
+        return (power && this.sitesOf(power)?.picks) ?? this.storedOf(use)
+    }
+
     setPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
         if (!this.powers.some((p) => samePowerUse(p, use))) {
             return
         }
-        if (JSON.stringify(picks) === JSON.stringify(this.picksOf(use))) return
-        const next = { ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks }
-        this.store([...(this.stored ?? []), next])
+        this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks })
     }
 
-    override back(): boolean {
-        const history = this.stored
-        if (history !== undefined && history.length > 1) {
-            this.store(history.slice(0, -1))
-            return true
+    /** The row a power's site spec draws, when it is picked on the map. */
+    siteRow(power: LegalPowerUse, spec: number): PowerSiteRow | undefined {
+        return this.sitesOf(power)?.rows.find((row) => row.spec === spec)
+    }
+
+    private get openSiteRows(): { power: LegalPowerUse; rows: PowerSiteRow[]; words: string }[] {
+        return this.powers.flatMap((power) => {
+            const words = pickerWords(power.cardId).site?.chip
+            const sites = this.movesOf(power) ? undefined : this.sitesOf(power)
+            return words && sites ? [{ power, rows: sites.rows, words }] : []
+        })
+    }
+
+    /**
+     * One map pick for the panel: every site an open row can take, each naming the rows a tap
+     * there fills, and the one site the open rows hold.
+     */
+    get mapSites(): (PowerMapSite & { picked: boolean })[] {
+        const open = this.openSiteRows
+        const ringed = open
+            .flatMap(({ rows }) => rows.filter(openOnMap))
+            .find((row) => row.picked !== undefined)?.picked
+        return sitesOnMap(
+            open.flatMap(({ rows, words }) => rows.map((row) => ({ row, words })))
+        ).map((site) => ({ ...site, picked: site.siteId === ringed }))
+    }
+
+    /** A tap on a lit site: every open row offering it takes it, and every other lets its site go. */
+    pickSite(siteId: string): void {
+        const open = this.openSiteRows
+        if (
+            !open.some(({ rows }) =>
+                rows.some((row) => openOnMap(row) && row.sites.includes(siteId))
+            )
+        ) {
+            return
         }
-        return super.back()
+        const next = { ...this.current }
+        for (const { power, rows } of open) {
+            const before = this.picksOf(power)
+            const after = withMapTap(power, rows, before, siteId)
+            if (after !== before) next[powerKey(power.cardId, power.powerIndex)] = after
+        }
+        this.tap(next)
+    }
+
+    /** Messenger's moves, one at a time, each read on the state the moves before it leave. */
+    movesOf(power: LegalPowerUse): PowerMoves | undefined {
+        const playerId = this.playerId
+        const printed = cardPower(power.cardId, power.powerIndex)
+        if (!playerId || !printed || !isPowerMoves(power.choices)) return undefined
+        return powerMoves(this.session.gameState, playerId, printed, this.picksOf(power).moves)
+    }
+
+    // A move's From, count or To is a tap like any other pick, so Undo takes it back as one.
+    setMoves(use: PowerUseKey, moves: MovePick[]): void {
+        this.setPicks(use, { ...this.storedOf(use), moves })
     }
 
     /** "Use" waits until every choice the power opens has its picks. */
     picksComplete(power: LegalPowerUse): boolean {
+        const moves = this.movesOf(power)
+        if (moves) return powerMovesComplete(moves)
         return picksComplete(power.choices, this.picksOf(power))
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {
+        const moves = this.movesOf(power)
+        if (moves) return moveChoices(moves.whole)
         return powerChoicesFrom(power.choices, this.picksOf(power))
     }
 
@@ -502,6 +610,14 @@ export class ActionPowersDraft extends OneStepDraft<PicksByPower[]> {
     async use(power: LegalPowerUse): Promise<void> {
         if (!this.playerId) return
         await this.session.useActionPower(power.cardId, power.powerIndex, this.choicesFor(power))
+    }
+
+    /**
+     * Undo takes back the last tap, of any power in the panel: a pick, a move's From, count or To,
+     * or a site on the map, and the picks are as they were before it.
+     */
+    protected isBare(picks: PicksByPower): boolean {
+        return !Object.values(picks).some(hasPicks)
     }
 }
 
@@ -699,9 +815,7 @@ export class CitizenshipDraft implements PanelDraft {
                 toId,
                 favor ? { favor: count } : { secrets: count }
             ) === undefined
-        let addable = held
-        while (addable > 0 && !allowed(addable)) addable--
-        return { held, addable, picked: this.offerTerms[term] }
+        return { held, addable: addableCount(held, allowed), picked: this.offerTerms[term] }
     }
 
     /** A tap on the Nth token sets the count to N; a tap on the token at the count sets 0. */
@@ -709,7 +823,7 @@ export class CitizenshipDraft implements PanelDraft {
         if (!this.termsOpen) return
         const row = this.tokenRow(term)
         if (count < 1 || count > row.addable) return
-        this.pickTerms({ ...this.offerTerms, [term]: count === row.picked ? 0 : count })
+        this.pickTerms({ ...this.offerTerms, [term]: tappedCount(row.picked, count) })
     }
 
     toggleRelic(term: 'givenRelics' | 'askedRelics', relicId: string, on: boolean): void {

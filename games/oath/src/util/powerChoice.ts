@@ -35,7 +35,34 @@ export interface ChoiceSpec {
     fromRevision?: OathRevision
     /** R-X.4 — asked only in a game created before this revision. */
     beforeRevision?: OathRevision
+    /**
+     * Warbands: the specs of this kind and domain name this many warbands together, or every one
+     * the domain holds when it holds fewer (Terror Spells' "two"). The effect's own check reads it.
+     */
+    together?: number
+    /** Warbands: the count goes in multiples of it (Blood Pact's "an even number"). */
+    step?: number
+    /**
+     * Yes: the card's "or". No Yes is its first branch and a Yes its second, so neither is the
+     * default (R-7.1.3). Read only by `offeredChoices`' callers.
+     */
+    or?: true
+    /**
+     * Whether the spec's options are offered now: a "may" (and what only its yes asks for) as the
+     * card's own condition judges it, or a branch only while it would do anything ("not last").
+     * Read only by `offeredChoices`: a choice sent is judged by the domain and the effect, as
+     * without it.
+     */
+    offered?: (state: HydratedOathGameState, playerId: string) => boolean
+    /**
+     * FavorBank: each spec of the run names one favor; the run names `total` favor from
+     * `sources`, as the effect's own check (R-7.1.3) reads it. Read only by `offeredChoices`.
+     */
+    favorTotal?: (state: HydratedOathGameState, playerId: string) => FavorTotal
 }
+
+/** R-7.1.3 — the banks a run of favor picks may name, and the favor they come to. */
+export type FavorTotal = { sources: Suit[]; total: number }
 
 export function exchangeAllowanceOf(spec: ChoiceSpec): ExchangeAllowance {
     assertExists(spec.allows, `a ${spec.kind} choice declares no exchange allowance`)
@@ -158,6 +185,8 @@ function domainOf(spec: ChoiceSpec): ChoiceDomain {
 export interface LegalChoice {
     spec: ChoiceSpec
     options: PowerChoice[]
+    /** `offeredChoices` only: the favor a FavorBank run comes to (`ChoiceSpec.favorTotal`). */
+    total?: number
 }
 
 export type LegalPowerUse = PowerUseKey & { choices: LegalChoice[] }
@@ -202,6 +231,32 @@ export function legalChoices(
         spec,
         options: domainOf(spec)(readingFor(spec), playerId, power)
     }))
+}
+
+/**
+ * R-7.1.3 — the choices a menu offers: `legalChoices`, less a yes the card rules out now
+ * (`ChoiceSpec.offered`) and a bank a favor run cannot name (`ChoiceSpec.favorTotal`, with the
+ * run's total). It judges nothing: the doorway reads the domains alone.
+ */
+export function offeredChoices(
+    state: HydratedOathGameState,
+    playerId: string,
+    power: CardPower
+): LegalChoice[] {
+    return legalChoices(state, playerId, power).map((legal) => {
+        const { offered, favorTotal } = legal.spec
+        if (offered && !offered(state, playerId)) return { ...legal, options: [] }
+        if (!favorTotal) return legal
+        const { sources, total } = favorTotal(state, playerId)
+        return {
+            ...legal,
+            options: legal.options.filter(
+                (option) =>
+                    option.kind === PowerChoiceKind.FavorBank && sources.includes(option.suit)
+            ),
+            total
+        }
+    })
 }
 
 function keyOf(choice: PowerChoice): string {
@@ -250,26 +305,46 @@ export function reasonChoicesInvalid(
             : `${power.cardId} power ${power.powerIndex} takes no choices, but ${given.length} were given`
     }
 
+    // The state each sequential spec is read on depends only on the choices taken before it.
+    const statesAfter = new Map<number, HydratedOathGameState>()
+    const readingOf = (spec: ChoiceSpec, earlier: readonly PowerChoice[]) => {
+        if (!spec.sequential) return state
+        const known = statesAfter.get(earlier.length)
+        if (known) return known
+        const after = stateAfterChoices(state, playerId, power, earlier)
+        statesAfter.set(earlier.length, after)
+        return after
+    }
+
     for (const [i, spec] of specs.entries()) {
         const taken: PowerChoice[] = []
         // A later spec of the same kind takes what only its domain offers (Warning Signals).
         const later = specs.slice(i + 1).filter((l) => l.kind === spec.kind)
         const laterSameKind = later.length > 0
         const earlier = all.slice(0, all.length - given.length)
-        const readingFor = readingStates(state, playerId, power, [spec, ...later], earlier)
-        const offered = new Set(
-            domainOf(spec)(readingFor(spec), playerId, power).map((option) => keyOf(option))
-        )
-        const offeredLater = new Set(
-            later.flatMap((l) =>
-                domainOf(l)(readingFor(l), playerId, power).map((option) => keyOf(option))
-            )
-        )
+        // Read only when a choice is matched against them: a spec past the last choice costs nothing.
+        let options: Map<string, PowerChoice> | undefined
+        const optionsOf = () =>
+            (options ??= new Map(
+                domainOf(spec)(readingOf(spec, earlier), playerId, power).map((option) => [
+                    keyOf(option),
+                    option
+                ])
+            ))
+        let offeredLater: Set<string> | undefined
+        const offeredLaterOf = () =>
+            (offeredLater ??= new Set(
+                later.flatMap((l) =>
+                    domainOf(l)(readingOf(l, earlier), playerId, power).map((option) =>
+                        keyOf(option)
+                    )
+                )
+            ))
         while (taken.length < spec.max) {
             const next = given[0]
             if (next === undefined || next.kind !== spec.kind) break
             const key = keyOf(next)
-            if (!offered.has(key) && offeredLater.has(key)) break
+            if (!optionsOf().has(key) && offeredLaterOf().has(key)) break
             taken.push(next)
             given.shift()
         }
@@ -284,16 +359,10 @@ export function reasonChoicesInvalid(
             return `${taken.length + 1} given where at most ${spec.max} of ${describe(spec)} were wanted`
         }
 
-        const options = new Map(
-            domainOf(spec)(readingFor(spec), playerId, power).map((option) => [
-                keyOf(option),
-                option
-            ])
-        )
         const seen = new Set<string>()
         for (const choice of taken) {
             const key = keyOf(choice)
-            const option = options.get(key)
+            const option = optionsOf().get(key)
             if (!option) {
                 return `${describe(choice)} is not among the options for ${describe(spec)}`
             }

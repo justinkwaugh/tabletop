@@ -141,16 +141,26 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
         ])
     })
 
-    it('an over-full split holds the discards the same way', async () => {
-        const { setup, sent } = shortBank()
+    // R-1.16, R-2.8.2 — a site's row offers no more than it prints and no more than the bank leaves.
+    it('each site’s favor is held to what it prints and what the bank leaves', () => {
+        const { setup } = shortBank()
+        expect(setup.siteFavorCeiling('site.salt-flats')).toBe(2)
+        expect(setup.siteFavorCeiling('site.mine')).toBe(2)
+        setup.setSiteFavor('site.salt-flats', 1)
+        expect(setup.siteFavorCeiling('site.mine')).toBe(3)
+        expect(setup.siteFavorCeiling('site.salt-flats')).toBe(2)
         setup.setSiteFavor('site.mine', 3)
-        expect(setup.siteFavorPlaced).toBe(5)
-        expect(setup.siteId).toBe(TOP_CRADLE_SLOT)
-        const [keep, first] = setup.hand
-        await setup.chooseAdviser(keep)
-        expect(setup.ordering).toBe(false)
-        await setup.tapDiscard(first)
-        expect(sent).not.toHaveBeenCalled()
+        expect(setup.siteFavorCeiling('site.salt-flats')).toBe(1)
+    })
+
+    it('an over-full split cannot be made: a count past the bank’s last favor stops at it', () => {
+        const { setup } = shortBank()
+        setup.setSiteFavor('site.mine', 3)
+        expect(setup.siteFavor).toEqual([
+            { siteCardId: 'site.salt-flats', favor: 2 },
+            { siteCardId: 'site.mine', favor: 2 }
+        ])
+        expect(setup.siteFavorPlaced).toBe(4)
     })
 })
 

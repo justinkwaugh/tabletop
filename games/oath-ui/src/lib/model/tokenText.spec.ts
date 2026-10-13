@@ -45,6 +45,12 @@ describe('panel text as tokens and symbols', () => {
             { kind: 'suit', suit: Suit.Discord, bank: false },
             text(' adviser')
         ])
+        // Small Friends' line in its menu row.
+        expect(tokenParts('cards at beast sites')).toEqual([
+            text('cards at '),
+            { kind: 'suit', suit: Suit.Beast, bank: false },
+            text(' sites')
+        ])
     })
 
     it("keeps the banners' names and the word order as words", () => {

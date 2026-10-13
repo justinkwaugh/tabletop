@@ -34,9 +34,6 @@
                     role="presentation"
                     class:banner--pickable={amount !== undefined}
                     class:banner--pointed={menuPointer.is({ kind: 'banner', banner })}
-                    title={amount !== undefined
-                        ? `Recover ${label} — pay ${amount} or more`
-                        : `${label}, unclaimed — ${value} on it`}
                     use:inspectImage={{
                         preview: {
                             imageSrc: src,

@@ -22,17 +22,16 @@
     let parts = $derived(tokenParts(text, { warbands: warbandColor !== undefined, seats }))
 </script>
 
-<!-- `PlayerName` reads "you" and "your" for the viewer; inside a line, in lower case. -->
+<!-- `PlayerName` reads "you" and "your" for the viewer; inside a line in lower case, starting it capitalized. -->
 {#each parts as part, i (i)}
     {#if part.kind === 'text'}{part.text}{:else if part.kind === 'seat'}<PlayerName
             playerId={part.playerId}
             possessive={part.possessive}
-            capitalization={part.playerId === seats?.viewerId ? 'none' : 'capitalize'}
+            capitalization={part.playerId === seats?.viewerId && i > 0 ? 'none' : 'capitalize'}
         />{:else if part.kind === 'suit'}<img
             class="token-text__mark"
             src={suitImage(part.suit)}
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
-            title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
         />{:else if part.kind === 'warband'}<span class="token-text__count"
             >{part.count}{#if warbandColor}{@const figure = warbandFigure(
                     warbandColor(part.whose)
@@ -42,7 +41,6 @@
                     width={figure.width}
                     height={figure.height}
                     alt={part.words}
-                    title={part.words}
                 />{/if}</span
         >{:else}{@const token = part.kind === 'favor' ? favorToken() : secretToken()}<span
             class="token-text__count"

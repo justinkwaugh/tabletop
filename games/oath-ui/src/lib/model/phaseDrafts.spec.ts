@@ -21,8 +21,9 @@ import {
     type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
-import { emptyPicks } from './powerChoices.js'
+import { emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
+import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
@@ -288,6 +289,22 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         rest.pickBank(power(rest, SILVER_TONGUE), Suit.Hearth)
         expect(rest.pickedSuit(power(rest, SILVER_TONGUE))).toBe(Suit.Hearth)
     })
+
+    it('lists only the powers the engine accepts: Vow of Poverty is left out while its holder has favor', () => {
+        const withPoverty = (favor: number) =>
+            opened(
+                table(MachineState.RestPhase, {
+                    favor,
+                    advisers: [
+                        { cardId: OBEDIENCE, faceUp: true },
+                        { cardId: POVERTY, faceUp: true }
+                    ]
+                })
+            ).rest
+        expect(withPoverty(3).powers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+        expect(withPoverty(3).usablePowers.map((p) => p.cardId)).toEqual([OBEDIENCE])
+        expect(withPoverty(0).usablePowers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+    })
 })
 
 /** Visual contract scenario 33 — what the Rest panel does not offer. */
@@ -549,6 +566,233 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         session.chooseAction(ActionType.UseActionPower)
         const power = required(session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN), "Witch's Bargain is offered")
         expect(power.choices.map((c) => c.spec.kind)).toEqual([PowerChoiceKind.Player, PowerChoiceKind.Count, PowerChoiceKind.Count])
+    })
+})
+
+/** Messenger: one move at a time, each read on the state the moves before it leave. */
+/** A count of pieces tapped back to none is no pick: Undo that lands there leaves the picks. */
+describe('a power’s count tapped back to none', () => {
+    const BLOOD_PACT = 'denizen.arcane.blood-pact'
+    const USE = { cardId: BLOOD_PACT, powerIndex: 0 }
+
+    it('Undo that lands on it clears the picks, and the next Undo leaves the step', () => {
+        const session = opened(
+            table(MachineState.ActPhase, {
+                warbandsOnBoard: { [ME]: 4 },
+                advisers: [{ cardId: BLOOD_PACT, faceUp: true }]
+            })
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const power = required(draft.powers.find((p) => p.cardId === BLOOD_PACT), 'Blood Pact is offered')
+        const [grid] = warbandGrids(power.choices)
+        const pact = required(grid, 'Blood Pact’s board is a row of pieces')
+        const tap = (count: number) => draft.setPicks(USE, withGridCount(draft.picksOf(USE), pact, 0, count))
+        tap(2)
+        tap(0)
+        tap(4)
+        // Back past the 4: the row stands at none, so nothing is picked and the picks are left.
+        expect(draft.back()).toBe(true)
+        expect(draft.picksComplete(power)).toBe(false)
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
+    })
+})
+
+describe('Messenger’s moves (docs/user-interactions.md)', () => {
+    const MESSENGER = 'denizen.order.messenger'
+    const USE = { cardId: MESSENGER, powerIndex: 0 }
+    const board = { at: { kind: 'board' as const, playerId: ME }, owner: ME }
+    const at = (siteId: string) => ({ at: { kind: 'site' as const, siteId }, owner: ME })
+    const toSite = (siteId: string) => ({ kind: 'site' as const, siteId })
+    const toBoard = { kind: 'board' as const }
+
+    // The sheet's scene: four at the first site, two at the second, one at the third; the board empty.
+    function using(
+        warbandsBySite: Record<string, Record<string, number>> = { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } },
+        warbandsOnBoard: Record<string, number> = {}
+    ) {
+        const session = opened(
+            table(
+                MachineState.ActPhase,
+                { warbandsOnBoard, advisers: [{ cardId: MESSENGER, faceUp: true }] },
+                { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite }
+            )
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const power = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        const moves = () => required(draft.movesOf(power), 'Messenger’s choices are moves')
+        return { draft, power, moves }
+    }
+
+    it('the board is a From after a site → board move, and every count is the one the move leaves', () => {
+        const { draft, power, moves } = using()
+        expect(moves().whole).toEqual([])
+        expect(moves().open?.sources).toEqual([
+            { ...at('c1'), count: 3 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(draft.picksComplete(power)).toBe(false)
+
+        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }])
+        expect(moves().whole).toEqual([{ from: at('c1'), count: 2, to: toBoard }])
+        expect(moves().open?.from).toBeUndefined()
+        expect(moves().open?.sources).toEqual([
+            { ...board, count: 2 },
+            { ...at('c1'), count: 1 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }])
+    })
+
+    it('from the board To lists only ruled sites; from a site, the board and the other ruled sites', () => {
+        const { draft, moves } = using()
+        draft.setMoves(USE, [{ from: at('c1'), count: 1 }])
+        expect(moves().open?.destinations).toEqual([toBoard, toSite('c2'), toSite('h1')])
+        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 1 }])
+        expect(moves().open?.destinations).toEqual([toSite('c1'), toSite('c2'), toSite('h1')])
+    })
+
+    it('a half-built move hides "Use"; the send is the whole moves’ warbands, each with its site unless it goes to the board', () => {
+        const { draft, power, moves } = using()
+        draft.setMoves(USE, [
+            { from: at('c1'), count: 2, to: toBoard },
+            { from: board, count: 2, to: toSite('h1') },
+            { from: at('h1') }
+        ])
+        expect(moves().whole).toHaveLength(2)
+        expect(moves().open?.free).toBe(2)
+        expect(draft.picksComplete(power)).toBe(false)
+        draft.setMoves(USE, draft.picksOf(USE).moves.slice(0, 2))
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } },
+            { kind: PowerChoiceKind.Warbands, group: { ...board, count: 2 } },
+            { kind: PowerChoiceKind.Site, siteId: 'h1' }
+        ])
+        expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+
+    it('a pick with one option is made: one free warband, one place to go', () => {
+        const { draft, moves } = using()
+        draft.setMoves(USE, [{ from: at('c2') }])
+        expect(moves().open?.count).toBe(1)
+        draft.setMoves(USE, [{ from: at('c2'), count: 1, to: toSite('h1') }, { from: at('h1') }])
+        expect(moves().open?.count).toBe(1)
+    })
+
+    it('Undo takes back one pick (To, then How many, then From), then the move before', () => {
+        const { draft, moves } = using()
+        // Each part is its own tap, as the panel sends it.
+        const tap = (pick: (picks: MovePick[]) => MovePick[]) => draft.setMoves(USE, pick(draft.picksOf(USE).moves))
+        tap((picks) => withFrom(picks, 0, at('c1')))
+        tap((picks) => withCount(picks, 0, moves().open?.count, 2))
+        tap((picks) => withTo(picks, 0, toBoard))
+        tap((picks) => withFrom(picks, 1, board))
+        tap((picks) => withCount(picks, 1, moves().open?.count, 2))
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 2 }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board }])
+        expect(moves().open?.count).toBeUndefined()
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(moves().whole).toEqual([])
+        expect(draft.back()).toBe(true)
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
+    })
+
+    it('a From made because it has one option is not kept: a count tap, then one Undo, picks nothing', () => {
+        // The board holds two and the one ruled site has none free: the board is the only From.
+        const { draft, moves } = using({ c1: { [ME]: 1 } }, { [ME]: 2 })
+        expect(moves().open?.sources).toEqual([{ ...board, count: 2 }])
+        expect(moves().open?.from).toEqual(board)
+
+        draft.setMoves(USE, withCount(draft.picksOf(USE).moves, 0, moves().open?.count, 2))
+        expect(draft.picksOf(USE).moves).toEqual([{ count: 2 }])
+        expect(moves().whole).toEqual([{ from: board, count: 2, to: toSite('c1') }])
+        expect(draft.hasManualSelection()).toBe(true)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+    })
+
+    it('a move made from no pick keeps its place: a From tapped for the next move is that move’s From', () => {
+        // One ruled site holding two, the board empty: the first move has one option at each pick.
+        const { draft, power, moves } = using({ c1: { [ME]: 2 } })
+        const made = { from: at('c1'), count: 1, to: toBoard }
+        expect(moves().whole).toEqual([made])
+        expect(moves().open?.sources).toEqual([{ ...board, count: 1 }])
+        expect(moves().open?.from).toBeUndefined()
+
+        // The board is the second move's From; its count and its To (the one ruled site) have one
+        // option each, so the second move is whole and the first is still the one the panel made.
+        draft.setMoves(USE, withFrom(draft.picksOf(USE).moves, 1, board))
+        expect(moves().whole).toEqual([made, { from: board, count: 1, to: toSite('c1') }])
+        expect(draft.choicesFor(power)).toHaveLength(3)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(moves().whole).toEqual([made])
+        expect(draft.picksComplete(power)).toBe(true)
+    })
+
+    it('after the 16th whole move no From opens; the engine takes all 16', () => {
+        const { draft, power, moves } = using()
+        const there = { from: at('c1'), count: 1, to: toSite('c2') }
+        const again = { from: at('c2'), count: 1, to: toSite('c1') }
+        const sixteen = Array.from({ length: 16 }, (_, i) => (i % 2 === 0 ? there : again))
+        draft.setMoves(USE, sixteen.slice(0, 15))
+        expect(moves().open?.sources.length).toBeGreaterThan(0)
+        draft.setMoves(USE, sixteen)
+        expect(moves().whole).toHaveLength(16)
+        expect(moves().open).toBeUndefined()
+        expect(draft.picksComplete(power)).toBe(true)
+        expect(draft.choicesFor(power)).toHaveLength(32)
+        expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+
+    it('Undo takes back the last tap, across powers: a count changed after another power’s pick comes back as it was', () => {
+        const WHISTLE = { cardId: 'relic.whistle', powerIndex: 0 }
+        const session = opened(
+            table(
+                MachineState.ActPhase,
+                { warbandsOnBoard: {}, relicIds: [WHISTLE.cardId], advisers: [{ cardId: MESSENGER, faceUp: true }] },
+                { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } } }
+            )
+        )
+        session.chooseAction(ActionType.UseActionPower)
+        const draft = session.actionPowers
+        const messenger = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        expect(draft.powers.some((p) => p.cardId === WHISTLE.cardId)).toBe(true)
+        const count = (n: number) =>
+            draft.setMoves(USE, withCount(draft.picksOf(USE).moves, 0, draft.movesOf(messenger)?.open?.count, n))
+        const whistled = { ...emptyPicks(), option: { 0: 0 } }
+
+        draft.setMoves(USE, withFrom(draft.picksOf(USE).moves, 0, at('c1')))
+        count(2)
+        draft.setPicks(WHISTLE, whistled)
+        count(3)
+
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(draft.picksOf(WHISTLE)).toEqual(whistled)
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2 }])
+        expect(draft.picksOf(WHISTLE)).toEqual(emptyPicks())
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1') }])
+        expect(draft.back()).toBe(true)
+        expect(draft.picksOf(USE).moves).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+        expect(draft.back()).toBe(false)
     })
 })
 

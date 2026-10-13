@@ -1,6 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import type { LegalChoice } from '@tabletop/oath'
+    import PlayerChips from '$lib/components/PlayerChips.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
@@ -15,10 +16,10 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Witch's Bargain from revision 7 (its Q&A: one use may affect several players at your site).
-    // "With:" offers each player there as their chip; a tap picks them and opens their two rows of
-    // your own pieces, a second tap drops them. One player there starts picked and stays so. Each
-    // row is held to what the engine's bounds leave: the secret the cost places is never given, and
-    // Vow of Silence draws no secrets row.
+    // "With:" offers each player there as their chip, as every power's players are; a tap picks them
+    // and opens their two rows of your own pieces, a second tap drops them. One player there starts
+    // picked and stays so. Each row is held to what the engine's bounds leave: the secret the cost
+    // places is never given, and Vow of Silence draws no secrets row.
     let {
         legal,
         picks,
@@ -41,27 +42,13 @@
 </script>
 
 <div class="bargain-picker text-xs" data-bargain-picker>
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="text-oath-text-muted">With:</span>
-        <span class="inline-grid auto-cols-fr grid-flow-col gap-1.5">
-            {#each players as playerId (playerId)}
-                {@const on = picked.some((pick) => pick.playerId === playerId)}
-                <button
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-md border p-[3px] text-sm
-                           disabled:opacity-40 max-sm:min-h-11 max-sm:px-1.5 {on
-                        ? 'border-oath-accent ring-1 ring-oath-accent'
-                        : 'border-oath-frame bg-oath-surface'}"
-                    aria-pressed={on}
-                    aria-label={nameOf(playerId)}
-                    disabled={busy}
-                    onclick={() => onchange(withBargainPlayer(legal, picks, playerId))}
-                >
-                    <PlayerName {playerId} />
-                </button>
-            {/each}
-        </span>
-    </div>
+    <PlayerChips
+        label="With:"
+        playerIds={players}
+        picked={picked.map((pick) => pick.playerId)}
+        onpick={(playerId) => onchange(withBargainPlayer(legal, picks, playerId))}
+        {busy}
+    />
     {#if me}
         {#each picked as pick (pick.playerId)}
             {@const rows = bargainRows(gameSession.gameState, me, picked, pick.playerId)}

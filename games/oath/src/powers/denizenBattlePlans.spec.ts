@@ -313,7 +313,7 @@ describe('the outcome', () => {
         expect(won.favorBank[Suit.Order]).toBe(order - 2)
         expect(won.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(board + 3)
         // R-5.5.8 — after R-5.5.7's spoils, so the victory's record reports them.
-        expect(victory?.metadata?.triggered).toEqual(['Battle Honors: gained 2 favor from the order bank', 'Field Promotion: gained 3 warbands'])
+        expect(victory?.metadata?.triggered).toEqual([`Battle Honors: ${ATTACKER} gained 2 favor from the order bank`, `Field Promotion: ${ATTACKER} gained 3 warbands`])
 
         const lost = battleWhere(false, (seed) => table({}, { attacker: ['denizen.order.battle-honors'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 1 } } }, seed), (s) =>
             campaign({ plans: [battlePlanUse('denizen.order.battle-honors')], attackDice: 1 }).apply(s)
@@ -382,7 +382,7 @@ describe('Military Parade — Marriage counts as two hearth advisers (R-5.1.4.IV
         const { victory } = finishCampaignSteps(won)
         expect(won.favorBank[Suit.Hearth]).toBe(hearth - 2)
         expect(won.favorBank[Suit.Beast]).toBe(beast - 1)
-        expect(victory?.metadata?.triggered).toContain("Military Parade: gained 3 favor from the banks matching your enemy's advisers")
+        expect(victory?.metadata?.triggered).toContain(`Military Parade: ${ATTACKER} gained 3 favor`)
     })
 
     it('R-X.4 — in a game created before revision 5 Marriage pays one', () => {

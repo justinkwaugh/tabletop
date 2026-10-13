@@ -57,6 +57,8 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     seizeBurned: Type.Number(),
     banishedToSiteId: Type.Optional(Type.String()),
     favorBurned: Type.Number(),
+    /** R-5.5.7.III — whose pawn the banish moved and whose favor burned; absent against the bandits. */
+    defenderPlayerId: Type.Optional(Type.String()),
     /** R-5.6.2 via R-5.5.7.III */
     revealedSiteCardId: Type.Optional(Type.String()),
     relicsRevealed: Type.Optional(Type.Number()),
@@ -155,6 +157,7 @@ export class HydratedCampaignResolveVictory
             seizeBurned,
             banishedToSiteId,
             favorBurned,
+            defenderPlayerId: campaign.defenderPlayerId,
             relicsToDeckBottom: toBottom.length > 0 ? toBottom : undefined,
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,

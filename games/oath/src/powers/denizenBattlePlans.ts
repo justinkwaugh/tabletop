@@ -443,7 +443,9 @@ registerBattlePlan(
     'denizen.nomad.mountain-giant',
     powerIndexOf('denizen.nomad.mountain-giant', PowerTiming.BattlePlan),
     {
-        choices: [optional(PowerChoiceKind.Yes, { what: '±3 instead of ±1, then discard it' })],
+        choices: [
+            optional(PowerChoiceKind.Yes, { what: '±3 instead of ±1, then discard it', or: true })
+        ],
         hooks: { dice: (ctx) => pm(ctx, choseThree(ctx) ? 3 : 1), discardAtEnd: choseThree }
     }
 )
@@ -466,7 +468,7 @@ function battleHonors(ctx: BattlePlanContext, victorious: boolean): string | und
     const gained = gainFavorFromBankFor(ctx, Suit.Order, 2)
     return ctx.playerId === undefined
         ? `Battle Honors: burned ${gained} favor from the order bank, the bandits being victorious`
-        : `Battle Honors: gained ${gained} favor from the order bank`
+        : `Battle Honors: ${ctx.playerId} gained ${gained} favor from the order bank`
 }
 registerBattlePlan(
     'denizen.order.battle-honors',
@@ -507,7 +509,7 @@ registerBattlePlan(
                 const words =
                     gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
                     `${gained} warbands`
-                return `Field Promotion: gained ${words}`
+                return `Field Promotion: ${ctx.playerId} gained ${words}`
             }
         }
     }
@@ -532,7 +534,7 @@ function militaryParade(ctx: BattlePlanContext, victorious: boolean): string | u
     }
     return ctx.playerId === undefined
         ? `Military Parade: burned ${gained} favor from the banks matching the attacker's advisers, the bandits being victorious`
-        : `Military Parade: gained ${gained} favor from the banks matching your enemy's advisers`
+        : `Military Parade: ${ctx.playerId} gained ${gained} favor`
 }
 registerBattlePlan(
     'denizen.order.military-parade',

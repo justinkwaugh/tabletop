@@ -148,7 +148,7 @@ describe('Herald and Book Binders — a bank pick for a player who is not acting
         expect(afterCampaignPersistent(s, 'ruler', undefined)).toEqual([])
         expect(s.pendingQuestions).toBeUndefined()
         const notes = afterCampaignPersistent(s, 'ruler', 'other')
-        expect(notes[0]).toMatch(/Herald: away gains a favor/)
+        expect(notes[0]).toBe('Herald: away may gain 1 favor from a bank of their choice')
         expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PickFavorBank, askedPlayerId: 'away', amount: 1 })
         expect(() => answerQuestion(s, 'away', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Beast })).not.toThrow()
         expect(s.getPlayerState('away').favor).toBe(2)

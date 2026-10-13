@@ -127,6 +127,7 @@ registerModifier(
     'denizen.hearth.rowdy-pub',
     powerIndexOf('denizen.hearth.rowdy-pub', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 ctx.particulars?.cardId === 'denizen.hearth.rowdy-pub'
@@ -142,6 +143,7 @@ registerModifier(
     'denizen.beast.animal-playmates',
     powerIndexOf('denizen.beast.animal-playmates', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 suitOf(ctx.particulars?.cardId ?? '') === Suit.Beast
@@ -158,6 +160,7 @@ registerModifier(
     'denizen.discord.downtrodden',
     powerIndexOf('denizen.discord.downtrodden', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 const suit = suitOf(ctx.particulars?.cardId ?? '')
@@ -208,6 +211,7 @@ registerModifier(
     'denizen.beast.birdsong',
     powerIndexOf('denizen.beast.birdsong', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 const suit = suitOf(ctx.particulars?.cardId ?? '')
@@ -225,6 +229,7 @@ registerModifier(
     'denizen.arcane.secret-signal',
     powerIndexOf('denizen.arcane.secret-signal', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             // Its Q&A: under Careless a Trade for secrets gains one favor, so it may be used there too,
             // unless Vow of Poverty withholds that favor and the Trade gains none.
@@ -274,6 +279,7 @@ registerModifier(
     'denizen.beast.the-old-oak',
     powerIndexOf('denizen.beast.the-old-oak', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) => {
                 if (ctx.particulars?.cardId !== 'denizen.beast.the-old-oak') {
@@ -312,6 +318,7 @@ registerModifier(
     'denizen.hearth.welcoming-party',
     powerIndexOf('denizen.hearth.welcoming-party', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             condition: (ctx) =>
                 ctx.particulars?.facedownAdviserPlay === true
@@ -332,6 +339,7 @@ registerModifier(
     'denizen.beast.wild-cry',
     powerIndexOf('denizen.beast.wild-cry', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             after: (ctx) => {
                 if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined

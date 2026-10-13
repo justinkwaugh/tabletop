@@ -9,8 +9,15 @@ const components = import.meta.glob<string>('./*.svelte', {
 const FREE_COUNT = /type="(?:range|number)"/g
 
 /**
- * Contract, "Choose a count": every count is a row of number buttons (a Citizenship offer's favor
- * and secrets and the spoils' warbands a row of pieces), never a slider or a field.
+ * The one count still drawn as number buttons: a power's open count in its picker (Witch's
+ * Bargain's). Every other count is a row of the pieces themselves.
+ */
+const NUMBER_BUTTON_COUNTS = ['./PowerChoicePicker.svelte']
+
+/**
+ * Contract, "Choose a count": every count of warbands, favor or secrets is a row of the pieces
+ * themselves (`TokenRow`), never a slider or a field; the number buttons are left only where
+ * listed above.
  */
 describe('count controls', () => {
     it('no component draws a slider or a number field', () => {
@@ -18,5 +25,19 @@ describe('count controls', () => {
             [...source.matchAll(FREE_COUNT)].map((match) => `${path}: ${match[0]}`)
         )
         expect(offending).toEqual([])
+    })
+
+    it('no other component draws a count as number buttons', () => {
+        const numberButtons = Object.entries(components)
+            .filter(([, source]) => source.includes('<CountPicker'))
+            .map(([path]) => path)
+            .sort()
+        expect(numberButtons).toEqual([...NUMBER_BUTTON_COUNTS].sort())
+    })
+
+    it('a power’s picker draws number buttons for its open count alone, its warbands as pieces', () => {
+        const picker = components['./PowerChoicePicker.svelte'] ?? ''
+        expect(picker.match(/<CountPicker/g)).toHaveLength(1)
+        expect(picker).toContain('<WarbandGroupRows')
     })
 })

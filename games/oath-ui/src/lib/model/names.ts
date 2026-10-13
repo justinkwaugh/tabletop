@@ -12,6 +12,7 @@ import {
     Suit,
     IMPERIAL_WARBANDS,
     OathType,
+    PlayerStatus,
     type LossSource,
     type WarbandOwner
 } from '@tabletop/oath'
@@ -47,11 +48,6 @@ export function ownForcePlaceName(
     return new Set(sources.map((s) => s.owner)).size > 1
         ? `${ownerName(source.owner)} ${where}`
         : where
-}
-
-/** A site inside a History sentence: "the Great Slum", but a name that prints its own article as printed. */
-export function siteInLine(name: string): string {
-    return name.startsWith('a ') || name.startsWith('The ') ? name : `the ${name}`
 }
 
 export function relicSiteName(gameState: HydratedOathGameState, slotId: string): string {
@@ -105,6 +101,17 @@ export function oathName(oathType: OathType): string {
 
 export function suitName(suit: Suit): string {
     return SUIT_NAMES[suit]
+}
+
+const STATUS_NAMES: Record<PlayerStatus, string> = {
+    [PlayerStatus.Chancellor]: 'Chancellor',
+    [PlayerStatus.Exile]: 'Exile',
+    [PlayerStatus.Citizen]: 'Citizen'
+}
+
+/** A seat's status, capitalised as its board prints it. */
+export function statusName(status: PlayerStatus): string {
+    return STATUS_NAMES[status]
 }
 
 export function slotLabel(slotId: string): string {
@@ -268,7 +275,9 @@ function seatPattern(playerId: string, after = '', flags = ''): RegExp {
 const VIEWER_VERBS: readonly (readonly [string, string])[] = [
     [' is', ' are'],
     [' has', ' have'],
-    [' chooses', ' choose']
+    [' chooses', ' choose'],
+    [' picks', ' pick'],
+    [' gains', ' gain']
 ]
 
 function agreeWithViewer(text: string, viewerId: string, subject: string): string {

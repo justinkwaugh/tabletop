@@ -34,7 +34,7 @@ const ONE = new Set(['a', 'an', 'one'])
 // unless it names the suit's bank or its cards.
 const ALTERNATIVES = [
     String.raw`\b(?:the )?(?<bankSuit>${SUIT_ALTERNATIVES}) bank\b`,
-    String.raw`\b(?<cardSuit>${SUIT_ALTERNATIVES})(?= (?:advisers?|cards?|denizens?)\b)`,
+    String.raw`\b(?<cardSuit>${SUIT_ALTERNATIVES})(?= (?:advisers?|cards?|denizens?|sites?)\b)`,
     String.raw`(?<!people['’]s )\b(?:(?<favorCount>\d+|an?|one) )?favor\b`,
     String.raw`(?<!darkest )\b(?:(?<secretCount>\d+|an?|one) )?secrets?\b`
 ]
@@ -105,11 +105,15 @@ function tokenRun(text: string, pattern: RegExp): TextPart[] {
         const groups = match.groups ?? {}
         const { bankSuit, cardSuit, favorCount, secretCount, warbandCount } = groups
         if (warbandCount) {
+            const count = countOf(warbandCount) ?? 1
+            const whose = warbandWhose(groups)
+            // One warband is "warband"; one of a seat's keeps "of their warbands".
+            const one = count === 1 && (whose.kind === 'imperial' || whose.kind === 'row')
             parts.push({
                 kind: 'warband',
-                count: countOf(warbandCount) ?? 1,
-                whose: warbandWhose(groups),
-                words: `${groups.warbandWhose ?? ''}${groups.warbandNoun}`
+                count,
+                whose,
+                words: `${groups.warbandWhose ?? ''}${one ? 'warband' : groups.warbandNoun}`
             })
         } else if (bankSuit) parts.push({ kind: 'suit', suit: suitNamed(bankSuit), bank: true })
         else if (cardSuit) parts.push({ kind: 'suit', suit: suitNamed(cardSuit), bank: false })

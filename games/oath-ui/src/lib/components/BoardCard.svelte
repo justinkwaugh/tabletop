@@ -20,7 +20,6 @@
         offered = false,
         pointed = false,
         picked = false,
-        title,
         previewSlotId,
         onpick,
         pickLabel
@@ -37,7 +36,6 @@
         pointed?: boolean
         /** The pick whose choices the panel shows now: a heavier ring. */
         picked?: boolean
-        title?: string
         previewSlotId?: string
         /** A press chooses this card instead of enlarging it. */
         onpick?: () => void
@@ -53,9 +51,6 @@
     })
 
     const style = $derived(`left:${x}px; top:${y}px; width:${width}px; z-index:${zIndex};`)
-
-    // R-9.4 — the caller's label never names a facedown card.
-    let tooltip = $derived(title ?? label)
 </script>
 
 <!-- Not a control itself: the keyboard reaches the panel's rows, and a pick on the map's button. -->
@@ -67,7 +62,6 @@
     class:pickable={onpick !== undefined}
     role="presentation"
     {style}
-    title={tooltip}
     use:inspectImage={{
         preview,
         enabled: onpick === undefined && (cardId !== undefined || back !== undefined)
@@ -102,7 +96,7 @@
         cursor: pointer;
     }
 
-    /* Over the whole card and unseen: only the browser's focus ring shows, and the card's tooltip. */
+    /* Over the whole card and unseen: only the browser's focus ring shows. */
     .board-card__pick {
         position: absolute;
         inset: 0;

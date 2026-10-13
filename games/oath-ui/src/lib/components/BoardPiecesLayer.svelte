@@ -51,10 +51,7 @@
                 </span>
             {/if}
             {#each pieces.warbands as [owner, count] (owner)}
-                <span
-                    class="warband"
-                    title="{count} {gameSession.warbandOwnerName(owner)} warbands"
-                >
+                <span class="warband">
                     <img
                         src={warbandImage(gameSession.warbandColor(owner))}
                         alt=""
@@ -65,7 +62,7 @@
             {/each}
 
             {#each pieces.pawns as pawn (pawn.playerId)}
-                <span class="pawn-slot" title="{gameSession.getPlayerName(pawn.playerId)}'s pawn">
+                <span class="pawn-slot">
                     <img
                         src={pawnImage(gameSession.colors.getPlayerColor(pawn.playerId))}
                         alt=""

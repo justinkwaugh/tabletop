@@ -16,7 +16,6 @@ import {
     usableFavor,
     warbandOwnerGainedByPower,
     type ConspiracyPlay,
-    type ExchangeTerms,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
@@ -24,7 +23,7 @@ import {
 } from '@tabletop/oath'
 import { answerCostText } from './actionCards.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
-import { namesAnything } from './exchangeTerms.js'
+import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
 import {
     advisersToDiscardForConspiracy,
     advisersToDiscardForVision,
@@ -33,7 +32,13 @@ import {
     stackOrderAnswer
 } from './questionChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
-import { conspiracyPrizes, conspiracyTargets, type TakePrizeOption } from './conspiracyTake.js'
+import {
+    conspiracyNoTake,
+    conspiracyPrizes,
+    conspiracyTargets,
+    type ConspiracyNoTakeLine,
+    type TakePrizeOption
+} from './conspiracyTake.js'
 import { woodRegions, type WoodRegion } from './woodTravel.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -41,7 +46,7 @@ import type { OathGameSession } from './session.svelte.js'
 type QuestionValueByStage = {
     burn: number
     floorWith: string
-    floorTerms: ExchangeTerms
+    floorTerms: ExchangePicks
     conspiracyPlay: ConspiracyStepPlay
     takeTarget: string
     takePrize: number
@@ -137,24 +142,30 @@ export class QuestionDraft implements PanelDraft {
             : undefined
     }
 
-    get floorTerms() {
-        return this.floorWith ? (this.flow.value('floorTerms') ?? {}) : {}
+    get floorTerms(): ExchangePicks {
+        const terms = this.floorWith ? this.flow.value('floorTerms') : undefined
+        return terms ?? noExchangePicks()
     }
 
-    /** The Gathering — a proposal is a player and some terms. */
+    /** The Gathering — a proposal is a player and complete terms. */
     get floorProposed(): boolean {
-        return this.floorWith !== undefined && namesAnything(this.floorTerms)
+        return this.floorWith !== undefined && exchangeComplete(this.floorTerms)
     }
 
-    /** The players here the take could match who hold a relic or banner it may take. */
+    /** The players here the take can reach: a secret to burn, the match, and a prize. */
     get takeTargets(): string[] {
         const playerId = this.playerId
         if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
             return []
-        const state = this.session.gameState
-        return conspiracyTargets(state, playerId).filter(
-            (target) => conspiracyPrizes(state, playerId, target).length > 0
-        )
+        return conspiracyTargets(this.session.gameState, playerId)
+    }
+
+    /** When no one here can be taken from, why: one line per player here. */
+    get takeNoTake(): ConspiracyNoTakeLine[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy || !playerId)
+            return []
+        return conspiracyNoTake(this.session.gameState, playerId)
     }
 
     get takeTarget(): string | undefined {
@@ -440,11 +451,13 @@ export class QuestionDraft implements PanelDraft {
         await this.send(this.visionAnswer(play))
     }
 
-    /** Inquisitor — a play with nothing to pick is sent at once; the take and the room come after. */
+    /**
+     * Inquisitor — a play with nothing to pick is sent at once; the take and the room come after.
+     * The take is asked even with no one to take from: its step then says why (R-5.1.4.IV).
+     */
     async chooseConspiracyPlay(play: SearchPlay): Promise<void> {
         if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardConspiracy) return
-        if (play === SearchPlay.Conspiracy && this.takeTargets.length > 0)
-            this.flow.set('conspiracyPlay', play)
+        if (play === SearchPlay.Conspiracy) this.flow.set('conspiracyPlay', play)
         else if (play === SearchPlay.Adviser && this.conspiracyDiscards.length > 0)
             this.flow.set('conspiracyPlay', play)
         else await this.send(this.conspiracyAnswer(play))
@@ -508,7 +521,10 @@ export class QuestionDraft implements PanelDraft {
                 if (!yes) return { kind: question.kind }
                 const withPlayerId = this.floorWith
                 assertExists(withPlayerId, 'A proposal needs the player chosen')
-                return { kind: question.kind, proposal: { withPlayerId, terms: this.floorTerms } }
+                return {
+                    kind: question.kind,
+                    proposal: { withPlayerId, terms: this.floorTerms.terms }
+                }
             }
             case PowerQuestionKind.PayTravelToll:
                 return { kind: question.kind, pay: yes }
@@ -536,10 +552,11 @@ export class QuestionDraft implements PanelDraft {
         await this.session.answerQuestion(answer)
     }
 
+    /** Revelation's count from its favor; 0 picks none again ("None" is the answer that sends 0). */
     setBurn(favor: number): void {
-        if (this.question?.kind === PowerQuestionKind.BurnFavorForSecrets) {
-            this.flow.set('burn', Math.max(1, favor))
-        }
+        if (this.question?.kind !== PowerQuestionKind.BurnFavorForSecrets) return
+        if (favor < 1) this.flow.clearFrom('burn')
+        else this.flow.set('burn', favor)
     }
 
     chooseFloorWith(playerId: string | undefined): void {
@@ -547,7 +564,7 @@ export class QuestionDraft implements PanelDraft {
         else if (this.floorCandidates.includes(playerId)) this.flow.set('floorWith', playerId)
     }
 
-    setFloorTerms(terms: ExchangeTerms): void {
+    setFloorTerms(terms: ExchangePicks): void {
         if (this.floorWith) this.flow.set('floorTerms', terms)
     }
 

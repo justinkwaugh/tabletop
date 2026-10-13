@@ -1,13 +1,14 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
-    import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
-    import { powerUseCards } from '$lib/model/cardChoice.js'
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
+    import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     // R-5.5.3, R-7.5.2 — the defending side's battle plans, answered knowing
@@ -55,31 +56,36 @@
             <p class="text-sm mb-2">Tap the plans to use.</p>
         {/if}
         <div class="mb-1">
-            <CardChoiceRow
-                choices={powerUseCards(usable)}
-                picked={usable
-                    .filter((power) => defence.isDeclared(power))
-                    .map((power) => powerKey(power.cardId, power.powerIndex))}
-                onpick={(key) => {
-                    const power = usable.find((p) => powerKey(p.cardId, p.powerIndex) === key)
-                    if (power) defence.setPlan(power, !defence.isDeclared(power))
-                }}
+            <PlanRows
+                plans={usable}
+                isOn={(power) => defence.isDeclared(power)}
+                toggle={(power) => defence.setPlan(power, !defence.isDeclared(power))}
                 {busy}
-                height={90}
             />
         </div>
         {#each usable as power (powerKey(power.cardId, power.powerIndex))}
             {@const choices = defence.planChoicesOf(power)}
+            {@const moves = defence.movesOf(power)}
             {#if defence.isDeclared(power) && choices.length > 0}
-                <div class="mb-1">
+                <div class="mb-1" data-plan-picks={power.cardId}>
                     <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
-                    <PowerChoicePicker
-                        {choices}
-                        bind:picks={
-                            () => defence.planPicksOf(power),
-                            (picks) => defence.setPlanPicks(power, picks)
-                        }
-                    />
+                    <!-- Warning Signals' moves are Messenger's: one at a time, as tiles and warband pieces. -->
+                    {#if moves}
+                        <PowerMovesPicker
+                            {moves}
+                            picks={defence.planPicksOf(power).moves}
+                            onchange={(picks) => defence.setMoves(power, picks)}
+                        />
+                    {:else}
+                        <PowerChoicePicker
+                            {choices}
+                            bind:picks={
+                                () => defence.planPicksOf(power),
+                                (picks) => defence.setPlanPicks(power, picks)
+                            }
+                            words={pickerWords(power.cardId)}
+                        />
+                    {/if}
                 </div>
             {/if}
         {/each}

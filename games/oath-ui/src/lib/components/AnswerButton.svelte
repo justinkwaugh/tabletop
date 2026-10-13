@@ -4,6 +4,7 @@
 
     let {
         primary = false,
+        picked = undefined,
         width,
         disabled,
         label,
@@ -11,6 +12,8 @@
         children
     }: {
         primary?: boolean
+        /** Set on each of two answers that hold one pick (a card's "or"): ringed while picked. */
+        picked?: boolean
         /** The question's one width, shared by every answer in it. */
         width: ChoiceWidth
         disabled: boolean
@@ -27,9 +30,12 @@
     type="button"
     class="rounded border-[1.5px] px-4 py-2 text-base font-semibold disabled:opacity-40 max-sm:min-h-11 {primary
         ? 'border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover'
-        : 'border-transparent bg-oath-control hover:bg-oath-control-hover'}"
+        : picked
+          ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
+          : 'border-transparent bg-oath-control hover:bg-oath-control-hover'}"
     {disabled}
     aria-label={label}
+    aria-pressed={picked}
     {onclick}
 >
     <span class="flex justify-center" style:min-width="{width.widest}px">

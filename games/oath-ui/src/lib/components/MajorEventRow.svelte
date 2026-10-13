@@ -7,9 +7,15 @@
     import { endDieImage } from '$lib/images/diceImages.js'
     import { bannerName, cardName } from '$lib/model/names.js'
     import type { EventPicture, MajorEvent } from '$lib/model/majorEvents.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { event, actorId, children }: { event: MajorEvent; actorId?: string; children: Snippet } =
         $props()
+
+    let gameSession = getGameSession()
+
+    // The aside and the line that follows name seats by id, each drawn as its chip.
+    let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
     function source(picture: EventPicture): string | undefined {
         switch (picture.kind) {
@@ -56,7 +62,9 @@
                 : 'text-oath-heading'}">{event.heading}</span
         >
         {#if event.aside}
-            <span class="text-xs text-oath-text-muted">{event.aside}</span>
+            <span class="text-xs text-oath-text-muted"
+                ><TokenText text={event.aside} {seats} /></span
+            >
         {/if}
     </div>
     <p class="mt-0.5 text-sm text-oath-text">
@@ -72,14 +80,15 @@
                         class="major-event__picture major-event__picture--{picture.kind}"
                         {src}
                         alt={alt(picture)}
-                        title={alt(picture)}
                     />
                 {/if}
             {/each}
         </div>
     {/if}
     {#if event.consequence}
-        <p class="mt-1 text-xs text-oath-text-muted"><TokenText text={event.consequence} /></p>
+        <p class="mt-1 text-xs text-oath-text-muted">
+            <TokenText text={event.consequence} {seats} />
+        </p>
     {/if}
 </article>
 

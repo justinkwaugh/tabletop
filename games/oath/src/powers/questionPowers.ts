@@ -105,7 +105,7 @@ registerPersistent(HERALD, powerIndexOf(HERALD, PowerTiming.Persistent), {
                 askedPlayerId: owner,
                 amount: 1
             })
-            notes.push(note ?? `${owner} gains a favor from a bank of their choice`)
+            notes.push(note ?? `${owner} may gain 1 favor from a bank of their choice`)
         }
         return notes.length ? `Herald: ${notes.join('; ')}` : undefined
     }

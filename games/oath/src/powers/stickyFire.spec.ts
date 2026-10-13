@@ -100,7 +100,7 @@ describe('Billowing Fog and Traveling Doctor ignore Sticky Fire (R-9.2, revision
         expect(inPlay(s, DEFENDER)).toBe(5)
         expect(s.getPlayerState(DEFENDER).favor).toBe(7)
         expect(s.getPlayerState(ATTACKER).favor).toBe(3)
-        expect(victory?.metadata?.triggered).toContain('Sticky Fire: its kill was ignored; gave defender 1 favor')
+        expect(victory?.metadata?.triggered).toContain('Sticky Fire: its kill was ignored; attacker gave defender 1 favor')
     })
 
     it('Traveling Doctor: the defeated attacker loses no warband, and the defender’s Sticky Fire still gives its favor', () => {
@@ -113,7 +113,7 @@ describe('Billowing Fog and Traveling Doctor ignore Sticky Fire (R-9.2, revision
         expect(sacrifice.metadata?.defeatKilled).toBe(0)
         expect(inPlay(s, ATTACKER)).toBe(force)
         expect(s.getPlayerState(ATTACKER).favor).toBe(5)
-        expect(sacrifice.metadata?.planNotes).toContain('Sticky Fire: its kill was ignored; gave attacker 1 favor')
+        expect(sacrifice.metadata?.planNotes).toContain('Sticky Fire: its kill was ignored; defender gave attacker 1 favor')
     })
 })
 
@@ -124,7 +124,7 @@ describe('R-X.4 — before revision 5, Sticky Fire takes effect over Billowing F
         expect(sacrifice.metadata?.defeatKilled).toBe(5)
         expect(inPlay(s, DEFENDER)).toBe(0)
         expect(s.getPlayerState(DEFENDER).favor).toBe(7)
-        expect(victory?.metadata?.triggered).toContain('Sticky Fire: the enemy force was killed entirely; gave defender 1 favor')
+        expect(victory?.metadata?.triggered).toContain('Sticky Fire: the enemy force was killed entirely; attacker gave defender 1 favor')
     })
 
     it('Traveling Doctor: the whole attacking force is killed', () => {

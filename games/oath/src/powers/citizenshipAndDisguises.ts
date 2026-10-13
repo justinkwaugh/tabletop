@@ -2,7 +2,8 @@ import { bannerHolder } from '../util/oathkeeper.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
-import { becomeCitizenByPower, visionDeposits } from '../util/citizenship.js'
+import { becomeCitizenByPower, exileRefusal, visionDeposits } from '../util/citizenship.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -150,10 +151,15 @@ registerEffect(
     'denizen.beast.long-lost-heir',
     powerIndexOf('denizen.beast.long-lost-heir', PowerTiming.WhenPlayed),
     {
-        choices: [optional(PowerChoiceKind.Yes, { what: 'becoming a Citizen' })],
+        choices: [
+            optional(PowerChoiceKind.Yes, {
+                what: 'becoming a Citizen',
+                offered: (state, playerId) => exileRefusal(state, playerId) === undefined
+            })
+        ],
         reasonCannotResolve: (ctx) =>
-            chosen(ctx, PowerChoiceKind.Yes).length > 0 && !isExile(ctx)
-                ? 'only an Exile can become a Citizen'
+            chosen(ctx, PowerChoiceKind.Yes).length > 0
+                ? exileRefusal(ctx.state, ctx.playerId)
                 : undefined,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
@@ -169,32 +175,40 @@ registerEffect(
 )
 
 // "When played, if you're an Exile and have more secrets (even on cards) than the Chancellor, you may become a Citizen — …"
-function secretsOf(ctx: EffectContext, playerId: string): number {
-    const p = ctx.state.getPlayerState(playerId)
+function secretsOf(state: HydratedOathGameState, playerId: string): number {
+    const p = state.getPlayerState(playerId)
     // R-7.3.3-H1 — "even on cards": every card that is theirs, the relics they hold and the cards they
     // rule (R-10.21). Before revision 8 (R-X.4), their faceup advisers only. R-7.1.2 places tokens on
     // the card whose power is used, which a facedown adviser has not.
-    const cards = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4)
-        ? [...ruledFaceupCardIds(ctx.state, playerId), ...p.relicIds]
+    const cards = isAtLeastOathRevision(state, OathRevision.EngineFixes4)
+        ? [...ruledFaceupCardIds(state, playerId), ...p.relicIds]
         : p.faceupAdviserIds()
-    const onCards = cards.reduce((n, cardId) => n + ctx.state.tokensOn(cardId).secrets, 0)
+    const onCards = cards.reduce((n, cardId) => n + state.tokensOn(cardId).secrets, 0)
     return p.secrets + p.secretsFacedown + onCards
+}
+function bewitchRefusal(state: HydratedOathGameState, playerId: string): string | undefined {
+    const exile = exileRefusal(state, playerId)
+    if (exile) return exile
+    const mine = secretsOf(state, playerId)
+    const theirs = secretsOf(state, state.chancellorId())
+    return mine > theirs
+        ? undefined
+        : `you have ${mine} secrets, not more than the Chancellor's ${theirs}`
 }
 registerEffect(
     'denizen.arcane.bewitch',
     powerIndexOf('denizen.arcane.bewitch', PowerTiming.WhenPlayed),
     {
-        choices: [optional(PowerChoiceKind.Yes, { what: 'becoming a Citizen' })],
-        reasonCannotResolve: (ctx) => {
-            if (chosen(ctx, PowerChoiceKind.Yes).length === 0) return undefined
-            if (!isExile(ctx)) return 'only an Exile can become a Citizen'
-            const chancellorId = ctx.state.chancellorId()
-            const mine = secretsOf(ctx, ctx.playerId)
-            const theirs = secretsOf(ctx, chancellorId)
-            return mine > theirs
-                ? undefined
-                : `you have ${mine} secrets, not more than the Chancellor's ${theirs}`
-        },
+        choices: [
+            optional(PowerChoiceKind.Yes, {
+                what: 'becoming a Citizen',
+                offered: (state, playerId) => bewitchRefusal(state, playerId) === undefined
+            })
+        ],
+        reasonCannotResolve: (ctx) =>
+            chosen(ctx, PowerChoiceKind.Yes).length > 0
+                ? bewitchRefusal(ctx.state, ctx.playerId)
+                : undefined,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: 'Bewitch: stayed an Exile' }
@@ -226,7 +240,7 @@ registerBattlePlan(
                 if (ctx.campaign.side === BattlePlanSide.Attacker && ctx.state.campaign)
                     ctx.state.campaign.endsActPhaseAfter = true
                 return {
-                    note: `Martial Culture: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
+                    note: `Martial Culture: ${ctx.playerId} became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
                     pileDeposits: visionDeposits(c)
                 }
             }

@@ -48,7 +48,6 @@
         <img
             {src}
             alt={label}
-            title={label}
             class="rounded-[4px] shadow-md"
             style="height:{cardHeight}px; width:{cardHeight * 2}px;"
         />

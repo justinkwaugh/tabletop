@@ -3,7 +3,11 @@ import { Color, assert } from '@tabletop/common'
 import {
     Banner,
     CampaignTargetKind,
+    HydratedCampaignSacrifice,
     MachineState,
+    OathRevision,
+    PlayerStatus,
+    PowerChoiceKind,
     PowerTiming,
     cardPowers,
     isCampaignAttackPlans,
@@ -12,6 +16,8 @@ import {
 import { campaignRecords, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
+import { emptyPicks } from './powerChoices.js'
+import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 
 afterEach(() => {
     disposeSessions()
@@ -440,14 +446,16 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         expect(losses.sacrificed).toEqual([0, 0])
     })
 
-    it('a sacrifice is complete only at exactly the number needed', () => {
+    it('a sacrifice is complete only at exactly the number needed, and never picks past it', () => {
         const { losses } = sacrificing()
-        losses.setSacrificed(0, 3)
+        losses.setSacrificed(0, 1)
         expect(losses.winComplete).toBe(false)
-        losses.setSacrificed(0, 2)
+        losses.setSacrificed(0, 3)
+        expect(losses.sacrificed).toEqual([2, 0])
         expect(losses.winComplete).toBe(true)
         losses.setSacrificed(1, 1)
-        expect(losses.winComplete).toBe(false)
+        expect(losses.sacrificed).toEqual([2, 0])
+        expect(losses.winComplete).toBe(true)
         expect(losses.winRefusedBecause).toBeUndefined()
     })
 })
@@ -553,6 +561,127 @@ describe('the skull losses draft', () => {
             FOE
         )
         expect(session.skullLosses.groups).toEqual([])
+    })
+})
+
+/**
+ * R-5.5.5, R-5.5.6, R-5.5.5-H1 — a force of one owner in two places (Captains, Wild Allies, Vow
+ * of Union): the sacrifice is picked by place, the defeated half is the engine's.
+ */
+describe('the sacrifice from a force in two places', () => {
+    const RULED = 'p1'
+    const board = { kind: 'board', playerId: ME } as const
+    const site = { kind: 'site', siteId: RULED } as const
+
+    function split(onBoard: number, atSite: number, owner: string = ME) {
+        const session = battle(
+            MachineState.CampaignSacrifice,
+            { swords: 1, defense: 3, sacrificeWorth: 1, forceSiteIds: [RULED], asIfSiteId: RULED },
+            ME
+        )
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [owner]: onBoard }
+        session.gameState.warbandsBySite[RULED] = { [owner]: atSite }
+        const sent = vi.spyOn(session, 'resolveCampaignSacrifice').mockResolvedValue()
+        return { session, losses: session.attackerLosses, sent }
+    }
+
+    it('asks which warbands, place by place, with nothing picked', () => {
+        const { losses } = split(3, 2)
+        expect(losses.needed).toBe(3)
+        expect(losses.force).toEqual([
+            { at: site, owner: ME, count: 2 },
+            { at: board, owner: ME, count: 3 }
+        ])
+        expect(losses.choosesSacrifice).toBe(true)
+        expect(losses.sacrificed).toEqual([0, 0])
+        expect(losses.winComplete).toBe(false)
+        expect(losses.hasManualSelection()).toBe(false)
+    })
+
+    it('no place gives more than the number needed leaves it; lowering one opens the others again', () => {
+        const { losses } = split(3, 2)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+        losses.setSacrificed(1, 2)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 3])
+        losses.setSacrificed(0, 2)
+        expect(losses.sacrificed).toEqual([1, 2])
+        expect(losses.winComplete).toBe(true)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 2])
+        losses.setSacrificed(1, 0)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 2])
+        expect(losses.winComplete).toBe(false)
+        losses.setSacrificed(0, 0)
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+    })
+
+    it('a win is sent with the warbands picked at each place', async () => {
+        const { losses, sent } = split(3, 2)
+        losses.setSacrificed(1, 2)
+        losses.setSacrificed(0, 1)
+        expect(losses.winRefusedBecause).toBeUndefined()
+        await losses.win()
+        expect(sent).toHaveBeenCalledWith(
+            3,
+            [
+                { at: site, owner: ME, count: 1 },
+                { at: board, owner: ME, count: 2 }
+            ],
+            []
+        )
+    })
+
+    it('asks no defeated half of one owner, so "Sacrifice nothing" is complete and sends the default half', async () => {
+        const { session, losses, sent } = split(3, 2)
+        expect(losses.defeatRequired).toBe(2)
+        expect(losses.choosesDefeat).toBe(false)
+        expect(losses.loseComplete).toBe(true)
+        expect(losses.loseRefusedBecause).toBeUndefined()
+        losses.setDefeated(0, 2)
+        expect(losses.defeated).toEqual([0, 0])
+        await losses.lose()
+        expect(sent).toHaveBeenCalledWith(
+            0,
+            undefined,
+            HydratedCampaignSacrifice.attackerDefeatKills(session.gameState, 0)
+        )
+    })
+
+    it('from revision 7, asks no defeated half of a Citizen’s Imperial warbands on the board and at a site they rule', () => {
+        const { session, losses } = split(3, 2, IMPERIAL_WARBANDS)
+        session.gameState.getPlayerState(ME).status = PlayerStatus.Citizen
+        // Every survivor of a defeated attacker ends on their own board (R-5.5.6-H2).
+        session.gameState.oathRevision = OathRevision.EngineFixes3
+        expect(losses.force.map((group) => group.owner)).toEqual([IMPERIAL_WARBANDS, IMPERIAL_WARBANDS])
+        expect(losses.choosesSacrifice).toBe(true)
+        expect(losses.choosesDefeat).toBe(false)
+    })
+
+    it('asks the defeated half of a force that mixes owners (a game from before revision 5)', () => {
+        const { session, losses } = split(3, 2)
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
+        expect(losses.choosesDefeat).toBe(true)
+        expect(losses.loseComplete).toBe(false)
+    })
+
+    it('a split with one answer, the whole force, starts picked', () => {
+        const { losses } = split(2, 1)
+        expect(losses.sacrificed).toEqual([1, 2])
+        expect(losses.winComplete).toBe(true)
+        expect(losses.winRefusedBecause).toBeUndefined()
+        expect(losses.hasManualSelection()).toBe(false)
+        losses.setSacrificed(1, 1)
+        expect(losses.sacrificed).toEqual([1, 1])
+        expect(losses.winComplete).toBe(false)
+    })
+
+    it('with too few warbands to win, asks no split and says why the win is refused', () => {
+        const { losses } = split(1, 1)
+        expect(losses.needed).toBe(3)
+        expect(losses.choosesSacrifice).toBe(false)
+        expect(losses.winComplete).toBe(true)
+        expect(losses.winRefusedBecause).toBe('only 2 warbands in your force to sacrifice')
+        expect(losses.loseComplete).toBe(true)
+        expect(losses.loseRefusedBecause).toBeUndefined()
     })
 })
 
@@ -747,9 +876,233 @@ describe('the losses draft (docs/user-interactions.md)', () => {
 
     it('recounting a group replaces its count only', () => {
         const defeat = defeated()
-        defeat.setPicked(0, 3)
-        defeat.setPicked(1, 1)
+        defeat.setPicked(0, 2)
         defeat.setPicked(0, 1)
+        defeat.setPicked(1, 1)
         expect(defeat.picked).toEqual([1, 1])
+    })
+
+    it('no group gives more than the count owed leaves it; lowering one opens the other again', () => {
+        const defeat = defeated()
+        expect(defeat.required).toBe(2)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 2])
+        defeat.setPicked(0, 2)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 0])
+        defeat.setPicked(1, 1)
+        expect(defeat.picked).toEqual([2, 0])
+        defeat.setPicked(0, 1)
+        expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 1])
+        defeat.setPicked(1, 1)
+        expect(defeat.picked).toEqual([1, 1])
+    })
+})
+
+/**
+ * Warning Signals: "Move any warbands to and from your board and any sites you rule (except the
+ * last warband from a site)" — Messenger's text, so Messenger's moves, one at a time.
+ */
+describe('Warning Signals’ moves in the defence draft', () => {
+    const WARNING = 'denizen.nomad.warning-signals'
+    const WARNING_PLAN = {
+        cardId: WARNING,
+        powerIndex: required(
+            cardPowers(WARNING).find((power) => power.timing === PowerTiming.BattlePlan),
+            'Warning Signals’ battle plan'
+        ).powerIndex
+    }
+    const GIANT = 'denizen.nomad.mountain-giant'
+    const GIANT_PLAN = {
+        cardId: GIANT,
+        powerIndex: required(
+            cardPowers(GIANT).find((power) => power.timing === PowerTiming.BattlePlan),
+            'Mountain Giant’s battle plan'
+        ).powerIndex
+    }
+    const onBoard = { at: { kind: 'board' as const, playerId: FOE }, owner: FOE }
+    const at = (siteId: string) => ({ at: { kind: 'site' as const, siteId }, owner: FOE })
+
+    /**
+     * FOE defends with 2 on their board, 3 at c1 and 2 at c2, and Warning Signals as an adviser
+     * (with Mountain Giant beside it, and the secret it costs, when asked).
+     */
+    function warned(
+        board: Record<string, number> = { [FOE]: 2 },
+        sites: Record<string, Record<string, number>> = { c1: { [FOE]: 3 }, c2: { [FOE]: 2 } },
+        giant = false
+    ) {
+        const state = testState(
+            [
+                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
+                testPlayer({
+                    playerId: FOE,
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    warbandsOnBoard: board,
+                    secrets: giant ? 1 : 0,
+                    advisers: [
+                        { cardId: WARNING, faceUp: true },
+                        ...(giant ? [{ cardId: GIANT, faceUp: true }] : [])
+                    ]
+                })
+            ],
+            {
+                machineState: MachineState.CampaignPlans,
+                activePlayerIds: [FOE],
+                warbandsBySite: sites,
+                campaign: {
+                    attackerPlayerId: ME,
+                    defenderPlayerId: FOE,
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 0,
+                    defensePool: 0,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 0,
+                    swords: 0,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    pendingDefenderPlans: { queue: [FOE] },
+                    ...campaignRecords()
+                }
+            }
+        )
+        const session = openSessionOn(tableOf(state))
+        session.defence.setPlan(WARNING_PLAN, true)
+        return session
+    }
+
+    it('the first From opens empty; each next move is offered on the state the moves before it leave', () => {
+        const defence = warned().defence
+        const first = required(defence.movesOf(WARNING_PLAN)?.open, 'a From opens')
+        expect(first.from).toBeUndefined()
+        expect(first.sources).toEqual([
+            { ...onBoard, count: 2 },
+            { ...at('c1'), count: 2 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(defence.plansComplete).toBe(false)
+
+        defence.setMoves(WARNING_PLAN, [{ from: at('c1'), count: 2, to: { kind: 'board' } }])
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toHaveLength(1)
+        expect(moves.open?.from).toBeUndefined()
+        expect(moves.open?.sources).toEqual([
+            { ...onBoard, count: 4 },
+            { ...at('c2'), count: 1 }
+        ])
+        expect(defence.plansComplete).toBe(true)
+    })
+
+    it('board warbands go to two sites in one use; the send is the flat list, a site only where they go to one', async () => {
+        const session = warned()
+        const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
+        const defence = session.defence
+        defence.setMoves(WARNING_PLAN, [
+            { from: onBoard, count: 1, to: { kind: 'site', siteId: 'c1' } },
+            { from: onBoard, count: 1, to: { kind: 'site', siteId: 'c2' } },
+            { from: at('c1'), count: 2, to: { kind: 'board' } }
+        ])
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(3)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+        await defence.answer(true)
+        expect(sent).toHaveBeenLastCalledWith([
+            {
+                ...WARNING_PLAN,
+                choices: [
+                    { kind: PowerChoiceKind.Warbands, group: { ...onBoard, count: 1 } },
+                    { kind: PowerChoiceKind.Site, siteId: 'c1' },
+                    { kind: PowerChoiceKind.Warbands, group: { ...onBoard, count: 1 } },
+                    { kind: PowerChoiceKind.Site, siteId: 'c2' },
+                    { kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }
+                ]
+            }
+        ])
+    })
+
+    it('Undo takes back one pick, then the move before, then the plan', () => {
+        const defence = warned().defence
+        // Each part is its own tap, as the panel sends it.
+        const tap = (pick: (picks: MovePick[]) => MovePick[]) =>
+            defence.setMoves(WARNING_PLAN, pick(defence.planPicksOf(WARNING_PLAN).moves))
+        const shown = () => defence.movesOf(WARNING_PLAN)?.open?.count
+        tap((picks) => withFrom(picks, 0, at('c1')))
+        tap((picks) => withCount(picks, 0, shown(), 2))
+        tap((picks) => withTo(picks, 0, { kind: 'board' }))
+        tap((picks) => withFrom(picks, 1, onBoard))
+        tap((picks) => withCount(picks, 1, shown(), 3))
+        expect(defence.planPicksOf(WARNING_PLAN).moves).toEqual([
+            { from: at('c1'), count: 2, to: { kind: 'board' } },
+            { from: onBoard, count: 3 }
+        ])
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBe(3)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBeUndefined()
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toEqual(onBoard)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toBeUndefined()
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(1)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.whole).toHaveLength(0)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.count).toBe(2)
+        expect(defence.back()).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toBeUndefined()
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+    })
+
+    it('Undo takes back the last tap, across plans: a count changed after another plan’s pick comes back as it was', () => {
+        const defence = warned(undefined, undefined, true).defence
+        const moves = () => defence.planPicksOf(WARNING_PLAN).moves
+        const count = (n: number) =>
+            defence.setMoves(
+                WARNING_PLAN,
+                withCount(moves(), 0, defence.movesOf(WARNING_PLAN)?.open?.count, n)
+            )
+        const threes = { ...emptyPicks(), option: { 0: 0 } }
+
+        defence.setMoves(WARNING_PLAN, withFrom(moves(), 0, at('c1')))
+        count(1)
+        defence.setPlan(GIANT_PLAN, true)
+        defence.setPlanPicks(GIANT_PLAN, threes)
+        count(2)
+        expect(moves()).toEqual([{ from: at('c1'), count: 2 }])
+
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.planPicksOf(GIANT_PLAN)).toEqual(threes)
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.planPicksOf(GIANT_PLAN)).toEqual(emptyPicks())
+        expect(defence.isDeclared(GIANT_PLAN)).toBe(true)
+        expect(defence.back()).toBe(true)
+        expect(defence.isDeclared(GIANT_PLAN)).toBe(false)
+        expect(moves()).toEqual([{ from: at('c1'), count: 1 }])
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([{ from: at('c1') }])
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        // The moves Undo cleared stay cleared.
+        expect(defence.back()).toBe(true)
+        expect(moves()).toEqual([])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+        expect(defence.hasManualSelection()).toBe(false)
+        expect(defence.back()).toBe(false)
+    })
+
+    it('a lone From starts made; after the 16th whole move no From opens', () => {
+        const defence = warned({ [FOE]: 16 }, { c1: { [FOE]: 1 } }).defence
+        expect(defence.movesOf(WARNING_PLAN)?.open?.from).toEqual(onBoard)
+        defence.setMoves(WARNING_PLAN, Array.from({ length: 16 }, () => ({ from: onBoard, count: 1 })))
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toHaveLength(16)
+        expect(moves.whole.every((move) => move.to.kind === 'site' && move.to.siteId === 'c1')).toBe(true)
+        expect(moves.open).toBeUndefined()
+        expect(defence.plansComplete).toBe(true)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
     })
 })

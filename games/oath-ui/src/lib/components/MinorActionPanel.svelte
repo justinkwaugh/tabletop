@@ -1,34 +1,27 @@
 <script lang="ts">
-    import TokenText from '$lib/components/TokenText.svelte'
-    import { range } from '@tabletop/common'
     import {
         ActionType,
         WarbandMoveKind,
         type WarbandMove,
         type WarbandMoveOption
     } from '@tabletop/oath'
-    import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
-    import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
+    import FacedownAdviserPlay from '$lib/components/FacedownAdviserPlay.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
-    import CountPicker from '$lib/components/CountPicker.svelte'
     import FavorTo from '$lib/components/FavorTo.svelte'
-    import MenuChoice from '$lib/components/MenuChoice.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
-    import { warbandImage } from '$lib/images/pieceImages.js'
-    import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
+    import TokenRow from '$lib/components/TokenRow.svelte'
+    import { warbandFigure, warbandImage } from '$lib/images/pieceImages.js'
+    import { cardChoices } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, siteName } from '$lib/model/names.js'
 
     // R-6.1, R-6.3, R-6.5, R-6.7, R-6.8, R-9.4; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
     let { action }: { action: ActionType } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
-    // A facedown adviser's plays share one width.
-    const playWidth = new ChoiceWidth()
 
     let advisers = $derived(
         action === ActionType.PlayFacedownAdviser ? gameSession.facedownAdviserOptions : []
@@ -61,126 +54,20 @@
     {#if action === ActionType.PlayFacedownAdviser}
         {#if advisers.length === 0}
             <p class="text-xs text-oath-text-muted">No facedown adviser to play.</p>
+        {:else if chosenAdviser}
+            <!-- R-6.1 — the chosen card large, its plays and later steps beside it. -->
+            <FacedownAdviserPlay
+                cardId={chosenAdviser.cardId}
+                placements={chosenAdviser.placements}
+            />
         {:else}
             <CardChoiceRow
                 choices={cardChoices(advisers.map((adviser) => adviser.cardId))}
-                picked={chosenAdviser ? [chosenAdviser.cardId] : []}
+                picked={[]}
                 onpick={(cardId) => gameSession.chooseAdviser(cardId)}
                 {busy}
                 height={100}
             />
-        {/if}
-        {#if chosenAdviser}
-            {@const adviser = chosenAdviser}
-            <div class="flex items-start gap-2">
-                {#if gameSession.adviserPlay !== undefined}
-                    {@const reason = gameSession.adviserPlayReason}
-                    <div class="grow">
-                        {#if gameSession.adviserOtherSites.length > 0}
-                            <label class="mb-1 flex items-center gap-2 text-xs">
-                                <span class="text-oath-text-muted">Play to:</span>
-                                <select
-                                    disabled={busy}
-                                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
-                                    value={gameSession.adviserToSite ?? ''}
-                                    onchange={(e) =>
-                                        gameSession.setAdviserToSite(
-                                            e.currentTarget.value || undefined
-                                        )}
-                                >
-                                    <option value="">your site</option>
-                                    {#each gameSession.adviserOtherSites as siteId (siteId)}
-                                        <option value={siteId}
-                                            >{siteName(gameSession.gameState, siteId)}</option
-                                        >
-                                    {/each}
-                                </select>
-                            </label>
-                        {/if}
-                        {#if gameSession.adviserDiscardFirstOptions.length > 0}
-                            <div class="mb-1 text-xs">
-                                <span class="text-oath-text-muted">Discard first:</span>
-                                <CardChoiceRow
-                                    choices={cardChoices(gameSession.adviserDiscardFirstOptions)}
-                                    picked={gameSession.adviserDiscardFirst
-                                        ? [gameSession.adviserDiscardFirst]
-                                        : []}
-                                    onpick={(cardId) =>
-                                        gameSession.setAdviserDiscardFirst(
-                                            toggleSingle(gameSession.adviserDiscardFirst, cardId)
-                                        )}
-                                    {busy}
-                                    height={72}
-                                />
-                            </div>
-                        {/if}
-                        {#if gameSession.adviserPlayRoom.needed > 0}
-                            <p class="text-xs text-oath-text-muted mb-1">
-                                Over the adviser limit: discard {gameSession.adviserPlayRoom
-                                    .needed}.
-                            </p>
-                            <div class="mb-1">
-                                <CardChoiceRow
-                                    choices={cardChoices(gameSession.adviserPlayRoom.discardable)}
-                                    picked={gameSession.adviserPlayDiscards}
-                                    onpick={(cardId) =>
-                                        gameSession.toggleAdviserPlayDiscard(cardId)}
-                                    {busy}
-                                    height={72}
-                                />
-                            </div>
-                        {/if}
-                        {#if gameSession.adviserConspiracyTargets.length > 0}
-                            <ConspiracyTakePicker
-                                targets={gameSession.adviserConspiracyTargets}
-                                prizesOf={(target) => gameSession.adviserConspiracyPrizesOf(target)}
-                                pick={gameSession.adviserConspiracyPick}
-                                onchange={(pick) => gameSession.setAdviserConspiracyPick(pick)}
-                            />
-                        {/if}
-                        {#if gameSession.adviserPlayChoices.length > 0}
-                            <p class="text-xs text-oath-text-muted mb-1">
-                                Choose for its When Played power.
-                            </p>
-                            <PowerChoicePicker
-                                choices={gameSession.adviserPlayChoices}
-                                bind:picks={
-                                    () => gameSession.adviserPlayPicks,
-                                    (picks) => gameSession.setAdviserPlayPicks(picks)
-                                }
-                            />
-                        {/if}
-                        {#if gameSession.adviserPlayComplete}
-                            {#if reason}
-                                <p class="text-[11px] text-oath-danger">
-                                    <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-                                </p>
-                            {/if}
-                            <button
-                                class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs"
-                                disabled={busy || !!reason}
-                                onclick={() => gameSession.confirmAdviserPlay()}
-                            >
-                                Play {cardName(adviser.cardId)}
-                            </button>
-                        {/if}
-                    </div>
-                {:else}
-                    <div class="flex flex-wrap gap-1.5 grow">
-                        {#each adviser.placements as option (option.label)}
-                            <MenuChoice
-                                label="{option.label}: {cardName(adviser.cardId)}"
-                                disabled={busy}
-                                width={playWidth}
-                                onclick={() =>
-                                    gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
-                            >
-                                {option.label}
-                            </MenuChoice>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
         {/if}
     {:else if action === ActionType.Peek}
         <PeekMenu />
@@ -193,18 +80,23 @@
             <div class="flex flex-col gap-1.5" role="list" aria-label="Warband moves">
                 {#each moves as option (JSON.stringify(option.move) + option.owner)}
                     {@const name = moveName(option)}
+                    {@const color = gameSession.warbandColor(option.owner)}
                     <MenuRow
-                        image={warbandImage(gameSession.warbandColor(option.owner))}
+                        image={warbandImage(color)}
                         imageAlt={gameSession.warbandOwnerName(option.owner)}
                         {name}
                         points={gameSession.warbandMoves.points(option)}
                     >
-                        <CountPicker
-                            values={range(1, option.max)}
-                            picked={undefined}
+                        <!-- A tap on the Nth warband moves N at once, so none is ever picked. -->
+                        <TokenRow
+                            image={warbandFigure(color)}
+                            held={option.max}
+                            addable={option.max}
+                            picked={0}
                             label={(count) => `${name}: move ${count}`}
-                            onpick={(count) => gameSession.warbandMoves.sendNow(option, count)}
-                            disabled={busy}
+                            ontap={(count) => gameSession.warbandMoves.sendNow(option, count)}
+                            tone="plain"
+                            {busy}
                         />
                     </MenuRow>
                 {/each}

@@ -234,11 +234,11 @@ describe('R-X.4 — in a game created before revision 5 a Citizen’s power gain
 describe('R-10.13 — from revision 5 a gain’s summary names whose warbands it gave, so the History draws them in that colour', () => {
     /** The words recorded before the revision, which a game created then keeps. */
     const RECORDED: Record<string, string> = {
-        'Field Promotion': 'Field Promotion: gained 3 warbands',
+        'Field Promotion': 'Field Promotion: cit gained 3 warbands',
         'Second Chance': "killed a warband on foe's board and gained 1",
         'Key to the City': 'Key to the City: killed 1 at c2, gained 1 and placed 1 there',
         'Dragonskin Drum': 'Dragonskin Drum: gained 1 warband',
-        'Cursed Cauldron': 'Cursed Cauldron: gained 2 warbands, one per enemy warband killed',
+        'Cursed Cauldron': 'Cursed Cauldron: cit gained 2 warbands, one per enemy warband killed',
         'Animal Host': 'gained 1 warbands (1 beast cards at sites)',
         'A Small Favor': 'gained 4 warbands',
         Garrison: 'gained 1 warbands and placed 1 across 1 ruled sites',
@@ -249,11 +249,11 @@ describe('R-10.13 — from revision 5 a gain’s summary names whose warbands it
 
     /** A Citizen's gain is the Empire's. Relic Breaker records its owner on its row, so its words stay. */
     const CITIZEN: Record<string, string> = {
-        'Field Promotion': 'Field Promotion: gained 3 Imperial warbands',
+        'Field Promotion': 'Field Promotion: cit gained 3 Imperial warbands',
         'Second Chance': "killed a warband on foe's board and gained 1 Imperial warband",
         'Key to the City': 'Key to the City: killed 1 at c2, gained 1 Imperial warband and placed 1 there',
         'Dragonskin Drum': 'Dragonskin Drum: gained 1 Imperial warband',
-        'Cursed Cauldron': 'Cursed Cauldron: gained 2 Imperial warbands, one per enemy warband killed',
+        'Cursed Cauldron': 'Cursed Cauldron: cit gained 2 Imperial warbands, one per enemy warband killed',
         'Animal Host': 'gained 1 Imperial warband (1 beast cards at sites)',
         'A Small Favor': 'gained 4 Imperial warbands',
         Garrison: 'gained 1 Imperial warband and placed 1 across 1 ruled sites',
@@ -286,7 +286,7 @@ describe('R-10.13 — from revision 5 a gain’s summary names whose warbands it
     it('named by their owner where the row counts another’s: Second Chance’s kill, a battle plan read on the other side’s row', () => {
         const s = table(OathRevision.EngineFixes2)
         expect(resolve('denizen.beast.second-chance', PowerTiming.Action, [{ kind: PowerChoiceKind.Player, playerId: FOE }])(s, FOE)).toBe("killed a warband on foe's board and gained 1 of foe's warbands")
-        expect(victorious('denizen.order.field-promotion')(s, FOE)).toBe("Field Promotion: gained 3 of foe's warbands")
-        expect(victorious('relic.cursed-cauldron')(s, FOE)).toBe("Cursed Cauldron: gained 2 of foe's warbands, one per enemy warband killed")
+        expect(victorious('denizen.order.field-promotion')(s, FOE)).toBe("Field Promotion: foe gained 3 of foe's warbands")
+        expect(victorious('relic.cursed-cauldron')(s, FOE)).toBe("Cursed Cauldron: foe gained 2 of foe's warbands, one per enemy warband killed")
     })
 })

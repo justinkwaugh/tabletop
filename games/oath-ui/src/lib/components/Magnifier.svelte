@@ -29,7 +29,6 @@
            border-oath-accent bg-oath-surface-raised shadow-md hover:bg-oath-control
            {SIZES[size].place}"
     aria-label="Enlarge {label}"
-    title="Enlarge {label}"
     {@attach releaseOnUnmount}
     onclick={(event) => {
         event.stopPropagation()

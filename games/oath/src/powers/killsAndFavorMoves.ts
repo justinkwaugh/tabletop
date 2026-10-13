@@ -65,6 +65,7 @@ const groupsInRegion: ChoiceDomain = (state, playerId) =>
         kind: PowerChoiceKind.Warbands,
         group
     }))
+const TERROR_SPELLS_KILLS = 2
 
 registerEffect(
     'denizen.arcane.terror-spells',
@@ -73,11 +74,13 @@ registerEffect(
         choices: [
             one(PowerChoiceKind.Warbands, {
                 what: 'warbands in your region to kill',
-                domain: groupsInRegion
+                domain: groupsInRegion,
+                together: TERROR_SPELLS_KILLS
             }),
             optional(PowerChoiceKind.Warbands, {
                 what: 'more warbands in your region to kill',
-                domain: groupsInRegion
+                domain: groupsInRegion,
+                together: TERROR_SPELLS_KILLS
             })
         ],
         reasonCannotResolve: (ctx) => {
@@ -91,7 +94,7 @@ registerEffect(
                 (n, g) => n + g.count,
                 0
             )
-            const required = Math.min(2, available)
+            const required = Math.min(TERROR_SPELLS_KILLS, available)
             return named === required
                 ? undefined
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
@@ -411,18 +414,22 @@ registerModifier(
 
 // "Action: Sacrifice an even number of warbands on your board. For every two
 // you sacrifice, gain a secret."
+const BLOOD_PACT_STEP = 2
 registerEffect(
     'denizen.arcane.blood-pact',
     powerIndexOf('denizen.arcane.blood-pact', PowerTiming.Action),
     {
         choices: [
-            one(PowerChoiceKind.Warbands, { what: 'an even number of warbands on your board' })
+            one(PowerChoiceKind.Warbands, {
+                what: 'an even number of warbands on your board',
+                step: BLOOD_PACT_STEP
+            })
         ],
         reasonCannotResolve: (ctx) => {
             const [c] = chosen(ctx, PowerChoiceKind.Warbands)
             if (c.group.at.kind !== 'board' || c.group.at.playerId !== ctx.playerId)
                 return 'the warbands must be on your board'
-            if (c.group.count < 2 || c.group.count % 2 !== 0)
+            if (c.group.count < BLOOD_PACT_STEP || c.group.count % BLOOD_PACT_STEP !== 0)
                 return `sacrifice an even number of warbands, not ${c.group.count}`
             return undefined
         },

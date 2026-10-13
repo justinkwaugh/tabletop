@@ -1,13 +1,12 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists, range } from '@tabletop/common'
     import { MachineState, type WarbandGroup } from '@tabletop/oath'
-    import CountPicker from '$lib/components/CountPicker.svelte'
-    import TokenRow from '$lib/components/TokenRow.svelte'
-    import { warbandFigure } from '$lib/images/pieceImages.js'
     import SpoilsSteps from '$lib/components/SpoilsSteps.svelte'
+    import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
+    import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
+    import { warbandFigure } from '$lib/images/pieceImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownForcePlaceName, siteName } from '$lib/model/names.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
@@ -50,11 +49,13 @@
     let chooserId = $derived(campaign.pendingDefeatKills?.chooserPlayerId)
     let iChooseLosses = $derived(!!chooserId && gameSession.myPlayer?.id === chooserId)
 
-    /** For a count's screen-reader name; the row shows the board's owner as their chip. */
-    function whereText(group: WarbandGroup): string {
-        return group.at.kind === 'board'
-            ? `on ${gameSession.getPlayerName(group.at.playerId)}'s board`
-            : `at ${siteName(gameState, group.at.siteId)}`
+    /** The force's groups by their index in it, a board's before the sites'. */
+    function boardFirst(groups: readonly WarbandGroup[]): number[] {
+        const indices = groups.map((_, index) => index)
+        return [
+            ...indices.filter((index) => groups[index].at.kind === 'board'),
+            ...indices.filter((index) => groups[index].at.kind !== 'board')
+        ]
     }
 
     // R-5.5.5 — from revision 7 the attacker picks where the skulls kill, after the roll.
@@ -66,30 +67,23 @@
     const battleWidth = new ChoiceWidth()
 </script>
 
-{#snippet groupName(group: WarbandGroup)}
-    {gameSession.warbandOwnerName(group.owner)}
-    {#if group.at.kind === 'board'}on <PlayerName playerId={group.at.playerId} possessive /> board{:else}at
-        {siteName(gameState, group.at.siteId)}{/if}
-{/snippet}
-
+<!-- R-10.22 — a row of the warbands per place, the board first; the picked warbands die, so they
+     are ringed rose. No group gives more than the count owed leaves it. From revision 5 a force
+     has one owner, so a row names only where; two owners keep the owner's word. -->
 {#snippet countRows(
     groups: readonly WarbandGroup[],
     picked: readonly number[],
+    ceilingAt: (index: number) => number,
     onpick: (index: number, n: number) => void
 )}
-    {#each groups as group, index (JSON.stringify(group.at) + group.owner)}
-        <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span class="w-56 max-sm:w-full">{@render groupName(group)}</span>
-            <CountPicker
-                values={range(0, group.count + 1)}
-                picked={picked[index] ?? 0}
-                label={(n) =>
-                    `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
-                onpick={(n) => onpick(index, n)}
-                disabled={busy}
-            />
-        </div>
-    {/each}
+    <WarbandGroupRows
+        {groups}
+        order={boardFirst(groups)}
+        counts={picked}
+        {ceilingAt}
+        {onpick}
+        tone="rose"
+    />
 {/snippet}
 
 <div>
@@ -117,8 +111,11 @@
         {:else}
             <p class="text-sm mb-2">Pick {defeat.required} to kill.</p>
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                {@render countRows(defeat.groups, defeat.picked, (index, n) =>
-                    defeat.setPicked(index, n)
+                {@render countRows(
+                    defeat.groups,
+                    defeat.picked,
+                    (index) => defeat.ceilingAt(index),
+                    (index, n) => defeat.setPicked(index, n)
                 )}
                 <div class="text-oath-text-muted">
                     Chosen {defeat.pickedTotal} of {defeat.required}
@@ -195,16 +192,22 @@
         {#if losses.choosesSacrifice}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">To win, sacrifice {needed}:</div>
-                {@render countRows(losses.force, losses.sacrificed, (index, n) =>
-                    losses.setSacrificed(index, n)
+                {@render countRows(
+                    losses.force,
+                    losses.sacrificed,
+                    (index) => losses.ceilingAt('sacrificed', index),
+                    (index, n) => losses.setSacrificed(index, n)
                 )}
             </div>
         {/if}
         {#if losses.choosesDefeat}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">If you lose, {losses.defeatRequired} die:</div>
-                {@render countRows(losses.force, losses.defeated, (index, n) =>
-                    losses.setDefeated(index, n)
+                {@render countRows(
+                    losses.force,
+                    losses.defeated,
+                    (index) => losses.ceilingAt('defeated', index),
+                    (index, n) => losses.setDefeated(index, n)
                 )}
             </div>
         {/if}

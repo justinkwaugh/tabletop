@@ -1,8 +1,16 @@
+import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Region } from '../model/oathEnums.js'
 import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { denizensAtYourSite, otherPlayersAtYourSite, regionOfPawn } from './vocabulary.js'
+
+/**
+ * R-9.1 — "any warbands" (Messenger, Warning Signals): for each owner a player rules with (their
+ * own and, for a Citizen, the Empire's), any redistribution over their board and the map slots
+ * takes one direct move fewer than the places, a site to a site in one move.
+ */
+export const ANY_WARBANDS_MOVES = 2 * TOTAL_MAP_SLOTS
 
 // Function declarations: card registrations reach these at module load, inside a `const`'s temporal dead zone.
 

@@ -14,6 +14,7 @@ import {
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { noExchangePicks } from './exchangeTerms.js'
 
 afterEach(() => {
     disposeSessions()
@@ -53,6 +54,8 @@ function asked(
     return { session, draft: session.question, sent }
 }
 
+const favorOne = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+
 const floor = (): PowerQuestion => ({
     kind: PowerQuestionKind.GatheringFloor,
     cardId: 'denizen.nomad.the-gathering',
@@ -74,12 +77,12 @@ describe('the question draft (docs/user-interactions.md)', () => {
     it('choosing the partner clears the terms written for the last one', () => {
         const { draft } = asked(floor())
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
-        expect(draft.floorTerms).toEqual({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms(favorOne)
+        expect(draft.floorTerms).toEqual(favorOne)
 
         draft.chooseFloorWith('bo')
         expect(draft.floorWith).toBe('bo')
-        expect(draft.floorTerms).toEqual({})
+        expect(draft.floorTerms).toEqual(noExchangePicks())
     })
 
     it('Undo untaps the Pilgrimage stack one card at a time', async () => {
@@ -113,10 +116,10 @@ describe('the question draft (docs/user-interactions.md)', () => {
     it('clearing the partner clears the terms under it', () => {
         const { draft } = asked(floor())
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms(favorOne)
         draft.chooseFloorWith(undefined)
         expect(draft.floorWith).toBeUndefined()
-        expect(draft.floorTerms).toEqual({})
+        expect(draft.floorTerms).toEqual(noExchangePicks())
         expect(draft.hasManualSelection()).toBe(false)
     })
 })
@@ -142,7 +145,10 @@ describe('the question draft builds each answer', () => {
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.GatheringFloor })
 
         draft.chooseFloorWith('ann')
-        draft.setFloorTerms({ fromProposer: { favor: 1 } })
+        draft.setFloorTerms({ ...favorOne, uncountedSiteIds: ['c1'] })
+        expect(draft.acceptComplete).toBe(false)
+        expect(draft.acceptRefusedBecause).toBeUndefined()
+        draft.setFloorTerms(favorOne)
         expect(draft.acceptComplete).toBe(true)
         await draft.accept()
         expect(sent).toHaveBeenLastCalledWith({
@@ -166,6 +172,19 @@ describe('the question draft builds each answer', () => {
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BurnFavorForSecrets, favor: 2 })
         await draft.decline()
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 })
+    })
+
+    it('burning: a count of 0 (a tap on the favor at the count) picks none again, and "Burn" waits', () => {
+        const { draft } = asked({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            cardId: 'denizen.arcane.alchemist',
+            askedPlayerId: ME
+        })
+        draft.setBurn(2)
+        expect(draft.burn).toBe(2)
+        draft.setBurn(0)
+        expect(draft.burn).toBeUndefined()
+        expect(draft.acceptComplete).toBe(false)
     })
 
     it('Fae Merchant — offers every held relic but the Grand Scepter, and the drawn one unnamed', async () => {
@@ -280,14 +299,49 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
         expect(sent).toHaveBeenLastCalledWith(answer({ play: false }))
     })
 
-    it('"Play it" sends at once when nobody here holds a relic or banner, and "Adviser, facedown" under the limit', async () => {
-        const { draft, sent } = found(ARCANE)
+    it('"Play it" with no one to take from opens the take step, which says why per player; "Play" takes nothing', async () => {
+        const { session, draft, sent } = found(ARCANE)
         expect(draft.takeTargets).toEqual([])
         await draft.chooseConspiracyPlay(SearchPlay.Conspiracy)
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.conspiracyStep).toBe(SearchPlay.Conspiracy)
+        expect(draft.takeNoTake).toEqual([
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'seat', playerId: 'ann', possessive: false },
+                    { kind: 'text', text: ' holds no relic or banner.' }
+                ]
+            },
+            {
+                kind: 'words',
+                parts: [
+                    { kind: 'text', text: 'Needs 2 advisers matching ' },
+                    { kind: 'seat', playerId: 'bo', possessive: true },
+                    { kind: 'text', text: '; you have 0.' }
+                ]
+            }
+        ])
+        expect(draft.conspiracyStepComplete).toBe(true)
+        expect(draft.conspiracyRefusedBecause).toBeUndefined()
+        await draft.playConspiracy()
         expect(sent).toHaveBeenLastCalledWith(answer({ play: true }))
+
+        await session.undo()
+        expect(draft.conspiracyStep).toBeUndefined()
+    })
+
+    it('"Adviser, facedown" under the limit sends at once', async () => {
+        const { draft, sent } = found(ARCANE)
         await draft.chooseConspiracyPlay(SearchPlay.Adviser)
         expect(sent).toHaveBeenLastCalledWith(answer({ play: true, facedown: true }))
         expect(draft.hasManualSelection()).toBe(false)
+    })
+
+    it('a player the take can reach is a chip, and no line is said', () => {
+        const { draft } = found(ARCANE, { relicIds: [RING] })
+        expect(draft.takeTargets).toEqual(['ann'])
+        expect(draft.takeNoTake).toEqual([])
     })
 
     it('"Play it" opens the take: nobody picked plays, a player with no prize waits, Undo returns to the answers', async () => {

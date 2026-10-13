@@ -62,6 +62,7 @@ registerModifier(
     'relic.dragonskin-drum',
     powerIndexOf('relic.dragonskin-drum', PowerTiming.Modifier),
     {
+        freeGain: true,
         hooks: {
             after: (ctx) => {
                 const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
@@ -75,6 +76,7 @@ registerModifier(
 
 // "Spend no Supply if you're trading with a card that matches any of your advisers."
 registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', PowerTiming.Modifier), {
+    freeGain: true,
     hooks: {
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
@@ -354,7 +356,7 @@ registerBattlePlan(CURSED_CAULDRON, powerIndexOf(CURSED_CAULDRON, PowerTiming.Ba
             const words =
                 gainedWarbandsWords(ctx.state, ctx.playerId, gained, 'named') ??
                 `${gained} warbands`
-            return `Cursed Cauldron: gained ${words}, one per enemy warband killed`
+            return `Cursed Cauldron: ${ctx.playerId} gained ${words}, one per enemy warband killed`
         }
     }
 })
@@ -384,7 +386,7 @@ registerBattlePlan(STICKY_FIRE, powerIndexOf(STICKY_FIRE, PowerTiming.BattlePlan
             const killed = stickyFireIgnored(ctx)
                 ? 'its kill was ignored'
                 : 'the enemy force was killed entirely'
-            return `Sticky Fire: ${killed}; gave ${enemyId} ${given} favor`
+            return `Sticky Fire: ${killed}; ${ctx.playerId} gave ${enemyId} ${given} favor`
         }
     }
 })

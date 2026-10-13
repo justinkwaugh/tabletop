@@ -11,7 +11,8 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, suitName } from '$lib/model/names.js'
 
-    // R-4.3.5, R-7.3.4 — Rest powers once each: a power already used this Rest is not listed.
+    // R-4.3.5, R-7.3.4 — Rest powers once each: a power already used this Rest is not listed, nor,
+    // in a game created before the turn-flow revision too, one the engine accepts with no bank.
     let gameSession = getGameSession()
     let draft = $derived(gameSession.rest)
     let busy = $derived(gameSession.busy)
@@ -117,9 +118,9 @@
     </div>
 {:else}
     <div>
-        {#if draft.powers.length > 0}
+        {#if draft.usablePowers.length > 0}
             <div class="mb-2 text-xs">
-                {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
+                {#each draft.usablePowers as p (powerKey(p.cardId, p.powerIndex))}
                     {@const banks = draft.bankOptions(p)}
                     {@const reason = reasonFor(p)}
                     {@const bankPicked = draft.bankPicked(p)}
@@ -132,7 +133,6 @@
                                 class="min-h-8 rounded bg-oath-control px-3 py-0.5 hover:bg-oath-control-hover disabled:opacity-40
                                        max-sm:min-h-11"
                                 disabled={busy || !!reason}
-                                title={gameSession.humanizeReason(reason) ?? ''}
                                 onclick={() => draft.use(p)}
                             >
                                 Use

@@ -32,7 +32,7 @@ registerBattlePlan(
                     ctx.playerId,
                     'Scouts is an attacker plan, and the bandits only defend'
                 )
-                return `Scouts: gained ${gainSupply(ctx.state, ctx.playerId, 1)} Supply`
+                return `Scouts: ${ctx.playerId} gained ${gainSupply(ctx.state, ctx.playerId, 1)} Supply`
             }
         }
     }

@@ -13,6 +13,7 @@ import {
     forceTotal,
     powerKey,
     shroudedWoodChooser,
+    takeFromGroups,
     warbandEntries,
     type BattlePlanUse,
     type CardPower,
@@ -24,9 +25,15 @@ import {
     type WarbandOwner
 } from '@tabletop/oath'
 import { samePowerUse } from './powerUse.js'
-import { declaredPlan, planChoices } from './planChoices.js'
-import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
-import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
+import { declaredPlan, planChoices, planMoves, planPicksComplete } from './planChoices.js'
+import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
+import type { MovePick, PowerMoves } from './powerMoves.js'
+import {
+    StagedFlow,
+    TapHistoryDraft,
+    type PanelDraft,
+    type StagesCover
+} from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
 /** Keyed by site, then by warband owner. */
@@ -438,17 +445,17 @@ export class VictoryDraft implements PanelDraft {
     }
 }
 
-type PlanValueByStage = { plans: string[]; planPicks: Record<string, PowerChoicePicks> }
+/** The plans declared, by key, and each plan's picks, kept while its plan is taken back. */
+type PlanDeclaration = { plans: string[]; planPicks: Record<string, PowerChoicePicks> }
 
-const PLAN_STAGE_ORDER = ['plans', 'planPicks'] as const
-const _planStagesAreCovered: StagesCover<PlanValueByStage, typeof PLAN_STAGE_ORDER> = true
-void _planStagesAreCovered
-
-/** R-5.5.3 — one player's battle plans, each with the picks its text asks for. */
-abstract class PlanDeclarationDraft implements PanelDraft {
-    private flow = new StagedFlow<PlanValueByStage>(PLAN_STAGE_ORDER)
-
-    constructor(protected readonly session: OathGameSession) {}
+/**
+ * R-5.5.3 — one player's battle plans, each with the picks its text asks for. The draft keeps the
+ * plans and picks after each tap, so Undo takes back one tap at a time.
+ */
+abstract class PlanDeclarationDraft extends TapHistoryDraft<PlanDeclaration> {
+    constructor(protected readonly session: OathGameSession) {
+        super({ plans: [], planPicks: {} })
+    }
 
     /** The seat on screen, while it is the one declaring. */
     protected abstract get playerId(): string | undefined
@@ -458,8 +465,7 @@ abstract class PlanDeclarationDraft implements PanelDraft {
     get plans(): BattlePlanUse[] {
         const playerId = this.playerId
         if (!playerId) return []
-        const chosen = this.flow.value('plans') ?? []
-        const picks = this.flow.value('planPicks') ?? {}
+        const { plans: chosen, planPicks: picks } = this.current
         return this.usable
             .filter((power) => chosen.includes(powerKey(power.cardId, power.powerIndex)))
             .map((power) =>
@@ -481,28 +487,50 @@ abstract class PlanDeclarationDraft implements PanelDraft {
     }
 
     planPicksOf(use: PowerUseKey): PowerChoicePicks {
-        return this.flow.value('planPicks')?.[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+        return this.current.planPicks[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
     }
 
     setPlanPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
         if (!this.isDeclared(use)) return
-        this.flow.set('planPicks', {
-            ...this.flow.value('planPicks'),
-            [powerKey(use.cardId, use.powerIndex)]: picks
+        this.tap({
+            ...this.current,
+            planPicks: { ...this.current.planPicks, [powerKey(use.cardId, use.powerIndex)]: picks }
         })
     }
 
+    /** Warning Signals' moves, one at a time, each read on the state the moves before it leave. */
+    movesOf(use: PowerUseKey): PowerMoves | undefined {
+        const playerId = this.playerId
+        const power = this.usable.find((p) => samePowerUse(p, use))
+        return playerId && power && this.isDeclared(power)
+            ? planMoves(this.session.gameState, playerId, power, this.planPicksOf(power))
+            : undefined
+    }
+
+    // A move's From, count or To is a tap like any other pick, so Undo takes it back as one.
+    setMoves(use: PowerUseKey, moves: MovePick[]): void {
+        this.setPlanPicks(use, { ...this.planPicksOf(use), moves })
+    }
+
+    // Read from the keys, not `plans`, which reads every declared plan's choices.
     isDeclared(use: PowerUseKey): boolean {
-        return this.plans.some((p) => samePowerUse(p, use))
+        const key = powerKey(use.cardId, use.powerIndex)
+        return (
+            this.playerId !== undefined &&
+            this.current.plans.includes(key) &&
+            this.usable.some((p) => samePowerUse(p, use))
+        )
     }
 
     /** "Use plans" waits for a plan, and for every declared plan's picks. */
     get plansComplete(): boolean {
+        const playerId = this.playerId
         const declared = this.usable.filter((power) => this.isDeclared(power))
         return (
+            playerId !== undefined &&
             declared.length > 0 &&
             declared.every((power) =>
-                picksComplete(this.planChoicesOf(power), this.planPicksOf(power))
+                planPicksComplete(this.session.gameState, playerId, power, this.planPicksOf(power))
             )
         )
     }
@@ -526,21 +554,15 @@ abstract class PlanDeclarationDraft implements PanelDraft {
         const rest = this.plans
             .map((p) => powerKey(p.cardId, p.powerIndex))
             .filter((k) => k !== key)
-        const picks = this.flow.value('planPicks')
-        this.flow.set('plans', on ? [...rest, key] : rest)
-        if (picks !== undefined) this.flow.set('planPicks', picks)
+        this.tap({ ...this.current, plans: on ? [...rest, key] : rest })
     }
 
-    hasManualSelection(): boolean {
-        return this.flow.hasManualSelection()
-    }
-
-    back(): boolean {
-        return this.flow.back() !== undefined
-    }
-
-    reset(): void {
-        this.flow.reset()
+    /**
+     * Undo takes back the last tap: a plan ticked or unticked, a pick, or a move's From, count or
+     * To, and the plans and picks are as they were before it.
+     */
+    protected isBare(declaration: PlanDeclaration): boolean {
+        return declaration.plans.length === 0
     }
 }
 
@@ -675,10 +697,17 @@ export class DefeatDraft implements PanelDraft {
         return this.complete ? this.blockedBecause : undefined
     }
 
+    /** The most this group can give: its warbands, or what the count owed leaves after the others. */
+    ceilingAt(index: number): number {
+        return ceilingIn(this.groups, this.picked, index, this.required)
+    }
+
     setPicked(index: number, count: number): void {
-        const group = this.groups[index]
-        if (!group) return
-        this.flow.set('kills', this.picked.with(index, Math.max(0, Math.min(count, group.count))))
+        if (!this.groups[index]) return
+        this.flow.set(
+            'kills',
+            this.picked.with(index, Math.max(0, Math.min(count, this.ceilingAt(index))))
+        )
     }
 
     async choose(): Promise<void> {
@@ -792,6 +821,19 @@ function total(counts: readonly number[]): number {
     return counts.reduce((sum, count) => sum + count, 0)
 }
 
+/** A group's count can rise to its warbands, or to what the total owed leaves after the others. */
+function ceilingIn(
+    groups: readonly WarbandGroup[],
+    picks: readonly number[],
+    index: number,
+    owed: number
+): number {
+    const group = groups[index]
+    if (!group) return 0
+    const elsewhere = total(picks) - (picks[index] ?? 0)
+    return Math.max(0, Math.min(group.count, owed - elsewhere))
+}
+
 type AttackerLossesValueByStage = { sacrificed: number[]; defeated: number[] }
 
 const ATTACKER_LOSSES_STAGE_ORDER = ['sacrificed', 'defeated'] as const
@@ -803,7 +845,8 @@ void _attackerLossesStagesAreCovered
 
 /**
  * R-5.5.5, R-5.5.6, R-10.22 — the attacker's own losses: which warbands are sacrificed to win,
- * or which half dies in defeat. Asked only when the force holds more than one kind.
+ * or which half dies in defeat. The sacrifice is asked only when the force holds more than one
+ * group; the defeat only when it also mixes owners (R-5.5.5-H1).
  */
 export class AttackerLossesDraft implements PanelDraft {
     private flow = new StagedFlow<AttackerLossesValueByStage>(ATTACKER_LOSSES_STAGE_ORDER)
@@ -840,8 +883,13 @@ export class AttackerLossesDraft implements PanelDraft {
             : 0
     }
 
+    /**
+     * R-5.5.5 — which warbands to sacrifice is asked when the force stands in more than one group
+     * and the rules allow the win at all: with too few warbands, or against Vow of Peace, no split
+     * can win, so none is asked and the reason takes the win's place.
+     */
     get choosesSacrifice(): boolean {
-        return this.force.length > 1 && this.needed > 0
+        return this.force.length > 1 && this.needed > 0 && this.winRefusedOutright === undefined
     }
 
     /** R-5.5.6 — the half that dies is picked only when the pick can change where the warbands end. */
@@ -854,8 +902,22 @@ export class AttackerLossesDraft implements PanelDraft {
         )
     }
 
+    /**
+     * Why no sacrifice of the number needed can win, whatever warbands are picked: the engine is
+     * asked with one split that adds up, so only a reason of the sacrifice itself remains.
+     */
+    private get winRefusedOutright(): string | undefined {
+        if (this.needed === 0) return undefined
+        return this.reasonFor(this.needed, takeFromGroups(this.force, this.needed), [])
+    }
+
+    /**
+     * Picks start empty; a split with one legal answer starts made. With the force in two or more
+     * groups, the only split that adds up to the number needed is the whole force.
+     */
     get sacrificed(): number[] {
-        return this.picksFor('sacrificed')
+        const whole = this.choosesSacrifice && this.needed === forceTotal(this.force)
+        return this.picksFor('sacrificed', whole)
     }
 
     get defeated(): number[] {
@@ -890,6 +952,13 @@ export class AttackerLossesDraft implements PanelDraft {
     /** Why the engine refuses the loss as picked, read only once it is complete. */
     get loseRefusedBecause(): string | undefined {
         return this.loseComplete ? this.loseBlockedBecause : undefined
+    }
+
+    /** The most a group can give to the sacrifice, or to the defeated half. */
+    ceilingAt(stage: 'sacrificed' | 'defeated', index: number): number {
+        return stage === 'sacrificed'
+            ? ceilingIn(this.force, this.sacrificed, index, this.needed)
+            : ceilingIn(this.force, this.defeated, index, this.defeatRequired)
     }
 
     setSacrificed(index: number, count: number): void {
@@ -955,16 +1024,22 @@ export class AttackerLossesDraft implements PanelDraft {
         })
     }
 
-    private picksFor(stage: 'sacrificed' | 'defeated'): number[] {
-        const stored = this.flow.value(stage) ?? []
-        return this.force.map((group, index) => Math.min(stored[index] ?? 0, group.count))
+    private picksFor(stage: 'sacrificed' | 'defeated', whole = false): number[] {
+        const stored = this.flow.value(stage)
+        return this.force.map((group, index) =>
+            stored === undefined
+                ? whole
+                    ? group.count
+                    : 0
+                : Math.min(stored[index] ?? 0, group.count)
+        )
     }
 
     private setPick(stage: 'sacrificed' | 'defeated', index: number, count: number): void {
-        const group = this.force[index]
-        if (!group) return
-        const picks = this.picksFor(stage)
-        this.flow.set(stage, picks.with(index, Math.max(0, Math.min(count, group.count))))
+        if (!this.force[index]) return
+        const picks = stage === 'sacrificed' ? this.sacrificed : this.defeated
+        const ceiling = this.ceilingAt(stage, index)
+        this.flow.set(stage, picks.with(index, Math.max(0, Math.min(count, ceiling))))
     }
 
     private groupsOf(picks: number[]): WarbandGroup[] {
