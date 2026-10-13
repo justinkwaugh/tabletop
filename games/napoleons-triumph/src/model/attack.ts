@@ -119,6 +119,20 @@ export const LossEntry = Type.Object({
     face: Face
 })
 
+export enum MoralePenaltyKind {
+    HeavyCavalryCommitted = 'HeavyCavalryCommitted',
+    GuardCommitted = 'GuardCommitted',
+    GuardAttackDefeated = 'GuardAttackDefeated'
+}
+
+/** Rule 15: morale an army pays beyond its losses, as the amount its morale actually fell. */
+export type MoralePenalty = Type.Static<typeof MoralePenalty>
+export const MoralePenalty = Type.Object({
+    playerId: Type.String(),
+    kind: Type.Enum(MoralePenaltyKind),
+    moraleLost: Type.Integer({ minimum: 0 })
+})
+
 export type Attack = Type.Static<typeof Attack>
 export const Attack = Type.Object({
     attackerId: Type.String(),

@@ -7,6 +7,7 @@ import {
     counterAttackCandidates,
     queueAdvance,
     resolveCombat,
+    type CombatCost,
     type CombatOutcome
 } from './attackResolution.js'
 import { attackLocale, currentAttack, defenseLocale, type AttackState } from './attackState.js'
@@ -173,7 +174,8 @@ export function initialResultOf(
 
 export interface DeclaredAttack {
     initialResult: number
-    outcome?: CombatOutcome
+    /** While a counter-attack may still be made this holds only what the declaration itself cost. */
+    outcome: CombatOutcome
 }
 
 /** Rule 11, steps 5 and 6; with no counter-attack possible the attack is resolved at once. */
@@ -194,15 +196,17 @@ export function declareAttack(
         expendOrder(state, command)
     }
     state.revealAll(checked.leaders)
-    for (const unit of [
-        ...checked.leaders,
-        ...checked.struckLeaderIds.map((id) => state.unit(id))
-    ]) {
-        state.commit(unit)
+    const cost: CombatCost = {
+        losses: [],
+        penalties: [
+            ...checked.leaders,
+            ...checked.struckLeaderIds.map((id) => state.unit(id))
+        ].flatMap((unit) => state.commit(unit))
     }
     const initialResult = initialResultOf(state, checked)
     attack.initialResult = initialResult
-    return counterAttackCandidates(state).length > 0
-        ? { initialResult }
-        : { initialResult, outcome: resolveCombat(state, []) }
+    return {
+        initialResult,
+        outcome: counterAttackCandidates(state).length > 0 ? cost : resolveCombat(state, cost)
+    }
 }

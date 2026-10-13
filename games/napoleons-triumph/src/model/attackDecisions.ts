@@ -1,5 +1,12 @@
 import { DecisionKind, type PendingDecision } from './attack.js'
-import { concludeAttack, living, lose, type CombatOutcome } from './attackResolution.js'
+import {
+    concludeAttack,
+    concludeCombat,
+    living,
+    lose,
+    type CombatCost,
+    type CombatOutcome
+} from './attackResolution.js'
 import { currentAttack, defensePosition } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, samePosition } from './pieces.js'
@@ -33,8 +40,9 @@ export function assignOddLoss(
 ): CombatOutcome {
     const decision = takeDecision(state, DecisionKind.OddLoss, playerId)
     legal(decision.unitIds.includes(unitId), 'The odd loss falls on one of the two leading units')
-    const loss = lose(state, currentAttack(state), state.unit(unitId), 1)
-    return { losses: [loss], morale: concludeAttack(state) }
+    const cost: CombatCost = { losses: [], penalties: [] }
+    lose(state, currentAttack(state), state.unit(unitId), 1, cost)
+    return concludeCombat(state, cost)
 }
 
 export function assignExcessLosses(
@@ -56,10 +64,11 @@ export function assignExcessLosses(
     )
     const total = entries.reduce((sum, [, steps]) => sum + steps, 0)
     legal(total === decision.amount, `Exactly ${decision.amount} steps must be assigned`)
-    const losses = entries.map(([id, steps]) =>
-        lose(state, currentAttack(state), state.unit(id), steps)
-    )
-    return { losses, morale: concludeAttack(state) }
+    const cost: CombatCost = { losses: [], penalties: [] }
+    for (const [id, steps] of entries) {
+        lose(state, currentAttack(state), state.unit(id), steps, cost)
+    }
+    return concludeCombat(state, cost)
 }
 
 /** After a repulse every attacking unit but one per corps leaves its corps (rule 11, step 11). */
