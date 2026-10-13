@@ -9,6 +9,7 @@ import {
     infantry,
     type PiecePlacement
 } from '@tabletop/napoleons-triumph/testing'
+import { advancePrompt } from '$lib/utils/advancePrompt.js'
 import {
     AttackWidth,
     StageKind,
@@ -20,8 +21,8 @@ import {
     type BattleSelections
 } from './battleSelection.js'
 import {
-    BattleRole,
     battleLocalesOf,
+    BattleRole,
     battleStageOf,
     commandersGoing,
     cycleLoss,
@@ -29,8 +30,8 @@ import {
     keptByCommander,
     pickUnit,
     rolesShown,
+    sendCommander,
     sendRetreatTo,
-    toggleGoing,
     type BattleStage
 } from './battleStage.js'
 
@@ -818,11 +819,11 @@ describe('the forced advance', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
         const one = tap(game, emptyBattleSelections(), 'F-1')
         expect(stageOf(game, StageKind.Advance, one).commanders).toEqual([
-            { commanderId: 'lannes', mustGo: false, goes: false }
+            { commanderId: 'lannes', unitsStaying: 1, mustGo: false, goes: false }
         ])
         const both = tap(game, one, 'F-2')
         expect(stageOf(game, StageKind.Advance, both).commanders).toEqual([
-            { commanderId: 'lannes', mustGo: true, goes: true }
+            { commanderId: 'lannes', unitsStaying: 0, mustGo: true, goes: true }
         ])
     })
 
@@ -831,7 +832,9 @@ describe('the forced advance', () => {
         const stage = stageOf(game, StageKind.Advance)
         expect(stage.advancing).toEqual(['F-1'])
         expect(stage.pickableIds).toEqual([])
-        expect(stage.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: false }])
+        expect(stage.commanders).toEqual([
+            { commanderId: 'lannes', unitsStaying: 1, mustGo: false, goes: false }
+        ])
     })
 
     it('leaves a commander behind unless asked, and holds him back again on a second asking', () => {
@@ -839,14 +842,41 @@ describe('the forced advance', () => {
         const one = tap(game, emptyBattleSelections(), 'F-1')
         expect(commandersGoing(stageOf(game, StageKind.Advance, one))).toEqual([])
 
-        const sending = toggleGoing(stageOf(game, StageKind.Advance, one), one, 'lannes')
+        const sending = sendCommander(stageOf(game, StageKind.Advance, one), one, 'lannes', true)
         const sent = stageOf(game, StageKind.Advance, sending)
-        expect(sent.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: true }])
+        expect(sent.commanders).toEqual([
+            { commanderId: 'lannes', unitsStaying: 1, mustGo: false, goes: true }
+        ])
         expect(commandersGoing(sent)).toEqual(['lannes'])
         expect(sent.advancing).toEqual(['F-1'])
 
-        const holding = toggleGoing(sent, sending, 'lannes')
+        const holding = sendCommander(sent, sending, 'lannes', false)
         expect(commandersGoing(stageOf(game, StageKind.Advance, holding))).toEqual([])
+    })
+
+    it('says what the advance does to the corps as the choices stand', () => {
+        const lone = feintedAgainst(['F-1'])
+        const alone = stageOf(lone, StageKind.Advance)
+        expect(advancePrompt(alone)).toBe(
+            'The defending unit steps up to block the approach. Going alone, it is detached from its corps.'
+        )
+        const joined = sendCommander(alone, emptyBattleSelections(), 'lannes', true)
+        expect(advancePrompt(stageOf(lone, StageKind.Advance, joined))).toBe(
+            'The defending unit steps up to block the approach, joined by Lannes. The remaining unit detaches and remains in reserve.'
+        )
+
+        const two = feintedAgainst(['F-1', 'F-2'])
+        expect(advancePrompt(stageOf(two, StageKind.Advance))).toBe(
+            'At least one defending unit steps up to block the approach.'
+        )
+        const one = tap(two, emptyBattleSelections(), 'F-1')
+        expect(advancePrompt(stageOf(two, StageKind.Advance, one))).toBe(
+            'At least one defending unit steps up to block the approach. Units going without their commander are detached from their corps.'
+        )
+        const both = tap(two, one, 'F-2')
+        expect(advancePrompt(stageOf(two, StageKind.Advance, both))).toBe(
+            'At least one defending unit steps up to block the approach, joined by Lannes.'
+        )
     })
 
     it('holds a commander back again once a unit stays with him, unless he was sent', () => {
@@ -856,7 +886,12 @@ describe('the forced advance', () => {
         const oneAgain = tap(game, both, 'F-2')
         expect(commandersGoing(stageOf(game, StageKind.Advance, oneAgain))).toEqual([])
 
-        const sent = toggleGoing(stageOf(game, StageKind.Advance, oneAgain), oneAgain, 'lannes')
+        const sent = sendCommander(
+            stageOf(game, StageKind.Advance, oneAgain),
+            oneAgain,
+            'lannes',
+            true
+        )
         const bothSent = tap(game, sent, 'F-2')
         expect(
             commandersGoing(stageOf(game, StageKind.Advance, tap(game, bothSent, 'F-2')))

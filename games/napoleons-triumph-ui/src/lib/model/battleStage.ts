@@ -161,7 +161,7 @@ export interface AdvanceStage extends Picking {
     kind: StageKind.Advance
     units: ProjectedUnit[]
     advancing: string[]
-    commanders: { commanderId: string; goes: boolean; mustGo: boolean }[]
+    commanders: { commanderId: string; goes: boolean; mustGo: boolean; unitsStaying: number }[]
 }
 
 export type BattleStage =
@@ -431,12 +431,17 @@ function advanceStage(
         .map((commanderId) => state.commander(commanderId))
         .filter((commander) => samePosition(commander.position, state.unit(advancing[0]).position))
         .map((commander) => {
-            const mustGo = state
+            const unitsStaying = state
                 .corpsUnits(commander.id)
-                .filter((unit) => samePosition(unit.position, commander.position))
-                .every((unit) => advancing.includes(unit.id))
+                .filter(
+                    (unit) =>
+                        samePosition(unit.position, commander.position) &&
+                        !advancing.includes(unit.id)
+                ).length
+            const mustGo = unitsStaying === 0
             return {
                 commanderId: commander.id,
+                unitsStaying,
                 mustGo,
                 goes: mustGo || sent.includes(commander.id)
             }
@@ -762,13 +767,14 @@ function pickRetreatingUnit(
     }
 }
 
-export function toggleGoing(
+export function sendCommander(
     stage: AdvanceStage,
     selections: BattleSelections,
-    commanderId: string
+    commanderId: string,
+    goes: boolean
 ): BattleSelections {
     const sent = stage.commanders
-        .filter((entry) => !entry.mustGo && entry.goes !== (entry.commanderId === commanderId))
+        .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
         .map((entry) => entry.commanderId)
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }

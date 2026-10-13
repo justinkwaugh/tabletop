@@ -1,5 +1,6 @@
 <script lang="ts">
     import { commanderDefinition } from '@tabletop/napoleons-triumph'
+    import AdvanceSwitch from './AdvanceSwitch.svelte'
     import { StageKind } from '$lib/model/battleSelection.js'
     import type {
         AdvanceStage,
@@ -8,6 +9,7 @@
         RegroupStage
     } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { advancePrompt } from '$lib/utils/advancePrompt.js'
     import Force from './Force.svelte'
 
     let { stage }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage } =
@@ -59,15 +61,7 @@
         >
     </div>
 {:else}
-    <div class="nt-battle-prompt">
-        {#if stage.pickableIds.length === 0}
-            The defending unit steps up to block the approach and is detached, unless its commander
-            goes with it.
-        {:else}
-            At least one defending unit steps up to block the approach. They are detached unless
-            their commander goes with them.
-        {/if}
-    </div>
+    <div class="nt-battle-prompt">{advancePrompt(stage)}</div>
     <Force
         units={stage.units}
         selected={stage.advancing}
@@ -76,15 +70,12 @@
     />
     <div class="flex flex-wrap items-center gap-2 pt-1">
         {#each stage.commanders as commander (commander.commanderId)}
-            <button
-                type="button"
-                class="nt-plain-button nt-battle-small"
-                class:nt-chosen={commander.goes}
-                aria-pressed={commander.goes}
-                disabled={commander.mustGo}
-                onclick={() => gameSession.toggleCommanderGoes(commander.commanderId)}
-                >{commanderDefinition(commander.commanderId).name} goes with them</button
-            >
+            <AdvanceSwitch
+                commanderId={commander.commanderId}
+                goes={commander.goes}
+                mustGo={commander.mustGo}
+                onchoose={(goes) => gameSession.sendCommanderForward(commander.commanderId, goes)}
+            />
         {/each}
         <button
             type="button"
