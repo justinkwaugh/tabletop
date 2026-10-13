@@ -15,7 +15,7 @@ import {
     retreatSelection,
     setAttackCommand,
     setAttackWidth,
-    setCommandersStaying,
+    setCommandersGoing,
     setKeptInCorps,
     sendRetreating,
     setRetreatLosses,
@@ -358,7 +358,7 @@ describe('battle selections', () => {
             retreat: setKeptInCorps(setRetreatLosses(start.retreat, { A01: 1 }), {
                 langeron: 'A01'
             }),
-            advance: setCommandersStaying(start.advance, ['lannes'])
+            advance: setCommandersGoing(start.advance, ['lannes'])
         }
         const undone = undoBattleSelection(everyStep, StageKind.Declaration)
         expect(undone.defence).toEqual(everyStep.defence)

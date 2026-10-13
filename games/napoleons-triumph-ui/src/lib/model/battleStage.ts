@@ -45,7 +45,7 @@ import {
     nameLeaders,
     regroupSelection,
     retreatSelection,
-    setCommandersStaying,
+    setCommandersGoing,
     setKeptInCorps,
     sendRetreating,
     setStruckLeader,
@@ -425,7 +425,7 @@ function advanceStage(
         : (advanceSelection.value(selections.advance, 'advancing') ?? []).filter((id) =>
               unitIds.includes(id)
           )
-    const staying = advanceSelection.value(selections.advance, 'commandersStaying') ?? []
+    const sent = advanceSelection.value(selections.advance, 'commandersGoing') ?? []
     const commanderIds = [...new Set(advancing.flatMap((id) => state.unit(id).commanderId ?? []))]
     const commanders = commanderIds
         .map((commanderId) => state.commander(commanderId))
@@ -438,7 +438,7 @@ function advanceStage(
             return {
                 commanderId: commander.id,
                 mustGo,
-                goes: mustGo || !staying.includes(commander.id)
+                goes: mustGo || sent.includes(commander.id)
             }
         })
     return {
@@ -762,15 +762,15 @@ function pickRetreatingUnit(
     }
 }
 
-export function toggleStaying(
+export function toggleGoing(
     stage: AdvanceStage,
     selections: BattleSelections,
     commanderId: string
 ): BattleSelections {
-    const staying = stage.commanders
-        .filter((entry) => !entry.goes !== (entry.commanderId === commanderId))
+    const sent = stage.commanders
+        .filter((entry) => !entry.mustGo && entry.goes !== (entry.commanderId === commanderId))
         .map((entry) => entry.commanderId)
-    return { ...selections, advance: setCommandersStaying(selections.advance, staying) }
+    return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }
 
 function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {

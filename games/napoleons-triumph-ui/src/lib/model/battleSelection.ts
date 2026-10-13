@@ -149,17 +149,17 @@ export const regroupSelection = stagedSelection<RegroupValues>()(['kept'])
 
 export type AdvanceValues = {
     advancing: string[]
-    commandersStaying: string[]
+    commandersGoing: string[]
 }
-export const advanceSelection = stagedSelection<AdvanceValues>()(['advancing', 'commandersStaying'])
+export const advanceSelection = stagedSelection<AdvanceValues>()(['advancing', 'commandersGoing'])
 
 type AdvanceSelection = StagedSelectionState<AdvanceValues>
 
-export function setCommandersStaying(
+export function setCommandersGoing(
     advance: AdvanceSelection,
     commanderIds: string[]
 ): AdvanceSelection {
-    return advanceSelection.set(advance, 'commandersStaying', commanderIds, 'manual')
+    return advanceSelection.set(advance, 'commandersGoing', commanderIds, 'manual')
 }
 
 export interface BattleSelections {

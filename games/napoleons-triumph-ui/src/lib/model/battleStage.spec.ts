@@ -30,7 +30,7 @@ import {
     pickUnit,
     rolesShown,
     sendRetreatTo,
-    toggleStaying,
+    toggleGoing,
     type BattleStage
 } from './battleStage.js'
 
@@ -818,7 +818,7 @@ describe('the forced advance', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
         const one = tap(game, emptyBattleSelections(), 'F-1')
         expect(stageOf(game, StageKind.Advance, one).commanders).toEqual([
-            { commanderId: 'lannes', mustGo: false, goes: true }
+            { commanderId: 'lannes', mustGo: false, goes: false }
         ])
         const both = tap(game, one, 'F-2')
         expect(stageOf(game, StageKind.Advance, both).commanders).toEqual([
@@ -831,22 +831,36 @@ describe('the forced advance', () => {
         const stage = stageOf(game, StageKind.Advance)
         expect(stage.advancing).toEqual(['F-1'])
         expect(stage.pickableIds).toEqual([])
-        expect(stage.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: true }])
+        expect(stage.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: false }])
     })
 
-    it('leaves a commander behind when asked, and sends him again on a second asking', () => {
+    it('leaves a commander behind unless asked, and holds him back again on a second asking', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
         const one = tap(game, emptyBattleSelections(), 'F-1')
-        expect(commandersGoing(stageOf(game, StageKind.Advance, one))).toEqual(['lannes'])
+        expect(commandersGoing(stageOf(game, StageKind.Advance, one))).toEqual([])
 
-        const staying = toggleStaying(stageOf(game, StageKind.Advance, one), one, 'lannes')
-        const stayed = stageOf(game, StageKind.Advance, staying)
-        expect(stayed.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: false }])
-        expect(commandersGoing(stayed)).toEqual([])
-        expect(stayed.advancing).toEqual(['F-1'])
+        const sending = toggleGoing(stageOf(game, StageKind.Advance, one), one, 'lannes')
+        const sent = stageOf(game, StageKind.Advance, sending)
+        expect(sent.commanders).toEqual([{ commanderId: 'lannes', mustGo: false, goes: true }])
+        expect(commandersGoing(sent)).toEqual(['lannes'])
+        expect(sent.advancing).toEqual(['F-1'])
 
-        const going = toggleStaying(stayed, staying, 'lannes')
-        expect(commandersGoing(stageOf(game, StageKind.Advance, going))).toEqual(['lannes'])
+        const holding = toggleGoing(sent, sending, 'lannes')
+        expect(commandersGoing(stageOf(game, StageKind.Advance, holding))).toEqual([])
+    })
+
+    it('holds a commander back again once a unit stays with him, unless he was sent', () => {
+        const game = feintedAgainst(['F-1', 'F-2'])
+        const both = tap(game, tap(game, emptyBattleSelections(), 'F-1'), 'F-2')
+        expect(commandersGoing(stageOf(game, StageKind.Advance, both))).toEqual(['lannes'])
+        const oneAgain = tap(game, both, 'F-2')
+        expect(commandersGoing(stageOf(game, StageKind.Advance, oneAgain))).toEqual([])
+
+        const sent = toggleGoing(stageOf(game, StageKind.Advance, oneAgain), oneAgain, 'lannes')
+        const bothSent = tap(game, sent, 'F-2')
+        expect(
+            commandersGoing(stageOf(game, StageKind.Advance, tap(game, bothSent, 'F-2')))
+        ).toEqual(['lannes'])
     })
 })
 

@@ -61,11 +61,11 @@
 {:else}
     <div class="nt-battle-prompt">
         {#if stage.pickableIds.length === 0}
-            The defending unit steps up to block the approach. Its commander may go with it or stay
-            behind, in which case the unit is detached.
+            The defending unit steps up to block the approach and is detached, unless its commander
+            goes with it.
         {:else}
-            At least one defending unit steps up to block the approach. Units leaving their
-            commander behind are detached.
+            At least one defending unit steps up to block the approach. They are detached unless
+            their commander goes with them.
         {/if}
     </div>
     <Force
@@ -82,7 +82,7 @@
                 class:nt-chosen={commander.goes}
                 aria-pressed={commander.goes}
                 disabled={commander.mustGo}
-                onclick={() => gameSession.toggleCommanderStays(commander.commanderId)}
+                onclick={() => gameSession.toggleCommanderGoes(commander.commanderId)}
                 >{commanderDefinition(commander.commanderId).name} goes with them</button
             >
         {/each}

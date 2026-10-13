@@ -194,6 +194,32 @@ test('when the defence stands the attacker is asked only to press or feint', asy
     await expect(leading).toHaveCount(1)
 })
 
+test('a commander stays behind when a defender steps up, unless he is sent', async ({ page }) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
+
+    const goes = page.getByRole('button', { name: 'Langeron goes with them' })
+    await expect(goes).toHaveAttribute('aria-pressed', 'false')
+    await goes.click()
+    await expect(goes).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(goes).toHaveAttribute('aria-pressed', 'false')
+
+    await page.getByRole('button', { name: 'Advance to the approach' }).click()
+    const allies = page.locator('section.nt-army').filter({ hasText: 'Allied Army' })
+    await expect(page.getByText('French turn')).toBeVisible()
+    await expect(allies.getByText('Detached')).toBeVisible()
+})
+
 test('the pieces that made the threat are still named after the page is reloaded', async ({
     page
 }) => {

@@ -85,7 +85,7 @@ import {
     pickUnit,
     rolesShown,
     sendRetreatTo,
-    toggleStaying,
+    toggleGoing,
     type BattleRole,
     type BattleStage
 } from './battleStage.js'
@@ -867,10 +867,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    toggleCommanderStays(commanderId: string) {
+    toggleCommanderGoes(commanderId: string) {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Advance) {
-            this.stageBattle(toggleStaying(stage, this.battle, commanderId))
+            this.stageBattle(toggleGoing(stage, this.battle, commanderId))
         }
     }
 
