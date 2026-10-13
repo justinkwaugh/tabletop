@@ -20,12 +20,6 @@
 
     let gameSession = getGameSession()
 
-    // Browsing history is not the same as playing: the harness caps animation during history
-    // navigation at roughly 0.1s (see ANIMATION_PATTERN.md's fast-fallback rule and the
-    // FALLBACK_* durations in bus-ui's animators). These card slides are state-driven - the hand's
-    // contents change and the cards reposition - so scrubbing through a game would otherwise play
-    // them at full length, once per step.
-    const cardSlideMs = $derived(gameSession.isViewingHistory ? 100 : 220)
     let { player, playerState }: { player: Player; playerState: LowenherzProjectedPlayerState } =
         $props()
 
@@ -357,7 +351,6 @@
                                 ? '2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
                                 : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                                 transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
-                                transition: left {cardSlideMs}ms ease-out, transform {cardSlideMs}ms ease-out;
                             "
                         >
                             {#if !isMe && isOverlapping && isTop}

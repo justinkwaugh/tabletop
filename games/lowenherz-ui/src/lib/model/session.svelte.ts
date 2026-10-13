@@ -1,12 +1,8 @@
 import { Color, type GameAction, type Point } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { expansionActionsFor, openExpansionActionIdFor } from '$lib/model/expansionRun.js'
-import {
-    resolvePoliticsPileOrigin,
-    settlePoliticsPileOrigin,
-    type PoliticsPileOriginHandle
-} from '$lib/model/politicsPileOrigin.js'
 import { GameSession } from '@tabletop/frontend-components'
+import type { StateChange } from '$lib/animators/stateAnimator.js'
 import {
     type Alliance,
     ActionCardType,
@@ -73,7 +69,6 @@ import {
     removePoliticsCard,
     Region,
     regionsAreNeighboring,
-    rotateToStart,
     removeInteriorWalls,
     scoreRegion,
     squareKey,
@@ -114,6 +109,28 @@ export class LowenherzGameSession extends GameSession<
             this.game.config.privateMoney !== true ||
             this.myPlayer?.id === playerId
         )
+    }
+
+    // True while the published state came from a silent-swap restoration, which publishes
+    // without calling any state-change listener; local layout settling stays still for it.
+    restoredSilently = $state(true)
+    private listenersSawTransition = false
+    private silentRestoreListeners = new Set<() => void>()
+
+    onSilentRestore(listener: () => void): () => void {
+        this.silentRestoreListeners.add(listener)
+        return () => this.silentRestoreListeners.delete(listener)
+    }
+
+    override async onGameStateChange(_change: StateChange) {
+        this.listenersSawTransition = true
+    }
+
+    override beforeNewState() {
+        this.restoredSilently = !this.listenersSawTransition
+        this.listenersSawTransition = false
+        if (!this.restoredSilently) return
+        for (const listener of this.silentRestoreListeners) listener()
     }
 
     // A friendly message describing why the last placement attempt was rejected, shown
@@ -893,9 +910,7 @@ export class LowenherzGameSession extends GameSession<
     get myDecisionsThisRound(): { laid: number; total: number } {
         const myPlayerId = this.myPlayer?.id
         if (!myPlayerId) return { laid: 0, total: 0 }
-        const plan = buildDecisionPlan(
-            rotateToStart(this.gameState.turnOrder, this.gameState.firstPlayerId)
-        )
+        const plan = buildDecisionPlan(this.gameState.turnOrder)
         return {
             laid: this.mySlotsChosenThisRound.length,
             total: plan.filter((playerId) => playerId === myPlayerId).length
@@ -1602,57 +1617,13 @@ export class LowenherzGameSession extends GameSession<
         return this.isMyPoliticsCardTurn ? this.gameState.openedPoliticsPile : undefined
     }
 
-    // Where a politics splay looks like it comes from - a hand peek's click point (see
-    // showMyPoliticsCards, used by PoliticsHand) or the deck the player clicked to open a pile
-    // (see PoliticsDeckChooser's choosePile, consumed by the deal animator). A visual cue only,
-    // with no bearing on game state. One handle per handoff, so PoliticsPileReveal can tell one
-    // splay from the next by identity; politicsPileOrigin.ts says why it is followed, then settled.
-    private politicsOriginHandle: PoliticsPileOriginHandle | undefined = $state(undefined)
+    // Where the hand peek's splay looks like it comes from: the point that was clicked to open it
+    // (see showMyPoliticsCards, used by PoliticsHand). A visual cue only.
+    politicsHandOrigin: Point | undefined = $state(undefined)
 
-    get politicsPileOriginHandle(): PoliticsPileOriginHandle | undefined {
-        return this.politicsOriginHandle
-    }
-
-    get politicsPileOrigin(): Point | undefined {
-        return this.politicsOriginHandle && resolvePoliticsPileOrigin(this.politicsOriginHandle)
-    }
-
-    // Called once, as the deal starts - the moment the deck's position is authoritative.
-    settlePoliticsPileOrigin(): Point | undefined {
-        return this.politicsOriginHandle && settlePoliticsPileOrigin(this.politicsOriginHandle)
-    }
-
-    setPoliticsPileOriginElement(element: HTMLElement) {
-        this.beginPoliticsPileOrigin({ element })
-    }
-
-    // Drops a handle whose element was never settled - a pick that was abandoned or rejected - so
-    // the session does not keep a node that is about to leave the page. A settled handle is kept:
-    // its point is what history navigation deals from once the deck has gone.
-    abandonPoliticsPileOrigin() {
-        if (this.politicsOriginHandle?.element) this.politicsOriginHandle = undefined
-    }
-
-    private beginPoliticsPileOrigin(handle: PoliticsPileOriginHandle) {
-        this.politicsOriginHandle = handle
-    }
-
-    // The real, already-measured width of the row PoliticsDeckChooser's own decks sit in - set
-    // alongside politicsPileOrigin, right before selectPoliticsPile below hands off to
-    // PoliticsPileReveal. That component uses this as its row width straight away instead of
-    // waiting on its own bind:clientWidth, which only fires (ResizeObserver-backed, so
-    // inherently a frame or more after mount) once it already has cards rendered against
-    // whatever guess it started with - correcting that guess once the real number arrives can
-    // move a card to a different row's own {#each} block, which Svelte can't just reposition, so
-    // it destroys and remounts it. Undefined whenever no chooser has run yet this session (a page
-    // reload landing mid-reveal, say), which is the one case PoliticsPileReveal still falls back
-    // to measuring for itself.
-    politicsRowWidth: number | undefined = $state(undefined)
-
-    // True while PoliticsPileReveal has anything on screen. PoliticsDeckChooser holds the clicked
-    // deck in place until then: LookAtPoliticsPile reveals information, so it is never applied
-    // optimistically (see GameSession.requiresServerAuthoritativeProcessing) and the cards exist
-    // only once the host has answered.
+    // True while PoliticsPileReveal has anything on screen. PoliticsDeckChooser keeps its decks
+    // in place until then: LookAtPoliticsPile reveals information, so it is never applied
+    // optimistically and the cards exist only once the host has answered.
     politicsRevealShowing: boolean = $state(false)
 
     async selectPoliticsPile(pile: 'A' | 'B') {
@@ -1691,7 +1662,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     showMyPoliticsCards(origin: Point) {
-        this.beginPoliticsPileOrigin({ point: origin })
+        this.politicsHandOrigin = origin
         this.viewingMyPoliticsCards = true
     }
 
@@ -2342,9 +2313,10 @@ export class LowenherzGameSession extends GameSession<
             }
 
             if (this.canChooseAction && this.myPlayer) {
+                const myPlayerId = this.myPlayer.id
                 const usedSlots = new Set(
                     this.gameState.decisions
-                        .filter((d) => d.playerId === this.myPlayer!.id)
+                        .filter((d) => d.playerId === myPlayerId)
                         .map((d) => d.slot)
                 )
                 // Cycle 1/2/3 across successive decisions this round (rather than
@@ -2353,9 +2325,10 @@ export class LowenherzGameSession extends GameSession<
                 // only 1 decision per player in a 4-player game, "lowest available"
                 // meant every single player always picked slot 1, so border actions
                 // in the middle/bottom band were never chosen at all.
-                const preferred = ((this.gameState.decisions.length % 3) + 1) as 1 | 2 | 3
+                const decisionSlots = [1, 2, 3] as const
+                const preferred = decisionSlots[this.gameState.decisions.length % decisionSlots.length]
                 const slot = usedSlots.has(preferred)
-                    ? ([1, 2, 3] as const).find((s) => !usedSlots.has(s))
+                    ? decisionSlots.find((s) => !usedSlots.has(s))
                     : preferred
                 if (slot === undefined) break
                 await this.chooseAction(slot)

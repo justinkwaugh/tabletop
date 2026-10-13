@@ -18,7 +18,7 @@
 </script>
 
 <div
-    class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="history-feed rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
     <div class="overflow-auto h-full w-full">
         <Timeline class="ms-2 dark:border-[#ad9c80]">
@@ -45,7 +45,7 @@
                     onkeypress={() => {}}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
-                    animate:flip={{ duration: 100 }}
+                    animate:flip={{ duration: gameSession.isViewingHistory ? 0 : 100 }}
                 >
                     <div
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
@@ -84,7 +84,7 @@
 
 <!--  fixes a styling issue with timeline-item -->
 <style>
-    :global(.timeline-item > div) {
+    .history-feed :global(.timeline-item > div) {
         display: none;
     }
 </style>

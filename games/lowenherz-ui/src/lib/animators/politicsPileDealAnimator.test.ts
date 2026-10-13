@@ -10,11 +10,7 @@ import {
     type PoliticsCard
 } from '@tabletop/lowenherz'
 import type { LowenherzGameSession } from '$lib/model/session.svelte.js'
-import {
-    settlePoliticsPileOrigin,
-    type OriginElement,
-    type PoliticsPileOriginHandle
-} from '$lib/model/politicsPileOrigin.js'
+import { CHOOSER_DECK_GAP, responsiveCardWidth } from '$lib/model/politicsCardLayout.js'
 import { PoliticsPileDealAnimator } from './politicsPileDealAnimator.svelte.js'
 
 // Face art is decoded through `new Image()`, which does not exist off the browser.
@@ -27,54 +23,57 @@ const CARDS: PoliticsCard[] = [
     { type: PoliticsCardType.Treasure, value: 8 },
     { type: PoliticsCardType.Alliance }
 ]
+const ROW = { left: 100, top: 50, width: 600 }
 
-function deckElement(): OriginElement & { isConnected: boolean } {
-    return {
-        isConnected: true,
+function rowsElement(): HTMLElement {
+    const element = {
         getBoundingClientRect: () => ({
-            x: 300,
-            y: 100,
-            width: 66,
-            height: 103,
-            top: 100,
-            left: 300,
-            right: 366,
-            bottom: 203,
+            x: ROW.left,
+            y: ROW.top,
+            width: ROW.width,
+            height: 0,
+            top: ROW.top,
+            left: ROW.left,
+            right: ROW.left + ROW.width,
+            bottom: ROW.top,
             toJSON: () => ({})
         })
     }
+    return element as unknown as HTMLElement
 }
 
-// The session's own settlePoliticsPileOrigin is a one-line pass-through to the module function
-// over its private handle; this stands in for exactly that, over a real handle.
-function sessionHolding(handle: PoliticsPileOriginHandle | undefined): LowenherzGameSession {
-    const session = {
+function session(): LowenherzGameSession {
+    const stub = {
         myPlayer: { id: PLAYER },
-        politicsRowWidth: 600,
-        settlePoliticsPileOrigin: () => (handle ? settlePoliticsPileOrigin(handle) : undefined),
         addGameStateChangeListener() {},
         removeGameStateChangeListener() {}
     }
-    return session as unknown as LowenherzGameSession
+    return stub as unknown as LowenherzGameSession
 }
 
-function stateWithPile(openedPoliticsPile: 'A' | 'B' | undefined): HydratedLowenherzGameState {
+function stateWithPile(
+    openedPoliticsPile: 'A' | 'B' | undefined,
+    politicsTakingPlayerId = PLAYER
+): HydratedLowenherzGameState {
     const state = {
-        politicsTakingPlayerId: PLAYER,
+        politicsTakingPlayerId,
         openedPoliticsPile,
-        inspectedPoliticsCards: () => (openedPoliticsPile ? CARDS : undefined)
+        inspectedPoliticsCards: () => (openedPoliticsPile ? CARDS : undefined),
+        getPoliticsPileCount: () => 3
     }
     return state as unknown as HydratedLowenherzGameState
 }
 
 function animationCycle() {
     const finishers: (() => void)[] = []
+    const actionTimeline = gsap.timeline({ paused: true })
     const context = {
-        actionTimeline: gsap.timeline({ paused: true }),
+        actionTimeline,
         finalTimeline: gsap.timeline({ paused: true }),
         afterAnimations: (finisher: () => void) => finishers.push(finisher)
     }
     return {
+        actionTimeline,
         context: context as unknown as AnimationContext,
         finish: () => finishers.splice(0).forEach((finisher) => finisher())
     }
@@ -90,13 +89,16 @@ const openPileAction: LookAtPoliticsPile = {
     revealsInfo: true
 }
 
-describe('PoliticsPileDealAnimator across a pile opening replayed from history', () => {
-    it('deals live, then still deals when the opening is replayed after the deck has gone', async () => {
-        const deck = deckElement()
-        const handle: PoliticsPileOriginHandle = { element: deck }
-        const animator = new PoliticsPileDealAnimator(sessionHolding(handle))
+function animatorWithRow() {
+    const animator = new PoliticsPileDealAnimator(session())
+    animator.setRowsEl(rowsElement())
+    return animator
+}
 
-        // The live deal: the chooser has handed its deck over, the host has answered.
+describe('PoliticsPileDealAnimator', () => {
+    it('deals the opened pile, fading the other deck where the chooser drew it', async () => {
+        const animator = animatorWithRow()
+
         const live = animationCycle()
         await animator.onGameStateChange({
             to: stateWithPile('A'),
@@ -104,49 +106,59 @@ describe('PoliticsPileDealAnimator across a pile opening replayed from history',
             action: openPileAction,
             animationContext: live.context
         })
+
+        const cardWidth = responsiveCardWidth(ROW.width)
         expect(animator.dealing).toBe(true)
-        expect(handle.point).toEqual({ x: 333, y: 151.5 })
-        expect(handle.element).toBeUndefined()
+        expect(animator.rowWidth).toBe(ROW.width)
+        expect(animator.cardWidth).toBe(cardWidth)
+        expect(animator.losingDeck).toEqual({
+            left: ROW.width / 2 + CHOOSER_DECK_GAP / 2,
+            empty: false
+        })
         live.finish()
         expect(animator.dealing).toBe(false)
-
-        // The reveal took the slot and the chooser's deck left the page.
-        deck.isConnected = false
-
-        // Undo back over the opening, then forward again: an actionless transition that reopens
-        // the pile. The deal has to start from the settled point, since no deck exists any more.
-        const replay = animationCycle()
-        await animator.onGameStateChange({
-            to: stateWithPile('A'),
-            from: stateWithPile(undefined),
-            animationContext: replay.context
-        })
-        expect(animator.dealing).toBe(true)
-        replay.finish()
+        expect(animator.losingDeck).toBeUndefined()
     })
 
-    it('renders the row in place instead when no origin was ever settled', async () => {
-        const deck = deckElement()
-        deck.isConnected = false
-        const animator = new PoliticsPileDealAnimator(sessionHolding({ element: deck }))
+    it('deals an opening reached by history navigation, with no live click behind it', async () => {
+        const animator = animatorWithRow()
 
-        const replay = animationCycle()
+        const navigation = animationCycle()
         await animator.onGameStateChange({
-            to: stateWithPile('A'),
+            to: stateWithPile('B'),
             from: stateWithPile(undefined),
-            animationContext: replay.context
+            animationContext: navigation.context
         })
-        expect(animator.dealing).toBe(false)
+
+        expect(animator.dealing).toBe(true)
+        expect(animator.losingDeck?.left).toBeCloseTo(
+            ROW.width / 2 - CHOOSER_DECK_GAP / 2 - responsiveCardWidth(ROW.width)
+        )
+        expect(navigation.actionTimeline.duration()).toBeLessThanOrEqual(0.2)
+        navigation.finish()
     })
 
     it('does nothing for a transition that closes the pile', async () => {
-        const animator = new PoliticsPileDealAnimator(sessionHolding({ point: { x: 1, y: 2 } }))
+        const animator = animatorWithRow()
 
         const undo = animationCycle()
         await animator.onGameStateChange({
             to: stateWithPile(undefined),
             from: stateWithPile('A'),
             animationContext: undo.context
+        })
+        expect(animator.dealing).toBe(false)
+    })
+
+    it("never splays another player's pile", async () => {
+        const animator = animatorWithRow()
+
+        const opponent = animationCycle()
+        await animator.onGameStateChange({
+            to: stateWithPile('A', 'player-2'),
+            from: stateWithPile(undefined, 'player-2'),
+            action: { ...openPileAction, playerId: 'player-2' },
+            animationContext: opponent.context
         })
         expect(animator.dealing).toBe(false)
     })

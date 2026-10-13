@@ -28,14 +28,15 @@
         wallBetween,
         type BoardTileId,
         type PieceOwner,
+        type Region,
         type Wall
     } from '@tabletop/lowenherz'
-    import boardTileA from '$lib/images/board/board-a.jpg'
-    import boardTileB from '$lib/images/board/board-b.jpg'
-    import boardTileC from '$lib/images/board/board-c.jpg'
-    import boardTileD from '$lib/images/board/board-d.jpg'
-    import boardTileE from '$lib/images/board/board-e.jpg'
-    import boardTileF from '$lib/images/board/board-f.jpg'
+    import boardTileA from '$lib/images/board/board-a.webp'
+    import boardTileB from '$lib/images/board/board-b.webp'
+    import boardTileC from '$lib/images/board/board-c.webp'
+    import boardTileD from '$lib/images/board/board-d.webp'
+    import boardTileE from '$lib/images/board/board-e.webp'
+    import boardTileF from '$lib/images/board/board-f.webp'
     import RampartBorder from './RampartBorder.svelte'
     import RampartCorner from './RampartCorner.svelte'
     import WallSegment from './WallSegment.svelte'
@@ -259,13 +260,23 @@
     // square keys comparing strings. A dozen regions of ten squares each is ~120 string
     // compares per square, ~18k per render, re-run on every reactive change including the
     // hoverPoint updates that fire on mouse move. Same hoisting the sets below already got.
-    const regionBySquareKey = $derived.by(() => {
-        const map = new Map<string, (typeof regions)[number]>()
-        for (const region of regions) {
+    function regionsBySquareKey(ofRegions: Region[]): Map<string, Region> {
+        const map = new Map<string, Region>()
+        for (const region of ofRegions) {
             for (const key of region.squareKeys) map.set(key, region)
         }
         return map
-    })
+    }
+    const regionBySquareKey = $derived(regionsBySquareKey(regions))
+
+    // A scoring action's walls and tint, shown before the session publishes them so its pill
+    // annotates something already on the board. Display only: interaction reads the published state.
+    const displayedWalls = $derived(scorePopups.scoredBoard?.walls ?? board.walls)
+    const tintRegionBySquareKey = $derived(
+        scorePopups.scoredBoard
+            ? regionsBySquareKey(scorePopups.scoredBoard.regions)
+            : regionBySquareKey
+    )
     // Region ids by ownership, for the same reason: myRegions/expandableRegions are plain
     // getters that filter the whole regions array on every read, and the helpers below are
     // called once per square.
@@ -338,11 +349,6 @@
     // playing one stops being legal, so there is nothing to cancel: the flow reads as not in
     // progress, and the card id it left behind is never consulted again.
 
-    // Floating "+N"/"-N" popups near wherever a region was just created, expanded,
-    // invaded, or shrunk - one per scoring event, in the affected player's color,
-    // auto-removed after a couple seconds. Fired from PlaceWall/ExpandRegion actions as they
-    // are applied, reading their metadata for exact anchor squares/amounts - see the
-    // anchorSquareKey fields on PlaceWallMetadata/ExpandRegionMetadata.
     const TILE_SIZE = 5
 
     // Ratios against the original 44px cell, so proportions are preserved exactly.
@@ -613,7 +619,7 @@
 
     // Flat-color fallback, only used for squares when the board has no tileLayout
     // (older boards assembled before real tile art was wired up) - otherwise the
-    // actual board-a..f.jpg tile art (rendered behind the grid) shows through instead.
+    // actual board-a..f.webp tile art (rendered behind the grid) shows through instead.
     const terrainBg: Record<SquareType, string> = {
         [SquareType.Blank]: '#e7dfc9',
         [SquareType.Forest]: '#4c7a3d',
@@ -834,7 +840,7 @@
             if (region?.owner) return gameSession.uiColorForOwner(region.owner)
         }
 
-        const region = regionBySquareKey.get(key)
+        const region = tintRegionBySquareKey.get(key)
         if (!region?.owner) return undefined
         return gameSession.uiColorForOwner(region.owner)
     }
@@ -1216,7 +1222,7 @@
              wall's starting corner - west edges run down from there, north edges run
              right, so two segments sharing a grid corner always anchor at the same
              pixel point and their end-squares overlap. -->
-        {#each board.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge)}
+        {#each displayedWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge)}
             {#if !expansionHiddenWallKeys.has(`${wall.col},${wall.row},${wall.edge}`)}
                 {@const junctions = wallJunctionVisibility(wall)}
                 <div

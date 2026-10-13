@@ -7,25 +7,18 @@
     import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
     import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
-    import type { PoliticsPileOriginHandle } from '$lib/model/politicsPileOrigin.js'
 
     const gameSession = getGameSession()
 
-    // The cards flying in when a pile first opens, and the leftover deck sliding in alongside
-    // them, are a state-change animator now (see politicsPileDealAnimator.svelte.ts) rather than
-    // mount-triggered local tweens - so they get a real actionless fallback and don't play at all
-    // during silent restoration, the same as every other cinematic in this codebase. Taking a
-    // card is the same: dispatched immediately on click, with the collapse-and-focus choreography
-    // driven off the committed TakePoliticsCard action (see politicsPileTakeAnimator.svelte.ts)
-    // rather than played locally beforehand.
+    // Opening a pile (the losing deck fading, the chosen deck sliding to its seat, the cards
+    // dealing out) and taking a card are both state-change animators, driven by the committed
+    // action - see politicsPileDealAnimator.svelte.ts and politicsPileTakeAnimator.svelte.ts.
     const dealAnimator = new PoliticsPileDealAnimator(gameSession)
     const takeAnimator = new PoliticsPileTakeAnimator(gameSession)
 
     // Real server state (LookAtPoliticsPile), not local UI state - survives reload/undo. See
     // GameSession.selectedPoliticsPile's own comment for why that matters. Rendered above the
-    // board (see GameTable.svelte), right where PoliticsDeckChooser sat before a deck was picked -
-    // the origin (below) is whichever deck card in that chooser was clicked, so the deal
-    // reads as that same deck flying open in place.
+    // board (see GameTable.svelte), right where PoliticsDeckChooser sat before a deck was picked.
     const pile = $derived(gameSession.selectedPoliticsPile)
     const cards = $derived(
         gameSession.myPlayer
@@ -33,30 +26,12 @@
             : []
     )
 
-    // measuredWidth is this component's OWN live measurement - the authority once it has one FOR
-    // THIS reveal, so a real resize while cards are already dealt (a phone rotating, say) still
-    // reflows them, which politicsRowWidth's one-time handoff value on its own never would.
-    // measuredWidthOrigin is what makes "for THIS reveal" checkable at all: this component never
-    // unmounts (only the {#if pile} content below does), so measuredWidth simply keeps whatever
-    // it was last set to across a `pile` transition - and since `pile` is only ever 'A' or
-    // 'undefined' or 'B', a stale measurement from a PREVIOUS 'A' reveal would satisfy an
-    // `=== pile` check just as well as a fresh one for a new 'A' reveal, without actually being
-    // one. politicsPileOriginHandle is a fresh handle every time PoliticsDeckChooser hands off a
-    // new choice and the same one for the whole of that reveal, so comparing it by reference is
-    // what actually tells two reveals of the same letter apart.
-    //
-    // Measured with a plain ResizeObserver in an attachment rather than bind:clientWidth for the
-    // same reason: bind:clientWidth's first callback only fires a frame or more after mount, by
-    // which point cards had already rendered against whatever guess rowSizes uses before a width
-    // is known at all - and correcting that guess once the real number arrived could move a card
-    // into a different row's own {#each} block, which Svelte can't just reposition, so it tore
-    // the button down and remounted a fresh one - the white flash at the cards' own final resting
-    // spots. politicsRowWidth is already measured and handed off before this component even
-    // mounts, so there's no guess to correct on the very first render; measuredWidth only needs
-    // to take over once it's confirmed fresh, which the origin check above establishes without an
-    // effect or any other reset-by-hand.
-    // PoliticsDeckChooser keeps the clicked deck holding this slot until this block is really
-    // on screen - see GameSession.politicsRevealShowing for why the gap it closes exists at all.
+    // The row's own live measurement, so a resize while cards are dealt reflows them. Measured
+    // with a ResizeObserver in an attachment, and reset when the row leaves, so a new reveal starts
+    // from the width the deal measured instead of a stale one: correcting a wrong first guess can
+    // move a card into another row's keyed {#each}, which remounts it - a white flash.
+    // PoliticsDeckChooser keeps its decks in place until this block is really on screen - see
+    // GameSession.politicsRevealShowing.
     function holdPoliticsSlot() {
         gameSession.politicsRevealShowing = true
         return () => {
@@ -65,25 +40,21 @@
     }
 
     let measuredWidth: number = $state(0)
-    let measuredWidthOrigin: PoliticsPileOriginHandle | undefined = $state(undefined)
 
     function measureWidth(el: HTMLElement) {
-        const origin = gameSession.politicsPileOriginHandle
         const observer = new ResizeObserver((entries) => {
             const entry = entries[0]
             if (!entry) return
             measuredWidth = entry.contentRect.width
-            measuredWidthOrigin = origin
         })
         observer.observe(el)
-        return () => observer.disconnect()
+        return () => {
+            observer.disconnect()
+            measuredWidth = 0
+        }
     }
 
-    const rowWidth = $derived(
-        measuredWidthOrigin === gameSession.politicsPileOriginHandle && measuredWidth > 0
-            ? measuredWidth
-            : (gameSession.politicsRowWidth ?? 0)
-    )
+    const rowWidth = $derived(measuredWidth > 0 ? measuredWidth : dealAnimator.rowWidth)
 
     // Shrinks below CARD_W only once the row is too narrow for a few cards at that size - a
     // phone screen, mainly (see responsiveCardWidth's own comment) - rather than staying a fixed
@@ -147,14 +118,40 @@
              real available width, and every subsequent card - correct row split or not - was
              laid out against that self-fulfilling number. -->
         <div
-            class="w-full flex flex-col gap-2"
+            class="relative w-full flex flex-col gap-2"
             {@attach measureWidth}
             {@attach (el) => {
                 takeAnimator.setRowsEl(el)
-                return () => takeAnimator.setRowsEl(undefined)
+                dealAnimator.setRowsEl(el)
+                return () => {
+                    takeAnimator.setRowsEl(undefined)
+                    dealAnimator.setRowsEl(undefined)
+                }
             }}
         >
             {#if dealAnimator.dealing}
+                {@const dealCardWidthCss = `${dealAnimator.cardWidth}px`}
+                {#if dealAnimator.losingDeck}
+                    <!-- The deck that was not chosen, where PoliticsDeckChooser drew it. -->
+                    <div
+                        class="absolute top-0"
+                        style="left: {dealAnimator.losingDeck.left}px; width: {dealCardWidthCss};"
+                        {@attach (el) => {
+                            dealAnimator.setNode('losing-deck', el)
+                            return () => dealAnimator.setNode('losing-deck', undefined)
+                        }}
+                    >
+                        {#if dealAnimator.losingDeck.empty}
+                            <div
+                                class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
+                            >
+                                empty
+                            </div>
+                        {:else}
+                            <PoliticsCard faceDown />
+                        {/if}
+                    </div>
+                {/if}
                 <!-- The transient deal: same slot layout the real row below will use, so the
                      handoff at afterAnimations (when `dealing` clears and gameState has just
                      been assigned) lands in the exact same positions with nothing to jump. -->
@@ -163,7 +160,7 @@
                         {#each row as slot (slot.kind === 'deck' ? 'deck' : String(slot.index))}
                             {#if slot.kind === 'deck'}
                                 <div
-                                    style="width: {cardWidthCss};"
+                                    style="width: {dealCardWidthCss};"
                                     {@attach (el) => {
                                         dealAnimator.setNode('deck', el)
                                         return () => dealAnimator.setNode('deck', undefined)
@@ -173,7 +170,7 @@
                                 </div>
                             {:else}
                                 <div
-                                    style="width: {cardWidthCss};"
+                                    style="width: {dealCardWidthCss};"
                                     {@attach (el) => {
                                         dealAnimator.setNode(String(slot.index), el)
                                         return () =>

@@ -9,8 +9,8 @@
     import iconWallTwo from '$lib/images/action-cards/icons/icon-walls.png'
     import iconWallThree from '$lib/images/action-cards/icons/icon-wall-three.png'
     import iconMoneybag from '$lib/images/action-cards/icons/icon-moneybag.png'
-    import silverMine from '$lib/images/action-cards/silver-mine.jpg'
-    import kingIsDead from '$lib/images/action-cards/king-is-dead.jpg'
+    import silverMine from '$lib/images/action-cards/silver-mine.webp'
+    import kingIsDead from '$lib/images/action-cards/king-is-dead.webp'
 
     let {
         card,

@@ -8,7 +8,7 @@
     import type { Snippet } from 'svelte'
     import { decisionsForSlot, playerName } from '$lib/model/actionCardHelpers.js'
     import ActionCard from './ActionCard.svelte'
-    import backPlain from '$lib/images/action-cards/backs/back-plain.jpg'
+    import backPlain from '$lib/images/action-cards/backs/back-plain.webp'
 
     const gameSession = getGameSession()
     const actionState = $derived(gameSession.gameState)

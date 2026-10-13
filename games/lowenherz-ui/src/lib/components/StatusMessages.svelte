@@ -29,7 +29,7 @@
         type SubmitDuelBidMetadata
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
-    import EasedHeight from './EasedHeight.svelte'
+    import ReservedHeight from './ReservedHeight.svelte'
     import ActionDescription from './ActionDescription.svelte'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
 
@@ -461,8 +461,8 @@
 <!-- Two lines are always reserved: the prompt (text-[18px] leading-loose, 36px) plus the gap-2 (8px)
      and the alliance/history line (27px + pb-1 + border-b-2, 33px). A lone line is centred in that
      box, so the board never moves for the common one/two-line cases; only taller content
-     (negotiation, duel controls, wrapped prompts, history entries) eases the height. -->
-<EasedHeight minHeight={RESERVED_STATUS_HEIGHT} centerContent clip>
+     (negotiation, duel controls, wrapped prompts, history entries) grows it. -->
+<ReservedHeight minHeight={RESERVED_STATUS_HEIGHT} centerContent>
 <!-- items-center so each message box is centred over the board rather than starting at its left
      edge; text-center on the boxes themselves handles the wrapping lines within them. -->
 <div class="flex flex-col gap-2 items-center">
@@ -975,9 +975,7 @@
                                     gameSession.applyPoliticsCard(unarmedTreasureCards[0])
                                     return
                                 }
-                                const rect = (
-                                    event.currentTarget as HTMLElement
-                                ).getBoundingClientRect()
+                                const rect = event.currentTarget.getBoundingClientRect()
                                 gameSession.showMyPoliticsCards({
                                     x: rect.left + rect.width / 2,
                                     y: rect.top + rect.height / 2
@@ -1016,5 +1014,5 @@
         </div>
     {/if}
 </div>
-</EasedHeight>
+</ReservedHeight>
 

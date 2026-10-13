@@ -30,7 +30,7 @@
     const cardWidthStyle = `width: ${CARD_WIDTH_CSS};`
 
     // Tiled "deal" animation: each card flies in from wherever the clicked pile button actually
-    // sits on screen (see PlayerState.svelte's peek()/politicsPileOrigin), landing at its normal
+    // sits on screen (see PlayerState.svelte's peek()/politicsHandOrigin), landing at its normal
     // tiled position, staggered slightly per card like a quick riffle deal. Done with direct DOM
     // writes (rather than a Svelte transition) because the "from" point is external and only known
     // at click time, and the "to" point is wherever flex-wrap happens to lay each card out.
@@ -55,7 +55,7 @@
     // old settle timeout did.
     function dealIn(index: number) {
         return (el: HTMLElement) => {
-            const origin = gameSession.politicsPileOrigin
+            const origin = gameSession.politicsHandOrigin
             if (!origin) return
 
             const rect = el.getBoundingClientRect()
