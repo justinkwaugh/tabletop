@@ -18,11 +18,8 @@ import {
     type UnmergedBranch
 } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
-import {
-    GameReconciliation,
-    type LoadedGame,
-    type OptimisticSubmission
-} from './gameReconciliation.js'
+import type { LoadedGame } from './gameLines.js'
+import { GameReconciliation, type OptimisticSubmission } from './gameReconciliation.js'
 import {
     branchActionSteps,
     createBranchContext,

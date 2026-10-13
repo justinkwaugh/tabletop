@@ -37,6 +37,7 @@ This refactor changes the shared Game Client bundled in each UI Artifact. A Game
 - [x] Slice 6: repository compatibility audit, forward-play policy, and major-version reload
 - [x] Follow-up: notification ownership extraction
 - [x] Follow-up: canonical validation and shared projected hydration
+- [x] Follow-up: Main Line and Branch coordination
 
 ## Completed in slices 1–3
 
@@ -106,5 +107,9 @@ The Site Frontend continues to use its existing major-version reload. Version-ch
 ## Completed: canonical validation and projected authoring
 
 `9f128dd6` adds complete-state validation at canonical operations. `808537fe` integrates shared hydration and locally decidable owner visibility, with a permanent private-hand flow across Common, backend representations, and actual browser GameSession behavior. See the [authoring contract](DESIGN.md#schemas-and-hydration) and [integration validation](projected-hydration-prototype.md#integration-follow-up).
+
+## Completed: Main Line and Branch coordination
+
+`GameLines` owns the Main Line and the Player's Branch of a Hosted Game together: the queue of host deliveries and its busy deferral, the synchronization and reload protocol for both lines, the routing of a submission's or an Undo's answer onto whichever line the Action ran in, and the point at which the Branch follows a moved Main Line relative to the animations the session plays. `GameReconciliation` is reduced to the application primitives for one Game Context: accepted-Action application, suffix replacement, legacy Undo manifest reconstruction, optimistic acceptance, and catching up to a sync check's answer. `OwnBranch` keeps the Branch context with its reconciler and works out what a moved Main Line shows. GameSession keeps its Main Line context for display and optimistic play, Action initiation, the animation lifecycle, and History source selection; the Branch, and every change the host makes to either line, it reaches only through the coordinator. The GameSession constructor, bridge members, injected host dependencies, and payloads are unchanged, so each title adopts this with a UI-only Publication.
 
 The completed slices have not published artifacts. Performance, diagnostics, and mixed-publication verification remain on the [completion list](hidden-information-compatibility.md#remaining-development-slices).
